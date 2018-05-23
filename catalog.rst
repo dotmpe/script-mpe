@@ -88,6 +88,21 @@ TODO: Exists
   stat/checksum. For example located behind high-latency connection, or
   contained within compressed archive.
 
+Specs
+------
+See schema/catalog, basicly a list with simple objects. Important keys:
+
+- `name` to document unique name (preferred), or alternatively full `path`
+- `keys` to hold any validations tokens, for use with local or remote services
+  to validate file beloning to name
+
+- XXX: `attachments`.. in MIME speak a multipart with message and binary
+- XXX: `contains`.. a file or a tar, which in turn contains multiple files
+- XXX: `categories` to store prefixes, not sure how to deal with these yet.
+  Some or only one at a time may exist. Maybe use for overlay filesystem style
+  stuff
+
+
 Use cases
 ---------
 
@@ -109,7 +124,6 @@ ____________________________________________________
       - X-Series.S01E01/
       contexts:
       - X-Series.S01E01.tar.bz2
-
 
 Recording original name, or previous names
 ___________________________________________

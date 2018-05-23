@@ -53,16 +53,21 @@ cmd_default_settings = dict(
 def cmd_list(opts):
     "List entries"
     if not opts.catalog:
-        opts.catalog = catalog = Catalog(opts.flags.catalog)
+        opts.catalog = Catalog(opts.flags.catalog)
     for record in opts.catalog.data:
         print(record['name'])
 
 def cmd_add(FILES, opts):
-    "Add name record or error on existing"
+    """
+    Add name record or error on existing name
+    """
     if not opts.catalog:
         opts.catalog = Catalog(opts.flags.catalog)
     for fname in FILES:
-        opts.catalog.add_file(fname, opts)
+        if not os.path.exists(fname):
+            opts.catalog_add_name(fname, opts)
+        else:
+            opts.catalog.add_file(fname, opts)
     opts.catalog.write(opts)
 
 def cmd_getbyname(FILE, opts):
@@ -96,7 +101,10 @@ def cmd_importcks(TABLES, opts):
                 new_cks[fname][algo] = ck
 
     for fname in new_cks:
-        opts.catalog.add_file(fname, opts)
+        if os.path.exists(fname):
+            opts.catalog.add_file(fname, opts)
+        else:
+            opts.catalog.add_name(fname, opts)
         for algo, ck in new_cks[fname].items():
             if not isinstance(ck, basestring):
                 ck = " ".join(map(str, ck))
