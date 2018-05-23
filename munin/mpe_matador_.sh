@@ -9,6 +9,9 @@ node=${instance_args%%_*}
 measure=${instance_args##*_}
 
 
+# Available measures with P1 scanner
+# use1 use2 gen1 gen2 mode usew genw gas
+
 case "$1" in
 
     autoconf)
@@ -21,28 +24,23 @@ case "$1" in
             usew )
                 echo 'graph_args --base 1000 --lower-limit 0'
                 ;;
-            use2 )
-                echo 'graph_args --base 1000 --lower-limit 950 --upper-limit 1000'
+            use1|use2 )
+                echo 'graph_args --base 1000'
+                printf '%s_%s.type COUNTER' $node $measure
                 ;;
-            use1 )
-                echo 'graph_args --base 1000 --lower-limit 1050 --upper-limit 1100'
+            mode )
+                printf '%s_%s.type ABSOLUTE' $node $measure
                 ;;
             * )
                 echo 'graph_args --base 1000'
+                printf '%s_%s.type GAUGE' $node $measure
                 ;;
         esac
         printf 'graph_title %s metrics from %s' $measure $node
         printf '%s_%s.label %s metrics from %s' $node $measure $measure $node
-        printf '%s_%s.type GAUGE' $node $measure
 
-        #graph_vlabel temp in C
-        #temp.warning 60
-        #temp.critical 85
-        cat <<'EOM'
-
-graph_category sensors
-
-EOM
+        echo graph_category sensors
+        echo .
         exit 0
         ;;
 
@@ -54,8 +52,7 @@ path=/tmp/matador/$node/$measure
 printf '%s_%s.value %f' $node $measure $(
     awk '{ total += $1; count++ } END { print total/count }' $path
 )
+echo .
 
-# Truncate
+# Truncate, so that next run doesn't repeat values
 echo > $path
-
-
