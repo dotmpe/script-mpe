@@ -3,6 +3,14 @@ description: Named prerequisite packages and metadata on provisioning. See tools
 
 tools:
 
+  aha:
+    installer: git+make
+    description: |
+        ANSI HTML Adapter for convertion ANSI to HTML
+        TODO: project needs `make && make install`, cant use basher or git
+        installers directly.
+    src: https://github.com/theZiz/aha.git
+
   gcalcli:
     installer: pip
 

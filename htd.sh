@@ -9958,6 +9958,34 @@ htd__dangling_blobs()
 }
 
 
+htd__uptime()
+{
+  disk_runtime
+}
+
+htd__bootnumber()
+{
+  note "Getting disk0 boot count-crash count..."
+  eval local $(disk_smartctl_attrs)
+  echo "$Power_Cycle_Count_Raw-$Power_Off_Retract_Count_Raw"
+  echo "$Power_Cycle_Count-$Power_Off_Retract_Count"
+}
+
+htd__diskstats()
+{
+  disk_stats
+}
+
+
+htd__pm2()
+{
+  test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
+    } || action=list
+  htd_pm2_$action "$@" || return $?
+}
+htd_run__pm2=f
+
+
 # -- htd box insert sentinel --
 
 
@@ -10059,7 +10087,7 @@ htd_init()
   lib_load htd meta match vc web src
   lib_load box date doc table disk remote package service archive \
       prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
-      catalog tasks journal annex lfs
+      catalog tasks journal annex lfs pm2
   case "$uname" in Darwin ) lib_load darwin ;; esac
   . $scriptpath/vagrant-sh.sh
   disk_run

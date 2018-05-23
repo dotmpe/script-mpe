@@ -1319,6 +1319,11 @@ pdoc/pdir instances.
 
     doctor
         Verify that we can map pdir names to paths.
+    doc-update-all
+        XXX: update every host
+    doc-update
+        XXX: Actualize document and dir?
+            update dir from doc and doc from dir based on timestamping..
 '
 
 pd__doc_update_all()
@@ -1326,12 +1331,12 @@ pd__doc_update_all()
    for host in $PD_CONFDIR/*/
    do echo
    done
+   false
 }
 
 pd__doc_update()
 {
-    echo ok
-    logger "update-master ok"
+   false
 }
 
 pd__doctor()

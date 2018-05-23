@@ -586,3 +586,33 @@ host: $hostname
 EOM
   } | jsotk yaml2json -
 }
+
+disk_smartctl_attrs()
+{
+  smartctl -A disk0 -f old | tail -n +8 | while \
+      read id attr flag value worst thresh type updated when_failed raw_value
+    do
+        test -n "$attr" || continue
+        printf "%s " "$(printf "$attr" | tr -cs 'A-Za-z_' '_')_Raw=\"$raw_value\""
+        printf "%s " "$(printf "$attr" | tr -cs 'A-Za-z_' '_')=\"$value\""
+    done
+}
+
+disk_runtime()
+{
+  note "Getting disk0 runtime (days)..."
+  eval local $(disk_smartctl_attrs)
+  python -c "print $Power_On_Hours_Raw / 24.0"
+  #echo "$Power_On_Hours_Raw / 24.0" | bc
+  #echo "$Power_On_Hours"
+}
+
+disk_stats()
+{
+  note "Stats (from main disk):"
+  eval local $(disk_smartctl_attrs)
+  note "Total runtime: $Power_On_Hours ($Power_On_Hours_Raw)"
+  note "Boots: $Power_Cycle_Count ($Power_Cycle_Count_Raw)"
+  note "Improper shutdowns: $Power_Off_Retract_Count ($Power_Off_Retract_Count_Raw)"
+  note "Disk temperature: $Temperature_Celsius ($Temperature_Celsius_Raw)"
+}

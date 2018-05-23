@@ -7,7 +7,12 @@ date_lib_load()
 
   # Age in seconds
   _1MIN=60
+  _2MIN=120
+  _3MIN=180
+  _4MIN=240
   _5MIN=300
+  _10MIN=600
+  _45MIN=2700
 
   _1HOUR=3600
   _3HOUR=10800

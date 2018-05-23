@@ -6,6 +6,7 @@ setup()
 {
   testf=test/var/crc32-asdn.txt
   size=4
+  # Other test-vectors at <https://www.di-mgt.com.au/sha_testvectors.html>
   crc32_zip=355327694
   crc32_ck=1814461271
   crc32_eth=1531968134

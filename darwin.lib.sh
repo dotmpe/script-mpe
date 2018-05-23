@@ -67,21 +67,6 @@ start_launchd_service()
 }
 
 
-htd_darwin_list()
-{
-  system_profiler -listDataTypes
-}
-
-htd_darwin_profiles()
-{
-  for dtype in "$@"
-  do
-      note "Type: $dtype"
-      system_profiler $dtype
-  done
-}
-
-
 # Retrieve OS/X plist XML from system_profiler
 darwin_profile_xml()
 {
@@ -203,7 +188,56 @@ darwin_wherefrom()
 }
 
 
-# Main
+## Htd subcommands
+
+htd_darwin_list()
+{
+  system_profiler -listDataTypes
+}
+
+htd_darwin_profiles()
+{
+  for dtype in "$@"
+  do
+      note "Type: $dtype"
+      system_profiler $dtype
+  done
+}
+
+# NOTE: empty
+htd_darwin_dev()
+{
+    system_profiler -detailLevel full SPDeveloperToolsDataType
+}
+
+htd_darwin_hw()
+{
+    system_profiler -detailLevel full SPHardwareDataType
+}
+
+htd_darwin_diag()
+{
+    system_profiler -detailLevel full SPDiagnosticsDataType
+}
+
+htd_darwin_power()
+{
+    system_profiler -detailLevel full SPPowerDataType
+}
+
+htd_darwin_tb()
+{
+    system_profiler -detailLevel full SPThunderboltDataType
+}
+
+# NOTE:
+htd_darwin_storage()
+{
+    system_profiler -detailLevel full SPStorageDataType
+}
+
+
+## Main
 
 case "$0" in "" ) ;; "-"* ) ;; * )
 

@@ -107,8 +107,8 @@
     list-files:
       - lib_load build ; project_files \"\$@\"
     init:
-      - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
-      - source ~/.pyvenv/du-ext/bin/activate
+      - test -d ~/.pyvenv/htd || virtualenv --system-site-packages ~/.pyvenv/htd
+      - source ~/.pyvenv/htd/bin/activate
       - scriptname="init"
       - . ./tools/sh/init.sh
       - . ./tools/sh/env.sh
@@ -141,10 +141,10 @@
       - . ./tools/ci/check-env.sh
 
     list-rst:
-      - . ~/.pyvenv/du-ext/bin/activate
+      - . ~/.pyvenv/htd/bin/activate
       - git ls-files | grep '\.rst$'
     check-rst:
-      - . ~/.pyvenv/du-ext/bin/activate ; \
+      - . ~/.pyvenv/htd/bin/activate ; \
         git ls-files | grep '\.rst$' | while read rst ; do \
           rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null; \
         done
@@ -157,9 +157,12 @@
       - . ./tools/ci/parts/init.sh
       - scriptname=install
       - . ./tools/ci/parts/install.sh
+    reset-pyvenv:
+      - rm -rf ~/.pyvenv/htd
+      - htd run install-pyvenv
     install-pyvenv:
-      - test -d ~/.pyvenv/du-ext || virtualenv ~/.pyvenv/du-ext
-      - source ~/.pyvenv/du-ext/bin/activate ; \
+      - test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
+      - source ~/.pyvenv/htd/bin/activate ; \
         pip install -r requirements.txt; \
         pip install -r test-requirements.txt
     install-gv:
@@ -188,7 +191,7 @@
       - lib_load build ; test -n \"\$1\" || set -- \$REQ_SPECS \$TEST_SPECS ; project_test \"\$@\"
     # Keep testfiles and tested list, and keep running while one or more fails
     retest:
-      - source ~/.pyvenv/du-ext/bin/activate
+      - source ~/.pyvenv/htd/bin/activate
       # TODO: restart only after changes
       - lib_load build ; retest \"\$@\"
     tested:

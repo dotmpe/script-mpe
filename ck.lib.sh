@@ -8,6 +8,10 @@ ck_lib_load()
 {
   test -n "$ck_tab" || ck_tab=table
   test -n "$ck_exts" || ck_exts="ck crc32 md5 sha1 sha2 sha256"
+  empty_md5=d41d8cd98f00b204e9800998ecf8427e
+  empty_sha1=da39a3ee5e6b4b0d3255bfef95601890afd80709
+  empty_sha2=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  empty_git=e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 }
 
 ck_exists()

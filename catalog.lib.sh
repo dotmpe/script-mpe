@@ -38,7 +38,11 @@ htd_catalog_asjson()
   test -n "$1" || set -- "$CATALOG"
   local jsonfn="$(pathname "$1" .yml .yaml).json"
   test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
-    jsotk yaml2json "$1" "$jsonfn"
+    {
+      not_falseish "$update_json" || test -e "$jsonfn"
+    } && {
+      jsotk yaml2json "$1" "$jsonfn"
+    }
   }
   cat "$jsonfn"
 }
@@ -264,8 +268,10 @@ htd_catalog_add_file() # File
   local \
       sha1sum=$(sha1sum "$1" | awk '{print $1}')
   htd_catalog_check_keys "$sha1sum" && {
-    echo "$1" >>$Catalog_Duplicates
+    echo "add-file: $1" >>$Catalog_Duplicates
     warn "Keys for '$1' present, matching record:"
+    # NOTE: don't update JSON while check-keys doesn't either
+    update_json=false \
     htd_catalog_get_by_key "" "$sha1sum" | tee -a $Catalog_Duplicates
     return 1
   }
@@ -274,7 +280,7 @@ htd_catalog_add_file() # File
       md5sum=$(md5sum "$1" | awk '{print $1}') \
       sha2sum=$(shasum -a 256 "$1" | awk '{print $1}')
   htd_catalog_check_keys "$md5sum" "$sha2sum" && {
-    echo "$1" >>$Catalog_Duplicates
+    echo "add-file: $1" >>$Catalog_Duplicates
     warn "Keys for '$1' present, matching record:"
     htd_catalog_get_by_key "" "$md5sum" "$sha2sum" | tee -a $Catalog_Duplicates
     return 1
@@ -352,6 +358,16 @@ htd_catalog_add_all_larger() # DIR SIZE
       test $r -eq 2 && continue
       error "Adding '$fn' ($r)"
     }
+  done
+}
+
+htd_catalog_untracked()
+{
+  htd_catalog_listtree "$1" | while read fn
+  do
+    test -f "$fn" || continue
+    htd_catalog_has_file "$fn" && continue
+    echo "$fn"
   done
 }
 
@@ -615,7 +631,7 @@ htd_catalog_add_empty_file()
 {
   test -n "$1" || set -- "$CATALOG"
   htd_catalog_get_by_key "$1" \
-    e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 && {
+    $empty_sha2 && {
       warn "Existing record found" 1
     }
 
@@ -638,3 +654,22 @@ htd_catalog_add_empty_file()
 EOM
   } >> "$1"
 }
+
+#htd_catalog_dedupe() # DIR|GLOB|-
+#{
+#  htd_catalog_untracked | while read fn
+#  do
+#
+#
+#  local \
+#      sha1sum=$(sha1sum "$1" | awk '{print $1}')
+#  htd_catalog_check_keys "$sha1sum" && {
+#    echo "add-file: $1" >>$Catalog_Duplicates
+#    warn "Keys for '$1' present, matching record:"
+#    # NOTE: don't update JSON while check-keys doesn't either
+#    update_json=false \
+#    htd_catalog_get_by_key "" "$sha1sum" | tee -a $Catalog_Duplicates
+#    return 1
+#  }
+#  done
+#}
