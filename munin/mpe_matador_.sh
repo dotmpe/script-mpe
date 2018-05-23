@@ -26,18 +26,18 @@ case "$1" in
                 ;;
             use1|use2 )
                 echo 'graph_args --base 1000'
-                printf '%s_%s.type COUNTER' $node $measure
+                printf '%s_%s.type COUNTER\n' $node $measure
                 ;;
             mode )
-                printf '%s_%s.type ABSOLUTE' $node $measure
+                printf '%s_%s.type ABSOLUTE\n' $node $measure
                 ;;
             * )
                 echo 'graph_args --base 1000'
-                printf '%s_%s.type GAUGE' $node $measure
+                printf '%s_%s.type GAUGE\n' $node $measure
                 ;;
         esac
-        printf 'graph_title %s metrics from %s' $measure $node
-        printf '%s_%s.label %s metrics from %s' $node $measure $measure $node
+        printf 'graph_title %s metrics from %s\n' $measure $node
+        printf '%s_%s.label %s metrics from %s\n' $node $measure $measure $node
 
         echo graph_category sensors
         echo .
@@ -49,7 +49,7 @@ esac
 path=/tmp/matador/$node/$measure
 
 # Print average
-printf '%s_%s.value %f' $node $measure $(
+printf '%s_%s.value %f\n' $node $measure $(
     awk '{ total += $1; count++ } END { print total/count }' $path
 )
 echo .
