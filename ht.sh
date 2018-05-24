@@ -89,6 +89,13 @@ ht__filesize()
 }
 
 
+ht_man_1__detect_ping='Test given host is online, answering to PING'
+ht__detect_ping() # Host
+{
+  ping -qt 1 -c 1 $1 >/dev/null && stderr ok "$1" || return $?
+}
+
+
 # Script main functions
 
 ht_main()
