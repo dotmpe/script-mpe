@@ -23,10 +23,12 @@ case "$1" in
         case "$measure" in
             usew )
                 echo 'graph_args --base 1000 --lower-limit 0'
+                printf '%s_%s.type GAUGE\n' $node $measure
                 ;;
             use1|use2 )
                 echo 'graph_args --base 1000'
-                printf '%s_%s.type COUNTER\n' $node $measure
+                printf '%s_%s.type DERIVE\n' $node $measure
+                printf '%s_%s.min 0\n' $node $measure
                 ;;
             mode )
                 printf '%s_%s.type ABSOLUTE\n' $node $measure
