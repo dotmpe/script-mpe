@@ -31,7 +31,7 @@ case "$1" in
                 printf '%s_%s.min 0\n' $node $measure
                 ;;
             mode )
-                printf '%s_%s.type ABSOLUTE\n' $node $measure
+                printf '%s_%s.type DERIVED\n' $node $measure
                 ;;
             * )
                 echo 'graph_args --base 1000'
