@@ -14,7 +14,7 @@ measure=${instance_args##*_}
 
 case "$1" in
 
-    autoconf)
+    autoconf )
         echo yes
         exit 0
         ;;
@@ -40,7 +40,9 @@ case "$1" in
         printf '%s_%s.label %s metrics from %s\n' $node $measure $measure $node
 
         echo graph_category sensors
-        echo .
+
+        # Either line is required:
+        #echo .
         exit 0
         ;;
 
@@ -52,7 +54,6 @@ path=/tmp/matador/$node/$measure
 printf '%s_%s.value %f\n' $node $measure $(
     awk '{ total += $1; count++ } END { print total/count }' $path
 )
-echo .
 
 # Truncate, so that next run doesn't repeat values
 echo > $path
