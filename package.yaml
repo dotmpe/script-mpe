@@ -107,7 +107,7 @@
     list-files:
       - lib_load build ; project_files \"\$@\"
     init:
-      - test -d ~/.pyvenv/htd || virtualenv --system-site-packages ~/.pyvenv/htd
+      - test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
       - source ~/.pyvenv/htd/bin/activate
       - scriptname="init"
       - . ./tools/sh/init.sh
