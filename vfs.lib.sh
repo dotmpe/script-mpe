@@ -6,7 +6,10 @@ vfs_lib_load()
 {
   export rund=/var/run/htdocs/vfs/
 
-  test -w "$rund" && pref= || pref=sudo
+  test -w "$rund" && pref= || {
+    warn "vfs.lib: Using sudo to access $rund"
+    pref=sudo
+  }
   $pref mkdir -p $rund
   test -z "$pref" || $pref chown $(whoami):staff $rund
 }
