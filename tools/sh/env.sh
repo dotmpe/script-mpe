@@ -11,10 +11,12 @@ case "$shopts"
   in *e* )
       test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" && {
         # undo Jenkins opt, unless EXIT_ON_ERROR is on
-        echo "[$0] Important: Shell will NOT exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+        msg="[$0] Shell will NOT exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+        test -n "$PS1" && debug "$msg" || note "$msg"
         set +e
       } || {
-        echo "[$0] Note: Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+        msg="[$0] Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+        test -n "$PS1" && warn "$msg" || info "$msg"
       }
     ;;
 

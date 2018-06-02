@@ -1,15 +1,5 @@
 #!/bin/sh
 
-set -e
-
-rm -rf ~/.pyvenv/htd
-
-test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
-source ~/.pyvenv/htd/bin/activate ; \
-        pip install -r requirements.txt; \
-        pip install -r test-requirements.txt
-
-exit $?
 
 ./txt.py doctree docs.list .
 exit $?

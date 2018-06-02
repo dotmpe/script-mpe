@@ -4881,7 +4881,12 @@ htd_man_1__package='Get local (project/workingdir) metadata
   package ls|list-ids
      List package IDs from local package metadata file.
   package update
-     Regenerated main.json and package.sh files (from YAML)
+     Regenerate main.json/PackMeta-JS-Main and package.sh/PackMeta-Sh files from YAML
+  package sh-script-write NAME
+     Write env+script lines to as-is executable shell script for "scripts/NAME"
+  package sh-scripts NAMES
+     Compile scripts with sh-script-write, ensure up-to-date env profile script.
+     See ``htd run`` and ``htd scripts`` to run PackMeta-Sh lines directly.
   package remotes-init
      Take all repository names/urls directly from YAML, and create remotes or
      update URL for same in local repository. The remote name and exact
@@ -4894,6 +4899,16 @@ htd_man_1__package='Get local (project/workingdir) metadata
      ..
   package debug
      Log each Sh package settings.
+  package scripts-write [NAME]
+     Compile script into as-is shell script.
+
+Plumbing
+  package sh-script SCRIPTNAME [PackMeta-JS-Main]
+     List script lines
+  package sh-env
+     List profile script lines from PackMeta-Sh
+  package sh-env-script
+     Update env profile script from sh-env lines
 
   package dir-get-key <Dir> <Package-Id> [<Property>...]
 
@@ -4904,7 +4919,11 @@ into env.
 htd_run__package=iAO
 htd__package()
 {
-  test -n "$1" || set -- debug
+  test -n "$*" && { 
+      test -n "$1" || {
+        shift && set -- debug "$@"
+      }
+    } || set -- debug
   upper=0 mkvid "$1" ; shift ; func=htd_package_$vid
   func_exists "$func" || func=package_$vid
   $func "$@" || return $?
@@ -4962,7 +4981,7 @@ htd__run()
   jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 &&
       error "No script '$1'" 1
 
-  # Evaluate package env
+  # Evaluate package metadata
   test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" ||
       error "No local package" 1
   . $PACKMETA_SH || error "Sourcing package Sh" 1
@@ -4974,19 +4993,22 @@ htd__run()
     return 1
   }
 
-  # Execute script-lines
-  (
-    SCRIPTPATH=
-    unset Build_Deps_Default_Paths
-    ln=0
+  # Write shell profile script
+  htd package sh-env-script
 
+  # Execute env and script-lines in subshell
+  (
+    SCRIPTPATH= ln=0
+    unset Build_Deps_Default_Paths
+
+    # XXX: not sure about this, but anyway
     test -z "$package_cwd" || {
       note "Moving to '$package_cwd'"
       cd $package_cwd
     }
-    test -z "$package_env" || {
-      eval $package_env
-    }
+
+    # Initialize shell from profile script
+    . .cllct/tools/env.sh
 
     # Write scriptline with expanded vars
     info "Expanded '$(eval echo \"$@\")'"

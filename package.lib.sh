@@ -263,22 +263,44 @@ package_dir_get_keys() # Dir Package-Id [Property...]
 }
 
 
+# TODO get or set
 package_default_env()
 {
   set --
 }
 
 
+# TODO list shell profile script to initialize shell env with for 'scripts' tasks
+# TODO eval shell profile
 package_sh_env()
 {
-  set --
+  test -n "$PACKMETA_SH" || package_lib_set_local .
+  test -n "$package_env" && {
+    # Single line script
+    echo "$package_env"
+  } || {
+    package_sh_list "$PACKMETA_SH" "env"
+  }
 }
 
+package_sh_env_script()
+{
+  local script_out=.cllct/tools/env.sh
+  test -n "$PACKMETA_SH" || package_lib_set_local .
+  test -s $script_out -a $script_out -nt $PACKMETA && {
+    note "Newest version of $script_out exists"
+  } || {
+    mkdir -vp "$(dirname "$script_out")" &&
+    package_sh_env > "$script_out" &&
+    note "Updated $script_out"
+  }
+}
 
-# XXX: iso. using .package.sh read lines from JSON
+# iso. using .package.sh read lines from JSON
 # package-sh-script SCRIPTNAME [JSOTKFILE]
 package_sh_script()
 {
+  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   test -n "$2" || set -- "$1" $PACKMETA_JS_MAIN
   test -e "$2"
   jsotk.py path -O lines "$2" scripts/$1 || {
@@ -296,17 +318,26 @@ package_sh_list()
   test -n "$2" || error package_sh_list:list-key 1
   test -n "$show_index" || show_index=0
   test -n "$show_item" || show_item=1
-  read_nix_style_file $1 | grep '^package_'"$2" |
+  test -n "$show_eval" || show_eval=1
+  trueish "$show_eval" && {
+      test -n "$package_main" || . $1
+    }
+  read_nix_style_file $1 | grep '^package_'"$2[_=]" |
     sed 's/^package_'"$2"'__\([0-9]*\)/\1/g' |
     while IFS='=' read index item
     do
       echo \
-        $(trueish "$show_index" && echo $index) \
-        $(trueish "$show_item" && echo $item)
+        $(trueish "$show_index" && echo "$index") \
+        "$( trueish "$show_item" && { \
+                trueish "$show_eval" && \
+                { eval echo $item ; } || \
+                { echo "$item" ; } ; \
+            } )"
     done
 }
 
 
+# NOTE: scripts must be lists or this doesn't go..
 package_sh_list_exists()
 {
   test -n "$1" || set -- $PACKMETA_SH "$2"
@@ -350,9 +381,10 @@ htd_package_debug()
   }
 }
 
+# List strings at main package 'urls' key
 htd_package_urls()
 {
-  package_lib_set_local "$(pwd -P)"
+  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" urls
 }
@@ -360,7 +392,7 @@ htd_package_urls()
 htd_package_open_url()
 {
   test -n "$1" || error "name expected" 1
-  package_lib_set_local "$(pwd -P)"
+  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   . $PACKMETA_SH
   url=$( upper=0 mkvid "$1" && eval echo \$package_urls_$vid )
   test -n "$url" || error "no url for name '$1'" 1
@@ -372,8 +404,7 @@ htd_package_open_url()
 # remote repository or adding/updating each name/URL.
 htd_package_remotes_init()
 {
-  package_lib_set_local "$(pwd -P)"
-
+  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
   vc_getscm
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
@@ -396,11 +427,45 @@ htd_package_remotes_init()
 
 htd_package_remotes_reset()
 {
+  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   git remote | while read remote
   do
       git remote remove $remote
   done
   htd_package_remotes_init
+}
+
+htd_package_scripts_write() # [script_out=] : NAME
+{
+  test -n "$1" || set -- "init"
+  test -n "$script_out" || script_out=.cllct/scripts/$1.sh
+  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
+  test -n "$script_line_eval" || script_line_eval=1
+  test -s $script_out -a $script_out -nt $PACKMETA && {
+    note "Newest version of $script_out exists"
+  } || {
+    mkdir -vp "$(dirname "$script_out")" &&
+    trueish "$script_line_eval" && { {
+        upper=0 mkvid "$1" &&
+        package_sh_list "$PACKMETA_SH" "scripts_$vid" >"$script_out"
+      } || return $?
+    } || {
+      package_sh_script "$1" >"$script_out"
+    }
+    note "Updated $script_out"
+  }
+  unset script_out
+}
+
+htd_package_sh_scripts() # NAMES...
+{
+  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
+  test -n "$package_main" || . $PACKMETA_SH
+  while test $# -gt 0
+  do
+    htd_package_scripts_write "$1" || return
+    shift
+  done
 }
 
 # Id: script-mpe/0.0.4-dev package.lib.sh
