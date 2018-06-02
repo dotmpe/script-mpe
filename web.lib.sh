@@ -1,12 +1,12 @@
 #!/bin/sh
 
 
-function wanip()
+wanip()
 {
   dig +short myip.opendns.com @resolver1.opendns.com
 }
 
-function urlencode()
+urlencode()
 {
   python -c "import urllib; print(urllib.quote_plus('$1'));"
 }
