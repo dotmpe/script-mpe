@@ -121,8 +121,9 @@ disk_id()
 
 disk_id_for_dev()
 {
-  local dev=$1 ; local disk_id="$(disk_id "$dev")"
-  test -z "$disk_id" && error "No disk Id: $dev" 1
+  local dev="$1" ;
+  local disk_id="$(disk_id "$dev")" || error "disk-id: '$dev'" 1
+  test -z "$disk_id" && error "No disk Id for device '$dev'" 1
   info "Using Disk-ID '$disk_id' for '$dev'"
   echo "$disk_id"
 }
@@ -205,16 +206,18 @@ disk_tabletype()
 disk_local_inner()
 {
   local disk=$1; shift
+  debug "disk-local-inner disk='$disk'"
   while test -n "$1"
   do
     case $(str_lower $1) in
-      num ) disk_info $disk disk_index || return $?;;
+      num ) disk_info "$disk" disk_index || echo -1 ;;
       dev ) printf -- "$disk " || return $?;;
       disk_id ) disk_id $disk || return $?;;
       disk_model ) disk_model $disk | tr ' ' '-';;
       size ) disk_size $disk || return $?;;
       table_type ) disk_tabletype $disk || return $?;;
       mnt_c ) find_mount $disk | count_words ;;
+      * ) error "inner $1?" 1 ;;
     esac
     shift
   done
@@ -225,6 +228,8 @@ disk_local_inner()
 disk_local()
 {
   test -n "$1" || error disk-local 1
+  disk_local_inner "$@"
+
   echo $( disk_local_inner "$@" || {
     #return 1
     echo "disk-local:$1:$2">>$failed
@@ -411,8 +416,8 @@ copy_fs()
 disk_info()
 {
   test -n "$1" || error "disk-info disk-device" 1
-  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
   test -n "$2" || set -- "$1" "prefix"
+  test -d "$DISK_CATALOG" || error "Invalid catalog env ($DISK_CATALOG)" 1
   test -e "$DISK_CATALOG/disk/$1.sh" || {
       set -- "$(disk_id_for_dev)" "$2" || {
         error "No such known disk '$1'"; return 1; }; }

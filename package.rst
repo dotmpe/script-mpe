@@ -12,25 +12,19 @@ may conform to the schema::
 
 TODO: perhaps allow 'packages' or '<prefix>.{type,package}' schemes for root mapping iso. lists.
 
+NOTE: version concerns main component version, not metadata
+
 Usage
 -----
 In various places where project metadata is needed. Ie. to enable specific
 projects to offer a more abstract check/test/build/... lifecycle either
 explicitly or implicitly acc. to different systems, languages, etc.
 
-Used in conjection with ``pd`` scripts (which uses ``projects.yml``, aka. the
-project document [Pdoc]).
+Used in conjection with ``pd`` scripts?
 
 See `test/pd-spec <test/pd-spec.rst>`_  for tested specifications.
 Specifically `spec pd/0/1/6 <test/pd-spec#/pd/0/1/6>`_  that describes how the
 scripts interact with the Pdoc, local package metadata and other context.
-
-Sources
--------
-May want to integrate to some degrees with:
-
-- NPM package.json, PHP Composer JSON, Bower Components JSON
-- Github pages uses ``_config.yml theme`` to set Jekyll GH page generator.
 
 
 Other (optional) attributes

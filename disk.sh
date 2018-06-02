@@ -163,14 +163,15 @@ disk_man_1__local="Show disk info TODO: test this works at every platform"
 disk__local()
 {
   test -n "$1" || set -- $(disk_list)
+  info "Devices: '$*'"
   {
     echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
     {
       while test $# -gt 0
       do
         test -n "$1" || continue
-        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
-        #\ || echo "disk:local:$1" >>$failed
+        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C ||
+          echo "disk:local:$1" >>$failed
         shift
       done
     } | sort -n
