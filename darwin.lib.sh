@@ -53,8 +53,13 @@ setup_launchd_service()
 EOM
 } > $id.service
   LLA=$HOME/Library/LaunchAgents/
-  sudo mv $id.service $LLA
-  sudo launchctl load $LLA/$id.service
+  test -w "$LLA" && pref= || {
+    warn "setup-launchd-service: Using sudo to access $LLA"
+    pref=sudo
+  }
+  warn "Using sudo to move to $LLA"
+  $pref mv $id.service $LLA
+  $pref launchctl load $LLA/$id.service
 }
 
 

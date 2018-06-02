@@ -16,7 +16,11 @@ disk_run()
   mkdir -p $DISK_CATALOG/volume
 
   export mnt_pref="sudo " dev_pref=
-  case "$(groups)" in *" disk "* ) ;; * ) export dev_pref="sudo";; esac
+  case "$(groups)" in
+    *" disk "* ) ;;
+    * )
+      warn "No disk access, using sudo to read disk device info"
+      export dev_pref="sudo" ;; esac
   export fdisk="$dev_pref $(which fdisk)"
   export parted="$dev_pref $(which parted)"
   export blkid="$dev_pref $(which blkid)"
@@ -345,6 +349,7 @@ mount_tmp()
   test -n "$1" || error "Device or disk-id required" 1
   test -n "$2" || set -- "$1" 1
   tmpd=$(setup_tmpd disk/$2)
+  warn "Mounting temporary disk $1"
   $mnt_pref mount $1 $tmpd || return $?
   note "Mounted $1 at $tmpd"
   export tmp_mnt=$tmpd

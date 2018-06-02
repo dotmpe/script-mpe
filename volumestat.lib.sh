@@ -117,6 +117,7 @@ htd_volumestat_umount()
   touch $stat.deinit $stat.umount
   htd_volumestat_deinit
   rm "$stat.umount"
+  warn "Using sudo to mount $1"
   test "$uname" = "Darwin" && {
     sudo diskutil unmount /Volumes/$1/
   } || {
