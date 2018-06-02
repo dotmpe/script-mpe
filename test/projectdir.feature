@@ -1,58 +1,67 @@
-Feature: projectdir is a tool to handle projects as groups
+Feature: Project checkout handling
+  
+  Checkouts imply a source repository. A local folder represents a copy of a
+  distinct body of work, and a means of distribution. For VCS detailed tracking
+  of blobs stored in filetrees through time and parallel versions is possible.
+  Technically publication back to the repository is easy, however while other
+  checkouts maybe mere downloads. Ie. compressed filetree archives which in 
+  themselves have no upstream publication and little to no tracking of blobs
+  except by direct comparison or checksumming.
 
-    Projects are checkouts, with a worktree and specific states tied to it.
-    The projectdoc sits at the root of a directory containing projects, and
-    identifies each project both by ID and its prefix at this host/dir.
+  All but the most minimal project is a composite of different works. One
+  repository may be derived from another ofcourse, but more importantly
+  components from other repositories may be needed during any project phase.
 
-    To manage these entities, `projectdir` or alias `pd` provides scripts, and
-    reserves certain script ID's. So that projects can extend (override or
-    amend) Pd's standard routines on a per-project basis.
-
-    These scripts are part of a basic project lifecycle, which can basicly be
-    described as:
-
-      init > (dev) > deinit
-
-    But each project provides its own specific flow, likely more than one, e.g.:
-
-      init > build > test
-           > package > dist
-           > release > dist
-           > deinit
-
-    Pd needs to track state, and it does this by recording status and benchmark
-    numbers outside the project, in the projectdoc file where it can be
-    potentially distributed across hosts to other projectdirs. Or tied into
-    other CI/CD sytems.
-
-    It does not record reports but summarizes them into ID's and numbers.
-    And those it uses to track state too.
-
-      init{,-*}
-      {,*-}init
-      build{,-*}
-      check{,-*}
-      {,*-}status
+  As shown, not all repositories (and thus all checkouts) are equal. Besides the
+  format (aka medium), the 'message' or purpose of a checkout (root) varies
+  and recognition depends on the presence of different markers. Also, while some
+  tracked states of the checkout may be present and readily reported on, others
+  will be expensive to retrieve.
 
 
-    @todo
-    Scenario: it intializes, checks, and then cleanup and deinitializes a compatible project without problems
+  @TODO
+  Scenario: checkout paths and their source reposistory are recorded in the projectdoc
 
-        A project does something, it will need to tell something about what it does or wants. There are ways to assume a certain type of build, or stack, but it is hard to auto-detect what exactly is meant. If the goal is to check compliance to a certain build pipeline then ofcourse we can just impose a lifecycle on it, run that, but miss out on possibly many other aspects of the project. Unless the detection is all dynamic, but this adds too much complexity while it would be easy for the project to tell how its parts conforms to one or more pre-scribed contracts.
+    # checkouts have a source with distribution mechanism
 
-        NOTE: The first way for Pd to support project metadata is using `package.y*ml <package.rst>`. After some flows and commands have crystalized and its support and costs are more clear, then others can be added; `composer.json`, `package.json` are obvious candidates. Others may be plugged in in specific ways, ie. `bower.json`, `manifest.json`, even `Makefile`.
+    # Projects are checkouts, with a worktree and specific states tied to it.
+    # The projectdoc sits at the root of a directory containing projects, and
+    # identifies each project both by ID and its prefix at this host/dir.
 
 
-    Scenario: list scm dirs
+  @TODO
+  Scenario: checkout paths are annotated with the projectdoc
 
-        When the user executes "projectdir.py"
-        Then the `status` is '0'
-        #And the `output` is not empty
+    # projectdoc enables storage of control and state metadata
 
-    Scenario: list untracked files
+    # Pd needs to track state, and it does this by recording status and benchmark
+    # numbers outside the project, in the projectdoc file where it can be
+    # potentially distributed across hosts to other projectdirs. Or tied into
+    # other CI/CD sytems.
 
-        When the user executes "projectdir.py find-untracked"
-        Then the `status` is '0'
-        #And the `output` is not empty
-        #And the `output` contains ''
+    # It does not record reports but summarizes them into ID's and numbers.
+    # And those it uses to track state too.
+
+
+  @TODO
+  Scenario: checkouts may be composite
+
+
+  @todo
+  Scenario: it intializes, checks, and then cleanup and deinitializes a compatible project without problems
+
+
+  Scenario: list scm dirs - helps to find checkouts
+
+      When the user executes "projectdir.py"
+      Then the `status` is '0'
+      #And the `output` is not empty
+
+
+  Scenario: list untracked files - helps with project state
+
+      When the user executes "projectdir.py find-untracked"
+      Then the `status` is '0'
+      #And the `output` is not empty
+      #And the `output` contains ''
 

@@ -19,6 +19,11 @@ items:
           type: string
         version:
           type: string
+          description: Main version for the Id
+        metadata:
+          type: string
+          description: Metadata type version, default is 0.0.1 for current
+            `application/vnd.org.wtwta.project` specs.
         environments:
           type: array
           items: 
