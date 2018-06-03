@@ -133,42 +133,47 @@ vim_swap()
 # remove the hostname from the remote-name to use.
 htd_repository_url() # Remote Url
 {
+  local remote_hostinfo= remote_dir= remote_id= domain=
+
   fnmatch "*.*" "$1" && {
-
-    # Remote has namespace and indicates disk on local host
-    fnmatch "$hostname.*" "$1" && {
-
-      # Cancel if repo is local checkout (and expand '~')
-      pwd_="$( { cd "$(bash -c "echo $2")" && pwd -P ; } 2>/dev/null)"
-      test -e "$2" -a "$pwd_" = "$(pwd -P)" && return 1
-
-      # Remove host from remote.
+      remote_id="$(echo $1 | cut -f1 -d'.')"
       remote="$(echo $1 | cut -f2- -d'.')"
-      url="$2"
-
-    } || {
-
-      # Add hostname for remote disk (if name matches domain, or local name is
-      # explictly abs/relative path)
-      domain=$(echo $1 | cut -f1 -d'.')
-      { test -e $UCONFDIR/git/remote-dirs/$domain.sh ||
-        fnmatch "/*" "$2" || fnmatch "~/*" "$2"
-      } || return
-      remote=$(echo $1 | cut -f2- -d'.')
-      url="$domain:$2"
     }
+
+  test -n "$remote_id" || {
+    test ! -e $UCONFDIR/git/remote-dirs/$remote.sh || remote_id=$remote
+  }
+  test -z "$remote_id" || {
+    . $UCONFDIR/git/remote-dirs/$remote_id.sh
+  }
+  test -n "$domain" || domain=$remote_id
+
+  test "$hostname" = "$domain" && {
+
+    # Use local access for path
+    # Cancel if repo is local checkout (and expand '~')
+    pwd_="$( { cd "$(bash -c "echo $2")" && pwd -P ; } 2>/dev/null)"
+    test -e "$2" -a "$pwd_" = "$(pwd -P)" && return 1
+    url="$2"
 
   } || {
 
-    # No namespace
-    test -e $UCONFDIR/git/remote-dirs/$remote.sh &&  {
-      # treat remote name as remote hostname
-      test "$remote" = "$hostname" ||
-        url="$remote:$2"
+    #{ test -e $UCONFDIR/git/remote-dirs/$domain.sh ||
+    #  fnmatch "/*" "$2" || fnmatch "~/*" "$2"
+    #} || return
+    #url="$domain:$2"
+
+    # No namespacing in remote name,
+    # prefix remote-dirs if not local
+    test -n "$remote_id" && {
+      { fnmatch "*:*" "$2" || test "$remote" = "$hostname"
+      } || {
+        test -n "$remote_hostinfo" || remote_hostinfo=$remote
+        url="$remote_hostinfo:$2"
+      }
     } || {
       url="$2"
     }
-    remote="$1"
   }
 
   # Remove .$scm and .../.$scm suffix

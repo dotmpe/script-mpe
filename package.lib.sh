@@ -410,17 +410,17 @@ htd_package_remotes_init()
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
       tr '=' ' ' | while read remote url
   do
-    # Get rid of quotes
-    eval remote=$remote url=$url
+    # Get rid of quotes, but don't interpolate ie. expand home?
+    eval "remote=$remote url=$url"
 
     test -n "$remote" -a -n "$url" || {
       warn "empty package repo var '$remote $url'"; continue; }
     # NOTE: multitype repo projects? determine type per suffix..
     fnmatch "*.$scm" "$url" || continue
 
-    note "scm: $scm; remote: '$remote' url: '$url'"
+    debug "scm: $scm; remote: '$remote' url: '$url'"
     htd_repository_url "$remote" "$url" || continue
-    note "remote: '$remote' url: '$url'"
+    info "remote: '$remote' url: '$url'"
     vc_git_update_remote "$remote" "$url"
   done
 }
@@ -430,8 +430,9 @@ htd_package_remotes_reset()
   test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   git remote | while read remote
   do
-      git remote remove $remote
+      git remote remove $remote && info "Removed '$remote'"
   done
+  note "Removed all remotes, re-adding.."
   htd_package_remotes_init
 }
 
