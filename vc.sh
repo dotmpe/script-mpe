@@ -226,7 +226,7 @@ __vc_status()
   test -n "$short" || err "homepath" 1
 
   local git="$(vc_gitdir "$realcwd")"
-  local bzr=$(vc_bzrdir "$realcwd")
+  local bzr="$(vc_bzrdir "$realcwd")"
 
   if [ -n "$git" ]; then
 
