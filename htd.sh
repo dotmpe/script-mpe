@@ -4,6 +4,10 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
+# shellcheck disable=SC2154 # undefined var
+# shellcheck disable=SC2230 # which is non-standard
+# shellcheck disable=SC2086 # double-quote to prevent globbing and word splitting
+# shellcheck disable=SC2155 # declare separately to avoid return masking
 htd_src=$_
 
 set -o posix
@@ -29,7 +33,7 @@ htd_load()
 
   default_env EDITOR vim || debug "Using EDITOR '$EDITOR'"
   test -n "$TODOTXT_EDITOR" || {
-    test -x "$(which todotxt-machine)" &&
+    test -x "$(command -v todotxt-machine)" &&
       TODOTXT_EDITOR=todotxt-machine || TODOTXT_EDITOR=$EDITOR
   }
   test -n "$TASK_EXT" || TASK_EXT="ttxtm"
@@ -57,8 +61,8 @@ htd_load()
     default_env Cabinet-Dir "$HTDIR/cabinet"
   }
   debug "Using Cabinet-Dir '$CABINET_DIR'"
-  test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
-  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
+  test -d "$HTD_TOOLSDIR/bin" || mkdir -p "$HTD_TOOLSDIR/bin"
+  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p "$HTD_TOOLSDIR/cellar"
   default_env Htd-BuildDir .build
   test -n "$HTD_BUILDDIR" || exit 121
   #test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
@@ -85,14 +89,14 @@ htd_load()
 
   # Get project dir and version-control system name
   vc_getscm
-  go_to_dir_with .$scm && {
+  go_to_dir_with ".$scm" && {
     # $localpath is the path from the project base-dir to the CWD
     localpath="$(normalize_relative "$go_to_before")"
     # Keep an absolute pathref for project dir too for libs not willing to
     # bother with or specify super-project refs, local name nuances etc.
     projdir="$(pwd -P)"
   } || {
-    export localpath= projdir=
+    export localpath='' projdir=''
   }
 
   # Find workspace super-project, and then move back to this script's CWD
@@ -110,7 +114,7 @@ htd_load()
       grep -qF "$prefix"':' .projects.yaml || {
         warn "No such project prefix '$prefix'"
       }
-      test $verbosity -ge 5 &&
+      test "$verbosity" -ge 5 &&
       $LOG info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'" >&2
       cd "$CWD"
     }
@@ -123,11 +127,11 @@ htd_load()
   # run flag 'p'.
 
   # TODO: clean up git-versioning app-id
-  test -n "$APP_ID" -o ! -e .app-id || read APP_ID < .app-id
+  test -n "$APP_ID" -o ! -e .app-id || read -r APP_ID < .app-id
   test -n "$APP_ID" -o ! -e "$GITVER_ATTR" ||
       APP_ID="$(get_property "$GITVER_ATTR" "App-Id")"
   test -n "$APP_ID" -o ! -e .git ||
-      APP_ID="$(basename "$(git config remote.$vc_rt_def.url)" .git)"
+      APP_ID="$(basename "$(git config "remote.$vc_rt_def.url")" .git)"
 
   # TODO: go over above default-env and see about project-specific stuff e.g.
   # builddir and init parameters properly
@@ -135,7 +139,7 @@ htd_load()
   # Default locations for user-workspaces
   projectdirs="$(echo ~/project ~/work/*/)"
 
-  test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
+  test -e table.sha1 && R_C_SHA3="$(wc -l < table.sha1)"
 
   stdio_type 0
   test "$stdio_0_type" = "t" && {
@@ -146,9 +150,10 @@ htd_load()
     cols=79
   }
 
-  test -n "$htd_tmp_dir" || htd_tmp_dir=$(setup_tmpd)
+  test -n "$htd_tmp_dir" || htd_tmp_dir="$(setup_tmpd)"
   test -n "$htd_tmp_dir" || error "htd_tmp_dir load" 1
   fnmatch "dev*" "$ENV" || {
+    #rm -r "${htd_tmp_dir:?}"/*
     test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
       rm -r $htd_tmp_dir/*
     }
@@ -254,7 +259,7 @@ htd_load()
     i ) # io-setup: set all requested io varnames with temp.paths
         debug "Exporting inputs '$(try_value inputs)' and outputs '$(try_value outputs)'"
         setup_io_paths -$subcmd-${htd_session_id}
-        export $htd__inputs $htd__outputs
+        export ${htd__inputs?} ${htd__outputs?}
       ;;
 
     m )
@@ -318,8 +323,8 @@ htd_load()
         # Get a path to a storage blob, associated with the current base+subcmd
         S=$(try_value "${subcmd}" S htd)
         test -n "$S" \
-          && status=$(setup_stat .json "" ${subcmd}-$(eval echo $S)) \
-          || status=$(setup_stat .json)
+          && status="$(setup_stat .json "" "${subcmd}-$(eval echo $S)")" \
+          || status="$(setup_stat .json)"
         exec 5>$status.pkv
       ;;
 
@@ -367,7 +372,7 @@ htd_unload()
 
     r )
         # Report on scriptnames and associated script-lines provided in $HTD_TOOLSFILE
-        cat $report | jsotk.py -O yaml --pretty dump -
+        jsotk.py -O yaml --pretty dump - < $report 
       ;;
 
     S )
@@ -375,7 +380,7 @@ htd_unload()
         test -s $status || echo '{}' >$status
         test ! -s $status.pkv \
           || {
-        cat $status.pkv
+            cat $status.pkv
             jsotk.py update --pretty $status $status.pkv
             rm $status.pkv
           }
@@ -471,7 +476,7 @@ htd__check()
   test -e "$ns_tab" && {
 
     info "Looking for contexts with 'checks' method..."
-    fixed_table $ns_tab SID CONTECTS | while read vars
+    fixed_table $ns_tab SID CONTECTS | while read -r vars
     do
       eval local "$vars"
       upper=1 mkvid "$SID"
@@ -482,7 +487,7 @@ htd__check()
 
 
   info "Prefix names"
-  htd_prefix_names | while read prefix_name
+  htd_prefix_names | while read -r prefix_name
   do
     base_path="$(eval echo \"\$$prefix_name\")"
 
@@ -541,7 +546,7 @@ htd_man_1__make='Go to HTDIR, make target arguments'
 htd__make()
 {
   req_dir_env HTDIR
-  cd $HTDIR && make $*
+  cd $HTDIR && make "$@"
 }
 htd_als__mk=make
 
@@ -698,14 +703,14 @@ htd__help_files()
 htd_man_1__commands="List all commands"
 htd__commands()
 {
-  choice_global= choice_all=true std__commands
+  choice_global='' choice_all=true std__commands
 }
 
 htd__libs_raw()
 {
   locate_name $base
   note "Raw lib routine listing for '$fn' script"
-  dry_run= box_list_libs "$fn"
+  dry_run='' box_list_libs "$fn"
 }
 
 htd__libs()
@@ -734,7 +739,7 @@ htd__help()
       echo "  $scriptname $spc"
       echo
     } || {
-      printf "Help '$scriptname $1': "
+      printf "Help '%s %s': " "$scriptname" "$1"
     }
     echo_help $1 || {
       for func_id in "$1" "${base}__$1" "$base-$1"
@@ -1067,6 +1072,7 @@ htd__volumes()
     list ) shift ; htd_list_volumes "$@" ;;
     check ) shift ; htd_check_volumes "$@" ;;
     path?tab ) shift ; htd_path_names "$@" ;;
+    treemap ) shift ; htd_volumes_treemap "$@" ;;
 
     * ) error "? '$*'" 1 ;;
   esac
@@ -4919,7 +4925,7 @@ into env.
 htd_run__package=iAO
 htd__package()
 {
-  test -n "$*" && { 
+  test -n "$*" && {
       test -n "$1" || {
         shift && set -- debug "$@"
       }
@@ -4998,7 +5004,7 @@ htd__run()
 
   # Execute env and script-lines in subshell
   (
-    SCRIPTPATH= ln=0
+    SCRIPTPATH='' ln=0
     unset Build_Deps_Default_Paths
 
     # XXX: not sure about this, but anyway
@@ -5017,7 +5023,7 @@ htd__run()
     shift
 
     info "Starting '$run_scriptname' ($(pwd)) '$*'"
-    package_sh_script "$run_scriptname" | while read scriptline
+    package_sh_script "$run_scriptname" | while read -r scriptline
     do
       export ln=$(( $ln + 1 ))
 
@@ -9676,7 +9682,7 @@ Single catalogs
   [CATALOG=] check
     Update cached status bits (see validate and fsck)
   [CATALOG=] status
-    Run "check" and set return code according to status 
+    Run "check" and set return code according to status
   ck [CATALOG}
     print file checksums
   fsck [CATALOG]

@@ -4,7 +4,7 @@
 # Deal with package metadata files
 
 
-package_lib_load()
+package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
   test -n "$1" || set -- .
   # Get first existing file
@@ -436,7 +436,7 @@ htd_package_remotes_reset()
   htd_package_remotes_init
 }
 
-htd_package_scripts_write() # [script_out=] : NAME
+htd_package_scripts_write() # [env script_out=.cllct/scripts/NAME] : NAME
 {
   test -n "$1" || set -- "init"
   test -n "$script_out" || script_out=.cllct/scripts/$1.sh
@@ -467,6 +467,33 @@ htd_package_sh_scripts() # NAMES...
     htd_package_scripts_write "$1" || return
     shift
   done
+}
+
+# Initialize package.yaml file, using values `from` extractors
+htd_package_init() #
+{
+  case "$from" in
+
+    git ) htd_package_from_$from ;;
+
+    * ) error "no such 'from' value '$from'" 1 ;;
+  esac
+}
+
+# Initialize package.yaml from (local) GIT checkout
+htd_package_from_git() # [DIR=. [REMOTE [FROM...]]]
+{
+  htd_package_print_from_git "$@" > $PACKMETA
+}
+
+# See htd-package-init
+htd_package_print_from_git() # [DIR=. [REMOTE [FROM...]]]
+{
+  # Get ID for package from primary (default) remote
+
+  # Find first/root commit (date(s))
+  # Echo package meta and remotes list
+  echo
 }
 
 # Id: script-mpe/0.0.4-dev package.lib.sh

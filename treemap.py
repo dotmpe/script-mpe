@@ -22,7 +22,7 @@ from zope.component import \
         getGlobalSiteManager, \
         getUtility, queryUtility, createObject
 
-from script_mpe import res
+from script_mpe import res, fsutil
 from script_mpe.res import primitive
 
 
@@ -33,7 +33,7 @@ class Node(res.primitive.TreeNodeDict):
     pass
 
 
-def fs_tree( path ):
+def fs_tree( path, fs_encoding ):
     """Create a tree of the filesystem using dicts and lists.
 
     All filesystem nodes are dicts so its easy to add attributes
@@ -49,7 +49,6 @@ def fs_tree( path ):
             ]}
         ]}
     """
-    fs_encoding = sys.getfilesystemencoding()
     dirname = basename( path )
     tree = Node( dirname )
     if isdir( path ):
@@ -66,7 +65,7 @@ def fs_tree( path ):
             path = join( path, fn )
             if isdir(path):
                 # Recurse
-                tree.append(fs_tree(path))
+                tree.append(fs_tree(path, fs_encoding))
             else:
                 tree.append(Node(fn))
 
@@ -151,7 +150,8 @@ def main():
 
     ### Init FileTree and TreeMap
 
-    tree = fs_tree(unicode(path))
+    fs_encoding = sys.getfilesystemencoding()
+    tree = fs_tree(unicode(path), fs_encoding)
 
     # zac
 #    nodetree = getUtility(res.iface.IDir).tree( path, opts )
@@ -171,6 +171,7 @@ def main():
 
     # Add size attributes
     fs_treesize(path, tree)
+    print(tree)
 
     ### Update storage
 
@@ -190,9 +191,11 @@ def main():
     else:
         if not res.js.dumps:
             print('Error: No JSON writer.', file=sys.stderr)
-        print(pformat(tree.deepcopy()))
+        #print(pformat(tree.deepcopy()))
+        #print(tree)
         total = float(tree.size)
         print('Tree size:')
+        print(fsutil.humanreadable(total))
         print(total, 'B')
         print(total/1024, 'KB')
         print(total/1024**2, 'MB')

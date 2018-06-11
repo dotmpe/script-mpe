@@ -177,3 +177,22 @@ htd_path_names()
   done
   return $?
 }
+
+htd_volumes_treemap()
+{
+  # FIXME: htd_list_volumes | while read volume
+  for volume in /srv/volume-[0-9]*
+  do
+    test -e "$volume" || continue
+    rd="$(cd $volume && pwd -P)"
+    test -d "$rd" || continue
+    out="$rd/tmp/df-hs.out"
+    {
+      test -e "$out" && newer_than "$out" "$_1DAY"
+    } || {
+      test -d "$rd/tmp" || mkdir -p "$rd/tmp"
+      df="$(du -hs "$rd" 2>/dev/null)"
+      echo "$df" | tee $out
+    }
+  done
+}

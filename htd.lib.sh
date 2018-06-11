@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# shellcheck disable=SC2034,SC2154
 
 htd_relative_path()
 {
