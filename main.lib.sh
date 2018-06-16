@@ -168,9 +168,15 @@ try_subcmd()
   #    error "parsing args" $?
   #  }
   #}
-  test -z "$subcmd" && subcmd=$1
+  # TODO: allow envs here
+  #while fnmatch "*=*" "$1"
+  #do
+  #  eval export "$1"
+  #  shift 1
+  #done
+  test -z "$subcmd" && export subcmd=$1
 
-  get_subcmd_func || {
+  get_subcmd_func "$1" || {
     e=$?
     test -z "$subcmd" && {
       ( try_local_func usage && $func_name ) \

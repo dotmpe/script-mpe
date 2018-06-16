@@ -412,3 +412,21 @@ htd_expand()
     test "$expand_dir" = "1" || cd $cwd
   }
 }
+
+# Get any alias
+htd_alias_get()
+{
+  grep " \<$1\>=" ~/.alias | awk -F '=' '{print $2}'
+}
+
+# List aliases (for current script)
+htd_alias_list()
+{
+  grep 'alias \<'"$scriptname"'\>=' ~/.alias |
+      sed 's/^.* alias /alias /g' | grep -Ev '^(#.*|\s*)$' | while read -r _a A
+  do
+    a_id="$(echo "$A" | awk -F '=' '{print $1}')"
+    a_shell="$(echo "$A" | awk -F '=' '{print $2}')"
+    printf -- "%-18s%s\n" "$a_id" "$a_shell"
+  done
+}

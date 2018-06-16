@@ -1726,13 +1726,36 @@ htd__build()
 # show htd shell aliases
 htd__alias()
 {
-  grep '\<'$scriptname'\>' ~/.alias | grep -Ev '^(#.*|\s*)$' | while read _a A
-  do
-    a_id=$(echo $A | awk -F '=' '{print $1}')
-    a_shell=$(echo $A | awk -F '=' '{print $2}')
-    echo -e "   $a_id     \t$a_shell"
-  done
+  note "alias '$*'"
+  test -n "$1" && {
+    test -n "$2" || {
+      fnmatch "*=*" "$1" && set -- "$(printf "$1" | cut -d'=' -f1)" \
+        "$(printf "$1" | cut -d'=' -f2-)" || false
+    }
+  }
+
+  test -n "$1" && {
+    test -n "$2" && {
+      htd_alias_set "$@"
+      return $?
+    }
+
+    note "Getting alias '$1'.."
+    htd_alias_get "$1"
+    return $?
+  }
+
+  trueish "$all" && {
+    note "Listing aliases for '$scriptname'.."
+    scriptname='.*' htd_alias_list
+    return $?
+  }
+  note "Listing aliases for '$scriptname'.."
+  htd_alias_list
 }
+htd_als__get_alias=alias
+htd_als__set_alias=alias
+htd_als__show_alias=alias
 
 
 htd_man_1__edit_today='Edit todays log, an entry in journal file or dir
