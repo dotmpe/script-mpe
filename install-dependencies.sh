@@ -153,7 +153,8 @@ install_mkdoc()
 install_pylib()
 {
   # for travis container build:
-  pylibdir=$HOME/.local/lib/python2.7/site-packages
+  pylibdir=$HOME/lib/py
+  #.local/lib/python2.7/site-packages
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   case "$hostname" in
       simza )

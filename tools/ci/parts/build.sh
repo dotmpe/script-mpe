@@ -67,11 +67,11 @@ do case "$BUILD_STEP" in
           # Test feature files and report in JUnit XML
           echo "Features: '$TEST_FEATURE' '$BUSINESS_SUITE'"
           #$TEST_FEATURE $BUSINESS_SUITE || {
+          (
           ./vendor/bin/behat --tags ~@todo&&~@skip --suite default || true
-          #{
             #echo test-feature >> $failed
             #grep failure $TEST_RESULTS/default.xml
-          #}
+          )
           note "Feature tests done"
           #test ! -e $TEST_RESULTS/default.xml ||
           #mv $TEST_RESULTS/default.xml $TEST_RESULTS-2.xml
