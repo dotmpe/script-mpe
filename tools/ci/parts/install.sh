@@ -21,6 +21,9 @@ test "$(whoami)" = "travis" || {
 
 ./install-dependencies.sh all pip php dev bats-force-local
 
+test "$(whoami)" = "travis" || {
+pip install --upgrade pip
+}
 pip install keyring requests_oauthlib
 pip install gtasks
 
