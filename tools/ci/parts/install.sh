@@ -11,6 +11,8 @@ test "$(whoami)" = "travis" || {
     {
       echo sudo=$sudo APT_PACKAGES=$APT_PACKAGES
       {
+        apt-get search apt-transport-https
+        apt-get search dig
         $sudo apt-get update &&
         $sudo apt-get install $APT_PACKAGES
 
