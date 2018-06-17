@@ -6,7 +6,7 @@ wanip()
   test -x "$(which dig)" && {
     dig +short myip.opendns.com @resolver1.opendns.com || return $?
   } || {
-    curl http://canhazip.com || return $?
+    curl -s http://whatismyip.akamai.com/ || return $?
   }
 }
 

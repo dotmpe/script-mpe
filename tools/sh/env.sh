@@ -201,7 +201,7 @@ req_vars INSTALL_DEPS || {
   test "$USER" != "travis" && not_falseish "$SHIPPABLE"
 } && {
   req_vars APT_PACKAGES || export APT_PACKAGES="nodejs "\
-" python-dev apt-transport-https "\
+" python-dev "\
 " realpath uuid-runtime moreutils curl php5-cli"
 # XXX: dnsutils (dig) has a bunch of perl-base (and CPAN setup) deps I guess?
 }
