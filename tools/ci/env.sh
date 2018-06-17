@@ -1,10 +1,14 @@
 # Boilerplate env for CI scripts
 test -n "$PS1" && _PS1=$PS1
-# XXX: reset virtualenv
-test ! -d ~/.pyvenv/htd || rm ~/.pyvenv/htd
-test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
-source ~/.pyvenv/htd/bin/activate
 PS1=$_PS1
+{
+  falseish "$SHIPPABLE" ||
+  python -c 'import sys
+if not hasattr(sys, "real_prefix"): sys.exit(1)'
+} || {
+  test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
+  source ~/.pyvenv/htd/bin/activate
+}
 . ./tools/sh/init.sh
 lib_load std str sys bash build projectenv env-deps web
 test -n "$BASH_SH" || error "Need to know shell dist" 1
