@@ -10,7 +10,11 @@ test "$(whoami)" = "travis" || {
     {
       echo APT_PACKAGES=$APT_PACKAGES
       {
-    apt-cache search git-lfs
+          echo '------'
+    apt-cache search git
+          echo '------'
+    apt-cache search lfs
+          echo '------'
 
         $sudo apt-get update &&
         $sudo apt-get install $APT_PACKAGES
