@@ -53,6 +53,10 @@ note "sh-switch"
 { { sh_switch.py -V && sh_switch.py --help
 } 2>&1 >/dev/null; } || error "sh_switch"
 
+note "matchbox"
+{ { matchbox.py -V && matchbox.py --help
+} 2>&1 >/dev/null; } || error "matchbox"
+
 note "Htd tools"
 { { htd tools
 } 2>&1 >/dev/null; } || error "htd tools"

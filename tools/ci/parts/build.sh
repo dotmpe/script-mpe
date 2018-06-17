@@ -67,24 +67,19 @@ do case "$BUILD_STEP" in
           # Test feature files and report in JUnit XML
           echo "Features: '$TEST_FEATURE' '$BUSINESS_SUITE'"
           #$TEST_FEATURE $BUSINESS_SUITE || {
-          (
-          ./vendor/bin/behat --tags ~@todo&&~@skip --suite default || true
             #echo test-feature >> $failed
             #grep failure $TEST_RESULTS/default.xml
+          (
+            ./vendor/bin/behat --tags ~@todo&&~@skip --suite default || true
           )
-          note "Feature tests done"
-          #test ! -e $TEST_RESULTS/default.xml ||
           #mv $TEST_RESULTS/default.xml $TEST_RESULTS-2.xml
+          note "Feature tests done"
 
           # Test Python unit files and report in ...
-          ls -la ~/lib/py/
-          # FIXME: new params for python tests python $PY_SUITE || touch $failed
-          python test/main.py || true
-            #echo python:main >> $failed
-
+          python test/main.py || true #echo python:main >> $failed
           #py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed
-          #note "Python unittests done"
           #mv $TEST_RESULTS.xml $TEST_RESULTS-3.xml
+          #note "Python unittests done"
         )
 
         test -e "$TEST_RESULTS-1.tap" || error "Test results 1 expected" 1
