@@ -1,5 +1,7 @@
 # Boilerplate env for CI scripts
 test -n "$PS1" && _PS1=$PS1
+# XXX: reset virtualenv
+test ! -d ~/.pyvenv/htd || rm ~/.pyvenv/htd
 test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
 source ~/.pyvenv/htd/bin/activate
 PS1=$_PS1
