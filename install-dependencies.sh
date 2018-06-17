@@ -294,11 +294,6 @@ main_entry()
       # TODO: install_git_lfs
     ;; esac
 
-  case "$1" in redo )
-      # TODO: fix for other python versions
-      install_apenwarr_redo || return $?
-    ;; esac
-
   case "$1" in travis|test )
       test -x "$(which gem)" ||
         stderr "ruby/gemfiles required" 1
