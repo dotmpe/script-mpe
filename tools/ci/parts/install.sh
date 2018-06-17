@@ -28,16 +28,16 @@ test -x "$(which tap-json)" || npm install -g tap-json
 test -x "$(which any-json)" || npm install -g any-json
 npm install nano
 
-#test "$(whoami)" = "travis" || {
-#  not_falseish "$SHIPPABLE" && {
-#    $sudo apt-get install perl
-#    cpan reload index
-#    cpan install XML::Generator
-#    test -x "$(which tap-to-junit-xml)" ||
-#      basher install jmason/tap-to-junit-xml
-#    tap-to-junit-xml --help || noop
-#  }
-#}
+test "$(whoami)" = "travis" || {
+  not_falseish "$SHIPPABLE" && {
+    cpan reload index
+    #$sudo apt-get install perl
+    cpan install XML::Generator
+    test -x "$(which tap-to-junit-xml)" ||
+      basher install jmason/tap-to-junit-xml
+    tap-to-junit-xml --help || noop
+  }
+}
 
 
 # FIXME: merge gh-pages into master
