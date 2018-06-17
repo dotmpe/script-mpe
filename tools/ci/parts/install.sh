@@ -4,6 +4,7 @@ note "Entry for CI install phase"
 
 
 test "$(whoami)" = "travis" || {
+  export sudo=sudo
 
   test -x "$(which apt-get)" && {
     test -z "$APT_PACKAGES" ||
