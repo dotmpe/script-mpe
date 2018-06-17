@@ -200,7 +200,7 @@ req_vars INSTALL_DEPS || {
 {
   test "$USER" != "travis" && not_falseish "$SHIPPABLE"
 } && {
-  req_vars APT_PACKAGES || export APT_PACKAGES="nodejs git-lfs"\
+  req_vars APT_PACKAGES || export APT_PACKAGES="nodejs "\
 " perl python-dev"\
 " realpath uuid-runtime moreutils curl php5-cli"
 }
