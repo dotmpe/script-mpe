@@ -170,7 +170,7 @@ case "$(uname)" in
     ;;
 esac
 
-datelink()
+datelink() # Date Format Target-Path
 {
   test -z "$1" && datep=$(date "+$2") || datep=$(date_fmt "$1" "$2")
   target_path=$3

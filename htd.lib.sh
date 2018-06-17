@@ -472,26 +472,33 @@ htd_edit_today()
   }
 
   note "Editing $1"
-  # Open of dir causes default formatted filename+header created
+  # Open of dir causes several symlinks and files for days/periods etc. to be generated
   test -d "$1" && {
     {
       # Prepare todays' day-links (including weekday and next/prev week)
       test -n "$log_path_ysep" || log_path_ysep="/"
-      htd__today "$1" "$log_path_ysep" "$log_path_msep" "$log_path_dsep"
+      htd_jrnl_day_links "$1" "$log_path_ysep" "$log_path_msep" "$log_path_dsep"
+      # And summaries for current week, month, and year
+      htd_jrnl_period_links "$1" "$log_path_ysep"
+
       # FIXME: need offset dates from file or table with values to initialize docs
       today=$(realpath "$1${log_path_ysep}today$EXT")
       test -s "$today" || {
-        test -n "$log_title" || log_title="%A %G.%V"
+        test -n "$log_title" || log_title="%A %G.%U"
         title="$(date_fmt "" "$log_title")"
-        htd_rst_doc_create_update "$today" "$title" title created default-rst
+        htd_rst_doc_create_update "$today" "$title" title created default-rst \
+            link-stats
       }
+
+      htd_rst_doc_create_update "$today" "" link-day-up
+
       # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
       files=$(bash -c "echo $1${log_path_ysep}{today,tomorrow,yesterday}$EXT")
       # Prepare and edit, but only yesterday/todays/tomorrows' file
       #for file in $FILES
       #do
       #  test -s "$file" || {
-      #    title="$(date_fmt "" '%A %G.%V')"
+      #    title="$(date_fmt "" '%A %G.%U')"
       #    htd_rst_doc_create_update "$file" "$title" title created default-rst
       #  }
       #done
@@ -521,12 +528,63 @@ htd_edit_week()
   htd__this_week "$1"
   week=$(realpath $1/week.rst)
   test -s "$week" || {
-    title="$(date_fmt "" '%G.%V')"
+    title="$(date_fmt "" '%G.%U')"
     htd_rst_doc_create_update "$week" "$title" week created default-rst
   }
   # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
   FILES=$(bash -c "echo $1/{week,last-week,next-week}$EXT")
   htd_edit_and_update $(realpath $FILES)
   #FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
-  htd_edit_and_update $1 #$(realpath $FILES)
+  #htd_edit_and_update $1 #$(realpath $FILES)
+}
+
+htd_edit_main()
+{
+  local evoke= files="$(cat $arguments)" fn=
+  locate_name || return 1
+  vim_swap "$(realpath "$fn")" || error "swap file exists for '$fn'" 2
+  files="$files $fn $(columnize=false htd__ls_main_files | lines_to_words )"
+  # XXX:
+  #libs_n_docs="\
+  #  $(dirname $fn)/$(basename "$fn").lib.sh \
+  #  $(dirname $fn)/$(basename "$fn").rst \
+  #  $(dirname $fn)/*.lib.sh"
+  test "$EDITOR" = "vim" || error "unsupported '$EDITOR'" 1
+  evoke="vim "
+
+  # Search in first pane
+  test -z "$search" || evoke="$evoke -c \"/$search\""
+
+  # Two vertical panes (O2), with additional h-split in the right
+  #evoke="$evoke -O2
+  evoke="$evoke \
+    -c :vsplit \
+    -c \":wincmd l\" \
+    -c \"normal gg $\" \
+    -c :split \
+    -c \"wincmd j\" \
+    -c \"normal G $\" \
+    -c \"wincmd h\""
+  printf "$(tput bold)$(tput setaf 0)$evoke $files$(tput sgr0)\n"
+  bash -c "$evoke $files"
+}
+
+htd_edit_note()
+{
+  test -n "$1" || error "ID expected" 1
+  test -n "$2" || error "tags expected" 1
+  test -z "$3" || error "surplus arguments" 1
+  req_dir_env HTDIR
+
+  id="$(printf "$1" | tr -cs 'A-Za-z0-9' '-')"
+  #id="$(echo "$1" | sed 's/[^A-Za-z0-9]*/-/g')"
+
+  case " $2 " in *" nl "* | *" en "* ) ;;
+    * ) set -- "$1" "$2 en" ;; esac
+  fnmatch "* rst *" " $2 " || set -- "$1" "$2 rst"
+  ext="$(printf "$(echo $2)" | tr -cs 'A-Za-z0-9_-' '.')"
+
+  note=$HTDIR/note/$id.$ext
+  htd_rst_doc_create_update $note "$1" created default-rst
+  htd_edit_and_update $note
 }

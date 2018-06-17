@@ -874,33 +874,7 @@ htd_man_1__edit_main="Edit the main script file(s), and add arguments"
 htd_spc__edit_main="-E|edit-main [ -SREGEX | --search REGEX ] [ID-or-PATHS]"
 htd__edit_main()
 {
-  local evoke= files="$(cat $arguments)" fn=
-  locate_name || return 1
-  vim_swap "$(realpath "$fn")" || error "swap file exists for '$fn'" 2
-  files="$files $fn $(columnize=false htd__ls_main_files | lines_to_words )"
-  # XXX:
-  #libs_n_docs="\
-  #  $(dirname $fn)/$(basename "$fn").lib.sh \
-  #  $(dirname $fn)/$(basename "$fn").rst \
-  #  $(dirname $fn)/*.lib.sh"
-  test "$EDITOR" = "vim" || error "unsupported '$EDITOR'" 1
-  evoke="vim "
-
-  # Search in first pane
-  test -z "$search" || evoke="$evoke -c \"/$search\""
-
-  # Two vertical panes (O2), with additional h-split in the right
-  #evoke="$evoke -O2
-  evoke="$evoke \
-    -c :vsplit \
-    -c \":wincmd l\" \
-    -c \"normal gg $\" \
-    -c :split \
-    -c \"wincmd j\" \
-    -c \"normal G $\" \
-    -c \"wincmd h\""
-  printf "$(tput bold)$(tput setaf 0)$evoke $files$(tput sgr0)\n"
-  bash -c "$evoke $files"
+  htd_edit_main "$@"
 }
 htd_run__edit_main=piAO
 htd_als___XE=edit-main
@@ -1081,6 +1055,7 @@ htd__volumes()
 htd_als__ls_vol=volumes\ list
 htd_als__ls_volumes=volumes\ list
 htd_als__list_volumes=volumes\ list
+
 
 htd_man_1__copy='Copy script from other project. '
 htd_spc__copy='copy Sub-To-Script [ From-Project-Checkout ]'
@@ -1842,6 +1817,7 @@ htd_grp__archive_path=cabinet
 htd__today() # Jrnl-Dir YSep MSep DSep [ Tags... ]
 {
   htd_jrnl_day_links "$@"
+  htd_jrnl_period_links "$1" "$2"
 }
 htd_grp__today=cabinet
 
@@ -1970,26 +1946,10 @@ htd_grp__jrnl_json=cabinet
 # TODO: use with edit-local
 htd__edit_note()
 {
-  test -n "$1" || error "ID expected" 1
-  test -n "$2" || error "tags expected" 1
-  test -z "$3" || error "surplus arguments" 1
-  req_dir_env HTDIR
-
-  id="$(printf "$1" | tr -cs 'A-Za-z0-9' '-')"
-  #id="$(echo "$1" | sed 's/[^A-Za-z0-9]*/-/g')"
-
-  case " $2 " in *" nl "* | *" en "* ) ;;
-    * ) set -- "$1" "$2 en" ;; esac
-  fnmatch "* rst *" " $2 " || set -- "$1" "$2 rst"
-  ext="$(printf "$(echo $2)" | tr -cs 'A-Za-z0-9_-' '.')"
-
-  note=$HTDIR/note/$id.$ext
-  htd_rst_doc_create_update $note "$1" created default-rst
-  htd_edit_and_update $note
+  htd_edit_note "$@"
 }
 htd_als__n=edit-note
 htd_grp__edit_note=cabinet
-
 
 htd__edit_note_nl()
 {
@@ -1997,7 +1957,6 @@ htd__edit_note_nl()
 }
 htd_als__nnl=edit-note-nl
 htd_grp__edit_note_nl=cabinet
-
 
 htd__edit_note_en()
 {

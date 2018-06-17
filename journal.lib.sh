@@ -1,6 +1,8 @@
 #!/bin/sh
 
 
+# Create symlinks for today and every weekdays in last, current and next week,
+# The document contents are initialized with htd-rst-doc-create-update
 htd_jrnl_day_links()
 {
   local jrnldir=$1 YSEP=$2 Y=%Y MSEP=$3 M=%m DSEP=$4 D=%d
@@ -16,7 +18,8 @@ htd_jrnl_day_links()
   test -n "$EXT" || EXT=.rst
   local jr="$jrnldir$YSEP" jfmt="$jrnldir$YSEP$Y$MSEP$M$DSEP$D$EXT"
 
-  test -n "$*" || set -- yesterday today tomorrow sunday monday tuesday wednesday thursday friday saturday
+  test -n "$*" ||
+      set -- yesterday today tomorrow sunday monday tuesday wednesday thursday friday saturday
 
   while test -n "$1"
   do
@@ -35,4 +38,31 @@ htd_jrnl_day_links()
     esac
     shift
   done
+}
+
+# the symlinks for the week, month, and years (also -1 to +1)
+htd_jrnl_period_links()
+{
+  local jrnldir=$1 YSEP=$2
+  shift 2
+  test -n "$YSEP" || YSEP="/"
+  test -n "$jrnldir" || jrnldir="$(pwd)/$JRNL_DIR"
+
+  test -n "$EXT" || EXT=.rst
+  local jr="$jrnldir$YSEP" \
+      yfmt="$jrnldir$YSEP%G$D$EXT" \
+      mfmt="$jrnldir$YSEP%G-%m$D$EXT" \
+      wfmt="$jrnldir$YSEP%G-w%U$D$EXT"
+
+  datelink "-7d" "${wfmt}" "${jr}last-week$EXT"
+  datelink "" "${wfmt}" "${jr}week$EXT"
+  datelink "+7d" "${wfmt}" "${jr}next-week$EXT"
+
+  datelink "-1m" "${mfmt}" "${jr}last-month$EXT"
+  datelink "" "${mfmt}" "${jr}month$EXT"
+  datelink "+1m" "${mfmt}" "${jr}next-month$EXT"
+
+  datelink "-1y" "${yfmt}" "${jr}last-year$EXT"
+  datelink "" "${yfmt}" "${jr}year$EXT"
+  datelink "+1y" "${yfmt}" "${jr}next-year$EXT"
 }
