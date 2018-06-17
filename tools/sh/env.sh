@@ -200,8 +200,8 @@ req_vars INSTALL_DEPS || {
 {
   test "$USER" != "travis" && not_falseish "$SHIPPABLE"
 } && {
-  req_vars APT_PACKAGES || export APT_PACKAGES="nodejs dig "\
-" perl python-dev apt-transport-https"\
+  req_vars APT_PACKAGES || export APT_PACKAGES="nodejs "\
+" perl python-dev apt-transport-https dnsutils"\
 " realpath uuid-runtime moreutils curl php5-cli"
 }
 # not on shippable: npm
