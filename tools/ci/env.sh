@@ -1,7 +1,9 @@
 # Boilerplate env for CI scripts
 test -n "$PS1" && _PS1=$PS1
 PS1=$_PS1
-export LOG=$HOME/bin/log.sh
+test "$SHIPPABLE" = true &&
+    export LOG=/root/src/bitbucket.org/dotmpe-personal/script-mpe/log.sh ||
+    export LOG=$HOME/bin/log.sh ||
 {
   test "$SHIPPABLE" = true ||
   python -c 'import sys
