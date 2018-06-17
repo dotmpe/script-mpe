@@ -22,7 +22,6 @@ pipeline:
      - ${PWD}/tools/ssh/config:/home/treebox/.ssh/config
      - ${HOME}/.basename-reg.yaml:/home/treebox/.basename-reg.yaml
     commands:
-     - export LOG=/srv/docker-volumes-local/user-script/log.sh
      - export USER=treebox
      - export HOME=/home/treebox
      - echo PATH=$PATH
