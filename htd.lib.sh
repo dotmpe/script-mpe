@@ -430,3 +430,103 @@ htd_alias_list()
     printf -- "%-18s%s\n" "$a_id" "$a_shell"
   done
 }
+
+htd_edit_today()
+{
+  test -n "$EXT" || EXT=.rst
+  local pwd="$(normalize_relative "$go_to_before")" arg="$1"
+
+  # Evaluate package env if local manifest is found
+  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
+    #. $PACKMETA_SH || error "Sourcing package Sh" 1
+    eval local $(map=package_pd_meta_: package_sh log log_path log_title \
+        log_entry log_path_ysep log_path_msep log_path_dsep) >/dev/null
+  }
+
+  test -n "$1" || {
+    # If no argument given start looking for standard LOG file/dir path
+    test -n "$log" && {
+      # Default for local project
+      set -- $log
+    } || {
+      # Default for Htdir
+      set -- $JRNL_DIR/
+    }
+  }
+
+  fnmatch "*/" "$1" && {
+    test -e "$1" || error "unknown dir $1" 1
+    jrnldir="$(strip_trail "$1")"
+    shift
+    set -- "$jrnldir" "$@"
+  } || {
+    # Look for here and in pwd, or create in pwd; if ext matches filename
+    test -e "$1" || set -- "$pwd/$1"
+    test -e "$1" || fnmatch "*$EXT" "$1"  && touch $1
+    # Test in htdir with ext
+    test -e "$1" || set -- "$arg$EXT"
+    # Test in pwd with ext
+    test -e "$1" || set -- "$pwd$1$EXT"
+    # Create in pwd (with ext)
+    test -e "$1" || touch $1
+  }
+
+  note "Editing $1"
+  # Open of dir causes default formatted filename+header created
+  test -d "$1" && {
+    {
+      # Prepare todays' day-links (including weekday and next/prev week)
+      test -n "$log_path_ysep" || log_path_ysep="/"
+      htd__today "$1" "$log_path_ysep" "$log_path_msep" "$log_path_dsep"
+      # FIXME: need offset dates from file or table with values to initialize docs
+      today=$(realpath "$1${log_path_ysep}today$EXT")
+      test -s "$today" || {
+        test -n "$log_title" || log_title="%A %G.%V"
+        title="$(date_fmt "" "$log_title")"
+        htd_rst_doc_create_update "$today" "$title" title created default-rst
+      }
+      # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
+      files=$(bash -c "echo $1${log_path_ysep}{today,tomorrow,yesterday}$EXT")
+      # Prepare and edit, but only yesterday/todays/tomorrows' file
+      #for file in $FILES
+      #do
+      #  test -s "$file" || {
+      #    title="$(date_fmt "" '%A %G.%V')"
+      #    htd_rst_doc_create_update "$file" "$title" title created default-rst
+      #  }
+      #done
+      htd_edit_and_update $(realpath $files)
+    } || {
+      error "during edit of $1 ($?)" 1
+    }
+
+  } || {
+    # Open of archive file cause day entry added
+    {
+      local date_fmt="%Y${log_path_msep}%m${log_path_dsep}%d"
+      local today="$(date_fmt "" "$date_fmt")"
+      grep -qF $today $1 || printf "$today\n  - \n\n" >> $1
+      $EDITOR $1
+      git add $1
+    } || {
+      error "err file $?" 1
+    }
+  }
+}
+
+htd_edit_week()
+{
+  test -n "$1" || set -- log
+  #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
+  htd__this_week "$1"
+  week=$(realpath $1/week.rst)
+  test -s "$week" || {
+    title="$(date_fmt "" '%G.%V')"
+    htd_rst_doc_create_update "$week" "$title" week created default-rst
+  }
+  # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
+  FILES=$(bash -c "echo $1/{week,last-week,next-week}$EXT")
+  htd_edit_and_update $(realpath $FILES)
+  #FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
+  htd_edit_and_update $1 #$(realpath $FILES)
+}

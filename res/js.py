@@ -88,6 +88,7 @@ class AbstractYamlDocs(object):
         assert not hasattr(self, a), name
         doc = self.load_yaml(name, defaults=defaults)
         setattr(self, a, doc)
+        setattr(self, "%s_filename" % a, name)
 
     def yamlsave(self, name, **kwds):
         """
