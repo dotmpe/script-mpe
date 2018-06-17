@@ -125,9 +125,10 @@ install_git_lfs()
 {
   # XXX: for debian only, and requires sudo
   test -n "$sudo" || {
-    stderr "sudo required for GIT lfs"
+    stderr "sudo required for GIT LFS"
     return 1
   }
+  stderr "Installing GIT LFS"
   curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
   $pref apt-get install git-lfs
   # TODO: must be in repo. git lfs install
