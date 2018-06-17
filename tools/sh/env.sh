@@ -201,6 +201,7 @@ req_vars INSTALL_DEPS || {
   test "$USER" != "travis" && not_falseish "$SHIPPABLE"
 } && {
     apt-cache search git-lfs
+
   req_vars APT_PACKAGES || export APT_PACKAGES="nodejs git-lfs"\
 " perl python-dev"\
 " realpath uuid-runtime moreutils curl php5-cli"

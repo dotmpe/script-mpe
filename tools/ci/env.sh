@@ -2,7 +2,7 @@
 test -n "$PS1" && _PS1=$PS1
 PS1=$_PS1
 {
-  falseish "$SHIPPABLE" ||
+  test "$SHIPPABLE" = true ||
   python -c 'import sys
 if not hasattr(sys, "real_prefix"): sys.exit(1)'
 } || {
