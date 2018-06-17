@@ -108,6 +108,8 @@ env:
 branches:
   only:
     - master
+    - test
+    - dev
     - '/^test.*$/'
     - '/^dev.*$/'
     - '/^[0-9]*\.[0-9]*\.[0-9]*/'
