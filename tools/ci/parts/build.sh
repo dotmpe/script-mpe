@@ -71,10 +71,11 @@ do case "$BUILD_STEP" in
             grep failure $TEST_RESULTS/default.xml
           }
           note "Feature tests done"
-          test ! -e $TEST_RESULTS/default.xml ||
-            mv $TEST_RESULTS/default.xml $TEST_RESULTS-2.xml
+          #test ! -e $TEST_RESULTS/default.xml ||
+          mv $TEST_RESULTS/default.xml $TEST_RESULTS-2.xml
 
           # Test Python unit files and report in ...
+          ls -la ~/lib/py/
           # FIXME: new params for python tests python $PY_SUITE || touch $failed
           python test/main.py || echo python:main >> $failed
 

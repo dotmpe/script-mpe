@@ -31,6 +31,8 @@ npm install nano
 test "$(whoami)" = "travis" || {
   not_falseish "$SHIPPABLE" && {
     cpan reload index
+    cpan install CAPN
+    cpan reload cpan
     #$sudo apt-get install perl
     cpan install XML::Generator
     test -x "$(which tap-to-junit-xml)" ||
