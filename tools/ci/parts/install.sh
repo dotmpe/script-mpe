@@ -11,8 +11,6 @@ test "$(whoami)" = "travis" || {
     {
       echo sudo=$sudo APT_PACKAGES=$APT_PACKAGES
       {
-          apt-cache search behat
-
         $sudo apt-get update &&
         $sudo apt-get install $APT_PACKAGES
 

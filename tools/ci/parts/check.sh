@@ -31,7 +31,7 @@ not_trueish "$SHIPPABLE" || {
 }
 
 composer --version
-behat --version
+test -n "$TEST_FEATURE_BIN" || "$TEST_FEATURE_BIN" --version
 bats --version
 realpath --version
 git-versioning version
