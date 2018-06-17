@@ -8,14 +8,8 @@ test "$(whoami)" = "travis" || {
   test -x "$(which apt-get)" && {
     test -z "$APT_PACKAGES" ||
     {
-      echo APT_PACKAGES=$APT_PACKAGES
+      echo sudo=$sudo APT_PACKAGES=$APT_PACKAGES
       {
-          echo '------'
-    apt-cache search git
-          echo '------'
-    apt-cache search lfs
-          echo '------'
-
         $sudo apt-get update &&
         $sudo apt-get install $APT_PACKAGES
 
@@ -24,7 +18,7 @@ test "$(whoami)" = "travis" || {
   }
 }
 
-./install-dependencies.sh all pip php dev bats-force-local
+sudo=$sudo ./install-dependencies.sh all pip php dev bats-force-local
 
 pip install gtasks
 
