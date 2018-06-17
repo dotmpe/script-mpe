@@ -19,7 +19,7 @@ test "$(whoami)" = "travis" || {
   }
 }
 
-sudo=$sudo ./install-dependencies.sh all pip php dev bats-force-local
+./install-dependencies.sh all pip php dev bats-force-local
 
 pip install keyring requests_oauthlib
 pip install gtasks
@@ -33,7 +33,6 @@ test "$(whoami)" = "travis" || {
     cpan reload index
     cpan install CAPN
     cpan reload cpan
-    #$sudo apt-get install perl
     cpan install XML::Generator
     test -x "$(which tap-to-junit-xml)" ||
       basher install jmason/tap-to-junit-xml
