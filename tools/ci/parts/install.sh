@@ -19,7 +19,7 @@ test "$(whoami)" = "travis" || {
   }
 }
 
-sudo=$sudo ./install-dependencies.sh all pip php dev bats-force-local
+sudo=$sudo ./install-dependencies.sh all pip pylib php dev bats-force-local
 
 pip install keyring requests_oauthlib
 pip install gtasks
