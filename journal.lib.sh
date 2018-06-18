@@ -1,6 +1,11 @@
 #!/bin/sh
 
 
+journal_lib_load()
+{
+  journal_days="yesterday today tomorrow sunday monday tuesday wednesday thursday friday saturday"
+}
+
 # Create symlinks for today and every weekdays in last, current and next week,
 # The document contents are initialized with htd-rst-doc-create-update
 htd_jrnl_day_links()
@@ -18,25 +23,27 @@ htd_jrnl_day_links()
   test -n "$EXT" || EXT=.rst
   local jr="$jrnldir$YSEP" jfmt="$jrnldir$YSEP$Y$MSEP$M$DSEP$D$EXT"
 
-  test -n "$*" ||
-      set -- yesterday today tomorrow sunday monday tuesday wednesday thursday friday saturday
+  files_="$( htd_jrnl_create_day_symlinks "$jr" "$jfmt" )"
+  test -n "$files" && export files="$files $files_" || export files="$files_"
+}
 
-  while test -n "$1"
+htd_jrnl_create_day_symlinks()
+{
+  for day in $journal_days
   do
-    case "$1" in
+    case "$day" in
 
-        yesterday)  datelink -1d "${jfmt}" ${jr}yesterday$EXT ;;
-        today)      datelink "" "${jfmt}" ${jr}today$EXT ;;
-        tomorrow )  datelink +1d "${jfmt}" ${jr}tomorrow$EXT ;;
+        yesterday)  datelink -1d "${jfmt}" ${jr}yesterday$EXT >&2 ; echo "$datep" ;;
+        today)      datelink "" "${jfmt}" ${jr}today$EXT >&2 ; echo "$datep" ;;
+        tomorrow )  datelink +1d "${jfmt}" ${jr}tomorrow$EXT >&2 ; echo "$datep" ;;
 
         * )
-            datelink "$1 -7d" "${jfmt}" "${jr}last-$1$EXT"
-            datelink "$1 +7d" "${jfmt}" "${jr}next-$1$EXT"
-            datelink "$1" "${jfmt}" "${jr}$1$EXT"
+            datelink "$day -7d" "${jfmt}" "${jr}last-$day$EXT" >&2 ; echo "$datep"
+            datelink "$day +7d" "${jfmt}" "${jr}next-$day$EXT" >&2 ; echo "$datep"
+            datelink "$day" "${jfmt}" "${jr}$day$EXT" >&2 ; echo "$datep"
         ;;
 
     esac
-    shift
   done
 }
 
@@ -52,17 +59,17 @@ htd_jrnl_period_links()
   local jr="$jrnldir$YSEP" \
       yfmt="$jrnldir$YSEP%G$D$EXT" \
       mfmt="$jrnldir$YSEP%G-%m$D$EXT" \
-      wfmt="$jrnldir$YSEP%G-w%U$D$EXT"
+      wfmt="$jrnldir$YSEP%G-w%V$D$EXT"
 
-  datelink "-7d" "${wfmt}" "${jr}last-week$EXT"
-  datelink "" "${wfmt}" "${jr}week$EXT"
-  datelink "+7d" "${wfmt}" "${jr}next-week$EXT"
+  datelink "-1w" "${wfmt}" "${jr}last-week$EXT" >&2 ; echo "$datep"
+  datelink "" "${wfmt}" "${jr}week$EXT" >&2 ; echo "$datep"
+  datelink "+1w" "${wfmt}" "${jr}next-week$EXT" >&2 ; echo "$datep"
 
-  datelink "-1m" "${mfmt}" "${jr}last-month$EXT"
-  datelink "" "${mfmt}" "${jr}month$EXT"
-  datelink "+1m" "${mfmt}" "${jr}next-month$EXT"
+  datelink "-1m" "${mfmt}" "${jr}last-month$EXT" >&2 ; echo "$datep"
+  datelink "" "${mfmt}" "${jr}month$EXT" >&2 ; echo "$datep"
+  datelink "+1m" "${mfmt}" "${jr}next-month$EXT" >&2 ; echo "$datep"
 
-  datelink "-1y" "${yfmt}" "${jr}last-year$EXT"
-  datelink "" "${yfmt}" "${jr}year$EXT"
-  datelink "+1y" "${yfmt}" "${jr}next-year$EXT"
+  datelink "-1y" "${yfmt}" "${jr}last-year$EXT" >&2 ; echo "$datep"
+  datelink "" "${yfmt}" "${jr}year$EXT" >&2 ; echo "$datep"
+  datelink "+1y" "${yfmt}" "${jr}next-year$EXT" >&2 ; echo "$datep"
 }

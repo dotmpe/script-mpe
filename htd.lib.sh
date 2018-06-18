@@ -477,32 +477,31 @@ htd_edit_today()
     {
       # Prepare todays' day-links (including weekday and next/prev week)
       test -n "$log_path_ysep" || log_path_ysep="/"
+      files=''
       htd_jrnl_day_links "$1" "$log_path_ysep" "$log_path_msep" "$log_path_dsep"
-      # And summaries for current week, month, and year
-      htd_jrnl_period_links "$1" "$log_path_ysep"
+
+      # TODO: And summaries for current week, month, and year
+      files="$files $(htd_jrnl_period_links "$1" "$log_path_ysep")"
 
       # FIXME: need offset dates from file or table with values to initialize docs
-      today=$(realpath "$1${log_path_ysep}today$EXT")
+
+      # Prepare and edit, but only todays file and linked indices
+      today="$(realpath "$1${log_path_ysep}today$EXT")"
       test -s "$today" || {
         test -n "$log_title" || log_title="%A %G.%U"
         title="$(date_fmt "" "$log_title")"
         htd_rst_doc_create_update "$today" "$title" title created default-rst \
             link-stats
       }
+      # Prepare linked indices
+      htd_rst_doc_create_update "$today" "" link-day
 
-      htd_rst_doc_create_update "$today" "" link-day-up
-
-      # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
-      files=$(bash -c "echo $1${log_path_ysep}{today,tomorrow,yesterday}$EXT")
-      # Prepare and edit, but only yesterday/todays/tomorrows' file
-      #for file in $FILES
-      #do
-      #  test -s "$file" || {
-      #    title="$(date_fmt "" '%A %G.%U')"
-      #    htd_rst_doc_create_update "$file" "$title" title created default-rst
-      #  }
-      #done
-      htd_edit_and_update $(realpath $files)
+      htd_edit_and_update \
+          $1/today$EXT  \
+          $1/week$EXT   \
+          $1/month$EXT  \
+          $1/year$EXT   \
+          $files
     } || {
       error "during edit of $1 ($?)" 1
     }
