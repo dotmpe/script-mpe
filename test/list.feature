@@ -2,6 +2,7 @@ Feature: list handles the listing of local names, and sets of names using glob p
 
   Scenario: print names in group
     Given the current project,
+    And `env` 'verbosity=0'
     When the user runs "list.sh names global"...
     Then `status` should be '0'
     And `output` contains the patterns:
@@ -22,6 +23,7 @@ Feature: list handles the listing of local names, and sets of names using glob p
 
   Scenario: print names in group
     Given the current project,
+    And `env` 'verbosity=0'
     When the user runs "list.sh globs names"...
     #Then `output` should match:
     #"""
@@ -30,22 +32,26 @@ Feature: list handles the listing of local names, and sets of names using glob p
 
   Scenario: print names in group
     Given the current project,
+    And `env` 'verbosity=0'
     When the user runs "list.sh local names"
     Then `output` should be empty.
     And `status` should be '0'
 
   Scenario: read entries of plain text list
     Given the current project,
+    And `env` 'verbosity=0'
     When the user runs "list.py read-list test/var/list.txt/list1.txt"
     Then `status` should be '0'
 
   Scenario: read entries of plain text list (2)
     Given the current project,
+    And `env` 'verbosity=0'
     When the user runs "list.py read-list test/var/list.txt/list2.txt"
     Then `status` should be '0'
 
   Scenario: add entry to plain text list
     Given the current project,
+    And `env` 'verbosity=0'
     Given cleanup "build/test/list1.txt"
     # FIXME: multiline exec would be nice to have
     Given a file "test-list-feature.sh" containing:
@@ -80,6 +86,7 @@ Feature: list handles the listing of local names, and sets of names using glob p
  @skip
  Scenario: TODO: update entry to plain text list
     Given the current project,
+    And `env` 'verbosity=0'
     Given a file "test-list-feature-2.sh" containing:
     """
     set -e
@@ -101,12 +108,14 @@ Feature: list handles the listing of local names, and sets of names using glob p
   # Generic CLI command conformance
 
   Scenario: print version
+    Given `env` 'verbosity=0'
     When the user runs "list.sh version"?
     Then `output` contains the pattern "mpe"
     Then `output` matches the pattern "^script-mpe\/[0-9A-Za-z\._-]*$"
     And `status` should be '0'
 
   Scenario: no such command
+    Given `env` 'verbosity=0'
     When the user runs "list.sh foo"...
     Then `output` contains the pattern "Usage:"
     And `stderr` contains the pattern "No\ such\ command"

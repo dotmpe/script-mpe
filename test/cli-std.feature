@@ -5,6 +5,8 @@ Feature: a std. CLI tool
 
   Scenario Outline: prints version
 
+    Given `env` 'verbosity=0'
+
     When the user runs "<cmd> --version"
     Then `output` contains the pattern "script-mpe\/[0-9A-Za-z\._-]*"
     And `status` should be '0'

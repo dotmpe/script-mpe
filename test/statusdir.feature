@@ -1,7 +1,7 @@
 Feature: statusdir records with any backend
 
     Scenario Outline: statusdir behaves normally
-        Given `env` '<env>'
+        Given `env` '<env> verbosity=0'
 
         When the user runs 'statusdir.sh ping'
         Then `stderr` is empty

@@ -53,6 +53,7 @@ Feature: Project checkout handling
 
   Scenario: list scm dirs - helps to find checkouts
 
+      Given `env` 'verbosity=0'
       When the user executes "projectdir.py"
       Then the `status` is '0'
       #And the `output` is not empty
@@ -60,6 +61,7 @@ Feature: Project checkout handling
 
   Scenario: list untracked files - helps with project state
 
+      Given `env` 'verbosity=0'
       When the user executes "projectdir.py find-untracked"
       Then the `status` is '0'
       #And the `output` is not empty
