@@ -81,6 +81,7 @@ do case "$BUILD_STEP" in
               source /root/venv/2.7/bin/activate
               pip install keyring requests_oauthlib
               pip install -r requirements.txt
+              pip install -r test-requirements.txt
           } || true
           python test/main.py || true #echo python:main >> $failed
           #py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed

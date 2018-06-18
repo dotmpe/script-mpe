@@ -15,11 +15,6 @@ wc -l $TEST_RESULTS*
 
 cp $TEST_RESULTS-1.json $TEST_RESULTS.json
 
-curl -sSf https://$CI_DB_HOST/ || {
-  echo "No remote DB, skipped publish" >&2
-  exit 0
-}
-
   CI_BUILD_ENV="$PARAMS.json" \
   CI_BUILD_RESULTS=$TEST_RESULTS.json \
   CI_DB_HOST="$CI_DB_HOST" \
