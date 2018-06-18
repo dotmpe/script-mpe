@@ -107,6 +107,7 @@ env:
 branches:
   only:
     - master
+    # Because shippable does not handle the patterns correctly
     - test
     - dev
     - '/^test.*$/'
