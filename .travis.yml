@@ -101,7 +101,7 @@ env:
     - TEST_RESULTS=shippable/testresults/test
     - Build_Deps_Default_Paths=1
     - BATS_REPO=https://github.com/bvberkum/bats-core.git
-    - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
+    #- PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
     - COUCH_DB=test
 
 branches:

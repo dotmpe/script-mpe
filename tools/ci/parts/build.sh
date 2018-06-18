@@ -76,8 +76,10 @@ do case "$BUILD_STEP" in
           note "Feature tests done"
 
           # Test Python unit files and report in ...
+          echo "Python tests..."
           test "$SHIPPABLE" = "true" &&
               source /root/venv/2.7/bin/activate || true
+          echo PYTHONPATH=$PYTHONPATH
           python test/main.py || true #echo python:main >> $failed
           #py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed
           #mv -v $TEST_RESULTS.xml $TEST_RESULTS-3.xml

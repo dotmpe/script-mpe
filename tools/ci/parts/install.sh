@@ -19,7 +19,9 @@ test "$(whoami)" = "travis" || {
   }
 }
 
+echo PYTHONPATH=$PYTHONPATH
 ./install-dependencies.sh all pip php dev bats-force-local
+echo PYTHONPATH=$PYTHONPATH
 
 test "$(whoami)" = "travis" || {
 pip install --upgrade pip
