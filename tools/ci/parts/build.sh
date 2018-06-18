@@ -78,7 +78,6 @@ do case "$BUILD_STEP" in
           # Test Python unit files and report in ...
           echo "Python tests..."
           test "$SHIPPABLE" = "true" && {
-              echo SHIPPABLE=$SHIPPABLE PYTHONPATH=$PYTHONPATH
               source /root/venv/2.7/bin/activate
               pip install keyring requests_oauthlib
               pip install -r requirements.txt
