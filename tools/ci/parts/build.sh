@@ -62,7 +62,7 @@ do case "$BUILD_STEP" in
           # Test shell unit files and report in TAP
           test_shell $(which bats) || echo test-shell >> $failed
           note "Bats shell tests done"
-          mv $TEST_RESULTS.tap $TEST_RESULTS-1.tap
+          mv -v $TEST_RESULTS.tap $TEST_RESULTS-1.tap
 
           # Test feature files and report in JUnit XML
           echo "Features: '$TEST_FEATURE' '$BUSINESS_SUITE'"
@@ -72,13 +72,15 @@ do case "$BUILD_STEP" in
           (
             ./vendor/bin/behat --tags ~@todo&&~@skip --suite default || true
           )
-          #mv $TEST_RESULTS/default.xml $TEST_RESULTS-2.xml
+          #mv -v $TEST_RESULTS/default.xml $TEST_RESULTS-2.xml
           note "Feature tests done"
 
           # Test Python unit files and report in ...
+          test "$SHIPPABLE" = "true" &&
+              source /root/venv/2.7/bin/activate || true
           python test/main.py || true #echo python:main >> $failed
           #py.test --junitxml $TEST_RESULTS.xml $PY_SUITE || touch $failed
-          #mv $TEST_RESULTS.xml $TEST_RESULTS-3.xml
+          #mv -v $TEST_RESULTS.xml $TEST_RESULTS-3.xml
           #note "Python unittests done"
         )
 
