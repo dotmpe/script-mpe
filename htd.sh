@@ -372,7 +372,7 @@ htd_unload()
 
     r )
         # Report on scriptnames and associated script-lines provided in $HTD_TOOLSFILE
-        jsotk.py -O yaml --pretty dump - < $report 
+        jsotk.py -O yaml --pretty dump - < $report
       ;;
 
     S )
@@ -8254,7 +8254,9 @@ htd__backup()
     test ! -d "/srv/backup-local/.git/annex" || {
       eval $act git annex sync \
         || error "Annex sync failed" $?
+      eval $act git annex copy --to 21-2
     }
+    note "Backed up to /srv/backup-local"
   }
 }
 htd_pre__backup=htd_backup_prereq

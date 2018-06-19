@@ -92,3 +92,5 @@ tools:
     - launchctl load -w ~/Library/LaunchAgents/homebrew.mxcl.memcached.plist
     - echo $V
 
+  git-annex-finddups:
+    url: https://rawgit.com/aspiers/git-config/master/bin/git-annex-finddups

@@ -109,7 +109,7 @@ htd_rst_doc_create_update()
       # Link up with period (week/month/Q/Y) stats files
       link-year-up )
           # Get year...
-          thisyear=$(realpath "$JRNL_DIR${log_path_ysep}year$EXT")
+          thisyear=$(realpath "${log}${log_path_ysep}year$EXT")
           title="$(date_fmt "" "%G")"
           test -s "$thisyear" || {
             htd_rst_doc_create_update "$thisyear" "$title" \
@@ -117,7 +117,7 @@ htd_rst_doc_create_update()
           }
           # TODO htd_rst_doc_create_update "$thisyear" "" link-all-years
           grep -q '\.\.\ footer::' "$outf" || {
-            thisyearrel=$(realpath --relative-to=$(dirname "$outf") "$JRNL_DIR${log_path_ysep}year$EXT")
+            thisyearrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}year$EXT")
             {
               printf -- ".. footer::\n\n\t- \`$title <$thisyearrel>\`_"
             } >> $outf
@@ -126,7 +126,7 @@ htd_rst_doc_create_update()
 
       link-month-up )
           # Get month...
-          thismonth=$(realpath "$JRNL_DIR${log_path_ysep}month$EXT")
+          thismonth=$(realpath "${log}${log_path_ysep}month$EXT")
           title="$(date_fmt "" "%B %G")"
           test -s "$thismonth" || {
             htd_rst_doc_create_update "$thismonth" "$title" \
@@ -139,7 +139,7 @@ htd_rst_doc_create_update()
           #}
           htd_rst_doc_create_update "$thismonth" "" link-year-up
           grep -q '\.\.\ footer::' "$outf" || {
-            thismonthrel=$(realpath --relative-to=$(dirname "$outf") "$JRNL_DIR${log_path_ysep}month$EXT")
+            thismonthrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}month$EXT")
             {
               printf -- ".. footer::\n\n\t- \`$title <$thismonthrel>\`_"
             } >> $outf
@@ -147,7 +147,7 @@ htd_rst_doc_create_update()
         ;;
 
       link-week-up )
-          thisweek=$(realpath "$JRNL_DIR${log_path_ysep}week$EXT")
+          thisweek=$(realpath "${log}${log_path_ysep}week$EXT")
           title="$(date_fmt "" "%V week %G")"
           test -s "$thisweek" || {
             htd_rst_doc_create_update "$thisweek" "$title" \
@@ -155,7 +155,7 @@ htd_rst_doc_create_update()
           }
           htd_rst_doc_create_update "$thisweek" "" link-month-up
           grep -q '\.\.\ footer::' "$outf" || {
-            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "$JRNL_DIR${log_path_ysep}week$EXT")
+            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
             {
               printf -- ".. footer::\n\n\t- \`$title <$thisweekrel>\`_"
             } >> $outf
@@ -164,7 +164,7 @@ htd_rst_doc_create_update()
 
       link-day )
           # Get week...
-          thisweek=$(realpath "$JRNL_DIR${log_path_ysep}week$EXT")
+          thisweek=$(realpath "${log}${log_path_ysep}week$EXT")
           title="$(date_fmt "" "Week %V, %G")"
           test -s "$thisweek" || {
             htd_rst_doc_create_update "$thisweek" "$title" \
@@ -174,7 +174,7 @@ htd_rst_doc_create_update()
 
           #test $new -eq 1 || break ;
           grep -q '\.\.\ footer::' "$outf" || {
-            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "$JRNL_DIR${log_path_ysep}week$EXT")
+            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
             {
               printf -- ".. footer::\n\n\t- \`$title <$thisweekrel>\`_ "
             } >> $outf
