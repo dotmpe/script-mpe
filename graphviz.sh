@@ -58,9 +58,13 @@ gv__help()
 {
   gv__usage
   echo 'Functions: '
-  echo ''
+  echo '  usage                            print short usage.'
   echo '  help                             print this help listing.'
-  std__help gv "$@"
+  echo '  bg                               background service'
+  echo '  edit                             edit main script'
+  echo '  meta                             call backend service with query'
+  echo '  info                             query for info'
+  test -z "$1" || std__help "$@"
 }
 
 
@@ -83,7 +87,7 @@ gv_init()
   shift $c
 
   test -n "$subcmd_func" || {
-    error "func required" $?
+    error "subcmd-func required" $?
   }
 
   gv__lib "$@" || {
@@ -134,9 +138,9 @@ gv_main()
 {
   test -z "$__load_lib" || return 1
 
-  local scriptname=graphviz scriptalias=gv base=$(basename $0 .sh) \
+  local scriptname=graphviz scriptalias=gv base=gv \
     subcmd=$1 \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
+    scriptpath="$(dirname "$(realpath "$0")")"
 
 
   case "$base" in
@@ -146,8 +150,8 @@ gv_main()
         # invoke with function name first argument,
         local subcmd_func= c=0
 
-  			export SCRIPTPATH=$scriptpath
-				. $scriptpath/util.sh
+  		export SCRIPTPATH=$scriptpath
+		__load_mode=boot . $scriptpath/util.sh
 
         gv_init "$@" || {
           error "init error '$@'" 1
@@ -189,5 +193,3 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   esac ;;
 esac
-
-

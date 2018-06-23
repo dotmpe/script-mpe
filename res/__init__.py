@@ -6,7 +6,7 @@ integrate into programs that work on metadata and/or (media) files. The hope is
 to separate it according to focus into different projects or components, someday.
 
 Module dir:
-  - res.list - misc. types of simple lists from plain-text: dates, numbers, URL's
+  - res.lst - misc. types of simple lists from plain-text: dates, numbers, URL's
   - res.todo - TODO.txt format on steriods
   - res.task - data sync and events for res.txt items
   - res.txt - this file, interfaces and abstract types
@@ -60,7 +60,7 @@ from vc import Repo
 from js import AbstractYamlDocs
 from ws import Workspace, Homedir, Workdir, Volumedir
 import task
-from task import Task, TodoListParser, RedisSEIStore
+from task import Task, TaskListParser, RedisSEIStore
 import todo
 from todo import TodoTxtParser
 from disk import Diskdoc

@@ -15,7 +15,7 @@ import res.bm
 import res.d
 import res.iface
 import res.js
-import res.list
+import res.lst
 import res.task
 import res.todo
 import res.txt

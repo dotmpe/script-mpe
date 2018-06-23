@@ -451,6 +451,7 @@ htd_edit_today()
     } || {
       # Default for Htdir
       set -- $JRNL_DIR/
+      log="$JRNL_DIR"
     }
   }
 

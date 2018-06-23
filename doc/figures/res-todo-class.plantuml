@@ -1,0 +1,32 @@
+@startuml
+left to right direction
+package res {
+  package txt {
+    class AbstractTxtLineParser
+    class AbstractTxtRecordParser
+    class AbstractTxtListParser
+  }
+  package txt2 {
+    class AbstractTxtLineParserRegexFields
+    class AbstractTxtLineParserSimpleFieldArgsStrategy
+  }
+  package todo {
+    class TodoListItemParser
+    class TodoListParser
+    class TodoTxtTaskParser
+    class TodoTxtParser
+
+    AbstractTxtLineParserRegexFields <|-- TodoListItemParser
+    AbstractTxtLineParser <|-- TodoListItemParser
+
+    AbstractTxtRecordParser <|-- TodoTxtTaskParser
+    UserDict.UserDict <|-- TodoTxtParser
+
+    TodoListItemParser *-- TodoListParser : label=item_parser
+    SimpleTxtLineItem *-- TodoListParser : label=item_builder
+
+    AbstractTxtListParser <|-- TodoListParser
+    AbstractTxtLineParserSimpleFieldArgsStrategy <|-- AbstractTxtLineParserRegexFields
+  }
+}
+@enduml

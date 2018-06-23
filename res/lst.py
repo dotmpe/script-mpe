@@ -1,8 +1,10 @@
 """
-res.list - ordered or indexed user-data struct from plain-text files
+res.lst - ordered or indexed user-data struct from plain-text files
 
 See `list` frontend and docs.
 """
+from zope.interface import implements
+
 from script_mpe.confparse import Values
 
 import d
@@ -24,11 +26,13 @@ class ListItemTxtParser(
 ):
     fields = ("sections refs contexts projects cites hrefs attrs "
         "date:creation_date date:deleted_date id:item_id").split(' ')
+    implements(txt2.ITxtLineParser)
     def __init__(self, raw, **attrs):
         super(ListItemTxtParser, self).__init__(raw, **attrs)
 
 
 class ListTxtParser(txt.AbstractIdStrategy):
+    implements(txt2.ITxtListParser)
     item_parser = ListItemTxtParser
     def __init__(self, **kwds):
         super(ListTxtParser, self).__init__(**kwds)
@@ -126,6 +130,6 @@ class ListTxtWriter(txt.AbstractTxtListWriter):
 
 def write(listfile, provider_spec):
     """
-    Write items selected by provider-spec to listfile.
+    TODO: Write items selected by provider-spec to listfile.
     """
     pass

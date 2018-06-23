@@ -6,7 +6,7 @@ via line-parser. All docs inline, with interfaces given to allow for more
 structured documentation.
 
 Related modules:
-  res.list - misc. types of simple lists from plain-text: dates, numbers, URL's
+  res.lst - misc. types of simple lists from plain-text: dates, numbers, URL's
   res.todo - TODO.txt format on steriods
   res.task - data sync and events for res.txt items
   res.txt - this file, interfaces and abstract types
@@ -97,10 +97,10 @@ class AbstractTxtLineParser(object):
 
     default_field_handler_prefix = 'parse_field'
 
-    def __init__(self, parser, *args, **kwds):
+    def __init__(self, list_parser, *args, **kwds):
         super(AbstractTxtLineParser, self).__init__()
         # Access to parent parser, if needed to bring session onto instance
-        self.parser = parser
+        self.parser = list_parser
         self.field_handler_prefix = self.default_field_handler_prefix
         self._index = 0
 

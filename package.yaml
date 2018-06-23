@@ -162,8 +162,8 @@
       - htd run install-pyvenv
     install-pyvenv:
       - test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
-      - source ~/.pyvenv/htd/bin/activate ; \
-        pip install -r requirements.txt; \
+      - source ~/.pyvenv/htd/bin/activate ;
+        pip install -r requirements.txt ;
         pip install -r test-requirements.txt
     install-gv:
       - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
