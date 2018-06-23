@@ -40,3 +40,7 @@ schema/*.json
 schema/*.n3
 .cdn.sh
 .shell-deps
+doc/figures/*.svg
+doc/figures/*.ps
+doc/figures/*.pdf
+doc/figures/*.png

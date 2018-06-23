@@ -193,33 +193,35 @@
     retest:
       - source ~/.pyvenv/htd/bin/activate
       # TODO: restart only after changes
-      - lib_load build ; retest \"\$@\"
+      - lib_load build ; retest "$@"
     tested:
-      - lib_load build ; tested \"\$@\"
+      - lib_load build ; tested "$@"
     totest:
-      - lib_load build ; totest \"\$@\"
+      - lib_load build ; totest "$@"
     # Run unit & component tests
     project-test:
-      - lib_load build ; project_test \$@
+      - lib_load build ; project_test $@
     tests:
-      - lib_load build ; project_tests \"\$@\"
+      - lib_load build ; project_tests "$@"
     # List unit & component testfiles
     list-tests:
-      - lib_load build ; project_tests \$@
+      - lib_load build ; project_tests $@
     # Run and re-run after change
     watch-test:
-      - lib_load build ; test_watch \"\$@\"
+      - lib_load build ; test_watch "$@"
     # NOTE: the only thing missing with this tools/sh/env test-watch setup is
     # a replay feature, and keep watching only failing specs. see htd
     # resolve-modified too.
     test-unit:
-      - lib_load build ; test_any_unit \"\$@\"
+      - lib_load build ; test_any_unit "$@"
+    features:
+      - lib_load build ; any_feature "$@"
     test-feature:
-      - lib_load build ; test_any_feature \"\$@\"
+      - lib_load build ; test_any_feature "$@"
     test-features:
-      - lib_load build ; test_any_feature \"\$@\"
+      - lib_load build ; test_any_feature "$@"
     feature-watch:
-      - lib_load build ; feature_watch \"\$@\"
+      - lib_load build ; feature_watch "$@"
     feature-defs:
       - $TEST_FEATURE_DEFS
     feature-specs:

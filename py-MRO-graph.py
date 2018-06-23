@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
 
+TODO: plantuml output would give nicer graphs, add packages
+TODO: allow to mix in graph assertions, ie. to annotate nodes
+
 2018-06-23
     Adapted from M. Simionato <E-mail: mis6@pitt.edu>, 2003
 

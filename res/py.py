@@ -62,6 +62,7 @@ class MROgraph(object):
                    % self.textrepr).replace('\n','\\l')
         setupcode=nodeopt+edgeopt+caption+'\n'+setup+'\n'
         codeiter=itertools.chain(*[self.genMROcode(cls) for cls in classes])
+
         self.dotcode='digraph %s{\n%s%s}' % (
             name,setupcode,'\n'.join(codeiter))
         os.system("echo '%s' | dot -T%s > %s" % (self.dotcode, format, filepath))

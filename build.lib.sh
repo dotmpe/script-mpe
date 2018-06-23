@@ -139,6 +139,7 @@ test_any_feature()
     local features="$(any_feature "$@" | tr '\n' ' ')"
     test -n "$features" || error "getting features '$@'" 1
     note "Features: $features"
+    echo $TEST_FEATURE $features || return $?;
     $TEST_FEATURE $features || return $?;
 
   } || {

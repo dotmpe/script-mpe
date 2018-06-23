@@ -171,8 +171,8 @@ Syntax
   * TODO: get Sh, VIM tooling for Task migration
 
 Workflow
-  .. figure:: tasks/comp-wf-3.svg
-     :target: tasks/comp-wf-3
+  .. figure:: doc/figures/tasks-wf.svg
+     :target: doc/figures/tasks-wf
 
      With a SLUG-id a comment is matched with to an existing issue, or a new
      issue is initialized from the comment.
@@ -304,18 +304,18 @@ Workflow
 
   XXX: Older preliminary component overviews (need cleanup):
 
-  .. figure:: doc/tasks/comp-wf-1.svg
-     :target: doc/tasks/comp-wf-1
+  .. figure:: doc/figures/tasks-wf-1.svg
+     :target: doc/figures/tasks-wf-1
 
      Radical workflow. Only extracting references is implemented.
 
-  .. figure:: doc/figures/tasks-comp-wf-2.svg
-     :target: doc/figures/tasks-comp-wf-2
+  .. figure:: doc/figures/tasks-wf-2.svg
+     :target: doc/figures/tasks-wf-2
 
      Index numbering workflow.
 
-  .. figure:: doc/figures/tasks-comp-wf.svg
-     :target: doc/figures/tasks-comp-wf
+  .. figure:: doc/figures/tasks-wf.svg
+     :target: doc/figures/tasks-wf
 
      CLI record update/sync pipeline?
 

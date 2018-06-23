@@ -64,7 +64,7 @@ test -n "$TEST_FEATURE_BIN" && {
 test -n "$TEST_FEATURE" || {
     test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(command -v behave || true)"
     test -n "$TEST_FEATURE_BIN" && {
-        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
+        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k"
     }
 }
 
