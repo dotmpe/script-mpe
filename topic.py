@@ -234,13 +234,13 @@ def cmd_bulk_add(settings):
 def cmd_read_list(LIST, settings):
     """Read items, resolving issues interactively and making sure items are
     committed to any backends. """
-    res.list.parse(LIST, settings)
+    res.lst.parse(LIST, settings)
 
 
 def cmd_write_list(LIST, PROVIDERS, settings):
     """Retrieve all items from given backens and write to list file. """
     for provider in PROVIDERS:
-        res.list.write(LIST, provider, settings)
+        res.lst.write(LIST, provider, settings)
 
 
 

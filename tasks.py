@@ -329,8 +329,8 @@ def cmd_list_issues(settings, opts, tasks_file):
         raise Exception("Backend required, an empty %s file will do" %
                 settings.tasks_file )
     for k in issues:
-        print(k,)
-        print(issues[k])
+        v = issues[k]
+        print(k,type(v),v)
 
 
 def cmd_read_issues(settings, opts, tasks_file, grep_file):
@@ -421,7 +421,7 @@ def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
     # FIXME: defaults
     if not TODOLIST:
         TODOLIST = __to_do_list__
-    prsr = res.TodoListParser()
+    prsr = res.TaskListParser()
     prsr.parse(TODOLIST)
 
 

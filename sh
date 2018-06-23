@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 ./txt.py doctree docs.list .
 exit $?

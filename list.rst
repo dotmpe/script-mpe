@@ -1,9 +1,9 @@
 :Created: 2012-03-12
 
-Module ``res.list`` provides several list-parser setups using ``res.txt``
+Module ``res.lst`` provides several list-parser setups using ``res.txt``
 abstract types and mixins.
 
-res.list
+res.lst
 
 As such principle goals are
 
@@ -24,4 +24,4 @@ Concrete classes can configure abstracts bases and mixins using class
 attributes. Simple, but the down-side is this allows to layer fields and create
 undesired coupling.
 
-Frontends using res.list
+Frontends using res.lst

@@ -103,13 +103,13 @@ def cmd_load_list(LIST, g):
     """
     Load items
     """
-    prsr, items = res.list.parse(LIST, g)
+    prsr, items = res.lst.parse(LIST, g)
     assert not 'TODO', "load items to where? ..."
 
 
 def cmd_sync_list(LIST, g):
     """Update list for items found in a backend"""
-    prsr, items = res.list.parse(LIST, g)
+    prsr, items = res.lst.parse(LIST, g)
     assert not 'TODO', "update providers..."
 
 
@@ -141,9 +141,9 @@ def cmd_update_list(LIST, g, opts):
     """
 
     g.return_parser = True
-    prsr, items = res.list.parse(LIST, g)
+    prsr, items = res.lst.parse(LIST, g)
 
-    prsr2, updates = res.list.parse(sys.stdin, g)
+    prsr2, updates = res.lst.parse(sys.stdin, g)
     if not isinstance(opts.flags.match, list):
         opts.flags.match = opts.flags.match.split(',')
     new = {}
@@ -182,7 +182,7 @@ def cmd_update_list(LIST, g, opts):
         prsr.handle_id(record, item_id)
 
     # Rewrite file
-    w = res.list.ListTxtWriter(prsr)
+    w = res.lst.ListTxtWriter(prsr)
     w.write(LIST)
 
 
@@ -204,7 +204,7 @@ def cmd_read_list(LIST, PROVIDERS, g):
         Read items, resolving issues interactively and making sure items are
         committed to any backends.
 
-        TODO: apply-contexts for res.list.ListTxtParser.proc
+        TODO: apply-contexts for res.lst.ListTxtParser.proc
     """
     global ctx
 
@@ -216,7 +216,7 @@ def cmd_read_list(LIST, PROVIDERS, g):
     #    log.std("Applying contexts %r" % g.apply_contexts)
 
     g.return_parser = 1
-    prsr, items = res.list.parse(LIST, g)
+    prsr, items = res.lst.parse(LIST, g)
     prsr.proc( items )
     log.std("Processed %i items" % len(items))
     if g.commit:
@@ -229,7 +229,7 @@ def cmd_write_list(LIST, PROVIDERS, g):
         Retrieve all items from given backens and write to list file.
     """
     for provider in PROVIDERS:
-        res.list.write(LIST, provider, g)
+        res.lst.write(LIST, provider, g)
 
 
 def run_glob_filter(input, glob_input, settings):
@@ -296,7 +296,7 @@ def cmd_x_rewrite_html_tree_id(LIST, g):
 def cmd_urllist(LIST, g):
     global ctx
 
-    prsr = res.list.URLListParser()
+    prsr = res.lst.URLListParser()
     l = list(prsr.load_file(LIST))
     if not l:
         log.stdout("{yellow}Nothing found{default}")
@@ -324,7 +324,7 @@ commands.update(dict(
 def defaults(opts, init={}):
     global cmd_default_settings, ctx
     libcmd_docopt.defaults(opts)
-    opts.flags.update(res.list.list_parse_defaults)
+    opts.flags.update(res.lst.list_parse_defaults)
     opts.flags.update(cmd_default_settings)
     ctx.settings.update(opts.flags)
     opts.flags.update(ctx.settings)

@@ -9,19 +9,19 @@ Printing is done in some various initial formats. Examples::
 
     $ radical.py -u full-id ./res/
     [...]
-    ./res/list.py:1953-1990;lines=80-80;flavour=unix_generic;comment=1954-1991
+    ./res/lst.py:1953-1990;lines=80-80;flavour=unix_generic;comment=1954-1991
 
     # todo.txt:
-    TODO: give access to lookup indices  @./res/list.py line:80-80
+    TODO: give access to lookup indices  @./res/lst.py line:80-80
 
     # grep:
-    ./res/list.py:80:  TODO: give access to lookup indices\n
+    ./res/lst.py:80:  TODO: give access to lookup indices\n
 
     # id:
-    ./res/list.py:1953-1990
+    ./res/lst.py:1953-1990
 
     # full-sh:
-    :./res/list.py:80-80:1952-1989::::  TODO: give access to lookup indices\n
+    :./res/lst.py:80-80:1952-1989::::  TODO: give access to lookup indices\n
 
 
 These spanpointers are directly inspired by transquoter.py, and the Udanax

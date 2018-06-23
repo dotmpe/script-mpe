@@ -60,6 +60,8 @@ htd_rst_doc_create_update()
   test -n "$1" || error htd-rst-doc-create-update 12
   local outf="$1" title="$2" ; shift 2
   test -s "$outf" && new=0 || new=1
+  test -n "$log" || log="$package_log"
+  test -n "$log" -a -d "$log" || error "package log env expected" 1
   test $new -eq 1 || {
 
     # Document file exists, update

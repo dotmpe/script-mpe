@@ -160,9 +160,12 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
     def __repr__(self):
         return str(self)
     def __str__(self):
-        return "TodoTxtTask:%s" % ( self.id )
-        return "TodoTxtTask:%s;%s;%s;%s;<#%x>" % ( self.id, self.doc_id, self.issue_id,
+        if '_id' in self.attrs:
+            args = ( self.id, )
+        else: args = ( "", )
+        args += ( self.doc_id, "", #self.issue_id,
                 self.src_id, hash(self) )
+        return "TodoTxtTask:%s;%s;%s;%s;<#%x>" % args
 
 
 class TodoTxtParser(UserDict):

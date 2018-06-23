@@ -1,0 +1,10 @@
+@startuml
+left to right direction
+package res {
+  package task {
+    class Task
+    class TaskListParser
+    class RedisSEIStore
+  }
+}
+@enduml

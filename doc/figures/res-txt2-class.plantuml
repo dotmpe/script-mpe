@@ -1,0 +1,31 @@
+@startuml
+left to right direction
+package res {
+  package txt {
+  }
+  package txt2 {
+    class ITxtLineParser
+    class ITxtListParser
+    class AbstractTxtLineParserRegexFields
+    class AbstractTxtLineParserSimpleFieldArgsStrategy
+    class AbstractTxtLineParserTargetStrategy
+
+    class AbstractTxtLineParserFieldsStrategy
+    class SimpleTxtLineItem
+    class ConcreteTxtLineParser
+    
+    zope.interface.Interface <|-- ITxtLineParser
+    zope.interface.Interface <|-- ITxtListParser
+
+    AbstractTxtLineParser <|-- ConcreteTxtLineParser
+    ConcreteTxtLineParser --> ITxtLineParser : implements
+
+    AbstractTxtLineParserTargetStrategy <|-- AbstractTxtLineParserFieldsStrategy
+    AbstractTxtLineParserTargetStrategy <|-- AbstractTxtLineParserSimpleFieldArgsStrategy
+  }
+  package task {
+  }
+}
+
+@enduml
+

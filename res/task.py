@@ -45,7 +45,7 @@ class Task(object):
         self.description = None
 
 
-class TodoListParser(object):
+class TaskListParser(object):
     """
     "XXX: alt. syntax to TODOtxt? (res/todo.py)"
 

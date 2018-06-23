@@ -1,0 +1,33 @@
+@startuml
+left to right direction
+package res {
+  package txt {
+    class AbstractTxtSegmentedRecordParser
+    class AbstractTxtRecordParser
+    class AbstractRecordIdStrategy
+    class AbstractRecordReferenceStrategy
+    class AbstractIdStrategy
+  }
+  package txt2 {
+    class ITxtLineParser
+    class ITxtListParser
+  }
+  package lst {
+    class ListItemTxtParser
+    class ListTxtParser
+    class URLListItemParser
+    class URLListParser
+    class ListTxtWriter
+
+    ListItemTxtParser --> ITxtLineParser : implements
+    AbstractTxtSegmentedRecordParser <|-- ListItemTxtParser
+    AbstractTxtRecordParser <|-- ListItemTxtParser
+    AbstractRecordIdStrategy <|-- ListItemTxtParser
+    AbstractRecordReferenceStrategy <|-- ListItemTxtParser
+
+    ListTxtParser --> ITxtListParser : implements
+    AbstractIdStrategy <|-- ListTxtParser
+    ListItemTxtParser *-- ListTxtParser : item_parser
+  }
+}
+@enduml

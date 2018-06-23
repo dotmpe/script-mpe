@@ -1,32 +1,28 @@
 .. include:: .default.rst
 
 Tasks
-========
-:created:
+=====
+TODO.txt lists boil down to a format for line-based items, tasks sorted by
+status, priority, context and some other metadata bits. Using tags and URLs,
+items can be further indexed.
 
-TODO.txt lists boil down to a format for line-based indexed items.
-
-A tasks document is a collection of tickets/calls/todos/...
-Of task lists with names, and per item contexts, project homes...
-
-Building prototype commands within ``htd tasks`` command and lib namespace.
+Some notes on the TODO.txt format, usage within `script.mpe`.
 
 Format
 ------
-It is useful to define a common format for plain-text list items. Not just for
-tasks, or todo's.
-
-This is the more or less official basic format for TODO.txt lines, as provided
-by e.g. `todotxt/todotxt <https://github.com/todotxt/todo.txt>`_.
+The TODO.txt format is useful common format for plain-text list items. Going
+slightly beyond todo's.
 
 todo.txt::
 
   (prio) <created> description +project @context due:<date> [WAIT]
   x (prio) <closed> <created> description +project @context due:<date> [WAIT]
 
+See `todotxt/todotxt <https://github.com/todotxt/todo.txt>`_.
+
 The above organizes tasks on four axis: priority, project, context, and time.
 Projects can be seen as another context. But in reality the project is where you
-may want to keep the original or canonical TODO.txt. Its a matter of where you
+may want to keep the original or canonical TODO.txt, ie. the where of how you
 want to keep the lists.
 
 Other metadata can be added as key:values, or maybe TAG's.
@@ -44,15 +40,15 @@ Some things about TODO.txt are a bit too specific for my taste.
 
 - Use ``<closed>`` as due-date, as long as the ticket is not closed.
 
-  A plain text task format and no standard syntax way to give the date the tasks
-  actually needs to have been done. That bothers me. Also aside from needing
-  translation, the ``due:`` meta field seems like a hack to me. What if I called
-  it `Due`, or `at` or `when`. Its not right to have a format, with position
-  for one or more dates and not plan for one of the essential attributes of
-  your domain model.
+  A plain text task format and no syntax to set due-date, except by metadata
+  field name convention. There is a translation issue with 'due:', and also
+  what about `at` or `when`.
+  Generalizing the format, any sequence of dates could be allowed and all can
+  have a specific meaning (within some domain). TODO.txt specifies two optional
+  dates, creation and completed. And the latter is given before the second.
 
-- What sort of field is ``[WAIT]`` suposed to be? some form of tag? Again, to
-  seems an inappropiate addition of new syntax to the format. Altough it is
+- What sort of field is ``[WAIT]``? some form of tag, but why not generalize.
+  As is seems like a half sort of new syntax to the format. Altough it is
   nicely readable, so plus there.
 
   What it does look like is an editor remark or an citation xref. That makes
@@ -306,23 +302,26 @@ Workflow
     for the system to work only the comment-id handling is required. Comment
     changes, updates, syncing etc. can be disregarded if irrelevant.
 
-
   XXX: Older preliminary component overviews (need cleanup):
 
-  .. figure:: tasks/comp-wf-1.svg
-     :target: tasks/comp-wf-1
+  .. figure:: doc/tasks/comp-wf-1.svg
+     :target: doc/tasks/comp-wf-1
 
      Radical workflow. Only extracting references is implemented.
 
-  .. figure:: tasks/comp-wf-2.svg
-     :target: tasks/comp-wf-2
+  .. figure:: doc/figures/tasks-comp-wf-2.svg
+     :target: doc/figures/tasks-comp-wf-2
 
      Index numbering workflow.
 
-  .. figure:: tasks/comp-wf.svg
-     :target: tasks/comp-wf
+  .. figure:: doc/figures/tasks-comp-wf.svg
+     :target: doc/figures/tasks-comp-wf
 
      CLI record update/sync pipeline?
+
+
+  v0.0.3-522-g1c97556
+  `Resource classes <doc/figures/tasks-comp-class>`__
 
 
 Getting tasks from source
@@ -355,9 +354,6 @@ somewhere. This also enables creating new tasks for new found tagged
 comments. And meanwhile allows other tags with the same format present.
 
 ----
-
-
-
 
 Sh (line-based) formats::
 

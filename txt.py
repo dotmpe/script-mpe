@@ -49,7 +49,7 @@ cmd_default_settings = dict(
 
 
 def cmd_urllist(LIST, g):
-    prsr = res.list.URLListParser()
+    prsr = res.lst.URLListParser()
     l = list(prsr.load_file(LIST))
     g.tp = 'locator'
     for i in l:
