@@ -1,6 +1,12 @@
 #!/bin/sh
 set -e
 
+python meta.py \
+    /srv/archive-old-21-2-dandy-mpe/media/application/HyperCard\ Collection/HyperCard\ 1.01.EN.zip
+sha1sum \
+    /srv/archive-old-21-2-dandy-mpe/media/application/HyperCard\ Collection/HyperCard\ 1.01.EN.zip
+exit $?
+
 ./txt.py doctree docs.list .
 exit $?
 

@@ -9,7 +9,7 @@ from __future__ import print_function
 import os
 import sys
 
-from script_mpe.res import Volumedir, File, Dir
+from script_mpe.res import Volumedir, File, Dir, Workspace
 from script_mpe.res.metafile import MetafileFile, Meta, Metadir, Metafile
 
 
@@ -20,19 +20,19 @@ if __name__ == '__main__':
         print(__doc__)
         sys.exit(0)
 
-    vdir = list(Volumedir.find())
-    if not vdir:
-        print("No volume here")
-        sys.exit(1)
+    #ws = Workspace.find(os.curdir)#, prog.pwd, prog.home)
+    vdir = None
+    #vdir = list(Volumedir.find())
+    #if not vdir:
+    #    print("No volume here")
+    #    sys.exit(1)
 
     meta = Meta(vdir)
-    print(meta)
 
     if args:
 
         for path in args:
 
-            mff = MetafileFile(path)
             try:
                 mff = MetafileFile(path)
             except Exception as e:
@@ -41,12 +41,17 @@ if __name__ == '__main__':
 
             if not os.path.exists(mff.path):
                 print('Missing', mff.path, mff.data.keys())
+            else:
+                print(path, mff.data.keys())
+                print(mff.data['Digest'])
+                print(mff.get_sha1sum())
 
     else:
 
         #meta.dir.walk()
         #for fn in Dir.walk('.'):
-        #    print Metafile(fn)
+        #    print(Metafile(fn))
+
         mf = Metafile(File('meta.py'))
         print(mf)
-        print(mf.atime)
+        #print(mf.atime)

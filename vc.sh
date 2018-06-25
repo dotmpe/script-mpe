@@ -1264,7 +1264,7 @@ vc__git_branch_exists()
 
 vc__roots()
 {
-  vc_rootcommits
+  vc_roots
 }
 
 

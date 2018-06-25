@@ -136,6 +136,8 @@ htd_repository_url() # Remote Url
 {
   local remote_hostinfo= remote_dir= remote_id= domain=
 
+  info "Getting local references for repo '$1' with URL '$2'"
+
   fnmatch "*.*" "$1" && {
       remote_id="$(echo $1 | cut -f1 -d'.')"
       remote="$(echo $1 | cut -f2- -d'.')"
