@@ -1,71 +1,63 @@
 Feature: projectdoc specifies how to handle a project
 
-  As already described in `projectdir.feature` flows will differ and need a
-  way to register, getting `package.y*ml` in for this. In addition to scripts,
-  Pd needs a script setting, and we can tuck this under `flows`:
+  Automation comes as script stanza's, sometimes in a build-/test-/distribution-
+  pipeline form, and other times as standalone script pieces executed at
+  specific times.
 
-     scripts/init: sh ...
-     scripts/check: sh ...
-     scripts/deinit: sh ...
-     flows/base: init check deinit
+  Several of these may exist together, testing one and the same or different
+  components. Some package description overlap, others are distinct parts.
+  Some have specific host requirements, and/or may have unique ways built-in
+  to deal with requirements. Etc. Etc.
 
-  It doesn't provide for much of a contract
-  maybe a future attribute `flow` can
-  The downside is it should not reuse script ID's, and iow. base should really
-  be named 'initialized' or similar. To properly identify the state. Similar
-  for distributed, tested, packaged, installed. And we may be tempted to use
-  more aliases. Or implicit pre-requisites.
+  The following list has some status-quo:
 
-  But within the projectdir framework it essentially describes two state
-  transitions, and another script to verify it.
-  We allow for 1-3 scripts per flows ID, one to enter the state represented by
-  the flow ID, possibly one to verify it only, and one to revert.
+  - GIT hooks
+  - Makefile, also configure.sh, and M4 macro's
+  - NPM's package.json, including scripts init/run/test/publish
+  - Sf2's components.json
+  - Also Bower's component.json. W3C's manifest.json
+  - our own package.y*ml
+  - Maybe some python packages. And then there's so many more languages, modern
+    ones with novell ideas about project/dependency management too.
+  - Maybe CI definitions.
+    Github pages uses ``_config.yml theme`` to set Jekyll GH page generator.
+  - Standard test directories, reports
 
-  Since we now know how to enter that state, we can have flows depend on
-  other flows. Any other flow will at least depend on the base state. But
-  aside from 2-3 scripts, we could add any number of flow/state names as
-  pre-requisites for our target state.
+  Getting all these into a single profile is difficult, although not impossible.
+  The following high level steps break it up into seperate features, before
+  arriving back here to test high level project behaviour.
 
-    scripts/init: npm install
-    scripts/test: npm run test
-    scripts/release: npm publish
-    flows/base: init deinit
-    flows/tested: test
-    flows/released: tested release
+  1. Step one is to represent the projects bits in a single form.
+     This repsonsibility is taken up by package.y*ml
 
-  Or wrap a very simple project with minimal config:
+  2. Next choosing a mode of operation, ie. setting one or more contract in the
+     form of workflows for the project to conform to. Ie. a project must compile,
+     build, package, test, etc.
 
-    scripts/build: make all
-    flows/base: build
-
-  Pd should manage to record status code, and benchmark for each script.
-
-  We could even try to construct a tree for each, using the 'base' but
-  there we thead in more complex dependency graphs.
+  3. Lastly these concepts are exposed in tools. 
 
 
-  Scenario: Initialize
-    Setup project once.
+  @TODO
+  Scenario: checkouts advertise their importance or significance
 
-    -  recursive checkout
-    -  package regen
-    -  excludes regen
-    -  install deps
-    -  make dep
+    To manage these entities, `projectdir` or alias `pd` provides scripts, and
+    reserves certain script ID's. So that projects can extend (override or
+    amend) Pd's standard routines on a per-project basis.
 
-  Scenario: Upgrade
-    Get latest version, re-run relevant init parts.
-  Scenario: Build
-    Build dependencies and stacks.
-  Scenario: Install
-    Install build or requirements.
-  Scenario: Test
-    Test stacks. May require build and/or install.
-  Scenario: Check
-    Diagnose or doctor after init/build/test.
-  Scenario: Clean
-    Remove build/test artefacts, in strict mode fail on unclenables.
-    To run before deleting the instance of a remote project, ie. a
-    deployment or finished dev checkout.
-  Scenario: Reset project
-    Clean everything, make essentials again.
+    These scripts are part of a basic project lifecycle, which can basicly be
+    described as:
+
+      init > (dev) > deinit
+
+    But each project provides its own specific flow, likely more than one, e.g.:
+
+      init > build > test
+           > package > dist
+           > release > dist
+           > deinit
+
+      init{,-*}
+      {,*-}init
+      build{,-*}
+      check{,-*}
+      {,*-}status

@@ -36,3 +36,5 @@ wheezy.template
 xattr
 zope.component
 zope.interface 
+gspread
+oauth2client

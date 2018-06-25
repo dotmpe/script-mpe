@@ -3,7 +3,9 @@ Pd Specs
 :Created: 2016-01-24
 :Updated: 2018-01-20
 
-Pd - unified project checkout handling.
+
+Pd - unified project tracking and handling.
+
 
 - Consolidation, registration of projects into projectdirs/-docs.
 
@@ -26,43 +28,20 @@ Pd - unified project checkout handling.
   See package_ also for some related TODO's.
   See below for some sketchups on pd subcommands,
 
-Definitions
-------------
-Projectdir [Pd]
-  - directory of prefixes to checkouts, and with a Projectdoc on path
-Projectdoc [Pdoc]
-  - metadata file listing prefixes repo/remotes etc.
-Prefix
-  - A directory below a Projectdir with package metadata files and/or SCM dirs.
-Workspace
-  - Per-host/context and/or nested Workdirs (ie. home, projectdir, public-html,
-    user-conf), or instances or unique basedir (local volumes, remote mounts,
-    synced dirs). Contexts as in levels, modes of user access.
-Current (working) dir [CWD]
-  - From where a script is run, relative to some workspace.
-Target
-  - a specification of a command run on a prefix.
-Cruft
-  - Unrecognized or cleanable, but unignored files. Ie. swap files, cache,
-    build artefacts.
-  - Usually ignored (e.g. gitignores) but when removing checkouts, all files
-    below should be considered.
-Dirt
-  - Uncommitted or unsynchronized SCM elements. Ie. modified, staged, stashed.
-  - Before removing checkouts first always a check and confirmation should
-    be required before purging local unmerged branches, stashed changes,
-    dirty files, etc.
-
-SCM (clean/dirty/crufty) handling depends on vc.sh_ script.
-
-
 Workflows
 ---------
-- `Feature: projectdir is a tool to handle projects as groups <test/projectdir.feature>`__
+- `Feature: Project checkout handling <test/projectdir.feature>`__
 
-  - `Feature: projectdoc specifies how to handle a project <test/project-lifecycle.feature>`__
+  Projects are simple or composite checkouts of remote repositories, recorded
+  in a projectdoc.
+
+- `Feature: Project lifecycle <test/project-lifecycle.feature>`__
+
+  Through convention, some automated steps and even level of states maybe
+  tracked per project.
 
 - `Other stack/project dev scenarios <test/dev.feature>`_
+
 - For more simple installations of third-parties, see also tools_ schema.
 
 

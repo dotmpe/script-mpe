@@ -97,6 +97,8 @@ def cmd_list(g):
 
 def cmd_tab(g):
     global ctx
+
+    ctx.ws = Workdir.require()
     ctx.ws.yamldoc('pdoc', defaults=dict(repositories={}))
     log.stderr("{green}Tabulating projectdoc to out...{default}")
     for prefix in ctx.ws.pdoc['repositories']:

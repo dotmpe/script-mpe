@@ -4,11 +4,12 @@ note "Entry for CI install phase"
 
 
 test "$(whoami)" = "travis" || {
+  export sudo=sudo
 
   test -x "$(which apt-get)" && {
     test -z "$APT_PACKAGES" ||
     {
-      echo APT_PACKAGES=$APT_PACKAGES
+      echo sudo=$sudo APT_PACKAGES=$APT_PACKAGES
       {
         $sudo apt-get update &&
         $sudo apt-get install $APT_PACKAGES
@@ -20,18 +21,21 @@ test "$(whoami)" = "travis" || {
 
 ./install-dependencies.sh all pip php dev bats-force-local
 
+test "$(whoami)" = "travis" || {
+pip install --upgrade pip
+}
+pip install keyring requests_oauthlib
 pip install gtasks
 
 test -x "$(which tap-json)" || npm install -g tap-json
 test -x "$(which any-json)" || npm install -g any-json
 npm install nano
 
-test "$(whoami)" = "travis" && {
-  true
-} || {
+test "$(whoami)" = "travis" || {
   not_falseish "$SHIPPABLE" && {
-    $sudo apt-get install perl
     cpan reload index
+    cpan install CAPN
+    cpan reload cpan
     cpan install XML::Generator
     test -x "$(which tap-to-junit-xml)" ||
       basher install jmason/tap-to-junit-xml

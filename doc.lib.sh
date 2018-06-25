@@ -93,8 +93,6 @@ htd_rst_doc_create_update()
             echo ":created: $(date +%Y-%m-%d)" >> $outf ;;
       updated )  test $new -eq 1 || break ;
             echo ":updated: $(date +%Y-%m-%d)" >> $outf ;;
-      week )     test $new -eq 1 || break ;
-            echo ":period: " >> $outf ;;
       default-rst ) test $new -eq 1 || break ;
             test -e .default.rst && {
             fnmatch "/*" "$outf" &&
@@ -108,11 +106,87 @@ htd_rst_doc_create_update()
           }
         ;;
 
+      # Link up with period (week/month/Q/Y) stats files
+      link-year-up )
+          # Get year...
+          thisyear=$(realpath "$JRNL_DIR${log_path_ysep}year$EXT")
+          title="$(date_fmt "" "%G")"
+          test -s "$thisyear" || {
+            htd_rst_doc_create_update "$thisyear" "$title" \
+                title created default-rst
+          }
+          # TODO htd_rst_doc_create_update "$thisyear" "" link-all-years
+          grep -q '\.\.\ footer::' "$outf" || {
+            thisyearrel=$(realpath --relative-to=$(dirname "$outf") "$JRNL_DIR${log_path_ysep}year$EXT")
+            {
+              printf -- ".. footer::\n\n\t- \`$title <$thisyearrel>\`_"
+            } >> $outf
+          }
+        ;;
+
+      link-month-up )
+          # Get month...
+          thismonth=$(realpath "$JRNL_DIR${log_path_ysep}month$EXT")
+          title="$(date_fmt "" "%B %G")"
+          test -s "$thismonth" || {
+            htd_rst_doc_create_update "$thismonth" "$title" \
+                title created default-rst link-year-up
+          }
+          # TODO: for further mangling need beter editor
+          #{ test -n "$thisweek" && grep -Fq "$thisweekrel" "$outf"
+          #} || {
+          #  sed 's/.. htd journal week insert sentitel//'
+          #}
+          htd_rst_doc_create_update "$thismonth" "" link-year-up
+          grep -q '\.\.\ footer::' "$outf" || {
+            thismonthrel=$(realpath --relative-to=$(dirname "$outf") "$JRNL_DIR${log_path_ysep}month$EXT")
+            {
+              printf -- ".. footer::\n\n\t- \`$title <$thismonthrel>\`_"
+            } >> $outf
+          }
+        ;;
+
+      link-week-up )
+          thisweek=$(realpath "$JRNL_DIR${log_path_ysep}week$EXT")
+          title="$(date_fmt "" "%V week %G")"
+          test -s "$thisweek" || {
+            htd_rst_doc_create_update "$thisweek" "$title" \
+                title created default-rst
+          }
+          htd_rst_doc_create_update "$thisweek" "" link-month-up
+          grep -q '\.\.\ footer::' "$outf" || {
+            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "$JRNL_DIR${log_path_ysep}week$EXT")
+            {
+              printf -- ".. footer::\n\n\t- \`$title <$thisweekrel>\`_"
+            } >> $outf
+          }
+        ;;
+
+      link-day )
+          # Get week...
+          thisweek=$(realpath "$JRNL_DIR${log_path_ysep}week$EXT")
+          title="$(date_fmt "" "Week %V, %G")"
+          test -s "$thisweek" || {
+            htd_rst_doc_create_update "$thisweek" "$title" \
+                title created default-rst
+          }
+          htd_rst_doc_create_update "$thisweek" "" link-week-up
+
+          #test $new -eq 1 || break ;
+          grep -q '\.\.\ footer::' "$outf" || {
+            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "$JRNL_DIR${log_path_ysep}week$EXT")
+            {
+              printf -- ".. footer::\n\n\t- \`$title <$thisweekrel>\`_ "
+            } >> $outf
+          }
+        ;;
+
     esac; shift
   done
   test -e "$outf" || touch $outf
 
   test $new -eq 0 || {
+    note "New file '$outf'"
     export cksum="$(md5sum $outf | cut -f 1 -d ' ')"
     export cksums="$cksums $cksum"
   }

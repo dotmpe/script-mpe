@@ -6,6 +6,7 @@ init
 
 
 @test "$bin no arguments defaults to 'show' command" {
+  test true = "$SHIPPABLE" && skip
   run ${bin}
   test $status -eq 0
   fnmatch "*matchbox.py*" "${lines[*]}"
@@ -15,11 +16,13 @@ init
 }
 
 @test "$bin invalid command gives error" {
+  test true = "$SHIPPABLE" && skip
   run ${bin} invalid-command
   test $status -ne 0
 }
 
 @test "$bin help: lists command usage docs, with argument signatures" {
+  test true = "$SHIPPABLE" && skip
   run ${bin} help
   test $status -eq 0
   fnmatch "* show *" "${lines[*]}"
@@ -31,5 +34,3 @@ init
   fnmatch "* check-name LINE TAGS... *" "${lines[*]}"
   fnmatch "* check-names TAGS... *" "${lines[*]}"
 }
-
-

@@ -36,6 +36,6 @@ htd_pm2_stop_if_running()
   test -n "$1" || error "pm2 stop: name expected" 1
   local pid=$(pm2 pid "$1") name="$1" ; shift
   test -z "$pid" || {
-    pm2 -s kill "$name" || error "pm2 stop $name: $?" 1
+    pm2 -s delete "$name" || error "pm2 stop $name: $?" 1
   }
 }

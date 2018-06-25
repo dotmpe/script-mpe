@@ -31,7 +31,7 @@ not_trueish "$SHIPPABLE" || {
 }
 
 composer --version
-behat --version
+test -z "$TEST_FEATURE_BIN" || "$TEST_FEATURE_BIN" --version
 bats --version
 realpath --version
 git-versioning version
@@ -52,6 +52,10 @@ note "docker-sh"
 note "sh-switch"
 { { sh_switch.py -V && sh_switch.py --help
 } 2>&1 >/dev/null; } || error "sh_switch"
+
+note "matchbox"
+{ { matchbox.py -V && matchbox.py --help
+} 2>&1 >/dev/null; } || error "matchbox"
 
 note "Htd tools"
 { { htd tools

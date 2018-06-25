@@ -522,9 +522,7 @@ class Socket(INode):
 class StatCache:
     """
     Static storage for stat results.
-    XXX: It is up to caller to maintain cache.
-    XXX: should fully canonize paths for each INode, ie. clean notation, resolve
-        symlinked parent dirs.
+    TODO: should use inode
     """
     path_stats = {}
     @classmethod

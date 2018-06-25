@@ -13,7 +13,7 @@ Usage:
   project.py [options] ( find <ref>...
                        | info [ <ref>... ]
                        | init [ -p... ]
-                       | stats [ --update-fileext-freq ] [ --no-update ]
+                       | stats [ --update-fileext-freq ] [ --update ]
                        | list
                        | new -p...
                        | update -p... <ref> )
@@ -31,7 +31,7 @@ Options:
     -p --props=NAME=VALUE
                   Give additional properties for new records or record updates.
     -y --yes      Force questions asked to yes.
-    --no-update
+    --update
     --update-fileext-freq
     -v            Increase verbosity.
     -h --help     Show this usage description.
@@ -185,8 +185,9 @@ def cmd_stats(g):
         ws = Workdir.fetch()
         if ws:
             ws.yamldoc('stats')
-            statsdoc = ws.statsdoc
-            log.stderr("Loaded doc %r" % statsdoc)
+            doc = ws.statsdoc
+            if doc:
+                log.stderr("Loaded 'stats' yaml doc from workspace (%s)" % ws)
         else:
             log.stderr("No workspace, no stats doc")
 
@@ -195,9 +196,9 @@ def cmd_stats(g):
     if g.update_fileext_freq:
         fe = repo.filetype_histogram().items()
         fe.sort(lambda x, y: cmp(x[1], y[1]))
-        #fe.reverse()
+        fe.reverse()
         d = dict( date=datetime.now(), data=dict(fe))
-        pprint(d)
+        print(d)
         if doc:
             if prefix not in doc['stats']:
                 doc['stats'][prefix] = {}
@@ -206,9 +207,12 @@ def cmd_stats(g):
             doc['stats'][prefix]['fileext-freq']['last'] = d
             doc['stats'][prefix]['fileext-freq']['log'].append(d)
 
-    if doc is not None and not g.no_update:
-        yaml_dumps(doc, stream=open(statsdoc, 'w+'), default_flow_style=True)
-        log.stderr("Dumped doc %r" % statsdoc)
+    yaml_dumps(doc, stream=sys.stdout, default_flow_style=False)
+
+    #if doc is not None and g.update:
+    #    fn = ws.statsdoc_filename
+    #    # yaml_dumps(doc, stream=open(fn, 'w+'), default_flow_style=True)
+    #    log.stderr("Dumped doc %r" % fn)
 
 
 

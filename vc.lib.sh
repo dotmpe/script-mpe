@@ -23,13 +23,13 @@ vc_gitdir()
   test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
   test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
 
-  local pwd=$(pwd)
+  local pwd="$(pwd)"
   cd "$1"
   repo=$(git rev-parse --git-dir 2>/dev/null)
   while fnmatch "*/.git/modules*" "$repo"
   do repo="$(dirname "$repo")" ; done
   test -n "$repo" || return 1
-  echo $repo
+  echo "$repo"
   #repo="$(git rev-parse --show-toplevel)"
   #echo $repo/.git
   cd "$pwd"
@@ -44,7 +44,7 @@ vc_gitrepo()
   test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
   test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
 
-  local pwd=$(pwd)
+  local pwd="$(pwd)"
   cd "$1"
   git rev-parse --git-dir
   cd "$pwd"
@@ -53,7 +53,7 @@ vc_gitrepo()
 vc_hgdir()
 {
   test -d "$1" || error "vc-hgdir expected dir argument: '$1'" 1
-  ( cd "$1" && go_to_dir_with .hg && echo $(pwd)/.hg || return 1 )
+  ( cd "$1" && go_to_dir_with .hg && echo "$(pwd)"/.hg || return 1 )
 }
 
 vc_issvn()
@@ -75,7 +75,7 @@ vc_bzrdir()
     cd "$1"
     root=$(bzr info 2> /dev/null | grep 'branch root')
     if [ -n "$root" ]; then
-      echo $root/.bzr | sed 's/^\ *branch\ root:\ //'
+      echo "$root"/.bzr | sed 's/^\ *branch\ root:\ //'
     fi
   )
   return 1

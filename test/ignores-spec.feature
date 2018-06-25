@@ -5,6 +5,7 @@ Feature: ignores - glob lists for paths and files
         # For more dotfiles init allows custom extensions to glob dotfile's name,
         # and also preselecting different glob groups per dotfile ext.
 
+        Given `env` 'verbosity=5'
         When user runs:
         """
         lst init-ignores .names global-clean global-purge

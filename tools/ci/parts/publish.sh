@@ -1,22 +1,19 @@
 #!/bin/sh
 # Publish build-report to CouchDB
 
-wanip || true
+echo "WAN IP: $(wanip)" || true
 
-curl -sSf https://$CI_DB_HOST/ || {
-  echo "No remote DB, skipped publish" >&2
-  exit 0
-}
+tap-json \
+    < $TEST_RESULTS-1.tap \
+    > $TEST_RESULTS-1.json
 
-cat $TEST_RESULTS-1.tap | tap-json > $TEST_RESULTS-1.json
-
-not_falseish "$SHIPPABLE" && {
+test "$SHIPPABLE" = true && {
   tap2junit $TEST_RESULTS-1.tap $TEST_RESULTS-2.xml
-}
+} || true
 
 wc -l $TEST_RESULTS*
-cp $TEST_RESULTS-1.json $TEST_RESULTS.json
 
+cp $TEST_RESULTS-1.json $TEST_RESULTS.json
 
   CI_BUILD_ENV="$PARAMS.json" \
   CI_BUILD_RESULTS=$TEST_RESULTS.json \

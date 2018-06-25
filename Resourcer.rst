@@ -44,12 +44,7 @@ This leads to metafiles using confparse's find_config_path heuristics.
 XXX: These are not used by libcmd.load_config yet, subcommands can used them
 
 
-
 .. figure:: ./doc/res-classes.en.dot.gv
    :target: ./doc/res-classes.en.dot.gv
 
    Python class diagram for inheritance and structure in module ``res``
-
-
-
-

@@ -11,10 +11,12 @@ case "$shopts"
   in *e* )
       test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" && {
         # undo Jenkins opt, unless EXIT_ON_ERROR is on
-        echo "[$0] Important: Shell will NOT exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+        msg="[$0] Shell will NOT exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+        test -n "$PS1" && debug "$msg" || note "$msg"
         set +e
       } || {
-        echo "[$0] Note: Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+        msg="[$0] Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+        test -n "$PS1" && warn "$msg" || info "$msg"
       }
     ;;
 
@@ -36,11 +38,14 @@ var_isset SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
 req_vars verbosity || export verbosity=7
 req_vars DEBUG || export DEBUG=
 
+var_isset SHELLCHECK_OPTS ||
+    export SHELLCHECK_OPTS="-e SC2154 -e SC2046 -e SC2015 -e SC1090 -e SC2016 -e SC2209 -e SC2034 -e SC1117 -e SC2100 -e SC2221"
+
 
 ### Start of build job parameterisation
 
 GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
-BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F $GIT_CHECKOUT \
+BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F "$GIT_CHECKOUT" \
         | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
 project_env_bin node npm lsof
@@ -57,7 +62,7 @@ test -n "$TEST_FEATURE_BIN" && {
 }
 
 test -n "$TEST_FEATURE" || {
-    test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behave || true)"
+    test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(command -v behave || true)"
     test -n "$TEST_FEATURE_BIN" && {
         TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k test"
     }
@@ -195,9 +200,10 @@ req_vars INSTALL_DEPS || {
 {
   test "$USER" != "travis" && not_falseish "$SHIPPABLE"
 } && {
-  req_vars APT_PACKAGES || export APT_PACKAGES="nodejs"\
-" perl python-dev"\
+  req_vars APT_PACKAGES || export APT_PACKAGES="nodejs "\
+" python-dev "\
 " realpath uuid-runtime moreutils curl php5-cli"
+# XXX: dnsutils (dig) has a bunch of perl-base (and CPAN setup) deps I guess?
 }
 # not on shippable: npm
 

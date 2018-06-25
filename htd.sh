@@ -4,6 +4,10 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
+# shellcheck disable=SC2154 # undefined var
+# shellcheck disable=SC2230 # which is non-standard
+# shellcheck disable=SC2086 # double-quote to prevent globbing and word splitting
+# shellcheck disable=SC2155 # declare separately to avoid return masking
 htd_src=$_
 
 set -o posix
@@ -29,7 +33,7 @@ htd_load()
 
   default_env EDITOR vim || debug "Using EDITOR '$EDITOR'"
   test -n "$TODOTXT_EDITOR" || {
-    test -x "$(which todotxt-machine)" &&
+    test -x "$(command -v todotxt-machine)" &&
       TODOTXT_EDITOR=todotxt-machine || TODOTXT_EDITOR=$EDITOR
   }
   test -n "$TASK_EXT" || TASK_EXT="ttxtm"
@@ -57,8 +61,8 @@ htd_load()
     default_env Cabinet-Dir "$HTDIR/cabinet"
   }
   debug "Using Cabinet-Dir '$CABINET_DIR'"
-  test -d "$HTD_TOOLSDIR/bin" || mkdir -p $HTD_TOOLSDIR/bin
-  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p $HTD_TOOLSDIR/cellar
+  test -d "$HTD_TOOLSDIR/bin" || mkdir -p "$HTD_TOOLSDIR/bin"
+  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p "$HTD_TOOLSDIR/cellar"
   default_env Htd-BuildDir .build
   test -n "$HTD_BUILDDIR" || exit 121
   #test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
@@ -85,14 +89,14 @@ htd_load()
 
   # Get project dir and version-control system name
   vc_getscm
-  go_to_dir_with .$scm && {
+  go_to_dir_with ".$scm" && {
     # $localpath is the path from the project base-dir to the CWD
     localpath="$(normalize_relative "$go_to_before")"
     # Keep an absolute pathref for project dir too for libs not willing to
     # bother with or specify super-project refs, local name nuances etc.
     projdir="$(pwd -P)"
   } || {
-    export localpath= projdir=
+    export localpath='' projdir=''
   }
 
   # Find workspace super-project, and then move back to this script's CWD
@@ -110,7 +114,7 @@ htd_load()
       grep -qF "$prefix"':' .projects.yaml || {
         warn "No such project prefix '$prefix'"
       }
-      test $verbosity -ge 5 &&
+      test "$verbosity" -ge 5 &&
       $LOG info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'" >&2
       cd "$CWD"
     }
@@ -123,11 +127,11 @@ htd_load()
   # run flag 'p'.
 
   # TODO: clean up git-versioning app-id
-  test -n "$APP_ID" -o ! -e .app-id || read APP_ID < .app-id
+  test -n "$APP_ID" -o ! -e .app-id || read -r APP_ID < .app-id
   test -n "$APP_ID" -o ! -e "$GITVER_ATTR" ||
       APP_ID="$(get_property "$GITVER_ATTR" "App-Id")"
   test -n "$APP_ID" -o ! -e .git ||
-      APP_ID="$(basename "$(git config remote.$vc_rt_def.url)" .git)"
+      APP_ID="$(basename "$(git config "remote.$vc_rt_def.url")" .git)"
 
   # TODO: go over above default-env and see about project-specific stuff e.g.
   # builddir and init parameters properly
@@ -135,7 +139,7 @@ htd_load()
   # Default locations for user-workspaces
   projectdirs="$(echo ~/project ~/work/*/)"
 
-  test -e table.sha1 && R_C_SHA3="$(cat table.sha1|wc -l)"
+  test -e table.sha1 && R_C_SHA3="$(wc -l < table.sha1)"
 
   stdio_type 0
   test "$stdio_0_type" = "t" && {
@@ -146,9 +150,10 @@ htd_load()
     cols=79
   }
 
-  test -n "$htd_tmp_dir" || htd_tmp_dir=$(setup_tmpd)
+  test -n "$htd_tmp_dir" || htd_tmp_dir="$(setup_tmpd)"
   test -n "$htd_tmp_dir" || error "htd_tmp_dir load" 1
   fnmatch "dev*" "$ENV" || {
+    #rm -r "${htd_tmp_dir:?}"/*
     test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
       rm -r $htd_tmp_dir/*
     }
@@ -254,7 +259,7 @@ htd_load()
     i ) # io-setup: set all requested io varnames with temp.paths
         debug "Exporting inputs '$(try_value inputs)' and outputs '$(try_value outputs)'"
         setup_io_paths -$subcmd-${htd_session_id}
-        export $htd__inputs $htd__outputs
+        export ${htd__inputs?} ${htd__outputs?}
       ;;
 
     m )
@@ -318,8 +323,8 @@ htd_load()
         # Get a path to a storage blob, associated with the current base+subcmd
         S=$(try_value "${subcmd}" S htd)
         test -n "$S" \
-          && status=$(setup_stat .json "" ${subcmd}-$(eval echo $S)) \
-          || status=$(setup_stat .json)
+          && status="$(setup_stat .json "" "${subcmd}-$(eval echo $S)")" \
+          || status="$(setup_stat .json)"
         exec 5>$status.pkv
       ;;
 
@@ -367,7 +372,7 @@ htd_unload()
 
     r )
         # Report on scriptnames and associated script-lines provided in $HTD_TOOLSFILE
-        cat $report | jsotk.py -O yaml --pretty dump -
+        jsotk.py -O yaml --pretty dump - < $report 
       ;;
 
     S )
@@ -375,7 +380,7 @@ htd_unload()
         test -s $status || echo '{}' >$status
         test ! -s $status.pkv \
           || {
-        cat $status.pkv
+            cat $status.pkv
             jsotk.py update --pretty $status $status.pkv
             rm $status.pkv
           }
@@ -471,7 +476,7 @@ htd__check()
   test -e "$ns_tab" && {
 
     info "Looking for contexts with 'checks' method..."
-    fixed_table $ns_tab SID CONTECTS | while read vars
+    fixed_table $ns_tab SID CONTECTS | while read -r vars
     do
       eval local "$vars"
       upper=1 mkvid "$SID"
@@ -482,7 +487,7 @@ htd__check()
 
 
   info "Prefix names"
-  htd_prefix_names | while read prefix_name
+  htd_prefix_names | while read -r prefix_name
   do
     base_path="$(eval echo \"\$$prefix_name\")"
 
@@ -541,7 +546,7 @@ htd_man_1__make='Go to HTDIR, make target arguments'
 htd__make()
 {
   req_dir_env HTDIR
-  cd $HTDIR && make $*
+  cd $HTDIR && make "$@"
 }
 htd_als__mk=make
 
@@ -698,14 +703,14 @@ htd__help_files()
 htd_man_1__commands="List all commands"
 htd__commands()
 {
-  choice_global= choice_all=true std__commands
+  choice_global='' choice_all=true std__commands
 }
 
 htd__libs_raw()
 {
   locate_name $base
   note "Raw lib routine listing for '$fn' script"
-  dry_run= box_list_libs "$fn"
+  dry_run='' box_list_libs "$fn"
 }
 
 htd__libs()
@@ -734,7 +739,7 @@ htd__help()
       echo "  $scriptname $spc"
       echo
     } || {
-      printf "Help '$scriptname $1': "
+      printf "Help '%s %s': " "$scriptname" "$1"
     }
     echo_help $1 || {
       for func_id in "$1" "${base}__$1" "$base-$1"
@@ -869,33 +874,7 @@ htd_man_1__edit_main="Edit the main script file(s), and add arguments"
 htd_spc__edit_main="-E|edit-main [ -SREGEX | --search REGEX ] [ID-or-PATHS]"
 htd__edit_main()
 {
-  local evoke= files="$(cat $arguments)" fn=
-  locate_name || return 1
-  vim_swap "$(realpath "$fn")" || error "swap file exists for '$fn'" 2
-  files="$files $fn $(columnize=false htd__ls_main_files | lines_to_words )"
-  # XXX:
-  #libs_n_docs="\
-  #  $(dirname $fn)/$(basename "$fn").lib.sh \
-  #  $(dirname $fn)/$(basename "$fn").rst \
-  #  $(dirname $fn)/*.lib.sh"
-  test "$EDITOR" = "vim" || error "unsupported '$EDITOR'" 1
-  evoke="vim "
-
-  # Search in first pane
-  test -z "$search" || evoke="$evoke -c \"/$search\""
-
-  # Two vertical panes (O2), with additional h-split in the right
-  #evoke="$evoke -O2
-  evoke="$evoke \
-    -c :vsplit \
-    -c \":wincmd l\" \
-    -c \"normal gg $\" \
-    -c :split \
-    -c \"wincmd j\" \
-    -c \"normal G $\" \
-    -c \"wincmd h\""
-  printf "$(tput bold)$(tput setaf 0)$evoke $files$(tput sgr0)\n"
-  bash -c "$evoke $files"
+  htd_edit_main "$@"
 }
 htd_run__edit_main=piAO
 htd_als___XE=edit-main
@@ -1067,6 +1046,7 @@ htd__volumes()
     list ) shift ; htd_list_volumes "$@" ;;
     check ) shift ; htd_check_volumes "$@" ;;
     path?tab ) shift ; htd_path_names "$@" ;;
+    treemap ) shift ; htd_volumes_treemap "$@" ;;
 
     * ) error "? '$*'" 1 ;;
   esac
@@ -1075,6 +1055,7 @@ htd__volumes()
 htd_als__ls_vol=volumes\ list
 htd_als__ls_volumes=volumes\ list
 htd_als__list_volumes=volumes\ list
+
 
 htd_man_1__copy='Copy script from other project. '
 htd_spc__copy='copy Sub-To-Script [ From-Project-Checkout ]'
@@ -1720,13 +1701,36 @@ htd__build()
 # show htd shell aliases
 htd__alias()
 {
-  grep '\<'$scriptname'\>' ~/.alias | grep -Ev '^(#.*|\s*)$' | while read _a A
-  do
-    a_id=$(echo $A | awk -F '=' '{print $1}')
-    a_shell=$(echo $A | awk -F '=' '{print $2}')
-    echo -e "   $a_id     \t$a_shell"
-  done
+  note "alias '$*'"
+  test -n "$1" && {
+    test -n "$2" || {
+      fnmatch "*=*" "$1" && set -- "$(printf "$1" | cut -d'=' -f1)" \
+        "$(printf "$1" | cut -d'=' -f2-)" || false
+    }
+  }
+
+  test -n "$1" && {
+    test -n "$2" && {
+      htd_alias_set "$@"
+      return $?
+    }
+
+    note "Getting alias '$1'.."
+    htd_alias_get "$1"
+    return $?
+  }
+
+  trueish "$all" && {
+    note "Listing aliases for '$scriptname'.."
+    scriptname='.*' htd_alias_list
+    return $?
+  }
+  note "Listing aliases for '$scriptname'.."
+  htd_alias_list
 }
+htd_als__get_alias=alias
+htd_als__set_alias=alias
+htd_als__show_alias=alias
 
 
 htd_man_1__edit_today='Edit todays log, an entry in journal file or dir
@@ -1747,85 +1751,7 @@ TODO: revise to:
 '
 htd__edit_today()
 {
-  test -n "$EXT" || EXT=.rst
-  local pwd="$(normalize_relative "$go_to_before")" arg="$1"
-
-  # Evaluate package env if local manifest is found
-  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
-    #. $PACKMETA_SH || error "Sourcing package Sh" 1
-    eval local $(map=package_pd_meta_: package_sh log log_path log_title \
-        log_entry log_path_ysep log_path_msep log_path_dsep) >/dev/null
-  }
-
-  test -n "$1" || {
-    # If no argument given start looking for standard LOG file/dir path
-    test -n "$log" && {
-      # Default for local project
-      set -- $log
-    } || {
-      # Default for Htdir
-      set -- $JRNL_DIR/
-    }
-  }
-
-  fnmatch "*/" "$1" && {
-    test -e "$1" || error "unknown dir $1" 1
-    jrnldir="$(strip_trail "$1")"
-    shift
-    set -- "$jrnldir" "$@"
-  } || {
-    # Look for here and in pwd, or create in pwd; if ext matches filename
-    test -e "$1" || set -- "$pwd/$1"
-    test -e "$1" || fnmatch "*$EXT" "$1"  && touch $1
-    # Test in htdir with ext
-    test -e "$1" || set -- "$arg$EXT"
-    # Test in pwd with ext
-    test -e "$1" || set -- "$pwd$1$EXT"
-    # Create in pwd (with ext)
-    test -e "$1" || touch $1
-  }
-
-  note "Editing $1"
-  # Open of dir causes default formatted filename+header created
-  test -d "$1" && {
-    {
-      # Prepare todays' day-links (including weekday and next/prev week)
-      test -n "$log_path_ysep" || log_path_ysep="/"
-      htd__today "$1" "$log_path_ysep" "$log_path_msep" "$log_path_dsep"
-      # FIXME: need offset dates from file or table with values to initialize docs
-      today=$(realpath "$1${log_path_ysep}today$EXT")
-      test -s "$today" || {
-        test -n "$log_title" || log_title="%A %G.%V"
-        title="$(date_fmt "" "$log_title")"
-        htd_rst_doc_create_update "$today" "$title" title created default-rst
-      }
-      # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
-      files=$(bash -c "echo $1${log_path_ysep}{today,tomorrow,yesterday}$EXT")
-      # Prepare and edit, but only yesterday/todays/tomorrows' file
-      #for file in $FILES
-      #do
-      #  test -s "$file" || {
-      #    title="$(date_fmt "" '%A %G.%V')"
-      #    htd_rst_doc_create_update "$file" "$title" title created default-rst
-      #  }
-      #done
-      htd_edit_and_update $(realpath $files)
-    } || {
-      error "during edit of $1 ($?)" 1
-    }
-
-  } || {
-    # Open of archive file cause day entry added
-    {
-      local date_fmt="%Y${log_path_msep}%m${log_path_dsep}%d"
-      local today="$(date_fmt "" "$date_fmt")"
-      grep -qF $today $1 || printf "$today\n  - \n\n" >> $1
-      $EDITOR $1
-      git add $1
-    } || {
-      error "err file $?" 1
-    }
-  }
+  htd_edit_today "$@"
 }
 htd_run__edit_today=p
 htd_als__vt=edit-today
@@ -1833,22 +1759,16 @@ htd_als__vt=edit-today
 
 htd__edit_week()
 {
+  note "Editing $1"
   {
-    note "Editing $1"
-    htd__today "$1"
-    today=$(realpath $1/today.rst)
-    test -s "$today" || {
-      title="$(date_fmt "" '%A %G.%V')"
-      htd_rst_doc_create_update "$today" "$title" created default-rst
-    }
-    #FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
-    htd_edit_and_update $1 #$(realpath $FILES)
+    htd_edit_week
   } || {
     error "err $1/ $?" 1
   }
 }
 htd_als__vw=edit-week
 htd_als__ew=edit-week
+htd_grp__edit_week=cabinet
 
 
 htd_spec__archive_path='archive-path DIR PATHS..'
@@ -1897,6 +1817,7 @@ htd_grp__archive_path=cabinet
 htd__today() # Jrnl-Dir YSep MSep DSep [ Tags... ]
 {
   htd_jrnl_day_links "$@"
+  htd_jrnl_period_links "$1" "$2"
 }
 htd_grp__today=cabinet
 
@@ -1927,23 +1848,6 @@ htd__this_week()
   datelink "+7d" "$1" "${r}next-week$EXT"
 }
 htd_grp__this_week=cabinet
-
-htd__edit_week()
-{
-  test -n "$1" || set -- log
-  note "Editing $1"
-  #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
-  htd__this_week "$1"
-  week=$(realpath $1/week.rst)
-  test -s "$week" || {
-    title="$(date_fmt "" '%G.%V')"
-    htd_rst_doc_create_update "$week" "$title" week created default-rst
-  }
-  # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
-  FILES=$(bash -c "echo $1/{week,last-week,next-week}$EXT")
-  htd_edit_and_update $(realpath $FILES)
-}
-htd_grp__edit_week=cabinet
 
 
 htd_man_1__jrnl="Handle rSt log entries at archive formatted paths
@@ -2042,26 +1946,10 @@ htd_grp__jrnl_json=cabinet
 # TODO: use with edit-local
 htd__edit_note()
 {
-  test -n "$1" || error "ID expected" 1
-  test -n "$2" || error "tags expected" 1
-  test -z "$3" || error "surplus arguments" 1
-  req_dir_env HTDIR
-
-  id="$(printf "$1" | tr -cs 'A-Za-z0-9' '-')"
-  #id="$(echo "$1" | sed 's/[^A-Za-z0-9]*/-/g')"
-
-  case " $2 " in *" nl "* | *" en "* ) ;;
-    * ) set -- "$1" "$2 en" ;; esac
-  fnmatch "* rst *" " $2 " || set -- "$1" "$2 rst"
-  ext="$(printf "$(echo $2)" | tr -cs 'A-Za-z0-9_-' '.')"
-
-  note=$HTDIR/note/$id.$ext
-  htd_rst_doc_create_update $note "$1" created default-rst
-  htd_edit_and_update $note
+  htd_edit_note "$@"
 }
 htd_als__n=edit-note
 htd_grp__edit_note=cabinet
-
 
 htd__edit_note_nl()
 {
@@ -2069,7 +1957,6 @@ htd__edit_note_nl()
 }
 htd_als__nnl=edit-note-nl
 htd_grp__edit_note_nl=cabinet
-
 
 htd__edit_note_en()
 {
@@ -4881,7 +4768,12 @@ htd_man_1__package='Get local (project/workingdir) metadata
   package ls|list-ids
      List package IDs from local package metadata file.
   package update
-     Regenerated main.json and package.sh files (from YAML)
+     Regenerate main.json/PackMeta-JS-Main and package.sh/PackMeta-Sh files from YAML
+  package sh-script-write NAME
+     Write env+script lines to as-is executable shell script for "scripts/NAME"
+  package sh-scripts NAMES
+     Compile scripts with sh-script-write, ensure up-to-date env profile script.
+     See ``htd run`` and ``htd scripts`` to run PackMeta-Sh lines directly.
   package remotes-init
      Take all repository names/urls directly from YAML, and create remotes or
      update URL for same in local repository. The remote name and exact
@@ -4894,6 +4786,16 @@ htd_man_1__package='Get local (project/workingdir) metadata
      ..
   package debug
      Log each Sh package settings.
+  package scripts-write [NAME]
+     Compile script into as-is shell script.
+
+Plumbing
+  package sh-script SCRIPTNAME [PackMeta-JS-Main]
+     List script lines
+  package sh-env
+     List profile script lines from PackMeta-Sh
+  package sh-env-script
+     Update env profile script from sh-env lines
 
   package dir-get-key <Dir> <Package-Id> [<Property>...]
 
@@ -4904,7 +4806,11 @@ into env.
 htd_run__package=iAO
 htd__package()
 {
-  test -n "$1" || set -- debug
+  test -n "$*" && {
+      test -n "$1" || {
+        shift && set -- debug "$@"
+      }
+    } || set -- debug
   upper=0 mkvid "$1" ; shift ; func=htd_package_$vid
   func_exists "$func" || func=package_$vid
   $func "$@" || return $?
@@ -4962,7 +4868,7 @@ htd__run()
   jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 &&
       error "No script '$1'" 1
 
-  # Evaluate package env
+  # Evaluate package metadata
   test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" ||
       error "No local package" 1
   . $PACKMETA_SH || error "Sourcing package Sh" 1
@@ -4974,19 +4880,22 @@ htd__run()
     return 1
   }
 
-  # Execute script-lines
-  (
-    SCRIPTPATH=
-    unset Build_Deps_Default_Paths
-    ln=0
+  # Write shell profile script
+  htd package sh-env-script
 
+  # Execute env and script-lines in subshell
+  (
+    SCRIPTPATH='' ln=0
+    unset Build_Deps_Default_Paths
+
+    # XXX: not sure about this, but anyway
     test -z "$package_cwd" || {
       note "Moving to '$package_cwd'"
       cd $package_cwd
     }
-    test -z "$package_env" || {
-      eval $package_env
-    }
+
+    # Initialize shell from profile script
+    . .cllct/tools/env.sh
 
     # Write scriptline with expanded vars
     info "Expanded '$(eval echo \"$@\")'"
@@ -4995,7 +4904,7 @@ htd__run()
     shift
 
     info "Starting '$run_scriptname' ($(pwd)) '$*'"
-    package_sh_script "$run_scriptname" | while read scriptline
+    package_sh_script "$run_scriptname" | while read -r scriptline
     do
       export ln=$(( $ln + 1 ))
 
@@ -9654,7 +9563,7 @@ Single catalogs
   [CATALOG=] check
     Update cached status bits (see validate and fsck)
   [CATALOG=] status
-    Run "check" and set return code according to status 
+    Run "check" and set return code according to status
   ck [CATALOG}
     print file checksums
   fsck [CATALOG]

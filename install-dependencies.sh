@@ -125,9 +125,10 @@ install_git_lfs()
 {
   # XXX: for debian only, and requires sudo
   test -n "$sudo" || {
-    stderr "sudo required for GIT lfs"
+    stderr "sudo required for GIT LFS"
     return 1
   }
+  stderr "Installing GIT LFS"
   curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
   $pref apt-get install git-lfs
   # TODO: must be in repo. git lfs install
@@ -152,7 +153,8 @@ install_mkdoc()
 install_pylib()
 {
   # for travis container build:
-  pylibdir=$HOME/.local/lib/python2.7/site-packages
+  pylibdir=$HOME/lib/py
+  #.local/lib/python2.7/site-packages
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   case "$hostname" in
       simza )
@@ -292,11 +294,6 @@ main_entry()
 
   case "$1" in all|project|git|git-lfs )
       # TODO: install_git_lfs
-    ;; esac
-
-  case "$1" in redo )
-      # TODO: fix for other python versions
-      install_apenwarr_redo || return $?
     ;; esac
 
   case "$1" in travis|test )

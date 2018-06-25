@@ -36,7 +36,7 @@ node('devbox') {
   def PWD = pwd()
 
   withEnv([
-    'PYTHONPATH=$HOME/lib/py:$PATH',
+    'PYTHONPATH=$HOME/lib/py:$PYTHONPATH',
     'PATH='+PWD+':/usr/local/bin:$HOME/.basher/bin:$HOME/.local/bin:$PATH'
   ]) {
 

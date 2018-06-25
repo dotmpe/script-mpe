@@ -28,3 +28,25 @@ def read_idfile(path):
     if index:
         unid, title = unid[:index], unid[index+1:]
     return unid, title
+
+def hr(bytes_):
+    bytes_ = float(bytes_)
+    if bytes_ >= 1099511627776:
+        terabytes = bytes_ / 1099511627776
+        size = '%.2fT' % terabytes
+    elif bytes_ >= 1073741824:
+        gigabytes = bytes_ / 1073741824
+        size = '%.2fG' % gigabytes
+    elif bytes_ >= 1048576:
+        megabytes = bytes_ / 1048576
+        size = '%.2fM' % megabytes
+    elif bytes_ >= 1024:
+        kilobytes = bytes_ / 1024
+        size = '%.2fK' % kilobytes
+    else:
+        size = '%.2fb' % bytes_
+    return size
+
+humanreadable = lambda s:[(s % 1024**i and "%.1f"%(s/1024.0**i) or \
+    str(s/1024**i))+x.strip() for i,x in enumerate(' KMGTPEZY') if s<1024**(i+1) \
+    or i==8][0]

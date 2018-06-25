@@ -15,7 +15,7 @@
   # that, should write literal scripts to external file
   #
   # Global env (for scripts)
-  env: . ./tools/ci/env.sh
+  env: scriptname=$script_out . ./tools/ci/env.sh
   build:
     unit-spec: test/py/\$id.py test/py/mod_\$vid.py test/\$id-lib-spec.bats test/\$id-spec.bats test/\$id.bats
 
@@ -27,11 +27,10 @@
 
   repositories:
       bb: git@bitbucket.org:dotmpe-personal/script-mpe.git
-      dotmpe: dotmpe:~/domains/dotmpe.com/htdocs/git/script-mpe.git
+      dotmpe: domains/dotmpe.com/htdocs/git/script-mpe.git
+      dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
       github: git@github.com:bvberkum/script-mpe.git
       boreas.16-4-bare: /srv/git-16-4-boreas-brix/bvberkum/script-mpe.git
-      # TODO: package repo name alias _origin: dotmpe
-      #_local: 16-4-bare
 
   lists:
     default: "@Task @Dev +script-mpe +htdocs-mpe"
@@ -104,16 +103,17 @@
   prefixes: {} # See ~/.cllct.rc finfo
 
   scripts:
+    get-env:
+      - EXIT_ON_ERROR=0 . ./.cllct/tools/env.sh
     list-files:
       - lib_load build ; project_files \"\$@\"
     init:
-      - test -d ~/.pyvenv/htd || virtualenv --system-site-packages ~/.pyvenv/htd
-      - source ~/.pyvenv/htd/bin/activate
       - scriptname="init"
-      - . ./tools/sh/init.sh
-      - . ./tools/sh/env.sh
+      #- lib_load build
       - . ./tools/ci/parts/init.sh
       - htd package update
+      # FIXME:
+      - htd package sh-scripts init check build install test get-env
       - htd package remotes-init
       - vc regenerate
         # XXX: interactve: python -c 'import nltk; nltk.download()'
