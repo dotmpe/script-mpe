@@ -183,8 +183,8 @@
     #test: pd test
     test:
       - lib_load build
-      - test -n \"\$1\" || before_test
-      - test -n \"\$1\" || set -- \$REQ_SPECS
+      - test -n "$1" || before_test
+      - test -n "$1" || set -- $REQ_SPECS
       - project_test $@
     # TODO: Run complete test-suite, including WIP
     test-all:
