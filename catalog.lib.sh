@@ -4,8 +4,12 @@
 catalog_lib_load()
 {
   lib_load ck
-  # Catalog files found at CWD
-  default_env CATALOGS $(setup_tmpf .catalogs)
+  trueish "$usercat" && {
+    test -n "$CATALOGS" || CATALOGS=$HOME/.cllct/catalogs
+  } || {
+    # Catalog files currently found at CWD
+    test -n "$CATALOGS" || CATALOGS=.cllct/catalogs
+  }
   # Default catalog file (or relative path) for PWD
   test -n "$CATALOG_DEFAULT" || {
     CATALOG_DEFAULT=$(htd_catalog_name) || CATALOG_DEFAULT=catalog.yaml
@@ -67,8 +71,10 @@ htd_catalog_find()
 
 htd_catalog_ignores()
 {
-  ignores_cat global ignore scm
-  echo 'catalog.y*ml'
+  {
+    ignores_cat global ignore scm
+    echo 'catalog.y*ml'
+  } | sort -u
 }
 
 htd_catalog_update_ignores()
@@ -88,18 +94,34 @@ htd_catalog_listdir()
   done | grep -vf "$Catalog_Ignores.regex"
 }
 
-# Like listdir but recurse, uses find
+# List untracked files, from SCM if present, or uses find with ignores.
+# Set use_find=1 to override for present SCM, or scm_all/scm_x
 htd_catalog_listtree()
 {
   test -n "$1" || set -- "."
-  { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY
-  } || htd_catalog_update_ignores
-  local find_ignores="-false $(find_ignores "$Catalog_Ignores") "\
+  local scm='' ; trueish "$use_find" || vc_getscm "$1"
+  { test -n "$scm" && {
+    info "SCM: $scm"
+    req_cons_scm
+    # XXX: { vc tracked-files || error "Listing all from SCM" 1; } ||
+    trueish "$scm_all" && {
+      { vc ufx || error "Listing with from SCM" 1; } ; } ||
+      { vc uf || error "Listing from SCM" 1; };
+  } || {
+    trueish "$use_find" &&
+      info "Override SCM, tracking files directly ($Catalog_Ignores)" ||
+      info "No SCM, tracking files directly ($Catalog_Ignores)"
+    { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY
+    } || htd_catalog_update_ignores
+    local find_ignores="-false $(find_ignores "$Catalog_Ignores") "\
 " -o -exec test ! \"{}\" = \"$1\" -a -e \"{}/$CATALOG_DEFAULT\" ';' -a -prune "\
 " -o -exec test -e \"{}/$CATALOG_IGNORE_DIR\" ';' -a -prune"
-  eval find "$1" -not -type d $find_ignores -o -type f -a -print
+    #eval find "$1" -not -type d $find_ignores -o -type f -a -print
+    eval find "$1" $find_ignores -o -type f -a -print ;
+  } }
 }
 
+# List tree, and check entries exists for each file-name
 htd_catalog_index()
 {
   htd_catalog_listtree "$1" |
@@ -108,7 +130,7 @@ htd_catalog_index()
           test -f "$fname" || { warn "File expected '$fname'" ; continue ; }
           htd_catalog_has_file "$fname" || {
             warn "Missing '$fname'"
-            touch "$failed"
+            echo "$fname" >>"$failed"
           }
       done
 }
@@ -159,6 +181,7 @@ htd_catalog_fsck_all()
 }
 
 
+# Update status (validate doc, set full=1 to check filetree index and checksums)
 htd_catalog_check()
 {
   test -e $Catalog_Status -a $CATALOG -ot $Catalog_Status || {
@@ -169,6 +192,8 @@ htd_catalog_check()
         ( htd_catalog_index "$CATALOG" >/dev/null
         ) && echo index=0 || echo index=$?
 
+        trueish "$full" || return 0
+
         ( htd_catalog_fsck "$CATALOG" >/dev/null
         ) && echo fsck=0 || echo fsck=$?
 
@@ -177,15 +202,22 @@ htd_catalog_check()
   }
 }
 
+# Process htd-catalog-check results
+req_catalog_status()
+{
+  eval $(cat $Catalog_Status)
+  status=$(echo "$schema + $fsck" | bc) || return -1
+  test $status -eq 0 || cat $Catalog_Status
+  return $status
+}
 
+
+# Get status for catalog and directory, normally validate + check index
+# Set full to fsck subsequently.
 htd_catalog_status()
 {
   htd_catalog_check
-
-  eval $(cat $Catalog_Status)
-  status=$(echo "$schema + $fsck" | bc || return)
-  test $status -eq 0 || cat $Catalog_Status
-  return $status
+  req_catalog_status
 }
 
 
@@ -209,10 +241,20 @@ htd_catalog_list_files()
 # Cache catalog pathnames, list basepaths. Error if none found.
 htd_catalog_list_local()
 {
-  htd_catalog_list_files | tee $CATALOGS | exts=".yml .yaml" pathnames
-  test -s "$CATALOGS" || { error "No catalog files found" ; return 1 ; }
+  htd_catalog_list_files | tee .cllct/catalogs
+  # | exts=".yml .yaml" pathnames
+  test -s ".cllct/catalogs" || { error "No catalog files found" ; return 1 ; }
 }
 
+# Update user catalog list (from locatedb)
+htd_catalog_list_global()
+{
+  # XXX: no brace-expansion for locate '*/catalog{,-*}.y{,a}ml'
+  locate '*/catalog.yaml' '*/catalog.yml' \
+    '*/catalog-*.yml' '*/catalog-*.yaml' | tee ~/.cllct/catalogs
+  #| exts=".yml .yaml" pathnames
+  test -s ~/.cllct/catalogs || { error "No catalog files found" ; return 1 ; }
+}
 
 htd_catalog_has_file() # File
 {
@@ -222,6 +264,7 @@ htd_catalog_has_file() # File
   local basename="$(basename "$1" | sed 's/"/\\"/g')"
   grep -q "\\<name:\\ ['\"]\?$(match_grep "$basename")" $CATALOG
 }
+
 
 # Return error state unless every key is found.
 htd_catalog_check_keys() # CKS...
@@ -570,8 +613,51 @@ htd_catalog_ck_import()
   catalog.py --catalog="$CATALOG" importcks "$@"
 }
 
-# TODO: merge all local catalogs (from subtrees to PWD)
+req_cons_scm()
+{
+  test -n "$scm_all" || {
+    # TODO prompt "Scan untracked only, or all (SCM untracked and excluded files)?"
+    scm_all=0
+  }
+}
+
+# TODO: Consolidate any file; list files and check for index.
+# See htd-catalog-listtree to control which files to check
+htd_catalog_cons() { htd_catalog_consolidate "$@"; }
 htd_catalog_consolidate()
+{
+  test -n "$1" || set -- "."
+  htd_catalog_listtree | while read fpath
+  do
+    case "$fpath" in
+
+      *.md5|*.md5sum ) ;;
+      *.sha1|*.sha1sum ) ;;
+
+      *.meta ) ;;
+      catalog.y*ml|*/catalog.y*ml ) ;;
+
+      * )
+          note "Scanning for unknown file '$fpath'..."
+          htd_catalog_scan_for "$fpath"
+        ;;
+
+    esac
+  done
+}
+
+# TODO: consolidate data from metafiles
+htd_catalog_consolidate_metafiles()
+{
+  find ./ -iname '*.meta' | while read metafile
+  do
+    htd_catalog_add_file "$metafile"
+  done
+  #find ./ \( -iname '*.sha1*' -o -iname '*.md5*' \)
+}
+
+# TODO: merge all local catalogs (from subtrees to PWD)
+htd_catalog_consolidate_catalogs()
 {
   htd_catalog_list_files | while read catalog
   do
@@ -579,6 +665,73 @@ htd_catalog_consolidate()
     note "TODO: $catalog"
   done
 }
+
+# Requires local or global catalogs list
+htd_catalog_scan_for()
+{
+  # Use quickest checksum and start for global lookup
+  #htd_catalog_scan_for_md5 "$1" && return
+
+  # Can also include some Annex backends and LFS
+  htd_catalog_scan_for_sha2 "$1" && return
+
+  #htd_catalog_scan_for_sha1 "$1" && return
+}
+
+htd_catalog_scan_for_md5()
+{
+  test_exists "$1"
+  local md5sum=$(md5sum "$1" | awk '{print $1}')
+  note "Looking for MD5: $md5sum..."
+  while read catalog
+  do
+    grep -q 'md5:\ '"$md5sum" $catalog || continue
+    echo "$catalog"
+    return
+  done < "$CATALOGS"
+  return 1
+}
+
+htd_catalog_scan_for_sha2()
+{
+  test_exists "$1"
+  local sha2sum=$(shasum -a 256 "$1" | awk '{print $1}')
+  note "Looking for SHA2: $sha2sum..."
+  while read catalog
+  do
+    grep -q 'sha2:\ '"$sha2sum" $catalog || continue
+    echo "$catalog"
+    return
+  done < "$CATALOGS"
+
+  note "Looking in Annex backends..."
+  for annex in /srv/annex-*/*/
+  do
+    test -d "$annex/.git/annex/objects" || continue
+    info "Searching '$annex' Annex..."
+
+    find "$annex/.git/annex/objects" -type d \
+      -iname 'SHA256E-s*--'"$sha2sum"'.*' -print -quit |
+      while read obj
+      do
+        test -n "$obj" -a -d "$obj" || continue
+        echo "$annex"
+        return
+      done
+
+    # Somehow this locks up on 11.3 archive-old
+    #key=".git/annex/objects/*/*/SHA256E-s*--$sha2sum.*"
+    #for x in $annex$key
+    #do
+    #  test -e "$x" || continue
+    #  echo "$annex"
+    #  return
+    #done
+  done
+
+  return 1
+}
+
 
 # Separate subtree entries. Go about by moving each file individually
 htd_catalog_separate() # PATH
