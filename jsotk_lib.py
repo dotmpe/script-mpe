@@ -122,6 +122,8 @@ class AbstractKVParser(object):
 
         # Maybe want to allow other parsers too, ie YAML values
         if isinstance(value, basestring):
+            if value[0] + value[-1] in ["''", '""']:
+                value = value[1:-1]
             # Default value if empty is string
             if value.lower() in ('none', 'null', 'nil'):
                 value = None
@@ -417,7 +419,7 @@ def parse_json(value):
 
 
 # TODO: use the propery serializer asked for, or add datatype lib option
-re_float  = re.compile('\d+.\d+')
+re_float  = re.compile('^\d+\.\d+$')
 def parse_primitive(value):
     # TODO: other numbers
     if value.isdigit():

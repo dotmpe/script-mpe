@@ -579,14 +579,15 @@ htd_catalog_update() # [Catalog] Entry-Id Value [Entry-Key]
   }
 }
 
+# Import entries from Annex. Even if a file does not exist, this can take
+# keys, tags and other metadata from GIT annex.
 htd_catalog_annex_import()
 {
-  annex_list | annex_metadata |
-      while read -d $'\f' block
+  annex_list | key_metadata=1 annex_metadata | while read -d $'\f' block_
   do
-    eval $(echo "$block" | sed 's/^\ *\([^=]*\)=\(.*\)$/\1=\"\2\"/' )
+    block="$(echo "$block_" | sed 's/=\(.*[^0-9].*\)\ *$/="\1"/g' )"
     json="$(echo "$block" | jsotk.py dump -I pkv)"
-    note "Importing $name: $json"
+    note "Importing $json"
     catalog_backup=0 htd_catalog_update "" "$name" "$json"
   done
   return $?
@@ -623,7 +624,6 @@ req_cons_scm()
 
 # TODO: Consolidate any file; list files and check for index.
 # See htd-catalog-listtree to control which files to check
-htd_catalog_cons() { htd_catalog_consolidate "$@"; }
 htd_catalog_consolidate()
 {
   test -n "$1" || set -- "."
@@ -645,6 +645,7 @@ htd_catalog_consolidate()
     esac
   done
 }
+htd_catalog_cons() { htd_catalog_consolidate "$@"; }
 
 # TODO: consolidate data from metafiles
 htd_catalog_consolidate_metafiles()
@@ -670,7 +671,7 @@ htd_catalog_consolidate_catalogs()
 htd_catalog_scan_for()
 {
   # Use quickest checksum and start for global lookup
-  #htd_catalog_scan_for_md5 "$1" && return
+  htd_catalog_scan_for_md5 "$1" && return
 
   # Can also include some Annex backends and LFS
   htd_catalog_scan_for_sha2 "$1" && return
@@ -680,6 +681,7 @@ htd_catalog_scan_for()
 
 htd_catalog_scan_for_md5()
 {
+  info "Scanning catalogs for MD5 of $1..."
   test_exists "$1"
   local md5sum=$(md5sum "$1" | awk '{print $1}')
   note "Looking for MD5: $md5sum..."

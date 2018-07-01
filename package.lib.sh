@@ -4,18 +4,35 @@
 # Deal with package metadata files
 
 
+# Set
 package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
+  #lib_load src
   test -n "$1" || set -- .
   # Get first existing file
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
+  grep -q '^#include\ ' "$PACKMETA" && {
+      PACKMETA_SRC=$PACKMETA
+      PACKMETA=$1/.cllct/package.yaml
+  } || PACKMETA_SRC=''
   upper=0 default_env out-fmt py || true
+  preprocess_package
+}
+
+# Preprocess YAML
+preprocess_package()
+{
+  test -e "$PACKMETA" -a -z "$PACKMETA_SRC" || {
+    test -e "$PACKMETA" -a "$PACKMETA" -nt "$PACKMETA_SRC" ||
+        add_sentinels=1 expand_include_sentinels "$PACKMETA_SRC" > "$PACKMETA"
+  }
+  export PACKMETA PACKMETA_SRC
 }
 
 package_lib_set_local()
 {
   test -n "$1" || error "package.lib load" 1
-  # Default is main
+  # Default package is entry named as main
   default_package_id=$(package_default_id "$1")
   test -n "$package_id" -a "$package_id" != "(main)" || {
     package_id="$default_package_id"
@@ -26,9 +43,9 @@ package_lib_set_local()
   } || {
     PACKMETA_BN="$(package_basename)-${package_id}"
   }
-  PACKMETA_JSON=$1/.$PACKMETA_BN.json
-  PACKMETA_JS_MAIN=$1/.$PACKMETA_BN.main.json
-  PACKMETA_SH=$1/.$PACKMETA_BN.sh
+  PACKMETA_JSON=$1/.cllct/$PACKMETA_BN.json
+  PACKMETA_JS_MAIN=$1/.cllct/$PACKMETA_BN.main.json
+  PACKMETA_SH=$1/.cllct/$PACKMETA_BN.sh
 
   export package_id PACKMETA PACKMETA_BN PACKMETA_JS_MAIN PACKMETA_SH
 }
@@ -39,10 +56,19 @@ package_default_id()
   jsotk.py -I yaml -O py objectpath $1/$PACKMETA '$.*[@.main is not None].main'
 }
 
+
 package_file()
 {
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
-  metaf=$(normalize_relative "$metaf")
+  metaf="$(normalize_relative "$metaf")"
+  grep -q '^#include\ ' "$metaf" && {
+      metaf_src="$metaf"
+      metaf=$1/.cllct/package.yaml
+  } || metaf_src=''
+  test -e "$metaf" -a -z "$metaf_src" || {
+    test -e "$metaf" -a "$metaf" -nt "$metaf_src" ||
+        add_sentinels=1 expand_include_sentinels "$metaf_src" > "$metaf"
+  }
   test -e "$metaf" || return 1
 }
 

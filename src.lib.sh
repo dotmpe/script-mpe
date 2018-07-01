@@ -3,6 +3,11 @@
 set -e
 
 
+src_lib_load()
+{
+  test -n "$sentinel_comment" || sentinel_comment="#"
+}
+
 # Insert into file using `ed`. Accepts literal content as argument.
 # file-insert-at 1:file-name[:line-number] 2:content
 # file-insert-at 1:file-name 2:line-number 3:content
@@ -329,36 +334,88 @@ find_functions() # Grep Sh-Files
 #
 source_lines() # Src Start-Line End-Line [Span-Lines]
 {
-  test -f "$1"
+  test -f "$1" || return
   test -n "$2" && start_line=$2 || start_line=0
   test -n "$Span_Lines" || Span_Lines=$4
   test -n "$Span_Lines" || {
     end_line=$3
-    test -n "$end_line" ||
-      end_line=$(count_lines "$1")
+    test -n "$end_line" || end_line=$(count_lines "$1")
     Span_Lines=$(( $end_line - $start_line ))
   }
   tail -n +$start_line $1 | head -n $Span_Lines
 }
 
-source_line()
+
+source_line() # Src Start-Line
 {
   source_lines "$1" "$2" "$(( $2 + 1 ))"
 }
 
+
 # Given a shell script line with a source command to a relative or absolute
 # path (w/o shell vars or subshells), replace that line with the actual contents
 # of the sourced file.
-expand_source_line() # Src-File
+expand_source_line() # Src-File Line
 {
   test -f "$1" || error "expand_source_line file '$1'" 1
   test -n "$2" || error "expand_source_line line" 1
   local srcfile="$(source_lines "$1" "$2" "" 1 | awk '{print $2}')"
   test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
-  file_truncate_lines "$1" "$(( $2 - 1 ))" "$(( $2 ))"
-  file_insert_at $1:$(( $2 - 1 )) "$(cat $srcfile )"
+  expand_line "$@" "$srcfile"
   trueish "$keep_source" || rm $srcfile
   info "Replaced line with resolved src of '$srcfile'"
+}
+
+
+# See expandline, uses and removes 'srcfile' if requested
+expand_srcline()
+{
+  test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
+  expand_line "$@" "$srcfile"
+  trueish "$keep_source" || rm $srcfile
+  info "Replaced line with resolved src of '$srcfile'"
+}
+
+
+# Strip sentinel line and insert external file
+expand_line() # Src-File Line Include-File
+{
+  file_truncate_lines "$1" "$(( $2 - 1 ))" "$2"
+  file_insert_at $1:$(( $2 - 1 )) "$(cat $3)"
+}
+
+
+# Expand include-lines but don't modify files
+expand_include_sentinels() # Src...
+{
+  for src in "$@"
+  do
+    grep -n $sentinel_comment'include\ ' "$src" | while IFS="$IFS:" read -r num match file
+    do
+      # NOTE: should not rewrite file while grepping it
+      #expand_line "$src" "$num" "$file"
+      source_lines "$src" "0" "$(( $num - 1 ))"
+      trueish "$add_sentinels" && echo "$sentinel_comment start of $src" || true
+      deref_include "$file" "$src"
+      trueish "$add_sentinels" && echo "$sentinel_comment end of $src" || true
+      source_lines "$src" "$(( $num + 1 ))"
+    done
+  done
+}
+
+
+# Resolve contents for given include directive parameter
+deref_include() # Include-Spec
+{
+  case "$1" in
+      "<"*">" ) set -- "$scriptpath/$1" "$2" ;;
+      "\""*"\"" ) set -- "$(eval echo $1)" "$2" ;;
+  esac
+  note "Include '$1' '$2'"
+  case "$1" in
+      /* ) cat "$1" ;;
+      * ) cat "$(dirname "$2")/$1" ;;
+  esac
 }
 
 
@@ -488,21 +545,7 @@ EOF
 }
 
 
-expand_sentinel_line() # Src-File Line-Number
-{
-  test -f "$1" || error "expand_sentinel_line file '$1'" 1
-  test -n "$2" || error "expand_sentinel_line line" 1
-
-  local srcfile="$(source_lines "$1" "$2" "" 1 | cut -c26- )"
-  test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
-
-  file_truncate_lines "$1" "$(( $2 - 1 ))" "$(( $2 ))"
-  file_insert_at $1:$(( $2 - 1 )) "$(cat $srcfile )"
-  trueish "$keep_source" || rm $srcfile
-  info "Replaced line with resolved src of '$srcfile'"
-}
-
-
+# TODO: diff-where
 diff_where() # Where/Line Where/Span Src-File
 {
   test -n "$1" -a -f "$3" || return $?
