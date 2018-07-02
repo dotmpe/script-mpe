@@ -2162,10 +2162,12 @@ htd__ssh_vagrant()
 {
   test -d $UCONFDIR/vagrant/$1 || error "No vagrant '$1'" 1
   cd $UCONFDIR/vagrant/$1
-  vagrant up --provision || {
-    warn "Provision error $?. See htd edit to review Vagrantfile. "
-    sys_confirm "Continue with SSH connection?" ||
-        note abort 1
+  vagrant up || {
+    vagrant up --provision || {
+      warn "Provision error $?. See htd edit to review Vagrantfile. "
+      sys_confirm "Continue with SSH connection?" ||
+          note abort 1
+    }
   }
   vagrant ssh
 }
@@ -2174,6 +2176,12 @@ htd__ssh_vagrant()
 htd_run__ssh=f
 htd__ssh()
 {
+  test -d $UCONFDIR/vagrant/$1 && {
+
+    htd__ssh_vagrant "$@"
+    return $?
+  }
+
   case "$1" in
     # NEW
     sandbox-jenkins-mpe | sandbox-new )
@@ -3887,6 +3895,12 @@ htd_man_1__source='Generic sub-commands dealing with source-code. For Shell
 specific routines see also `function`.
 
   source lines FILE [ START [ END ]]        Copy (output) from line to end-line.
+  expand-source-line FILE LINENR
+    Replace a source line with the contents of the sourced script
+
+    This must be pointed to a line with format:
+
+      .\ (P<sourced-file>.*)
 '
 htd__source()
 {
@@ -3955,8 +3969,8 @@ htd__source()
         test -n "$line_number" || return $?
         expand_sentinel_line "$1" $line_number || return $?
       ;;
-
-    expand-source-line ) fail TODO ;;
+    expand-source-line ) shift ; expand_source_line "$@" ;;
+    expand-include-sentinels ) shift ; expand_include_sentinels "$@" ;;
 
     * ) error "'$1'?" 1
       ;;
@@ -4020,19 +4034,6 @@ htd__function()
     * ) error "'$1'?" 1
       ;;
   esac
-}
-
-
-htd_man_1__expand_source_line='Replace a source line with the contents of the sourced script
-
-This must be pointed to a line with format:
-
-  .\ (P<sourced-file>.*)
-'
-htd_spc__expand_source_line='expand-source-line FILE LINENR'
-htd__expand_source_line()
-{
-  expand_source_line "$@"
 }
 
 
@@ -4233,11 +4234,16 @@ htd__find_empty_dirs()
 }
 
 htd_als__largest_files=find-largest
-htd__find_largest()
+htd__find_largest() # Min-Size
 {
-  test -n "$1" || set -- 15
+  test -n "$1" || {
+    set -- 15
+    note "Set min-size to $1MB"
+  }
   # FIXME: find-ignores
-  test -n "$find_ignores" || find_ignores="-not -iname .git "
+  test -n "$find_ignores" || {
+    test -n "$2" && find_ignores="$2" || find_ignores="-not -iname .git "
+  }
   eval find . \\\( $find_ignores \\\) -a -size +${MIN_SIZE}c -a -print | head -n $1
 }
 
@@ -8057,6 +8063,10 @@ htd__annex()
         test -e "$srcinfo" && note "Leaving localdir $srcinfo" || rm -r $tmpd
       ;;
 
+    list ) annex_list "$@" ;;
+
+    metadata ) annex_list "$@" | annex_metadata ;;
+
     * ) error "'$act'?" 1 ;;
 
   esac
@@ -9547,7 +9557,8 @@ htd_als__venv=ispyvenv
 
 
 
-htd_man_1__catalog='Build file manifests
+htd_man_1__catalog='Build file manifests. See `htd help htd-catalog-*` for more
+details per function.
 
 Sets of catalogs
 
@@ -9577,23 +9588,28 @@ Single catalog entry
 
   [CATALOG=] add [DIR|FILE]
     Add file, recording name, basic keys, and other file metadata.
-    TODO: add dir with category
+    See also add-file, add-from-folder, add-all-larger, 
   [CATALOG=] get-path NAME
-  Get src-file (full path) for record
+    Get src-file (full path) for record
   [CATALOG=] drop NAME
     Remove record
   [CATALOG=] delete NAME
     Remove record and src-file
-
   drop-by-name [CATALOG] NAME
     See drop.
   copy NAME [DIR|CATALOG]
     Copy record and file to another catalog and relative src-path
   move NAME [DIR|CATALOG]
     Copy and drop record + delete file
-
   set [CATALOG] NAME KEY VALUE
     Add/set any string value for record.
+  update [CATALOG] Entry-Id Value [Entry-Key]
+    Update single key of signle entry in catalog JSON and write back.
+  annex-import [Annex-Dir] [Annexed-Paths...]
+    Update entries from Annex (backend key and/or metadata)
+  
+Functions without CATALOG argument will use the likenamed env. See
+catalog-lib-load. Std. format is YAML.
 '
 htd__catalog()
 {
@@ -10000,7 +10016,6 @@ htd_init()
       prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
       catalog tasks journal annex lfs pm2
   case "$uname" in Darwin ) lib_load darwin ;; esac
-  . $scriptpath/vagrant-sh.sh
   disk_run
   # -- htd box init sentinel --
 }

@@ -4,19 +4,25 @@
 annex_list()
 {
   # Annex queries remotes, which may give errors (no network/mounts missing)
-  git annex list --fast 2>/dev/null | while read prefix file
+  git annex list "$@" --fast 2>/dev/null | while read prefix file
   do
     test -e "$file" -o -h "$file" && echo "$file"
   done
 }
 
-# Print metadata k/v. Pairs have liberal format, something like [^= ]+=.*
+# Print each file entries' metadata k/v. Pairs have liberal format, something
+# like [^= ]+=.* Each pair on its own line, each entry separated by \f
+# (form-feed) (and newline). Normally only prints files with metadata, if
+# metadata is set the record is skipped (no output).
+# set key_metadata to scan the Annex backend ID for metadata values;
+# save time hashing.
+# .*lastchanged attributes are removed
 annex_metadata()
 {
   while read file
   do
     key_metadata_=""
-    test -z "$key_metadata" || {
+    test -z "$metadata_keys" || {
       KEY="$(basename "$(dirname "$(readlink "$file")")")"
       case "$KEY" in
         SHA256E-s*--* )
@@ -30,6 +36,13 @@ annex_metadata()
     status="$(echo "$metadata_" | grep '^[a-z].*')"
     test "$status" = "ok" || {
         warn "Reading annex metadata '$file'"; continue; }
+    falseish "$metadata_exists" || {
+      test -e "$file" || {
+          test -n "$metadata_" &&
+          metadata_="exists=False\n$metadata_" ||
+          metadata_="exists=False"
+      }
+    }
     metadata="$(echo "$metadata_" | grep '^ ')"
     test -n "$metadata$key_metadata_" || continue
     test -n "$metadadata" && metadadata="$metadadata\\n"

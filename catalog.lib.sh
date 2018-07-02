@@ -37,21 +37,23 @@ htd_catalog_name() # [Dir]
     }
 }
 
-htd_catalog_asjson()
+htd_catalog_as_json()
 {
   test -n "$1" || set -- "$CATALOG"
   local jsonfn="$(pathname "$1" .yml .yaml).json"
-  test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
-    {
-      not_falseish "$update_json" || test -e "$jsonfn"
-    } && {
-      jsotk yaml2json "$1" "$jsonfn"
-    }
-  }
+  { test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
+        {
+          not_falseish "$update_json" || test -e "$jsonfn"
+        } && {
+          jsotk yaml2json "$1" "$jsonfn"
+        }
+      }
+    } >&2
+  test -e "$jsonfn" || error "Unable to get CATALOG json" 1
   cat "$jsonfn"
 }
 
-htd_catalog_fromjson()
+htd_catalog_from_json()
 {
   test -n "$1" || set -- "$CATALOG"
   local jsonfn="$(pathname "$1" .yml .yaml).json"
@@ -278,7 +280,7 @@ htd_catalog_check_keys() # CKS...
 
 htd_catalog_get_by_name() # [CATALOG] NAME
 {
-  record="$( htd_catalog_asjson "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
+  record="$( htd_catalog_as_json "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
   echo $record | jsotk --pretty json2yaml -
 }
 
@@ -287,7 +289,7 @@ htd_catalog_get_by_key() # [CATALOG] CKS...
   local cat="$1" ; shift ; test -n "$cat" || cat=$CATALOG
   while test $# -gt 0
   do
-    record="$( htd_catalog_asjson "$cat" | jq -c ' .[] | select(.keys[]=="'"$1"'")' )" && {
+    record="$( htd_catalog_as_json "$cat" | jq -c ' .[] | select(.keys[]=="'"$1"'")' )" && {
         echo $record | jsotk --pretty json2yaml
         return
     }
@@ -418,7 +420,7 @@ htd_catalog_untracked()
 htd_catalog_copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
 {
   test -n "$1" || set -- $CATALOG "$2" "$3"
-  record="$( htd_catalog_asjson "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
+  record="$( htd_catalog_as_json "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
   test -f "$3" || {
     test -d "$3" && {
       set -- "$1" "$2" "$(htd_catalog_name "$3" || echo $CATALOG_DEFAULT)"
@@ -428,7 +430,7 @@ htd_catalog_copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
 
   test -s "$3" || echo "[]" > $3
   rotate_file "$3"
-  htd_catalog_asjson "$3" | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
+  htd_catalog_as_json "$3" | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
 }
 
 # Get path for record, or find it by searching for basename
@@ -471,7 +473,7 @@ htd_catalog_drop_by_name() # [CATALOG] NAME
 {
   test -n "$1" || set -- $CATALOG "$2"
   test -s "$1" && backup_file "$1" || echo "[]" > $1
-  htd_catalog_asjson "$1" |
+  htd_catalog_as_json "$1" |
       jq -c ' del( .[] | select(.name=="'"$2"'")) ' |
       jsotk json2yaml --pretty - "$1"
 }
@@ -539,7 +541,7 @@ htd_catalog_set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
     backup_file "$1" || return
   #}
   {
-    htd_catalog_asjson "$1" | {
+    htd_catalog_as_json "$1" | {
         trueish "$json_value" && {
           jq -c "map(select(.$5==\""$2"\").$3 |= $4 )" || return
 
@@ -556,41 +558,70 @@ htd_catalog_set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
   }
 }
 
-htd_catalog_update() # [Catalog] Entry-Id Value [Entry-Key]
+# Like htd-catalog-set-key, except allow for JSON values to update a single
+# entry key value, or a JQ script-file to do any JSON update
+htd_catalog_update() # [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key] )
 {
+  local jq_scr=
   test -n "$1" || set -- "$CATALOG" "$2" "$3" "$4"
-  test -n "$2" || error "catalog-set: 2:Entry-ID required" 1
-  test -n "$3" || error "catalog-set: 3:Value required" 1
-  test -n "$4" || set -- "$1" "$2" "$3" "name"
+  test -f "$2" -a -z "$3" -a -z "$4" && {
+      jq_scr="$2"
+    } || {
+      test -n "$2" || error "catalog-set: 2:Entry-ID required" 1
+      test -n "$3" || error "catalog-set: 3:Value required" 1
+      test -n "$4" || set -- "$1" "$2" "$3" "name"
+    }
 
-  #trueish "$catalog_backup" && {
+  trueish "$catalog_backup" && {
     backup_file "$1" || return
-  #}
+  }
   {
-    htd_catalog_asjson "$1" | {
-        jq -c "map(select(.$4==\""$2"\") += $3 )"
-    } | jsotk json2yaml - $1
+    htd_catalog_as_json "$1" | {
+      test -z "$jq_scr" && {
+        jq "map(select(.$4==\""$2"\") += $3 )" || return $?
+      } || {
+        jq -f "$jq_scr" - || return $?
+      }
+    } | sponge | jsotk json2yaml - $1
 
   } || { r=$?
     # undo copy
-    #not_trueish "$catalog_backup" ||
-    mv "$dest" "$1"
+    not_trueish "$catalog_backup" || mv "$dest" "$1"
     return $?
   }
 }
 
-# Import entries from Annex. Even if a file does not exist, this can take
-# keys, tags and other metadata from GIT annex.
-htd_catalog_annex_import()
+# Add/update entries from Annex. Even if a file does not exist, this can take
+# keys, tags and other metadata from GIT annex. See annex-metadata. The
+# standard SHA256E backend provides with bytesize and SHA256 cksum metadata.
+htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
 {
-  annex_list | key_metadata=1 annex_metadata | while read -d $'\f' block_
+  test -n "$1" || { shift ; set -- "." "$@" ; }
+  local jq_scr="$(pwd)/.cllct/annex-update.jq" r='' cwd="$(pwd)"
+  mkdir -p .cllct ; rm -f "$jq_scr"
+  # Change to Annex Dir and get metadata
+  cd "$1" || error "Annex dir expected '$1'" 1
+  note "PWD: $(pwd)"
+  shift
+  annex_list "$@" | metadata_keys=1 metadata_exists=1 annex_metadata |
+      while read -d $'\f' block_
   do
     block="$(echo "$block_" | sed 's/=\(.*[^0-9].*\)\ *$/="\1"/g' )"
+    eval $(echo "$block" | grep 'name=')
+    note "Importing $name JSON.."
     json="$(echo "$block" | jsotk.py dump -I pkv)"
-    note "Importing $json"
-    catalog_backup=0 htd_catalog_update "" "$name" "$json"
+    info "JSON for $name: $json"
+    test ! -s "$jq_scr" || printf " |\\n" >>"$jq_scr"
+    printf -- "map(if .name==\"$name\" then . * $json else . end )" >>"$jq_scr"
+    #catalog_backup=0 htd_catalog_update "" "$name" "$json"
   done
-  return $?
+  # Update catalog now
+  cd "$cwd"
+  # XXX: as-json with catalog-update is not going for some reason
+  update_json=1 htd_catalog_as_json >/dev/null
+  update_json=1 htd_catalog_update "" "$jq_scr" || r=$?
+  rm "$jq_scr"
+  return $r
 
   # XXX: JSON directly makes it hard to filter -lastchanged out
   annex_metadata_json |
@@ -749,12 +780,14 @@ htd_catalog_separate() # PATH
   done
 }
 
-htd_catalog_update()
+
+htd_catalog_update_keys() # Entry-Id [Keys...]
 {
   test -n "$1" || error "expected properties to update" 1
   local fn="$1" ; shift
   local bn="$(basename "$fn" | sed 's/"/\\"/g')" pn="$(find . -iname "$fn" | head -n 1)"
   test -e "$pn" || error "No file '$pn'" 1
+  test -n "$*" || set -- mediatype format
   while test $# -gt 0
   do
     case "$1" in
@@ -768,6 +801,7 @@ htd_catalog_update()
   done
 }
 
+
 htd_catalog_update_all()
 {
   test -n "$1" || error "expected properties to update" 1
@@ -775,7 +809,7 @@ htd_catalog_update_all()
   do
     test -f "$fn" || continue
     htd_catalog_has_file "$1" || continue
-    htd_catalog_update "$fn" "$@" || {
+    htd_catalog_update_keys "$fn" "$@" || {
       error "Updating '$fn"
       continue
     }

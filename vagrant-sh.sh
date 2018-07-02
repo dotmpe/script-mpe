@@ -17,6 +17,7 @@ vagrant_sh_man_1__list="Global list: cached info about every Vagrant instance"
 vagrant_sh__list()
 {
   stderr info "Listing vagrant instances ($ vagrant global-status)"
+  $LOG header2 "Provider:Id" "Name (Provider-Id): State" "Directory"
   vagrant_sh__list_raw |
   while read ID NAME PROVIDER STATE DIRECTORY PROVIDER_ID METADIR
   do
@@ -43,6 +44,58 @@ vagrant_sh__list_raw()
       # NOTE: output col/cell
       # FIXME: want global counter for row too
       varsfmt "$2" ID NAME PROVIDER STATE DIRECTORY PROVIDER_ID METADIR | grep -v '^#'
+    done
+}
+
+
+vagrant_sh__update_all()
+{
+  vagrant global-status | tail -n +3 |
+    while read ID NAME PROVIDER STATE DIRECTORY
+    do
+      test "$PROVIDER" = "virtualbox" || continue
+      test -d "$DIRECTORY" || {
+          warn "No present dir '$DIRECTORY'"
+          continue
+      }
+      cd $DIRECTORY && vagrant update
+    done
+}
+
+
+vagrant_sh__list_dirs()
+{
+  vagrant global-status |
+    tail -n +3 |
+    while read ID NAME PROVIDER STATE DIRECTORY
+    do
+      test "$PROVIDER" = "virtualbox" || continue
+      test -d "$DIRECTORY" || {
+        warn "No present dir '$DIRECTORY'"
+        continue
+      }
+      cd $DIRECTORY
+      pwd -P
+    done
+}
+
+vagrant_sh__status_all()
+{
+  vagrant global-status |
+    tail -n +3 |
+    while read ID NAME PROVIDER STATE DIRECTORY
+    do
+      test "$PROVIDER" = "virtualbox" || continue
+      test -d "$DIRECTORY" || {
+        warn "No present dir '$DIRECTORY'"
+        continue
+      }
+      note "ID: $ID  Name: $NAME"
+      cd $DIRECTORY && {
+        pwd -P
+        vagrant status
+        vagrant_sh__status "$NAME" || echo status=$?
+      }
     done
 }
 
