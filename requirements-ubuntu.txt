@@ -11,3 +11,4 @@ posh
 dash
 ruby-bundler
 git-annex
+renameutils
