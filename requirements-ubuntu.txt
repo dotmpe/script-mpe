@@ -12,3 +12,5 @@ dash
 ruby-bundler
 git-annex
 renameutils
+imagemagick
+ttf-bitstream-vera

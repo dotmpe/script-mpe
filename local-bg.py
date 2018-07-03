@@ -148,7 +148,7 @@ def query(ctx):
     return factory.ctx.rs
 
 
-class ServerProtocol(LineOnlyReceiver):
+class LocalBackgroundServerProtocol(LineOnlyReceiver):
 
     """
     Line-based receiver expects to decodes input to context using
@@ -208,6 +208,7 @@ def prerun(ctx, cmdline):
     argv = cmdline.split(' ')
     ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
+
 def postrun(ctx):
 
     """
@@ -238,7 +239,7 @@ def serve(ctx, handlers, prerun=prerun, postrun=postrun):
     serverFactory.handlers = handlers
     serverFactory.prerun = prerun
     serverFactory.postrun = postrun
-    serverFactory.protocol = ServerProtocol
+    serverFactory.protocol = LocalBackgroundServerProtocol
 
     port = reactor.listenUNIX(address.path, serverFactory)
     reactor.run()

@@ -4,7 +4,7 @@
 annex_list()
 {
   # Annex queries remotes, which may give errors (no network/mounts missing)
-  git annex list "$@" --fast 2>/dev/null | while read prefix file
+  git annex list $@ --fast 2>/dev/null | while read prefix file
   do
     test -e "$file" -o -h "$file" && echo "$file"
   done
