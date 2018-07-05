@@ -441,10 +441,11 @@ htd_edit_today()
   # Evaluate package env if local manifest is found
   test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
     #. $PACKMETA_SH || error "Sourcing package Sh" 1
-    eval local $(map=package_pd_meta_: package_sh log log_path log_title \
-        log_entry log_path_ysep log_path_msep log_path_dsep) >/dev/null
+    eval local $(map=package_pd_meta_: package_sh \
+      log log_path log_title log_entry log_path_ysep log_path_msep log_path_dsep) >/dev/null
   }
 
+  # Handle arguments wether log-file or cabinet-path/archive-dir
   test -n "$1" || {
     # If no argument given start looking for standard LOG file/dir path
     test -n "$log" && {
@@ -456,7 +457,6 @@ htd_edit_today()
       log="$JRNL_DIR"
     }
   }
-
   fnmatch "*/" "$1" && {
     test -e "$1" || error "unknown dir $1" 1
     jrnldir="$(strip_trail "$1")"
@@ -472,6 +472,15 @@ htd_edit_today()
     test -e "$1" || set -- "$pwd$1$EXT"
     # Create in pwd (with ext)
     test -e "$1" || touch $1
+  }
+
+  test "$EDITOR" = 'vim' && {
+    # Two columns, two h-splits each
+    { printf -- \
+      "+vs\n:sp\nwincmd j\n:bn\nwincmd l\n:bn\n:sp\n:bn\nwincmd j\n:bn\n:bn\n"
+    echo "wincmd ="
+    } > .exec.vimcmd
+    evoke="-c 'source .exec.vimcmd'"
   }
 
   note "Editing $1"
@@ -515,7 +524,7 @@ htd_edit_today()
       local date_fmt="%Y${log_path_msep}%m${log_path_dsep}%d"
       local today="$(date_fmt "" "$date_fmt")"
       grep -qF $today $1 || printf "$today\n  - \n\n" >> $1
-      $EDITOR $1
+      $EDITOR $evoke $1
       git add $1
     } || {
       error "err file $?" 1

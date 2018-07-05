@@ -20,8 +20,7 @@ pd_man_1__edit="Edit script-files, append ARGS to EDITOR arguments. "
 pd_spc__edit="edit [ARGS]"
 pd__edit()
 {
-  $EDITOR \
-    $0 \
+  $EDITOR $0 \
     $scriptpath/projectdir*sh \
     $scriptpath/projectdir-meta \
     $scriptpath/meta.lib.sh \

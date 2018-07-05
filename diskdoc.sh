@@ -504,10 +504,7 @@ diskdoc_als__V=version
 
 diskdoc__edit()
 {
-  $EDITOR \
-    $0 \
-    $(which diskdoc.py) \
-    "$@"
+  $EDITOR $0 $(which diskdoc.py) "$@"
 }
 
 
