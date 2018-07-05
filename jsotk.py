@@ -33,6 +33,7 @@ Usage:
     jsotk [options] update <destfile> [<srcfiles>...] [--clear-paths=<path>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
     jsotk [options] update-at <destfile> <expr> [<srcfiles>...]
+    jsotk [options] serve <destfile>
     jsotk [options] encode <srcfile>
     jsotk (version|-V|--version)
     jsotk (help|-h|--help)
@@ -94,6 +95,8 @@ Options:
   --columns C
                 Select specific columns to output.
   --no-head     Do not print header/column line at start.
+  --socket      Use socket server with 'serve'
+  --fifo        Use FIFO IO with 'serve'
   -V, --version
                 Print version
 
@@ -509,6 +512,34 @@ def H_from_flat_kv(ctx):
 def H_to_flat_kv(ctx):
     ctx.opts.flags.output_format = 'fkv'
     return H_dump(ctx)
+
+
+serve_handlers = {
+      'update': lambda ctx, doc: True
+    }
+
+def H_serve(ctx):
+    """
+    jsotk serve FILE
+Usage:
+    update KEY VALUE
+
+Options:
+    """
+    destfile = get_dest(ctx, 'r')
+    data = load_data( ctx.opts.flags.input_format, destfile, ctx )
+    if ctx.opts.flag.fifo:
+        jsotk_serve.fifo(ctx, data, __doc__, handlers)
+    elif ctx.opts.flag.socket:
+        # XXX: ops on in-mem document may be nice
+        from script_mpe import jsotk_serve
+        jsotk_serve.serve(ctx, data, __doc__, handlers)
+    else: pass
+
+    if not ctx.opts.flags.quiet:
+        sys.stderr.write("Writing to %s\n" % ctx.opts.args.destfile)
+    outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
+    stdout_data( data, ctx, outf=outfile )
 
 
 

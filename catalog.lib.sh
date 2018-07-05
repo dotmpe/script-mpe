@@ -16,7 +16,7 @@ catalog_lib_load()
   }
   test -n "$CATALOG_IGNORE_DIR" || CATALOG_IGNORE_DIR=.catalog-ignore
   # FIXME linux default_env CATALOG "$CATALOG_DEFAULT"
-  test -n "$CATALOG" || export CATALOG="$CATALOG_DEFAULT"
+  test -n "$CATALOG" || CATALOG="$CATALOG_DEFAULT"
   test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
   test -n "$Catalog_Duplicates" || Catalog_Duplicates=.cllct/duplicates
@@ -603,7 +603,7 @@ htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
   cd "$1" || error "Annex dir expected '$1'" 1
   note "PWD: $(pwd)"
   shift
-  annex_list "$@" | metadata_keys=1 metadata_exists=1 annex_metadata |
+  annex_list $@ | metadata_keys=1 metadata_exists=1 annex_metadata |
       while read -d $'\f' block_
   do
     block="$(echo "$block_" | sed 's/=\(.*[^0-9].*\)\ *$/="\1"/g' )"
@@ -612,13 +612,15 @@ htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
     json="$(echo "$block" | jsotk.py dump -I pkv)"
     info "JSON for $name: $json"
     test ! -s "$jq_scr" || printf " |\\n" >>"$jq_scr"
-    printf -- "map(if .name==\"$name\" then . * $json else . end )" >>"$jq_scr"
+    grep -q "name:[\\ \"\']$name" $CATALOG && {
+      printf -- "map(if .name==\"$name\" then . * $json else . end )" >>"$jq_scr"
+    } || {
+      printf -- ". += [ $json ]" >>"$jq_scr"
+    }
     #catalog_backup=0 htd_catalog_update "" "$name" "$json"
   done
   # Update catalog now
   cd "$cwd"
-  # XXX: as-json with catalog-update is not going for some reason
-  update_json=1 htd_catalog_as_json >/dev/null
   update_json=1 htd_catalog_update "" "$jq_scr" || r=$?
   rm "$jq_scr"
   return $r
@@ -784,17 +786,17 @@ htd_catalog_separate() # PATH
 htd_catalog_update_keys() # Entry-Id [Keys...]
 {
   test -n "$1" || error "expected properties to update" 1
+  # Get entry name
   local fn="$1" ; shift
   local bn="$(basename "$fn" | sed 's/"/\\"/g')" pn="$(find . -iname "$fn" | head -n 1)"
   test -e "$pn" || error "No file '$pn'" 1
+  # Add/update each property
   test -n "$*" || set -- mediatype format
   while test $# -gt 0
   do
     case "$1" in
       mediatype ) htd_catalog_set_key "" "$bn" "mediatype" "$(filemtype "$pn")" ;;
-      format )
-        echo htd_catalog_set_key "" "$bn" "format" "$(fileformat "$pn")"
-        htd_catalog_set_key "" "$bn" "format" "$(fileformat "$pn")" ;;
+      format ) htd_catalog_set_key "" "$bn" "format" "$(fileformat "$pn")" ;;
       * ) error "unknown update '$1'" 1 ;;
     esac
     shift
@@ -862,3 +864,25 @@ EOM
 #  }
 #  done
 #}
+
+# Assume annex is fully synced. Update catalog for missing files, and drop
+# annexed paths .
+htd_catalog_cleanup_annex_missing()
+{
+  #test -s .cllct/annex-missing.list || {
+  #  git annex get . | grep '^get' | sed 's/get\ \(.*\)\ (not\ available)/\1/g' > .cllct/annex-missing.list
+  #}
+
+  # Prepare to remove files by saving key/metadata
+  htd catalog from-annex . --not --in .
+
+  # Drop paths
+  git annex list --not --in . | while read path
+  do
+    test -h "$path" -a ! -e "$path" || {
+      warn "Broken symlink path expected '$path'"
+      continue
+    }
+    git rm "$path"
+  done
+}
