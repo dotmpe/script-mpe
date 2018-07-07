@@ -478,9 +478,9 @@ htd_edit_today()
     # Two columns, two h-splits each
     { printf -- \
       "+vs\n:sp\nwincmd j\n:bn\nwincmd l\n:bn\n:sp\n:bn\nwincmd j\n:bn\n:bn\n"
-    echo "wincmd ="
-    } > .exec.vimcmd
-    evoke="-c 'source .exec.vimcmd'"
+      printf -- "wincmd h\nwincmd k\nwincmd =\n"
+    } > .edit_today.vimcmd
+    evoke="-c 'source .edit_today.vimcmd'"
   }
 
   note "Editing $1"

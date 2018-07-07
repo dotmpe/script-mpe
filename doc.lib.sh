@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# shellcheck disable
 
 doc_lib_load()
 {
@@ -209,6 +210,6 @@ htd_edit_and_update()
       note "Removed unchanged generated file ($1)"
     }
   } || {
-    git add "$1"
+    git add "$(realpath $1)"
   }
 }

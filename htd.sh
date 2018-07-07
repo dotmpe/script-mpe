@@ -4,6 +4,7 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
+# shellcheck disable
 # shellcheck disable=SC2154 # undefined var
 # shellcheck disable=SC2230 # which is non-standard
 # shellcheck disable=SC2086 # double-quote to prevent globbing and word splitting
