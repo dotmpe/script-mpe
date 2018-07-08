@@ -26,11 +26,14 @@
       - https://opensource.org/licenses/gpl-license
 
   repositories:
-    bb: git@bitbucket.org:dotmpe-personal/script-mpe.git
-    dotmpe: domains/dotmpe.com/htdocs/git/script-mpe.git
-    dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
-    github: git@github.com:bvberkum/script-mpe.git
+    #bb: git@bitbucket.org:dotmpe-personal/script-mpe.git
+    #dotmpe: domains/dotmpe.com/htdocs/git/script-mpe.git
+    #dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
+    #github: git@github.com:bvberkum/script-mpe.git
     boreas.16-4-bare: /srv/git-16-4-boreas-brix/bvberkum/script-mpe.git
+    dandy.8-3-bare: /srv/scm-git-8-3-dandy-mpe/dotmpe/script-mpe.git
+    dandy.9-1-bare: /srv/scm-git-9-1-dandy-mpe/dotmpe/script-mpe.git
+    dandy.21-1-bare: /srv/scm-git-21-1-dandy-mpe/dotmpe/script-mpe.git
 
   lists:
     default: "@Task @Dev +script-mpe +htdocs-mpe"
@@ -114,11 +117,15 @@
       - htd package update
       # FIXME:
       - htd package sh-scripts init check build install test get-env
-      - htd package remotes-init
+      - htd package remotes-reset
       - vc regenerate
         # XXX: interactve: python -c 'import nltk; nltk.download()'
       - test -e Makefile || { rm Makefile ; ln -s /usr/share/mkdoc/Mkdoc-full.mk Makefile ; }
       #- make symlinks
+      #
+    host-init:
+      # Build scm-git remotes for volumes
+      - htd srv
 
     db-deinit:
       - db=htd-test db_root_passwd=$BM_DB_PASS docker-sh.sh mysql drop-db
