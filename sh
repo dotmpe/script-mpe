@@ -1,6 +1,16 @@
 #!/bin/sh
 set -e
 
+. ~/bin/annex.lib.sh
+
+cd /srv/annex-9-1-dandy-mpe/archive-old
+
+annex_listkeys
+
+annex_dirsize media
+
+exit $?
+
 python meta.py \
     /srv/archive-old-21-2-dandy-mpe/media/application/HyperCard\ Collection/HyperCard\ 1.01.EN.zip
 sha1sum \
