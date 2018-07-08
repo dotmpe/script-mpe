@@ -217,10 +217,7 @@ lst_als__V=version
 
 lst__edit()
 {
-  $EDITOR \
-    $0 \
-    $scriptpath/list*sh \
-    "$@"
+  $EDITOR $0 $scriptpath/list*sh "$@"
 }
 lst_als___e=edit
 

@@ -10,6 +10,11 @@ from script_mpe.res.ck import *
 from script_mpe.res.cat import *
 from script_mpe.jsotk_lib import yaml_writer
 
+# Imports the Google Cloud client library
+from google.cloud import vision
+from google.cloud.vision import types
+
+
 __default_catalog__ = "./catalog.yaml"
 __usage__ = """
 Usage:
@@ -17,6 +22,9 @@ Usage:
   catalog.py [-v... options] importcks TABLES...
   catalog.py [-v... options] add FILES...
   catalog.py [-v... options] getbyname FILE
+  catalog.py [-v... options] vision-labels FILE
+  catalog.py [-v... options] vision-landmarks FILE
+  catalog.py [-v... options] vision-annotations FILE
   catalog.py -h|--help
   catalog.py help [CMD]
   catalog.py --version
@@ -115,6 +123,100 @@ def cmd_importcks(TABLES, opts):
             opts=opts )))
     else:
         opts.catalog.write(opts)
+
+
+def cmd_vision_landmarks(FILE, opts):
+    """Detects landmarks in the file."""
+    client = vision.ImageAnnotatorClient()
+
+    with open(FILE, 'rb') as image_file:
+        content = image_file.read()
+
+    image = types.Image(content=content)
+    response = client.landmark_detection(image=image)
+    landmarks = response.landmark_annotations
+
+    print('Landmarks:')
+    for landmark in landmarks:
+        print(landmark.description)
+        for location in landmark.locations:
+            lat_lng = location.lat_lng
+            if not ( lat_lng.latitude and lat_lng.longitude ):
+                print('No lat/long with location')
+                print(lat_lng)
+            else:
+                print('Latitude: {}'.format(lat_lng.latitude))
+                print('Longitude: {}'.format(lat_lng.longitude))
+
+
+def cmd_vision_annotations(FILE, opts):
+	"""
+	Get all? image annotations from Vision API.
+	"""
+	client = vision.ImageAnnotatorClient()
+
+	if FILE.startswith('http') or FILE.startswith('gs:'):
+		image = types.Image()
+		image.source.image_uri = FILE
+
+	else:
+		with open(FILE, 'rb') as image_file:
+			content = image_file.read()
+
+		image = types.Image(content=content)
+
+	annotations = client.web_detection(image=image).web_detection
+
+	if annotations.pages_with_matching_images:
+		print('\n{} Pages with matching images retrieved'.format(
+			len(annotations.pages_with_matching_images)))
+
+		for page in annotations.pages_with_matching_images:
+			print('Url   : {}'.format(page.url))
+
+	if annotations.full_matching_images:
+		print ('\n{} Full Matches found: '.format(
+			   len(annotations.full_matching_images)))
+
+		for image in annotations.full_matching_images:
+			print('Url  : {}'.format(image.url))
+
+	if annotations.partial_matching_images:
+		print ('\n{} Partial Matches found: '.format(
+			   len(annotations.partial_matching_images)))
+
+		for image in annotations.partial_matching_images:
+			print('Url  : {}'.format(image.url))
+
+	if annotations.web_entities:
+		print ('\n{} Web entities found: '.format(
+			len(annotations.web_entities)))
+
+		for entity in annotations.web_entities:
+			print('Score      : {}'.format(entity.score))
+			print('Description: {}'.format(entity.description))
+
+
+def cmd_vision_labels(FILE, opts):
+	"""
+	Get Vision API annotator client just for labels.
+	"""
+	# Instantiates a client
+	client = vision.ImageAnnotatorClient()
+
+	# Loads the image into memory
+	with open(FILE, 'rb') as image_file:
+		content = image_file.read()
+
+	image = types.Image(content=content)
+
+	# Performs label detection on the image file
+	response = client.label_detection(image=image)
+	labels = response.label_annotations
+	for label in labels:
+		print(label.description)
+
+
 
 
 ### Transform cmd_ function names to nested dict

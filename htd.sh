@@ -4,6 +4,7 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
+# shellcheck disable
 # shellcheck disable=SC2154 # undefined var
 # shellcheck disable=SC2230 # which is non-standard
 # shellcheck disable=SC2086 # double-quote to prevent globbing and word splitting
@@ -931,6 +932,7 @@ htd__edit_local()
     || error "Nothing found to edit" 1
 
   case "$EDITOR" in
+      # Execute search for Id, after editor opens.
       vim ) evoke="$evoke -c \"/$1\"" ;;
   esac
   eval $EDITOR $evoke $find_paths $grep_paths
@@ -1763,7 +1765,7 @@ htd__edit_week()
   {
     htd_edit_week
   } || {
-    error "err $1/ $?" 1
+    error "ERR: $1/ $?" 1
   }
 }
 htd_als__vw=edit-week
@@ -9588,7 +9590,7 @@ Single catalog entry
 
   [CATALOG=] add [DIR|FILE]
     Add file, recording name, basic keys, and other file metadata.
-    See also add-file, add-from-folder, add-all-larger, 
+    See also add-file, add-from-folder, add-all-larger,
   [CATALOG=] get-path NAME
     Get src-file (full path) for record
   [CATALOG=] drop NAME
@@ -9607,7 +9609,7 @@ Single catalog entry
     Update single key of signle entry in catalog JSON and write back.
   annex-import [Annex-Dir] [Annexed-Paths...]
     Update entries from Annex (backend key and/or metadata)
-  
+
 Functions without CATALOG argument will use the likenamed env. See
 catalog-lib-load. Std. format is YAML.
 '

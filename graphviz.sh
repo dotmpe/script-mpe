@@ -7,11 +7,7 @@
 
 gv__edit()
 {
-  $EDITOR \
-    $0 \
-    ~/bin/graphviz.inc.sh \
-    $(which graphviz.py) \
-    "$@"
+  $EDITOR $0 ~/bin/graphviz.inc.sh $(which graphviz.py) "$@"
 }
 
 gv_run__meta=G

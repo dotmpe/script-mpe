@@ -1087,7 +1087,7 @@ docker_sh__edit_main()
 {
   locate_name $scriptname || exit "Cannot find $scriptname"
   note "Invoking $EDITOR $fn"
-  $EDITOR $fn
+  $EDITOR $evoke $fn
 }
 docker_sh_als___E=edit-main
 
@@ -1099,7 +1099,7 @@ docker_sh__edit_local()
   locate_name $scriptname || exit "Cannot find $scriptname"
   local docker_sh_local=$DCKR_UCONF/local.sh
   note "invoking $EDITOR $docker_sh_local $fn"
-  $EDITOR $docker_sh_local $fn
+  $EDITOR $evoke $docker_sh_local $fn
 }
 docker_sh_als___e=edit-local
 docker_sh_als__edit=edit-local

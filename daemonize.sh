@@ -24,9 +24,7 @@ daemonize__info()
 
 daemonize__edit()
 {
-  $EDITOR \
-    $0 \
-    "$@"
+  $EDITOR $0 "$@"
 }
 
 daemonize__clean()

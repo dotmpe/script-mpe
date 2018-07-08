@@ -449,8 +449,7 @@ disk_man_1__edit="Edit $base script file plus arguments. "
 disk_spc__edit="-e|edit \[<file>..]"
 disk__edit()
 {
-  $EDITOR \
-    $0 \
+  $EDITOR $0 \
     $(which disk.sh) \
     $(dirname $(which disk.sh))/disk.lib.sh \
     $(dirname $(which disk.sh))/disk.rst \

@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# shellcheck disable
 
 doc_lib_load()
 {
@@ -178,7 +179,7 @@ htd_rst_doc_create_update()
           grep -q '\.\.\ footer::' "$outf" || {
             thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
             {
-              printf -- ".. footer::\n\n\t- \`$title <$thisweekrel>\`_ "
+              printf -- ".. footer::\n\n\t- \`$title <$thisweekrel>\`_"
             } >> $outf
           }
         ;;
@@ -199,7 +200,7 @@ htd_edit_and_update()
 {
   test -e "$1" || error htd-edit-and-update-file 1
 
-  $EDITOR "$@" || return $?
+  eval $EDITOR $evoke "$@" || return $?
 
   new_ck="$(md5sum "$1" | cut -f 1 -d ' ')"
   test "$cksum" = "$new_ck" && {
@@ -209,6 +210,6 @@ htd_edit_and_update()
       note "Removed unchanged generated file ($1)"
     }
   } || {
-    git add "$1"
+    git add "$(realpath $1)"
   }
 }

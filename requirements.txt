@@ -39,3 +39,4 @@ zope.component
 zope.interface 
 gspread
 oauth2client
+google-cloud-vision
