@@ -3,6 +3,8 @@ description: Named prerequisite packages and metadata on provisioning. See tools
 
 tools:
 
+#https://raw.githubusercontent.com/aspiers/git-config/master/bin/git-annex-finddups
+
   aha:
     installer: git+make
     description: |

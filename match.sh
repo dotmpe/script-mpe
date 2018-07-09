@@ -178,6 +178,7 @@ match_init()
 {
   local __load_lib=1
   test -n "$scriptpath" || return 13
+  #lib_load box match os date doc table
   . $scriptpath/box.lib.sh "$@"
   . $scriptpath/match.lib.sh "$@"
   . $scriptpath/os.lib.sh

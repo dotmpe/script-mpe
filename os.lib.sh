@@ -80,7 +80,7 @@ dotname() # Path [Ext-to-Strip]
 short()
 {
   test -n "$1" || set -- "$(pwd)"
-  # XXX maybe replace python script sometime
+  # XXX maybe replace python script. Only replaces home
   $scriptpath/short-pwd.py -1 "$1"
 }
 

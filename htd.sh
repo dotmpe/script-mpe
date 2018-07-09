@@ -7516,33 +7516,56 @@ htd_als__depth=path-depth
 
 htd_man_1__srv='Manage service container symlinks and dirs.
 
-  find-volumes | volumes
-      List fully qualified volume names. Optionally filter given existing volume path.
-  -names
-      List service-container names
+  find-volumes | volumes [SUB]
+      List volume container ids (all or with name SUB)
+
+  check
+  check-volume Dir
+      Verify Dir as either service-container or entry in one.
+  list
+  update
+  init
+      ..
+
   -instances
-      List unique service-containers (FIXME: ignore local..)
+      List unique local service-containers (FIXME: ignore local..)
+      Plumping for a grep on ls output
+  -names
+      List unique service-name part for all local service-containers only.
+      Plumbing for a grep on -instances
+  -paths [SUB]
+      Like -vpaths, but for every service container, not just the roots.
   -vpaths [SUB]
       List all existing volume paths, or existing SUB paths (all absolute, with sym. parts)
+      Plumbing for shell glob-expansion on all local volume container links,
+      checking if any given SUB, lower-case SId of SUB, or title-case of SId
+      exists as path.
   -disks [SUB]
       List all existing volume-ids with mount-point, or existing SUB paths.
       See -vpaths, except this returns disk/part index and `pwd -P` for each dir.
-  find-container-volumes
-      List container paths (absolute paths)
-  check-volume Dir
-      Verify Dir as either service-container or entry in one.
-  check
-  list
-  update
-
 '
 htd__srv()
 {
   test -n "$1" || set -- list
   case "$1" in
 
-    -cnames ) shift
-        echo /srv/* | tr ' ' '\n' | cut -d'/' -f3 | sort -u
+    -instances ) shift
+        ls /srv/ | grep -v '^\(\(.*-local\)\|volume-\([0-9]*-[0-9]*-.*\)\)$'
+      ;;
+
+    -names ) shift
+        htd__srv -instances | sed '
+            s/^\(.*\)-[0-9]*-[0-9]*-[a-z]*-[a-z]*$/\1/g
+            s/^\(.*\)-local$/\1/g
+          ' | sort -u
+      ;;
+
+    -paths ) shift
+        for p in /srv/*/
+        do
+          htd__name_exists "$p" "$1" || continue
+          echo "$p$name"
+        done
       ;;
 
     -vpaths ) shift
@@ -7558,29 +7581,21 @@ htd__srv()
         done
       ;;
 
-    -names ) shift
-        htd__srv -instances | sed '
-            s/^\(.*\)-[0-9]*-[0-9]*-[a-z]*-[a-z]*$/\1/g
-            s/^\(.*\)-local$/\1/g
-          ' | sort -u
-      ;;
-
-    -instances ) shift
-        htd__srv -cnames |
-          grep -v '^\(\(.*-local\)\|volume-\([0-9]*-[0-9]*-.*\)\)$'
-      ;;
-
     find-volumes | volumes ) shift
         htd__srv -vpaths "$1" | cut -d'/' -f3 | sort -u
       ;;
 
-    find-container-volumes ) shift
-        # Additionally to -paths, go over every service container,
-        # not just the roots.
-        for p in /srv/*/
+    check ) shift
+        # For all local services, we want symlinks to any matching volume path
+        htd__srv -names | while read name
         do
-          htd__name_exists "$p" "$1" || continue
-          echo "$p$name"
+          test -n "$name" || error "name" 1
+          #htd__srv find-volumes "$name"
+          htd__srv -paths "$name"
+          #htd__srv -vpaths "$name"
+
+          # TODO: find out which disk volume is on, create name and see if the
+          # symlink is there. check target maybe.
         done
       ;;
 
@@ -7630,20 +7645,6 @@ htd__srv()
         # 3. Unless silent, warn if volume is not local, or exit in strict-mode
       ;;
 
-    check ) shift
-        # For all local services, we want symlinks to any matching volume path
-        htd__srv -names | while read name
-        do
-          test -n "$name" || error "name" 1
-          #htd__srv find-volumes "$name"
-          htd__srv find-container-volumes "$name"
-          #htd__srv -paths "$name"
-
-          # TODO: find out which disk volume is on, create name and see if the
-          # symlink is there. check target maybe.
-        done
-      ;;
-
     list ) shift
         test -n "$1" && {
           htd__srv list-volumes "$1"
@@ -7671,7 +7672,7 @@ htd__srv()
   esac
 }
 
-# check for both 'lower-case' sid and Title Case dir name.
+# Check if any of 'lower-case' sid and Title-Case path of NAME in DIR exists
 htd__name_exists() # DIR NAME
 {
   name="$2"

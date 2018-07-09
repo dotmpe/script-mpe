@@ -112,3 +112,112 @@ annex_dirsize() # Dir
   done
   json_fromdir "$meta" "$dirsizes"
 }
+
+git_annex_unusedkeys_findlogs() # Key-List-File...
+{
+  test -s "$1" || { error "git_annex_unusedkeys_findlogs File expected" ; return 1; }
+  local x=0
+  while test -n "$1"
+    do
+    while read -r key rest
+    do
+      test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
+      x=$(( $x + 1 ))
+      echo Key $x: $key
+      test -e "$log" || git log --stat -S"$key" > "$log"
+      cat "$log"
+      echo
+    done < "$1"
+    shift
+  done
+}
+
+git_annex_unusedkeys_drop() # Key-List-File...
+{
+  test -s "$1" || { error "git_annex_unusedkeys_drop File expected" ; return 1; }
+  while test -n "$1"
+  do
+    while read -r key rest
+    do
+      test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
+      git annex dropkey --force $key || continue
+    done < "$1"
+    shift
+  done
+}
+
+git_annex_unusedkeys_drop_ifloggrep() # Key-List-File Grep...
+{
+  test -s "$1" || { error "git_annex_unusedkeys_drop_ifloggrep File expected" ; return 1; }
+  test -n "$2" || { error "Grep expected" ; return 1; }
+  local list="$1" x=0; shift
+  while read -r key rest
+  do
+    test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
+    x=$(( $x + 1 ))
+    echo Key $x: $key
+    log=.cllct/annex-unused/$key.log
+    test -e "$log" || git log --stat -S"$key" > "$log"
+    for pat in $@
+    do
+      grep "$pat" "$log" && {
+        git annex dropkey --force "$key" || true
+        rm "$log"
+        grep -qF "$key" dropped.list || echo "$key" >>dropped.list
+        break
+      } || continue
+    done
+  done < "$list"
+}
+
+git_annex_unusedkeys_backupfiles() # Key-List-File
+{
+  test -n "$target" || target=$HOME/htdocs/cabinet/.git/annex/
+  path=
+  while test -n "$1"
+  do
+    while read -r key path
+    do
+      test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
+      annexed="$( git annex contentlocation "$key" || true )"
+      test -e "$annexed" || {
+        trueish "$DEBUG" && stderr "No local content for '$key'" || true
+        continue
+      }
+      stderr "Backup: $key to $path"
+      annex_parsekey "$key"
+      test $size = $(filesize "$annexed") || {
+        stderr "Corrupt file: Filesize mismatch for $key" 1
+        continue
+      }
+      test -z "$path" -a -e ".cllct/annex-unused/$key.log.path" &&
+        path=$( head -n 1 ".cllct/annex-unused/$key.log.path") || true
+      test -n "$path" && {
+        test -e "$path" || {
+          mkdir -p "$(dirname "$path")"
+          chmod ug+rw "$annexed" "$(dirname "$annexed")" "$(dirname "$path")"
+          rsync -avzui "$annexed" "$path"
+          echo "$keys_sha2  $(basename "$path")" > $path.sha2sum
+        }
+        git annex dropkey --force "$key" || true
+        echo "$key" >> dropped.list
+        continue
+      } || {
+        content="$(find $target -type f -iname "$key")"
+        test -z "$content" || {
+          test -e "$content" || continue
+          test $size = $(filesize "$content") && {
+            #stderr "Content $key exists at $target"
+            git annex dropkey --force "$key"
+            continue
+          } || {
+            stderr "Content for $key missing at $target"
+          }
+        }
+        stderr "Path for $key missing at $target"
+        continue
+      }
+    done < "$1"
+    shift
+  done
+}

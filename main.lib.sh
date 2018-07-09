@@ -208,7 +208,7 @@ std__help()
     # Generic help (no args)
     try_exec_func ${box_prefix}__usage $1 || { std__usage $1; echo ; }
     try_exec_func ${box_prefix}__commands || { std__commands; echo ; }
-    try_exec_func ${box_prefix}__docs || noop
+    try_exec_func ${box_prefix}__docs || true
 
   } || {
 
@@ -257,29 +257,30 @@ std__commands()
 
   test -z "$choice_debug" || echo "local_id=$local_id"
 
-  local cont=
+  local cont= file= local_file=
   list_functions "$@" | while read line
   do
-
-    # Check sentinel
+    # Check sentinel for new file-name
     test "$(expr_substr "$line" 1 1)" = "#" && {
       test "$(expr_substr "$line" 1 7)" = "# file=" && {
-        eval $(expr_substr "$line" 2 $(( ${#line} - 1 )))
-        X=${BOX_DIR}/${base}/
-        local_file=$(expr_substr "$file" $(( 1 + ${#X} )) $(( ${#file} - ${#X} )))
-        test -z "$local_id" && {
-          # Global mode: list all commands
-            test "$BOX_DIR/$base/$local_file" = "$file" && {
-            echo "Commands: ($local_file) "
-          } || {
-            echo "Commands: ($file) "
-          }
-        } || {
-          # Local mode: list local commands only
-          test "$local_file" = "${local_id}.sh" && cont= || cont=true
-        }
+
+        file="$(expr_substr "$line" 8 ${#line})"
+        test -e "$file" || warn "$line" 1
+        local_file="$(realpath --relative-to="$(pwd)" "$file")"
+
+        # XXX: test -z "$local_id" && {
+        #  # Global mode: list all commands
+        #    test "$BOX_DIR/$base/$local_file" = "$file" && {
+        #    echo "Commands: ($local_file) "
+        #  } || {
+        #    echo "Commands: ($file) "
+        #  }
+        #} || {
+        #  # Local mode: list local commands only
+        #  test "$local_file" = "${local_id}.sh" && cont= || cont=true
+        #}
       } || continue
-    }
+    } || true
 
     local subcmd_func_pref=${base}_
     #echo "file=$file local-file=$local_file 0=$0"
@@ -306,14 +307,17 @@ std__commands()
       descr="$(eval echo \"\$${subcmd_func_pref}man_1__$func_name\")"
     fi
     test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
+
     test -n "$descr" || {
-      grep -q "^${subcmd_func_pref}${func_name}()" $file && {
-        descr="$(func_comment $subcmd_func_pref$func_name $file)"
-      } || noop
+      grep -q "^${subcmd_func_pref}${func_name}()" "$file" && {
+        descr="$(func_comment "$subcmd_func_pref$func_name" "$file")"
+      } || true
     }
     test -n "$descr" || descr=".." #  TODO: $func_name description"
-	fnmatch *?"\n"?* "$descr" &&
+
+	  fnmatch *?"\n"?* "$descr" &&
 	    descr="$(printf -- "$descr" | head -n 1)"
+
     test ${#spc} -gt 20 && {
       printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
     } || {
@@ -459,7 +463,7 @@ get_subcmd_args()
         } || {
           set --  "-$(expr_substr "$flag" 3 ${#flag})" "${1+$@}"
         }
-      } || noop
+      } || true
 
       parse_box_subcmd_opts $* && {
         test $c -gt 0 && {
@@ -580,7 +584,7 @@ load_subcmd()
   local r=
   try_exec_func std_load && {
     debug "Standard load OK"
-  } || noop # { r=$? error "std load failed"; return $r; }
+  } || true # { r=$? error "std load failed"; return $r; }
   try_exec_func ${1}_load && {
     debug "Load $1 OK"
   } || {
@@ -593,12 +597,12 @@ load_subcmd()
 # FIXME: two loaders std+base is not used anywhere
 std_load()
 {
-    noop
+    true
 }
 
 std_unload()
 {
-    noop
+    true
 }
 
 # Run any load routines
@@ -698,7 +702,7 @@ run_subcmd()
 
   $subcmd_func "$@" && {
     prev_subcmd=$subcmd
-    main_unload $box_prefix && noop || {
+    main_unload $box_prefix && true || {
       error "Command $prev_subcmd failed ($?)" 4
     }
 
