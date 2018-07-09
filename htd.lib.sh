@@ -155,8 +155,12 @@ htd_repository_url() # Remote Url
 
     # Use local access for path
     # Cancel if repo is local checkout (and expand '~')
-    pwd_="$( { cd "$(bash -c "echo $2")" && pwd -P ; } 2>/dev/null)"
-    test -e "$2" -a "$pwd_" = "$(pwd -P)" && return 1
+    pwd_="$( cd "$2" && pwd -P 2>/dev/null || true)"
+    test -e "$2" -a \( \
+        "$pwd_" = "$(pwd -P)/.git" -o \
+        "$pwd_" = "$(pwd -P)" \
+      \) && return 1
+
     url="$2"
 
   } || {
