@@ -154,6 +154,8 @@ htd_repository_url() # Remote Url
   test "$hostname" = "$domain" && {
 
     # Use local access for path
+    test -e "$2" || return 1
+
     # Cancel if repo is local checkout (and expand '~')
     pwd_="$( cd "$2" && pwd -P 2>/dev/null || true)"
     test -e "$2" -a \( \
