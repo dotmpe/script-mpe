@@ -479,12 +479,13 @@ htd_edit_today()
   }
 
   test "$EDITOR" = 'vim' && {
+    test -d .cllct/tmp || mkdir -p .cllct/tmp/
     # Two columns, two h-splits each
     { printf -- \
       "+vs\n:sp\nwincmd j\n:bn\nwincmd l\n:bn\n:sp\n:bn\nwincmd j\n:bn\n:bn\n"
       printf -- "wincmd h\nwincmd k\nwincmd =\n"
-    } > .edit_today.vimcmd
-    evoke="-c 'source .edit_today.vimcmd'"
+    } > .cllct/tmp/edit-today.vimcmd
+    evoke="-c 'source .cllct/tmp/edit-today.vimcmd'"
   }
 
   note "Editing $1"
