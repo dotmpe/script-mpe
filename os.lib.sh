@@ -109,7 +109,7 @@ basenames()
 filenamext() # Name..
 {
   while test -n "$1"; do
-    echo "$1" | sed 's/^.*\.\([^\.]*\)$/\1/'
+    basename "$1" | grep '\.' | sed 's/^.*\.\([^\.]*\)$/\1/'
   shift; done
 }
 
@@ -722,4 +722,14 @@ sameas()
 {
   test -f "$1" -a -f "$2" || error "sameas: two file name expected: $*" 1
   test $(stat -f "%i" "$1") -eq $(stat -f "%i" "$2")
+}
+
+filesizesum()
+{
+  sum=0
+  while read -r file
+  do
+      sum=$(( $sum + $(filesize "$file" | tr -d '\n' ) ))
+  done
+  echo $sum
 }

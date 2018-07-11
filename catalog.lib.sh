@@ -886,3 +886,78 @@ htd_catalog_cleanup_annex_missing()
     git rm "$path"
   done
 }
+
+# Create simple one-file-per-line manifests for files
+catalog_sha2list()
+{
+  test -n "$1" || set -- catalog.sha2list
+  while read -r filename
+  do
+    filesize "$filename" | tr -d '\n'
+    printf -- " "
+    shasum -a 256 "$filename"
+  done > "$1"
+}
+
+# Get an checksum manifest by unpacking and checksumming, and insert size
+catalog_archive_manifest() # Archive-File
+{
+  case "$1" in
+
+    *.tar* ) catalog_tar_archive_manifest "$1" ;;
+    *.zip ) catalog_zip_archive_manifest "$1" ;;
+
+    *.rar ) echo "TODO rar" ;;
+    *.7z ) echo "TODO 7z" ;;
+
+    * ) stderr 0 "Unknown archive '$1'" ; return 1 ;;
+
+  esac
+}
+
+catalog_tar_archive_manifest()
+{
+  local archive="$(realpath "$1")" ext=$(filenamext "$1")
+  test -s "$archive" || return 1
+  test "$ext" = "tar" || ext=tar.$ext
+  local catalog="$(pathname "$1" .$ext).sha2list"
+  test -e "$catalog" && return
+  printf -- "Creating SHA256 manifest for $(basename "$1")..."
+  local name_key=$(echo "$1" | sha1sum - | tr -d '\n -')
+  mkdir -p ".cllct/tmp/$name_key.$ext"
+  local tmpdir="$(realpath .cllct/tmp/$name_key.$ext)"
+  (
+    cd "$tmpdir" || return
+    printf -- " unpacking.."
+    tar xf "$archive" || return
+    printf -- " hashing all files.."
+    find_files | catalog_sha2list ../catalog.sha2list
+    printf -- " OK."
+  )
+  mv .cllct/tmp/catalog.sha2list "$catalog"
+  rm -rf "$tmpdir"
+  echo " New catalog $(basename "$catalog")"
+}
+
+catalog_zip_archive_manifest()
+{
+  local archive="$(realpath "$1")" ext=$(filenamext "$1")
+  test -s "$archive" || return 1
+  local catalog="$(pathname "$1" .$ext).sha2list"
+  test -e "$catalog" && return
+  printf -- "Creating SHA256 manifest for $(basename "$1")..."
+  local name_key=$(echo "$1" | sha1sum - | tr -d '\n -')
+  mkdir -p ".cllct/tmp/$name_key.$ext"
+  local tmpdir="$(realpath .cllct/tmp/$name_key.$ext)"
+  printf -- " unpacking.."
+  unzip -q "$archive" -d "$tmpdir" </dev/null || return
+  (
+    cd "$tmpdir"
+    printf -- " hashing all files.."
+    find_files | catalog_sha2list ../catalog.sha2list
+    printf -- " OK."
+  )
+  mv .cllct/tmp/catalog.sha2list "$catalog"
+  rm -rf "$tmpdir"
+  echo " New catalog $(basename "$catalog")"
+}

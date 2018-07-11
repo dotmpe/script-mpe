@@ -221,3 +221,9 @@ git_annex_unusedkeys_backupfiles() # Key-List-File
     shift
   done
 }
+
+annex_contentexists() # Dir SHA256E-Key
+{
+  content_location="$(cd "$1" && git annex contentlocation "$2" || true)"
+  test -n "$content_location" -a -s "$1/$content_location"
+}
