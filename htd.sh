@@ -4880,7 +4880,7 @@ htd__run()
     }
 
     # Initialize shell from profile script
-    . .cllct/tools/env.sh
+    . .htd/tools/env.sh
 
     # Write scriptline with expanded vars
     info "Expanded '$(eval echo \"$@\")'"
