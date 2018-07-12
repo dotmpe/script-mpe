@@ -13,7 +13,7 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
   grep -q '^#include\ ' "$PACKMETA" && {
       PACKMETA_SRC=$PACKMETA
-      PACKMETA=$1/.cllct/package.yaml
+      PACKMETA=$1/.htd/package.yaml
   } || PACKMETA_SRC=''
   upper=0 default_env out-fmt py || true
   preprocess_package
@@ -43,9 +43,9 @@ package_lib_set_local()
   } || {
     PACKMETA_BN="$(package_basename)-${package_id}"
   }
-  PACKMETA_JSON=$1/.cllct/$PACKMETA_BN.json
-  PACKMETA_JS_MAIN=$1/.cllct/$PACKMETA_BN.main.json
-  PACKMETA_SH=$1/.cllct/$PACKMETA_BN.sh
+  PACKMETA_JSON=$1/.htd/$PACKMETA_BN.json
+  PACKMETA_JS_MAIN=$1/.htd/$PACKMETA_BN.main.json
+  PACKMETA_SH=$1/.htd/$PACKMETA_BN.sh
 
   export package_id PACKMETA PACKMETA_BN PACKMETA_JS_MAIN PACKMETA_SH
 }
@@ -63,7 +63,7 @@ package_file()
   metaf="$(normalize_relative "$metaf")"
   grep -q '^#include\ ' "$metaf" && {
       metaf_src="$metaf"
-      metaf=$1/.cllct/package.yaml
+      metaf=$1/.htd/package.yaml
   } || metaf_src=''
   test -e "$metaf" -a -z "$metaf_src" || {
     test -e "$metaf" -a "$metaf" -nt "$metaf_src" ||
@@ -311,7 +311,7 @@ package_sh_env()
 
 package_sh_env_script()
 {
-  local script_out=.cllct/tools/env.sh
+  local script_out=.htd/tools/env.sh
   test -n "$PACKMETA_SH" || package_lib_set_local .
   test -s $script_out -a $script_out -nt $PACKMETA && {
     note "Newest version of $script_out exists"
@@ -462,10 +462,10 @@ htd_package_remotes_reset()
   htd_package_remotes_init
 }
 
-htd_package_scripts_write() # [env script_out=.cllct/scripts/NAME] : NAME
+htd_package_scripts_write() # [env script_out=.htd/scripts/NAME] : NAME
 {
   test -n "$1" || set -- "init"
-  test -n "$script_out" || script_out=.cllct/scripts/$1.sh
+  test -n "$script_out" || script_out=.htd/scripts/$1.sh
   test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   test -n "$script_line_eval" || script_line_eval=1
   test -s $script_out -a $script_out -nt $PACKMETA && {
