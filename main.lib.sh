@@ -15,6 +15,15 @@ incr_c()
 # Get help str if exists for $section $id
 # 1:section-number 2:help-id
 # :*:help_descr
+# Man sections:
+# 1. (user) commands
+# (2. System calls)
+# (3. C Library Fuctions)
+# 4. Devices and special files
+# 5. File formats and conventions
+# 6. Games et. Al.
+# 7. Miscellenea (overview, conventions, misc.)
+# 8. SysAdmin tools and Daemons
 try_help()
 {
   local b=
@@ -40,19 +49,52 @@ try_help()
 echo_help()
 {
   #try_exec_func ${help_base}__usage $1 || std__usage $1
-  # Man sections:
-  # 1. (user) commands
-  # (2. System calls)
-  # (3. C Library Fuctions)
-  # 4. Devices and special files
-  # 5. File formats and conventions
-  # 6. Games et. Al.
-  # 7. Miscellenea (overview, conventions, misc.)
-  # 8. SysAdmin tools and Daemons
   try_help 1 $1 && return 0 || \
   try_help 5 $1 && return 0 || \
   try_help 7 $1 && return 0
   return 1
+}
+
+# Wrapper for try-help
+std_man() # [Section] Id
+{
+  test -n "$*" || set -- man
+  test $# -eq 1 && section=1 help_id="$1" ||
+  test $# -eq 2 && section=$1 help_id="$2"
+
+  try_help $section "$help_id"
+}
+
+std_help()
+{
+  test -z "$1" && {
+    # XXX: using compiled list of help ID since real list gets to long htd_usage
+    echo ''
+    echo 'Other commands: '
+    other_cmds
+    choice_global=1 std__help "$@"
+    return
+  }
+
+  #test $# -eq 2 && section=$1 || section=1
+
+  spc="$(try_spec $1)"
+  test -n "$spc" && {
+    echo "Usage: "
+    echo "  $scriptname $spc"
+    echo
+  } || {
+    printf "Help '%s %s': " "$scriptname" "$1"
+  }
+
+  echo_help $1 || {
+    for func_id in "$1" "${base}__$1" "$base-$1"
+    do
+        htd_function_comment $func_id 2>/dev/null || continue
+        htd_function_help $func_id 2>/dev/null && return 1
+    done
+    error "Got nothing on '$1'" 1
+  }
 }
 
 # Echos variable or function name, for formats:

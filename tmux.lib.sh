@@ -19,6 +19,8 @@ tmux_lib_load()
   default_env Htd-TMux-Default-Cmd "$SHELL"
   default_env Htd-TMux-Default-Window "$(basename $SHELL)"
 
+  default_env TMux-Resurrect $HOME/.tmux/resurrect
+
   # default_env returns 1 to signal env var was already set
   true
 }
@@ -90,7 +92,7 @@ htd_tmux_init()
 }
 
 
-# Filter tmux sockets from lsof output, print field requested
+# Filter tmux sockets from lsof -U output, print field requested or just the NAME
 htd_tmux_sockets() # Field
 {
   test -n "$1" || set -- NAME
@@ -98,7 +100,9 @@ htd_tmux_sockets() # Field
     # list unix domain sockets
     lsof -U | grep '^tmux'
   } | {
-      case "$1" in
+
+    # Print one column
+    case "$1" in
       COMMAND ) awk '{print $1}' ;;
       PID ) awk '{print $2}' ;;
       USER ) awk '{print $3}' ;;
@@ -108,17 +112,23 @@ htd_tmux_sockets() # Field
       #NODE ) awk '{print $8}' ;;
       NAME )
           awk '{print $8}'
-          awk '{print $9}'
+          #awk '{print $9}'
         ;;
     esac
   } | sort -u
 }
 
+htd_tmux_socket_names()
+{
+  # Not sure what to make of ->(none) and ->0x<hfx> named-paths in lsof -U
+  # (Darwin)
+  htd_tmux_sockets NAME | grep -v '\ \(->0x\|->(none)\)'
+}
 
 # Iterate tmux sockets and query for session list for each
 htd_tmux_list_sessions() # Socket
 {
-  test -n "$1" || set -- $(htd_tmux_sockets)
+  test -n "$1" || set -- $(htd_tmux_socket_names)
   while test $# -gt 0
   do
     test -e "$1" && {
@@ -141,7 +151,7 @@ htd_tmux_session_list_windows() # Session [] [Output-Spec]
   $tmux list-windows -t "$1" -F "$3" | {
     case "$2" in
       "" )
-          while read name
+          while read -r name
           do
             note "Window: $name"
           done
@@ -251,4 +261,171 @@ htd_tmux_cs()
     $tmux set-environment -g CS $CS
     test -n "$TMUX" || $tmux attach
   )
+}
+
+tmux_resurrect_list_raw()
+{
+  ls $TMUX_RESURRECT | grep '\.txt$'
+}
+
+tmux_resurrect_list()
+{
+  tmux_resurrect_list_raw | exts='.txt' pathnames
+}
+
+tmux_resurrect_lastname()
+{
+  readlink $TMUX_RESURRECT/last
+}
+
+# List panes for last session, with optional window filter. Print lines with
+# Window-Name, Index, Title, PWD and Command. Title and/or Command may be empty.
+# Multiple files are prefixed with filename, exact awk-print format or prefix
+# behaviour is set through env.
+tmux_resurrect_listpanes() # [window= awk_print_pane= prefix_name= opt_prefix=1] Dumpfile...
+{
+  test -n "$1" || set -- "last"
+  test -e "$1" || set -- "$TMUX_RESURRECT/$1"
+
+  test -n "$awk_print_pane" || {
+      test -n "$opt_prefix" || opt_prefix=1
+      test -n "$prefix_name" -o \( $opt_prefix -eq 1 -a $# -gt 1 \) &&
+          awk_print_pane='FILENAME,$2,$3,$4,$8,$11' ||
+          awk_print_pane='$2,$3,$4,$8,$11'
+  }
+
+  test -z "$window" && {
+    awk '{if($1=="pane") print '"$awk_print_pane"';}' "$@" | tr -d ':'
+  } || {
+    awk '{if($1=="pane"&&$2=="'"$window"'") print '"$awk_print_pane"';}' "$@" | tr -d ':'
+  }
+}
+
+# Get single list of window names, last session by default
+tmux_resurrect_listwindows() # Dumpfile...
+{
+  test -n "$1" || set -- "last"
+  test -e "$1" || set -- "$TMUX_RESURRECT/$1"
+  test -n "$awk_print_win" || awk_print_win='$2'
+  awk '{if($1=="window") print '"$awk_print_win"'}' "$@" | sort -u
+}
+
+# Get a single list of unique window names, from every recorded session.
+# TODO: Cache result, update once a day
+tmux_resurrect_allwindows()
+{
+  #test -n "$1" || set -- "$TMUX_RESURRECT/all-names.list"
+  tmux_resurrect_listwindows \
+      $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach )
+}
+
+# Line up window names for each dumpfile ever
+tmux_resurrect_names()
+{
+  tmux_resurrect_list_raw | while read -r dumpfile
+  do
+    windows="$(tmux_resurrect_listwindows $dumpfile | lines_to_words)"
+    printf "%32s %s\n" "$dumpfile" "$windows"
+    continue
+  done
+}
+
+# Line up counts per window for every session ever. XXX: works but takes hell of a time
+tmux_resurrect_table()
+{
+  windows="$(tmux_resurrect_allwindows | lines_to_words)"
+  echo "Dumpfile $windows"
+  {
+    tmux_resurrect_list
+
+    tmux_resurrect_list_raw | while read -r dumpfile
+    do
+      for window in $windows
+      do
+        panes="$(window=$window tmux_resurrect_listpanes $dumpfile | count_lines)"
+        echo "$panes"
+        #printf "%-18s %9s %32s\n" "$window" "$panes" "$dumpfile"
+      done
+    done
+
+  } | ziplists $(tmux_resurrect_list | count_lines)
+}
+
+# Characterise all recorded history (by Window names and numper of panes)
+tmux_resurrect_info()
+{
+  test -n "$1" && {
+      note "Panes for window '$1', every session ever"
+      test -n "$2" && {
+          window=$1 tmux_resurrect_listpanes "$2" | sort -u
+      } || {
+          window=$1 tmux_resurrect_listpanes \
+              $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach ) |
+              sort -u
+      }
+    } || {
+
+      tmux_resurrect_table "$@"
+    }
+}
+
+tmux_resurrect_panes() # Dumpfile
+{
+  test -n "$1" || set -- \
+              $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach )
+  awk_print_pane='$2,$4,$8,$11' tmux_resurrect_listpanes "$@" | sort -u
+}
+
+tmux_resurrect_drop() # [Dumpfile]
+{
+  test -n "$1" || set -- "last"
+  test -e "$1" || set -- "$TMUX_RESURRECT/$1"
+  test -e "$1" -a ! -h "$1" || set -- "$(readlink "$1")"
+  test -e "$1" || set -- "$TMUX_RESURRECT/$1"
+
+  test ! -e "$1" || rm -v "$1"
+  tmux_resurrect_reset
+}
+
+tmux_resurrect_reset()
+{
+  rm "$TMUX_RESURRECT/last"
+  local last=$(tmux_resurrect_list_raw | sort -rn | head -n 1)
+  ln -s "$last" "$TMUX_RESURRECT/last"
+}
+
+# Move all dumpfiles except last one to backup, reformatting the filename
+tmux_resurrect_backup_all()
+{
+  test -n "$cache" || cache="$TMUX_RESURRECT/all.list"
+  (
+    cd "$TMUX_RESURRECT"
+    set -- $(tmux_resurrect_list_raw | sort -rn | tail +2 )
+    p= s= act=tmux_resurrect_dumpfile_rename foreach "$@" |
+    p='' archive_pairs "$@" |
+    p='./' rsync_a=-iaL\ --remove-source-files rsync_pairs "$@"
+  )
+}
+
+tmux_resurrect_dumpfile_rename()
+{
+  printf "$1" | sed \
+'s/tmux_resurrect_\([0-9]*\)-\([0-9]*\)-\([0-9]*\)T\([0-9]*\):\([0-9]*\):\([0-9]*\).txt/tmux_resurrect-\1_\2_\3-\4_\5_\6.txt/'
+}
+
+tmux_resurrect_backup_rename()
+{
+  printf "$1" | sed \
+'s/.*-tmux_resurrect-\([0-9]*\)_\([0-9]*\)_\([0-9]*\)-\([0-9]*\)_\([0-9]*\)_\([0-9]*\).txt/tmux_resurrect_\1-\2-\3T\4:\5:\6.txt/'
+}
+
+#
+tmux_resurrect_restore() #
+{
+  set -- $(find $(realpath ~/htdocs/cabinet) \
+      -iname '*tmux_resurrect-[0-9][0-9][0-9][0-9]_[0-9][0-9]_[0-9][0-9]-*')
+
+  p= s= act=tmux_resurrect_backup_rename foreach "$@" |
+    p="" to="$TMUX_RESURRECT/" rsync_a=-iaL rsync_pairs "$@"
+  chmod ug+w "$TMUX_RESURRECT"/*.txt
 }

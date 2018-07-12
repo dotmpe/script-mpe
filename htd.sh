@@ -722,35 +722,19 @@ htd__libs()
   note "Libs: '$box_lib'"
 }
 
+htd_man_1__man='Access to built-in help strings'
+htd_spc__man='[Section] Id'
+htd__man()
+{
+  std_man "$@"
+}
 
-htd_man_1__help="Echo a combined usage, command and docs"
+htd_man_1__help="Echo a combined usage, command and docs. See also htd man and
+try-help."
 htd_spc__help="-h|help [<id>]"
 htd__help()
 {
-  test -z "$1" && {
-    # XXX: using compiled list of help ID since real list gets to long htd_usage
-    echo ''
-    echo 'Other commands: '
-    other_cmds
-    choice_global=1 std__help "$@"
-  } || {
-    spc="$(try_spec $1)"
-    test -n "$spc" && {
-      echo "Usage: "
-      echo "  $scriptname $spc"
-      echo
-    } || {
-      printf "Help '%s %s': " "$scriptname" "$1"
-    }
-    echo_help $1 || {
-      for func_id in "$1" "${base}__$1" "$base-$1"
-      do
-          htd_function_comment $func_id 2>/dev/null || continue
-          htd_function_help $func_id 2>/dev/null && return 1
-      done
-      error "Got nothing on '$1'" 1
-    }
-  }
+  std_help "$@"
 }
 htd_als___h=help
 htd_als____help=help
@@ -1773,42 +1757,13 @@ htd_als__ew=edit-week
 htd_grp__edit_week=cabinet
 
 
-htd_spec__archive_path='archive-path DIR PATHS..'
+htd_man_1__archive_path='
 # TODO consolidate with today, split into days/week/ or something
+'
+htd_spec__archive_path='archive-path DIR PATHS..'
 htd__archive_path()
 {
-  test -n "$1" || set -- "$(pwd)/cabinet"
-  test -d "$1" || {
-    fnmatch "*/" "$1" && {
-      error "Dir $1 must exist" 1
-    } ||
-      test -d "$(dirname "$1")" ||
-        error "Dir for base $1 must exist" 1
-  }
-  fnmatch "*/" "$1" || set -- "$(strip_trail $1)"
-
-  # Default pattern: "$1/%Y-%m-%d"
-  test -n "$base" -a -n "$name" || {
-    test -n "$Y" || Y=/%Y
-    test -n "$M" || M=-%m
-    test -n "$D" || D=-%d
-    #test -n "$EXT" || EXT=.rst
-    test -d "$1" &&
-      ARCHIVE_DIR=$1/ ||
-      ARCHIVE_DIR=$(dirname $1)/
-    ARCHIVE_BASE=$1$Y
-    ARCHIVE_ITEM=$M$D$EXT
-  }
-  local f=$ARCHIVE_BASE$ARCHIVE_ITEM
-
-  datelink -1d "$f" ${ARCHIVE_DIR}yesterday$EXT
-  echo yesterday $datep
-  datelink "" "$f" ${ARCHIVE_DIR}today$EXT
-  echo today $datep
-  datelink +1d "$f" ${ARCHIVE_DIR}tomorrow$EXT
-  echo tomorrow $datep
-
-  unset datep target_path
+  archive_path "$@"
 }
 # declare locals for unset
 htd_vars__archive_path="Y M D EXT ARCHIVE_BASE ARCHIVE_ITEM datep target_path"
@@ -2856,7 +2811,7 @@ htd__tasks__src__add()
 }
 htd__tasks__src__remove()
 {
-  echo
+  false
 }
 
 
@@ -3836,6 +3791,34 @@ htd__file()
           filesize "$1"
         ;;
 
+      drop ) shift
+          annex="$( go_to_dir_with .git/annex || return 1 ; pwd )"
+          test -n "$annex" && {
+            while test $# -gt 0
+            do
+              KEY="$(git annex lookupkey "$1")"
+              annex_parsekey "$KEY"
+              note "$size $sha2  $1"
+              #git annex drop "$KEY"
+              #echo "$size $sha2  $1" >> $annex/dropped.sha2list
+              #git rm "$1"
+              shift
+            done
+            return
+          }
+          git="$( go_to_dir_with .git || return 1 ; pwd )"
+          test -n "$git" && {
+            echo git=$git
+            return
+          }
+          base="$( go_to_dir_with .cllct || return 1 ; pwd )"
+          test -n "$base " && {
+            echo "$1" | catalog_sha2list dropped.list
+            echo rm "$1"
+            return
+          }
+        ;;
+
       status ) shift
           # Search for by name
           echo TODO track htd__find "$localpath"
@@ -4597,28 +4580,22 @@ htd_run__push_commit_all=iIAO
 htd_als__pcia=push-commit-all
 
 
-htd_man_1__archive='Move path to archive path in htdocs cabinet
+htd_man_1__archive='Move path to archive path in htdocs cabinet, preserving
+timestamps and attributes. Use filemtime for file unless now=1.
 
-    <refs>...  =>  [<cabinet-dir>]/[<datepath>]/[<id>...]
+    <refs>...  =>  <Cabinet-Dir>/%Y/%m%d-<ref>...
 
-See also backup, archive-path
+Env
+    CABINET_DIR $PWD/cabinet $HTDIR/cabinet
+
+See also backup, archive-path.
 '
 htd_spc__archive='archive REFS..'
 htd__archive()
 {
   test -d "$CABINET_DIR" || error "Cabinet required <$CABINET_DIR>" 1
   test -n "$1" || warn "expected references to backup" 1
-  while test $# -gt 0
-  do
-    test -d "$1" -o -f "$1" || continue
-    mkdir -p $CABINET_DIR/$(date +%Y/%m/%d)/
-    test -f "$1" && {
-      mv $1 $CABINET_DIR/$(date +%Y/%m/%d)/$1$EXT
-    } || {
-      mv $1 $CABINET_DIR/$(date +%Y/%m/%d)/$1
-    }
-    shift
-  done
+  archive_paths "$@" | rsync_pairs "$@"
 }
 htd_grp__archive=cabinet
 htd_run__archive=iAO
@@ -5891,10 +5868,18 @@ htd_grp__mux=tmux
 
 
 htd_man_1__tmux='Unless tmux is running, get a new tmux session, based on the
-current environment.
+current environment TMUX_SOCK and/or a name in TMUX_SDIR. See `htd tmux get`.
 
-Untmux is running with an environment matching the current, attach. Different
+If tmux is running with an environment matching the current, attach. Different
 tmux environments are managed by using seperate sockets per session.
+
+Matching to a socket is done per user, an by the values of env vars set with
+Htd-TMux-Env. By default it tracks hostname and CS (color-scheme light or dark).
+::
+
+    <TMux-SDir>/tmux-<User-Id>/htd<Env-Var-Names>
+
+Ohter commands deal with
 
 Start tmux, tmuxinator or htd-tmux with given names.
 TODO: first deal with getting a server and session. Maybe later per window
@@ -5922,6 +5907,9 @@ management.
   tmux show TMux Var-Name
   tmux stuff Session Window-Nr String
   tmux send Session Window-Nr Cmd-Line
+
+  tmux resurrect
+    See tmux-resurrect for help on dumpfiles.
 '
 htd__tmux()
 {
@@ -5942,6 +5930,8 @@ htd__tmux()
 
     stuff ) shift ; $tmux send-keys -t $1:$2 "$3" || return ;;
     send ) shift ; $tmux send-keys -t $1:$2 "$3" enter || return ;;
+
+    resurrect ) shift ; htd__tmux_resurrect "$@" || return ;;
 
     * ) upper=0 mkvid "$1"; shift ; htd_tmux_$vid "$@" || return ;;
   esac
@@ -5972,6 +5962,58 @@ htd_als__tmux_list=tmux\ list-sessions
 htd_als__tmux_sessions=tmux\ list-sessions
 htd_als__tmux_windows=tmux\ session-list-windows
 htd_als__tmux_session_windows=tmux\ session-list-windows
+
+
+htd_man_5__tmux_resurrect='The tmux-resurrect dumps come as a line-based
+file format, with three types of lines: several windows, and panes for windows,
+and a state line.
+
+1       2    3      4           5     6    7    8  9     10    11
+Window: Name Index  active-idx? bits? layout/geom?
+Pane:   Name Index? Colon-Title num? bits? num? Pwd num? name? Cmd
+State:  Window-Names?
+'
+
+htd_man_1__tmux_resurrect='Manage local tmux-resurrect sessions and configs
+(tmux.lib.sh). See htd help tmux.
+
+Env
+    $TMUX_RESURRECT ~/.tmux/resurrect
+
+Commands
+    list
+        Print basenames of all dumps on local box.
+    lastname
+        Print name of most recent dump.
+    panes [Dumpfile]
+        Line up window, pane, pwd and command for every dumpfile ever or given.
+    names
+        Print basenames plus list of window names for all dumps on local box.
+    listwindows [Dumpfile]
+        List window names (for last session)
+    allwindows
+        List all names, for every window ever
+    table
+        Tabulate panel counts for every window.
+    info [Window [Dumpfile]]
+        Print table or look for window panes in every dumpfile ever.
+    drop [last]
+        Remove dumpfile and reset
+    reset
+        Restore "last" link. If no dumpfile is found, call restore first.
+    backup-all
+        Move all dumpfiles except last to cabinet.
+    restore [Date|last]
+        Find last
+
+See tmux-resurrect in section 5. (file-formats) for more details.
+'
+htd__tmux_resurrect()
+{
+  test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
+    } || action=lastname
+  tmux_resurrect_$action "$@" || return $?
+}
 
 
 htd_man_1__test='Alias for run test TODO: or pd test'
@@ -7995,6 +8037,10 @@ export`__.
     rsync, e.g. to use include/exclude patterns. Also before git-annex-import
     all normal tracked files are copied from source.
 
+  list 
+    List annex paths
+  metadata
+    Formfeed delineated k/v
 '
 htd__annex()
 {
@@ -9663,7 +9709,7 @@ For example scripts see `htd help filter`.
 htd_spc__foreach='foreach EXPR ACT NO_ACT [ - | Subject... ]'
 htd__foreach()
 {
-  local type_= expr_= act="$2" no_act="$3"
+  local type_= expr_= act="$2" no_act="$3" s= p=
   foreach_setexpr "$1" ; shift 3
   foreach "$@"
 }
