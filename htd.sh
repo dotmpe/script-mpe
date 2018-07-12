@@ -8037,6 +8037,10 @@ export`__.
     rsync, e.g. to use include/exclude patterns. Also before git-annex-import
     all normal tracked files are copied from source.
 
+  list 
+    List annex paths
+  metadata
+    Formfeed delineated k/v
 '
 htd__annex()
 {
