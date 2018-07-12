@@ -48,7 +48,7 @@ pathname() # PATH EXT...
 pathnames() # exts=... [ - | PATHS ]
 {
   test -n "$exts" || exit 40
-  test -n "$*" && {
+  test -n "$*" -a "$1" != "-" && {
     for path in "$@"
     do
       pathname "$path" $exts
@@ -232,17 +232,21 @@ foreach_setexpr() # [Type:]Expression
 }
 
 # Execute act/no-act based on expression match, function/command or shell statement
-foreach() # [type_= expr_= act= no_act= ] [Subject...]
+# Types are [g]lob-match, grep-[r]egex, local-cmd e[x]pression or [e]val expression.
+# Subjects (stdin lines) may be provided as arguments instead, and to do
+# additional prefix/suffix addition on subjects (and only there).
+foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject...]
 {
   test "$1" != "-" || shift
+  test -n "$expr_" || { type_=g expr_='*'; }
   test -n "$act" || act=echo
   test -n "$no_act" || no_act=/dev/null
   # Read arguments or lines from stdin
   { test -n "$*" && { for a in "$@"; do printf -- "$a\n" ; done; } || cat -
-  } | while read S ; do
+  } | while read -r _S ; do S="$p$_S$s"
   # NOTE: Allow inline comments or processing instructions passthrough
   fnmatch "#*" "$S" && { echo "$S" ; continue; }
-  # Execute, echo on success or do nothing except print on stdout in debug-type_
+  # Execute, echo on success or do nothing except print on stdout in debug-type
   case "$type_" in
       g ) fnmatch "$expr_" "$S" ;;
       r ) echo "$S" | grep -q "$expr_" ;;
@@ -250,6 +254,20 @@ foreach() # [type_= expr_= act= no_act= ] [Subject...]
       e ) eval "$expr_" ;;
       * ) error "foreach-expr-type? '$type_'" 1 ;;
   esac && $act "$S" || $no_act "$S" ; done
+}
+
+foreach()
+{
+  test -n "$act" || act=echo
+  { test -n "$*" && { for a in "$@"; do printf -- "$a\n" ; done; } || cat -
+  } | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
+}
+
+foreach_newcol()
+{
+  test -n "$act" || act=echo
+  { test -n "$*" && { for a in "$@"; do printf -- "$a\n" ; done; } || cat -
+  } | while read -r _S ; do S="$p$_S$s" && printf "$S\t$($act "$S")\n" ; done
 }
 
 normalize_relative()
@@ -732,4 +750,51 @@ filesizesum()
       sum=$(( $sum + $(filesize "$file" | tr -d '\n' ) ))
   done
   echo $sum
+}
+
+
+# XXX: turn lists into columns, using shell vars but does that scale?
+ziplists() # [SEP=\t] Rows
+{
+  local col=0 row=0
+  test -n "$SEP" || SEP='\t'
+  while true
+  do
+    col=$(( $col + 1 )) ;
+    for row in $(seq 1 $1)
+    do read -r row${row}_col${col} || break 2 ; done
+  done
+
+  for r in $(seq 1 $1)
+  do
+    for c in $(seq 1 $col)
+    do
+      eval printf \"%s\" \"\$row${r}_col${c}\"
+      printf "$SEP"
+    done
+    printf "\n"
+  done
+}
+
+# Ziplists on lines from files. XXX: Each file should be same length.
+zipfiles()
+{
+  rows="$(count_lines "$1")"
+  { for file in "$@" ; do
+      cat "$file"
+      #truncate_lines "$file" "$rows"
+    done
+  } | ziplists $rows
+}
+
+rsync_pairs()
+{
+  test -n "$rsync_a" || rsync_a=-vaL
+  while read -r target
+  do
+    #echo "rsync $rsync_a '$p$1' '$to$target'"
+    mkdir -p "$(dirname "$to$target")"
+    rsync $rsync_a "$p$1" "$to$target"
+    shift
+  done
 }

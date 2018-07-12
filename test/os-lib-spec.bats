@@ -155,5 +155,11 @@ setup()
   }
 }
 
+@test "ziplists" {
+  {
+    seq 0 9
+    seq 10 19
+  } | ziplists 10
+}
 
 # Id: script-mpe/0.0.4-dev test/os-lib-spec.bats

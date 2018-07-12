@@ -606,3 +606,51 @@ htd_edit_note()
   htd_rst_doc_create_update $note "$1" created default-rst
   htd_edit_and_update $note
 }
+
+archive_path()
+{
+  #test -n "$1" || set -- "$(pwd)/cabinet"
+  #test -d "$1" || {
+  #  fnmatch "*/" "$1" && {
+  #    error "Dir $1 must exist" 1
+  #  } ||
+  #    test -d "$(dirname "$1")" ||
+  #      error "Dir for base $1 must exist" 1
+  #}
+  #fnmatch "*/" "$1" || set -- "$(strip_trail $1)"
+
+  # Default pattern: "$1/%Y-%m-%d"
+  test -n "$base" -a -n "$name" || {
+    test -n "$Y" || Y=/%Y
+    test -n "$M" || M=-%m
+    test -n "$D" || D=-%d
+    #test -n "$EXT" || EXT=.rst
+    test -d "$1" &&
+      ARCHIVE_DIR=$1/ ||
+      ARCHIVE_DIR=$(dirname $1)/
+    ARCHIVE_BASE=$1$Y
+    ARCHIVE_ITEM=$M$D$EXT
+  }
+  local f=$ARCHIVE_BASE$ARCHIVE_ITEM
+
+  datelink -1d "$f" ${ARCHIVE_DIR}yesterday$EXT
+  echo yesterday $datep
+  datelink "" "$f" ${ARCHIVE_DIR}today$EXT
+  echo today $datep
+  datelink +1d "$f" ${ARCHIVE_DIR}tomorrow$EXT
+  echo tomorrow $datep
+
+  unset datep target_path
+}
+
+archive_pairs()
+{
+  trueish "$now" && prefix="$(date +%Y/%m/%d)-" || prefix=''
+  while read _S
+  do
+    trueish "$now" ||
+        prefix=$(date_flags="-r $(filemtime "$1")" date_fmt "" %Y/%m/%d-)
+    echo "$CABINET_DIR/$prefix$_S"
+    shift
+  done
+}
