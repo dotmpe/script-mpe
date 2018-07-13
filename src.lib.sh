@@ -72,7 +72,10 @@ file_replace_at() # ( FILE:LINE | ( FILE LINE ) ) INSERT
 file_where_grep() # 1:where-grep 2:file-path
 {
   test -n "$1" || error "where-grep arg required" 1
-  test -e "$2" -o "$2" = "-" || error "file-path or input arg required" 1
+  test -e "$2" -o "$2" = "-" || {
+    error "file-where-grep: file-path or input arg required '$*'"
+    return 1
+  }
   where_line="$(grep -n "$@" | head -n 1)"
   line_number=$(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/')
 }
@@ -145,7 +148,8 @@ split_file_where_grep() # Grep [file-or-stdin]
 {
   local line_number= tmpf=
   test -e "$2" || {
-    test "$2" = "-" || error "file-path or input arg required" 1
+    test "$2" = "-" ||
+      error "split-file-where-grep: file-path or input arg required" 1
     tmpf="$(setup_tmpf .split-file-where-grep-$(uuidgen))"
     cat - > $tmpf
     set -- "$1" "$tmpf" "$3" "$4"

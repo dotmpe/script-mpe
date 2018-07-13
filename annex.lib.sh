@@ -61,7 +61,8 @@ annex_parsekey()
     SHA256E-s*--* )
             KEY="$1"
             size=$(echo "$1" | cut -d'-' -f2 | cut -c2-)
-            keys_sha2=$(echo "$1" | cut -d'-' -f4 | cut -d'.' -f1)
+            sha2=$(echo "$1" | cut -d'-' -f4 | cut -d'.' -f1)
+            keys_sha2="$sha2"
         ;;
     * ) error "Unknown key format '$1'" 1 ;;
   esac
@@ -132,17 +133,11 @@ git_annex_unusedkeys_findlogs() # Key-List-File...
   done
 }
 
-git_annex_unusedkeys_drop() # Key-List-File...
+git_annex_dropkeys()
 {
-  test -s "$1" || { error "git_annex_unusedkeys_drop File expected" ; return 1; }
-  while test -n "$1"
+  while read -r key
   do
-    while read -r key rest
-    do
-      test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
-      git annex dropkey --force $key || continue
-    done < "$1"
-    shift
+    git annex dropkey --force $key || continue
   done
 }
 

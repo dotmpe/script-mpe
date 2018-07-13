@@ -1,13 +1,7 @@
 #!/bin/sh
 set -e
 
-. ~/bin/annex.lib.sh
-
-cd /srv/annex-9-1-dandy-mpe/archive-old
-
-annex_listkeys
-
-annex_dirsize media
+python meta.py test.meta
 
 exit $?
 

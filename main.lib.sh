@@ -279,13 +279,12 @@ std__usage()
 
 std__commands()
 {
-  test -n "$1" || set -- "$1" "$@"
-  test -n "$2" || {
-    locate_name $base
-    test -n "$box_lib" || box_lib "$fn"
-    test -n "$box_lib" && set -- "$0" "$box_lib"
-  }
-
+  test -n "$1" || set -- "$0" "$box_lib"
+  #test -n "$2" || {
+  #  locate_name $base
+  #  test -n "$box_lib" || box_lib "$fn"
+  #  test -n "$box_lib" && set -- "$0" "$box_lib"
+  #}
   # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
 
@@ -293,6 +292,7 @@ std__commands()
   trueish "$choice_global" || {
     trueish "$choice_all" || {
       local_id=$(pwd | tr '/-' '__')
+      info "Local-ID: $local_id"
       echo 'Local commands: '$(short)': '
     }
   }
@@ -307,6 +307,7 @@ std__commands()
       test "$(expr_substr "$line" 1 7)" = "# file=" && {
 
         file="$(expr_substr "$line" 8 ${#line})"
+        debug "File: $(basename "$file" .sh)"
         test -e "$file" || warn "$line" 1
         local_file="$(realpath --relative-to="$(pwd)" "$file")"
 
@@ -701,7 +702,7 @@ main_debug()
 
 run_subcmd()
 {
-  local e= c=0 box_lib= \
+  local e= c=0 \
     subcmd= subcmd_alias= subcmd_func= \
     dry_run= silence= choice_force= \
     choice_all= choice_local= choice_global= \

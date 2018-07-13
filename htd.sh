@@ -3798,10 +3798,10 @@ htd__file()
             do
               KEY="$(git annex lookupkey "$1")"
               annex_parsekey "$KEY"
-              note "$size $sha2  $1"
-              #git annex drop "$KEY"
-              #echo "$size $sha2  $1" >> $annex/dropped.sha2list
-              #git rm "$1"
+              note "Dropping '$KEY'.."
+              git annex dropkey --force "$KEY"
+              printf "$size $sha2 $1\t$reason\n" >> $annex/dropped.sha2list
+              git rm "$1"
               shift
             done
             return

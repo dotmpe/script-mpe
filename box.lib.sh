@@ -18,12 +18,12 @@ box_lib_load()
   test -n "$box_name" || box_name=$hostname
 
   test -e "$BOX_DIR/bin/$box_name" \
-    && box_file="$BOX_DIR/bin/$box_name" || noop
+    && box_file="$BOX_DIR/bin/$box_name" || true
 }
 
 box_docs()
 {
-  noop
+  true
   #echo 'Docs:'
 }
 
@@ -43,7 +43,6 @@ box_find_namedscript()
 {
   test -n "$named_script" || named_script=$BOX_BIN_DIR/$script_name
   test -e "$named_script" && return || {
-  echo BOX_BIN_DIR=$BOX_BIN_DIR
     warn "No named_script for $script_name"
     return 1
   }
@@ -54,7 +53,7 @@ box_req_files_localscript()
   local r=0
 
   box_find_localscript && {
-    log "Including local-script $local_script"
+    log "Inncluding local-script $local_script"
     . $local_script
     script_files="$script_files $local_script"
   } || r=1
@@ -80,15 +79,16 @@ box_init_local()
   test -n "$local_script" || local_script=$BOX_DIR/${script_name}/${nid_cwd}.sh
   test -n "$uconf_script" || uconf_script=$BOX_DIR/$script_name-localscripts.sh
   test -e $uconf_script && warn "TODO clean $uconf_script"
+
   case "$1" in 1 )
-      test -e "$named_script" || touch $named_script
-      box_req_files_localscript
+        test -e "$named_script" || touch $named_script
+        box_req_files_localscript
       ;;
     2 )
-      box_req_files_localscript || return 1
+        box_req_files_localscript || return 1
       ;;
     * )
-      box_req_files_localscript || noop
+        box_req_files_localscript || true
       ;;
   esac
   locate_name
@@ -144,6 +144,8 @@ box_grep()
 # Return line-nr before function
 box_script_insert_point()
 {
+  test -e "$1" || { error "box-script-insert-point: file-arg required"
+    return 1 ; }
   local subcmd_func= grep_file=$1
   shift
   local subcmd_func=$(echo_local "$@")
@@ -203,20 +205,24 @@ box_init_args()
 # Extract source lines from {base}-load routine in frontend script
 box_list_libs()
 {
-  test -n "$1" || set -- "$0" "$2"
+  test -n "$1" || {
+    set -- "$0" "$2"
+    test -e "$1" || set -- "$(which "$1")" "$2"
+    test -e "$1" || error "Cannot find script for '$0'" 1
+  }
   test -n "$2" || set -- "$1" "$(basename "$1" .sh)"
-  test -e "$1" || set -- "$(which "$1")" "$2"
 
   local \
     line_offset="$(box_script_insert_point $1 "" lib $2)" \
     sentinel_grep=".*#.--.${2}.box.lib.sentinel.--"
-  test -n "$line_offset" || error "box-list-libs: line_offset empty for '$1' lib '$2'" 1
+  test -n "$line_offset" ||
+    error "box-list-libs: line_offset empty for '$1' lib '$2'" 1
   box_grep $sentinel_grep $1
   local line_diff=$(( $line_number - $line_offset - 2 ))
 
   test -n "$line_diff" || error "box-list-libs: line_diff empty" 1
   fnmatch "-*" "$line_diff" &&
-    error "box-list-libs: negative line_diff: $line_diff" 1 || noop
+    error "box-list-libs: negative line_diff: $line_diff" 1 || true
 
   test -z "$dry_run" || {
     debug "named_script='$1'"
@@ -314,4 +320,23 @@ box_bg_teardown()
     info "Closed background metadata server"
     test -z "$no_background" || warn "no-background on while pd-sock existed"
   }
+}
+
+box_lib_current_path()
+{
+  # test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
+
+  set -- $( ( while true ; do pwd && cd .. ; test "$PWD" != '/' || break; done ) |
+  while read -r path
+  do
+    mkvid $path && echo "$vid" && unset vid
+  done | while read -r vid
+  do
+    sh="$BOX_DIR/${hostname}/${vid}.sh"
+    test -e "$sh" || continue
+    echo "$sh"
+  done | lines_to_words )
+
+  box_lib="$box_lib $*"
+  . "$@"
 }
