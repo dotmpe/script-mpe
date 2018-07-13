@@ -290,7 +290,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 # not all instances qualify: the spec only covers the message body, which may be
 # chunked.
     )
-    allow_multiple = ('Link',) #'Digest',)
+    allow_multiple = ('Link','Digest',)
 
     def __init__(self, path=None, data={}, update=False):
         self.path = None

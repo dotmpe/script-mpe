@@ -9,7 +9,7 @@ test -n "$LOG" -a -x "$LOG" || exit 170
 test -n "$BOX_DIR" || export BOX_DIR=$HOME/.box
 
 # Place for all Box frontends
-test -n "$BOX_BIN_DIR" || export BOX_BIN_DIR=$BOX_DIR/frontend
+test -n "$BOX_BIN_DIR" || export BOX_BIN_DIR=$BOX_DIR/bin
 
 # Mark env or fail on reload
 test -z "$BOX_INIT" && BOX_INIT=1 || {

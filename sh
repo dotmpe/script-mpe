@@ -1,8 +1,7 @@
 #!/bin/sh
 set -e
 
-python meta.py \
-	test.meta
+python meta.py test.meta
 exit $?
 
 python meta.py \

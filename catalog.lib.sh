@@ -961,3 +961,23 @@ catalog_zip_archive_manifest()
   rm -rf "$tmpdir"
   echo " New catalog $(basename "$catalog")"
 }
+
+fconv_sha2list_to_sha256e()
+{
+  awk '{
+    ext=$0;
+    gsub(/^.*\./,"",ext);
+    gsub(/\t.*$/,"",ext);
+    print "SHA256E-s"$1"--"$2"."ext}' "$@"
+}
+
+fconv_sha256e_to_sha2list()
+{
+  sed 's/SHA256E-s\([0-9]*\)--\([0-9a-f]*\)\(\..*\)/\1 \2 \3/g' "$@"
+}
+
+htd_catalog_droppedkeys()
+{
+  test -n "$1" || set -- .catalog/dropped.sha2list
+  fconv_sha2list_to_sha256e "$1"
+}

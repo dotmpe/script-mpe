@@ -444,6 +444,7 @@ box_man_1__help="Box: Generic: Help
                       extended output. "
 box__help()
 {
+  note "1: $box_lib"
   choice_global=1 std__help $*
 }
 # XXX compile these from human readable cl-option docstring, provide bash
@@ -472,7 +473,7 @@ search="htd\ box\ insert\ sentinel"
 box_main()
 {
   local scriptname=box base=$(basename "$0" .sh) \
-      scriptpath="$(cd $(dirname "$0"); pwd -P)" box_sock=
+      scriptpath="$(cd $(dirname "$0"); pwd -P)" box_sock= box_lib=
 
   # FIXME: only one instnce
   box_sock=/tmp/box-serv.sock
@@ -504,17 +505,14 @@ box_init()
 box_lib()
 {
   # -- box box lib sentinel --
-  set --
+  box_lib_current_path
 }
 
 # Pre-exec: post subcmd-boostrap init
 box_load()
 {
-  test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
-  mkvid $(pwd) && nid_cwd=$vid && unset vid
-  box_name="${base}:${subcmd}"
   # -- box box load sentinel --
-  set --
+  box_name="${base}:${subcmd}"
 
   local flags="$(try_value "${subcmd}" run ${base} | sed 's/./&\ /g')"
   test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
