@@ -1,6 +1,10 @@
 #!/bin/sh
 set -e
 
+htd git-grep 'vnd.dotmpe.project'
+exit $?
+htd git-grep '\<skip.ci\>'
+
 python meta.py test.meta
 exit $?
 

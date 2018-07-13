@@ -3,13 +3,13 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
     Scenario: list local repositories
 
         Given `env` 'verbosity=0'
-        When the user runs "htd gitrepo --dir=/srv/git-local bvberkum/*.git"
+        When the user runs "htd gitrepo --dir=/srv/scm-git-local bvberkum/*.git"
         Then each `output` line matches the pattern '.*.git$'
         And `stderr` is empty
         And `output` has the lines:
         """
-        /srv/git-local/bvberkum/script-mpe.git
-        /srv/git-local/bvberkum/mkdoc.git
+        /srv/scm-git-local/bvberkum/script-mpe.git
+        /srv/scm-git-local/bvberkum/mkdoc.git
         """
 
     Scenario: list local repositories (defaults)
@@ -26,8 +26,8 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
         Then `stderr` is empty
         And `output` has the lines:
         """
-        /srv/git-local/bvberkum/script-mpe.git
-        /srv/git-local/bvberkum/mkdoc.git
+        /srv/scm-git-local/bvberkum/script-mpe.git
+        /srv/scm-git-local/bvberkum/mkdoc.git
         """
 
     Scenario: list repositories in dir and/or for glob
@@ -74,7 +74,7 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
         Then `stderr` is empty
         And `output` equals:
         """
-        /srv/git-local/vendor/foo
-        /srv/git-local/vendor/bar
+        /srv/scm-git-local/vendor/foo
+        /srv/scm-git-local/vendor/bar
         """
 

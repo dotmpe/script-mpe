@@ -1073,7 +1073,7 @@ pd__show()
             error "decoding '$metaf' " 1
         }
       } || { r=$?
-        note "No local package data for '$1'"
+        note "Pd: No local package data for '$1'"
       }
     }
 
@@ -1596,7 +1596,7 @@ pd_load()
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
             . $PACKMETA_SH || error "No package Sh" 1
         } ||
-            error "No local package" 1
+            error "Pd: No local package" 8
       ;;
 
     y )

@@ -15,7 +15,7 @@ Feature: manage checkouts
     | dotmpe:~/domains/dotmpe.com/htdocs/git/x-go.git | x-go | |
     | git@github.com:bvberkum/x-ci.git | x-ci | |
 
-    .. /srv/git-local/bvberkum/script-mpe
+    .. /srv/scm-git-local/bvberkum/script-mpe
 
   Scenario Outline: init and cleanup backup repo
     Create local backup annex repo (/srv/backup-local in /srv/annex-local).

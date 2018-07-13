@@ -285,33 +285,37 @@ htd_load()
         test -z "$prereq_func" || $prereq_func $subcmd
       ;;
 
-    p ) # set package file and id, update.
+    p ) # set package file and id, update. But don't require, see q.
         # Set to detected PACKMETA file, set main package-id, and verify var
         # caches are up to date. Don't load vars.
         # TODO: create var cache per package-id. store in redis etc.
         test -n "$PACKMETA" -a -e "$PACKMETA" && {
-            #|| error "No local package '$PACKMETA'" 1
             package_lib_set_local "$CWD" && update_package $CWD
             test -n "$package_id" && note "Found package '$package_id'"
-        }
+
+        } || warn "No local package '$PACKMETA'"
       ;;
 
     q ) # set if not set, don't update and eval package main env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
-            test -n "$PACKMETA" -a -e "$PACKMETA" ||
-                error "No local package" 1
+            test -n "$PACKMETA" -a -e "$PACKMETA" &&
+                note "Using package '$PACKMETA'" ||
+                error "No local package" 5
             package_lib_set_local "$CWD" ||
-                error "Setting local package ($CWD)" 1
+                error "Setting local package ($CWD)" 6
         }
 
         # Evaluate package env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
-            . $PACKMETA_SH || error "No package Sh" 1
+            . $PACKMETA_SH || error "No package Sh" 3
 
             test "$package_type" = "application/vnd.org.wtwta.project" ||
-                error "Project package expected (not $package_type)" 1
+                error "Project package expected (not $package_type)" 4
+
+            test -n "$package_id" && note "Found package '$package_id'"
+
         } ||
-            error "No local package" 1
+            error "No local package" 7
       ;;
 
     r ) # register package - requires 'p' first. Sets PROJECT Id and manages
@@ -1075,11 +1079,11 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
 htd_man_1__status='Quick context status'
 htd_als__st=status
 htd_als__stat=status
-htd_run__status=q
+htd_run__status=p
 htd__status()
 {
   local key=htd:status:$hostname:$(verbosity=0 htd__prefixes name $cwd)
-  statusdir.sh exists $key || warn 1
+  statusdir.sh exists $key 2>/dev/null || warn "No status recorded" 1
   statusdir.sh members $key | while read status_key
   do
     note "$status_key"
@@ -3466,7 +3470,7 @@ htd__git_init_local() # [ Repo ]
   repo="$(basename "$(pwd)")"
   [ -n "$repo" ] || error "Missing project ID" 1
 
-  BARE=/srv/git-local/$NS_NAME/$repo.git
+  BARE=/srv/scm-git-local/$NS_NAME/$repo.git
   [ -d $BARE ] || {
       log "Creating temp. bare clone"
       git clone --bare . $BARE
@@ -3579,11 +3583,11 @@ htd__git_init_version()
 htd__git_missing()
 {
   test -d /srv/project-local || error "missing local project folder" 1
-  test -d /srv/git-local || error "missing local git folder" 1
+  test -d /srv/scm-git-local || error "missing local git folder" 1
 
   htd__git_remote | while read repo
   do
-    test -e /srv/git-local/$repo.git || warn "No src $repo" & continue
+    test -e /srv/scm-git-local/$repo.git || warn "No src $repo" & continue
     test -e /srv/project-local/$repo || warn "No checkout $repo"
   done
 }
@@ -3591,13 +3595,13 @@ htd__git_missing()
 # Create local bare in /src/
 htd__git_init_src()
 {
-  test -d /srv/git-local || error "missing local git folder" 1
+  test -d /srv/scm-git-local || error "missing local git folder" 1
 
   htd__git_remote | while read repo
   do
     fnmatch "*annex*" "$repo" && continue
-    test -e /srv/git-local/$repo.git || {
-      git clone --bare $(htd git-remote $repo) /srv/git-local/$repo.git
+    test -e /srv/scm-git-local/$repo.git || {
+      git clone --bare $(htd git-remote $repo) /srv/scm-git-local/$repo.git
     }
   done
 }
@@ -3634,13 +3638,13 @@ htd__git_files()
 htd_argsv__git_files=arg-groups-r
 htd_arg_groups__git_files="repo glob"
 #htd_defargs_repo__git_files=/src/*/*/*/
-htd_defargs_repo__git_files=/srv/git-local/$NS_NAME/*.git
+htd_defargs_repo__git_files=/srv/scm-git-local/$NS_NAME/*.git
 
 
-#
-htd_man_1__git_grep='Run git-grep for every repository
+htd_man_1__git_grep='Run git-grep for every repository.
 
-passing arguments to git-grep.
+To run git-grep with bare repositories, a tree reference is required.
+
 
 With `-C` interprets argument as shell command first, and passes ouput as
 argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
@@ -3660,33 +3664,39 @@ htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --gre
 htd_run__git_grep=iAO
 htd__git_grep()
 {
-  test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep=git.grep; }
+  set -- $(cat $arguments)
+  test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep='\<git.grep\>'; }
+
   test -n "$grep_args" -o -n "$grep_eval" && {
     note "Using env args:'$grep_args' eval:'$grep_eval'"
   } || {
+
     trueish "$C" && {
       test -n "$1" && {
         grep_eval="$1"; shift
-    } ||
-        grep_eval='$(git rev-list --all)';
-    } || {
-      test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
+      }
     }
+
+    test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
+      #trueish "$all_revs" && {
+      #  grep_eval='$(git br|tr -d "*\n")'
+      #} ||
+      #  grep_eval='$(git rev-list --all)';
   }
 
   note "Running ($(var2tags grep C grep_eval grep_args))"
-  htd__gitrepo "$@" | { while read repo
+  gitrepos "$@" | { while read repo
     do
       {
         info "$repo:"
         cd $repo || continue
         test -n "$grep_eval" && {
-          eval git --no-pager grep -il $grep $grep_eval || { r=$?
+          eval git --no-pager grep -il "'$grep'" "$grep_eval" || { r=$?
             test $r -eq 1 && continue
             warn "Failure in $repo ($r)"
           }
         } || {
-          git --no-pager grep -il $grep $grep_args || { r=$?
+          git --no-pager grep -il "$grep" $grep_args || { r=$?
             test $r -eq 1 && continue
             warn "Failure in $repo ($r)"
           }
@@ -3704,8 +3714,8 @@ Arguments are passed to htd-expand, repo paths can be given verbatim.
 This does not check that paths are GIT repositories.
 Defaults effectively are:
 
-    --dir=/srv/git-local/$NS_NAME *.git``
-    --dir=/srv/git-local/$NS_NAME -
+    --dir=/srv/scm-git-local/$NS_NAME *.git``
+    --dir=/srv/scm-git-local/$NS_NAME -
 
 Depending on wether there is a terminal or pip/file at stdin (fd 0).
 '
@@ -3714,19 +3724,9 @@ htd_env__gitrepo="dir="
 htd_run__gitrepo=eiAO
 htd__gitrepo()
 {
-  test -n "$repos" && {
-    test -z "$*" || error no-args-expected 41
-    echo $repos | words_to_lines
-    return
-  }
-  info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
   set -- "$(cat $arguments)" # Remove options from args
-
-  test -n "$dir" || dir=/srv/git-local/$NS_NAME
-  test -z "$*" -a "t" != "$stdio_0_type" && set -- -
-  test -n "$*" || set -- *.git
-
-  htd_expand "$@"
+  info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
+  gitrepos "$@"
 }
 
 
@@ -4850,23 +4850,17 @@ See list-run. TODO: alias to scripts
 htd_spc__run='run [SCRIPT-ID [ARGS...]]'
 htd__run()
 {
-  jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 &&
-      error "No script '$1'" 1
-
-  # Evaluate package metadata
-  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" ||
-      error "No local package" 1
-  . $PACKMETA_SH || error "Sourcing package Sh" 1
-
   # List scriptnames when no args given
   test -z "$1" && {
     note "Listing local script IDs:"
     htd__scripts names
     return 1
   }
+  jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 &&
+      error "No script '$1'" 1
 
   # Write shell profile script
-  htd package sh-env-script
+  htd__package sh-env-script
 
   # Execute env and script-lines in subshell
   (
@@ -8037,7 +8031,7 @@ export`__.
     rsync, e.g. to use include/exclude patterns. Also before git-annex-import
     all normal tracked files are copied from source.
 
-  list 
+  list
     List annex paths
   metadata
     Formfeed delineated k/v
@@ -10004,10 +9998,9 @@ htd_main()
         try_subcmd "$@" && {
           shift 1
           #record_env_keys htd-subcmd htd-env
-          box_lib htd || error "box-src-lib $scriptname" 1
+          #box_lib htd || error "box-src-lib $scriptname" 1
 
           main_debug
-
           htd_load "$@" || warn "htd-load ($?)"
           test -z "$arguments" -o ! -s "$arguments" || {
 
@@ -10075,7 +10068,6 @@ htd_lib()
   . $scriptpath/match.sh
   lib_load list ignores
   # -- htd box lib sentinel --
-  set --
 }
 
 # Use hyphen to ignore source exec in login shell

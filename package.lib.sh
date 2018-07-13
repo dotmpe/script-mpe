@@ -9,20 +9,24 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
   #lib_load src
   test -n "$1" || set -- .
+  upper=0 default_env out-fmt py || true
   # Get first existing file
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
-  grep -q '^#include\ ' "$PACKMETA" && {
+  # Detect wether Pre-process is needed
+  {
+      test -e "$PACKMETA" && grep -q '^#include\ ' "$PACKMETA"
+  } && {
       PACKMETA_SRC=$PACKMETA
       PACKMETA=$1/.htd/package.yaml
   } || PACKMETA_SRC=''
-  upper=0 default_env out-fmt py || true
-  preprocess_package
+  preprocess_package || true
 }
 
 # Preprocess YAML
 preprocess_package()
 {
   test -e "$PACKMETA" -a -z "$PACKMETA_SRC" || {
+    test -e "$PACKMETA_SRC" || return
     test -e "$PACKMETA" -a "$PACKMETA" -nt "$PACKMETA_SRC" ||
         add_sentinels=1 expand_include_sentinels "$PACKMETA_SRC" > "$PACKMETA"
   }
@@ -60,7 +64,9 @@ package_default_id()
 package_file()
 {
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
+  test -e "$metaf" || error "No package-file '$metaf'" 1
   metaf="$(normalize_relative "$metaf")"
+
   grep -q '^#include\ ' "$metaf" && {
       metaf_src="$metaf"
       metaf=$1/.htd/package.yaml
