@@ -104,6 +104,8 @@ def cmd_load_list(LIST, g):
     Load items
     """
     prsr, items = res.lst.parse(LIST, g)
+    print(items)
+
     assert not 'TODO', "load items to where? ..."
 
 
@@ -141,6 +143,7 @@ def cmd_update_list(LIST, g, opts):
     """
 
     g.return_parser = True
+    g.verbose = False
     prsr, items = res.lst.parse(LIST, g)
 
     prsr2, updates = res.lst.parse(sys.stdin, g)

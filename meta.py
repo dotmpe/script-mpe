@@ -39,12 +39,15 @@ if __name__ == '__main__':
                 print(path, e, file=sys.stderr)
                 continue
 
-            if not os.path.exists(mff.path):
-                print('Missing', mff.path, mff.data.keys())
+            if mff.exists():
+                if os.path.exists(mff.path):
+                    print(path, mff.data.keys())
+                    print(mff.data['Digest'])
+                    print(mff.get_sha1sum())
+                else:
+                    print('Missing file for meta', mff.path, mff.data.keys())
             else:
-                print(path, mff.data.keys())
-                print(mff.data['Digest'])
-                print(mff.get_sha1sum())
+                print('No meta for', mff.path)
 
     else:
 

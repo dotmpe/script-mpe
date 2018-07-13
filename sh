@@ -1,20 +1,16 @@
 #!/bin/sh
 set -e
 
-. ~/bin/annex.lib.sh
-
-cd /srv/annex-9-1-dandy-mpe/archive-old
-
-annex_listkeys
-
-annex_dirsize media
-
+python meta.py \
+	test.meta
 exit $?
 
 python meta.py \
-    /srv/archive-old-21-2-dandy-mpe/media/application/HyperCard\ Collection/HyperCard\ 1.01.EN.zip
+    /srv/annex-8-3-dandy-mpe/archive-old/media/application/HyperCard\ Collection/HyperCard\ 1.01.EN.zip
+exit $?
+
 sha1sum \
-    /srv/archive-old-21-2-dandy-mpe/media/application/HyperCard\ Collection/HyperCard\ 1.01.EN.zip
+    /srv/annex-8-3-dandy-mpe/archive-old/media/application/HyperCard\ Collection/HyperCard\ 1.01.EN.zip
 exit $?
 
 ./txt.py doctree docs.list .
