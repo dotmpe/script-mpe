@@ -654,3 +654,17 @@ archive_pairs()
     shift
   done
 }
+
+gitrepos()
+{
+  test -n "$repos" && { test -z "$*" || error no-args-expected 41
+    echo $repos | words_to_lines
+    return
+  }
+
+  test -n "$dir" || dir=/srv/scm-git-local/$NS_NAME
+  test -z "$*" -a "t" != "$stdio_0_type" && set -- -
+  test -n "$*" || set -- *.git
+
+  htd_expand "$@"
+}

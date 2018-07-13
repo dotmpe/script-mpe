@@ -62,8 +62,8 @@ htd_project_init() # [NS/]NAME | [ NAME URL ]]
   local ns=$NS_NAME
   htd_project_args "$@" || return
 
-  test -e "/srv/git-local/git/$1.git" || {
-    git clone --bare -mirror "$2" "/srv/git-local/git/$1.git" && {
+  test -e "/srv/scm-git-local/git/$1.git" || {
+    git clone --bare -mirror "$2" "/srv/scm-git-local/git/$1.git" && {
       note "Local repo created for $1"
     } || error "Clone error" 1
   } && note "Local repo exists for $1"

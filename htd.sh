@@ -3470,7 +3470,7 @@ htd__git_init_local() # [ Repo ]
   repo="$(basename "$(pwd)")"
   [ -n "$repo" ] || error "Missing project ID" 1
 
-  BARE=/srv/git-local/$NS_NAME/$repo.git
+  BARE=/srv/scm-git-local/$NS_NAME/$repo.git
   [ -d $BARE ] || {
       log "Creating temp. bare clone"
       git clone --bare . $BARE
@@ -3583,11 +3583,11 @@ htd__git_init_version()
 htd__git_missing()
 {
   test -d /srv/project-local || error "missing local project folder" 1
-  test -d /srv/git-local || error "missing local git folder" 1
+  test -d /srv/scm-git-local || error "missing local git folder" 1
 
   htd__git_remote | while read repo
   do
-    test -e /srv/git-local/$repo.git || warn "No src $repo" & continue
+    test -e /srv/scm-git-local/$repo.git || warn "No src $repo" & continue
     test -e /srv/project-local/$repo || warn "No checkout $repo"
   done
 }
@@ -3595,13 +3595,13 @@ htd__git_missing()
 # Create local bare in /src/
 htd__git_init_src()
 {
-  test -d /srv/git-local || error "missing local git folder" 1
+  test -d /srv/scm-git-local || error "missing local git folder" 1
 
   htd__git_remote | while read repo
   do
     fnmatch "*annex*" "$repo" && continue
-    test -e /srv/git-local/$repo.git || {
-      git clone --bare $(htd git-remote $repo) /srv/git-local/$repo.git
+    test -e /srv/scm-git-local/$repo.git || {
+      git clone --bare $(htd git-remote $repo) /srv/scm-git-local/$repo.git
     }
   done
 }
@@ -3638,13 +3638,13 @@ htd__git_files()
 htd_argsv__git_files=arg-groups-r
 htd_arg_groups__git_files="repo glob"
 #htd_defargs_repo__git_files=/src/*/*/*/
-htd_defargs_repo__git_files=/srv/git-local/$NS_NAME/*.git
+htd_defargs_repo__git_files=/srv/scm-git-local/$NS_NAME/*.git
 
 
-#
-htd_man_1__git_grep='Run git-grep for every repository
+htd_man_1__git_grep='Run git-grep for every repository.
 
-passing arguments to git-grep.
+To run git-grep with bare repositories, a tree reference is required.
+
 
 With `-C` interprets argument as shell command first, and passes ouput as
 argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
@@ -3664,33 +3664,39 @@ htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --gre
 htd_run__git_grep=iAO
 htd__git_grep()
 {
-  test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep=git.grep; }
+  set -- $(cat $arguments)
+  test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep='\<git.grep\>'; }
+
   test -n "$grep_args" -o -n "$grep_eval" && {
     note "Using env args:'$grep_args' eval:'$grep_eval'"
   } || {
+
     trueish "$C" && {
       test -n "$1" && {
         grep_eval="$1"; shift
-    } ||
-        grep_eval='$(git rev-list --all)';
-    } || {
-      test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
+      }
     }
+
+    test -n "$1" && { grep_args="$1"; shift; } || grep_args=master
+      #trueish "$all_revs" && {
+      #  grep_eval='$(git br|tr -d "*\n")'
+      #} ||
+      #  grep_eval='$(git rev-list --all)';
   }
 
   note "Running ($(var2tags grep C grep_eval grep_args))"
-  htd__gitrepo "$@" | { while read repo
+  gitrepos "$@" | { while read repo
     do
       {
         info "$repo:"
         cd $repo || continue
         test -n "$grep_eval" && {
-          eval git --no-pager grep -il $grep $grep_eval || { r=$?
+          eval git --no-pager grep -il "'$grep'" "$grep_eval" || { r=$?
             test $r -eq 1 && continue
             warn "Failure in $repo ($r)"
           }
         } || {
-          git --no-pager grep -il $grep $grep_args || { r=$?
+          git --no-pager grep -il "$grep" $grep_args || { r=$?
             test $r -eq 1 && continue
             warn "Failure in $repo ($r)"
           }
@@ -3708,8 +3714,8 @@ Arguments are passed to htd-expand, repo paths can be given verbatim.
 This does not check that paths are GIT repositories.
 Defaults effectively are:
 
-    --dir=/srv/git-local/$NS_NAME *.git``
-    --dir=/srv/git-local/$NS_NAME -
+    --dir=/srv/scm-git-local/$NS_NAME *.git``
+    --dir=/srv/scm-git-local/$NS_NAME -
 
 Depending on wether there is a terminal or pip/file at stdin (fd 0).
 '
@@ -3718,19 +3724,9 @@ htd_env__gitrepo="dir="
 htd_run__gitrepo=eiAO
 htd__gitrepo()
 {
-  test -n "$repos" && {
-    test -z "$*" || error no-args-expected 41
-    echo $repos | words_to_lines
-    return
-  }
-  info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
   set -- "$(cat $arguments)" # Remove options from args
-
-  test -n "$dir" || dir=/srv/git-local/$NS_NAME
-  test -z "$*" -a "t" != "$stdio_0_type" && set -- -
-  test -n "$*" || set -- *.git
-
-  htd_expand "$@"
+  info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
+  gitrepos "$@"
 }
 
 
@@ -4864,7 +4860,7 @@ htd__run()
       error "No script '$1'" 1
 
   # Write shell profile script
-  htd__package_sh_env_script
+  htd__package sh-env-script
 
   # Execute env and script-lines in subshell
   (
