@@ -285,33 +285,37 @@ htd_load()
         test -z "$prereq_func" || $prereq_func $subcmd
       ;;
 
-    p ) # set package file and id, update.
+    p ) # set package file and id, update. But don't require, see q.
         # Set to detected PACKMETA file, set main package-id, and verify var
         # caches are up to date. Don't load vars.
         # TODO: create var cache per package-id. store in redis etc.
         test -n "$PACKMETA" -a -e "$PACKMETA" && {
-            #|| error "No local package '$PACKMETA'" 1
             package_lib_set_local "$CWD" && update_package $CWD
             test -n "$package_id" && note "Found package '$package_id'"
-        }
+
+        } || warn "No local package '$PACKMETA'"
       ;;
 
     q ) # set if not set, don't update and eval package main env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
-            test -n "$PACKMETA" -a -e "$PACKMETA" ||
-                error "No local package" 1
+            test -n "$PACKMETA" -a -e "$PACKMETA" &&
+                note "Using package '$PACKMETA'" ||
+                error "No local package" 5
             package_lib_set_local "$CWD" ||
-                error "Setting local package ($CWD)" 1
+                error "Setting local package ($CWD)" 6
         }
 
         # Evaluate package env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
-            . $PACKMETA_SH || error "No package Sh" 1
+            . $PACKMETA_SH || error "No package Sh" 3
 
             test "$package_type" = "application/vnd.org.wtwta.project" ||
-                error "Project package expected (not $package_type)" 1
+                error "Project package expected (not $package_type)" 4
+
+            test -n "$package_id" && note "Found package '$package_id'"
+
         } ||
-            error "No local package" 1
+            error "No local package" 7
       ;;
 
     r ) # register package - requires 'p' first. Sets PROJECT Id and manages
@@ -1075,11 +1079,11 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
 htd_man_1__status='Quick context status'
 htd_als__st=status
 htd_als__stat=status
-htd_run__status=q
+htd_run__status=p
 htd__status()
 {
   local key=htd:status:$hostname:$(verbosity=0 htd__prefixes name $cwd)
-  statusdir.sh exists $key || warn 1
+  statusdir.sh exists $key 2>/dev/null || warn "No status recorded" 1
   statusdir.sh members $key | while read status_key
   do
     note "$status_key"
@@ -4850,23 +4854,17 @@ See list-run. TODO: alias to scripts
 htd_spc__run='run [SCRIPT-ID [ARGS...]]'
 htd__run()
 {
-  jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 &&
-      error "No script '$1'" 1
-
-  # Evaluate package metadata
-  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" ||
-      error "No local package" 1
-  . $PACKMETA_SH || error "Sourcing package Sh" 1
-
   # List scriptnames when no args given
   test -z "$1" && {
     note "Listing local script IDs:"
     htd__scripts names
     return 1
   }
+  jsotk.py -sq path --is-new $PACKMETA_JS_MAIN scripts/$1 &&
+      error "No script '$1'" 1
 
   # Write shell profile script
-  htd package sh-env-script
+  htd__package_sh_env_script
 
   # Execute env and script-lines in subshell
   (
@@ -8037,7 +8035,7 @@ export`__.
     rsync, e.g. to use include/exclude patterns. Also before git-annex-import
     all normal tracked files are copied from source.
 
-  list 
+  list
     List annex paths
   metadata
     Formfeed delineated k/v
@@ -10004,10 +10002,9 @@ htd_main()
         try_subcmd "$@" && {
           shift 1
           #record_env_keys htd-subcmd htd-env
-          box_lib htd || error "box-src-lib $scriptname" 1
+          #box_lib htd || error "box-src-lib $scriptname" 1
 
           main_debug
-
           htd_load "$@" || warn "htd-load ($?)"
           test -z "$arguments" -o ! -s "$arguments" || {
 
@@ -10075,7 +10072,6 @@ htd_lib()
   . $scriptpath/match.sh
   lib_load list ignores
   # -- htd box lib sentinel --
-  set --
 }
 
 # Use hyphen to ignore source exec in login shell
