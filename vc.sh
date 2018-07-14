@@ -1836,7 +1836,7 @@ vc_load()
   test -n "$vc_dir" || vc_dir=$scriptpath
   test -n "$vc_br_def" || vc_br_def=master
   test -n "$vc_rt_def" || vc_rt_def=origin
-  statusdir.sh assert vc_status > /dev/null || error vc_status 1
+  #statusdir.sh assert vc_status > /dev/null || error vc_status 1
   gtd="$(vc_gitdir "$cwd")"
 
   # See ignores.rst for info on Global/Purgeable,Cleanable and Droppable
