@@ -44,3 +44,4 @@ doc/figures/*.svg
 doc/figures/*.ps
 doc/figures/*.pdf
 doc/figures/*.png
+build
