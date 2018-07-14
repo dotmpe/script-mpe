@@ -646,3 +646,13 @@ def sha1_content_digest_header(filepath):
 def last_modified_header(filepath):
     ltime_tuple = time.gmtime(os.path.getmtime(filepath))
     return dt.iso8601_datetime_format(ltime_tuple)
+
+def basepathparts(path):
+    basedir = os.path.dirname(path)
+    basename = os.path.basename(path)
+    name, extpart = os.path.splitext(basename)
+    return basedir, name, extpart
+
+def basepath(path):
+    basedir, name, extpart = basepathparts(path)
+    return os.path.join(basedir, name)

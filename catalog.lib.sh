@@ -5,10 +5,10 @@ catalog_lib_load()
 {
   lib_load ck
   trueish "$usercat" && {
-    test -n "$CATALOGS" || CATALOGS=$HOME/.cllct/catalogs
+    test -n "$CATALOGS" || CATALOGS=$HOME/.cllct/catalogs.list
   } || {
     # Catalog files currently found at CWD
-    test -n "$CATALOGS" || CATALOGS=.cllct/catalogs
+    test -n "$CATALOGS" || CATALOGS=.cllct/catalogs.list
   }
   # Default catalog file (or relative path) for PWD
   test -n "$CATALOG_DEFAULT" || {

@@ -18,8 +18,9 @@ __usage__ = """
 Usage:
   txt.py [-v... options] urllist LIST
   txt.py [-v... options] doctree [LIST] [DIR]
-  txt.py [-v... options] [ LIST | todolist [LIST] ]
   txt.py [-v... options] ( fold OUTLINE [LIST] | unfold LIST [OUTLINE] )
+  txt.py [-v... options] [ LIST | todolist [LIST] ]
+  txt.py [-v... options] todotxt TXT
   txt.py [-v... options] memdebug
   txt.py -h|--help
   txt.py help [CMD]
@@ -29,6 +30,8 @@ Options:
   -O FMT, --output-format FMT
                 json, json-stream, str, repr [default: json-stream]
   --couch=REF   Couch DB URL [default: %s]
+  --unique-names
+                ..
   --verbose     ..
   --quiet       ..
   -h --help     Show this usage description
@@ -64,12 +67,12 @@ def cmd_todolist(LIST, g):
     for i in l:
         ctx.out(i)
     ctx.flush()
-    return
 
+def cmd_todotxt(TXT, g):
     prsr = res.todo.TodoTxtParser()
-    LIST = LIST or 'todo.txt'
-    list(prsr.load(LIST))
-    for k, o in prsr.items():
+    TXT = TXT or 'todo.txt'
+    list(prsr.load(TXT))
+    for o in prsr.items():
         #print(o.todotxt())
         #print(res.js.dumps(prsr[k].attrs))
         ctx.out(o)
@@ -78,15 +81,9 @@ def cmd_todolist(LIST, g):
 def cmd_doctree(LIST, DIR, g):
 
     """
-    Go over files in DIR, looking for all document files.
-
-    Create or update catalog entries for found files. Entries are synced
-    with the workspace catalog, or a new one is created.
-    or TODO: the given LIST.
-
-    TODO: assemble cross-format index: docs, python modules, etc.
+    Go over files in DIR, get all document files. TODO: construct topic tree,
+    sync update catalog, couchdoc and/or LIST
     """
-
     global ctx
 
     if LIST and os.path.isdir(LIST):
@@ -94,21 +91,13 @@ def cmd_doctree(LIST, DIR, g):
         LIST = None
     if not DIR: DIR = ['.']
 
-    docid = ctx.ws.id_path + '.catalog'
-    if ctx.docs and docid in ctx.docs:
-        catalog = couch.catalog.Catalogdoc.load(ctx.docs, name)
-
-    else:
-        catalog = couch.catalog.Catalogdoc()
-    #catalog = ctx.yamldoc('catalog', defaults=[])
-    #catalog = ctx.ws.yamldoc('catalog', defaults=[])
+    catalog = res.doc.Catalog.load(ctx)
+    log.stderr("Updating catalog at %s" % (ctx.ws.full_path,))
 
     pathiters = [ ctx.ws.find_docs(ref, strict=g.strict) for ref in DIR ]
     for path in chain(*pathiters):
-
-        basedir = os.path.dirname(path)
-        basename = os.path.basename(path)
-        name, extpart = os.path.splitext(basename)
+        basedir, name, extpart = fs.basepathparts(path)
+        basename = name+extpart
 
         if basename in catalog:
             o = catalog[basename]
@@ -133,21 +122,23 @@ def cmd_doctree(LIST, DIR, g):
                 type='document'
             )
 
-            # Find neighbars at the same basename
-            at_base = ctx.ws.neighbours(os.path.join(basedir, name))
+            if opts.flags.unique_names:
+                # Find all of the same basename
+                at_base = ctx.ws.find_names(name)
+            else:
+                # Find neighbours at the same basename
+                at_base = ctx.ws.neighbours(os.path.join(basedir, name))
             variants = [ os.path.splitext(p)[1][1:] for p in at_base ]
 
-            at_base = ctx.ws.find_names(os.path.join(basedir, name), 'bin')
-            #variants.extend([ os.path.splitext(p)[1][1:] for p in at_base ])
-            variants.extend([ p for p in at_base ])
-
-            while extpart[1:] in variants:
-                variants.remove(extpart[1:])
+            #while extpart[1:] in variants:
+            #    print(extpart)
+            #    variants.remove(extpart[1:])
 
             # And names in other dirs too.. but setup proper project ctx for that
             if variants:
                 log.stderr("Variants for %s (from %s)" % (name, path))
-                continue # print(name, variants)
+                print(name, variants)
+                continue
 
             catalog[name] = o
             ctx.out(o)

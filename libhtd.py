@@ -13,6 +13,7 @@ import zope.component
 import res
 import res.bm
 import res.d
+import res.doc
 import res.iface
 import res.js
 import res.lst
@@ -60,7 +61,7 @@ from .taxus.media import Mediatype, MediatypeParameter, Genre, Mediameta
 from .taxus.fs import INode, Dir, File, Mount
 from .taxus.htd import TNode
 
-#from .res import fs
+from .res import fs
 #from .res import metafile
 #from .res import persistence
 #from .taxus import core

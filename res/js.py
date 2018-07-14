@@ -89,6 +89,7 @@ class AbstractYamlDocs(object):
         doc = self.load_yaml(name, defaults=defaults)
         setattr(self, a, doc)
         setattr(self, "%s_filename" % a, name)
+        return doc
 
     def yamlsave(self, name, **kwds):
         """

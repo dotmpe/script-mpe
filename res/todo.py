@@ -175,6 +175,7 @@ class TodoTxtParser(UserDict):
             List of primary tag followed by secondary tags.
     """
     def __init__(self, tags=[]):
+        UserDict.__init__(self)
         self.tags = tags
         self.dirty = []
         self.issues = {}
