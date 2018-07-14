@@ -3835,6 +3835,11 @@ htd__file()
   esac
 }
 
+htd__drop()
+{
+  test -f "$1" && htd__file drop "$1"
+}
+
 htd__date()
 {
   fmtdate_relative "$1"
