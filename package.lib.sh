@@ -12,12 +12,13 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
   upper=0 default_env out-fmt py || true
   # Get first existing file
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
+  test -d "$1"/.htd || mkdir "$1"/.htd
   # Detect wether Pre-process is needed
   {
       test -e "$PACKMETA" && grep -q '^#include\ ' "$PACKMETA"
   } && {
-      PACKMETA_SRC=$PACKMETA
-      PACKMETA=$1/.htd/package.yaml
+    PACKMETA_SRC=$PACKMETA
+    PACKMETA="$1"/.htd/package.yaml
   } || PACKMETA_SRC=''
   preprocess_package || true
 }
@@ -27,8 +28,9 @@ preprocess_package()
 {
   test -e "$PACKMETA" -a -z "$PACKMETA_SRC" || {
     test -e "$PACKMETA_SRC" || return
-    test -e "$PACKMETA" -a "$PACKMETA" -nt "$PACKMETA_SRC" ||
-        add_sentinels=1 expand_include_sentinels "$PACKMETA_SRC" > "$PACKMETA"
+    test -e "$PACKMETA" -a "$PACKMETA" -nt "$PACKMETA_SRC" || {
+      add_sentinels=1 expand_include_sentinels "$PACKMETA_SRC" > "$PACKMETA"
+    }
   }
   export PACKMETA PACKMETA_SRC
 }
@@ -68,12 +70,15 @@ package_file()
   metaf="$(normalize_relative "$metaf")"
 
   grep -q '^#include\ ' "$metaf" && {
-      metaf_src="$metaf"
-      metaf=$1/.htd/package.yaml
+    metaf_src="$metaf"
+    metaf="$1"/.htd/package.yaml
   } || metaf_src=''
   test -e "$metaf" -a -z "$metaf_src" || {
-    test -e "$metaf" -a "$metaf" -nt "$metaf_src" ||
-        add_sentinels=1 expand_include_sentinels "$metaf_src" > "$metaf"
+    test -e "$metaf_src" || return
+    mkdir -p "$(dirname "$metaf")"
+    test -e "$metaf" -a "$metaf" -nt "$metaf_src" || {
+      add_sentinels=1 expand_include_sentinels "$metaf_src" > "$metaf"
+    }
   }
   test -e "$metaf" || return 1
 }
