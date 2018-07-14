@@ -376,3 +376,19 @@ ck_update_find()
   rm -rf $paths
   test -z "$failed" -o ! -e "$failed" || rm $failed
 }
+
+file_sha1()
+{
+  while read -r file
+  do
+    sha1sum "$file"
+  done
+}
+
+file_sha2()
+{
+  while read -r file
+  do
+    shasum -a 256 "$file"
+  done
+}
