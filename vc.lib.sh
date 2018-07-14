@@ -859,6 +859,23 @@ git_branch_exists()
 	git_local_branch "$1" || git_remote_branch "$@"
 }
 
+
+vc_revision_git()
+{
+  git show-ref --head HEAD -s
+}
+vc_revision_hg() { false; }
+vc_revision_svn() { false; }
+vc_revision_bzr() { false; }
+
+# Return version for working tree, aka revision Id, commit Id, etc.
+vc_revision()
+{
+  test -n "$scm" || vc_getscm
+  vc_revision_${scm}
+}
+
+
 # Boilerplate
 #vc_status_git()
 #{

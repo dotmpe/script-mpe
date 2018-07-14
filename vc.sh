@@ -242,11 +242,11 @@ __vc_status()
       rev="$(cd "$realcwd"; git show "$checkoutdir" | grep '^commit' \
         | sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
       sub="${realcwd##$checkoutdir}"
-
     } || {
 
       realgitdir="$(cd "$git"; pwd -P)"
-      rev="$(cd $realcwd; git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
+      rev="$(vc_revision_git)"
+      #rev="$(cd $realcwd; git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
       realgit="$(basename "$realgitdir")"
       sub="${realcwd##$realgit}"
     }
@@ -284,34 +284,29 @@ __vc_status()
 
 __vc_screen ()
 {
-  local w short repo sub
-
   test -n "$1" || set -- "$(pwd)"
+  local w short repo sub 
 
-  realcwd="$(pwd -P)"
-  short=$(realpath "$1")
+  w="$(cd "$1" && pwd -P)"
+  short=$(short "$1")
 
-  local git=$(vc_gitdir "$1")
-  if [ "$git" ]; then
+  local gitdir=$(vc_gitdir "$1")
+  test -z "$gitdir" || {
 
-    vc_git_initialized "$git" || {
-      echo "$realcwd (git:unborn)"
+    vc_git_initialized "$gitdir" || {
+      echo "$w (git:unborn)"
       return
     }
-    realroot="$(git rev-parse --show-toplevel)"
-    [ -n "$realroot" ] && {
-      rev="$(git show "$realroot" | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-      sub="${realcwd##$realroot}"
-    } || {
-      realgitdir="$(cd "$git"; pwd -P)"
-      rev="$(git show . | grep '^commit'|sed 's/^commit //' | sed 's/^\([a-f0-9]\{9\}\).*$/\1.../')"
-      realgit="$(basename "$realgitdir")"
-      sub="${realcwd##$realgit}"
+    checkoutdir="$(git rev-parse --show-toplevel)"
+    test -z "$checkoutdir" || {
+      rev="$(vc_revision_git)"
+      sub="${w##$checkoutdir}"
+      echo $(basename "$w") $(vc_flags_git "$git" "[git:%s%s%s%s%s%s%s%s $rev]")
+    return
     }
-    echo $(basename "$realcwd") $(vc_flags_git "$git" "[git:%s%s%s%s%s%s%s%s $rev]")
-  else
-    echo "$short"
-  fi
+  }
+
+  echo "$short"
 }
 
 
