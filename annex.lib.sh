@@ -55,6 +55,7 @@ annex_metadata_json()
       jq -cr 'select(.fields!={}) | with_entries(.key|=sub("-lastchanged";"")) | .file,.fields'
 }
 
+# Parse annex SHA256E key into size, sha2, keyext
 annex_parsekey()
 {
   case "$1" in
@@ -62,6 +63,7 @@ annex_parsekey()
             KEY="$1"
             size=$(echo "$1" | cut -d'-' -f2 | cut -c2-)
             sha2=$(echo "$1" | cut -d'-' -f4 | cut -d'.' -f1)
+            keyext=$(echo "$1" | cut -d'-' -f4 | cut -d'.' -f2-)
             keys_sha2="$sha2"
         ;;
     * ) error "Unknown key format '$1'" 1 ;;
@@ -131,6 +133,19 @@ git_annex_unusedkeys_findlogs() # Key-List-File...
     done < "$1"
     shift
   done
+}
+
+annex_removebykey()
+{
+  local size sha2 keyext KEY keys_sha2 fn
+  note "Dropping '$1'.."
+  test -e "$1" && fn="$1" || fn=
+  annex_parsekey "$2"
+  git annex dropkey --force "$2" || return
+  test -n "$1" || set -- "$keyext" "$2"
+  test -z "$reason" || set -- ="$1\t$reason" "$2"
+  printf "$size $sha2 $1\n" >> ./.catalog/dropped.sha2list
+  test -z "$fn" || git rm "$fn"
 }
 
 git_annex_dropkeys()
@@ -232,4 +247,50 @@ annex_keyexists() # Dir SHA256E-Key
   cd "$cwd"
   stderr 0 "Content Location $content_location"
   test -n "$content_location" || return $?
+}
+
+annex_info_parsehere()
+{
+  info_raw="$(git annex info | grep here)"
+  info_uuid="$(echo $info_raw | cut -d ' ' -f1  )"
+  info_descr="$(echo $info_raw | cut -d ' ' -f3- )"
+}
+
+annex_unused_cachelist()
+{
+  mkdir -vp .cllct/annex-unused
+  test -n "$info_uuid" || annex_info_parsehere
+  out=.cllct/annex-unused/repo-$info_uuid.list
+  git annex unused > $out
+  unused=$(count_lines $out)
+  test $unused -gt 1 &&
+    stderr 0 "Unused files: $(( $unused - 1 )) <$out>" || rm "$out"
+}
+
+annex_fsckfast_cache()
+{
+  local r=0
+  git annex fsck  --fast >.cllct/annex-fsck.list 2>.cllct/annex-fsck-err.list || r=$?
+  wc -l .cllct/annex-fsck-err.list
+  rm .cllct/annex-fsck.list
+  test -s .cllct/annex-fsck.list || rm .cllct/annex-fsck.list
+  return $r
+}
+
+annex_dropkeys_fromother() # Other-Annex
+{
+  test -n "$1" || stderr 0 "Other-Annex expected" 1
+  find $1/.git/annex/objects -type f | while read cl
+  do
+    test -n "$cl" -a -e "$cl" || continue
+    key="$(basename "$cl")"
+    git annex drop --force "$key" || continue
+  done
+}
+
+annex_and_move()
+{
+  git annex add "$1" &&
+  mkdir -p "$2" &&
+  git mv "$1" "$2"/
 }

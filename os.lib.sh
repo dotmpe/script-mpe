@@ -258,16 +258,31 @@ foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject
 
 foreach()
 {
+  {
+    test -n "$*" && {
+      while test $# -gt 0
+      do
+        test "$1" != "-" && {
+          printf -- "$1\n"
+        } || {
+          cat -
+        }
+        shift
+      done
+    } || cat -
+  } | grep -v '^$'
+}
+
+foreach_do()
+{
   test -n "$act" || act=echo
-  { test -n "$*" && { for a in "$@"; do printf -- "$a\n" ; done; } || cat -
-  } | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
+  foreach "$@" | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
 }
 
 foreach_newcol()
 {
   test -n "$act" || act=echo
-  { test -n "$*" && { for a in "$@"; do printf -- "$a\n" ; done; } || cat -
-  } | while read -r _S ; do S="$p$_S$s" && printf "$S\t$($act "$S")\n" ; done
+  foreach "$@" | while read -r _S ; do S="$p$_S$s" && printf "$S\t$($act "$S")\n" ; done
 }
 
 normalize_relative()

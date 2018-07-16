@@ -35,7 +35,7 @@ htd_topics_list()
   foreach_setexpr
 
   eval find $topics_roots -false $find_ignores -o -iname \'"*.rst"\' -print |
-      s= p= act=foreach_ foreach
+      s= p= act=foreach_ foreach_do
 
   test -n "$topics_id" || error topic-list-id 1
 }

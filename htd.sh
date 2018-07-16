@@ -3645,11 +3645,9 @@ htd_man_1__git_grep='Run git-grep for every repository.
 
 To run git-grep with bare repositories, a tree reference is required.
 
-
 With `-C` interprets argument as shell command first, and passes ouput as
 argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
 pre-run but per exec. repo).
-
 
 If env `repos` is provided it is used iso. stdin.
 Or if `dir` is provided, each "*.git" path beneath that is used. Else uses the
@@ -3658,7 +3656,7 @@ arguments.
 If stdin is attach to the terminal, `dir=/src` is set. Without any
 arguments it defaults to scanning all repos for "git.grep".
 
-TODO: test spec
+TODO: spec
 '
 htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
 htd_run__git_grep=iAO
@@ -3707,6 +3705,7 @@ htd__git_grep()
   #| less
   note "Done ($(var2tags grep C grep_eval grep_args repos))"
 }
+
 
 htd_man_1__gitrepo='List local GIT repositories
 
@@ -3783,7 +3782,6 @@ htd__file()
         ;;
 
       mediatype|mtype ) filemtype "$2" ;;
-
       modified|mtime ) filemtime "$2" ;;
       mtime-relative ) fmtdate_relative "$(filemtime "$2")" ;;
 
@@ -3791,31 +3789,42 @@ htd__file()
           filesize "$1"
         ;;
 
+      find ) shift
+          foreach "$@" | catalog_sha2list /dev/fd/1 | htd__file find-by-sha2list
+        ;;
+
+      find-by-sha2list ) shift
+          cat "$@" | annices_findbysha2list
+        ;;
+
+      find-by-sha256e ) shift
+          foreach "$@" | while read -r KEY
+          do
+            annices_content_lookupbykey "$KEY" || return
+          done
+        ;;
+
       drop ) shift
-          annex="$( go_to_dir_with .git/annex || return 1 ; pwd )"
+          annex="$( go_to_dir_with .git/annex && pwd )" || return 1
           test -n "$annex" && {
-            while test $# -gt 0
+            foreach "$@" | while read -r fn
             do
-              KEY="$(git annex lookupkey "$1")"
-              annex_parsekey "$KEY"
-              note "Dropping '$KEY'.."
-              git annex dropkey --force "$KEY"
-              printf "$size $sha2 $1\t$reason\n" >> $annex/dropped.sha2list
-              git rm "$1"
-              shift
+              annex_dropbyname "$fn"
             done
             return
           }
-          git="$( go_to_dir_with .git || return 1 ; pwd )"
+          git="$( go_to_dir_with .git && pwd )" || return 1
           test -n "$git" && {
             echo git=$git
             return
           }
-          base="$( go_to_dir_with .cllct || return 1 ; pwd )"
+          base="$( go_to_dir_with .cllct && pwd )" || return 1
           test -n "$base " && {
-            echo "$1" | catalog_sha2list dropped.list
-            echo rm "$1"
-            return
+            foreach "$@" | while read -r fn
+            do
+              echo "$fn" | catalog_sha2list .catalog/dropped.sha2list
+              rm "$fn"
+            done
           }
         ;;
 
@@ -9705,7 +9714,7 @@ htd__foreach()
 {
   local type_= expr_= act="$2" no_act="$3" s= p=
   foreach_setexpr "$1" ; shift 3
-  foreach "$@"
+  foreach_do "$@"
 }
 
 

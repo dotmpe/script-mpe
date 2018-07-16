@@ -316,7 +316,7 @@ tmux_resurrect_allwindows()
 {
   #test -n "$1" || set -- "$TMUX_RESURRECT/all-names.list"
   tmux_resurrect_listwindows \
-      $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach )
+      $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach_do )
 }
 
 # Line up window names for each dumpfile ever
@@ -360,7 +360,7 @@ tmux_resurrect_info()
           window=$1 tmux_resurrect_listpanes "$2" | sort -u
       } || {
           window=$1 tmux_resurrect_listpanes \
-              $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach ) |
+              $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach_do ) |
               sort -u
       }
     } || {
@@ -372,7 +372,7 @@ tmux_resurrect_info()
 tmux_resurrect_panes() # Dumpfile
 {
   test -n "$1" || set -- \
-              $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach )
+              $( tmux_resurrect_list_raw | p="$TMUX_RESURRECT/" s= foreach_do )
   awk_print_pane='$2,$4,$8,$11' tmux_resurrect_listpanes "$@" | sort -u
 }
 
@@ -401,7 +401,7 @@ tmux_resurrect_backup_all()
   (
     cd "$TMUX_RESURRECT"
     set -- $(tmux_resurrect_list_raw | sort -rn | tail +2 )
-    p= s= act=tmux_resurrect_dumpfile_rename foreach "$@" |
+    p= s= act=tmux_resurrect_dumpfile_rename foreach_do "$@" |
     p='' archive_pairs "$@" |
     p='./' rsync_a=-iaL\ --remove-source-files rsync_pairs "$@"
   )
@@ -425,7 +425,7 @@ tmux_resurrect_restore() #
   set -- $(find $(realpath ~/htdocs/cabinet) \
       -iname '*tmux_resurrect-[0-9][0-9][0-9][0-9]_[0-9][0-9]_[0-9][0-9]-*')
 
-  p= s= act=tmux_resurrect_backup_rename foreach "$@" |
+  p= s= act=tmux_resurrect_backup_rename foreach_do "$@" |
     p="" to="$TMUX_RESURRECT/" rsync_a=-iaL rsync_pairs "$@"
   chmod ug+w "$TMUX_RESURRECT"/*.txt
 }

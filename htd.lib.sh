@@ -293,7 +293,7 @@ htd_filter() # [type_= expr_= mode_= ] [Path...]
       not_trueish "$DEBUG" || error "failed at '$type_' '$expr_' '$S'"
     }
   }
-  act=act_ no_act=no_act_ foreach "$@"
+  act=act_ no_act=no_act_ foreach_do "$@"
 }
 
 

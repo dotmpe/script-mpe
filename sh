@@ -1,7 +1,6 @@
 #!/bin/sh
 set -e
 
-
 # TODO: create mediameta records, metadata cards with id, format, key, date info etc.
 finfo-app.py --name-and-categorize .
 exit $?

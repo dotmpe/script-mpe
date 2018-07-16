@@ -21,6 +21,7 @@ catalog_lib_load()
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
   test -n "$Catalog_Duplicates" || Catalog_Duplicates=.cllct/duplicates
   test -d .cllct || mkdir .cllct
+  test -n "$ANNEX_DIR" || ANNEX_DIR="/srv/annex-8-3-dandy-mpe"
 }
 
 
@@ -738,35 +739,8 @@ htd_catalog_scan_for_sha2()
     echo "$catalog"
     return
   done < "$CATALOGS"
-
-  note "Looking in Annex backends..."
-  for annex in /srv/annex-*/*/
-  do
-    test -d "$annex/.git/annex/objects" || continue
-    info "Searching '$annex' Annex..."
-
-    find "$annex/.git/annex/objects" -type d \
-      -iname 'SHA256E-s*--'"$sha2sum"'.*' -print -quit |
-      while read obj
-      do
-        test -n "$obj" -a -d "$obj" || continue
-        echo "$annex"
-        return
-      done
-
-    # Somehow this locks up on 11.3 archive-old
-    #key=".git/annex/objects/*/*/SHA256E-s*--$sha2sum.*"
-    #for x in $annex$key
-    #do
-    #  test -e "$x" || continue
-    #  echo "$annex"
-    #  return
-    #done
-  done
-
   return 1
 }
-
 
 # Separate subtree entries. Go about by moving each file individually
 htd_catalog_separate() # PATH
@@ -781,7 +755,6 @@ htd_catalog_separate() # PATH
     shift
   done
 }
-
 
 htd_catalog_update_keys() # Entry-Id [Keys...]
 {
@@ -887,12 +860,13 @@ htd_catalog_cleanup_annex_missing()
   done
 }
 
-# Create simple one-file-per-line manifests for files
+# Create simple one-file-per-line manifests for files, bytesize, sha2 and name
 catalog_sha2list()
 {
   test -n "$1" || set -- catalog.sha2list
   while read -r filename
   do
+    test -e "$filename" || return
     filesize "$filename" | tr -d '\n'
     printf -- " "
     shasum -a 256 "$filename"
@@ -962,7 +936,7 @@ catalog_zip_archive_manifest()
   echo " New catalog $(basename "$catalog")"
 }
 
-fconv_sha2list_to_sha256e()
+lconv_sha2list_to_sha256e()
 {
   awk '{
     ext=$0;
@@ -971,13 +945,97 @@ fconv_sha2list_to_sha256e()
     print "SHA256E-s"$1"--"$2"."ext}' "$@"
 }
 
-fconv_sha256e_to_sha2list()
+lconv_sha256e_to_sha2list()
 {
   sed 's/SHA256E-s\([0-9]*\)--\([0-9a-f]*\)\(\..*\)/\1 \2 \3/g' "$@"
 }
 
+# List all keys now dropped, content can be safely removed if left unused
 htd_catalog_droppedkeys()
 {
   test -n "$1" || set -- .catalog/dropped.sha2list
-  fconv_sha2list_to_sha256e "$1"
+  lconv_sha2list_to_sha256e "$1"
+}
+
+annex_dropbyname()
+{
+  KEY="$(git annex lookupkey "$1")" && annex_removebykey "$1" "$KEY"
+}
+
+# Lookup by SHA256E key or SHA-2, in every annex found in dir.
+annices_findbysha2list()
+{
+  while read -r size sha2 fn
+  do
+    test -n "$fn" -a -f "$fn" || continue
+    ext="$(filenamext "$fn")"
+    KEY="SHA256E-s${size}--${sha2}.$ext"
+    #annices_content_lookupbykey "$KEY" && { continue; }
+    #annices_content_lookupbysha2 "$sha2" && { continue; }
+    rs="$(annices_content_lookupbykey "$KEY")" && { echo "$rs"; continue; }
+    rs="$(annices_content_lookupbysha2 "$sha2")" && { echo "$rs"; continue; }
+    fnmatch "* *" "$fn" && warn "Illegal filename"
+    echo "$fn"
+  done
+}
+
+# Go over annices looking for key, echo annex path on success. Also,
+# contentlocation will be set to the local file path.
+annices_content_lookupbykey()
+{
+  info "Lookup by key '$1'.."
+  for annex in $ANNEX_DIR/*/
+  do
+    test -d "$annex/.git/annex/objects" || {
+      continue # No content in annex
+    }
+    debug "Annex '$annex'.."
+    (
+      cd "$annex" &&
+      contentlocation="$(git annex contentlocation "$1" || true)"
+      test -n "$contentlocation" && {
+        test -e "$contentlocation" && {
+          echo "$1 $annex $contentlocation"
+        } || {
+          echo "$1 $annex"
+        }
+        return 0
+      }
+    ) && return
+    # No occurrence in '$annex'
+    continue
+  done
+  return 1
+}
+
+# Go over annices looking for sha2, then get key and output as lookupbykey
+# instead key is a sha2. Set env backendfile and KEY as well.
+annices_content_lookupbysha2()
+{
+  info "Lookup by SHA-256 '$1'.."
+  for annex in $ANNEX_DIR/*/
+  do
+    test -d "$annex/.git/annex/objects" || {
+      continue # No content in annex
+    }
+    debug "Annex '$annex'.."
+    (
+      cd "$annex" &&
+      backendfile="$(find .git/annex/objects -type f -iname "SHA256*--$1*" | head -n 1)"
+      test -n "$backendfile" && {
+        KEY="$(basename "$backendfile")"
+        contentlocation="$(git annex contentlocation "$KEY" || true)"
+        test -n "$contentlocation" || error "$KEY" 1
+        test -e "$contentlocation" && {
+          echo "$1 $annex $contentlocation"
+        } || {
+          echo "$1 $annex"
+        }
+        return 0
+      }
+    ) && return
+    # No occurrence in '$annex'
+    continue
+  done
+  return 1
 }
