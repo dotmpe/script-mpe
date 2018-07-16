@@ -27,7 +27,7 @@ run_cmd()
 
   test -z "$dry_run" && {
     on_host "$1" && {
-      $2 \
+      eval "$2" \
         && debug "Executed locally: '$2'" \
         || {
           error "Error executing local command: '$2'"

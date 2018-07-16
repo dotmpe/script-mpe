@@ -257,11 +257,12 @@ box_update()
   test -n "$box_host" || box_host=$hostname
   test -n "$box_user" || box_user=$(whoami)
 
-  on_host "$box_host" || ssh_req $box_host $box_user
-  run_cmd "$box_host" "cd ~/.conf && git fetch --all && git pull"
-  run_cmd "$box_host" "cd ~/.conf && git fetch --all && git pull"
+  #on_host "$box_host" || ssh_req $box_host $box_user
+  #run_cmd "$box_host" "cd \$HOME/.conf && git fetch --all && git pull"
+  #run_cmd "$box_host" "cd \$HOME/.conf && vc update-local"
 
-  ansible-playbook -l $box_host ansible/playbook/user-conf.yml
+  # TODO: cleanup ansible
+  #ansible-playbook -l $box_host ansible/playbook/user-conf.yml
   #ansible-playbook -l $box_host ansible/playbook/system-update.yml
   #ansible-playbook -l $box_host ansible/playbook/user-env-update.yml
 }
@@ -329,7 +330,7 @@ box_lib_current_path()
   set -- $( ( while true ; do pwd && cd .. ; test "$PWD" != '/' || break; done ) |
   while read -r path
   do
-    mkvid $path && echo "$vid" && unset vid
+    mkvid "$path" && echo "$vid" && unset vid
   done | while read -r vid
   do
     sh="$BOX_DIR/${hostname}/${vid}.sh"

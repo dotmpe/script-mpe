@@ -66,7 +66,7 @@ package_default_id()
 package_file()
 {
   test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
-  test -e "$metaf" || error "No package-file '$metaf'" 1
+  test -e "$metaf" || error "No package-file at '$1' '$metaf'" 1
   metaf="$(normalize_relative "$metaf")"
 
   grep -q '^#include\ ' "$metaf" && {
