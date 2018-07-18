@@ -335,7 +335,7 @@ class Dir(INode):
         FIXME: could, but does not, yield INode subtype instances.
         XXX: filters, see dev_treemap
         """
-        #if not opts.descend:
+        # XXX if not opts.descend:
         #    return self.walkRoot( path, opts=opts, filters=filters )
 
         assert isinstance(path, basestring), (path, path.__class__)

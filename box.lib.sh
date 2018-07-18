@@ -328,16 +328,16 @@ box_lib_current_path()
   # test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
 
   set -- $( ( while true ; do pwd && cd .. ; test "$PWD" != '/' || break; done ) |
-  while read -r path
-  do
-    mkvid "$path" && echo "$vid" && unset vid
-  done | while read -r vid
-  do
-    sh="$BOX_DIR/${hostname}/${vid}.sh"
-    test -e "$sh" || continue
-    echo "$sh"
-  done | lines_to_words )
+      while read -r path
+      do
+        mkvid "$path" && echo "$vid" && unset vid
+      done | while read -r vid
+      do
+        sh="$BOX_DIR/${hostname}/${vid}.sh"
+        test -e "$sh" || continue
+        echo "$sh"
+      done | lines_to_words )
 
   box_lib="$box_lib $*"
-  . "$@"
+  test -z "$*" || . "$@"
 }

@@ -17,7 +17,7 @@ __couch__ = 'http://localhost:5984/the-registry'
 __usage__ = """
 Usage:
   txt.py [-v... options] urllist LIST
-  txt.py [-v... options] doctree [LIST] [DIR]
+  txt.py [-v... options] doctree [LIST] [DIR...]
   txt.py [-v... options] ( fold OUTLINE [LIST] | unfold LIST [OUTLINE] )
   txt.py [-v... options] [ LIST | todolist [LIST] ]
   txt.py [-v... options] todotxt TXT
@@ -30,6 +30,8 @@ Options:
   -O FMT, --output-format FMT
                 json, json-stream, str, repr [default: json-stream]
   --couch=REF   Couch DB URL [default: %s]
+  --print-names
+  --print-paths
   --unique-names
                 ..
   --verbose     ..
@@ -87,64 +89,65 @@ def cmd_doctree(LIST, DIR, g):
     global ctx
 
     if LIST and os.path.isdir(LIST):
-        DIR = LIST
+        DIR.append(LIST)
         LIST = None
     if not DIR: DIR = ['.']
 
+    where_names = "main index readme".split(' ')
+
     catalog = res.doc.Catalog.load(ctx)
     log.stderr("Updating catalog at %s" % (ctx.ws.full_path,))
-
     pathiters = [ ctx.ws.find_docs(ref, strict=g.strict) for ref in DIR ]
     for path in chain(*pathiters):
         basedir, name, extpart = fs.basepathparts(path)
         basename = name+extpart
 
-        if basename in catalog:
-            o = catalog[basename]
-            if 'type' in o:
-                type_ = o['type']
-                if type_ is not 'document':
-                    raise ValueError("Unknown document type at %s" % basename)
+        if not os.path.getsize(path):
+            log.stderr("Ignored empty file %r" % (path))
+            continue
 
-            del catalog[basename]
+        if name.lower() in where_names:
+            name = os.path.basename(basedir)
+            if name in catalog:
+                continue # XXX: skipping duplicate dir where-files index/ReadMe/main
 
         if name in catalog:
-            o = catalog[name]
-            if 'type' in o:
-                type_ = o['type']
-                if type_ is not 'document':
-                    raise ValueError("Unknown document type at %s" % name)
+            catalog.verify_docentry(name, path)
+            continue
+
+        if name.lower() in where_names:
+            o = catalog.new_direntry(name, path)
+        else:
+            o = catalog.new_docentry(name, path)
+
+        if g.print_names:
+            if o['type'] == 'directory':
+                print(o['name']+'/')
+            else:
+                print(o['name'])
+            #ctx.output_buffer.append(['name'])
+
+        elif g.print_paths:
+            print(o['path'])
 
         else:
-            o = dict(
-                path=path,
-                name=name,
-                type='document'
-            )
-
-            if opts.flags.unique_names:
-                # Find all of the same basename
-                at_base = ctx.ws.find_names(name)
-            else:
-                # Find neighbours at the same basename
-                at_base = ctx.ws.neighbours(os.path.join(basedir, name))
-            variants = [ os.path.splitext(p)[1][1:] for p in at_base ]
-
-            #while extpart[1:] in variants:
-            #    print(extpart)
-            #    variants.remove(extpart[1:])
-
-            # And names in other dirs too.. but setup proper project ctx for that
-            if variants:
-                log.stderr("Variants for %s (from %s)" % (name, path))
-                print(name, variants)
-                continue
-
-            catalog[name] = o
             ctx.out(o)
 
-    #catalog.store(ctx.docs)
+        """
+        if g.unique_names:
+            # Find all of the same basename (at this dir)
+            at_base = ctx.ws.find_names(name)
+        else:
+            # Find neighbours at the same basename
+            at_base = ctx.ws.neighbours(os.path.join(basedir, name))
+        variants = [ os.path.splitext(p)[1][1:] for p in at_base ]
+        print(variants)
+        while extpart[1:] in variants:
+            variants.remove(extpart[1:])
+        """
+
     ctx.flush()
+    catalog.save(ctx)
 
 
 ### Box fold outline

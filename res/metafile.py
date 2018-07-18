@@ -587,7 +587,7 @@ class Metadir(object):
 
         Returning Class instance for first path, if any.
         """
-        configpaths = list(set(klass.find(*paths)))
+        configpaths = list(klass.find(*paths))
         if configpaths:
             if len(configpaths) > 1:
                 log.warn('Using first config file %s for %s', klass.DOTID, configpaths)

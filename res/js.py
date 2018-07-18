@@ -64,29 +64,27 @@ class AbstractYamlDocs(object):
         """
         raise NotImplementedError()
 
-    def load_yaml(self, name, defaults=None):
+    def load_yaml(self, name, defaults=None, **kwds):
         """
         Create and/or load and return YAML document.
         """
         p = self.get_yaml(name, defaults=defaults)
-        return yaml_load(open(p))
+        return yaml_load(open(p), **kwds)
 
     def save_yaml(self, p, doc, **kwds):
         """
-        Dump document at `p`, pass keywords to `ryamel.yaml` dumper.
+        Dump document at `p`, pass keywords to `ruamel.yaml` dumper.
         """
-        yaml_dump(open(p,'w+'), doc, **kwds)
+        yaml_dump(open(p, 'w+'), doc, **kwds)
 
-    def yamldoc(self, name, defaults=None):
+    def yamldoc(self, name, defaults=None, **kwds):
         """
         Create and/or load and YAML document to ``self.<name>doc``.
         """
-        if name.endswith('doc'):
-            a = name
-        else:
-            a = name+'doc'
+        if name.endswith('doc'): a = name
+        else: a = name+'doc'
         assert not hasattr(self, a), name
-        doc = self.load_yaml(name, defaults=defaults)
+        doc = self.load_yaml(name, defaults=defaults, **kwds)
         setattr(self, a, doc)
         setattr(self, "%s_filename" % a, name)
         return doc
@@ -96,6 +94,8 @@ class AbstractYamlDocs(object):
         Map name to path with get-yaml, and dump document at ``self.<name>doc``
         to that location.
         """
-        doc = getattr(self, name)
+        if name.endswith('doc'): a = name
+        else: a = name+'doc'
+        doc = getattr(self, a)
         p = self.get_yaml(name)
         self.save_yaml(p, doc, **kwds)

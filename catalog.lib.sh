@@ -67,7 +67,7 @@ htd_catalog_find()
 {
   htd_catalog_list_files | while read catalog
   do
-    grep -qF "$1" $catalog || continue
+    grep -qF "$1" "$catalog" || continue
     note "Found $1 in $catalog"
   done
 }
@@ -791,13 +791,16 @@ htd_catalog_update_all()
   done
 }
 
-htd_catalog_add_empty_file()
+htd_catalog_addempty()
 {
   test -n "$1" || set -- "$CATALOG"
-  htd_catalog_get_by_key "$1" \
-    $empty_sha2 && {
-      warn "Existing record found" 1
-    }
+
+  test ! -s "$1" || {
+    htd_catalog_get_by_key "$1" \
+      $empty_sha2 && {
+        warn "Existing record found" 1
+      }
+  }
 
   test -f "$1" || {
     test -d "$1" && {
@@ -1038,4 +1041,16 @@ annices_content_lookupbysha2()
     continue
   done
   return 1
+}
+
+htd_catalog_doctree()
+{
+  test -n "$1" || set -- dev cabinet note Home Shop Application data
+  # FIXME personal sysadmin web
+  test -s .cllct/catalog.yml || {
+    CATALOG=.cllct/catalog.yml htd_catalog_addempty
+  }
+  txt.py doctree "" "$@"
+  txt.py doctree --print-name "" "$@"
+  # xsl_ver=1 htd tpaths "$1"
 }

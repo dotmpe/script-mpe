@@ -51,7 +51,7 @@ htd_prefix_names()
 }
 
 
-# Return prefix:<localpath> after scanning paths-topic-names
+# Return prefix:<localpath>
 htd_prefix() # Local-Path
 {
   test -n "$index" || local index=

@@ -17,17 +17,47 @@ class Catalog(object):
         #catalog = couch.catalog.Catalogdoc(keys.. **catalog_dict)
 
         for it in self.entries:
-            self.add_entry(it)
+            self.load_entry(it)
         return self
 
-    def add_entry(self, item, name=None):
+    def save(self, ctx, name='catalog'):
+        ctx.ws.yamlsave(name, default_flow_style=False, ignore_aliases=True)
+
+    def verify_docentry(self, name, path):
+        o = self[name]
+        if 'type' in o:
+            type_ = o['type']
+            if type_ not in ('document', 'directory',):
+                raise ValueError("Unknown document type at %s" % name)
+            assert o['path'] == path, (name, path, o)
+        return o
+
+    def load_entry(self, item, name=None):
         if not name and 'name' not in item and not hasattr(item, 'name'):
             print('No-name', item)
             return
         if not name: name = item['name']
         if not name: name = item.name
-        i = ++self._entries
-        self.keys[name] = i
+        self.keys[name] = self._entries
+        self._entries += 1
+
+    def new_docentry(self, name, path):
+        o = dict(name=name, path=path)
+        o['type'] = 'document'
+        self.add_entry(o)
+        return o
+
+    def new_direntry(self, name, path):
+        o = dict(name=name, path=path)
+        o['type'] = 'directory'
+        self.add_entry(o)
+        return o
+
+    def add_entry(self, o):
+        self.keys[o['name']] = self._entries
+        self._entries += 1
+        self.entries.append(o)
+        return self._entries-1
 
     def __contains__(self, name):
         if name in self.keys:

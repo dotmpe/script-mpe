@@ -124,8 +124,6 @@ def yaml_dumps(*args, **kwds):
     kwds.update(dict( Dumper=dd ))
     return ruamel.yaml.dump(*args, **kwds)
 
-yaml_safe_dumps = yaml_dumps
-
 
 def yaml_dump(fl, *args, **kwds):
     """

@@ -148,7 +148,10 @@ source_mount_catalog()
   test -e $mount_point/.volumes.sh || {
     warn "No volume dotfile on $mount_point" ; continue
   }
+  # TODO: should sync marker file with catalog
+  # Get data from online marker file
   eval $(sed 's/^volumes_main/vol/g' $mount_point/.volumes.sh)
+  # Get data from catalog
   . $DISK_CATALOG/disk/$vol_disk_id.sh
 }
 
@@ -164,16 +167,17 @@ _volume_symlink()
 htd_path_names()
 {
   info "Listing path names for current mounts"
-  disk_mounts | while read mount_point
+  # Reverse list b/c/ pathnames.tab root should come last
+  disk_mounts | sort -r | while read mount_point
   do
     source_mount_catalog $mount_point
     _volume_symlink
     # anyway...
     rd="$(cd "$mount_point" && pwd -P)"
+    echo /srv/$sym/ $vol_prefix
     test "$mount_point" = "$rd" || echo $rd/ $vol_prefix
     fnmatch "*/" $mount_point || mount_point=$mount_point/
     echo $mount_point $vol_prefix
-    echo /srv/$sym/ $vol_prefix
   done
   return $?
 }

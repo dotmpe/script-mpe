@@ -294,3 +294,86 @@ annex_and_move()
   mkdir -p "$2" &&
   git mv "$1" "$2"/
 }
+
+annexdir_update()
+{
+  lib_load package
+  r=0
+  for x in ./*/
+  do
+    test -d "$x/.git/annex" || warn "Not an annex '$x'" 1
+
+    # TODO: may want to check package for init script
+    (
+      cd "$x"
+      package_file . || {
+        warn "No package for '$x'"
+        continue
+      }
+      test .htd/tools/env.sh -nt "$metaf" &&
+        note "Package up-to-date for $x" || {
+          package_sh_list_exists "" "init" && {
+            htd run init || return
+          } || {
+            htd package update
+            htd package remotes-reset
+            vc regenerate
+          }
+        }
+    )
+  done
+  return $r
+}
+annexdir_sync()
+{
+  r=0
+  for x in ./*/
+  do
+    test -d "$x/.git/annex" || warn "Not an annex '$x'" 1
+    (
+      cd $x
+      git annex sync
+    )
+  done
+  return $r
+}
+annexdir_get()
+{
+  test -n "$1" || set -- .
+  # From Annex/* dir, sync and an get all
+  for a in $(pwd)/*/
+  do
+    echo "$a"
+    test -e "$a/.git" || continue
+    cd "$a" && git annex sync && git annex get "$1"
+  done
+}
+annexdir_run()
+{
+  r=0
+  test -n "$*" || set -- git status
+  for x in ./*/
+  do
+    test -d "$x/.git/annex" || warn "Not an annex '$x'" 1
+    basename "$x"
+    (
+      cd $x
+      exec "$@"
+    )
+  done
+  return $r
+}
+annexdir_check()
+{
+  local r=0
+  for x in ./*/
+  do
+    test -d "$x/.git/annex" || warn "Not an annex '$x'" 1
+    r=1
+    test -d "$x/.git" &&
+      echo "Not an Annex repo: '$x'" >&2 ||
+      echo "Not an GIT repo: '$x'" >&2
+
+  done
+  return $r
+}

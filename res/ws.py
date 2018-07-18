@@ -87,19 +87,13 @@ class Workspace(AbstractYamlDocs, Metadir):
         p = self.metadirref( 'yaml', name )
         if not os.path.exists(p):
             p = self.metadirref( 'yml', name )
-        if defaults and not os.path.exists(p):
+        if defaults != None and not os.path.exists(p):
             self.save_yaml(p, defaults)
         return p
 
-    def relpath(self, topath='', basepath=None):
-        topath = os.path.normpath(topath)
-        if topath.startswith(os.sep): topath_ = topath
-        else: topath_ = os.path.abspath(topath)
-        if basepath: basepath = os.path.normpath(basepath)
-        else: basepath = self.path
-        assert topath_.startswith(self.path), ( topath, topath_, basepath )
-        # going to have todo something more sophisticated probably
-        return topath_[len(basepath)+1:]
+    def relpath(self, topath, basepath=None):
+        if not basepath: basepath = self.path
+        return os.path.relpath(topath, basepath)
 
     # XXX: Old PMO stuff
 
@@ -145,11 +139,12 @@ class Workdir(Workspace):
         self.doc_exts = self.DOC_EXTS
 
     def find_docs(self, cwd=None, strict=False):
-        if cwd: path = self.relpath(os.path.realpath(cwd))
+        if cwd: path = self.relpath(cwd)
         else: path = self.path
 
         # One filename based filter
         file_fltrs = [ lambda path: os.path.splitext(path)[1] in self.doc_exts ]
+
         # Change to basedir so that pathiter works
         os.chdir(self.path)
         # FIXME: exclude patterns per set

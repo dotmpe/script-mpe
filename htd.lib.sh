@@ -501,6 +501,7 @@ htd_edit_today()
 
       # TODO: And summaries for current week, month, and year
       files="$files $(htd_jrnl_period_links "$1" "$log_path_ysep")"
+      note "Files: $files"
 
       # FIXME: need offset dates from file or table with values to initialize docs
 
@@ -514,13 +515,13 @@ htd_edit_today()
       }
       # Prepare linked indices
       htd_rst_doc_create_update "$today" "" link-day
-
-      htd_edit_and_update \
+      htd_edit_and_update $(realpaths \
           $1/today$EXT  \
           $1/week$EXT   \
           $1/month$EXT  \
           $1/year$EXT   \
-          $files
+        ) $files
+
     } || {
       error "during edit of $1 ($?)" 1
     }
@@ -667,4 +668,12 @@ gitrepos()
   test -n "$*" || set -- *.git
 
   htd_expand "$@"
+}
+
+realpaths()
+{
+  foreach "$@" | while read -r path
+  do
+      realpath "$path"
+  done
 }

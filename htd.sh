@@ -6303,6 +6303,7 @@ htd__getxl()
   fnmatch '*.xml' $1 && set -- "$1" "$1"
   fnmatch '*.rst' $1 && {
     test -n "$2" || set -- "$1" "$(setup_tmpd)/$(basename "$1" .rst).xml"
+    info "rst2xml: $rst2xml $1 $2"
     $rst2xml $1 > "$2"
     echo $2
   }
@@ -6411,7 +6412,7 @@ $2
 EOM
     } || {
       test -e "$1" || error "no file for saxon: '$1'" 1
-      saxon $1 $2 || return $?
+      saxon -dtd "$1" "$2" || return $?
     }
   # remove XML prolog:
   } | cut -c39-
@@ -9640,6 +9641,7 @@ Single catalogs
     verify file checksums
   validate [CATALOG]
     verify catalog document schema
+  doctree
 
 Single catalog entry
 
@@ -9678,6 +9680,15 @@ htd_run__catalog=f
 
 htd_als__catalogs='catalog list'
 htd_als__fsck_catalog='catalog fsck'
+
+
+htd__annexdir()
+{
+  test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
+    } || action=status
+  annexdir_$action "$@" || return $?
+}
+htd_run__annexdir=f
 
 
 htd__wherefrom()
