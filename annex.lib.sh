@@ -1,6 +1,16 @@
 #!/bin/sh
 
 
+annex_lib_load()
+{
+  content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos $ANNEX_DIR/NathalieH $ANNEX_DIR/enemies"
+
+    # TODO: scan for .annex/objects folder, move this to user-conf
+  #content_annices="$()"
+
+  . ~/.local/composure/find_by_sha2.inc
+}
+
 annex_list()
 {
   # Annex queries remotes, which may give errors (no network/mounts missing)
@@ -8,10 +18,6 @@ annex_list()
   do
     test -e "$file" -o -h "$file" && echo "$file"
   done
-
-  content_annices="/srv/annex-local/archive-old /srv/annex-local/backup /srv/annex-local/photos /srv/annex-local/NathalieH /srv/annex-local/enemies"
-
-  . ~/.local/composure/find_by_sha2.inc
 }
 
 # Print each file entries' metadata k/v. Pairs have liberal format, something
@@ -186,7 +192,8 @@ git_annex_unusedkeys_drop_ifloggrep() # Key-List-File Grep...
 
 git_annex_unusedkeys_backupfiles() # Key-List-File
 {
-  test -n "$target" || target=$HOME/htdocs/cabinet/.git/annex/
+  #test -n "$target" || target=$HOME/htdocs/cabinet/.git/annex/
+  test -n "$target" || target="/srv/$(readlink /srv/annex-local)/backup/.git/annex"
   path=
   while test -n "$1"
   do
@@ -395,10 +402,10 @@ annices_findbysha2list()
     test -n "$fn" -a -f "$fn" || continue
     ext="$(filenamext "$fn")"
     KEY="SHA256E-s${size}--${sha2}.$ext"
-    #annices_content_lookupbykey "$KEY" && { continue; }
-    #annices_content_lookupbysha2 "$sha2" && { continue; }
-    rs="$(annices_content_lookupbykey "$KEY")" && { echo "$rs"; continue; }
-    rs="$(annices_content_lookupbysha2 "$sha2")" && { echo "$rs"; continue; }
+    #annices_lookup_by_key "$KEY" && { continue; }
+    #annices_lookup_by_sha2 "$sha2" && { continue; }
+    rs="$(annices_lookup_by_key "$KEY")" && { echo "$rs"; continue; }
+    rs="$(annices_lookup_by_sha2 "$sha2")" && { echo "$rs"; continue; }
     fnmatch "* *" "$fn" && warn "Illegal filename"
     echo "$fn"
   done
@@ -406,7 +413,7 @@ annices_findbysha2list()
 
 # Go over annices looking for key, echo annex path on success. Also,
 # contentlocation will be set to the local file path.
-annices_content_lookupbykey()
+annices_lookup_by_key()
 {
   info "Lookup by key '$1'.."
   for annex in $ANNEX_DIR/*/
@@ -435,7 +442,7 @@ annices_content_lookupbykey()
 
 # Go over annices looking for sha2, then get key and output as lookupbykey
 # instead key is a sha2. Set env backendfile and KEY as well.
-annices_content_lookupbysha2()
+annices_lookup_by_sha2()
 {
   info "Lookup by SHA-256 '$1'.."
   for annex in $ANNEX_DIR/*/
@@ -465,7 +472,7 @@ annices_content_lookupbysha2()
   return 1
 }
 
-annices_find_by_sha2()
+annices_scan_for_sha2()
 {
   test -n "$1" || stderr 0 "SHA2 expected" 1
   local cwd="$(pwd)"

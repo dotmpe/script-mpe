@@ -21,7 +21,7 @@ catalog_lib_load()
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
   test -n "$Catalog_Duplicates" || Catalog_Duplicates=.cllct/duplicates
   test -d .cllct || mkdir .cllct
-  test -n "$ANNEX_DIR" || ANNEX_DIR="/srv/annex-8-3-dandy-mpe"
+  test -n "$ANNEX_DIR" || ANNEX_DIR="/srv/$(readlink /srv/annex-local)"
 }
 
 
@@ -673,6 +673,8 @@ htd_catalog_consolidate()
 
       * )
           note "Scanning for unknown file '$fpath'..."
+  # Use quickest checksum and start for global lookup
+          echo md5 $() |
           htd_catalog_scan_for "$fpath"
         ;;
 
@@ -694,48 +696,46 @@ htd_catalog_consolidate_metafiles()
 # TODO: merge all local catalogs (from subtrees to PWD)
 htd_catalog_consolidate_catalogs()
 {
-  htd_catalog_list_files | while read catalog
+  htd_catalog_list_files | while read -r catalog
   do
     sameas "$CATALOG" "$catalog" && continue
     note "TODO: $catalog"
   done
 }
 
-# Requires local or global catalogs list
+# Call appropiate scan_for per checksum name, hash pair read on stdin
+# Scan-for sequires local or global catalogs list
 htd_catalog_scan_for()
 {
-  # Use quickest checksum and start for global lookup
-  htd_catalog_scan_for_md5 "$1" && return
-
-  # Can also include some Annex backends and LFS
-  htd_catalog_scan_for_sha2 "$1" && return
-
-  #htd_catalog_scan_for_sha1 "$1" && return
+  while read -r ck key
+  do
+    info "Scanning catalogs for $ck of $1..."
+    htd_catalog_scan_for_${ck} "$key" && return
+  done
 }
 
 htd_catalog_scan_for_md5()
 {
-  info "Scanning catalogs for MD5 of $1..."
-  test_exists "$1"
-  local md5sum=$(md5sum "$1" | awk '{print $1}')
-  note "Looking for MD5: $md5sum..."
-  while read catalog
+  note "Looking for MD5: $1..."
+  while read -r catalog
   do
-    grep -q 'md5:\ '"$md5sum" $catalog || continue
+    grep -q 'md5:\ '"$1" "$catalog" || continue
     echo "$catalog"
     return
   done < "$CATALOGS"
   return 1
 }
 
+# GIT uses SHA1, but has a peculiar content prefix
+#htd_catalog_scan_for_sha1 "$1" && return
+
+# Can also include some Annex backends and LFS
 htd_catalog_scan_for_sha2()
 {
-  test_exists "$1"
-  local sha2sum=$(shasum -a 256 "$1" | awk '{print $1}')
-  note "Looking for SHA2: $sha2sum..."
+  note "Looking for SHA2: $1..."
   while read catalog
   do
-    grep -q 'sha2:\ '"$sha2sum" $catalog || continue
+    grep -q 'sha2:\ '"$1" "$catalog"|| continue
     echo "$catalog"
     return
   done < "$CATALOGS"
@@ -775,7 +775,6 @@ htd_catalog_update_keys() # Entry-Id [Keys...]
     shift
   done
 }
-
 
 htd_catalog_update_all()
 {
@@ -866,7 +865,7 @@ htd_catalog_cleanup_annex_missing()
 # Create simple one-file-per-line manifests for files, bytesize, sha2 and name
 catalog_sha2list()
 {
-  test -n "$1" || set -- catalog.sha2list
+  test -n "$1" || set -- .cllct/catalog.sha2list
   while read -r filename
   do
     test -e "$filename" || return
@@ -892,6 +891,7 @@ catalog_archive_manifest() # Archive-File
   esac
 }
 
+# Unpack and use catalog_sha2list to build a content manifest
 catalog_tar_archive_manifest()
 {
   local archive="$(realpath "$1")" ext=$(filenamext "$1")
@@ -908,7 +908,7 @@ catalog_tar_archive_manifest()
     printf -- " unpacking.."
     tar xf "$archive" || return
     printf -- " hashing all files.."
-    find_files | catalog_sha2list ../catalog.sha2list
+    find . -type f | catalog_sha2list ../catalog.sha2list
     printf -- " OK."
   )
   mv .cllct/tmp/catalog.sha2list "$catalog"
@@ -916,6 +916,7 @@ catalog_tar_archive_manifest()
   echo " New catalog $(basename "$catalog")"
 }
 
+# Unpack and use catalog_sha2list to build a content manifest
 catalog_zip_archive_manifest()
 {
   local archive="$(realpath "$1")" ext=$(filenamext "$1")
@@ -931,7 +932,7 @@ catalog_zip_archive_manifest()
   (
     cd "$tmpdir"
     printf -- " hashing all files.."
-    find_files | catalog_sha2list ../catalog.sha2list
+    find . -type f | catalog_sha2list ../catalog.sha2list
     printf -- " OK."
   )
   mv .cllct/tmp/catalog.sha2list "$catalog"
@@ -939,6 +940,7 @@ catalog_zip_archive_manifest()
   echo " New catalog $(basename "$catalog")"
 }
 
+# Line-by-line rewrite for size-sha2-filename list to Annex SHA256E backend keys
 lconv_sha2list_to_sha256e()
 {
   awk '{
@@ -948,6 +950,7 @@ lconv_sha2list_to_sha256e()
     print "SHA256E-s"$1"--"$2"."ext}' "$@"
 }
 
+# Line-by-line rewrite for Annex SHA256E backend keys to size-sha2-filename list
 lconv_sha256e_to_sha2list()
 {
   sed 's/SHA256E-s\([0-9]*\)--\([0-9a-f]*\)\(\..*\)/\1 \2 \3/g' "$@"
@@ -988,7 +991,7 @@ cllct_find_by_sha256e_keyparts()
       return
     } || true
   done
-  annices_find_by_sha2 "$2" && return
+  annices_scan_for_sha2 "$2" && return
   return 1
 }
 
@@ -1010,31 +1013,36 @@ cllct_sha256e_tempkey()
 
 cllct_cons_by_sha256e_tempkey()
 {
+  test -n "$noact" || noact=1
+  trueish "$noact" && pref=echo || pref=""
+  test -n "$backup" || backup=0
+  #test -n "$target" || target=~/htdocs/cabinet
+  test -n "$target" || target="/srv/$(readlink /srv/annex-local)/backup"
+
   i=0
   mkdir -p .cllct/tmp
-  find $1 -type f | while read fn
+  find $1 -type f | while read -r fn
   do
     descr= ext= size= sha2=
     cllct_sha256e_tempkey "$fn"
     test "$sha2" = "$empty_sha2" && continue
     cllct_find_by_sha256e_keyparts $size $sha2 $ext && {
       i=$(( $i + 1 ))
-      pwd
       ls -la "$fn"
-      rm "$fn"
-      rm .cllct/tmp/$name_key.sh
+      $pref rm "$fn"
+      $pref rm .cllct/tmp/$name_key.sh
       continue
     } || {
-      echo "Missing $content_key  $fn"
+      warn file_warn "Missing $content_key" "$fn"
       trueish "$backup" && {
-        test -e ~/htdocs/cabinet/"$fn" || {
-          mkdir -vp "$(dirname ~/htdocs/cabinet/"$fn")"
-          rsync -a "$fn" ~/htdocs/cabinet/"$fn"
+        test -e "$target/$fn" || {
+          $pref mkdir -vp "$(dirname "$target/$fn")"
+          $pref rsync -a "$fn" "$target/$fn"
         }
-        rm "$fn"
-        rm .cllct/tmp/$name_key.sh
+        $pref rm "$fn"
+        $pref rm .cllct/tmp/$name_key.sh
       } || true
     }
-    #erintf "$i. "
+    #printf "$i. "
   done
 }
