@@ -960,89 +960,6 @@ htd_catalog_droppedkeys()
   lconv_sha2list_to_sha256e "$1"
 }
 
-annex_dropbyname()
-{
-  KEY="$(git annex lookupkey "$1")" && annex_removebykey "$1" "$KEY"
-}
-
-# Lookup by SHA256E key or SHA-2, in every annex found in dir.
-annices_findbysha2list()
-{
-  while read -r size sha2 fn
-  do
-    test -n "$fn" -a -f "$fn" || continue
-    ext="$(filenamext "$fn")"
-    KEY="SHA256E-s${size}--${sha2}.$ext"
-    #annices_content_lookupbykey "$KEY" && { continue; }
-    #annices_content_lookupbysha2 "$sha2" && { continue; }
-    rs="$(annices_content_lookupbykey "$KEY")" && { echo "$rs"; continue; }
-    rs="$(annices_content_lookupbysha2 "$sha2")" && { echo "$rs"; continue; }
-    fnmatch "* *" "$fn" && warn "Illegal filename"
-    echo "$fn"
-  done
-}
-
-# Go over annices looking for key, echo annex path on success. Also,
-# contentlocation will be set to the local file path.
-annices_content_lookupbykey()
-{
-  info "Lookup by key '$1'.."
-  for annex in $ANNEX_DIR/*/
-  do
-    test -d "$annex/.git/annex/objects" || {
-      continue # No content in annex
-    }
-    debug "Annex '$annex'.."
-    (
-      cd "$annex" &&
-      contentlocation="$(git annex contentlocation "$1" || true)"
-      test -n "$contentlocation" && {
-        test -e "$contentlocation" && {
-          echo "$1 $annex $contentlocation"
-        } || {
-          echo "$1 $annex"
-        }
-        return 0
-      }
-    ) && return
-    # No occurrence in '$annex'
-    continue
-  done
-  return 1
-}
-
-# Go over annices looking for sha2, then get key and output as lookupbykey
-# instead key is a sha2. Set env backendfile and KEY as well.
-annices_content_lookupbysha2()
-{
-  info "Lookup by SHA-256 '$1'.."
-  for annex in $ANNEX_DIR/*/
-  do
-    test -d "$annex/.git/annex/objects" || {
-      continue # No content in annex
-    }
-    debug "Annex '$annex'.."
-    (
-      cd "$annex" &&
-      backendfile="$(find .git/annex/objects -type f -iname "SHA256*--$1*" | head -n 1)"
-      test -n "$backendfile" && {
-        KEY="$(basename "$backendfile")"
-        contentlocation="$(git annex contentlocation "$KEY" || true)"
-        test -n "$contentlocation" || error "$KEY" 1
-        test -e "$contentlocation" && {
-          echo "$1 $annex $contentlocation"
-        } || {
-          echo "$1 $annex"
-        }
-        return 0
-      }
-    ) && return
-    # No occurrence in '$annex'
-    continue
-  done
-  return 1
-}
-
 htd_catalog_doctree()
 {
   test -n "$1" || set -- dev cabinet note Home Shop Application data
@@ -1053,4 +970,71 @@ htd_catalog_doctree()
   txt.py doctree "" "$@"
   txt.py doctree --print-name "" "$@"
   # xsl_ver=1 htd tpaths "$1"
+}
+
+# Catalog files by sha2sum, using temp dir
+
+cllct_find_by_sha256e_keyparts()
+{
+  content_key="SHA256E-s${1}--${2}${3}"
+  for annex in $content_annices
+  do
+    annex_contentexists "$annex" "$content_key" && {
+      stderr 0 "Content for $fn found at $annex"
+      return
+    } || true
+    annex_keyexists "$annex" "$content_key" && {
+      stderr 0 "Key for $fn found at $annex"
+      return
+    } || true
+  done
+  annices_find_by_sha2 "$2" && return
+  return 1
+}
+
+cllct_sha256e_tempkey()
+{
+  name_key=$(echo "$1" | sha1sum - | tr -d '\n -')
+  test -e .cllct/tmp/$name_key.sh || {
+    {
+    echo "descr=\"$(fileformat "$1" | sed "s/[\"\$\`]/\\&/g" )\""
+    echo ext=$(filenamext "$1")
+    echo size=$(filesize "$1")
+    echo sha2=$(shasum -a 256 "$1" | cut -d ' ' -f1 )
+    } >.cllct/tmp/$name_key.sh
+    stderr 0 "New $name_key.sh for '$1'"
+  }
+  . ./.cllct/tmp/$name_key.sh || return 1
+  test -z "$ext" || ext=.$ext
+}
+
+cllct_cons_by_sha256e_tempkey()
+{
+  i=0
+  mkdir -p .cllct/tmp
+  find $1 -type f | while read fn
+  do
+    descr= ext= size= sha2=
+    cllct_sha256e_tempkey "$fn"
+    test "$sha2" = "$empty_sha2" && continue
+    cllct_find_by_sha256e_keyparts $size $sha2 $ext && {
+      i=$(( $i + 1 ))
+      pwd
+      ls -la "$fn"
+      rm "$fn"
+      rm .cllct/tmp/$name_key.sh
+      continue
+    } || {
+      echo "Missing $content_key  $fn"
+      trueish "$backup" && {
+        test -e ~/htdocs/cabinet/"$fn" || {
+          mkdir -vp "$(dirname ~/htdocs/cabinet/"$fn")"
+          rsync -a "$fn" ~/htdocs/cabinet/"$fn"
+        }
+        rm "$fn"
+        rm .cllct/tmp/$name_key.sh
+      } || true
+    }
+    #erintf "$i. "
+  done
 }

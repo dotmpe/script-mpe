@@ -8,6 +8,10 @@ annex_list()
   do
     test -e "$file" -o -h "$file" && echo "$file"
   done
+
+  content_annices="/srv/annex-local/archive-old /srv/annex-local/backup /srv/annex-local/photos /srv/annex-local/NathalieH /srv/annex-local/enemies"
+
+  . ~/.local/composure/find_by_sha2.inc
 }
 
 # Print each file entries' metadata k/v. Pairs have liberal format, something
@@ -376,4 +380,104 @@ annexdir_check()
 
   done
   return $r
+}
+
+annex_dropbyname()
+{
+  KEY="$(git annex lookupkey "$1")" && annex_removebykey "$1" "$KEY"
+}
+
+# Lookup by SHA256E key or SHA-2, in every annex found in dir.
+annices_findbysha2list()
+{
+  while read -r size sha2 fn
+  do
+    test -n "$fn" -a -f "$fn" || continue
+    ext="$(filenamext "$fn")"
+    KEY="SHA256E-s${size}--${sha2}.$ext"
+    #annices_content_lookupbykey "$KEY" && { continue; }
+    #annices_content_lookupbysha2 "$sha2" && { continue; }
+    rs="$(annices_content_lookupbykey "$KEY")" && { echo "$rs"; continue; }
+    rs="$(annices_content_lookupbysha2 "$sha2")" && { echo "$rs"; continue; }
+    fnmatch "* *" "$fn" && warn "Illegal filename"
+    echo "$fn"
+  done
+}
+
+# Go over annices looking for key, echo annex path on success. Also,
+# contentlocation will be set to the local file path.
+annices_content_lookupbykey()
+{
+  info "Lookup by key '$1'.."
+  for annex in $ANNEX_DIR/*/
+  do
+    test -d "$annex/.git/annex/objects" || {
+      continue # No content in annex
+    }
+    debug "Annex '$annex'.."
+    (
+      cd "$annex" &&
+      contentlocation="$(git annex contentlocation "$1" || true)"
+      test -n "$contentlocation" && {
+        test -e "$contentlocation" && {
+          echo "$1 $annex $contentlocation"
+        } || {
+          echo "$1 $annex"
+        }
+        return 0
+      }
+    ) && return
+    # No occurrence in '$annex'
+    continue
+  done
+  return 1
+}
+
+# Go over annices looking for sha2, then get key and output as lookupbykey
+# instead key is a sha2. Set env backendfile and KEY as well.
+annices_content_lookupbysha2()
+{
+  info "Lookup by SHA-256 '$1'.."
+  for annex in $ANNEX_DIR/*/
+  do
+    test -d "$annex/.git/annex/objects" || {
+      continue # No content in annex
+    }
+    debug "Annex '$annex'.."
+    (
+      cd "$annex" &&
+      backendfile="$(find .git/annex/objects -type f -iname "SHA256*--$1*" | head -n 1)"
+      test -n "$backendfile" && {
+        KEY="$(basename "$backendfile")"
+        contentlocation="$(git annex contentlocation "$KEY" || true)"
+        test -n "$contentlocation" || error "$KEY" 1
+        test -e "$contentlocation" && {
+          echo "$1 $annex $contentlocation"
+        } || {
+          echo "$1 $annex"
+        }
+        return 0
+      }
+    ) && return
+    # No occurrence in '$annex'
+    continue
+  done
+  return 1
+}
+
+annices_find_by_sha2()
+{
+  test -n "$1" || stderr 0 "SHA2 expected" 1
+  local cwd="$(pwd)"
+  for annex in $content_annices
+  do
+    cd "$annex"
+    git grep -q "$1" && {
+      cd "$pwd";
+      stderr 0 "SHA2 for $fn found at $annex"
+      return;
+    } || continue
+  done
+  cd "$cwd"
+  return 1
 }
