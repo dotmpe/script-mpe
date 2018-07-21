@@ -153,7 +153,7 @@ annex_removebykey()
   annex_parsekey "$2"
   git annex dropkey --force "$2" || return
   test -n "$1" || set -- "$keyext" "$2"
-  test -z "$reason" || set -- ="$1\t$reason" "$2"
+  test -z "$reason" || set -- "$1\t$reason" "$2"
   printf "$size $sha2 $1\n" >> ./.catalog/dropped.sha2list
   test -z "$fn" || git rm "$fn"
 }
