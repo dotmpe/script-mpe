@@ -3,8 +3,8 @@ cols=$(tput cols)
 vpadd="$(seq $(( $(tput lines) / 8 )) | while read; do printf 'echo;'; done)"
 case "$(uname)" in
 
-  Darwin ) esc=`echo '\033'` ;;
-  Linux | CYGWIN_NT-6.1 ) esc=`echo '\o33'` ;;
+  Linux | Darwin ) esc=`echo '\033'` ;;
+  CYGWIN_NT-6.1 ) esc=`echo '\o33'` ;;
 
 esac
 
