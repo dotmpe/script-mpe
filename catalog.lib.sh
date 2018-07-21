@@ -104,7 +104,7 @@ htd_catalog_listtree()
   test -n "$1" || set -- "."
   local scm='' ; trueish "$use_find" || vc_getscm "$1"
   { test -n "$scm" && {
-    info "SCM: $scm"
+    info "SCM: $scm (listing untracked/ignored only)"
     req_cons_scm
     # XXX: { vc tracked-files || error "Listing all from SCM" 1; } ||
     trueish "$scm_all" && {
@@ -118,9 +118,10 @@ htd_catalog_listtree()
     } || htd_catalog_update_ignores
     local find_ignores="-false $(find_ignores "$Catalog_Ignores") "\
 " -o -exec test ! \"{}\" = \"$1\" -a -e \"{}/$CATALOG_DEFAULT\" ';' -a -prune "\
-" -o -exec test -e \"{}/$CATALOG_IGNORE_DIR\" ';' -a -prune"
+" -o -exec test -e \"{}/$CATALOG_IGNORE_DIR\" ';' -a -prune "\
+" -o -exec test ! -d \"{}\" ';' "
     #eval find "$1" -not -type d $find_ignores -o -type f -a -print
-    eval find "$1" $find_ignores -o -type f -a -print ;
+    eval find -H "$1" $find_ignores -a -print ;
   } }
 }
 
@@ -299,13 +300,9 @@ htd_catalog_get_by_key() # [CATALOG] CKS...
   return 1
 }
 
-htd_catalog_add_from_folder()
-{
-  htd_catalog_add_all_larger "$1" -1
-}
-
 htd_catalog_add_file() # File
 {
+  # TODO: check other catalogs, dropped entries too before adding.
   htd_catalog_has_file "$1" && {
     info "File '$(basename "$1")' already in catalog"
     return 2
@@ -376,7 +373,8 @@ htd_catalog_add() # File..
     test -n "$1" -a -e "$1" || error "File or dir expected" 1
     test -d "$1" && {
       #htd_catalog_add_as_folder "$1" && note "Added folder '$1'" || true
-      htd_catalog_add_from_folder "$1" && note "Added folder '$1'" || true
+      htd_catalog_add_from_folder "$1" &&
+        note "Added folder '$1'" || error "Adding folder '$1'" 1
     } || {
       htd_catalog_add_file "$1" && note "Added file '$1'" || { r=$?
         test $r -eq 2 && continue
@@ -387,18 +385,29 @@ htd_catalog_add() # File..
   done
 }
 
+# Add all untracked files (if default; use_find=0)
 htd_catalog_add_all()
 {
   htd_catalog_add_all_larger "." -1
 }
 
+# Add everything from given fodler, optionally pass size
+htd_catalog_add_from_folder()
+{
+  test -n "$2" || set -- "$1" -1
+  use_find=1 htd_catalog_add_all_larger "$1" "$2"
+}
+
+# Add every untracked file, larger than
 htd_catalog_add_all_larger() # DIR SIZE
 {
   test -n "$1" || set -- . "$2"
   test -n "$2" || set -- "$1" 1048576
+  note "Adding larger than '$2' from '$1'"
   htd_catalog_listtree "$1" | while read fn
   do
-    test -f "$fn" || { warn "File expected '$fn'" ; continue ; }
+    test -e "$fn" -a \( -h "$fn" -o -f "$fn" \) || {
+      warn "File expected '$fn'" ; continue ; }
     test $2 -lt $(ht filesize "$fn") || continue
     htd_catalog_add_file "$fn" || { r=$?
       test $r -eq 2 && continue
@@ -872,7 +881,7 @@ catalog_sha2list()
     filesize "$filename" | tr -d '\n'
     printf -- " "
     shasum -a 256 "$filename"
-  done > "$1"
+  done >> "$1"
 }
 
 # Get an checksum manifest by unpacking and checksumming, and insert size

@@ -3805,27 +3805,28 @@ htd__file()
         ;;
 
       drop ) shift
-          annex="$( go_to_dir_with .git/annex && pwd )" || return 1
-          test -n "$annex" && {
-            foreach "$@" | while read -r fn
-            do
-              annex_dropbyname "$fn"
-            done
-            return
-          }
-          git="$( go_to_dir_with .git && pwd )" || return 1
-          test -n "$git" && {
-            echo git=$git
-            return
-          }
-          base="$( go_to_dir_with .cllct && pwd )" || return 1
-          test -n "$base " && {
-            foreach "$@" | while read -r fn
-            do
-              echo "$fn" | catalog_sha2list .catalog/dropped.sha2list
-              rm "$fn"
-            done
-          }
+          annex="$( go_to_dir_with .git/annex && pwd )" || return 61
+          git="$( go_to_dir_with .git && pwd )" || return 62
+          base="$( go_to_dir_with .cllct && pwd )" || return 63
+
+          foreach "$@" | while read -r fn
+          do
+            {
+              test -n "$annex" &&
+              test -h "$fn" && fnmatch "SHA256E-*" 
+            } && {
+              annex_dropbyname "$fn" || return
+              continue
+            } || true
+            
+            echo "$fn" | catalog_sha2list .catalog/dropped.sha2list
+            test -n "$git" && {
+              git rm "$fn" || true
+            } || {
+              rm "$fn" || return
+            }
+          done
+          return
         ;;
 
       status ) shift
