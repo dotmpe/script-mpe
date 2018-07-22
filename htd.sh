@@ -3813,12 +3813,14 @@ htd__file()
           do
             {
               test -n "$annex" &&
-              test -h "$fn" && fnmatch "SHA256E-*" 
+                test -h "$fn" &&
+                  fnmatch "SHA256E-*"  "$(basename "$(readlink "$fn")")"
             } && {
               annex_dropbyname "$fn" || return
+              git rm "$fn" || true
               continue
             } || true
-            
+
             echo "$fn" | catalog_sha2list .catalog/dropped.sha2list
             test -n "$git" && {
               git rm "$fn" || true

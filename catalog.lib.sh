@@ -878,9 +878,10 @@ catalog_sha2list()
   while read -r filename
   do
     test -e "$filename" || return
-    filesize "$filename" | tr -d '\n'
+    filesize "$filename" | tr -d '\n\r'
     printf -- " "
-    shasum -a 256 "$filename"
+    shasum -a 256 "$filename" | tr -d '\n\r'
+    test -n "$reason" && printf "\t$reason\n" || printf "\n"
   done >> "$1"
 }
 

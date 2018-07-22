@@ -150,8 +150,10 @@ annex_removebykey()
   local size sha2 keyext KEY keys_sha2 fn
   note "Dropping '$1'.."
   test -e "$1" && fn="$1" || fn=
-  annex_parsekey "$2"
-  git annex dropkey --force "$2" || return
+  # NOTE: content does need to be present, key should exist ofcourse
+  info "Dropping KEY=$2.."
+  annex_parsekey "$2" || return
+  git annex dropkey --force "$2" || echo dropkey-exit=$?
   test -n "$1" || set -- "$keyext" "$2"
   test -z "$reason" || set -- "$1\t$reason" "$2"
   printf "$size $sha2 $1\n" >> ./.catalog/dropped.sha2list
@@ -391,7 +393,8 @@ annexdir_check()
 
 annex_dropbyname()
 {
-  KEY="$(git annex lookupkey "$1")" && annex_removebykey "$1" "$KEY"
+  KEY="$(git annex lookupkey "$1")" || return
+  annex_removebykey "$1" "$KEY"
 }
 
 # Lookup by SHA256E key or SHA-2, in every annex found in dir.
