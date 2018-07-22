@@ -151,8 +151,8 @@ annex_removebykey()
   note "Dropping '$1'.."
   test -e "$1" && fn="$1" || fn=
   # NOTE: content does need to be present, key should exist ofcourse
-  info "Dropping KEY=$2.."
   annex_parsekey "$2" || return
+  info "Dropping KEY=$2.."
   git annex dropkey --force "$2" || echo dropkey-exit=$?
   test -n "$1" || set -- "$keyext" "$2"
   test -z "$reason" || set -- "$1\t$reason" "$2"
