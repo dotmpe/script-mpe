@@ -61,8 +61,20 @@ annex_metadata_json()
   #git annex metadata -j | jq -cr 'walk( if type == "object" then with_entries( .key |= sub( "-lastchanged"; "" ) ) else . end )'
   #git annex metadata -j | jq -cr 'select(.fields!={}) | .fields | map({ tag })'
   #git annex metadata -j | jq -cr 'select(.fields!={}) | map(del(.fields.lastchanged))'
+
+  # Annex 6.0 and jq 1.5 minimum
+
   git annex metadata -j |
-      jq -cr 'select(.fields!={}) | with_entries(.key|=sub("-lastchanged";"")) | .file,.fields'
+    # Ignore  illegal json for files w/o metadata
+    grep -v ',,'
+  return
+  #  |
+  #  jq -r 'select(.fields!={} and .fields!=null) | .file,.fields'
+  #return
+
+  # Requires jq 1.5
+  git annex metadata -j |
+      jq -r 'select(.fields!={}) | with_entries(.key|=sub("-lastchanged";"")) | .file,.fields'
 }
 
 # Parse annex SHA256E key into size, sha2, keyext
