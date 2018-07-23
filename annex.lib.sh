@@ -164,7 +164,7 @@ git_annex_dropkeys()
 {
   while read -r key
   do
-    git annex dropkey --force $key || continue
+    git annex dropkey --force $key || warn "$? on key '$key'"
   done
 }
 
