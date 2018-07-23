@@ -352,14 +352,20 @@ annexdir_sync()
 }
 annexdir_get()
 {
-  test -n "$1" || set -- .
+  test -n "$1" || set -- --auto
+  #test -n "$1" || set -- .
+  info "Annexdir get '$*'..."
   # From Annex/* dir, sync and an get all
   for a in $(pwd)/*/
   do
     echo "$a"
     test -e "$a/.git" || continue
-    cd "$a" && git annex sync && git annex get "$1"
+    cd "$a" && git annex sync && git annex get "$@"
   done
+}
+annexdir_getpref()
+{
+  annexdir_getpref --auto
 }
 annexdir_run()
 {
