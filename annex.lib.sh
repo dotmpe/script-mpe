@@ -314,7 +314,7 @@ annexdir_update()
   r=0
   for x in ./*/
   do
-    test -d "$x/.git/annex" || warn "Not an annex '$x'" 1
+    test -d "$x/.git/annex" || { warn "Not an annex '$x'" ; continue; }
 
     # TODO: may want to check package for init script
     (
@@ -342,7 +342,7 @@ annexdir_sync()
   r=0
   for x in ./*/
   do
-    test -d "$x/.git/annex" || warn "Not an annex '$x'" 1
+    test -d "$x/.git/annex" || { warn "Not an annex '$x'" ; continue; }
     (
       cd $x
       git annex sync
@@ -360,6 +360,7 @@ annexdir_get()
   do
     echo "$a"
     test -e "$a/.git" || continue
+    test -d "$a/.git/annex" || { warn "Not an annex '$a'" ; continue; }
     cd "$a" && git annex sync && git annex get "$@"
   done
 }
@@ -373,7 +374,8 @@ annexdir_run()
   test -n "$*" || set -- git status
   for x in ./*/
   do
-    test -d "$x/.git/annex" || warn "Not an annex '$x'" 1
+    test -d "$x/.git" || { warn "Not an repository '$x'" ; continue; }
+    test -d "$x/.git/annex" || warn "Not an annex '$x'"
     basename "$x"
     (
       cd $x
@@ -387,11 +389,10 @@ annexdir_check()
   local r=0
   for x in ./*/
   do
-    test -d "$x/.git/annex" || warn "Not an annex '$x'" 1
-    r=1
+    test -d "$x/.git/annex" && continue
     test -d "$x/.git" &&
-      echo "Not an Annex repo: '$x'" >&2 ||
-      echo "Not an GIT repo: '$x'" >&2
+      error "Not an Annex repo: '$x'" ||
+      error "Not an GIT repo: '$x'"
 
   done
   return $r
