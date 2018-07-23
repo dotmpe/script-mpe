@@ -613,6 +613,7 @@ htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
   cd "$1" || error "Annex dir expected '$1'" 1
   note "PWD: $(pwd)"
   shift
+  note "Now building JQ update script <$jq_scr>..."
   annex_list $@ | metadata_keys=1 metadata_exists=1 annex_metadata |
       while read -d $'\f' block_
   do
@@ -630,19 +631,26 @@ htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
     #catalog_backup=0 htd_catalog_update "" "$name" "$json"
   done
   # Update catalog now
+  note "Done building script, executing catalog update..."
   cd "$cwd"
   update_json=1 htd_catalog_update "" "$jq_scr" || r=$?
   rm "$jq_scr"
   return $r
+}
 
-  # XXX: JSON directly makes it hard to filter -lastchanged out
-  annex_metadata_json |
-      while { read file && read fields ; }
-      do
-          #htd_catalog_set "" "$file" "$fields"
-          echo "file='$file' fields='$fields'"
-          #echo "{\"name\":\"$(basename "$file")\",$fields}"
-      done
+htd_catalog_from_annex_json()
+{
+  # XXX: JSON directly makes it hard to filter -lastchanged out..?
+  # XXX: Annex 5.2 json output is botched,
+
+  annex_metadata_json
+#    |
+#      while { read file && read fields ; }
+#      do
+#          #htd_catalog_set "" "$file" "$fields"
+#          echo "file='$file' fields='$fields'"
+#          #echo "{\"name\":\"$(basename "$file")\",$fields}"
+#      done
 }
 
 # TODO: Import files from LFS test-server content dir (by SHA2)
