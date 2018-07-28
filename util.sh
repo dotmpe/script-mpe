@@ -94,7 +94,7 @@ util_init()
     test -n "$scriptpath" && {
       export SCRIPTPATH=$scriptpath
     } || {
-      exit 106
+      exit 106 # No SCRIPTPATH or scriptpath env
     }
   }
   test -n "$LOG" || export LOG=$scriptpath/log.sh

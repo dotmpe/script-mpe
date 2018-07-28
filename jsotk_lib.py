@@ -122,10 +122,12 @@ class AbstractKVParser(object):
 
         # Maybe want to allow other parsers too, ie YAML values
         if isinstance(value, basestring):
-            if value[0] + value[-1] in ["''", '""']:
+            if value and value[0] + value[-1] in ["''", '""']:
                 value = value[1:-1]
             # Default value if empty is string
-            if value.lower() in ('none', 'null', 'nil'):
+            if not value:
+                value = ""
+            elif value.lower() in ('none', 'null', 'nil'):
                 value = None
             elif values_as_json:
                 value = parse_json(value)
