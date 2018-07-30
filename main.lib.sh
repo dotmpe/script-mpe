@@ -1,6 +1,8 @@
 #!/bin/sh
 
 set -e
+# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
+# shellcheck disable=SC2039,SC2069
 
 
 # Main: CLI helpers; init/run func as subcmd
@@ -187,8 +189,9 @@ get_subcmd_func()
         test -n "$subcmd_alias" || error oops 1
         subcmd="$(echo "$subcmd_alias" | cut -d ' ' -f 1)"
         subcmd_args_pre="$(echo "$subcmd_alias" | cut -d ' ' -f 2-)"
-        #warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
+        test -z "$DEBUG" || warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
         set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
+        export subcmd subcmd_args_pre
       }
     }
 
@@ -742,10 +745,9 @@ run_subcmd()
     || info "** starting DRY RUN $scriptname $subcmd **"
 
   # Execute and exit
-
   $subcmd_func "$@" && {
     prev_subcmd=$subcmd
-    main_unload $box_prefix && true || {
+    main_unload "$box_prefix" && true || {
       error "Command $prev_subcmd failed ($?)" 4
     }
 

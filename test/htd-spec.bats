@@ -219,16 +219,15 @@ setup() {
   }
 }
 
-
-@test "$bin archive-path journal/" {
-  tmpd
-  cd $tmpd
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -ne 0 || {
-    diag "Output: ${lines[*]}"
-    fail "$BATS_TEST_DESCRIPTION ($status)"
-  }
-}
+#@test "$bin archive-path journal" {
+#  tmpd
+#  cd $tmpd
+#  run $BATS_TEST_DESCRIPTION
+#  test ${status} -ne 0 || {
+#    diag "Output: ${lines[*]}"
+#    fail "$BATS_TEST_DESCRIPTION ($status)"
+#  }
+#}
 
 
 # Adjusted for cabinet

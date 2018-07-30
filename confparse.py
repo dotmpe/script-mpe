@@ -124,6 +124,9 @@ def yaml_dumps(*args, **kwds):
     kwds.update(dict( Dumper=dd ))
     return ruamel.yaml.dump(*args, **kwds)
 
+def yaml_safe_dumps(*args, **kwds):
+    kwds['ignore_aliases'] = True
+    return yaml_dumps(*args, **kwds)
 
 def yaml_dump(fl, *args, **kwds):
     """

@@ -5,10 +5,20 @@
 # Htdocs: work in progress 'daily' shell scripts
 #
 # shellcheck disable
+# shellcheck disable=SC2120 # func references arguments, but none are ever passed
+# shellcheck disable=SC2034 # unused, unexported var
+# shellcheck disable=SC2015 # A && B || C is not if-then-else
 # shellcheck disable=SC2154 # undefined var
 # shellcheck disable=SC2230 # which is non-standard
-# shellcheck disable=SC2086 # double-quote to prevent globbing and word splitting
 # shellcheck disable=SC2155 # declare separately to avoid return masking
+# shellcheck disable=SC2209 # Use var=$(command) to assign output (or quote to assign string)
+# shellcheck disable=SC2004 # $/${} is unnecessary on arithmetic variables
+# shellcheck disable=SC2086 # double-quote to prevent globbing and word splitting
+# SC2046 # Quote this to prevent word splitting
+# SC2059 # Don't use variables in the printf format string. Use printf "..%s.." "$foo"
+# SC2119 # Use "$@" if function's $1 should mean script's $1
+# SC2039 # In POSIX sh, 'local' is undefined
+# SC2068 # Double quote array expansions to avoid re-splitting elements
 htd_src=$_
 
 set -o posix
@@ -164,8 +174,9 @@ htd_load()
   ns_tab=$UCONFDIR/namespace/$hostname.tab
 
   which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) || {
-    which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) ||
-      warn "No rst2xml"
+    which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) || {
+      test -z "$DEBUG" || warn "No rst2xml"
+    }
   }
 
   test -n "$htd_session_id" || htd_session_id=$(htd__uuid)
@@ -3220,73 +3231,16 @@ htd__done()
 }
 
 
-# Read urls for local files from file. If url is local dir, then
-# use that to change CWD.
-htd__urls_list()
-{
-  local cwd=$(pwd) file=
-  htd_urls_args "$@"
-  grep '\([a-z]\+\):\/\/.*' $file | while read url fn
-  do
-    test -d "$cwd/$url" && {
-      cd $cwd/$url
-      continue
-    }
-    test -n "$fn" || fn="$(basename "$url")"
-    sha1ref=$(printf $url | sha1sum - | cut -d ' ' -f 1)
-    md5ref=$(printf $url | md5sum - | cut -d ' ' -f 1)
-    #echo $sha1ref $md5ref $url
-    test -e "$fn" && {
-      note "TODO: check checksum for file $fn"
-    } || {
-      warn "No file '$fn'"
-    }
-  done
-}
-
-htd__urls_get()
-{
-  local cwd=$(pwd) file=
-  htd_urls_args "$@"
-  read_nix_style_file "$file" | while read url fn utime size checksum
-  do
-    test -d "$cwd/$url" && {
-      cd $cwd/$url
-      continue
-    }
-    test -n "$fn" || fn="$(basename "$url")"
-    test -e "$fn" || {
-      wget -q "$url" -O "$fn" && {
-        test -e "$fn" && note "New file $fn"
-      } || {
-        error "Retrieving file $fn"
-      }
-    }
-  done
-}
-
-htd_urls_args()
-{
-  test -n "$1" && file=$1 || file=urls.list
-  test -e "$file" || error urls-list-file 1
-}
-
+htd_man_1__urls='Grep URLs from plain text
+'
 htd__urls()
 {
   test -n "$1" || set -- list
-  local act=$1; shift
-  case "$act" in
-    get )
-        htd__urls_get "$@" || return $?
-      ;;
-    list )
-        htd__urls_list "$@" || return $?
-      ;;
-    * ) error "No action '$act' for Htd urls"
-        return 4
-      ;;
-  esac
+  upper=0 mkvid "$1" ; shift ; func=htd_urls_$vid
+  func_exists "$func" || func=urls_$vid
+  $func "$@" || return $?
 }
+
 
 
 htd_man_1__git='FIXME: cleanup below
@@ -3311,158 +3265,40 @@ See also:
     vc
 '
 
-htd__git_remote_list_for_ns()
-{
-  grep -l NS_NAME=$1 $UCONFDIR/git/remote-dirs/*.sh
-}
 
-htd_man_1__git_remote='List repos at remote (for SSH), or echo remote URL.
+htd_man_1__gitremote='List repos at remote (for SSH), or echo remote URL.
 
-If the argument represents a generic name for a remote account then a file
-exists in ~/.conf/git/git-remote/*.sh with the properties. Else, the argument
-represents one vendor-id or ns-name.
+    TODO: list
+    list-for-ns Ns-Name
 
-XXX: Action is optional sometimes
+    TODO: hostinfo [ Remote-Name | Remote-ID ]
+        Get host for given remote name or remote-dir Id.
+
+
+TODO: match repositories for user/host with remote providers (SSH dirs, GIT
+servers)
 '
-htd_spc__git_remote='git-remote [ Action ] [ Remote-Id | ( Vendor-Id [ Remote-Id ] [ Ns-Name ] ) ]'
-htd__git_remote()
+htd__gitremote()
 {
   local remote_dir= remote_hostinfo= remote_name=
-  # Default is to list names at Htd-GIT-Remote env
-  test -n "$*" || set -- "$HTD_GIT_REMOTE"
-  # Insert empty arg if first represents remote-dir sh-props file
-  test -e $UCONFDIR/git/remote-dirs/$1.sh && set -- "" "$@"
+  lib_load gitremote
 
-  # Default command to 'list' when remote-id exists and no further args given
-  test -e $UCONFDIR/git/remote-dirs/$2.sh -a -z "$1" && {
-    test -z "$3" && set -- "list" "$2" || set -- url "$2" "$3"
+  test -n "$*" || set -- "$HTD_GIT_REMOTE"
+
+  # Insert empty arg if first represents remote-dir sh-props file
+  test -e $UCONFDIR/git/remote-dirs/$1.sh -a $# -le 2 && {
+    # Default command to 'list' when remote-id exists and no further args given
+    test $# -eq 1 && set -- "list" "$@" || set -- url "$@"
   }
 
   note "Args initialized '$*'"
-  {
-    C=$UCONFDIR/git/remote-dirs/$2.sh
 
-    test -e "$C" || { local vendor=
-
-        # See for specific account per vendor
-        htd__git_remote_list_for_ns $2 | while read remote
-        do
-          test -h "$remote" && continue # ignore account aliases
-          get_property $remote VENDOR
-          vendor=$(get_property $remote VENDOR) || continue
-          test -n "$vendor" || continue
-          #set -- "$1" "$2" "$(basename $remote .sh)" "$vendor"
-          stderr ok "account $2 for vendor $4 at file $3"
-
-        done
-
-        # FIXME
-            stderr fail "account $2 for vendor $4 at file $3"
-        test -n "$4" -a -n "$3" &&
-            stderr ok "account $2 for vendor $4 at $3" ||
-            error "Missing any remote-dir file for ns-name '$2'" 1
-        C=$UCONFDIR/git/remote-dirs/$3.sh
-        #set -- "$1" "$(basename $C .sh)" "$vendor" "$NS_NAME"
-    }
-
-    . $C
-
-    test -n "$3" || {
-
-        test -n "$vendor" || error "Vendor for remote now required" 1
-        test -n "$NS_NAME" || error "Expected NS_NAME still.. really" 1
-        #set -- "$1" "$(basename $C .sh)" "$vendor" "$NS_NAME"
-    }
-
-    #|| error "Missing remote GIT dir script" 1
-    test -n "$remote_dir" || {
-      info "Using $NS_NAME for $2 remote vendor path"
-       remote_dir=$NS_NAME
-    }
-
-    note "Cmd initialized '$*'"
-    case "$1" in
-
-      stat )
-          for rt in github dotmpe wtwta-1
-          do
-            repos=$UCONFDIR/git/remote-dirs/$rt.list
-            { test -e $repos && newer_than $repos $_1DAY
-            } || htd git-remote list $rt > $repos
-            note "$rt: $(count_lines "$repos")"
-          done
-        ;;
-
-      url )
-          test -n "$3" || error "repo name expected" 1
-          #git_url="ssh://$remote_host/~$remote_user/$remote_dir/$1.git"
-          echo "$remote_hostinfo:$remote_dir/$3"
-        ;;
-
-      github-list )
-          test -n "$2" || error "vendor-name required" 1
-          test -n "$3" || error "remote-name required" 1
-          test -n "$4" || error "ns-name required" 1
-          test -n "$remote_list" || remote_list=$3.list
-          confd=$UCONFDIR/git/remote-dirs
-          repos=$UCONFDIR/git/remote-dirs/$3.json
-
-          { test -e $repos && newer_than $repos $_1DAY
-          } && stderr ok "File UCONFDIR:git/remote-dirs/$3.json" || {
-
-            URL="https://api.github.com/users/$4/repos"
-            per_page=100
-            htd_resolve_paged_json $URL per_page page > $repos || return $?
-          }
-
-          test -e $confd/$remote_list -a $confd/$remote_list -nt $repos && {
-
-            cat $confd/$remote_list || return $?
-          } || {
-            jq -r 'to_entries[] as $r | $r.value.full_name' $repos | tee $confd/$remote_list
-          }
-          wc -l $confd/$remote_list
-        ;;
-
-      list ) test -z "$3" || error "no filter '$3'" 1
-          # List values for first arguments
-          test -n "$remote_list" && {
-
-            htd__git_remote list $remote_list $NS_NAME || return $?
-
-          } || {
-
-            test -n "$remote_dir" && {
-              ssh_cmd="cd $remote_dir && ls | grep '.*.git$' | sed 's/\.git$//g' "
-              ssh $ssh_opts $remote_hostinfo "$ssh_cmd"
-            } ||
-               error "No SSH or list API for GIT remote '$1'" 1
-          }
-        ;;
-
-      info )
-          test -n "$2" || error "remote name required" 1
-          test -n "$3" && {
-            echo "remote.$2.git.url=$remote_hostinfo:$remote_dir/$3"
-            echo "remote.$2.scp.url=$remote_hostinfo:$remote_dir/$3.git"
-            echo "remote.$2.repo.dir=$remote_dir/$3.git"
-            echo "remote.$2.hostinfo=$remote_hostinfo"
-          } || {
-            echo "remote.$2.repo.dir=$remote_dir"
-            echo "remote.$2.hostinfo=$remote_hostinfo"
-          }
-        ;;
-
-      sh-env ) shift
-          test -n "$3" || set -- "$1" "$2" remote_
-          htd__git_remote info "$1" "$2" | sh_properties - 'remote\.'"$1"'\.' "$3"
-        ;;
-
-      * ) error "'$1'?" 1 ;;
-
-    esac
-  }
+  test -n "$1" || set -- list
+  upper=0 mkvid "$1" ; shift ; func=gitremote_$vid
+  $func "$@" || return $?
 }
+
+
 
 htd__git_init_local() # [ Repo ]
 {
@@ -3494,7 +3330,7 @@ htd__git_init_remote() # [ Repo ]
   htd__git_init_local || warn "Error initializing local repo ($?)"
 
   # Remote repo, idem.
-  local $(htd__git_remote sh-env "$remote" "$repo")
+  local $(htd__gitremote sh-env "$remote" "$repo")
   {
     test -n "$remote_hostinfo" && test -n "$remote_repo_dir"
   } ||
@@ -3534,10 +3370,10 @@ htd__git_drop_remote()
   [ -n "$1" ] && repo="$1" || repo="$PROJECT"
   log "Checking if repo exists.."
   ssh_opts=-q
-  htd__git_remote | grep $repo || {
+  htd__gitremote | grep $repo || {
     error "No such remote repo $repo" 1
   }
-  source_git_remote
+  source_git_remote # FIXME
   log "Deleting remote repo $remote_user@$remote_host:$remote_dir/$repo"
   ssh_cmd="rm -rf $remote_dir/$repo.git"
   ssh -q $remote_user@$remote_host "$ssh_cmd"
@@ -3585,7 +3421,7 @@ htd__git_missing()
   test -d /srv/project-local || error "missing local project folder" 1
   test -d /srv/scm-git-local || error "missing local git folder" 1
 
-  htd__git_remote | while read repo
+  htd__gitremote | while -r read repo
   do
     test -e /srv/scm-git-local/$repo.git || warn "No src $repo" & continue
     test -e /srv/project-local/$repo || warn "No checkout $repo"
@@ -3597,7 +3433,7 @@ htd__git_init_src()
 {
   test -d /srv/scm-git-local || error "missing local git folder" 1
 
-  htd__git_remote | while read repo
+  htd__gitremote | while read repo
   do
     fnmatch "*annex*" "$repo" && continue
     test -e /srv/scm-git-local/$repo.git || {
@@ -3752,8 +3588,8 @@ htd_man_1__file='TODO: Look for name and content at path; then store and cleanup
 
     newer-than
     older-than
-    mediatype|mtype
-    modified|mtime
+    mtype
+    mtime
     mtime-relative
     status
     info
@@ -3761,101 +3597,30 @@ htd_man_1__file='TODO: Look for name and content at path; then store and cleanup
 Given path, find matching from storage using name, or content. On match, compare
 and remove path if in sync.
 '
+htd_run__file=f
 htd__file()
 {
   test -n "$1" || set -- info
-
-  case "$1" in
-
-      newer-than ) shift
-          test -e "$1" || error "htd file new-than file expected '$1'" 1
-          case "$2" in *[0-9] ) ;;
-              * ) set -- "$1" "$(eval echo \"\$_$2\")" ;; esac
-          newer_than "$1" "$2" || return $?
-        ;;
-
-      older-than ) shift
-          test -e "$1" || error "htd file new-than file expected '$1'" 1
-          case "$2" in *[0-9] ) ;;
-              * ) set -- "$1" "$(eval echo \"\$_$2\")" ;; esac
-          older_than "$1" "$2" || return $?
-        ;;
-
-      mediatype|mtype ) filemtype "$2" ;;
-      modified|mtime ) filemtime "$2" ;;
-      mtime-relative ) fmtdate_relative "$(filemtime "$2")" ;;
-
-      size ) shift
-          filesize "$1"
-        ;;
-
-      find ) shift
-          foreach "$@" | catalog_sha2list /dev/fd/1 | htd__file find-by-sha2list
-        ;;
-
-      find-by-sha2list ) shift
-          cat "$@" | annices_findbysha2list
-        ;;
-
-      find-by-sha256e ) shift
-          foreach "$@" | while read -r KEY
-          do
-            annices_content_lookupbykey "$KEY" || return
-          done
-        ;;
-
-      drop ) shift
-          annex="$( go_to_dir_with .git/annex && pwd )" || return 61
-          git="$( go_to_dir_with .git && pwd )" || return 62
-          base="$( go_to_dir_with .cllct && pwd )" || return 63
-
-          foreach "$@" | while read -r fn
-          do
-            {
-              test -n "$annex" &&
-                test -h "$fn" &&
-                  fnmatch "SHA256E-*"  "$(basename "$(readlink "$fn")")"
-            } && {
-              annex_dropbyname "$fn" || return
-              git rm "$fn" || true
-              continue
-            } || true
-
-            echo "$fn" | catalog_sha2list .catalog/dropped.sha2list
-            test -n "$git" && {
-              git rm "$fn" || true
-            } || {
-              rm "$fn" || return
-            }
-          done
-          return
-        ;;
-
-      status ) shift
-          # Search for by name
-          echo TODO track htd__find "$localpath"
-
-          # Search for by other lookup
-          echo TODO track htd__content "$localpath"
-        ;;
-
-      info ) shift
-          file -s "$2"
-        ;;
-      * ) error "'$1'?" 1
-        ;;
-  esac
+  upper=0 mkvid "$1"
+  lib_load file
+  shift ; htd_file_$vid "$@" || return $?
 }
 
-htd__drop()
-{
-  test -f "$1" && htd__file drop "$1"
-}
+htd_als__test_name=file\ test-name
+htd_als__file_info=file\ format
+htd_als__file_modified=file\ mtime
+htd_als__file_born=file\ btime
+htd_als__file_mediatype=file\ mtype
+htd_als__file_guessmime=file\ mtype
+htd_als__drop=file\ drop
+htd_als__filesize_hist=file\ size-histogram
+
 
 htd__date()
 {
   fmtdate_relative "$1"
 }
+
 
 htd__content()
 {
@@ -4198,23 +3963,6 @@ htd__diff_sh_lib()
 htd_run__diff_sh_lib=iAO
 
 
-
-# indexing, cleaning
-
-htd_name_precaution() {
-  echo "$1" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@#&%*?:'\''\+\ \/_-]*$' > /dev/null || return 1
-}
-
-htd__test_name()
-{
-  match_grep_pattern_test "$1" || return 1
-  htd_name_precaution "$1" || return 1
-  test "$cmd" = "test-name" && {
-    echo 'name ok'
-  }
-  return 0
-}
-
 htd__find_empty()
 {
   test -n "$1" || set -- .
@@ -4249,10 +3997,8 @@ htd__find_largest() # Min-Size
   eval find . \\\( $find_ignores \\\) -a -size +${MIN_SIZE}c -a -print | head -n $1
 }
 
-htd__filesize()
-{
-  filesize "$1"
-}
+htd_als__filesize=file\ size
+
 
 # XXX: a function to clean directories
 # TODO: hark back to statusdir?
@@ -4409,6 +4155,7 @@ htd__fix_names()
   done
 }
 
+# XXX: cleanup
 htd_host_arg()
 {
   test -z "$1" && host=$1 || host=${hostname}
@@ -7520,17 +7267,6 @@ htd__init_project()
 }
 
 
-# Sort filesizes into histogram, print percentage of bins filled
-# Bin edges are fixed
-htd__filesize_hist()
-{
-  test -n "$1" || -- set "/"
-  log "Getting filesizes in '$@'"
-  sudo find $1 -type f 2>/dev/null | ./filesize-frequency.py
-  return $?
-}
-
-
 
 # exit succesfully after receiving 4 replies
 htd__ping()
@@ -9971,7 +9707,7 @@ htd__bootnumber()
 
 htd__diskstats()
 {
-  disk_stats
+  disk_stats "$@"
 }
 
 
@@ -10007,6 +9743,8 @@ htd_main()
   case "$base" in
 
     $scriptname )
+
+        # Default subcmd
         test -n "$1" || {
           test "$stdio_0_type" = "t" && {
             set -- main-doc-edit
@@ -10015,32 +9753,19 @@ htd_main()
           }
         }
 
-        #htd_lib || exit $?
-        #run_subcmd "$@" || exit $?
-
         main_init
         export stdio_0_type stdio_1_type stdio_2_type
 
         htd_lib "$@" || error htd-lib $?
+        run_subcmd "$@" || r=$?
+        htd_unload || r=$?
 
-        try_subcmd "$@" && {
-          shift 1
-          #record_env_keys htd-subcmd htd-env
-          #box_lib htd || error "box-src-lib $scriptname" 1
+        # XXX: cleanup, run_subcommand with ingegrated modes?
+        #  test -z "$arguments" -o ! -s "$arguments" || {
 
-          main_debug
-          htd_load "$@" || warn "htd-load ($?)"
-          test -z "$arguments" -o ! -s "$arguments" || {
-
-            info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
-            set -f; set -- $(cat $arguments | lines_to_words) ; set +f
-          }
-
-          test -n "$subcmd_args_pre" || set -- $subcmd_args_pre "$@"
-          $subcmd_func "$@" || r=$?
-          htd_unload || r=$?
-          exit $r
-        }
+        #    info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
+        #    set -f; set -- $(cat $arguments | lines_to_words) ; set +f
+        #  }
       ;;
 
     * )
