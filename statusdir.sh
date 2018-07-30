@@ -52,6 +52,22 @@ statusdir_unload()
 }
 
 
+# Subcommands
+
+
+statusdir__info()
+{
+  export verbosity=4
+  "$0" version
+  note "Root:"
+  "$0" root
+  note "Backends:"
+  "$0" backends
+  note "List:"
+  "$0" list
+}
+
+
 statusdir_man_1__root='Echo statusdir store location'
 statusdir__root()
 {
@@ -348,13 +364,13 @@ statusdir_als___e=edit
 statusdir_main()
 {
   test -n "$verbosity" || verbosity=5
-  local scriptname=statusdir base=$(basename $0 .sh) verbosity=$verbosity \
+  local scriptname=$(basename $0 .sh) base=statusdir \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd= \
     sd_tmpdir=
 
   statusdir_init || exit $?
 
-  case "$base" in $scriptname | sd )
+  case "$scriptname" in $base | sd )
 
         statusdir_lib || exit $?
         run_subcmd "$@" || exit $?

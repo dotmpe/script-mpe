@@ -628,7 +628,7 @@ htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
     } || {
       printf -- ". += [ $json ]" >>"$jq_scr"
     }
-    #catalog_backup=0 htd_catalog_update "" "$name" "$json"
+    # XXX: catalog_backup=0 htd_catalog_update "" "$name" "$json"
   done
   # Update catalog now
   note "Done building script, executing catalog update..."
