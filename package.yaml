@@ -26,10 +26,9 @@
       - https://opensource.org/licenses/gpl-license
 
   repositories:
-    #bb: git@bitbucket.org:dotmpe-personal/script-mpe.git
-    #dotmpe: domains/dotmpe.com/htdocs/git/script-mpe.git
-    #dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
-    #github: git@github.com:bvberkum/script-mpe.git
+    bb: git@bitbucket.org:dotmpe-personal/script-mpe.git
+    dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
+    github: git@github.com:bvberkum/script-mpe.git
     boreas.16-4: /srv/scm-git-16-4-boreas-brix/bvberkum/script-mpe.git
     dandy.8-3: /srv/scm-git-8-3-dandy-mpe/dotmpe/script-mpe.git
     dandy.9-1: /srv/scm-git-9-1-dandy-mpe/dotmpe/script-mpe.git
