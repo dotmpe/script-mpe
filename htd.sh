@@ -3591,8 +3591,16 @@ htd_man_1__file='TODO: Look for name and content at path; then store and cleanup
     mtype
     mtime
     mtime-relative
-    status
-    info
+    size PATH
+      Bytesize
+    info PATH
+      Use magic tests to describe file format
+    mime PATH
+      Try to give MIME content-type by using magic tests
+    drop PATHS...
+      Remove contents/path, wether untracked or GIT / Annexed tracked.
+    find-by-sha2list
+    find-by-sha256e
 
 Given path, find matching from storage using name, or content. On match, compare
 and remove path if in sync.
@@ -3616,15 +3624,15 @@ htd_als__drop=file\ drop
 htd_als__filesize_hist=file\ size-histogram
 
 
-htd__date()
-{
-  fmtdate_relative "$1"
-}
-
-
 htd__content()
 {
   note "TODO: go over some ordered CONTENTPATH to look for local names.."
+}
+
+
+htd__date()
+{
+  fmtdate_relative "$1"
 }
 
 
@@ -7869,7 +7877,6 @@ htd__annex()
   esac
 }
 
-
 htd_run__annex_fsck=i
 htd__annex_fsck()
 {
@@ -7963,6 +7970,23 @@ htd__sync()
     }
     continue
   done
+}
+
+
+htd_man_1__annices='
+'
+htd__annices()
+{
+  case "$1" in
+
+      #findbysha2list ) shift ;;
+      #lookup-by-key ) shift ;;
+      #lookup-by-sha2 ) shift ;;
+      #scan-by-sha2 ) shift ;;
+
+      * ) error "'$1'?" 1
+        ;;
+  esac
 }
 
 
