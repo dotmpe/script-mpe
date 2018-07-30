@@ -3,13 +3,15 @@
 # Sys: lower level Sh helpers; dealing with vars, functions, env and other shell
 # ideosyncracities
 
+# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
+# shellcheck disable=SC2039,SC2069
 
 
 sys_lib_load()
 {
-  _14MB=14680064
-  _6MB=7397376
-  _5k=5120
+  export _14MB=14680064
+  export _6MB=7397376
+  export _5k=5120
 
   #test -n "$MIN_SIZE" || MIN_SIZE=1
   test -n "$MIN_SIZE" || MIN_SIZE=$_6MB

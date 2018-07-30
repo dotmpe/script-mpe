@@ -445,7 +445,7 @@ htd_package_remotes_init()
   test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
   vc_getscm
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
-      tr '=' ' ' | while read remote url
+      tr '=' ' ' | while read -r remote url
   do
     # Get rid of quotes, but don't interpolate ie. expand home?
     eval "remote=$remote url=$url"
@@ -465,7 +465,7 @@ htd_package_remotes_init()
 htd_package_remotes_reset()
 {
   test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  git remote | while read remote
+  git remote | while read -r remote
   do
       git remote remove $remote && info "Removed '$remote'"
   done
