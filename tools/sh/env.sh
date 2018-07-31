@@ -45,6 +45,8 @@ var_isset SHELLCHECK_OPTS ||
 ### Start of build job parameterisation
 
 GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
+
+
 BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F "$GIT_CHECKOUT" \
         | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 

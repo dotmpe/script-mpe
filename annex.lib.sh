@@ -22,10 +22,10 @@ annex_list()
 
 # Print each file entries' metadata k/v. Pairs have liberal format, something
 # like [^= ]+=.* Each pair on its own line, each entry separated by \f
-# (form-feed) (and newline). Normally only prints files with metadata, if
-# metadata is set the record is skipped (no output).
-# set key_metadata to scan the Annex backend ID for metadata values;
-# save time hashing.
+# (form-feed) (and newline). Normally only prints files with metadata. If
+# metadata_exists is true, a boolean wether file exists is added. With
+# metadata_keys on the SHA256E backend key is split up into a size and keys/sha2
+# field.
 # .*lastchanged attributes are removed
 annex_metadata()
 {

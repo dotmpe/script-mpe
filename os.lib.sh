@@ -1,13 +1,19 @@
 #!/bin/sh
 
+# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
+# shellcheck disable=SC2039,SC2069
+# See htd.sh for shellcheck descriptions
+
 
 # OS: files, paths
 
 os_lib_load()
 {
-  test -n "$uname" || export uname="$(uname -s)"
-  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
+  test -n "$uname" || uname="$(uname -s)"
+  test -n "$os" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  export name os
 }
+
 
 absdir()
 {
@@ -37,9 +43,9 @@ pathname() # PATH EXT...
     name="$(basename "$name" "$ext")"
   done
   test -n "$dirname" -a "$dirname" != "." && {
-    printf -- "$dirname/$name\n"
+    printf -- "$dirname/$name\\n"
   } || {
-    printf -- "$name\n"
+    printf -- "$name\\n"
   }
 }
 # basepath: see pathname as alt. to basename for ext stripping
@@ -54,7 +60,7 @@ pathnames() # exts=... [ - | PATHS ]
       pathname "$path" $exts
     done
   } || {
-    { cat - | while read path
+    { cat - | while read -r path
       do pathname "$path" $exts
       done
     }
@@ -109,8 +115,8 @@ basenames()
 filenamext() # Name..
 {
   while test -n "$1"; do
-    basename "$1" | grep '\.' | sed 's/^.*\.\([^\.]*\)$/\1/'
-  shift; done
+    basename "$1"
+  shift; done | grep '\.' | sed 's/^.*\.\([^\.]*\)$/\1/'
 }
 
 # Return basename for one file, using filenamext to extract extension.
@@ -124,7 +130,7 @@ filestripext() # Name
 # Check wether name has extension, return 0 or 1
 fileisext() # Name Exts..
 {
-  local f="$1" ext=$(filenamext "$1"); shift
+  local f="$1" ext="" ; ext=$(filenamext "$1") || return ; shift
   test -n "$*" || return
   test -n "$ext" || return
   for mext in $@
@@ -136,86 +142,95 @@ fileisext() # Name Exts..
 # Use `file` to get mediatype aka. MIME-type
 filemtype() # File..
 {
-  local flags= ; falseish "$file_deref" && flags=b || flags=Lb
-  while test $# -gt 0
-  do
-    case "$uname" in
-      Darwin )
-          file -${flags}I "$1" || return 1
-        ;;
-      Linux )
-          file -${flags}i "$1" || return 1
-        ;;
-      * ) error "filemtype: $uname?" 1 ;;
-    esac; shift
-  done
+  local flags= ; file_tool_flags
+  case "$uname" in
+    Darwin )
+        file -${flags}I "$1" || return 1
+      ;;
+    Linux )
+        file -${flags}i "$1" || return 1
+      ;;
+    * ) error "filemtype: $uname?" 1 ;;
+  esac
 }
 
 # Description of file contents, format
 fileformat()
 {
-  local flags= ; falseish "$file_deref" && flags=b || flags=Lb
-  while test $# -gt 0
-  do
-    case "$uname" in
-      Darwin | Linux )
-          file -${flags} "$1" || return 1
-        ;;
-      * ) error "fileformat: $uname?" 1 ;;
-    esac; shift
-  done
+  local flags= ; file_tool_flags
+  case "$uname" in
+    Darwin | Linux )
+        file -${flags} "$1" || return 1
+      ;;
+    * ) error "fileformat: $uname?" 1 ;;
+  esac
 }
 
 # Use `stat` to get size in bytes
-filesize() # File..
+filesize() # File
 {
-  while test $# -gt 0
-  do
-    case "$uname" in
-      Darwin )
-          stat -L -f '%z' "$1" || return 1
-        ;;
-      Linux )
-          stat -L -c '%s' "$1" || return 1
-        ;;
-      * ) error "filesize: $1?" 1 ;;
-    esac; shift
-  done
+  local flags=- ; file_stat_flags
+  case "$uname" in
+    Darwin )
+        stat -f '%z' $flags "$1" || return 1
+      ;;
+    Linux )
+        stat -c '%s' $flags "$1" || return 1
+      ;;
+    * ) error "filesize: $1?" 1 ;;
+  esac
 }
 
 # Use `stat` to get modification time (in epoch seconds)
-filemtime() # File..
+filemtime() # File
 {
-  while test $# -gt 0
-  do
-    case "$uname" in
-      Darwin )
-          stat -L -f '%m' "$1" || return 1
-        ;;
-      Linux )
-          stat -L -c '%Y' "$1" || return 1
-        ;;
-      * ) error "filemtime: $1?" 1 ;;
-    esac; shift
-  done
+  local flags=- ; file_stat_flags
+  case "$uname" in
+    Darwin )
+        trueish "$file_names" && pat='%N %m' || pat='%m'
+        stat -f "$pat" $flags "$1" || return 1
+      ;;
+    Linux )
+        trueish "$file_names" && pat='%N %Y' || pat='%Y'
+        stat -c "$pat" $flags "$1" || return 1
+      ;;
+    * ) error "filemtime: $1?" 1 ;;
+  esac
 }
 
 # Use `stat` to get birth time (in epoch seconds)
-filebtime() # File...
+filebtime() # File
 {
-  while test $# -gt 0
-  do
-    case "$uname" in
-      Darwin )
-          stat -L -f '%B' "$1" || return 1
-        ;;
-      Linux )
-          stat -L -c '%W' "$1" || return 1
-        ;;
-      * ) error "filebtime: $1?" 1 ;;
-    esac; shift
-  done
+  local flags=- ; file_stat_flags
+  case "$uname" in
+    Darwin )
+        trueish "$file_names" && pat='%N %B' || pat='%B'
+        stat -f "$pat" $flags "$1" || return 1
+      ;;
+    Linux )
+        # XXX: %N is deref-file
+        trueish "$file_names" && pat='%N %W' || pat='%W'
+        stat -c "$pat" $flags "$1" || return 1
+      ;;
+    * ) error "filebtime: $1?" 1 ;;
+  esac
 }
+
+
+file_tool_flags()
+{
+  trueish "$file_names" && flags= || flags=b
+  falseish "$file_deref" || flags=${flags}L
+}
+
+# FIXME: file-deref=0?
+file_stat_flags()
+{
+  test -n "$flags" || flags=-
+  falseish "$file_deref" || flags=${flags}L
+  test "$flags" != "-" || flags=
+}
+
 
 # Split expression type from argument and set envs expr_/type_
 foreach_setexpr() # [Type:]Expression
@@ -239,10 +254,10 @@ foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject
 {
   test "$1" != "-" || shift
   test -n "$expr_" || { type_=g expr_='*'; }
-  test -n "$act" || act=echo
+  test -n "$act" || act="echo"
   test -n "$no_act" || no_act=/dev/null
   # Read arguments or lines from stdin
-  { test -n "$*" && { for a in "$@"; do printf -- "$a\n" ; done; } || cat -
+  { test -n "$*" && { for a in "$@"; do printf -- '%s\n' "$a"; done; } || cat -
   } | while read -r _S ; do S="$p$_S$s"
   # NOTE: Allow inline comments or processing instructions passthrough
   fnmatch "#*" "$S" && { echo "$S" ; continue; }
@@ -256,6 +271,8 @@ foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject
   esac && $act "$S" || $no_act "$S" ; done
 }
 
+# Go over arguments and echo. If no arguments given, or on argumnet '-' the
+# standard input is read instead or in-place respectively. Strips empty lines.
 foreach()
 {
   {
@@ -263,7 +280,7 @@ foreach()
       while test $# -gt 0
       do
         test "$1" != "-" && {
-          printf -- "$1\n"
+          printf -- '%s\n' "$1"
         } || {
           cat -
         }
@@ -273,16 +290,18 @@ foreach()
   } | grep -v '^$'
 }
 
+# Read `foreach` lines and act, default is echo
 foreach_do()
 {
-  test -n "$act" || act=echo
+  test -n "$act" || act="echo"
   foreach "$@" | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
 }
 
 foreach_newcol()
 {
-  test -n "$act" || act=echo
-  foreach "$@" | while read -r _S ; do S="$p$_S$s" && printf "$S\t$($act "$S")\n" ; done
+  test -n "$act" || act="echo"
+  foreach "$@" | while read -r _S
+    do S="$p$_S$s" && printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
 }
 
 normalize_relative()
@@ -338,7 +357,7 @@ split_multipath()
      | sed 's/\([^\.]\)\/\.\./\1\
 ../g' \
      | grep -v '^\.[\.\/]*$' \
-     | while read rel_leaf
+     | while read -r rel_leaf
   do
     echo $rel_leaf | grep -q '^\.\.\/' && {
       normalize $root/$rel_leaf
@@ -388,12 +407,13 @@ read_file_lines_while()
 
   test -n "$ln_f" -a ! -e "$ln_f"
 
-  cat $1 | while read line
+  while read -r line
   do
     line_number=$(( $line_number + 1 ))
     eval $2 || { echo $(( line_number - 1 ))>$ln_f; return; }
     echo $line
-  done
+  done < "$1"
+
   test -s "$ln_f" \
     && export line_number=$(cat $ln_f) \
     || unset line_number
@@ -434,7 +454,7 @@ get_targets()
 {
   test -n "$1" || set -- /srv
   # Assume
-  find $1 -type l | while read link
+  find $1 -type l | while read -r link
   do
     test -e "$link" || continue
     target=$(readlink $link)
@@ -489,7 +509,7 @@ line_count()
   lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
   case "$lc" in "\n" ) ;;
     "\r" ) error "POSIX line-end required" 1 ;;
-    * ) printf "\n" >>$1 ;;
+    * ) printf '\n' >>$1 ;;
   esac
   local lc=$(wc -l $1 | awk '{print $1}')
   echo $lc
@@ -630,7 +650,7 @@ mkrlink()
 filter_dirs()
 {
   test "$1" = "-" && {
-    while read d
+    while read -r d
     do
       test -d "$d" || continue
       echo "$d"
@@ -647,7 +667,7 @@ filter_dirs()
 filter_files()
 {
   test "$1" = "-" && {
-    while read f
+    while read -r f
     do
       test -f "$f" || continue
       echo "$f"
@@ -688,7 +708,7 @@ find_num()
   test -n "$1" -a -n "$2" || error "find-num '$*'" 1
   test -n "$3" || set -- "$@" 1
   local c=0
-  find "$1" -iname "$2" | while read path
+  find "$1" -iname "$2" | while read -r path
   do
     c=$(( $c + 1 ))
     test $c -le $3 || return 1
@@ -706,7 +726,7 @@ find_broken_symlinks()
 
 abbrev_rename()
 {
-  while read oldpath junk newpath
+  while read -r oldpath junk newpath
   do
     local idx=1
     while test "$(echo "$oldpath" | cut -c 1-$idx )" = "$(echo "$newpath" | cut -c 1-$idx )"
@@ -729,21 +749,21 @@ number_file() # [action=mv] Name [Ext]
   done
   dest=$dir/$base-$cnt$2
 
-  test -n "$action" || action=mv
+  test -n "$action" || action="mv"
   { $action -v "$1" "$dest" || return $?; } | abbrev_rename
 }
 
 # make numbered copy, see number-file
 backup_file() # [action=mv] Name [Ext]
 {
-  action=cp number_file "$1"
+  action="cp" number_file "$1"
 }
 
 # rename to numbered file, see number-file
 rotate_file() # [action=mv] Name [Ext]
 {
   test -s "$1" || return
-  action=mv number_file "$1"
+  action="mv" number_file "$1"
 }
 
 wherefrom()
@@ -787,7 +807,7 @@ ziplists() # [SEP=\t] Rows
       eval printf \"%s\" \"\$row${r}_col${c}\"
       printf "$SEP"
     done
-    printf "\n"
+    printf '\n'
   done
 }
 

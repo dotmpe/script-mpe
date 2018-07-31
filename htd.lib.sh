@@ -1,6 +1,8 @@
 #!/bin/sh
 
-# shellcheck disable=SC2034,SC2154
+# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
+# shellcheck disable=SC2039,SC2069
+# See htd.sh for shellcheck descriptions
 
 htd_relative_path()
 {
@@ -15,6 +17,7 @@ htd_relative_path()
       } || {
         relpath="$1"
       }
+      export relpath
       return 0
     }
   }
@@ -610,6 +613,7 @@ htd_edit_note()
 
 archive_path()
 {
+  # XXX: cleanup
   #test -n "$1" || set -- "$(pwd)/cabinet"
   #test -d "$1" || {
   #  fnmatch "*/" "$1" && {
