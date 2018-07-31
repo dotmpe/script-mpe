@@ -21,7 +21,7 @@ Usage:
     jsotk [options] path [--is-new] [--is-null] [--is-list] [--is-obj]
             [--is-int] [--is-str] [--is-bool] <srcfile> <pathexpr>
     jsotk [options] objectpath <srcfile> <expr>
-    jsotk [options] ( keys | items ) <srcfile> <pathexpr>
+    jsotk [options] ( keys | items ) [<srcfile> <pathexpr>]
     jsotk [options] ( dump | json2yaml | yaml2json ) [<srcfile> [<destfile>]]
     jsotk [options] (from-kv|to-kv) [<srcfile> [<destfile>]]
     jsotk [options] (from-flat-kv|to-flat-kv) [<srcfile> [<destfile>]]
@@ -33,7 +33,8 @@ Usage:
     jsotk [options] update <destfile> [<srcfiles>...] [--clear-paths=<path>...]
     jsotk [options] update-from-args <srcfiles> <kv-args> <destfile>
     jsotk [options] update-at <destfile> <expr> [<srcfiles>...]
-    jsotk [options] serve <destfile>
+    jsotk [options] serve <srcfile> [<destfile>]
+    jsotk [options] exit [<destfile>]
     jsotk [options] encode <srcfile>
     jsotk (version|-V|--version)
     jsotk (help|-h|--help)
@@ -56,13 +57,16 @@ Options:
                 Override output format. See Formats_.
                 TODO: default is to autodetect from filename
                 if given, or set to [default: json].
+  -i, --in-place
+                In place update, applies if no destfile is given. Iso. writing
+                to stdout, the destfile is set to the same as the srcfile.
   --no-indices  [default: false]
   --serialize-datetime=FMT
                 [default: %Y-%m-%dT%H:%M:%SZ]
   --detect-format
+                [default: true]
   --no-detect-format
                 Auto-detect input/output format based on file-name extension
-                [default: true]
   --output-prefix PREFIX
                 Path prefix for output [default: ]
   --list-update
@@ -95,8 +99,6 @@ Options:
   --columns C
                 Select specific columns to output.
   --no-head     Do not print header/column line at start.
-  --socket      Use socket server with 'serve'
-  --fifo        Use FIFO IO with 'serve'
   -V, --version
                 Print version
 
@@ -167,9 +169,9 @@ from objectpath import Tree
 
 import libcmd_docopt, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
-        load_data, stdout_data, readers, open_file, \
+        load_data, dump_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \
-        get_dest, get_src_dest, \
+        get_io, get_src_dest, \
         json_writer, parse_json, \
         deep_union, deep_update, data_at_path, data_check_path, maptype
 
@@ -181,10 +183,13 @@ from jsotk_lib import PathKVParser, FlatKVParser, \
 
 def H_dump(ctx, write=True):
     "Read src and write destfile according to set i/o formats. "
-    infile, outfile = get_src_dest_defaults(ctx)
-    data = load_data( ctx.opts.flags.input_format, infile, ctx )
+    if ctx.data:
+        data = ctx.data
+    else:
+        infile, outfile = get_src_dest_defaults(ctx)
+        data = load_data( ctx.opts.flags.input_format, infile, ctx )
     if write:
-        return stdout_data( data, ctx, outf=outfile )
+        return dump_data( data, ctx )
     else:
         return data
 
@@ -249,10 +254,8 @@ def H_merge(ctx, write=True):
             raise ValueError(data)
 
     if write:
-        if not ctx.opts.flags.quiet:
-            sys.stderr.write("Writing to %s\n" % ctx.opts.args.destfile)
         outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
-        return stdout_data( data, ctx, outf=outfile )
+        return dump_data( data, ctx, outf=outfile )
     else:
         return data
 
@@ -261,7 +264,7 @@ def H_append(ctx):
     "Add srcfiles as items to list. Optionally provide pathexpr to list. "
     if not ctx.opts.args.srcfiles:
         return
-    appendfile = get_dest(ctx, 'r')
+    appendfile = get_io(ctx, 'r')
     data = l = load_data( ctx.opts.flags.output_format, appendfile, ctx )
     if ctx.opts.args.pathexpr:
         l = data_at_path(ctx, None, data)
@@ -269,8 +272,8 @@ def H_append(ctx):
         fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
         mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
         l.append(mdata)
-    updatefile = get_dest(ctx, 'w+')
-    return stdout_data( data, ctx, outf=updatefile )
+    updatefile = get_io(ctx, 'w+')
+    return dump_data( data, ctx, outf=updatefile )
 
 
 def H_update(ctx):
@@ -279,7 +282,7 @@ def H_update(ctx):
     if not ctx.opts.args.srcfiles:
         return
 
-    updatefile = get_dest(ctx, 'r')
+    updatefile = get_io(ctx, 'r')
     data = load_data( ctx.opts.flags.output_format, updatefile, ctx )
     updatefile.close()
 
@@ -300,8 +303,8 @@ def H_update(ctx):
         mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
         deep_update([data, mdata], ctx)
 
-    updatefile = get_dest(ctx, 'w+')
-    return stdout_data( data, ctx, outf=updatefile )
+    updatefile = get_io(ctx, 'w+')
+    return dump_data( data, ctx, outf=updatefile )
 
 
 def H_update_from_args(ctx):
@@ -316,7 +319,7 @@ def H_update_at(ctx):
     """Update object at path, using data read from srcfile(s)"""
     if not ctx.opts.args.srcfiles:
         return
-    updatefile = get_dest(ctx, 'r')
+    updatefile = get_io(ctx, 'r')
     data = o = load_data( ctx.opts.flags.output_format, updatefile, ctx )
     #if ctx.opts.args.pathexpr:
         #o = data_at_path(ctx, None, data)
@@ -328,14 +331,14 @@ def H_update_at(ctx):
         r = list(o)
         assert len(r) == 1, r
         o = r[0]
-        #r = [ stdout_data( s, ctx, outf=sys.stdout) for s in o ]
+        #r = [ dump_data( s, ctx, outf=sys.stdout) for s in o ]
         #print(r)
     for src in ctx.opts.args.srcfiles:
         fmt = get_format_for_fileext(src) or ctx.opts.flags.input_format
         mdata = load_data( fmt, open_file( src, 'in', ctx=ctx ), ctx )
         deep_update([o, mdata], ctx)
-    updatefile = get_dest(ctx, 'w+')
-    return stdout_data( data, ctx, outf=updatefile )
+    updatefile = get_io(ctx, 'w+')
+    return dump_data( data, ctx, outf=updatefile )
 
 
 def H_encode(ctx):
@@ -394,7 +397,7 @@ def H_path(ctx):
         res = [ 0 ]
 
     if not ctx.opts.flags.quiet:
-        res += [ stdout_data( data, ctx, outf=outfile ) ]
+        res += [ dump_data( data, ctx, outf=outfile ) ]
 
     return max(res)
 
@@ -409,28 +412,29 @@ def H_keys(ctx):
     if not data:
         return 1
     if isinstance(data, dict):
-        return stdout_data( data.keys(), ctx, outf=outfile )
+        return dump_data( data.keys(), ctx, outf=outfile )
     elif isinstance(data, list):
-        return stdout_data( range(0, len(data)), ctx, outf=outfile )
+        return dump_data( range(0, len(data)), ctx, outf=outfile )
     else:
         raise ValueError("Unhandled type %s" % type(data))
 
 def H_items(ctx):
     "Output for every key or item in object at path"
-    infile, outfile = get_src_dest_defaults(ctx)
+    if ctx.data:
+        data = ctx.data
+    else:
+        infile, outfile = get_src_dest_defaults(ctx)
     try:
-        data = data_at_path(ctx, infile)
+        data = data_at_path(ctx, None, data)
     except:
-        return 1
-    if not data:
         return 1
     if isinstance(data, list):
         for item in data:
-            stdout_data( item, ctx, outf=outfile )
+            dump_data( item, ctx, outf=outfile )
     elif isinstance(data, dict):
         for key, value in data.items():
             subdata = { key: value }
-            stdout_data( subdata, ctx, outf=outfile )
+            dump_data( subdata, ctx, outf=outfile )
     else:
         raise ValueError("Unhandled type %s" % type(data))
 
@@ -445,11 +449,11 @@ def H_objectpath(ctx):
     o = q.execute( ctx.opts.args.expr )
     if isinstance(o, types.GeneratorType):
         for s in o:
-            v = stdout_data( s, ctx, outf=outfile )
+            v = dump_data( s, ctx, outf=outfile )
             if v:
                 return v
     else:
-        return stdout_data( o, ctx, outf=outfile )
+        return dump_data( o, ctx, outf=outfile )
 
 
 
@@ -488,7 +492,7 @@ def H_from_args(ctx):
     args = ctx.opts.args.kv_args
     reader = PathKVParser(rootkey=args[0])
     reader.scan_kv_args(args)
-    return stdout_data( reader.data, ctx )
+    return dump_data( reader.data, ctx )
 
 def H_from_kv(ctx):
     ctx.opts.flags.input_format = 'pkv'
@@ -503,7 +507,7 @@ def H_from_flat_args(ctx):
     args = ctx.opts.args.fkv_args
     reader = FlatKVParser(rootkey=args[0])
     reader.scan_kv_args(args)
-    return stdout_data( reader.data, ctx )
+    return dump_data( reader.data, ctx )
 
 def H_from_flat_kv(ctx):
     ctx.opts.flags.input_format = 'fkv'
@@ -526,20 +530,19 @@ Usage:
 
 Options:
     """
-    destfile = get_dest(ctx, 'r')
-    data = load_data( ctx.opts.flags.input_format, destfile, ctx )
-    if ctx.opts.flag.fifo:
-        jsotk_serve.fifo(ctx, data, __doc__, handlers)
-    elif ctx.opts.flag.socket:
-        # XXX: ops on in-mem document may be nice
-        from script_mpe import jsotk_serve
-        jsotk_serve.serve(ctx, data, __doc__, handlers)
-    else: pass
+    infile = get_io(ctx, key='src')
+    ctx.data = load_data( ctx.opts.flags.input_format, infile, ctx )
 
-    if not ctx.opts.flags.quiet:
-        sys.stderr.write("Writing to %s\n" % ctx.opts.args.destfile)
-    outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
-    stdout_data( data, ctx, outf=outfile )
+    #if ctx.opts.flags.fifo:
+    #    sys.stderr.write("Using FIFO\n")
+    #    jsotk_serve.fifo(ctx, data, __doc__, handlers)
+
+    sys.stderr.write("Backgrounding, listening at %s\n" % (
+        ctx.opts.flags.address,))
+    from script_mpe import jsotk_serve
+    jsotk_serve.serve(ctx, ctx.data, __doc__, handlers)
+
+    dump_data( ctx.data, ctx )
 
 
 
@@ -616,6 +619,7 @@ if __name__ == '__main__':
         sep=confparse.Values(dict(
             line=os.linesep
         )),
+        data=None,
         out=sys.stdout,
         inp=sys.stdin,
         err=sys.stderr,

@@ -29,7 +29,7 @@ annex_list()
 # .*lastchanged attributes are removed
 annex_metadata()
 {
-  while read file
+  while read -r file
   do
     key_metadata_=""
     test -z "$metadata_keys" || {
@@ -65,16 +65,11 @@ annex_metadata_json()
   # Annex 6.0 and jq 1.5 minimum
 
   git annex metadata -j |
-    # Ignore  illegal json for files w/o metadata
-    grep -v ',,'
-  return
-  #  |
-  #  jq -r 'select(.fields!={} and .fields!=null) | .file,.fields'
-  #return
+    # Compact, raw output two lines: filename and metadata fields incl. tag list
+    jq -cr 'select(.fields!={} and .fields!=null) | with_entries(.key|=sub("-lastchanged";"")) | .file,.fields'
 
-  # Requires jq 1.5
-  git annex metadata -j |
-      jq -r 'select(.fields!={}) | with_entries(.key|=sub("-lastchanged";"")) | .file,.fields'
+    #jq -cr 'select(.fields!={}) | with_entries(.key|=sub("-lastchanged";"")) | .file,.fields'
+    #jq -cr 'select(.fields!={}) | .file,.fields'
 }
 
 # Parse annex SHA256E key into size, sha2, keyext

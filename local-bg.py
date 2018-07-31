@@ -98,6 +98,7 @@ class QueryProtocol(LineOnlyReceiver):
 
         elif line.startswith('!! '):
             print("Exception running command:", self.cmd, file=err)
+            print(line, file=err)
             self.factory.ctx.rs = 1
 
         else:

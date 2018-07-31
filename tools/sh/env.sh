@@ -209,6 +209,7 @@ req_vars INSTALL_DEPS || {
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 
+test -n "$script_line_eval" || export script_line_eval=0
 
 
 ### Env of build job parameterisation

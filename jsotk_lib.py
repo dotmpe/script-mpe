@@ -400,16 +400,18 @@ def load_data(infmt, infile, ctx):
         raise Exception("No data from file %s (%s)" % ( infile, infmt ))
     return data
 
-def stdout_data(data, ctx, outfmt=None, outf=None):
+def dump_data(data, ctx, outfmt=None, outf=None):
     if not outfmt:
         outfmt = ctx.opts.flags.output_format
     if not outf:
         if ctx.out:
-            outf = ctx.out
+            outf = ctx['out']
         else:
             outf = get_dest(ctx)
     if not outf:
         outf = sys.stdout
+    #if not ctx.opts.flags.quiet:
+    #    sys.stderr.write("Writing to %s\n" % outf.name)
     writers[ outfmt ]( data, outf, ctx )
 
 
@@ -622,18 +624,40 @@ def open_file(fpathname, defio='out', mode='r', ctx=None):
         except IOError as e:
             raise Exception("Unable to open %s for %s" % (fpathname, mode))
 
-def get_out_dest(ctx):
-    outfile = None
-    if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
-        outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
-    return outfile
+defio_map = {
+        "src": "in",
+        "dest": "out"
+    }
+
+def get_io(ctx, mode='r', key='dest', section='args'):
+    _file = None
+    iokey = defio_map[key]
+    if 'detect_format' in ctx.opts.flags and ctx.opts.flags.detect_format:
+        set_format('%sput' % iokey, key, ctx.opts)
+    settings = getattr(ctx.opts, section)
+    if key+'file' in settings and settings[key+'file']:
+        assert settings[key+'file'] != '-'
+        _file = open_file(settings[key+'file'], defio=iokey, mode=mode, ctx=ctx)
+    return _file
 
 def get_src_dest(ctx):
     infile, outfile = None, None
     if 'srcfile' in ctx.opts.args and ctx.opts.args.srcfile:
-        infile = open_file(ctx.opts.args.srcfile, defio='in', ctx=ctx)
+        infile = get_io(ctx, 'r', 'src')
     if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
-        outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
+        outfile = get_io(ctx, 'r', 'dest')
+    if ctx.opts.flags.in_place:
+        assert infile, 'in-place update requires srcfile'
+        if not outfile:
+            outfile = infile
+    return infile, outfile
+
+def get_src_dest_defaults(ctx):
+    infile, outfile = get_src_dest(ctx)
+    if not outfile:
+        outfile = ctx.out
+        if not infile:
+            infile = ctx['in']
     return infile, outfile
 
 def set_format(tokey, fromkey, opts):
@@ -658,31 +682,6 @@ def get_format_for_fileext(fn, io='out'):
         ext = ".%s" % fmt
         if fn.endswith( ext ):
             return fmt
-
-
-# cli subcmd args handling
-
-def get_dest(ctx, mode, key='dest', section='args'):
-    outfile = None
-    if 'detect_format' in ctx.opts.flags and ctx.opts.flags.detect_format:
-        set_format('output', key, ctx.opts)
-    settings = getattr(ctx.opts, section)
-    if key+'file' in settings and settings[key+'file']:
-        assert settings[key+'file'] != '-'
-        outfile = open_file(settings[key+'file'], defio=key, mode=mode, ctx=ctx)
-    return outfile
-
-def get_src_dest_defaults(ctx):
-    if ctx.opts.flags.detect_format:
-        set_format('input', 'src', ctx.opts)
-        set_format('output', 'dest', ctx.opts)
-
-    infile, outfile = get_src_dest(ctx)
-    if not outfile:
-        outfile = ctx.out
-        if not infile:
-            infile = ctx['in']
-    return infile, outfile
 
 
 def deep_update(dicts, ctx):

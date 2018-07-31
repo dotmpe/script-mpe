@@ -359,7 +359,7 @@ package_sh_list()
   trueish "$show_eval" && {
       test -n "$package_main" || . $1
     }
-  read_nix_style_file $1 | grep '^package_'"$2[_=]" |
+    read_nix_style_file $1 | grep '^package_'"$2\(=\|__[0-9]\)" |
     sed 's/^package_'"$2"'__\([0-9]*\)/\1/g' |
     while IFS='=' read index item
     do

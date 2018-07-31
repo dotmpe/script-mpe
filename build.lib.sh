@@ -5,7 +5,7 @@ set -e
 
 build_lib_load()
 {
-    true
+  true
 }
 
 # Set suites for bats, behat and python given specs
@@ -81,23 +81,25 @@ project_tests() # [Units..|Comps..]
   test -n "$1" || set -- "*"
   while test $# -gt 0
   do
-      any_unit "$1"
-      any_feature "$1"
-      case "$1" in *.py|*.bats|*.feature )
-          test -e "$1" && echo "$1" ;;
-      esac
+    info "Looking for '$1' tests.."
+    any_unit "$1"
+    any_feature "$1"
+    case "$1" in *.py|*.bats|*.feature )
+      test -e "$1" && echo "$1" ;;
+    esac
     shift
   done | sort -u
 }
 
 project_files()
 {
-  test -z "$1" && git ls-files ||
-  while test $# -gt 0
-  do
-    git ls-files "$1*sh"
-    shift
-  done | sort -u
+  test -z "$1" &&
+    git ls-files ||
+    while test $# -gt 0
+    do
+      git ls-files "$1*"
+      shift
+    done | sort -u
 }
 
 any_unit()
@@ -107,7 +109,7 @@ any_unit()
       package_build_unit_spec='test/py/$id.py test/$id-lib-spec.bats test/$id-spec.bats test/$id.bats'
 
   while test $# -gt 0
-  do
+  do # Build id, and vid too for spec to use
     c="-_*" mkid "$1"
     mkvid "$1"
     for x in $(eval echo "$package_build_unit_spec")

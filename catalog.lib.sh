@@ -601,9 +601,10 @@ htd_catalog_update() # [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key] )
   }
 }
 
-# Add/update entries from Annex. Even if a file does not exist, this can take
-# keys, tags and other metadata from GIT annex. See annex-metadata. The
-# standard SHA256E backend provides with bytesize and SHA256 cksum metadata.
+# Add/update entries from Annex. Even if local content is missing, this can take
+# keys, tags and other metadata from GIT annex. And create or update catalog
+# names. See annex-metadata.
+# The standard SHA256E backend provides with bytesize and SHA256 cksum metadata.
 htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
 {
   test -n "$1" || { shift ; set -- "." "$@" ; }
@@ -617,6 +618,7 @@ htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
   annex_list $@ | metadata_keys=1 metadata_exists=1 annex_metadata |
       while read -d $'\f' block_
   do
+    # NOTE: curde hack to deal with integer values?
     block="$(echo "$block_" | sed 's/=\(.*[^0-9].*\)\ *$/="\1"/g' )"
     eval $(echo "$block" | grep 'name=')
     note "Importing $name JSON.."
@@ -638,19 +640,39 @@ htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
   return $r
 }
 
-htd_catalog_from_annex_json()
+# XXX:
+htd_catalog_from_annex_2()
 {
-  # XXX: JSON directly makes it hard to filter -lastchanged out..?
-  # XXX: Annex 5.2 json output is botched,
+  git annex metadata -j | jq '.file,.note' |
+  while { read -r file && read -r note ; }
+  do
+    test "$note" != '""' || continue
+    filename="$(eval echo $file)"
+    name="$(basename "$filename")"
+    echo name=$name
+    eval printf "$note" | grep -v 'lastchanged='
+    #echo name=\"$name\"
+    #| sed 's/\([^=]*\)=\(.*\)/\1="\2"/'
+    printf "\\n\\f\\n"
+  done
+}
 
-  annex_metadata_json
-#    |
-#      while { read file && read fields ; }
-#      do
-#          #htd_catalog_set "" "$file" "$fields"
-#          echo "file='$file' fields='$fields'"
-#          #echo "{\"name\":\"$(basename "$file")\",$fields}"
-#      done
+# XXX: JSON directly makes it hard to filter -lastchanged out..?
+# XXX: Annex 5.2 json output is botched, also need jq 1.5 to build query
+htd_catalog_from_annex_3()
+{
+  annex_metadata_json "$@" |
+  while { read -r file && read -r fields_json ; }
+  do
+      echo file=$file
+      echo fields_json=$fields_json
+  done
+}
+
+# TODO: update catalog with single field from catalog; while above functions develop
+htd_catalog_get_annex_field() # FIELD
+{
+  git annex metadata -j | jq '.file,.fields'
 }
 
 # TODO: Import files from LFS test-server content dir (by SHA2)
@@ -1063,4 +1085,9 @@ cllct_cons_by_sha256e_tempkey()
     }
     #printf "$i. "
   done
+}
+
+htd_catalog_srv()
+{
+  jsotk --background "$CATALOG" &
 }

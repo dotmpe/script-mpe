@@ -806,7 +806,7 @@ stat_key()
 main_bg_writeread()
 {
   printf -- "$@\r\n" | socat -d - "UNIX-CONNECT:$main_sock" \
-    2>&1 | tr "\r" " " | while read line
+    2>&1 | tr "\r" " " | while read -r line
   do
     case "$line" in
       *" OK " )

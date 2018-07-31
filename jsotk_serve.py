@@ -30,7 +30,10 @@ class JSOTKServerProtocol(LineOnlyReceiver):
                 #self.sendLine(str.strip())
                 self.transport.write(str.strip('\n\r'))
 
-        ctx.out = Values(dict( write=write ))
+        #ctx.out = Values(dict( name=str(self.transport), write=write ))
+
+        self.transport.name = str(self.transport)
+        ctx.out = self.transport
 
         if not ctx.opts.cmds:
             print("No subcmd", line, file=ctx.err)
@@ -38,7 +41,8 @@ class JSOTKServerProtocol(LineOnlyReceiver):
 
         elif ctx.opts.cmds[0] == 'exit':
             reactor.stop()
-            self.factory.postrun(ctx)
+            if hasattr(self.factory, 'postrun'):
+                self.factory.postrun(ctx)
 
         else:
             func = ctx.opts.cmds[0]
@@ -76,7 +80,7 @@ def serve(ctx, document, usage, handlers):
     serverFactory.document = document
     serverFactory.protocol = JSOTKServerProtocol
 
-    print("Listening no %s" % ( address.path ))
+    print("Listening on %s" % ( address.path ))
 
     port = reactor.listenUNIX(address.path, serverFactory)
     reactor.run()
