@@ -1,22 +1,21 @@
+#!/bin/sh
+
+# shellcheck disable=SC2086,SC2015,SC2154,SC2155,SC205,SC2004,SC2120,SC2046,2059,2199
+# shellcheck disable=SC2039,SC2069,SC2029,SC2005
+# See htd.sh for shellcheck descriptions
+
 
 match_req_names_tab()
 {
-  #local to_root=$(pwd | sed -E 's/[^\/]*/../g')
-  local tabpaths="$HOME/bin/default-names.tab"
   local pwd="$(pwd)"
-  while test "$pwd" != '/'
-  do
-    tabpaths="$pwd/table.names $tabpaths"
-    pwd="$(dirname $pwd)"
-  done
 
-  # export
-  paths=
-  for path in $tabpaths
-  do
-    test -e "$path" || continue
-    tabs="$path $tabs"
-  done
+  tabs="$(while test "$pwd" != '/'
+      do
+        test -e "$pwd/table.names" && printf -- "%s/table.names " "$pwd"
+        pwd="$(dirname $pwd)"
+      done)"
+
+  export tabs
 }
 
 # Load part names and patterns

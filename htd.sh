@@ -5,20 +5,22 @@
 # Htdocs: work in progress 'daily' shell scripts
 #
 # shellcheck disable
-# shellcheck disable=SC2120 # func references arguments, but none are ever passed
-# shellcheck disable=SC2034 # unused, unexported var
-# shellcheck disable=SC2015 # A && B || C is not if-then-else
-# shellcheck disable=SC2154 # undefined var
-# shellcheck disable=SC2230 # which is non-standard
-# shellcheck disable=SC2155 # declare separately to avoid return masking
-# shellcheck disable=SC2209 # Use var=$(command) to assign output (or quote to assign string)
 # shellcheck disable=SC2004 # $/${} is unnecessary on arithmetic variables
-# shellcheck disable=SC2086 # double-quote to prevent globbing and word splitting
+# shellcheck disable=SC2005 # Useless echo? NOTE: not, unquoted echoes to normalize whitespace!
+# shellcheck disable=SC2015 # A && B || C is not if-then-else
+# shellcheck disable=SC2029 # Note that, unescaped, this expands on the client side
+# shellcheck disable=SC2034 # unused, unexported var
+# shellcheck disable=SC2039 # In POSIX sh, 'local' is undefined
 # SC2046 # Quote this to prevent word splitting
 # SC2059 # Don't use variables in the printf format string. Use printf "..%s.." "$foo"
-# SC2119 # Use "$@" if function's $1 should mean script's $1
-# SC2039 # In POSIX sh, 'local' is undefined
 # SC2068 # Double quote array expansions to avoid re-splitting elements
+# shellcheck disable=SC2086 # double-quote to prevent globbing and word splitting
+# SC2119 # Use "$@" if function's $1 should mean script's $1
+# shellcheck disable=SC2120 # func references arguments, but none are ever passed
+# shellcheck disable=SC2154 # undefined var
+# shellcheck disable=SC2155 # declare separately to avoid return masking
+# shellcheck disable=SC2209 # Use var=$(command) to assign output (or quote to assign string)
+# shellcheck disable=SC2230 # which is non-standard
 htd_src=$_
 
 set -o posix
@@ -81,7 +83,6 @@ htd_load()
 
   #default_env Couch-URL "http://localhost:5984"
   default_env GitVer-Attr ".version-attributes"
-  default_env Ns-Name "bvberkum"
 
   # TODO: move env vars to lowercase? or ucfirst case?
   upper=0 title=
@@ -3290,8 +3291,6 @@ htd__gitremote()
     # Default command to 'list' when remote-id exists and no further args given
     test $# -eq 1 && set -- "list" "$@" || set -- url "$@"
   }
-
-  note "Args initialized '$*'"
 
   test -n "$1" || set -- list
   upper=0 mkvid "$1" ; shift ; func=gitremote_$vid

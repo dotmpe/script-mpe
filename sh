@@ -2,6 +2,7 @@
 set -e
 
 . ./.htd/tools/env.sh
+
 verbosity=6 scriptpath=$HOME/bin
 . ./util.sh
 lib_load

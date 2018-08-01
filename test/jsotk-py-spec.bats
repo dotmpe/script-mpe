@@ -151,6 +151,16 @@ teardown()
 # Note: docopts does not support merge arguments, so implemented merge-one
 # as relief
 
+@test "${bin} merge" {
+  echo '{"key1": "foo"}' >/tmp/in1.json
+  echo '{"key2": "bar"}' >/tmp/in2.json
+  run jsotk.py -q merge - /tmp/in{1,2}.json
+  test $status -eq 0
+  test ${#lines} -gt 0
+  test "${lines[0]}" = '{"key2": "bar", "key1": "foo"}' ||
+      stdfail "${lines[0]}"
+}
+
 @test "${bin} --list-update merge ..." {
   TODO "implement list item updates for from-args"
 }

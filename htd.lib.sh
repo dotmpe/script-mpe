@@ -1,8 +1,15 @@
 #!/bin/sh
 
-# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069
+# shellcheck disable=SC2086,SC2015,SC2154,SC2155,SC205,SC2004,SC2120,SC2046,2059,2199
+# shellcheck disable=SC2039,SC2069,SC2029,SC2005
 # See htd.sh for shellcheck descriptions
+
+
+htd_lib_load()
+{
+  test -n "$NS_NAME" || NS_NAME=bvberkum
+}
+
 
 htd_relative_path()
 {
@@ -312,6 +319,7 @@ htd_resolve_paged_json() # URL Num-Query Page-query
     *'?'* ) ;;
     * ) set -- "$1?" "$2" "$3" ;;
   esac
+
   test -n "$page" || page=1
   while true
   do
@@ -319,17 +327,17 @@ htd_resolve_paged_json() # URL Num-Query Page-query
     out=$tmpd/page-$page.json
     curl -sSf "$1$2=$page_size&$3=$page" > $out
     json_list_has_objects "$out" || { rm "$out" ; break; }
+    info "Fetched $page <$out>"
     page=$(( $page + 1 ))
   done
 
+  note "Finished downloading"
   test -e "$tmpd/page-1.json" || error "Initial page expected" 1
-
   count="$( echo $tmpd/page-*.json | count_words )"
   test "$count" = "1" && {
-      cat $tmpd/page-1.json
+    cat $tmpd/page-1.json
   } || {
-      jsotk merge --pretty $tmpd/page-*.json -
-      #$tmpd/page-*.json cat $tmpd/merged.json
+    jsotk merge --pretty - $tmpd/page-*.json
   }
   rm -rf $tmpd/
 }

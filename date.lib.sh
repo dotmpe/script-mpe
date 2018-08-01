@@ -161,16 +161,16 @@ case "$(uname)" in
 
   Darwin )
     date_fmt() {
-      tags=$(printf -- '-v %s\n' $1)
+      test -n "$1" && tags=$(printf -- '-v %s ' $1) || tags=
       date $date_flags $tags +"$2"
     }
     ;;
   Linux )
     date_fmt() {
       # NOTE patching for GNU date
-      tags=$(printf -- '-d %s\n' $1 \
+      test -n "$1" && tags=$(printf -- '-d %s ' $1 \
           | sed 's/1d/1day/g' \
-          | sed 's/7d/1week/g')
+          | sed 's/7d/1week/g') || tags=
       date $date_flags $tags +"$2"
     }
     ;;

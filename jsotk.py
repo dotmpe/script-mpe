@@ -215,7 +215,6 @@ def H_merge(ctx, write=True):
         ctx.opts.args.srcfile = ctx.opts.args.srcfiles[0]
         set_format('input', 'src', ctx.opts)
 
-
     if not (ctx.opts.flags.list_union or ctx.opts.flags.list_update):
         if ctx.opts.flags.list_update_nodict:
             ctx.opts.flags.list_update = True
