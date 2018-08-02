@@ -6057,6 +6057,7 @@ htd__getx()
 # Get x-lang file for arg1
 htd__getxl()
 {
+  test -n "$rst2xml" || error "rst2xml required" 1
   fnmatch '*.xml' $1 && set -- "$1" "$1"
   fnmatch '*.rst' $1 && {
     test -n "$2" || set -- "$1" "$(setup_tmpd)/$(basename "$1" .rst).xml"
