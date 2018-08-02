@@ -107,8 +107,7 @@
   scripts:
     get-env:
       - EXIT_ON_ERROR=0 . ./.cllct/tools/env.sh
-    list-files:
-      - lib_load build ; project_files "$@"
+    list-files: lib_load build ; project_files "$@"
     init:
       - scriptname="init"
       #- lib_load build
@@ -146,13 +145,10 @@
       - . ./tools/ci/parts/init.sh
       - . ./tools/ci/check-env.sh
 
-    list-rst:
-      - . ~/.pyvenv/htd/bin/activate
-      - git ls-files | grep '\.rst$'
     check-rst:
-      - . ~/.pyvenv/htd/bin/activate ; \
-        git ls-files | grep '\.rst$' | while read rst ; do \
-          rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null; \
+      - . ~/.pyvenv/htd/bin/activate ;
+        git ls-files | grep '\.rst$' | while read rst ; do
+          rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null;
         done
 
     install:
@@ -193,59 +189,41 @@
       - test -n "$1" || set -- $REQ_SPECS
       - project_test $@
     # TODO: Run complete test-suite, including WIP
-    test-all:
-      - lib_load build ; test -n "$1" || set -- $REQ_SPECS $TEST_SPECS ; project_test "$@"
+    test-all: lib_load build ; test -n "$1" || set -- $REQ_SPECS $TEST_SPECS ; project_test "$@"
     # Keep testfiles and tested list, and keep running while one or more fails
-    retest:
-      - source ~/.pyvenv/htd/bin/activate
-      # TODO: restart only after changes
-      - lib_load build ; retest "$@"
-    tested:
-      - lib_load build ; tested "$@"
-    totest:
-      - lib_load build ; totest "$@"
+    # TODO: restart suite only after changes
+    retest: . ~/.pyvenv/htd/bin/activate ; lib_load build ; retest "$@"
+    tested: lib_load build ; tested "$@"
+    totest: lib_load build ; totest "$@"
     # Run unit & component tests
-    project-test:
-      - lib_load build ; project_test $@
-    tests:
-      - lib_load build ; project_tests "$@"
+    project-test: lib_load build ; project_test $@
+    tests: lib_load build ; project_tests "$@"
     # List unit & component testfiles
-    list-tests:
-      - lib_load build ; project_tests $@
+    list-tests: lib_load build ; project_tests $@
     # Run and re-run after change
-    watch-test:
-      - lib_load build ; test_watch "$@"
+    watch-test: lib_load build ; test_watch "$@"
     # NOTE: the only thing missing with this tools/sh/env test-watch setup is
     # a replay feature, and keep watching only failing specs. see htd
     # resolve-modified too.
-    test-unit:
-      - lib_load build ; test_any_unit "$@"
-    features:
-      - lib_load build ; any_feature "$@"
-    test-feature:
-      - lib_load build ; test_any_feature "$@"
-    test-features:
-      - lib_load build ; test_any_feature "$@"
-    feature-watch:
-      - lib_load build ; feature_watch "$@"
-    feature-defs:
-      - $TEST_FEATURE_DEFS
-    feature-specs:
-      # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
-      - $TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
 
-    ci:
-      - lib_load build ; list_builds "$@"
+    test-unit: lib_load build ; test_any_unit "$@"
+    features: lib_load build ; any_feature "$@"
+    test-feature: lib_load build ; test_any_feature "$@"
+    test-features: lib_load build ; test_any_feature "$@"
+    feature-watch: lib_load build ; feature_watch "$@"
+    feature-defs: $TEST_FEATURE_DEFS
+    # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
+    feature-specs: $TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
+
+    ci: lib_load build ; list_builds "$@"
 
     unique-filelines:
     - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
     unique-lines:
     - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; sort -u $f ; done | sort -u | wc -l
 
-    tasks-list:
-      - 'tasks.py -t todo.txt list-issues'
-    tasks-update:
-      - 'htd tasks --Check-All-Tags --Check-All-Files'
+    tasks-list: tasks.py -t todo.txt list-issues
+    tasks-update: htd tasks --Check-All-Tags --Check-All-Files
 
     build-docker:
       - '( cd tools/ci/build && drone exec )'
@@ -254,7 +232,6 @@
       - docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
     test-docker:
       - drone exec
-
     test2:
       - docker run --rm \
            -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \
@@ -265,8 +242,7 @@
            localhost:5000/ubuntu-user-script:build \
            'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
 
-    build-docs:
-      - lib_load build ; build_docs \"\$@\"
+    build-docs: lib_load build ; build_docs "$@"
 
 
     # End of [0]/scripts

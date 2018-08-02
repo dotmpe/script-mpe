@@ -395,7 +395,7 @@ read_if_exists()
 # Echo's each line, and count lines in line_number global var. Expression
 # while-expr is run within a `while read line` loop, and can refer to '$line'
 # and/or '$line_number' (and to '$1' also..).
-# Default while-expr is to read only empty commented lines.
+# Default while-expr is to read only blank or commented lines.
 # Return non-zero if no match was found.
 read_file_lines_while()
 {
@@ -404,13 +404,12 @@ read_file_lines_while()
   test -n "$2" || set -- "$1" 'echo "$line" | grep -qE "^\s*(#.*|\s*)$"'
   line_number=0
   local ln_f="$(setup_tmpf)"
-
-  test -n "$ln_f" -a ! -e "$ln_f"
+  test -n "$ln_f" -a ! -e "$ln_f" || error 'tmpf exists' $?
 
   while read -r line
   do
+    eval $2 || { echo $line_number>$ln_f; return; }
     line_number=$(( $line_number + 1 ))
-    eval $2 || { echo $(( line_number - 1 ))>$ln_f; return; }
     echo $line
   done < "$1"
 

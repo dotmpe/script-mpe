@@ -188,7 +188,9 @@ get_subcmd_func()
         note "main.lib: aliased '$subcmd' sub-command to '$subcmd_alias'"
         test -n "$subcmd_alias" || error oops 1
         subcmd="$(echo "$subcmd_alias" | cut -d ' ' -f 1)"
-        subcmd_args_pre="$(echo "$subcmd_alias" | cut -d ' ' -f 2-)"
+        fnmatch "* *" "$subcmd_alias" &&
+            subcmd_args_pre="$(echo "$subcmd_alias" | cut -d ' ' -f 2-)" ||
+            subcmd_args_pre=""
         test -z "$DEBUG" || warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
         set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
         export subcmd subcmd_args_pre

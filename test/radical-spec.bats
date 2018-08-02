@@ -35,11 +35,11 @@ init
   run $BATS_TEST_DESCRIPTION
   { test ${status} -eq 0 &&
     test -n "${lines[*]}" && # non-empty output
-    test "${#lines[@]}" = "9" # lines of output (stderr+stderr)
+    test "${#lines[@]}" = "11" # lines of output (stderr+stderr)
   } || stdfail
 }
 
-@test "${bin} radical-test1.txt" {
+@test "${bin} --quiet radical-test1.txt" {
   #test -e "$HOME/.cllct.rc" || skip "cllct not configured"
   #check_skipped_envs travis || \
   #  TODO "envs $envs: implement for env"
@@ -47,7 +47,7 @@ init
   { test ${status} -eq 0 &&
     test -n "${lines[*]}" && # non-empty output
     # 6 'note'-level log lines, three for issues: TODO: fix multiline scanning
-    test "${#lines[@]}" = "9" # lines of output (stderr+stderr)
+    test "${#lines[@]}" = "7" # lines of output (stderr+stderr)
   } || stdfail
 }
 

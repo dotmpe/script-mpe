@@ -372,6 +372,7 @@ class Values2Test(unittest.TestCase):
 		config = confparse.load_all(
 		        ['myConfig', 'myConfigLocal'], alt_paths=['~/', './'],
 			prefixes=['', '.', '.cllct/'], exts=['.yaml'])
+		print(config.todict())
 		self.assertEqual( config.myValue, 2 )
 		self.assertEqual( config.sub.mySubValue, 2 )
 		self.assertEqual( config.source.myConfig_1, 'testroot/.cllct/myConfig.ext' )
