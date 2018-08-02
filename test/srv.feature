@@ -1,19 +1,20 @@
 
 Feature: srv
 
-  Background:
-    The current status of /srv/ is reflected in LIST, or list_name. It is the staging area for commits to the DB records. This makes srv.py effectively a variant on the list.py processor, while it is also a schema module for db_sa.py. Scrpipt srv.sh is the intendent srv frontend, and comes with a similar dependence on list processor capabilities in htd. Finally the todo.txt extended LIST formatting is preferred to using YAML.
+  Background: The current status of /srv/ is reflected in LIST, or list_name. It is the staging area for commits to the DB records. This makes srv.py effectively a variant on the list.py processor, while it is also a schema module for db_sa.py. Scrpipt srv.sh is the intendent srv frontend, and comes with a similar dependence on list processor capabilities in htd. Finally the todo.txt extended LIST formatting is preferred to using YAML.
 
 
   Scenario: service container lifecycle
 
-    When the user runs `srv run`...
+    When the user runs `htd srv`...
+    #When the user runs `srv run`...
     #Then the known states and current state for the service names are shown
 
     #When the user runs `list_name=data/srv.txt htd storage Service status`
     #Then the identical data is shown
 
 
+    @todo
   Scenario: generic reports in summary, brief and complete formats
 
 

@@ -1,16 +1,12 @@
 #!/bin/sh
 set -e
 
-. ./.htd/tools/env.sh
+./.htd/tools/env.sh
 
 verbosity=6 scriptpath=$HOME/bin
 . ./util.sh
 lib_load
 #lib_load date
-
-#htd archive-path journal
-exit $?
-
 
 lib_load build
 project_test mod_jsotk jsotk-py jsotk-xml

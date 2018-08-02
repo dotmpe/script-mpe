@@ -5,7 +5,7 @@ init
 
 setup()
 {
-  ENV_NAME=gspread-boreas . ~/.bashrc
+  ENV_NAME=gspread-boreas . ~/.local/etc/private-env.sh
   lib_load projectenv
 #  test -n "$Project_Env_Requirements" || Project_Env_Requirements=user
 }

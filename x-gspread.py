@@ -28,11 +28,11 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name(
 
 gc = gspread.authorize(credentials)
 
-sheets = gc.open(GSPREAD_SHEET_TITLE)
+book = gc.open(GSPREAD_SHEET_TITLE)
 
-sheet = sheets.sheet1
-#sheet =sheets.get_worksheet(GSPREAD_WORKSHEET_NUM)
-#sheet = sheets.worksheet(GSPREAD_WORKSHEET_TITLE)
+sheet = book.sheet1
+#sheet = book.get_worksheet(GSPREAD_WORKSHEET_NUM)
+#sheet = book.worksheet(GSPREAD_WORKSHEET_TITLE)
 
 # Fetch changelog
 cell_list = sheet.range(GSPREAD_WORKSHEET_RANGE)
