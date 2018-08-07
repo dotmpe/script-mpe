@@ -89,21 +89,16 @@ htd_make_srcfiles()
   htd_make_expand MAKEFILE_LIST
 }
 
-# List all targets (from every makefile dir by default)
-htd_make_targets()
+# Return all targets/prerequisites given a make data base dump on stdin
+make_targets()
 {
-    test -n "$*" || set -- $(htd_make_files | act=dirname foreach_do | sort -u)
-    note "Setting make-targets args to '$*'"
-
-    # NOTE: need to expand vars/macro's so cannot grep raw source; so need way
-    # around to get back at src-file after listing all targets, somewhere else.
-
-    verbosity=0  \
-    htd_make_dump "$@" 2>/dev/null | grep -v \
+    esc=$(printf -- '\033')
+    grep -v \
         -e '^ *#' \
         -e '^[A-Za-z\.,^+*%?<@\/_][A-Za-z0-9\.,^?<@\/_-]* \(:\|\+\|?\)\?=[ 	]' \
         -e '^\(	\| *$\)' \
         -e '^\$(.*)$' \
+        -e '^[ 	]*'"$esc"'\[[0-9];[0-9];[0-9]*m' \
     | while IFS="$(printf '\n')" read -r line
     do
       case "$line" in
@@ -122,4 +117,48 @@ htd_make_targets()
     done | sed \
         -e 's/\/\.\//\//g' \
         -e 's/\/\/\/*/\//g'
+}
+
+# List all targets (from every makefile dir by default)
+htd_make_targets()
+{
+  test -n "$*" || set -- $(htd_make_files | act=dirname foreach_do | sort -u)
+  note "Setting make-targets args to '$*'"
+  upper=0 default_env out-fmt list
+
+  # NOTE: need to expand vars/macro's so cannot grep raw source; so need way
+  # around to get back at src-file after listing all targets, somewhere else.
+
+  verbosity=0  \
+  htd_make_dump "$@" 2>/dev/null | make_targets "$@" | {
+    case "$out_fmt" in
+
+        json-stream )
+  while read -r target prereq
+  do
+    # double-colon rules are those whose scripts execution differ per prerequisite
+    # they execute everytime while no prerequisites targets are given, or only
+    # per rule that is out of date. While normal targets can have only one rule.
+    # <https://stackoverflow.com/questions/7891097/what-are-double-colon-rules-in-a-makefile-for#25942356>
+    fnmatch "*::" "$target" && depends=1 || depends=
+    # NOTE: targets are already split in make-dump, ie. no need to split,
+    # each json-stream line always has one target name, but multiple may exists
+    # even if multiple != True
+    target="$(echo "$target" | sed 's/:*$//')"
+    echo "$make_special_t" | grep -qF "$target" && special=1 || special=
+    test -n "$prereq" &&
+        prereq_list="[ \"$( echo $prereq | sed 's/ /", "/g' )\" ]" ||
+        prereq_list='[]'
+    out="{\"target\":\"$target\","
+    trueish "$depends" && out="$out\"multiple\":\"yes\"," ;
+    trueish "$special" && out="$out\"special\":\"yes\"," ;
+    echo "$out\"prerequisites\":$prereq_list}"
+  done
+          ;;
+
+        list ) sort -u ;;
+
+        * ) error "Unknown format '$out_fmt'" 1 ;;
+    esac
+  }
 }

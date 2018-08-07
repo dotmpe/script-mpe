@@ -13,7 +13,7 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
   #lib_load src
   test -n "$1" || set -- .
-  upper=0 default_env out-fmt py || true
+  #upper=0 default_env out-fmt py || true
   # Get first existing file
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
   test -d "$1"/.htd || mkdir "$1"/.htd

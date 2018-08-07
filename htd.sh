@@ -565,6 +565,7 @@ htd__make()
   req_dir_env HTDIR
   cd $HTDIR && make "$@"
 }
+htd_of__make=list
 htd_als__mk=make
 
 
@@ -1037,6 +1038,7 @@ htd_man_1__volumes='Volumes
 '
 htd_spc__volumes='volumes [--(,no-)catalog] [CMD]'
 htd_env__volumes="catalog=true"
+htd_of__volumes=list
 htd_run__volumes=eiAO
 htd__volumes()
 {
