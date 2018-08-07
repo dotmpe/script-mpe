@@ -1,15 +1,8 @@
 #!/bin/sh
 set -e
 
-./.htd/tools/env.sh
 
-verbosity=6 scriptpath=$HOME/bin
-. ./util.sh
-
-lib_load build
-project_tests jsotk-py jsotk-xml mod_jsotk
-project_test jsotk-py jsotk-xml mod_jsotk
-exit $?
+. ./.htd/tools/env.sh
 
 # TODO: create mediameta records, metadata cards with id, format, key, date info etc.
 finfo-app.py --name-and-categorize .

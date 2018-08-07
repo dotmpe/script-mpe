@@ -636,7 +636,7 @@ def get_io(ctx, mode='r', key='dest', section='args'):
         set_format('%sput' % iokey, key, ctx.opts)
     settings = getattr(ctx.opts, section)
     if key+'file' in settings and settings[key+'file']:
-        assert settings[key+'file'] != '-'
+        #assert settings[key+'file'] != '-'
         _file = open_file(settings[key+'file'], defio=iokey, mode=mode, ctx=ctx)
     return _file
 
