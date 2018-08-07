@@ -89,7 +89,7 @@ teardown()
 @test "${bin} compare src/dest formats [C-2b. path/value lines stdin to JSON stdout]" {
   jsotk_from_kv_test()
   {
-    printf "foo/2[2]=more\nfoo/2[3]=items\n" | jsotk.py from-kv - || return $?
+    printf "foo/2[2]=more\\nfoo/2[3]=items\\n" | jsotk.py from-kv - || return $?
   }
   run jsotk_from_kv_test
   test ${status} -eq 0 || fail "Output: ${lines[*]}"
@@ -162,7 +162,12 @@ teardown()
 }
 
 @test "${bin} --list-update merge ..." {
-  TODO "implement list item updates for from-args"
+  echo '{"list": [1, {"foo": 3}]}' >/tmp/in1.json
+  echo '{"list": [1, {"foo": 2}]}' >/tmp/in2.json
+  run $bin --list-update merge-one /tmp/out.json /tmp/in1.json /tmp/in2.json
+  { test ${status} -eq 0 ||
+    test "$(cat /tmp/out.json)" = '{"list": [1, {"foo": 2}]}'
+  } || stdfail
 }
 
 @test "${bin} --list-update merge-one ..." {
@@ -178,7 +183,6 @@ teardown()
   test "$(cat /tmp/out.json)" = '{"list": [1, {"foo": 2}]}'
 }
 
-# FIXME:
 @test "${bin} --list-union merge-one ... (default)" {
   jsotk.py from-args 'foo/bar[]=1' 'foo/bar[]=3' > /tmp/in1.json
   jsotk.py from-args 'foo/bar[]=2' > /tmp/in2.json
@@ -242,7 +246,6 @@ teardown()
 
 
 @test "${bin} -O fkv path test/var/jsotk/1.json foo/2" {
-# TODO: test with -q
   run $BATS_TEST_DESCRIPTION
   { test_ok_nonempty &&
     test "${lines[*]}" = "__0=list __1=with __2=items" 
@@ -283,6 +286,7 @@ teardown()
 
   ${bin} path --is-bool test/var/jsotk/4.json foo/3/3
 }
+
 
 @test "${bin} update - YAML aliased data is updated by reference" {
   

@@ -9744,6 +9744,19 @@ htd__pm2()
 htd_run__pm2=f
 
 
+htd_man_1__make='
+    files
+    targets
+'
+htd__make()
+{
+  test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
+    } || action=status
+  htd_make_$action "$@" || return $?
+}
+htd_run__make=f
+
+
 # -- htd box insert sentinel --
 
 
@@ -9833,7 +9846,7 @@ htd_init()
   lib_load htd meta match vc web src
   lib_load box date doc table disk remote package service archive \
       prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
-      catalog tasks journal annex lfs pm2
+      catalog tasks journal annex lfs pm2 make
   case "$uname" in Darwin ) lib_load darwin ;; esac
   disk_run
   # -- htd box init sentinel --

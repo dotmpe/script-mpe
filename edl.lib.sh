@@ -16,7 +16,7 @@ resolve_line_range()
 # Resolve character span
 resolve_chars()
 {
-  echo TODO
+  echo TODO edl.lib:resolve-chars
 }
 
 # Resolve character start to end pos
@@ -44,5 +44,5 @@ resolve_line_char_range()
 # <7-cmnt-line-offset-span>
 
 
-radical.py --issue-format=full-sh vc.sh | grep -v '^\s*$' | tq.py vc.sh
+#radical.py --issue-format=full-sh vc.sh | grep -v '^\s*$' | tq.py vc.sh
 
