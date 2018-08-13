@@ -144,6 +144,8 @@ htd_file_find_by_sha256e()
   done
 }
 
+# Read filenames at args or stdin, and drop file. See htd help file,
+# and also annex-dropbyname for Annex backend links,
 htd_file_drop()
 {
   annex="$( go_to_dir_with .git/annex && pwd )" || return 61
@@ -161,8 +163,9 @@ htd_file_drop()
       git rm "$fn" || true
       continue
     } || true
-
-    echo "$fn" | catalog_sha2list .catalog/dropped.sha2list
+    # XXX: dropbyname records dropped too, but should really handle at catalog
+    # level/update catalog.yaml
+    #echo "$fn" | catalog_sha2list .catalog/dropped.sha2list
     test -n "$git" && {
       git rm "$fn" || true
     } || {

@@ -7867,11 +7867,24 @@ htd__annex()
         test -e "$srcinfo" && note "Leaving localdir $srcinfo" || rm -r $tmpd
       ;;
 
-    list ) annex_list "$@" ;;
+    metadata ) htd_annex_files "$@" | annex_metadata ;;
 
-    metadata ) annex_list "$@" | annex_metadata ;;
+    git-deleted )
+        git ls-files -d | while read -r fn;
+        do echo "$(basename $(git show HEAD^:"$fn")) $fn" ; done
+      ;;
 
-    * ) error "'$act'?" 1 ;;
+    drop-git-deleted )
+        git ls-files -d | while read -r fn;
+        do echo "$(basename $(git show HEAD^:"$fn")) $fn" ; done |
+          annex_dropkeys
+      ;;
+
+    * )
+        upper=0 mkvid "$act" ; func=htd_annex_$vid
+        func_exists "$func" || error "'$act'?" 1
+        $func "$@" || return $?
+      ;;
 
   esac
 }
