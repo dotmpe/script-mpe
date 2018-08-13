@@ -8,7 +8,7 @@ pm2_lib_load()
 
 pm2_json()
 {
-  test -n "$1" || set -- ~/htdocs "$2"
+  test -n "$1" || set -- ~/htdocs/app "$2"
   #test -n "$2" || set -- "$1" ""
   test -z "$2" &&
       json=$1/pm2-apps.json ||

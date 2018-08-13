@@ -3,7 +3,7 @@
 
 tools_lib_load()
 {
-  upper=0 default_env out-fmt tty || true
+  true # upper=0 default_env out-fmt tty || true
 }
 
 tools_json()

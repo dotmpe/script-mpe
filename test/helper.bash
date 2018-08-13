@@ -106,7 +106,7 @@ type test_nok_nonempty >/dev/null 2>&1 || {
   }
 }
 
-type test_lines >/dev/null 2>&1 || {
+#type test_lines >/dev/null 2>&1 || {
   test_lines()
   {
     # Each match must be present on a line (given arg order is not significant)
@@ -123,15 +123,15 @@ type test_lines >/dev/null 2>&1 || {
       }
     done
   }
-}
+#}
 
 type test_ok_lines >/dev/null 2>&1 || {
   test_ok_lines()
   {
-    test ${status} -eq 0 && test -n "${lines[*]}" && {
-      test -n "$*" || return $?
-      test_lines "$@"
-    }
+    test -n "${lines[*]}" || return
+    test -n "$*" || return
+    test ${status} -eq 0 || return
+    test_lines "$@"
   }
 }
 
@@ -142,5 +142,12 @@ type test_nok_lines >/dev/null 2>&1 || {
       test -n "$*" || return $?
       test_lines "$@"
     }
+  }
+}
+
+type fnmatch >/dev/null 2>&1 || {
+  fnmatch() # Glob Str
+  {
+    case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
   }
 }

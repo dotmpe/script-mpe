@@ -622,11 +622,21 @@ def open_file(fpathname, defio='out', mode='r', ctx=None):
         except IOError as e:
             raise Exception("Unable to open %s for %s" % (fpathname, mode))
 
-def get_out_dest(ctx):
-    outfile = None
-    if 'destfile' in ctx.opts.args and ctx.opts.args.destfile:
-        outfile = open_file(ctx.opts.args.destfile, mode='w+', ctx=ctx)
-    return outfile
+defio_map = {
+        "src": "in",
+        "dest": "out"
+    }
+
+def get_io(ctx, mode='r', key='dest', section='args'):
+    _file = None
+    iokey = defio_map[key]
+    if 'detect_format' in ctx.opts.flags and ctx.opts.flags.detect_format:
+        set_format('%sput' % iokey, key, ctx.opts)
+    settings = getattr(ctx.opts, section)
+    if key+'file' in settings and settings[key+'file']:
+        #assert settings[key+'file'] != '-'
+        _file = open_file(settings[key+'file'], defio=iokey, mode=mode, ctx=ctx)
+    return _file
 
 def get_src_dest(ctx):
     infile, outfile = None, None

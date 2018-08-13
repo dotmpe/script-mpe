@@ -116,6 +116,13 @@ htd_file_size()
   act=filesize foreach_do "$@"
 }
 
+
+htd_file_dirnames()
+{
+  act=dirname foreach_do "$@"
+}
+
+
 # Sort filesizes into histogram, print percentage of bins filled
 # Bin edges are fixed
 htd_file_size_histogram()

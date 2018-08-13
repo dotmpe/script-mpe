@@ -565,6 +565,7 @@ htd__make()
   req_dir_env HTDIR
   cd $HTDIR && make "$@"
 }
+htd_of__make=list
 htd_als__mk=make
 
 
@@ -1037,6 +1038,7 @@ htd_man_1__volumes='Volumes
 '
 htd_spc__volumes='volumes [--(,no-)catalog] [CMD]'
 htd_env__volumes="catalog=true"
+htd_of__volumes=list
 htd_run__volumes=eiAO
 htd__volumes()
 {
@@ -6057,6 +6059,7 @@ htd__getx()
 # Get x-lang file for arg1
 htd__getxl()
 {
+  test -n "$rst2xml" || error "rst2xml required" 1
   fnmatch '*.xml' $1 && set -- "$1" "$1"
   fnmatch '*.rst' $1 && {
     test -n "$2" || set -- "$1" "$(setup_tmpd)/$(basename "$1" .rst).xml"
@@ -9756,6 +9759,19 @@ htd__pm2()
 htd_run__pm2=f
 
 
+htd_man_1__make='
+    files
+    targets
+'
+htd__make()
+{
+  test -n "$1" && { upper=0 mkvid "$1" ; shift ; action=$vid
+    } || action=status
+  htd_make_$action "$@" || return $?
+}
+htd_run__make=f
+
+
 # -- htd box insert sentinel --
 
 
@@ -9845,7 +9861,7 @@ htd_init()
   lib_load htd meta match vc web src
   lib_load box date doc table disk remote package service archive \
       prefix volumestat vfs hoststat scripts tmux vcflow tools schema ck net \
-      catalog tasks journal annex lfs pm2
+      catalog tasks journal annex lfs pm2 make
   case "$uname" in Darwin ) lib_load darwin ;; esac
   disk_run
   # -- htd box init sentinel --
