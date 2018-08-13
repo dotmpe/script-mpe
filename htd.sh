@@ -620,7 +620,7 @@ htd__help_commands()
   echo 'File Versioning'
   echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
   echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
-  echo '  git-remote-info                  Show current ~/.conf/git-remotes/* vars.'
+  echo '  git-remote-info                  Show current ~/.conf/git/remote-dir/* vars.'
   echo '  git-files [REPO...] GLOB...      Look for file (pattern) in repositories'
   echo '  git-grep                         See htd help git-grep'
   echo ''
@@ -712,7 +712,7 @@ htd__help_files()
   echo "  /tmp/gtasks-\$list-\$num-note"
   echo ""
   echo "    Config files"
-  echo "  ~/.conf/git-remotes/\$HTD_GIT_REMOTE.sh"
+  echo "  ~/.conf/git/remote-dirs/\$HTD_GIT_REMOTE.sh"
   echo "  ~/.conf/rules/\$host.sh"
   echo ''
   echo 'See dckr for container commands and vc for GIT related. '
@@ -1983,7 +1983,7 @@ htd_grp__main_doc_edit=cabinet
 
 ### VirtualBox
 
-vbox_names=~/.conf/vbox/vms.sh
+vbox_names=~/.conf/etc/vbox/vms.sh
 htd__vbox()
 {
   name=$1
@@ -6261,7 +6261,7 @@ htd__xtcp()
 }
 
 
-gcal_tab=~/.conf/google/cals.tab
+gcal_tab=~/htdocs/personal/google-.tab
 htd__man_5_cals_tab="List of Google calendar IDs"
 
 gcal_tab_ids()
@@ -7257,7 +7257,7 @@ htd__src()
         tail -n +$sl $file | head -n $l
       ;;
 
-    content | linerange ) shift ; 
+    content | linerange ) shift ;
         fnmatch "*-*" "$1" &&
             { r="$1" ; shift ; set -- $(echo $r | tr '-' ' ') "$@" ;}
         sl=$1 el=$2 file=$3 ; shift 3
@@ -7267,7 +7267,7 @@ htd__src()
     grep-to-first ) shift ; grep_to_first "$@" ; echo $first_line ;;
     grep-to-previous ) shift ; grep_to_last "$@" ; echo $prev_line ;;
 
-    validate ) shift ; 
+    validate ) shift ;
         file=$1 ; shift
         while test $# -gt 0
         do
