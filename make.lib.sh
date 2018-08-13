@@ -56,10 +56,33 @@ htd_make_dump()
     return $q
 }
 
-# List all local makefiles
+# List all local makefiles; the exact method differs a bit per workspace.
+# Set method=git,
+# To include all GIT tracked, db to include MAKEFILE_LIST from the dump,
+# or set directories to search those. Default is $package_ext_make_files,
+# or git,db
 htd_make_files()
 {
-    git ls-files | grep -e '.*Rules.*.mk' -e '.*Makefile'
+  test -n "$package_ext_make_files" || method="git db"
+  test -n "$method" || method="$package_ext_make_files"
+  info "make-files method: '$method'"
+  for method in $method
+  do
+    # XXX: Makefile may indicate different makefile base! still, including
+    # everything but maybe want to get main file and includes only
+    test "$method" = "git" && {
+        git ls-files | grep -e '.*Rules.*.mk' -e '.*Makefile'
+        continue
+    }
+    test "$method" = "db" && {
+        htd_make_expand MAKEFILE_LIST | tr ' ' '\n'
+        continue
+    }
+    test -d "./$method/" && {
+        find ./$d -iname '*Rules*.mk' -o -iname 'Makefile'
+        continue
+    }
+  done
 }
 
 # Expand variable from database
@@ -69,8 +92,7 @@ htd_make_expand()
     varname="$1" ; shift
     make -pq "$@" 2>/dev/null |
         grep '^'"$varname"' := ' |
-        sed 's/^'"$varname"' := //' |
-        tr ' ' '\n'
+        sed 's/^'"$varname"' := //'
 }
 
 htd_make_expandall()

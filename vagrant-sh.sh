@@ -116,9 +116,9 @@ vagrant_sh__status()
 {
   test -n "$1" || set -- default
   local vgrnt_stat_="$(vagrant status | grep "^$1\ .*([a-z\ ]*)$" | sed 's/^'$1'\ *//')"
+  test -n "$vgrnt_stat_" || { warn "No local staltus" ; return 10 ; }
   vgrnt_stat=
   vgrnt_stat_msg=
-  test -n "$vgrnt_stat_" || return 10
   vgrnt_provider="$(echo "$vgrnt_stat_" | sed 's/.*(\(.*\))$/\1/')"
   vgrnt_stat_msg="$(echo "$vgrnt_stat_" | sed 's/\ *(.*)$//')"
   case "$vgrnt_stat_msg" in

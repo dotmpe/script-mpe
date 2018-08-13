@@ -1151,6 +1151,7 @@ vc__regenerate()
 
   note "Local excludes successfully regenerated <$excludes>"
 }
+vc__regen() { vc__regenerate "$@" ; }
 
 
 vc_man_1__regenerate_stale='Regenerate GIT exclude file from user config

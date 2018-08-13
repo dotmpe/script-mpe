@@ -171,7 +171,6 @@ class Rsr(libcmd.StackedCommand):
             'rsr_nodes': ['rsr_session'],
             'rsr_tree': ['rsr_session'],
             'rsr_update': ['rsr_session'],
-            'rsr_repo_update': ['rsr_session'],
         }
 
     DEFAULT_DB_PATH = os.path.expanduser('~/.cllct/db.sqlite')
@@ -243,7 +242,6 @@ class Rsr(libcmd.StackedCommand):
                 p(('--nodes',), libcmd.cmddict(Klass.NAME)),
                 p(('--set-root-bool',), libcmd.cmddict(Klass.NAME)),
                 p(('--update',), libcmd.cmddict(Klass.NAME)),
-                p(('--repo-update',), libcmd.cmddict(Klass.NAME)),
                 #listtree?
                 p(('-l', '--list',), libcmd.cmddict(Klass.NAME)),
                 p(('-t', '--tree',), libcmd.cmddict(Klass.NAME)),
@@ -584,19 +582,6 @@ class Rsr(libcmd.StackedCommand):
         print(lvl * '  ', group.name)
         for sub in group.subnodes:
             self.rsr_node_recurse(sa, sub, lvl=lvl+1)
-
-    def rsr_repo_update(prog=None, objects=None, opts=None):
-        "TODO: move to vc, for walk see dev_treemap or re-think-use Dir.walk"
-        i = 0
-        for repo in res.Repo.walk(prog.pwd, max_depth=2):
-            i += 1
-            assert repo.rtype
-            assert repo.path
-            print(repo.rtype, repo.path, end=' ')
-            if repo.uri:
-                print(repo.uri)
-            else:
-                print()
 
     def rsr_show_metafile(self, path):
         #metafile = res.Metafile(path)

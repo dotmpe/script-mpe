@@ -1,7 +1,5 @@
 #!/bin/sh
 set -e
-
-
 verbosity=6 scriptpath=$HOME/bin
 . ./util.sh
 lib_load

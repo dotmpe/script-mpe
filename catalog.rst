@@ -194,7 +194,7 @@ Tracking by checksum is never as easy as it seems.
 
 See also
 --------
-- ``ck.lib.sh``
+- ``ck.lib.sh``, ck.rst
 - ``magnet.py``
 - rhash offers a fair range of common and more exotic algos, including magnet
   links

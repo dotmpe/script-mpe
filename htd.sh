@@ -566,6 +566,7 @@ htd__make()
   cd $HTDIR && make "$@"
 }
 htd_of__make=list
+htd_run__make=p
 htd_als__mk=make
 
 
@@ -3766,6 +3767,7 @@ htd_man_1__function='Operate on specific functions in Sh scripts.
      Retrieve start- and end-line-number for function.
 
 See also
+    src
     sync-func(tion)|diff-func(tion) FILE1 FUNC1 DIR[FILE2 [FUNC2]]
     sync-functions|diff-functions FILE FILE|DIR
     diff-sh-lib [DIR=$scriptpath]
@@ -7225,6 +7227,20 @@ htd__say()
 
 
 htd_man_1__src='TODO: this is for the src service/directory
+
+  linespan Start-Line[/- ]Lines File [Checks]
+    Retrieve content. Provided checksums to validate files before.
+
+  (content | linerange) Start-Line[- ]End-Line File [Checks]
+    Convert range to to span and defer execution to linespan.
+
+  validate File Checks..
+    Require one/each/all checksums to be valid. Checksums can be abbreviated
+    (abbrev=7). See ck-<CK> for more details.
+
+  grep-to-first Grep File From-Line
+    ..
+
 See source for src.lib.sh wrapped as subcommands.
 '
 htd__src()
@@ -7232,12 +7248,35 @@ htd__src()
   test -n "$1" || set -- list
   case "$1" in
 
-    list ) shift
+    linespan ) shift ;
+        note "'$*'"
+        { fnmatch "*-*" "$1" || fnmatch "*/*" "$1"
+        } && { r="$1" ; shift ; set -- $(echo "$r" | tr '/-' ' ') "$@" ; }
+        sl=$1 l=$2 file=$3 ; shift 3
+        test -z "$1" || { htd__src validate "$file" "$@" || return ; }
+        tail -n +$sl $file | head -n $l
+      ;;
 
+    content | linerange ) shift ; 
+        fnmatch "*-*" "$1" &&
+            { r="$1" ; shift ; set -- $(echo $r | tr '-' ' ') "$@" ;}
+        sl=$1 el=$2 file=$3 ; shift 3
+        htd__src linespan $sl $(( $el - $sl + 1 )) "$file" "$@"
+      ;;
+
+    grep-to-first ) shift ; grep_to_first "$@" ; echo $first_line ;;
+    grep-to-previous ) shift ; grep_to_last "$@" ; echo $prev_line ;;
+
+    validate ) shift ; 
+        file=$1 ; shift
+        while test $# -gt 0
+        do
+          echo "$1  $file"
+          shift
+        done | any=1 ck_validate
       ;;
 
     * ) error "'$1'?" 1 ;;
-
   esac
 }
 htd_run__src=f

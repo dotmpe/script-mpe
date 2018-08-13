@@ -40,7 +40,89 @@ ck_arg()
   T_CK="$(echo $CK | tr 'a-z' 'A-Z')"
 }
 
-# Run checksums from file
+# Read ck key and file path on stdin, and verify cksums. ck-key is '<CK>:' prefix to checksum
+# TODO any=1 to stop at first supported key that validates
+# TODO: all=1 (default) require each and at least one key to be valid, but ignore unsuppored
+ck_validate()
+{
+  while IFS=$IFS: read -r ck cksum fn
+  do
+    ck_$ck "$fn" "$cksum" || {
+      error "Invalid $ck:$cksum <$fn>"
+      return 1
+    }
+    note "Validated $ck:$cksum <$fn>"
+  done
+}
+
+# Helpers to validate checksum for file, or show how to get/echo checksum
+# abbrev=7 (default) allow abbreviated checksums even only 1 char, set minimum
+ck_git()
+{
+  test -n "$abbrev" || abbrev=7
+  cksum="$(git hash-object "$1")"
+  test -n "$2" && {
+    test ${#2} -eq ${#cksum} || { # length should be 40
+      test $abbrev -gt 0 || return
+      # Partial match but at least N chars
+      test ${#2} -ge $abbrev && fnmatch "$2*" "$cksum"
+      return $?
+    }
+    test "$2" = "$cksum" || return
+  } || echo "$cksum"
+}
+
+# See ck-git
+ck_md5()
+{
+  test -n "$abbrev" || abbrev=7
+  cksum="$(md5sum "$1" | cut -f1 -d' ')"
+  test -n "$2" && {
+    test ${#2} -eq ${#cksum} || {
+      test $abbrev -gt 0 || return
+      # Partial match but at least N chars
+      test ${#2} -ge $abbrev && fnmatch "$2*" "$cksum"
+      return $?
+    }
+    test "$2" = "$cksum" || return
+  } || echo "$cksum"
+}
+
+# See ck-git
+# TODO: rewrite prefix; ck_sha() { ck_sha1 "$@"; }
+ck_sha1()
+{
+  test -n "$abbrev" || abbrev=7
+  cksum="$(sha1sum "$1" | cut -f1 -d' ')"
+  test -n "$2" && {
+    test ${#2} -eq ${#cksum} || {
+      test $abbrev -gt 0 || return
+      # Partial match but at least N chars
+      test ${#2} -ge $abbrev && fnmatch "$2*" "$cksum"
+      return $?
+    }
+    test "$2" = "$cksum" || return
+  } || echo "$cksum"
+}
+
+# See ck-git
+ck_sha2()
+{
+  test -n "$abbrev" || abbrev=7
+  cksum="$(shasum -a 256 "$1" | cut -f1 -d' ')"
+  test -n "$2" && {
+    test ${#2} -eq ${#cksum} || {
+      test $abbrev -gt 0 || return
+      # Partial match but at least N chars
+      test ${#2} -ge $abbrev && fnmatch "$2*" "$cksum"
+      return $?
+    }
+    test "$2" = "$cksum" || return
+  } || echo "$cksum"
+}
+
+# Run checksums from file [one checksum type per file, see ck_validate to
+# run individual ``*sum -c`` invocations per line on stdin]
 ck_run() # CkTable
 {
   test -n "$1" || error "ck-run argument expected" 1

@@ -60,8 +60,6 @@ Options:
                         core.groupnode_node_table            update().values(
                         )
   --update              
-  --repo-update         TODO: move to vc, for walk see dev_treemap or re-
-                        think-use Dir.walk
   -l, --list            List all nodes, or nodes listed in group node
   -t, --tree            Print a tree of nodes as nested lists
   --list-groups         List all group nodes
