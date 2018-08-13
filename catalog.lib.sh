@@ -242,6 +242,21 @@ htd_catalog_list_files()
 }
 
 
+# Set fn env var to full path for name
+set_cataloged_file()
+{
+  test -e "$1" && fn="$1" || fn="$(find . -iname "$1")"
+  test -e "$fn" -o -h "$fn" || {
+    test -n "$fn" && {
+      warn "Expected one file path: '$fn'" ; return 1
+    } || {
+      warn "Expected one file path, found nothing for '$1'" ; return 1
+    }
+  }
+  # TODO: trueish "$strict" require catalog entry
+}
+
+
 # Cache catalog pathnames, list basepaths. Error if none found.
 htd_catalog_list_local()
 {

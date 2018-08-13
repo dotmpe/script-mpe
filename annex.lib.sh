@@ -15,7 +15,7 @@ annex_lib_load()
   . ~/.local/composure/find_by_sha2.inc
 }
 
-annex_list()
+htd_annex_files()
 {
   # Annex queries remotes, which may give errors (no network/mounts missing)
   git annex list $@ --fast 2>/dev/null | while read prefix file
@@ -161,26 +161,33 @@ git_annex_unusedkeys_findlogs() # Key-List-File...
   done
 }
 
-annex_removebykey()
+# One dropkey --force, for given filename or empty
+annex_dropbykey() # File Key
 {
   local size sha2 keyext KEY keys_sha2 fn
+  set_cataloged_file "$1" || true
   note "Dropping '$1'.."
-  test -e "$1" && fn="$1" || fn=
   # NOTE: content does need to be present, key should exist ofcourse
   annex_parsekey "$2" || return
   info "Dropping KEY=$2.."
   git annex dropkey --force "$2" || echo dropkey-exit=$?
+  test -n "$dropped" || dropped=./.catalog/dropped.sha2list
   test -n "$1" || set -- "$keyext" "$2"
-  test -z "$reason" || set -- "$1\t$reason" "$2"
-  printf "$size $sha2 $1\n" >> ./.catalog/dropped.sha2list
-  test -z "$fn" || git rm "$fn"
+  grep -q "$2" $dropped && {
+    note "Already recorded as dropped: '$1'"
+  } || {
+    test -z "$reason" || set -- "$1\t$reason" "$2"
+    echo "$size $sha2 $1" >> $dropped
+  }
+  test -z "$fn" -o ! -e "$fn" || git rm "$fn"
 }
 
-git_annex_dropkeys()
+# Just dropkey --force. Read keys (and optional filename) from stdin.
+annex_dropkeys()
 {
-  while read -r key
+  while read -r key fn
   do
-    git annex dropkey --force $key || warn "$? on key '$key'"
+    annex_dropbykey "$fn" "$key"
   done
 }
 
@@ -417,7 +424,7 @@ annexdir_check()
 annex_dropbyname()
 {
   KEY="$(git annex lookupkey "$1")" || return
-  annex_removebykey "$1" "$KEY"
+  annex_dropbykey "$1" "$KEY"
 }
 
 # Lookup by SHA256E key or SHA-2, in every annex found in dir.
