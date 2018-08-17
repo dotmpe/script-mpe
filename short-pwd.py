@@ -13,7 +13,7 @@ if '-h' in args or not args:
 maxlen = int( args.pop(0) )
 
 if args:
-    pwd = args.pop()
+    pwd = args.pop().strip()
     assert not args
 else:
     pwd = os.getcwd()
