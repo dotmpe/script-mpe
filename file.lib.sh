@@ -77,7 +77,17 @@ htd_file_newest()
   find $1 -type f -exec stat --format '%Y :%y %n' "{}" \; |
       sort -nr |
       cut -d: -f2- |
-      head -n 10
+      head -n $2
+}
+
+htd_file_largest()
+{
+  test -n "$1" || set -- . "$2"
+  test -n "$2" || set -- "$1" 10
+  find $1 -type f -exec stat --format '%s %n' "{}" \; |
+      sort -nr |
+      cut -d' ' -f2- |
+      head -n $2
 }
 
 # file_names=[01] file_deref=[01] htd file format FILE...
