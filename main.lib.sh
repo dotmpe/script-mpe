@@ -57,6 +57,12 @@ echo_help()
   return 1
 }
 
+std_usage()
+{
+  ( try_local_func usage && $func_name ) ||
+      ( try_local_func usage '' std && $func_name )
+}
+
 # Wrapper for try-help
 std_man() # [Section] Id
 {
@@ -70,6 +76,7 @@ std_man() # [Section] Id
 std_help()
 {
   test -z "$1" && {
+    std_usage
     # XXX: using compiled list of help ID since real list gets to long htd_usage
     echo ''
     echo 'Other commands: '
@@ -226,8 +233,7 @@ try_subcmd()
   get_subcmd_func "$1" || {
     e=$?
     test -z "$subcmd" && {
-      ( try_local_func usage && $func_name ) \
-        || ( try_local_func usage '' std && $func_name )
+      try_usage
       error 'No command given, see "help"' 1
     } || {
       test "$e" = "1" -a -z "$func_exists" && {

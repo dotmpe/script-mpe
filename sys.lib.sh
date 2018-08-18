@@ -402,8 +402,8 @@ lookup_path_list() # VAR-NAME
   eval echo \"\$$1\" | tr ':' '\n'
 }
 
-# lookup-path List existing local paths going over ':' separated dir paths in VAR-NAME
-# lookup-test: command to test for existing local path, defaults to test -e
+# lookup-path List existing local paths, or fail if second arg is not listed
+# lookup-test: command to test equality with, default test_exists
 # lookup-first: boolean setting to stop after first success
 lookup_path() # VAR-NAME LOCAL-PATH
 {
@@ -414,6 +414,24 @@ lookup_path() # VAR-NAME LOCAL-PATH
       trueish "$lookup_first" && return 0 || continue
     } || continue
   done
+}
+
+# Test if local path/name is overruled. Lists paths for hidden LOCAL instances.
+lookup_path_shadows() # VAR-NAME LOCAL
+{
+  local r=
+  tmpf=$(setup_tmpf .lookup-shadows)
+  lookup_first=false lookup_path "$@" >$tmpf
+  lines=$( count_lines $tmpf )
+  test "$lines" = "0" && { r=2
+    } || { r=0
+      test "$lines" = "1" || { r=1
+          cat $tmpf
+          #tail +2 "$tmpf"
+      }
+    }
+  rm $tmpf
+  return $r
 }
 
 # Return 1 if env was provided, or 0 if default was set

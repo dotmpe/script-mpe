@@ -573,6 +573,11 @@ htd_als__mk=make
 
 # Static help echo's
 
+htd__usage()
+{
+  htd_usage
+}
+
 htd_usage()
 {
   echo "$scriptname.sh Bash/Shell script helper"
@@ -580,9 +585,8 @@ htd_usage()
   echo "  $scriptname <cmd> [<args>..]"
   echo ""
   echo "Possible commands are listed by help-commands or commands. "
-  echo "The former is hard-coded and more documented but possibly stale."
-  echo "The latter long listing is generated en-passant from the source"
-  echo "documents, and the parsing maybe buggy. "
+  echo 
+  echo "See also: docs, todo"
 }
 htd__help_commands()
 {
@@ -752,7 +756,9 @@ try-help."
 htd_spc__help="-h|help [<id>]"
 htd__help()
 {
+  note "Listing all commands, see usage or composure"
   std_help "$@"
+  info "Listing all commands, see usage or composure"
 }
 htd_als___h=help
 htd_als____help=help
@@ -3590,6 +3596,7 @@ htd_man_1__file='TODO: Look for name and content at path; then store and cleanup
 
     newer-than
     older-than
+    newest 
     mtype
     mtime
     mtime-relative
@@ -9247,6 +9254,18 @@ htd__env()
         local | sed 's/=.*$//' | grep -v '^_$' | sort -u
       ;;
 
+    lookup-list ) shift ;
+        lookup_path_list "$@"
+      ;;
+
+    lookup ) shift ;
+        lookup_path "$@"
+      ;;
+
+    lookup-shadows ) shift ;
+        lookup_path_shadows "$@"
+      ;;
+
     #host ) # XXX: tmux, launch/system/init daemon?
     #  ;;
     tmux ) # XXX: cant resolve the from shell
@@ -9775,6 +9794,7 @@ htd__uptime()
   disk_runtime
 }
 
+
 htd__bootnumber()
 {
   note "Getting disk0 boot count-crash count..."
@@ -9810,6 +9830,50 @@ htd__make()
 }
 htd_run__make=f
 
+
+htd_man_1__todo='
+tasks
+box, composure
+
+help-commands is hard-coded and more documented but getting stale.
+commands is a long, long listing is generated en-passant from the source
+'
+
+
+htd_man_1__composure='Composure: dont fear the Unix chainsaw
+
+A set of 7 shell functions, to rule all the others:
+
+cite KEYWORD.. - create keyword function
+draft NAME - create shell routine function of last command
+glossary - list all composure functions
+metafor - retrieve string from typeset output
+reference FUNC - print usage
+revise FUNC - edit shell routine function
+write FUNC.. - print composed function(s)
+
+The benefit of using shell functions is free auto-complete without any fus.
+
+Composure includes private functions under the "_" prefix. Its main techniques
+are:
+
+1. empty (no-op) functions for keeping strings (iso. vars or comments), for
+   better performance having typeset access function bodies and metafor grep
+2. draft/revise/write and other helper functions to create new functions,
+   stored at ~/.local/composure/*.inc
+
+reference accesses all the interesting metadata keywords for a function. The
+short help string is called "about".
+
+XXX: it would be interesting to "overload" functions, or rewrite compsure
+entirely using composure functions. all the files need some organization, 
+have metadata for lib or cmd groups. ie. let it generate itself, or
+customizations.
+
+the interesting bit is overriding of functions. like when does a app decide
+to use the global, host, vendor provided scripts or when does it let a local
+user provided script take over.
+'
 
 # -- htd box insert sentinel --
 

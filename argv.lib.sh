@@ -21,6 +21,11 @@ test_exists() # Local-Name [ Base-Dir ]
   }
 }
 
+test_equals()
+{
+  test "$1" = "$2"
+}
+
 test_dir() # Path
 {
   test -d "$1" || {
