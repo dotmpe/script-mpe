@@ -192,6 +192,7 @@ words_to_lines()
     tr ' ' '\n'
   }
 }
+
 lines_to_words()
 {
   test -n "$1" && {
@@ -201,6 +202,17 @@ lines_to_words()
   } || {
     tr '\n' ' '
   }
+}
+# replace linesep with given char
+linesep()
+{
+  test -n "$1" || set -- " "
+  tr '\n' "$1"
+}
+wordsep()
+{
+  test -n "$1" || set -- " "
+  tr ' ' "$1"
 }
 words_to_unique_lines()
 {

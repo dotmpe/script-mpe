@@ -122,7 +122,7 @@ htd_rst_doc_create_update()
           grep -q '\.\.\ footer::' "$outf" || {
             thisyearrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}year$EXT")
             {
-              printf -- ".. footer::\n\n\t- \`$title <$thisyearrel>\`_"
+              printf -- ".. footer::\n\n  - \`$title <$thisyearrel>\`_"
             } >> $outf
           }
         ;;
@@ -144,7 +144,7 @@ htd_rst_doc_create_update()
           grep -q '\.\.\ footer::' "$outf" || {
             thismonthrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}month$EXT")
             {
-              printf -- ".. footer::\n\n\t- \`$title <$thismonthrel>\`_"
+              printf -- ".. footer::\n\n  - \`$title <$thismonthrel>\`_"
             } >> $outf
           }
         ;;
@@ -160,7 +160,7 @@ htd_rst_doc_create_update()
           grep -q '\.\.\ footer::' "$outf" || {
             thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
             {
-              printf -- ".. footer::\n\n\t- \`$title <$thisweekrel>\`_"
+              printf -- ".. footer::\n\n  - \`$title <$thisweekrel>\`_"
             } >> $outf
           }
         ;;
@@ -179,7 +179,7 @@ htd_rst_doc_create_update()
           grep -q '\.\.\ footer::' "$outf" || {
             thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
             {
-              printf -- ".. footer::\n\n\t- \`$title <$thisweekrel>\`_"
+              printf -- ".. footer::\n\n  - \`$title <$thisweekrel>\`_"
             } >> $outf
           }
         ;;

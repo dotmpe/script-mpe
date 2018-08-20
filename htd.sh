@@ -9875,6 +9875,28 @@ to use the global, host, vendor provided scripts or when does it let a local
 user provided script take over.
 '
 
+htd_man_1__meta='
+
+'$meta_api_man_1'
+
+See also embyapi'
+htd__meta()
+{
+  upper=0 mkvid "$1" ; shift ;
+  func_exists meta_$vid || error "$vid" 1
+  meta_$vid "$@" || return $?
+}
+
+htd_man_1__meta='
+'$emby_api_man_1
+htd__embyapi()
+{
+  upper=0 mkvid "$1" ; shift ;
+  func_exists emby_api__$vid || error "$vid" 1
+  emby_api_init
+  emby_api__$vid "$@" || return $?
+}
+
 # -- htd box insert sentinel --
 
 
