@@ -285,7 +285,7 @@ __vc_status()
 __vc_screen ()
 {
   test -n "$1" || set -- "$(pwd)"
-  local w short repo sub 
+  local w short repo sub
 
   w="$(cd "$1" && pwd -P)"
   short=$(short "$1")
@@ -762,6 +762,7 @@ vc__cleanables() { eval read_nix_style_file $vc_clean_gl || return $?; }
 vc__cleanables_regex() { globlist_to_regex $vc_clean_gl || return $?; }
 
 
+vc__tracked() { vc__tracked_files "$@" ; }
 vc__tracked_files()
 {
   test -z "$*" || error "unexpected arguments" 1

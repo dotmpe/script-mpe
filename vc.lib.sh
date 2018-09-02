@@ -302,7 +302,7 @@ vc_tracked_git()
 
 vc_tracked_bzr()
 {
-  bzr ls
+  bzr ls -R
 }
 
 vc_tracked_svn()
