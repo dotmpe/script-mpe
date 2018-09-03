@@ -30,7 +30,7 @@
       dotmpe: domains/dotmpe.com/htdocs/git/script-mpe.git
       dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
       github: git@github.com:bvberkum/script-mpe.git
-      notus.24-2-bare: /srv/git-24-2-notus-brix/bvberkum/script-mpe.git
+      notus.24-2-bare: /srv/scm-git-24-2-notus-brix/bvberkum/script-mpe.git
 
   lists:
     default: "@Task @Dev +script-mpe +htdocs-mpe"
