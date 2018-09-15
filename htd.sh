@@ -716,7 +716,7 @@ htd__help_files()
   echo "  /tmp/gtasks-\$list-\$num-note"
   echo ""
   echo "    Config files"
-  echo "  ~/.conf/git/remote-dirs/\$HTD_GIT_REMOTE.sh"
+  echo "  ~/.conf/etc/git/remotes/\$HTD_GIT_REMOTE.sh"
   echo "  ~/.conf/rules/\$host.sh"
   echo ''
   echo 'See dckr for container commands and vc for GIT related. '
@@ -1335,7 +1335,7 @@ htd_run__project=p
 htd__project()
 {
   test -n "$1" || set -- info
-  lib_load project
+  lib_load htd-project htd-src
   case "$1" in
 
     create ) shift ; htd_project_create "$@" ;;
@@ -3296,7 +3296,7 @@ htd__gitremote()
   test -n "$*" || set -- "$HTD_GIT_REMOTE"
 
   # Insert empty arg if first represents remote-dir sh-props file
-  test -e $UCONFDIR/git/remote-dirs/$1.sh -a $# -le 2 && {
+  test -e $UCONFDIR/etc/git/remotes/$1.sh -a $# -le 2 && {
     # Default command to 'list' when remote-id exists and no further args given
     test $# -eq 1 && set -- "list" "$@" || set -- url "$@"
   }
@@ -9895,6 +9895,16 @@ htd__embyapi()
   func_exists emby_api__$vid || error "$vid" 1
   emby_api_init
   emby_api__$vid "$@" || return $?
+}
+
+htd_man_1__src=''
+htd_run__src=f
+htd__src()
+{
+  test -n "$1" || set -- status
+  upper=0 mkvid "$1" ; shift
+  lib_load htd-src
+  htd_src_$vid "$@" || return $?
 }
 
 # -- htd box insert sentinel --

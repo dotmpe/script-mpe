@@ -7,14 +7,14 @@
 gitremote_lib_load()
 {
   test -n "$GIT_REMOTE_CONF" ||
-      export GIT_REMOTE_CONF"=$UCONFDIR/git/remote-dirs"
+      export GIT_REMOTE_CONF"=$UCONFDIR/etc/git/remotes"
 }
 
 gitremote_init_uconf()
 {
   C=$GIT_REMOTE_CONF/$1.sh
 
-  . $C
+  . $C || return
 
   test -n "$remote_dir" || {
     info "Using $NS_NAME for $1 remote vendor path"
@@ -146,7 +146,7 @@ gitremote_github_list()
   cache=$confd/$1.json
 
   { test -e $cache && newer_than $cache $_1DAY
-  } && stderr ok "File UCONFDIR:git/remote-dirs/$1.json" || {
+  } && stderr ok "File UCONFDIR:etc/git/remotes/$1.json" || {
 
     URL="https://api.github.com/users/$remote_user/repos"
     per_page=100

@@ -154,10 +154,10 @@ htd_repository_url() # Remote Url
     }
 
   test -n "$remote_id" || {
-    test ! -e $UCONFDIR/git/remote-dirs/$remote.sh || remote_id=$remote
+    test ! -e $UCONFDIR/etc/git/remotes/$remote.sh || remote_id=$remote
   }
   test -z "$remote_id" || {
-    . $UCONFDIR/git/remote-dirs/$remote_id.sh
+    . $UCONFDIR/etc/git/remotes/$remote_id.sh
   }
   test -n "$domain" || domain=$remote_id
 
@@ -177,7 +177,7 @@ htd_repository_url() # Remote Url
 
   } || {
 
-    #{ test -e $UCONFDIR/git/remote-dirs/$domain.sh ||
+    #{ test -e $UCONFDIR/etc/git/remotes/$domain.sh ||
     #  fnmatch "/*" "$2" || fnmatch "~/*" "$2"
     #} || return
     #url="$domain:$2"

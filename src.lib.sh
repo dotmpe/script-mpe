@@ -550,7 +550,6 @@ EOF
   }
 }
 
-
 # TODO: diff-where
 diff_where() # Where/Line Where/Span Src-File
 {

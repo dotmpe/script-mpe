@@ -2,7 +2,7 @@
 
 project_lib_load()
 {
-  test -e /srv/project-local || error "project-local missing" 1
+  test -e /srv/project-local/.htd || error "project-local missing" 1
 }
 
 htd_project_releases()
@@ -28,46 +28,58 @@ htd_project_releases()
 # TODO: go from project Id, to namespace and provider. use local SCM/package
 htd_project_args()
 {
-  test -n "$2" || {
-    test -n "$1" || error "TODO: get ns/name from package" 1
-    set -- "$1" "$(htd git-remote url dotmpe $1)"
+  test -n "$ns" || ns=$NS_NAME
+  test -n "$domain" || domain=github.com
+  name=$1
+
+  #test -n "$2" || {
+  #  test -n "$1" || error "TODO: get ns/name from package" 1
+    #set -- "$1" "$(htd git-remote url dotmpe $1)"
     #vc_getscm || return
     #error "TODO get url" 1
   #  #set -- "$()" "$2"
-  }
+  #}
 
   test -n "$1" || {
     error "TODO get Ns-Name for recognized URLs" 1
-    set -- "$(basename "$2" .git)" "$2"
+    #set -- "$(basename "$2" .git)" "$2"
   }
-  fnmatch "*/*" "$1" && ns=$(echo "$1" | cut -d'/' -f1) || set -- "$ns/$1"
+  #fnmatch "*/*" "$1" && ns=$(echo "$1" | cut -d'/' -f1) || set -- "$ns/$1"
+  #echo "$1"
 }
+
 # TODO: create new checkout for project
 htd_project_checkout()
 {
-  local ns=$NS_NAME
+  local ns=
   htd_project_args "$@" || return
-  test -n "$domain" || domain=github.com
 
-  test -e "/src/$domain/$ns/$name" || {
-    git clone "$2" "/src/$domain/$ns/$name"
-  }
-  test -e "/srv/project-local/$name" || {
-    ln -s "/src/$domain/$ns/$name" /srv/project-local/$name
-  }
 }
-# TODO: check that project is vendored
+
 htd_project_init() # [NS/]NAME | [ NAME URL ]]
 {
-  local ns=$NS_NAME
+  local ns= domain= name=
   htd_project_args "$@" || return
 
-  test -e "/srv/scm-git-local/git/$1.git" || {
-    git clone --bare -mirror "$2" "/srv/scm-git-local/git/$1.git" && {
-      note "Local repo created for $1"
-    } || error "Clone error" 1
-  } && note "Local repo exists for $1"
+  test ! -d "/srv/project-local/$name" || error "Dir exists: '$name'" 1
+
+  test -e "/src/$domain/$ns/$name" || {
+    htd_src_init "$domain" "$ns" "$name"
+  }
+
+  # TODO: init local remote
+  #test -e "/srv/scm-git-local/git/$1.git" || {
+  #  git clone --bare -mirror "$2" "/srv/scm-git-local/git/$1.git" && {
+  #    note "Local repo created for $1"
+  #  } || error "Clone error" 1
+  #} && note "Local repo exists for $1"
+
+  test -e "/srv/project-local/$name" || {
+    test ! -h "/srv/project-local/$name" || rm -v "$name"
+    ln -vs "/src/$domain/$ns/$name" /srv/project-local/$name
+  }
 }
+
 # Create new for current
 htd_project_create()
 {
