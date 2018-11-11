@@ -30,19 +30,20 @@ services:
 - redis-server
 - memcached
 - couchdb
+- docker
 
-before_install:
+before_install: []
   - export scriptname="before-install" before_install_ts="$(date +%s)"
+  - set -e
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh || { . ./tools/ci/env.sh ; . ./tools/ci/parts/init.sh ; }
   - . ./tools/ci/parts/announce.sh
 
-install:
+install: []
   - export scriptname=install install_ts="$(date +%s)"
   - . ./tools/ci/parts/install.sh
-  - . ./tools/ci/env.sh
 
-before_script:
+before_script: []
   - export scriptname="before-script" before_script_ts="$(date +%s)"
   - echo Starting $scriptname
   - . ./tools/ci/parts/check.sh
@@ -51,8 +52,8 @@ before_script:
 script:
   - export scriptname=script script_ts="$(date +%s)"
   - echo Starting $scriptname
-  - failed=/tmp/htd-build-test-$(uuidgen).failed
-  - lib_load build-test && build_test_init && required_tests
+#  - failed=/tmp/htd-build-test-$(uuidgen).failed
+#  - lib_load build-test && build_test_init && required_tests
 #  - . ./tools/ci/parts/build.sh
 #  - test "$SHIPPABLE" = true || test ! -e "$failed"
 
@@ -111,6 +112,7 @@ branches:
     # Because shippable does not handle the patterns correctly
     - test
     - dev
+    - '/^features\/.*$/'
     - '/^test.*$/'
     - '/^dev.*$/'
     - '/^[0-9]*\.[0-9]*\.[0-9]*/'

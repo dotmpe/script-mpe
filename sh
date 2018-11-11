@@ -2,17 +2,23 @@
 set -e
 
 
-test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
-scriptpath=$(pwd) . ./util.sh
-lib_load
-lib_load src table projectenv
+#test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
+#scriptpath=$(pwd) . ./util.sh
+#lib_load
+#lib_load src table projectenv
 
 #build_redo_changed=1 ./build.sh all
 
-lib_load build-test &&
-build_test_init &&
+#lib_load build-test &&
+#build_test_init &&
 
 docker pull bvberkum/treebox:dev &&
+docker run --rm \
+    -w /dut \
+    -v $(pwd -P)/tools/ci/docker.sh:/dut/run.sh \
+    bvberkum/treebox:dev sh ./run.sh
+
+exit $?
 #rm .cllct/testruns/*.tap || true
 
 export CS=dark
