@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 
 on_host()
 {

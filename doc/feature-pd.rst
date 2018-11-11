@@ -140,6 +140,3 @@ Dirt
     dirty files, etc.
 
 SCM (clean/dirty/crufty) handling depends on vc.sh_ script.
-
-
-

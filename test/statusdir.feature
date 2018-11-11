@@ -1,26 +1,27 @@
-Feature: statusdir records with any backend
 
-    Scenario Outline: statusdir behaves normally
-        Given `env` '<env> verbosity=0'
+         Feature: statusdir records with any backend
 
-        When the user runs 'statusdir.sh ping'
-        Then `stderr` is empty
-        And `status` is '0'
-        When the user runs 'statusdir.sh foo'...
-        Then `stderr` is not empty
-        And `status` is not '0'
-        When the user runs 'statusdir.sh help'
-        Then `output` is not empty
-        Then `stderr` is empty
-        When the user runs 'statusdir.sh version'
-        Then `output` is not empty
-        And `stderr` is empty
-        When the user runs 'statusdir.sh backend'
-        Then `output` should match '^<be_name>.*'
-        Then `stderr` not empty
-        And `status` is '0'
+Scenario Outline: statusdir behaves normally
+           Given `env` '<env> verbosity=0'
 
-        Examples:
+            When the user runs 'statusdir.sh ping'
+            Then `stderr` is empty
+             And `status` is '0'
+            When the user runs 'statusdir.sh foo'...
+            Then `stderr` is not empty
+             And `status` is not '0'
+            When the user runs 'statusdir.sh help'
+            Then `output` is not empty
+            Then `stderr` is empty
+            When the user runs 'statusdir.sh version'
+            Then `output` is not empty
+             And `stderr` is empty
+            When the user runs 'statusdir.sh backend'
+            Then `output` should match '^<be_name>.*'
+            Then `stderr` not empty
+             And `status` is '0'
+
+       Examples:
             | env | be_name |
             | sd_be=fsdir | fsdir |
             | sd_be=redis | redis |

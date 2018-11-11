@@ -181,8 +181,13 @@ req_dir_env()
 # opt-args: all argv are filtered into $options or else $arguments
 opt_args()
 {
-  for arg in $@
-  do fnmatch "-*" "$arg" && echo "$arg" >>$options || echo $arg >>$arguments
+  for arg in "$@"
+  do { test "-" != "$arg" && fnmatch "-*" "$arg" ; } &&
+      echo "$arg" >>$options || {
+        test -n "$arg" &&
+          echo "$arg" >>$arguments ||
+          echo "''" >>$arguments
+      }
   done
 }
 
@@ -201,13 +206,17 @@ define_var_from_opt()
     --no-* )
         eval $(echo "$1" | cut -c6- | tr '-' '_')=0
       ;;
+    --* )
+        eval $(echo "$1" | cut -c3- | tr '-' '_')=1
+      ;;
+
+    - ) ;;
+
+    # FIXME: short opt and opts with arg?
     -* )
         key="$(echo "$1" | cut -c2)"
         value="$(echo "$1" | cut -c3- )"
         eval $(echo "$key" | tr '-' '_')="$value"
-      ;;
-    --* )
-        eval $(echo "$1" | cut -c3- | tr '-' '_')=1
       ;;
     -* )
         eval $(echo "$1" | cut -c2- | tr '-' '_')=1

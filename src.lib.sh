@@ -1,12 +1,11 @@
 #!/bin/sh
 
-set -e
-
 
 src_lib_load()
 {
   test -n "$sentinel_comment" || sentinel_comment="#"
 }
+
 
 # Insert into file using `ed`. Accepts literal content as argument.
 # file-insert-at 1:file-name[:line-number] 2:content
@@ -15,7 +14,6 @@ file_insert_at_spc=" ( FILE:LINE | ( FILE LINE ) ) INSERT "
 file_insert_at()
 {
   test -x "$(which ed)" || error "'ed' required" 1
-
   test -n "$*" || error "arguments required" 1
 
   local file_name= line_number=
@@ -30,11 +28,14 @@ file_insert_at()
 
   test -e "$file_name" || error "no file $file_name" 1
   test -n "$1" || error "content expected" 1
-  test -n "$*" || error "nothing to insert" 1
+  echo "$1" | grep -q '^\.$' && {
+    error "Illegal ed-command in input stream"
+    return 1
+  }
 
-  # Note: this loses trailing blank lines
-  # XXX: should not have ed period command in text?
   # use ed-script to insert second file into first at line
+  # Note: this loses trailing blank lines
+  # XXX: should not have ed period command. Cannot sync this function, file-insert-at
   stderr info "Inserting at $file_name:$line_number"
   echo "${line_number}a
 $1
@@ -43,7 +44,7 @@ w" | ed -s $file_name
 }
 
 
-# Replace entire line using Sed.
+# Replace one entire line using Sed.
 file_replace_at() # ( FILE:LINE | ( FILE LINE ) ) INSERT
 {
   test -n "$*" || error "arguments required" 1
@@ -60,20 +61,24 @@ file_replace_at() # ( FILE:LINE | ( FILE LINE ) ) INSERT
     line_number=$1; shift 1
   }
 
-  test -e "$file_name" || error "no file $file_name" 1
-  test -n "$line_number" || error "no line_number" 1
+  test -e "$file_name" || error "no file: $file_name" 1
+  test -n "$line_number" || error "no line_number: $file_name: '$1'" 1
   test -n "$1" || error "nothing to insert" 1
 
-  sed $line_number's/.*/'$1'/' $file_name
+  set -- "$( echo "$1" | sed 's/[\#&\$]/\\&/g' )"
+  $gsed -i $line_number's#.*#'"$1"'#' "$file_name"
 }
 
 
 # Quietly get the first grep match' into where-line and parse out line number
 file_where_grep() # 1:where-grep 2:file-path
 {
-  test -n "$1" || error "where-grep arg required" 1
+  test -n "$1" || {
+    error "where-grep arg required"
+    return 1
+  }
   test -e "$2" -o "$2" = "-" || {
-    error "file-where-grep: file-path or input arg required '$*'"
+    error "file-where-grep: file-path or input arg required '$2'"
     return 1
   }
   where_line="$(grep -n "$@" | head -n 1)"
@@ -127,7 +132,7 @@ grep_to_previous() # 1:Grep 2:File-Path 3:Line
 # Like file-where-grep but set line-numer -= 1
 file_where_before()
 {
-  file_where_grep "$@"
+  file_where_grep "$@" || return
   line_number=$(( $line_number - 1 ))
 }
 
@@ -141,7 +146,20 @@ file_insert_where_before() # 1:where-grep 2:file-path 3:content
   test -n "$where_line" || {
     error "missing or invalid file-insert sentinel for where-grep:$1 (in $2)" 1
   }
-  file_insert_at $2:$line_number "$3"
+  file_insert_at "$2" "$line_number" "$3"
+}
+
+
+file_insert_where_after() # 1:where-grep 2:file-path 3:content
+{
+  local where_line= line_number=
+  test -e "$2" || error "no file $2" 1
+  test -n "$3" || error "contents required" 1
+  file_where_grep "$1" "$2" || return
+  test -n "$where_line" || {
+    error "missing or invalid file-insert sentinel for where-grep:$1 (in $2)" 1
+  }
+  file_insert_at "$2" "$line_number" "$3"
 }
 
 
@@ -243,6 +261,21 @@ cut_where() # Where Span Src-File
 }
 
 
+# TODO: Return matching lines, going backward starting at <line>
+grep_all_before() # File Line Grep
+{
+  while true
+  do
+    # get line before function line
+    func_leading_line="$(head -n +$2 "$1" | tail -n 1)"
+    echo "$func_leading_line" | grep -q "$3" && {
+      echo "$func_leading_line"
+    } || break
+    set -- "$1" "$(( $2 - 1 ))" "$3"
+  done
+}
+
+
 # find '<func>()' line and see if its preceeded by a comment. Return comment text.
 func_comment()
 {
@@ -267,25 +300,31 @@ func_comment()
   source_lines "$2" $first_line $grep_line | sed -E 's/^\s*#\ ?//'
 }
 
-
-# TODO: Return matching lines, going backward starting at <line>
-grep_all_before() # File Line Grep
+grep_head_comment_line()
 {
-  while true
-  do
-    # get line before function line
-    func_leading_line="$(head -n +$2 "$1" | tail -n 1)"
-    echo "$func_leading_line" | grep -q "$3" && {
-      echo "$func_leading_line"
-    } || break
-    set -- "$1" "$(( $2 - 1 ))" "$3"
-  done
+  head_comment_line="$($ggrep -m 1 '^[[:space:]]*# .*\..*$' "$1")" || return
+  echo "$head_comment_line" | sed 's/^[[:space:]]*# //g'
 }
 
-header_comment()
+# Get first proper comment with period character, ie. retrieve single line
+# non-directive, non-header with eg. description line. See alt. grep-list-head.
+read_head_comment()
 {
-  read_file_lines_while "$1" 'echo "$line" | grep -qE "^\s*#.*$"' || return $?
-  export last_comment_line=$line_number
+  local r=''
+
+  # Scan #-diretives to first proper comment line
+  read_lines_while "$1" 'echo "$line" | grep -qE "^\s*#[^ ]"' || r=$?
+  test -n "$line_number" || return
+
+  # If no line matched start at firstline
+  test -n "$r" && first_line=1 || first_line=$(( $line_number + 1 ))
+
+  # Read rest, if still commented.
+  read_lines_while "$1" 'echo "$line" | grep -qE "^\s*#(\ .*)?$"' $first_line || return
+
+  width_lines=$line_number
+  last_line=$(( $first_line + $width_lines - 1 ))
+  lines_slice $first_line $last_line "$1" | $gsed 's/^\s*#\ \?//'
 }
 
 # Echo exact contents of the #-commented file header, or return 1
@@ -297,7 +336,7 @@ backup_header_comment() # Src-File [.header]
     && backup_file="$2" \
     || backup_file="$1$2"
   # find last line of header, add output to backup
-  header_comment "$1" > "$backup_file" || return $?
+  read_head_comment "$1" >"$backup_file" || return $?
 }
 
 
@@ -305,22 +344,26 @@ backup_header_comment() # Src-File [.header]
 
 list_functions() # Sh-Files...
 {
-  test -n "$1" || set -- $0
-  for file in $@
-  do
-    test_out list_functions_head
-    trueish "$list_functions_scriptname" && {
-      grep '^\s*[A-Za-z0-9_\/-]*().*$' $file | sed "s#^#$file #"
-    } ||
-      grep '^\s*[A-Za-z0-9_\/-]*().*$' $file
-    test_out list_functions_tail
-  done
+  test_out list_functions_head || true
+  trueish "$list_functions_scriptname" && {
+    grep '^\s*[A-Za-z0-9_\/-]*().*$' $1 | sed "s#^#$1 #"
+  } || {
+    grep '^\s*[A-Za-z0-9_\/-]*().*$' $1
+  }
+  test_out list_functions_tail || true
+  return 0
 }
 
+list_functions_foreach()
+{
+  p= s= act=list_functions foreach_do "$@"
+}
+
+# List functions matching grep pattern in files
 find_functions() # Grep Sh-Files
 {
   local grep="$1" ; shift
-  falseish "first_match" && first_match=
+  falseish "$first_match" && first_match=
   for file in $@
   do
     grep -q '^\s*'"$grep"'().*$' $file || continue
@@ -367,7 +410,7 @@ expand_source_line() # Src-File Line
   test -n "$2" || error "expand_source_line line" 1
   local srcfile="$(source_lines "$1" "$2" "" 1 | awk '{print $2}')"
   test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
-  expand_line "$@" "$srcfile"
+  expand_line "$@" "$srcfile" || return
   trueish "$keep_source" || rm $srcfile
   info "Replaced line with resolved src of '$srcfile'"
 }
@@ -386,8 +429,8 @@ expand_srcline()
 # Strip sentinel line and insert external file
 expand_line() # Src-File Line Include-File
 {
-  file_truncate_lines "$1" "$(( $2 - 1 ))" "$2"
-  file_insert_at $1:$(( $2 - 1 )) "$(cat $3)"
+  file_truncate_lines "$1" "$(( $2 - 1 ))" "$2" &&
+  file_insert_at $1:$(( $2 - 1 )) "$(cat "$3")"
 }
 
 
@@ -429,7 +472,7 @@ deref_include() # Include-Spec
 function_linenumber() # Func-Name File-Path
 {
   test -n "$1" -a -e "$2" || error "function-linenumber FUNC FILE" 1
-  file_where_grep "^$1()\(\ {\)\?$" "$2"
+  file_where_grep "^$1()\(\ {\)\?\(\ \#.*\)\?$" "$2" || return
   test -n "$line_number" || {
     error "No line-nr for '$1' in '$2'"
     return 1
@@ -478,8 +521,9 @@ cut_function()
 {
   test -n "$1" -a -f "$2" || error "cut-function FUNC FILE" 1
   # Get start/span/end line numbers and remove
-  copy_function "$@"
-  file_truncate_lines "$2" "$(( $start_line - 1 ))" "$(( $end_line - 1 ))"
+  copy_function "$@" || return
+  file_truncate_lines "$2" "$(( $start_line - 1 ))" "$(( $end_line - 1 ))" ||
+      return
   info "cut-func removed $2 $start_line $end_line ($span_lines)"
 }
 
@@ -487,8 +531,8 @@ cut_function()
 setup_temp_src()
 {
   test -n "$UCONFDIR" || error "metaf UCONFDIR" 1
-  mkdir -p "$UCONFDIR/temp-src"
-  setup_tmpf "$@" "$UCONFDIR/temp-src"
+  mkdir -p "$UCONFDIR/_temp-src"
+  setup_tmpf "$@" "$UCONFDIR/_temp-src"
 }
 
 
@@ -502,16 +546,23 @@ copy_paste_function() # Func-Name Src-File
   var_isset copy_only || copy_only=1
   test -n "$cp" || {
     test -n "$cp_board" || cp_board="$(get_uuid)"
-    cp=$(setup_temp_src .copy-paste-function.sh $cp_board)
+    test -n "$ext" || ext="$(filenamext "$2")"
+    cp=$(setup_temp_src ".copy-paste-function.$ext" "$cp_board")
     test -n "$cp" || error copy-past-temp-src-required 1
   }
   function_linenumber "$@" || return
   local at_line=$(( $line_number - 1 ))
+
+  copy_function "$1" "$2" | grep -q '^\.$' && {
+    error "Illegal ed-command in $1:$2 body"
+    return 1
+  }
+
   trueish "$copy_only" && {
-    copy_function $1 $2 > $cp
+    copy_function "$1" "$2" > "$cp"
     info "copy-only (function) ok"
   } || {
-    cut_function $1 $2 > $cp
+    cut_function "$1" "$2" > "$cp"
     file_insert_at $2:$at_line "$(cat <<-EOF
 . $cp
 EOF
@@ -524,12 +575,12 @@ EOF
 copy_paste() # Where/Line Where/Span Src-File
 {
   test -n "$1" -a -e "$3" || return $?
-  ext=yaml
   debug "copy_paste '$1' '$2' "
   var_isset copy_only || copy_only=1
   test -n "$cp" || {
     test -n "$cp_board" || cp_board="$(get_uuid)"
-    cp=$(setup_temp_src .copy-paste.$ext $cp_board)
+    test -n "$ext" || ext=$(filenamext "$3")
+    cp=$(setup_temp_src ".copy-paste.$ext" "$cp_board")
   }
   case "$1" in [0-9]|[0-9]*[0-9] ) line_number=$1 ;; * )
       file_where_grep "$1" "$3" || return $?
@@ -555,4 +606,17 @@ diff_where() # Where/Line Where/Span Src-File
 {
   test -n "$1" -a -f "$3" || return $?
   echo
+}
+
+# Replace include directives with file content, using two sed's and some subproc
+# per include line in between.
+expand_preproc()
+{
+  # Get include lines, reformat to sed commands, and execute
+  $gsed -n 's/^#'$1'\ \(.*\)$/\1/gp' "$2" |
+  while read -r include
+  do printf -- '/^#'$1'\ %s/r %s\n' \
+      "$(match_grep "$include")" \
+      "$(eval echo $include)"
+  done | $gsed -f - "$2"
 }

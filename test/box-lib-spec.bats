@@ -7,10 +7,9 @@ init
 
 
 setup() {
-  test_lib=$lib/test/main.inc
-  . ./util.sh load-ext
-  lib_load os sys str std src
-  . $lib/tools/sh/box.env.sh
+  test_lib=$SHT_PWD/var/sh-src-main-mytest-funcs.sh
+  lib_load src &&
+  . $lib/tools/sh/box.env.sh &&
   lib_load box
   # XXX: I think this breaks BATS: bash -o posix && box_run_sh_test
   #bash -o posix
@@ -18,22 +17,15 @@ setup() {
 }
 
 
-@test "${lib}/${base} - box-script-insert-point should return the line before std script functions" {
+@test "${base}: box-script-insert-point should return the line before std script functions" {
 
-  check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
-  run box_script_insert_point $test_lib.bash "" load mytest
-
-  test ${status} -eq 0
-  test "${lines[*]}" = "22"
-  test "${#lines[@]}" = "1" # lines of output (stderr+stderr)
-
-  run box_script_insert_point $test_lib.bash run "" c_mytest
-
-  #echo ${status} > /tmp/1
-  #echo "${lines[*]}" >> /tmp/1
-  test ${status} -eq 0
-  test "${lines[*]}" = "11"
-  test "${#lines[@]}" = "1" # lines of output (stderr+stderr)
+  run box_script_insert_point $test_lib "" load mytest
+  { test_ok_nonempty 1 && test_lines "22"
+  } || stdfail 1
+  
+  run box_script_insert_point $test_lib run "" c_mytest
+  { test_ok_nonempty 1 && test_lines "11"
+  } || stdfail 2
 
   # FIXME test does not include setting prefix, this'll work though
 #  script_name=c_mytest
@@ -51,14 +43,14 @@ setup() {
   subcmd=load
   where_line=
   where_grep='.*#.--.'${base}'.box.*'${subcmd}'.sentinel.--'
-  box_grep $where_grep $test_lib.bash
+  box_grep $where_grep $test_lib
   r=$?
   echo "${where_line}" >/tmp/1
   test "${where_line}" = "25:  # -- mytest box $subcmd sentinel --"
   test $r -eq 0
 
   # again without where_line export
-  run box_grep $where_grep $test_lib.bash
+  run box_grep $where_grep $test_lib
   test -z "${lines[*]}" # empty output
   test "${#lines[@]}" = "0" # lines of output (stderr+stderr)
   test ${status} -eq 0
@@ -66,7 +58,7 @@ setup() {
   script_name=mytest
   subcmd=no-such-id
   where_grep='.*#.--.'${script_name}'.box.'${subcmd}'.sentinel.--'
-  run box_grep $where_grep $test_lib.bash
+  run box_grep $where_grep $test_lib
   test ${status} -eq 1
   test -z "${lines[*]}" # empty output
   test "${#lines[@]}" = "0" # lines of output (stderr+stderr)

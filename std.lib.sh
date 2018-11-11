@@ -5,7 +5,7 @@
 
 std_lib_load()
 {
-  test -n "$uname" || export uname="$(uname -s)"
+  test -n "$uname" || uname="$(uname -s)"
 }
 
 io_dev_path()
@@ -42,7 +42,7 @@ get_stdio_type()
 
     Linux )
         test -n "$2" && pid=$2 || pid=$$
-        test -e /proc/$pid/fd/${io} || error "No $uname FD $io"
+        test -e /proc/$pid/fd/${1} || error "No $uname FD $io"
         if readlink /proc/$pid/fd/$io | grep -q "^pipe:"; then
           echo p
         elif file $( readlink /proc/$pid/fd/$io ) | grep -q 'character.special'; then
@@ -77,7 +77,7 @@ stdio_type()
 {
   local io= pid=
   test -n "$1" && io=$1 || io=1
-  export stdio_${io}_type=$(get_stdio_type "$io")
+  eval stdio_${io}_type=$(get_stdio_type "$io")
 }
 
 
@@ -233,6 +233,7 @@ err()
     echo "Surplus arguments '$3'"
     exit 123
   }
+  # TODO: turn this on and fix tests warn "err() is deprecated, see stderr()"
   log "$1" 1>&2
   test -z "$2" || exit $2
 }
@@ -501,7 +502,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
           test -n "$scriptpath" || scriptpath="$(dirname "$0")/script"
           test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
           test -n "$verbosity" || verbosity=5
-          export base=$scriptname
+          eval base=$scriptname
         ;;
 
     esac

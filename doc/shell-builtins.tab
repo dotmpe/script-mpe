@@ -1,0 +1,90 @@
+
+# Command-Name    Heirloom-Sh  Bb-Sh Bb-Ash  Bash/R-Bash Bash-Sh  Dash Dash-Sh  KSh
+
+.                 bi           sbi   sbi     bi          sbi      sbi  sbi      sbi           
+:                 bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+[                 bi           bi    bi      bi          bi       bi   bi       bi
+alias             -            bi    bi      bi          bi       bi   bi       sbi
+bg                bi           bi    bi      bi          bi       bi   bi       bi
+bind              -            -     -       bi          bi       -    -        -
+break             bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+builtin           -            -     -       bi          bi       -    -        bi
+caller            -            -     -       bi          bi       -    -        -
+cd                bi           bi    bi      bi          bi       bi   bi       bi
+command           -            bi    bi      bi          bi       bi   bi       a  
+compgen           -            -     -       bi          bi       -    -        -
+complete          -            -     -       bi          bi       -    -        -
+compopt           -            -     -       bi          bi       -    -        -
+continue          bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+declare           -            -     -       bi          bi       -    -        -
+dirs              -            -     -       bi          bi       -    -        -
+disown            -            -     -       bi          bi       -    -        bi
+echo              bi           bi    bi      bi          bi       bi   bi       bi
+enable            -            -     -       bi          bi       -    -        -
+eval              bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+exec              bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+exit              bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+export            bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+false             bin          bi    bi      bi          bi       bi   bi       bi
+fc                -            -     -       bi          bi       -    -        a  
+fg                bi           bi    bi      bi          bi       bi   bi       bi
+getopts           bi           bi    bi      bi          bi       bi   bi       bi
+hash              bi           bi    bi      bi          bi       bi   bi       a  
+help              -            bi    bi      bi          bi       -    -        -
+history           -            bi    bi      bi          bi       -    -        a  
+jobs              bi           bi    bi      bi          bi       bi   bi       bi
+kill              bi           bi    bi      bi          bi       bi   bi       bi
+let               -            bi    bi      bi          bi       -    -        bi
+local             -            sbi   sbi     bi          bi       sbi  sbi      -
+logout            -            -     -       bi          bi       -    -        -
+mapfile           -            -     -       bi          bi       -    -        -
+popd              -            -     -       bi          bi       -    -        -
+printf            bin          bi    bi      bi          bi       bi   bi       bi
+pushd             -            -     -       bi          bi       -    -        -
+pwd               bi           bi    bi      bi          bi       bi   bi       bi
+read              bi           bi    bi      bi          bi       bi   bi       bi
+readarray         -            -     -       bi          bi       -    -        -
+readonly          bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+return            bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+set               bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+shift             bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+shopt             -            -     -       bi          bi       -    -        -
+source            -            sbi   sbi     bi          sbi      -    -        a  
+suspend           bi           -     -       bi          bi       -    -        a  
+test              bi           bi    bi      bi          bi       bi   bi       bi
+times             bi           sbi   sbi     bi          sbi      sbi  sbi      a  
+trap              bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+true              bin          bi    bi      bi          bi       bi   bi       bi
+type              bi           bi    bi      bi          bi       bi   bi       a  
+typeset           -            -     -       bi          bi       -    -        sbi
+ulimit            bi           bi    bi      bi          bi       bi   bi       bi
+umask             bi           bi    bi      bi          bi       bi   bi       bi
+unalias           -            bi    bi      bi          bi       bi   bi       sbi
+unset             bi           sbi   sbi     bi          sbi      sbi  sbi      sbi
+wait              bi           bi    bi      bi          bi       bi   bi       bi
+
+printenv
+which
+env               bin                                    bin
+command-not-found
+no_such_cmd       -
+tty
+if
+while
+clear
+reset
+flush
+mkdir
+touch
+cp
+mv
+ln
+stat
+rm
+pwd
+dirname
+basename
+
+# Profile of 'type <command>' for various shells, and their Sh modes.
+# Legend: bi builtin, spi special ~; bin exec. ; a alias ; - not available.
+

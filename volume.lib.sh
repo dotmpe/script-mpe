@@ -1,34 +1,58 @@
 #!/bin/sh
 
+
+volume_lib_load()
+{
+  true #test -n ""
+}
+
+# Load config settings for device and host
 source_device_catalog() # Device [Hostname]
 {
-  disk_id="$(disk_id_for_dev "$1")" || return
+  disk_id="$(disk_id_for_dev "$1")" || { error "No disk-id-for-dev '$1'" ; return 1; }
+  test -e $DISK_CATALOG/disk/$disk_id.sh || { error "No catalog for $disk_id" ; return 1; }
   . $DISK_CATALOG/disk/$disk_id.sh
   test -z "$2" -o "$disk_host" = "$2" || return
   . $DISK_CATALOG/host/$disk_host.sh
   test -n "$disk_host_default_mount" || disk_host_default_mount=/tmp
 }
 
-# TODO: base alt. version on scanning mount
+# List volume paths
+# given device paths
+# XXX: choose between scanning static mount dir, mounts output, or everything
+# in catalog.
 htd_list_volumes()
 {
-  trueish "$catalog" && {
+  scan_all=0 scan_dir=1 scan_mounts=1
+
+  trueish "$scan_all" && {
+      error "TODO: list-volumes scan-all"
+    }
+
+  trueish "$scan_dir" && {
+
     note "Listing volumes from catalog for $hostname"
-    disk_list | while read dev
+    os_disk_list | while read dev
     do
       source_device_catalog "$dev" "$hostname" || continue
       test -n "$disk_volumes" || exit 123
+
       idx=0
       for volume in $disk_volumes
       do
         idx=$(( idx + 1 ))
-        test -e $disk_host_default_mount/$volume || { error "No $volume"; continue; }
+        test -e $disk_host_default_mount/$volume || {
+
+            error "No volume '$volume' ($hostname:$dev:$idx)";
+            continue
+        }
         echo $disk_host_default_mount/$volume
       done
     done
     return $?
   }
-  trueish "$catalog" || {
+
+  trueish "$scan_mounts" && {
     note "Listing volumes for current mounts"
     disk_mounts | while read mount_point
     do
@@ -45,7 +69,7 @@ htd_list_volumes()
 htd_check_volumes()
 {
   trueish "$catalog" && {
-    disk_list | while read dev
+    os_disk_list | while read dev
     do
       prefix=$(disk.sh prefix $dev 2>/dev/null)
       test -n "$prefix" || {
@@ -146,7 +170,7 @@ htd_check_volumes()
 source_mount_catalog()
 {
   test -e $mount_point/.volumes.sh || {
-    warn "No volume dotfile on $mount_point" ; continue
+    warn "No volume dotfile on $mount_point" ; return
   }
   # TODO: should sync marker file with catalog
   # Get data from online marker file

@@ -42,7 +42,9 @@ ignores_groups()
       purge ) set -- "$@" local-purge global-purge ;;
       clean ) set -- "$@" local-clean global-clean ;;
       drop ) set -- "$@"  local-drop global-drop ;;
+
       ignore ) echo ".ignored" ;;
+
       local ) set -- "$@" local-clean local-purge local-drop ;;
       local-clean )
           echo $IGNORE_GLOBFILE-cleanable
@@ -56,10 +58,12 @@ ignores_groups()
           echo $IGNORE_GLOBFILE-purgeable
           echo $IGNORE_GLOBFILE-purge
         ;;
+
       global ) set -- "$@" global-clean global-purge global-drop ;;
       global-clean ) echo etc:cleanable.globs ;;
       global-purge ) echo etc:purgeable.globs ;;
       global-drop ) echo etc:droppable.globs ;;
+
       scm ) set -- "$@" scm-git scm-bzr scm-svn ;;
       scm-git )
           echo .gitignore
@@ -79,8 +83,7 @@ ignores_groups()
 
 ignores_groups_exist()
 {
-  # Resolve arguments
-  set -- $(ignores_groups "$@" | lines_to_words )
+  set -- $(ignores_groups "$@" | lines_to_words ) # Remove options, resolve args
   note "Resolved ignores to '$*'"
 
   while test -n "$1"
@@ -107,8 +110,7 @@ ignores_groups_exist()
 ignores_cat()
 {
   local src_a="$*"
-  # Resolve arguments
-  set -- $(ignores_groups "$@" | lines_to_words )
+  set -- $(ignores_groups "$@" | lines_to_words ) # Remove options, resolve args
   note "Resolved ignores source '$src_a' to files '$*'"
 
   while test -n "$1"

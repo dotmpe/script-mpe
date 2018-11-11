@@ -7,81 +7,125 @@ test -z "$PREFIX" && scriptpath=. || scriptpath=$PREFIX
 
 lib=$scriptpath/str.lib
 
-fnames="$(grep '^[a-zA-Z0-9_]*()' $lib.sh | tr -s '()\n' ' ')"
-for fname in $fnames
-do
-  type $fname >/dev/null 2>/dev/null \
-     && {
-
-      set | grep '\<'$fname'=' \
-        >/dev/null 2>/dev/null \
-        && continue
-
-      echo "Unexpected '$fname' function"
-      fail "Unexpected '$fname' function"
-    }
-done
-
+check_env()
+{
+  fnames="$(grep '^[a-zA-Z0-9_]*()' $lib.sh | tr -s '()\n' ' ')"
+  for fname in $fnames
+  do
+    type $fname >/dev/null 2>/dev/null \
+       && {
+  
+        set | grep '\<'$fname'=' \
+          >/dev/null 2>/dev/null \
+          && continue
+  
+        echo "Unexpected '$fname' function"
+        fail "Unexpected '$fname' function"
+      }
+  done
+}
 
 setup()
 {
-  . $scriptpath/util.sh load-ext
-  lib_load sys os std str match
+  test_1="foo:/bar_/El Baz.1234.ext"
+  test_id="foo:/bar_/El-Baz.1234.ext"
+
+  #check_env
+  . $scriptpath/util.sh load-ext &&
+  lib_load sys os std str match &&
   str_lib_load
 }
 
 
-
-func=mkid
-input="foo:/bar_/El-Baz.1234.ext"
-
-@test "$lib mkvid - with some special web chars, input is output" {
-  c='\.\\\/:_'
-  mkid "$input"
-  test "$id" = "$input"
+@test "$lib mk*id env pollution" {
+  test -z "$c" || fail "c: $c"
+  # FIXME: test -z "$s" || fail "s: $s"
+  # FIXME: test -z "$upper" || fail "upper: $upper"
 }
 
-@test "$lib mkvid - with no special chars, all are collapsed to '-' " {
-  c= mkid "$input"
+
+@test "$lib mkid - with some special web chars, input is output (default)" {
+  unset upper
+
+  mkid "$test_id" "" '\.\\\/:_' 
+  test "$id" = "$test_id" || stdfail "$id"
+  mkid "$test_id" "" '\.\\\/:_' 
+  test "$id" = "$test_id" || stdfail "$id"
+}
+
+@test "$lib mkid - with no special chars, all are collapsed to '-' " {
+  unset upper
+
+  mkid "$test_1" "" ""
   test "$id" = "foo-bar-El-Baz-1234-ext" || fail "$id"
 }
 
+@test "$lib mkid - default, allows A-Za-z0-9:/_-. " {
+  unset upper
 
-
-@test "$lib mksid - default allows A-Za-z0-9:/_-. " {
-  mksid "$input"
+  mkid "$test_1"
   test "$id" = "foo:/bar_/El-Baz.1234.ext" || stdfail "$id"
 }
 
-@test "$lib mksid - 2 " {
-  c=. mksid "$input"
-  test "$id" = "foo-bar-El-Baz.1234.ext" || stdfail "$id"
+@test "$lib mkid - lower, allows A-Za-z0-9:/_-. " {
+
+  upper=0 mkid "$test_1" ""
+  test "$id" = "foo:/bar_/el-baz.1234.ext" || stdfail "$id"
+}
+
+@test "$lib mksid - alphanum and hyphen" {
+  unset upper
+
+  mksid "$test_1"
+  test "$id" = "foo-bar_-El-Baz-1234-ext" || stdfail "A. $id"
+
+  upper=0 mksid "$test_1"
+  test "$id" = "foo-bar_-el-baz-1234-ext" || stdfail "B. $id"
 }
 
 @test "$lib mksid - can make ID from path" {
-  c= mksid "$input"
-  test "$id" = "foo-bar-El-Baz-1234-ext" || stdfail "$id"
+  unset s c upper
+
+  mksid "$test_1"
+  test "$id" = "foo-bar_-El-Baz-1234-ext" || stdfail "A. $id"
+
+  mksid "$test_1" "" "."
+  test "$id" = "foo-bar-El-Baz.1234.ext" || stdfail "B. $id"
+
+  mksid "$test_1" "" "_."
+  test "$id" = "foo-bar_-El-Baz.1234.ext" || stdfail "C. $id"
 }
 
+
+@test "$lib mksid - can make SId from VId" {
+  unset s c upper
+
+  mksid "$test_1" "-" "-"
+  test "$id" = "foo-bar-El-Baz-1234-ext" || stdfail "A. $id"
+}
 
 
 @test "$lib mkvid - can make ID from path" {
-    mkvid "/var/lib"
-    test "$vid" = "_var_lib"
-    mkvid "/var/lib/"
-    test "$vid" = "_var_lib_"
+  unset s c upper
+
+  mkvid "/var/lib"
+  test "$vid" = "_var_lib"
+  mkvid "/var/lib/"
+  test "$vid" = "_var_lib_"
 }
 
 @test "$lib mkvid - cleans up ID from path" {
-    mkvid "/var//lib//"
-    test "$vid" = "_var_lib_"
-    mkvid "/var//lib"
-    test "$vid" = "_var_lib"
+  unset s c upper
+
+  mkvid "/var//lib//"
+  test "$vid" = "_var_lib_"
+  mkvid "/var//lib"
+  test "$vid" = "_var_lib"
 }
 
 
 @test "$lib str_replace" {
-    test "$(str_replace "foo/bar" "o/b" "o-b")" = "foo-bar"
+  test "$(str_replace "foo/bar" "o/b" "o-b")" = "foo-bar"
 }
 
 

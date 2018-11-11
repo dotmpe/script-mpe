@@ -1,8 +1,5 @@
 #!/bin/sh
 
-set -e
-
-
 # FIXME: comment format:
 # [return codes] [exit codes] func-id [flags] pos-arg-id.. $name-arg-id..
 # Env: $name-env-id
@@ -26,16 +23,17 @@ lib_path() # local-name path-var-name
 lib_load()
 {
   test -n "$LOG" || exit 102
-  local f_lib_load= f_lib_path=
+  local lib_id= f_lib_loaded= f_lib_path=
   # __load_lib: true if inside util.sh:lib-load
   test -n "$default_lib" ||
-      export default_lib="str sys os std stdio src match main argv vc bash web"
-      #export default_lib="str sys os std stdio main argv bash"
+      export default_lib="os std sys str stdio src main argv match vc shell"
+
   test -n "$__load_lib" || local __load_lib=1
   test -n "$1" || set -- $default_lib
   while test -n "$1"
   do
     lib_id=$(printf -- "${1}" | tr -Cs 'A-Za-z0-9_' '_')
+    test -n "$lib_id" || { echo "err: lib_id=$lib_id" >&2; exit 1; }
     f_lib_loaded=$(eval printf -- \"\$${lib_id}_lib_loaded\")
 
     test -n "$f_lib_loaded" || {
@@ -56,7 +54,11 @@ lib_load()
            ${lib_id}_lib_load || error "in lib-load $1 ($?)" 1
         }
 
+        eval ENV_SRC=\""$ENV_SRC $f_lib_path"\"
+        #echo "'$ENV_SRC' '$f_lib_path'" >&2
         eval ${lib_id}_lib_loaded=1
+        #echo "note: ${lib_id}: 1" >&2
+        unset lib_id
     }
     shift
   done
@@ -88,7 +90,7 @@ util_init()
 {
   test -n "$SCRIPTPATH" && {
     test -n "$scriptpath" || {
-      export scriptpath="$(echo "$SCRIPTPATH" | sed 's/^.*://g')"
+      scriptpath="$(echo "$SCRIPTPATH" | sed 's/^.*://g')"
     }
   } || {
     test -n "$scriptpath" && {
@@ -98,13 +100,13 @@ util_init()
     }
   }
   test -n "$LOG" || export LOG=$scriptpath/log.sh
-
   lib_load
 }
 
-
 case "$0" in
+
   "-"*|"" ) ;;
+
   * )
 
       test -n "$f_lib_load" && {

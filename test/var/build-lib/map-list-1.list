@@ -1,0 +1,6 @@
+# Id TestCases Sep SourceFiles
+Suite-Id:A:120 TestFileA -- SrcFileA
+Suite-Id:B:121 TestFileB -- SrcFileB1 SrcFileB2
+Suite-Id:C:122 TestFileC1 TestFileC2 -- SrcFileC1 SrcFileC2
+Suite-Id:D:123 TestFileD1 TestFileD2 -- SrcFileD
+Suite-Id:E:123+Tag TestFileE -- SrcFileE

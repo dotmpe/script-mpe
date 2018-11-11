@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# shellcheck disable=SC2086,SC2015,SC2154,SC2155,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069,SC2029,SC2005
-# See htd.sh for shellcheck descriptions
 
 
 match_req_names_tab()
@@ -29,7 +26,7 @@ match_load_table()
     test -s "$(pwd)/table.$1" && {
       match_load_defs "$(pwd)/table.$1" \
         || error "Error loading ./table.$1" 1
-    } || noop
+    } || true
   }
 }
 
@@ -48,11 +45,62 @@ match_load_defs()
 }
 
 # Take any string and return a Regex to match that exact string, see
-# match-grep-pattern-test
+# match-grep-pattern-test.
 match_grep() # String
 {
-  echo "$1" | sed -E 's/([^A-Za-z0-9{}(),!@+_])/\\\1/g'
+  echo "$1" | gsed -E 's/([^A-Za-z0-9{}(),?!@+_])/\\\1/g'
 }
+
+compile_glob()
+{
+  echo "$1" | node_globs2regex
+}
+
+# simple glob to regex
+gsed_globs2regex()
+{
+  gsed -E '
+      s/\*/.*/g
+      s/([^A-Za-z0-9{}(),?!@+_*])/\\\1/g
+    '
+}
+
+# extended glob to regex
+node_globs2regex()
+{
+  node -e '
+var globToRegExp = require("glob-to-regexp");
+var readline = require("readline");
+var rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  terminal: false
+});
+rl.on("line", function(line){
+  console.log(globToRegExp(line, { extended: true }).toString().slice(1,-1));
+})
+    '
+}
+
+perl_globs2regex()
+{
+  perl -pe '
+s{
+    ( [?*]+ )  # a run of ? or * characters
+|
+    \\ (.)     # backslash escape
+|
+    (\W)       # any other non-word character
+}{
+    defined $1
+        ? ".{" . ($1 =~ tr,?,,) . (index($1, "*") >= 0 ? "," : "") . "}"
+        : quotemeta $+
+}xeg;
+    '
+}
+
+# Filter out
+
 
 # To escape filenames and perhaps other values for use as grep literals
 match_grep_pattern_test()
@@ -98,16 +146,6 @@ match_name_pattern()
     }
     #echo "grep_pattern='$grep_pattern'"
   done
-}
-
-# glob to regex
-compile_glob()
-{
-  echo "$1" \
-    | sed -E '
-      s/\./\\./g
-      s/\*/.*/g
-    '
 }
 
 # rewrite file $1 to $1$2, compile-glob each content line

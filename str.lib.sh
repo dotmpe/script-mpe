@@ -1,19 +1,14 @@
 #!/bin/sh
 
-set -e
-
-
 
 # Set env for str.lib.sh
 str_lib_load()
 {
-  case "$(uname)" in
-      Darwin )
-          expr=bash-substr ;;
-      Linux )
-          expr=sh-substr ;;
-      * )
-          error "Unable to init expr" 1;;
+  test -n "$uname" || uname="$(uname -s)"
+  case "$uname" in
+      Darwin ) expr=bash-substr ;;
+      Linux ) expr=sh-substr ;;
+      * ) error "Unable to init expr for '$uname'" 1;;
   esac
 
   test -n "$ext_groupglob" || {
@@ -32,26 +27,49 @@ str_lib_load()
   #  #debug "Initialized ext_sh_sub=$ext_sh_sub"
   #}
 
-  test -x "$(which php)" &&
-    bin_php=1 || bin_php=0
+  test -x "$(which php)" && bin_php=1 || bin_php=0
 }
 
 # Web-like ID for simple strings, input can be any series of characters.
-# c='\.\\\/:_' mkid STR
-# Output has alphanumerics, periods, hyphen, underscore, colon and back-/fwd dash
+# Output has limited ascii.
+#
+# alphanumerics, periods, hyphen, underscore, colon and back-/fwd dash
 # Allowed non-hyhen/alphanumeric ouput chars is customized with env 'c'
-mkid()
+#
+# mkid STR '-' '\.\\\/:_'
+mkid() # Str Extra-Chars Substitute-Char
 {
-  test -n "$1" || error "mkid argument expected" 1
-  var_isset c || c='\.\\\/:_'
-  id=$(printf -- "$1" | tr -sc 'A-Za-z0-9'$c'-' '-' )
+  #test -n "$1" || error "mkid argument expected" 1
+  local s="$2" c="$3"
+  # Use empty c if given explicitly, else default
+  test $# -gt 2 || c='\.\\\/:_'
+  test -n "$s" || s=-
+  test -n "$upper" && {
+    trueish "$upper" && {
+      id=$(printf -- "%s" "$1" | tr -sc 'A-Za-z0-9'"$c$s" "$s" | tr 'a-z' 'A-Z')
+    } || {
+      id=$(printf -- "%s" "$1" | tr -sc 'A-Za-z0-9'"$c$s" "$s" | tr 'A-Z' 'a-z')
+    }
+  } || {
+    id=$(printf -- "%s" "$1" | tr -sc 'A-Za-z0-9'"$c$s" "$s" )
+  }
+}
+
+# A lower- or upper-case mkid variant with only alphanumerics and hypens.
+# Produces ID's for env vars or maybe a issue tracker system.
+# TODO: introduce a snake+camel case variant for Pretty-Tags or Build_Vars?
+# For real pretty would want lookup for abbrev. Too complex so another function.
+mksid()
+{
+  test $# -gt 2 || set -- "$1" "$2" "_"
+  mkid "$@" ; sid=$id
 }
 
 # Variable-like ID for any series of chars, only alphanumerics and underscore
 # mkvid STR
 mkvid()
 {
-  test -n "$1" || error "mkvid argument expected" 1
+  test -n "$1" || error "mkvid argument expected ($*)" 1
   trueish "$upper" && {
     vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
     return
@@ -62,25 +80,6 @@ mkvid()
   }
   vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
   # Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
-}
-
-# A lower- or upper-case mkid variant with only alphanumerics and hypens.
-# upper= mkcid STR
-# Produces ID's for env vars or maybe a issue tracker system.
-# TODO: introduce a snake+camel case variant for Pretty-Tags or Build_Vars?
-# For real pretty would want lookup for abbrev. Too complex so another function.
-mksid()
-{
-  test -n "$1" || error "mksid argument expected" 1
-  var_isset c || c=_
-  test -n "$upper" && {
-    trueish "$upper" &&
-      mkid "$(printf -- "$1" | tr 'a-z' 'A-Z')"
-    falseish "$upper" &&
-      mkid "$(printf -- "$1" | tr 'A-Z' 'a-z')"
-  } ||
-    mkid "$(printf -- "$1" )"
-  sid="$id"
 }
 
 # A either args or stdin STR to lower-case pipeline element
@@ -343,7 +342,7 @@ varsfmt()
         SH )         printf " " ;;
         TAB )        printf "\t" ;;
       esac
-    } || noop
+    } || true
     shift
   done
   case "$FMT" in
@@ -409,8 +408,14 @@ strip_last_nchars() # Num
 }
 
 # Join lines in file based on first field
-join_lines() # Src Delim
+# See https://unix.stackexchange.com/questions/193748/join-lines-of-text-with-repeated-beginning
+join_lines() # [Src] [Delim]
 {
+  test -n "$1" || set -- "-" " "
+  test -n "$2" || set -- "$1" " "
+  test "-" = "$1" -o -e "$1" || error "join-lines: file expected '$1'" 1
+
+  # use awk to build array of paths, for basename
   awk '{
 		k=$2
 		for (i=3;i<=NF;i++)
@@ -422,6 +427,32 @@ join_lines() # Src Delim
 	}
 	END{
 		for (i in a)
-			print i "\t" a[i]
-	}' $1
+			print i " " a[i]
+	}' "$1"
+}
+
+# Normalize whitespace (replace newlines, tabs, subseq. spaces)
+normalize_ws()
+{
+  test -n "$1" || set -- '\n\t '
+  tr -s "$1" ' ' | sed 's/\ *$//'
+}
+
+# Normalize string ws. for one line (stripping trailing newline first)
+normalize_ws_str()
+{
+  tr -d '\n' | normalize_ws "$@"
+}
+
+str_slice() # Str start [len] [relend] [end]
+{
+  test -n "$2" || set -- "$1" 1 "$3" "$4" "$5"
+  test -n "$3" && {
+    test $3 -gt ${#1} && end=${#1} || end=$3
+  } || {
+    test -n "$4" && end=$(( ${#1} - $4 ))
+  }
+  test -n "$end" || end=$5
+  #set -- "$1" "$2" "$3" "$4" "$5"
+  echo "$1" | cut -c$2-$end
 }

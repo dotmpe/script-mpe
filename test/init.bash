@@ -1,11 +1,14 @@
-load helper
+# Helpers for BATS project test env
 
 # Set env and other per-specfile init
-test_init()
+test_env_init()
 {
-  test -n "$base" || exit 12
+  test -n "$base" || return 12
   test -n "$uname" || uname=$(uname)
   test -n "$scriptpath" || scriptpath=$(pwd -P)
+  SHT_PWD="$(realpath --relative-to=$BATS_CWD $BATS_TEST_DIRNAME )"
+  test -n "$VND_GH_SRC" ||
+      VND_GH_SRC=/srv/src-local/github.com
   hostname_init
 }
 
@@ -16,7 +19,7 @@ hostname_init()
 
 init()
 {
-  test_init
+  test_env_init || return
 
   test -x $base && {
     bin=$scriptpath/$base
@@ -25,6 +28,9 @@ init()
 
   __load_mode=load-ext . $scriptpath/util.sh
   lib_load os sys str std main
+
+  load helper
+#  load assert # XXX: conflicts, load overrides 'fail'
 
   #export ENV=./tools/sh/env.sh
   export ENV_NAME=testing
@@ -148,4 +154,3 @@ file_equal()
   sum2=$(md5sum $2 | cut -f 1 -d' ')
   test "$sum1" = "$sum2" || return 1
 }
-

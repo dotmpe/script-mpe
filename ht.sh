@@ -43,11 +43,6 @@ ht__update_status()
   }
 } # End update-status
 
-ht__update_all()
-{
-  true
-} # End update-all
-
 
 ## Prefixes: named paths, or aliases for base paths
 
@@ -56,7 +51,7 @@ ht_man_1__prefixes='Manage local prefix table and index, or query cache.
 ht__prefixes()
 {
   test -n "$index" || local index=
-  lib_load prefix
+  lib_load match prefix
   test -s "$index" || req_prefix_names_index
 
   test -n "$1" || set -- op
@@ -88,11 +83,55 @@ ht__filesize()
   filesize "$1"
 }
 
+ht_run__file=fl
+ht__file()
+{
+  test -n "$1" || set -- info
+  lib_load file
+  prefixes=htd_file_\ file_ try_subcmd_prefixes "$@"
+}
+ht_als__test_name=file\ test-name
+ht_als__file_info=file\ format
+ht_als__file_modified=file\ mtime
+ht_als__file_born=file\ btime
+ht_als__file_mediatype=file\ mtype
+ht_als__file_guessmime=file\ mtype
+ht_als__drop=file\ drop
+ht_als__filesize_hist=file\ size-histogram
+ht_als__filenamext=file\ extensions
+ht_als__filestripext=file\ stripext
+
 
 ht_man_1__detect_ping='Test given host is online, answering to PING'
 ht__detect_ping() # Host
 {
   ping -qt 1 -c 1 $1 >/dev/null && stderr ok "$1" || return $?
+}
+
+
+ht__run()
+{
+  lib_load package
+  test -e "$PACK_SCRIPTS/$1.sh" || return $?
+
+  # Evaluate package env
+  package_lib_set_local "$CWD" || error "Setting local package ($CWD)" 6
+  . $PACKMETA_SH || error "local package" 7
+  test "$package_type" = "application/vnd.org.wtwta.project" ||
+                error "Project package expected (not $package_type)" 4
+
+  (
+    SCRIPTPATH=''
+    unset Build_Deps_Default_Paths
+
+    test -z "$package_cwd" || {
+      note "Moving to '$package_cwd'"
+      cd $package_cwd
+    }
+    . $CWD/$package_env_file &&
+    . $CWD/$PACK_SCRIPTS/$1.sh
+  )
+  return $?
 }
 
 
@@ -123,7 +162,7 @@ ht_main()
             ht__$subcmd "$@" || return $?
         } || {
 
-            run_subcmd "$@" || exit $?
+            main_run_subcmd "$@" || exit $?
         }
       ;;
 
@@ -168,7 +207,7 @@ ht_init_static()
 ht_init_dyn()
 {
   test -n "$scriptpath" || return
-  export SCRIPTPATH=$scriptpath
+  export SCRIPTPATH=$scriptpath:$scriptpath/commands:$scriptpath/contexts
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
   __load_mode=ext . $scriptpath/util.sh
   lib_load

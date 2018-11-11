@@ -1,229 +1,137 @@
 #!/bin/sh
 
-set -e
 
-
+# Initialize Project Build Scripts shell modules
 build_lib_load()
 {
-    true
+  test -n "$std_lib_loaded" || error "Expected std def. env" 1
+  #lib_load std stdio build-checks
+
+  test -n "$cllct_set_base" || cllct_set_base=.cllct/specsets
+  test -n "$cllct_src_base" || cllct_src_base=.cllct/src
+  test -n "$cllct_test_base" || cllct_test_base=.cllct/testruns
+
+  test -n "$docbase" || docbase="doc/src/sh"
+
+  lib_load date os sys str tasks du vc match src functions package argv
 }
 
-# Set suites for bats, behat and python given specs
-build_test_init() # Specs...
+# Initialize Project Build Scripts settings
+# TODO: set spec for build
+build_init()
 {
-  test -z "$1" || SPECS="$@"
-  test -n "$SPECS" || SPECS='*'
+  test -n "$base" || base=build.lib
+  test -n "$build_id" || build_id=$(uuidgen)
 
-  # NOTE: simply expand filenames from spec first,
-  # then sort out testfiles into suites based on runner
-  local suite=/tmp/htd-build-test-suite-$(uuidgen).list
-  project_tests $SPECS > $suite
-  wc -l $suite
-  test -s "$suite" || error "No specs for '$*'" 1
-  BUSINESS_SUITE="$( grep '\.feature$' $suite | lines_to_words )"
-  BATS_SUITE="$( grep '\.bats$' $suite | lines_to_words )"
-  PY_SUITE="$( grep '\.py$' $suite | lines_to_words )"
-  # SUITE="$(project_tests | lines_to_words)"
+  test -n "$src_stat" || src_stat="$HOME/bin/$cllct_src_base"
+
+  test -n "$sh_list" || sh_list="$src_stat/sh-files.list"
+  test -n "$sh_file_exts" || sh_file_exts="sh bash do"
+  test -n "$sh_shebang_re" || sh_shebang_re='^\#\!\/bin\/.*sh\>'
+
+  test -n "$TAP_COLORIZE" || TAP_COLORIZE="$HOME/bin/script-bats.sh colorize"
+
+  test -n "$project_scm_add_checks" ||
+      project_scm_add_checks=project_scm_add_checks
+  test -n "$project_scm_commit_checks" ||
+      project_scm_commit_checks=project_scm_commit_checks
+
+  test -n "$package_specs_script_libs" ||
+      package_specs_script_libs="./\${id}.lib.sh \
+                                 ./contexts/\${id}.lib.sh \
+                                 ./contexts/ctx-\${id}.lib.sh \
+                                 ./commands/\${id}.lib.sh \
+                                 ./commands/htd-\${id}.lib.sh"
+  test -n "$package_specs_scripts" ||
+      package_specs_scripts="./\${id}.sh \
+                                 ./\${id} \
+                                 ./\${id}.py"
+
+  test -n "$package_build" || package_build=redo\ \"\$@\"
+  test -n "$package_specs_required" ||
+      package_specs_required=str\ sys\ os\ std\ argv\ shell\ match\ src\ main\ sh\ bash\ redo\ build\ box\ functions\ oshc\ vc\ ck\ schema
+
+  build_io_init || return
+  build_init=ok
 }
 
-# TODO
-build_matrix()
+get_tmpio_env()
 {
-  echo
+  test -n "$1" -a -n "$2" || return
+  local tmpf="$( setup_tmpf .$1 "$build_id-$2" )"
+  eval "$1=\"$tmpf\""
 }
 
-
-test_shell()
+build_io_init()
 {
-  test -n "$*" || set -- bats
-  local verbosity=4
-  echo "test-shell: '$@' '$BATS_SUITE' | tee $TEST_RESULTS.tap" >&2
-  eval $@ $BATS_SUITE | tee $TEST_RESULTS.tap
+  test -n "$failed" || get_tmpio_env failed build-io-init
 }
 
-
-# Run tests for DUT's
-project_test() # [Units...|Comps..]
+show_spec()
 {
-  test -n "$base" || error "project-test: base required" 1
-  set -- $(project_tests "$@")
-  local failed=/tmp/$base-project-test-$(uuidgen).failed
-
-  while test $# -gt 0
-  do
-    test -z "$1" -o "$(basename "$1" | cut -c1)" = "_" && continue
-    note "Testing '$1'..."
-    case "$1" in
-        *.feature ) $TEST_FEATURE -- "$1" || echo "$1" >>$failed ;;
-        *.bats ) {
-                bats "$1" || echo "$1" >>$failed
-            } | $TAP_COLORIZE ;;
-        *.py ) python "$1" || echo "$1" >>$failed ;;
-        * ) warn "Unrecognized DUT '$1'" ;;
-    esac
-    shift
-  done
-
-  test -e "$failed" && {
-    test ! -s "$failed" || {
-      warn "Failed components:"
-      cat $failed
-    }
-    rm "$failed"
-    return 1
-  }
-  note "Project test completed succesfully"
+  local spec_set="$1" ; shift 1
+  eval echo \"\$package_specs_${spec_set}\" | tr -s ' '
+}
+show_globspec()
+{
+  show_spec "$1" | sed 's/\${[0-9a-z]*}/\*/g'
 }
 
-# Echo test file names
-project_tests() # [Units..|Comps..]
+build_srcfiles()
 {
-  test -n "$1" || set -- "*"
-  while test $# -gt 0
-  do
-      any_unit "$1"
-      any_feature "$1"
-      case "$1" in *.py|*.bats|*.feature )
-          test -e "$1" && echo "$1" ;;
-      esac
-    shift
-  done | sort -u
+  test -n "$1" || return 1
+  test -n "$package_paths" || package_paths=vc_tracked
+  spwd=. $package_paths "$@"
 }
 
-project_files()
+# XXX: redo-ifchanged .cllct/specsets/$1.
+expand_spec_src() # Spec-Set [Filter-From]
 {
-  test -z "$1" && git ls-files ||
-  while test $# -gt 0
-  do
-    git ls-files "$1*sh"
-    shift
-  done | sort -u
+  test -n "$2" || set -- "$1" "$cllct_set_base/$1.excludes"
+  eval build_srcfiles $(
+      show_globspec "$1" |
+      tr ' ' '\n' | xargs -I % echo "'%'" | tr '\n' ' '
+    ) | { test -s "$2" && { $ggrep -vf "$2" || return ; } || cat ; }
 }
 
-any_unit()
+expand_spec_ignores()
 {
-  test -n "$1" || set -- "*"
-  test -n "$package_build_unit_spec" ||
-      package_build_unit_spec='test/py/$id.py test/$id-lib-spec.bats test/$id-spec.bats test/$id.bats'
+  local ignore= set_ignore= set_ignore_from=
+  ignore="$( show_globspec "ignore" )"
+  set_ignore="$( show_globspec "${1}_ignore" )"
+  set_ignore_from="$( show_globspec "${1}_ignore_from" )"
 
-  while test $# -gt 0
-  do
-    c="-_*" mkid "$1"
-    mkvid "$1"
-    for x in $(eval echo "$package_build_unit_spec")
-    do
-      test -x "$x" && echo $x
-      continue
-    done
-    shift
-  done
+  {
+    test -z "$set_ignore_from" || cat $ignore_from
+    test -z "$set_ignore" || echo "$ignore" | tr ' ' '\n'
+    test -z "$ignore" || echo "$ignore" | tr ' ' '\n'
+  } | remove_dupes | node_globs2regex
 }
 
-any_feature()
+build_modified()
 {
-  test -n "$1" || set -- "*"
-  while test $# -gt 0
-  do
-    c="-_*" mkid "$1"
-    find test -iname "$id.feature" -o -iname "$id-lib-spec.feature" -o -iname "$id-spec.feature"
-    #| cut -c3-
-    shift
-  done
+  spwd=. vc_modified "$@"
 }
 
-test_any_feature()
+# NOTE: direct build spec-set to listfile; not used except for dev,
+# redo manages the file. Ie. redo-ifchange "$cllct_set_base/$1.list" instead.
+build_list() # Spec-Set
 {
-  test -n "$TEST_FEATURE" || error "Test-Feature env required" 1
-  info "Test any feature '$*'"
-  test -n "$1" && {
-    local features="$(any_feature "$@" | tr '\n' ' ')"
-    test -n "$features" || error "getting features '$@'" 1
-    note "Features: $features"
-    echo $TEST_FEATURE $features || return $?;
-    $TEST_FEATURE $features || return $?;
-
-  } || {
-    $TEST_FEATURE || return $?;
-  }
+  test -n "$1" || return
+  expand_spec_src "$1" >"$cllct_set_base/$1.list"
 }
 
-test_watch()
-{
-  local watch_flags=" -w test/bootstrap/FeatureContext.php "\
-" -w package.yaml -w build.lib.sh -w tools/sh/env.sh "
-  local tests="$(project_tests "$@")" files="$(project_files "$@")"
-  test -n "$tests" || error "getting tests '$@'" 1
-  note "Watching files: $(echo $tests)"
-  watch_flags="$watch_flags $(echo "$tests" | sed 's/^/-w /g' | tr '\n' ' ' )"\
-" $(echo "$files" | sed 's/^/-w /g' | tr '\n' ' ' )"
-  note "Watch flags '$watch_flags'"
-  nodemon -x "htd run project-test $(echo $tests | tr '\n' ' ')" $watch_flags || return $?;
-}
+# XXX: components, see package.lib
 
-feature_watch()
+# Lookup Basename-Id for given src file, passed to project-tests this should
+# resolve to a test-file path-name.
+component_map_basenameid() # SRC-FILE
 {
-  watch_flags=" -w test/bootstrap/FeatureContext.php "
-  test -n "$1" && {
-    local features="$(any_feature "$@")"
-    note "Watching files: $features"
-    watch_flags="$watch_flags $(echo $features | sed 's/^/-w \&/')"
-    nodemon -x "$TEST_FEATURE $(echo $features | tr '\n' ' ')" $watch_flags || return $?;
-
-  } || {
-    $TEST_FEATURE || return $?;
-    nodemon -x "$TEST_FEATURE" $watch_flags -w test || return $?;
-  }
-}
-
-tested()
-{
-  local out=$1
-  test -n "$out" || out=tested.list
-  read_nix_style_file $out
-}
-totest()
-{
-  local in=$1 out=$2 ; shift 2
-  test -n "$in" || in=totest.list
-  test -n "$out" || out=tested.list
-  comm -2 -3 $in $out
-}
-retest()
-{
-  local in= out= #$1 out=$2 ; shift 2
-  test -n "$in" || in=totest.list
-  test -n "$out" || out=tested.list
-  test -e "$in" || touch totest.list
-  test -e "$out" || touch tested.list
-  test -s "$in" || {
-    project_tests "$@" | sort -u > $in
-  }
-  while true
-  do
-    # TODO: do-test with lst watch
-    read_nix_style_file "$in" | while read test
-    do
-        grep -qF "$test" "$out" && continue
-        note "Running '$test'... ($(( $(count_lines "$in") - $(count_lines "$out") )) left)"
-        ( htd run test "$test" ) && {
-          echo $test >> "$out"
-        } || {
-          warn "Failure <$test>"
-        }
-    done
-    note "Sleeping for a bit.."
-    sleep 60 || return
-    note "Updating $out"
-    cat "$out" | sort -u > "$out.tmp"
-    diff -q "$in" "$out.tmp" >/dev/null && {
-      note "All tests completed" && rm "$in" "$out.tmp" && break
-    } || {
-      mv "$out.tmp" "$out"
-      sleep 5 &&
-        comm -2 -3 "$out" "$in" &&
-        continue
-    }
-  done
+  # XXX: test echo "$(basename "$1" .$(filenamext "$1")) $1"
+  #filename_baseid "$1"
+  basename="$(exts="-spec -lib" basenames "$(filestripext "$1")")"
+  mkid "$basename" '' '_-'
+  echo "$id $1"
 }
 
 # Checkout from given remote if it is ahead, for devops work on branch & CI.
@@ -263,17 +171,7 @@ checkout_for_rebuild()
     BUILD_REBUILD_WITH="$(git describe --always)"
 }
 
-before_test()
-{
-  verbose=1 git-versioning check &&
-  projectdir.sh run :bats:specs
-}
-
-tap2junit()
-{
-  perl $(which tap-to-junit-xml) --input $1 --output $2
-}
-
+# FIXME: couchdb service data
 list_builds()
 {
   sd_be=couchdb_sh COUCH_DB=build-log \
@@ -298,97 +196,368 @@ list_builds()
   }
 }
 
+# List any /bin/*sh or non-empty .sh/.bash file, from everything checked into SCM
 list_sh_files()
 {
-  local exts="sh bash"
-  git ls-files | while read path ; do
+  test -n "$build_init" || build_init
+  spwd=. vc_tracked | while read -r path ; do
 
+# Cant do anything with empty file
     test -s "$path" || continue
 
+# Scan name extension first
     fnmatch "*.*" "$(basename "$path")" && {
-
-        for ext in $exts
-        do case "$path" in *.$ext ) echo "$path" ; break ;; esac
+        for ext in $sh_file_exts
+        do
+            # XXX: some extensions ie .do accept other script-formats
+            case "$path" in *.$ext ) echo "$path" ; break ;; esac
         done
         continue
     }
 
-    head -n 1 "$path" | grep -q '^\#\!.*sh' || continue
+# Or grep for sha-bang pattern
+    $ggrep -qm 1 $sh_shebang_re "$path" || continue
     echo "$path"
   done
 }
 
-list_sh_calls()
+# build-redo-static builds prereq but skips rebuild to speed up during dev.
+build_redo()
 {
-  while read scriptfile
-  do
-      coffee $scriptpath/sh.coffee $scriptfile ||
-          error "in file $scriptfile"
-  done | sort -u
+  test ! -e "$1" -o -n "$build_redo_changed" || {
+
+    # Skip build in static-mode
+    words_to_lines "$@" | p= s= act=test_exists foreach_do && return
+  }
+  scriptpath= redo-ifchange "$@"
 }
 
-build_docs()
+clean()
 {
-  local shell_deps=.shell-deps
-  test -e $shell_deps || {
-      list_sh_files | list_sh_calls > $shell_deps
+  test -n "$src_stat" || return
+  git clean -dfx $src_stat
+}
+
+static()
+{
+  test -n "$build_id" || build_init
+
+  test -n "$sh_list" || error "Static-Init error" 1
+  redo-ifchange $sh_list
+
+  test -n "$src_stat" || error "Static-Init error" 2
+  redo-ifchange $src_stat/sh-libs.list
+  # XXX: testing...
+  redo-ifchange $src_stat/functions/default-lib.func-list
+  redo-ifchange $src_stat/functions/default-lib/default_lib_load.func-deps
+  redo-ifchange $src_stat/functions/default-lib/default_init.func-deps
+  redo-ifchange $src_stat/functions/default-lib/default_test.func-deps
+  # XXX: cannot expand names not there, need static group targets
+  #redo-ifchange $src_stat/functions/*.func-list
+  #redo-ifchange $src_stat/functions/*/*.func-deps
+}
+
+all()
+{
+  lib_load build-checks && check || return
+  build_sh_idx || return
+  build_graphs || return
+  build_refdocs || return
+}
+
+# Build all shell script lib lookup lists
+build_sh_idx()
+{
+  mkdir -p $src_stat/functions
+  _inner()
+  {
+    local id= sid= docid= ; mksid "$(basename "$1" .sh)" ; docid=$sid
+
+    build_redo $src_stat/functions/$docid.func-list || return
+
+    while read -r caller
+    do build_redo $src_stat/functions/$docid/$caller.func-deps
+    done <$src_stat/functions/$docid.func-list
   }
-  read_nix_style_file $shell_deps | grep '^[A-Za-z_][A-Za-z0-9_\.-]*$' | while read execname
+  expand_spec_src script_libs | p= s= act=_inner foreach_do
+}
+
+# Build all graphs
+build_graphs()
+{
+  test -n "$package_component_name" || package_component_name=package_component_name
+
+  _inner()
+  {
+    local id= sid= docid= ; mksid "$(basename "$1" .sh)" ; docid=$sid
+    cid=$($package_component_name "$1")
+
+    build_redo "$docbase/$docid.calls-1.dot.gv"
+
+    #deps_gv=$docbase/$docid-deps.dot.gv
+    #test -e "$deps_gv" \
+    #  -a "$deps_gv" -nt "$src_stat/functions/$docid.func-deps" ||
+    #{
+    #  build_libs_deps_gv "$1" >$deps_gv
+    #}
+  }
+  expand_spec_src script_libs | p= s= act=_inner foreach_do
+}
+
+build_package_script_lib_list()
+{
+  test -n "$package_components" && { . "$PACKMETA_SH" || return $? ; }
+  test -n "$package_component_name" || package_component_name=package_component_name
+  expand_spec_src script_libs |
+      p= s= act=$package_component_name foreach_inscol
+}
+
+build_components_id_path_map()
+{
+  test -n "$package_components" && { . "$PACKMETA_SH" || return $? ; }
+  test -n "$package_components" || package_components=package_components
+  test -n "$package_component_name" || package_component_name=package_component_name
+  verbosity=7 $package_components
+}
+
+# Build deps list for one function
+# See <src-stat>/functions/<docid>/<func-name>.func-deps
+build_lib_func_deps_list()
+{
+  {
+    copy_function "$1" "$2" >/dev/null || {
+      error "sourcing $caller from '$lib'"
+      return 1
+    }
+
+    copy_function "$1" "$2" | list_sh_calls - || {
+      error "parsing callees from $caller '$lib'"
+      return 2
+    }
+  } | remove_dupes
+}
+
+# Build function list for lib
+# See <src-stat>/functions/<docid>.func-list
+build_lib_func_list()
+{
+  list_functions "$1" | gsed 's/().*$//' | ggrep -v '\ \ '
+}
+
+build_sh_lookup_func_lib() # Func
+{
+  test -n "$1" || return
+  local listname= list=
+  list="$( ggrep -l '^'"$1"'$' "$src_stat"/functions/*.func-list )"
+  listname=$(basename "$list" -lib.func-list)
+  build_sh_lookup_lib "$listname"
+}
+
+# Return sh-lib path given doc-id
+build_sh_lookup_lib() # Doc-Id
+{
+  test -n "$1" || return
+  build_redo $src_stat/sh-libs.list || return
+  ggrep '^'"$1"'\>	' "$src_stat/sh-libs.list" | gsed 's/^[^\t]*\t//g'
+}
+
+# List func calls (src/dest-lib, caller/callee) for given lib
+build_lib_lib_calls() # Comp-Id Lib-Path
+{
+  test -n "$1" -a -n "$2" || error "build-lib-lib-calls args '$*'" 1
+  build_redo $src_stat/functions/$1.func-list || return
+
+  local comp_id="$1" lib="$2"
+
+  while read -r caller
   do
-      # Skip non-executables, aliases, functions
-      test -x "$(which "$execname")" || continue
+    build_redo $src_stat/functions/$1/$caller.func-deps
+    test -s $src_stat/functions/$1/$caller.func-deps || continue
 
-      # Ignore common shell commands
-      grep -qi "^$execname$" .shell-builtins && continue
-      grep -qi "^$execname$" .shell-regulars && continue
+    while read -r callee
+    do
+        destlib=$(build_sh_lookup_func_lib "$callee") || continue
 
-      # Separate third-party from locally installed execs
-      test -e "$scriptpath/$execname" && {
+        test -e "$destlib" || continue
+        test -e "$destlib" || destlib=-
 
-        # TODO make .build/docs/bin/$execname.html
-        echo $execname
+        echo "$lib $caller $destlib $callee"
 
-      } || {
+    done <"$src_stat/functions/$1/$caller.func-deps"
+  done <"$src_stat/functions/$1.func-list"
+}
 
-        # TODO: check/compile into tools.yaml
-        echo $execname
-      }
-  done
+# XXX:
+build_refdocs()
+{
+  _inner()
+  {
+    filename_baseid "$1" ; base_id="$id"
+    comp_id="$(package_component_name "$1")"
+    #mksid "$(basename "$1" .sh)" ; docid=$sid
 
-  # TODO: generate docs, either from tools.yaml, project.yaml
+    #note "Inner: '$*' $base_id $comp_id"
+    #test -e "$cid.do" || continue
+
+    test -e "$comp_id.rst" && {
+        echo redo "$docbase/$comp_id.do"
+    } || true
+
+    return
+
+    doc=$docbase/$docid.rst
+    test -e $doc || {
+        echo ".. figure:: /$docbase/$docid-deps.dot.svg" > $doc
+    }
+
+    # Separate third-party from locally installed execs
+    test -e "$scriptpath/$execname" && {
+
+      # TODO make .build/docs/bin/$execname.html
+      echo $execname
+
+    } || {
+
+      # TODO: check/compile into tools.yaml
+      echo $execname
+    }
+  }
   # Generate:
   #   per command man pages
-  #   appendix listing for internal or third-party shell regulars
+  # TODO: generate docs, either from tools.yaml, project.yaml
+
+  expand_spec_src script_libs | p= s= act=_inner foreach_do
 }
 
-build_remotes()
+
+# Plot internal lib func calls
+build_docs_src_sh_calls_1_gv()
 {
-  true
+  echo "digraph sh_libs_calls_1__gv {"
+  echo "  rankdir=LR"
+  { test -n "$1" && words_to_lines "$@" || expand_spec_src script_libs
+  } | p= s= act=build_doc_src_sh_calls_1_gv_inner foreach_do
+  echo "}"
 }
-
-scan_names()
+build_doc_src_sh_calls_1_gv()
 {
-  test -n "$1" || set -- .
-
-  find "$1" -not -path '*.git*' \( \
-    -name '*.JPG' \
- -o -name '*.jpeg' \
- -o -name '*.tiff' \
- -o -name '*.BMP' \
- -o -name '*.JPEG' \
- -o -name '*.GIT' \
- -o -name '*.PNG' \
- -o -name '*.PSD' \
- -o -name '*.TGA' \
- -o -name '*.TIFF' \)
-
-  find "$1" -not -path '*.git*'  \( \
-    -iname '._*' \
-    -o -iname '.DS_Store' \
-    -o -iname 'Thumbs.db' \
-    -o -iname '~uTorrentPartFile*' \
-  \)
-
-  find "$1" -not -path '*.git*' -type d -empty
+  echo "digraph sh_lib_calls_1__gv {"
+  echo "  rankdir=LR"
+  build_doc_src_sh_calls_1_gv_inner "$@"
+  echo "}"
 }
 
+build_doc_src_sh_calls_1_gv_inner()
+{
+  test -n "$2" || set -- "$1" "$(build_sh_lookup_lib "$1")"
+
+  local compid="$1" lib="$2"
+
+  #build_lib_lib_calls "$compid-lib" "$2" | p= s= act=build_lib_call_gv foreach_do
+
+  build_lib_lib_calls "$compid-lib" "$2" | while read -r src caller dest callee
+  do
+    build_lib_call_gv "$src" "$caller" "$dest" "$callee"
+  done
+}
+
+build_lib_call_gv_cluster() # Src-Lib Src-Func Dest-Lib Dest-Func
+{
+  local srclib="$(basename "$1")" caller="$2" destlib="$(basename "$3")" callee="$4"
+
+  test "$srclib" = "$destlib" && return
+}
+
+build_lib_call_gv() # Src-Lib Src-Func Dest-Lib Dest-Func
+{
+  local srclib="$(basename "$1")" caller="$2" destlib="$(basename "$3")" callee="$4"
+
+  upper=0 mkvid "$2" ; _2=_$vid
+  upper=0 mkvid "$4" ; _4=_$vid
+  upper=0 mksid "$2" "-" "-"; _s2=$sid
+  upper=0 mksid "$4" "-" "-"; _s4=$sid
+  mksid "$(basename "$srclib" .sh)" ; srcid=$sid
+  mksid "$(basename "$destlib" .sh)" ; destid=$sid
+  mkvid "$(basename "$destlib" .sh)" ; destvid=$vid
+
+  echo "  graph [ fontname=\"times bold\"; fontsize=14; label=\"$srcid <$srclib>\"; ]"
+
+  #echo "  color=black; fontname=\"times\"; "
+  echo "  node [ fontsize=12.0, shape=ellipse ];"
+  test "$srclib" = "$destlib" && {
+
+    echo "  $_2 [ label=\"$_s2\", href=\"/$docbase/$srcid.rst#$_s2\" ]"
+    echo "  $_4 [ label=\"$_s4\", href=\"/$docbase/$srcid.rst#$_s4\"  ]"
+    echo "  $_2 -> $_4 [ weight=1.2 ]"
+  } || {
+
+    case "$destlib" in std.lib.sh | str.lib.sh | os.lib.sh ) return 0 ;; esac
+    #return # XXX: inter-lib deps still makes it too dense, need smaller ndoes
+
+    echo "  $_2 [ label=\"$_s2\", href=\"/$docbase/$srcid.rst#$_s2\" ]"
+    echo "  node [ fontsize=9.0, shape=plaintext ];"
+    echo "  subgraph cluster_$destvid {"
+    echo "    color=grey; fontname=\"times bold\";"
+    echo "    label=\""$destlib"\";"
+    echo "    $_4 [ label=\"$_s4\", href=\"/$docbase/$destid.rst#$_s4\"  ]"
+    echo "  }"
+    echo "  $_2 -> $_4 [ weight=0.1, color=grey ]"
+  }
+}
+
+
+# Deps to other libs, don't plot funcnames
+build_libs_deps_gv()
+{
+  _gv_tpl_inner()
+  {
+    mksid "$(basename "$1" .sh)" ; docid=$sid
+    #note "Build-Libs-Deps-Gv: $1 ($sid)"
+
+    build_lib_lib_calls "$docid" "$1" | while read -r srclib caller destlib callee
+    do
+      build_lib_lib_dep_gv "$(basename "$srclib")" "$(basename "$destlib")"
+    done
+  }
+
+  echo "digraph libs_deps_gv {"
+  echo "  rankdir=LR"
+  { test -n "$1" && words_to_lines "$@" || expand_spec_src script_libs
+  } | p= s= act=_gv_tpl_inner foreach_do | sort -u
+  echo "}"
+}
+
+# Plot lib to lib
+build_lib_lib_dep_gv() # Src-Lib Dest-Lib
+{
+  test "$1" = "$2" && return
+
+  upper=0 mkvid "$1" ; _1=_$vid
+  upper=0 mkvid "$2" ; _2=_$vid
+  mksid "$(basename "$1" .sh)" ; srcid=$sid
+  mksid "$(basename "$2" .sh)" ; destid=$sid
+
+  echo " $_1 [ label=\"$1\", href=\"/$docbase/$srcid.rst\" ]"
+  echo " $_2 [ label=\"$2\", href=\"/$docbase/$destid.rst\"  ]"
+  echo " $_1 -> $_2 "
+}
+
+build_coverage()
+{
+  _kcov()
+  {
+    test -x "$(which kcov)" && {
+
+      kcov "$@" || return
+    } || {
+
+      docker run --security-opt seccomp=unconfined \
+          --workdir /dut -v $(pwd):/dut bvberkum/treebox:dev kcov "$@" || return
+    }
+  }
+
+  _kcov \
+      --exclude-pattern='.list,.func-deps,.func-list' \
+      --exclude-path='/usr/local,/dut/.cllct/kcov,/dut/.git,/dut/doc,/dut/vendor,/dut/node_modules,/tmp/' \
+      .cllct/kcov "$@" || return
+}

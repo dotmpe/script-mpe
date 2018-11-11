@@ -1,5 +1,6 @@
 #!/bin/dash
 
+
 # Using dash to allow brace-expansion, just in the init script
 
 note "Entry for CI pre-install / init phase"
@@ -8,7 +9,7 @@ note "Entry for CI pre-install / init phase"
 note "PWD: $(pwd && pwd -P)"
 note "Whoami: $( whoami )"
 note "CI Env:"
-{ env | grep -i 'shippable\|travis\|ci' | sed 's/^/	/' >&2; } || noop
+{ env | grep -i 'shippable\|travis\|ci' | sed 's/^/	/' >&2; } || true
 note "Build Env:"
 build_params | sed 's/^/	/' >&2
 

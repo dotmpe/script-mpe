@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069,SC2029
-# See htd.sh for shellcheck descriptions
-
 
 annex_lib_load()
 {
@@ -348,12 +344,13 @@ annexdir_update()
       }
       test .htd/tools/env.sh -nt "$metaf" &&
         note "Package up-to-date for $x" || {
-          package_sh_list_exists "" "init" && {
-            htd run init || return
+
+          package_sh_list_exists "init" && {
+            htd.sh run init || return
           } || {
-            htd package update
-            htd package remotes-reset
-            vc regenerate
+            htd.sh package update
+            htd.sh package remotes-reset
+            vc.sh regenerate
           }
         }
     )

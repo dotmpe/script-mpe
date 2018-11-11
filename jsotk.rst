@@ -134,6 +134,28 @@ jsotk_xml_dom
                 leaf2: value2
 
 
+Formats
+--------
+See ``jsotk --help`` for usage and current format listing.
+
+Notable custom formats are `pkv` ('path' key, values) and `fkv` ('flat' key,
+values) which translate any object notation to a single, global list of long
+var names.
+
+  TODO: testing etc. The main use is for fkv as a format for shell or Java
+  properties compatible settings.
+
+Examples:
+  pkv::
+
+    path/to[1]/item=value-for-object-path
+    path/to[]=append-item-value
+
+  fkv::
+
+    path_to__1_item=value-for-object-path
+    path_to__2=append-item-value)
+
 
 .. _projectdir: ./projectdir.rst
 .. _jsotk.py: ./jsotk.py

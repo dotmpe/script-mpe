@@ -1,13 +1,10 @@
 #!/bin/sh
 
-# shellcheck disable=SC2086,SC2015,SC2154,SC2155,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069,SC2029,SC2005
-# See htd.sh for shellcheck descriptions
-
 
 htd_lib_load()
 {
   test -n "$NS_NAME" || NS_NAME=bvberkum
+  lib_load htd-project
 }
 
 
@@ -24,7 +21,6 @@ htd_relative_path()
       } || {
         relpath="$1"
       }
-      export relpath
       return 0
     }
   }
@@ -432,24 +428,6 @@ htd_expand()
   }
 }
 
-# Get any alias
-htd_alias_get()
-{
-  grep " \<$1\>=" ~/.alias | awk -F '=' '{print $2}'
-}
-
-# List aliases (for current script)
-htd_alias_list()
-{
-  grep 'alias \<'"$scriptname"'\>=' ~/.alias |
-      sed 's/^.* alias /alias /g' | grep -Ev '^(#.*|\s*)$' | while read -r _a A
-  do
-    a_id="$(echo "$A" | awk -F '=' '{print $1}')"
-    a_shell="$(echo "$A" | awk -F '=' '{print $2}')"
-    printf -- "%-18s%s\n" "$a_id" "$a_shell"
-  done
-}
-
 htd_edit_today()
 {
   test -n "$EXT" || EXT=.rst
@@ -505,6 +483,8 @@ htd_edit_today()
   # Open of dir causes several symlinks and files for days/periods etc. to be generated
   test -d "$1" && {
     {
+      # FIXME: order files some way, cksums should have exact same sequence
+
       # Prepare todays' day-links (including weekday and next/prev week)
       test -n "$log_path_ysep" || log_path_ysep="/"
       files=''
@@ -519,13 +499,16 @@ htd_edit_today()
       # Prepare and edit, but only todays file and linked indices
       today="$(realpath "$1${log_path_ysep}today$EXT")"
       test -s "$today" || {
-        test -n "$log_title" || log_title="%A %G.%U"
+        # %U     week number of year, with Sunday as first day of week (00..53)
+        # %V     ISO week number, with Monday as first day of week (01..53)
+        test -n "$log_title" || log_title="%A %G.%V"
         title="$(date_fmt "" "$log_title")"
         htd_rst_doc_create_update "$today" "$title" title created default-rst \
             link-stats
       }
       # Prepare linked indices
       htd_rst_doc_create_update "$today" "" link-day
+
       htd_edit_and_update $(realpaths \
           $1/today$EXT  \
           $1/week$EXT   \
@@ -619,43 +602,6 @@ htd_edit_note()
   htd_edit_and_update $note
 }
 
-archive_path()
-{
-  # XXX: cleanup
-  #test -n "$1" || set -- "$(pwd)/cabinet"
-  #test -d "$1" || {
-  #  fnmatch "*/" "$1" && {
-  #    error "Dir $1 must exist" 1
-  #  } ||
-  #    test -d "$(dirname "$1")" ||
-  #      error "Dir for base $1 must exist" 1
-  #}
-  #fnmatch "*/" "$1" || set -- "$(strip_trail $1)"
-
-  # Default pattern: "$1/%Y-%m-%d"
-  test -n "$base" -a -n "$name" || {
-    test -n "$Y" || Y=/%Y
-    test -n "$M" || M=-%m
-    test -n "$D" || D=-%d
-    #test -n "$EXT" || EXT=.rst
-    test -d "$1" &&
-      ARCHIVE_DIR=$1/ ||
-      ARCHIVE_DIR=$(dirname $1)/
-    ARCHIVE_BASE=$1$Y
-    ARCHIVE_ITEM=$M$D$EXT
-  }
-  local f=$ARCHIVE_BASE$ARCHIVE_ITEM
-
-  datelink -1d "$f" ${ARCHIVE_DIR}yesterday$EXT
-  echo yesterday $datep
-  datelink "" "$f" ${ARCHIVE_DIR}today$EXT
-  echo today $datep
-  datelink +1d "$f" ${ARCHIVE_DIR}tomorrow$EXT
-  echo tomorrow $datep
-
-  unset datep target_path
-}
-
 archive_pairs()
 {
   trueish "$now" && prefix="$(date +%Y/%m/%d)-" || prefix=''
@@ -667,6 +613,7 @@ archive_pairs()
     shift
   done
 }
+
 
 gitrepos()
 {
@@ -682,10 +629,59 @@ gitrepos()
   htd_expand "$@"
 }
 
-realpaths()
+
+# Given context or path with context, load ctx lib and run action.
+htd_wf_ctx_sub()
 {
-  foreach "$@" | while read -r path
-  do
-      realpath "$path"
-  done
+  upper=0 mkvid "$1" ; shift ; flow="$vid"
+  htd_current_context "$@" || return $?
+  # Load/run action on primary context
+  lib_load ctx-${primctx_id}
+  ctx_${primctx_id}_init "$@"
+  #try_context_actions current std base
+  htd_ctx__${primctx_id}__${flow} "$@"
+}
+
+
+htd_context()
+{
+  test -n "$package_lists_contexts_default" || package_lists_contexts_default=@Std
+  test -n "$1" || set $package_lists_contexts_default
+  ctx="$1"
+  # Remove '@'
+  primctx="$(echo "$1" | cut -f 1 -d ' ')"
+  upper=0 mkvid "$(echo "$primctx" | cut -c2-)"
+  primctx_id="$vid"
+}
+
+htd_current_context()
+{
+  test -n "$1" && {
+    test -e "$1" && {
+      context_exists "$1" && {
+        context_tag_env "$1"
+        htd_context @$tag_id $rest
+        return $?
+      }
+      context_existsub "$1" && {
+        context_subtag_env "$1"
+        htd_context @$tag_id $rest
+        return $?
+      }
+    }
+    fnmatch "@*" "$1" && {
+      htd context exists $(echo "$1" | cut -c2-) || return $?
+      htd_context "$1"
+      return $?
+    }
+    fnmatch "+*" "$1" && {
+      htd_project_exists $(echo "$1" | cut -c2-) || return $?
+      test "$package_id" = "$project_id" || error TODO 1
+      # TODO: get primctx for other package
+      #( cd "...$1" && htd context ... )
+      htd_context "$package_lists_contexts_default"
+      return $?
+    }
+  }
+  htd_context
 }

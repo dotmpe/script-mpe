@@ -1,15 +1,83 @@
 #!/bin/sh
 set -e
-verbosity=6 scriptpath=$HOME/bin
-. ./util.sh
+
+
+test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
+scriptpath=$(pwd) . ./util.sh
 lib_load
-#lib_load date
+lib_load src table projectenv
+
+#build_redo_changed=1 ./build.sh all
+
+lib_load build-test &&
+build_test_init &&
+
+docker pull bvberkum/treebox:dev &&
+#rm .cllct/testruns/*.tap || true
+
+export CS=dark
+#./build.sh all_tests_static
+#build_coverage ./build.sh all_tests_static
+
+#shells=bash test_shells ./build.sh required_tests
+
+./build.sh test_any_feature "$@"
+
+exit $?
+
+. ./tools/sh/env.sh
+
+test_any_feature "$@"
+exit $?
+
+p='' s='' act=$component_tests foreach_do "$@" |
+      p='' s='' act=$component_test foreach_do
+
+exit $?
+
+projectdir.sh run :git:status
+exit $?
+
+projectdir.sh run :bats:specs
+vendor/bin/behat --dry-run --no-multiline
+
+htd status
+htd rules
+htd run-rules ~/.conf/rules/boreas.tab
+
+exit $?
+
+
+#foo=123
+#testme()
+#{
+#  test sh -nt build.lib.sh
+#}
+#exec_watch_poll testme echo "\$foo" -- touch build.lib.sh
+
+
+#poll_sleep=2
+#lib_load vc
+#reload()
+#{
+#  . ./build.lib.sh
+#  test_scm
+#}
+#exec_watch_scm reload
+
+
+#verbosity=7
+exec_watch_scm
+exit $?
+  
+htd tasks --Check-All-Tags --Check-All-Files --update
+
+#redo doc/src/sh/default.dot.gv
+exit $?
 
 lib_load build
 project_test mod_jsotk jsotk-py jsotk-xml
 exit $?
-
-. ./.htd/tools/env.sh
 
 # TODO: create mediameta records, metadata cards with id, format, key, date info etc.
 finfo-app.py --name-and-categorize .
@@ -19,68 +87,9 @@ test sh-finfo.sqlite || db_sa.py --dbref=sh-finfo.sqlite init
 finfo.py --dbref=sh-finfo.sqlite --update .
 exit $?
 
-
 hier.py import tags.list
 exit $?
 
 # https://explainshell.com/explain?cmd=rst2html+--record-dependencies%3DFILE
 
-for x in test/*-spec.bats; do
-    bats "$x" && {
-        echo ""
-        continue
-    }
-    echo "Failed: $? $x"
-    echo ""
-done
-
 exit $?
-
-exit 0
-
-projectdir.sh run :git:status
-#projectdir.sh run :bats:specs
-#vendor/bin/behat --dry-run --no-multiline
-
-htd status
-htd rules
-htd run-rules ~/.conf/rules/boreas.tab
-
-exit $?
-
-#htd filter-functions "run=..*" htd
-#htd filter-functions  "grp=htd-meta spc=..*" htd
-
-#echo 1.yaml
-#export Inclusive_Filter=0
-#export out_fmt=yaml
-#htd filter-functions "grp=box-src spc=..*" htd
-#echo
-#
-#echo 1.json:
-#export out_fmt=json
-#htd filter-functions "grp=box-src spc=..*" htd
-#echo
-#
-#echo 1.csv:
-#export out_fmt=csv
-#htd filter-functions "grp=box-src spc=..*" htd
-#echo
-#
-export Inclusive_Filter=0
-
-echo 2.yaml:
-export out_fmt=yaml
-htd filter-functions "grp=tmux" htd
-
-echo 2.src:
-export out_fmt=src
-htd filter-functions "grp=tmux" htd
-#
-echo 2.csv:
-export out_fmt=csv
-htd filter-functions "grp=tmux" htd
-#
-echo 2.json:
-export out_fmt=json
-htd filter-functions "grp=tmux" htd

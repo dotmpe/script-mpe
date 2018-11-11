@@ -13,7 +13,7 @@ tmux_lib_load()
   default_env TMux-SDir /opt/tmux-socket
   # Set default env to differentiate tmux server sockets based on, this allows
   # distict CS env for tmux sessions
-  default_env Htd-TMux-Env "hostname CS"
+  default_env Htd-TMux-Env '$hostname-$CS'
   # Initial session/window vars
   default_env Htd-TMux-Default-Session "Htd"
   default_env Htd-TMux-Default-Cmd "$SHELL"
@@ -122,7 +122,7 @@ htd_tmux_socket_names()
 {
   # Not sure what to make of ->(none) and ->0x<hfx> named-paths in lsof -U
   # (Darwin)
-  htd_tmux_sockets NAME | grep -v '\ \(->0x\|->(none)\)'
+  htd_tmux_sockets NAME | grep -v '\(->0x\|->(none)\)'
 }
 
 # Iterate tmux sockets and query for session list for each
@@ -209,7 +209,7 @@ htd_tmux_get()
   }
   test -n "$TMUX" || {
     note "Attaching to session '$1'"
-    $tmux attach
+    ( $tmux attach-session -t "$1" )
   }
 }
 
@@ -253,8 +253,6 @@ htd_tmux_cs()
   test -n "$2" || set -- "$1" 0    "$3"
   test -n "$3" || set -- "$1" "$2" ~/work
   (
-    # TODO: hostname, session/socket tags
-    export TMUX_SOCK_NAME=boreas-$1-term
     tmux_env_req 0
     htd_tmux_init "$1" "$SHELL" "$3"
     htd_tmux_winit "$@"

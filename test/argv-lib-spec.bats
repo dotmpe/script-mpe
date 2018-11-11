@@ -2,17 +2,14 @@
 
 load init
 base=argv.lib
-
 init
-
-. $lib/util.sh
 
 setup()
 {
   lib_load argv
 }
 
-@test "${lib}/${base} - lib loads" {
+@test "$base: - lib loads" {
   func_exists test_exists
   func_exists test_dir
   func_exists test_file
@@ -31,7 +28,7 @@ setup()
 	func_exists define_var_from_opt
 }
 
-@test "${lib}/${base} - arg-vars" {
+@test "$base: - arg-vars" {
   run arg_vars "foo bar el_baz" 1 b false
   {
     test_ok_nonempty &&
@@ -39,7 +36,7 @@ setup()
   } || stdfail
 }
 
-@test "${lib}/${base} - check-argc" {
+@test "$base: - check-argc" {
   run check_argc 1 "foo"
   test_ok_empty || stdfail 1
   run check_argc 1 "foo" "bar"

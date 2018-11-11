@@ -150,7 +150,7 @@ __log ()
 if test "$1" = '-'
 then
 	export IFS="	"; # tab-separated fields for $inp
-	while read lt t m s;
+	while read -r lt t m s;
 	do
 		__log "$lt" "$t" "$m" "$s";
 	done

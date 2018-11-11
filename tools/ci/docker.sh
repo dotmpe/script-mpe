@@ -49,7 +49,7 @@ case "$subcmd" in
 
   sandbox-bats )
     $0 sandbox-init && {
-      $0 docker-exec "PATH=/opt/sandbox:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; ( ./test/*-spec.bats | ./bats-color.sh ); exit \$?" \
+      $0 docker-exec "PATH=/opt/sandbox:\$PATH ; PYTHONPATH=\$HOME/lib/py:\$PYTHONPATH ; cd /opt/sandbox ; ( ./test/*-spec.bats | ./bats-colorize.sh ); exit \$?" \
         || r=$?
     }
     $0 sandbox-clean && info "container removed"  || r=$?

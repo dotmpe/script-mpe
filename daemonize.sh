@@ -183,7 +183,7 @@ daemonize__init()
       daemonize_lib
 
       # Execute
-      run_subcmd "$@"
+      main_run_subcmd "$@"
       ;;
 
     #* )

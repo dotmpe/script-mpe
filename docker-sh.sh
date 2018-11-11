@@ -953,7 +953,7 @@ docker_sh_stop()
     ${sudo}docker ps | grep -q '\<'$docker_name'\>' && {
       info "Stopping container by container-name $docker_name:"
       ${sudo}docker stop $docker_name
-    } || noop
+    } || true
   }
 }
 
@@ -977,7 +977,7 @@ docker_sh_rm()
     ${sudo}docker ps -a | grep -q '\<'$docker_name'\>' && {
       info "Removing container by container-name $docker_name:"
       ${sudo}docker rm $docker_name
-    } || noop
+    } || true
   }
 }
 
@@ -1135,7 +1135,7 @@ docker_sh_main()
       docker_sh_lib || exit $?
 
       # Execute
-      run_subcmd "$@" || exit $?
+      main_run_subcmd "$@" || exit $?
       ;;
 
   esac
@@ -1144,7 +1144,6 @@ docker_sh_main()
 # FIXME: Pre-bootstrap init
 docker_sh_init()
 {
-  echo docker_sh_init
   test -n "$LOG" ||
     export LOG=/usr/local/share/mkdoc/Core/log.sh
   test -z "$BOX_INIT" || return 1
@@ -1154,15 +1153,10 @@ docker_sh_init()
     test -w /var/run/docker.sock || sudo="sudo "
     dckr=${sudo}docker
   }
-  echo 1
   . $scriptpath/util.sh load-ext
-  echo 2
   lib_load
-  echo 3
   . $scriptpath/tools/sh/box.env.sh
-  echo 4
   lib_load main box projectdir
-  echo 5
   box_run_sh_test
   # -- dckr-sh box init sentinel --
 }
@@ -1182,10 +1176,10 @@ docker_sh_load()
   test -e "$UCONFDIR" || error "Missing user config dir $UCONFDIR" 1
 
   test -n "$DCKR_UCONF" || DCKR_UCONF=$UCONFDIR/dckr
-  test -n "$DCKR_VOL" || DCKR_VOL=/srv/docker-volumes-local/
+  test -n "$DCKR_VOL" || DCKR_VOL=/srv/docker-volumes-local
   test -n "$DCKR_CONF" || DCKR_CONF=$DCKR_VOL/config
   test -e "$DCKR_UCONF" || error "Missing docker user config dir $DCKR_UCONF" 1
-  test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
+  #test -e "$DCKR_CONF" || error "Missing docker config dir $DCKR_CONF" 1
   test -e "$DCKR_VOL" || error "Missing docker volumes dir $DCKR_VOL" 1
 
   test -n "$SCR_ETC" || export SCR_ETC=$HOME/.local/etc

@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069
-# See htd.sh for shellcheck descriptions
 
 
 # File: some wrappers for os.lib.sh etc.
@@ -31,7 +28,7 @@ htd_file_newer_than() # Seconds-or-Path PATHS...
     seconds="$(( $(date +%s) - $(file_names=0 filemtime "$s_or_path") ))"
   } || {
     # Evaluate delta as $_<name> var if it is not a literal integer
-    printf "%s" -- "$s_or_path" | grep -vq '^[0-9]$' &&
+    printf -- "%s" "$s_or_path" | grep -vq '^[0-9]$' &&
         seconds="$(eval echo \"\$_$s_or_path\")" || seconds="$s_or_path"
   }
 
@@ -55,7 +52,7 @@ htd_file_older_than() # Seconds-or-Path PATHS...
     seconds="$(( $(date +%s) - $(file_names=0 filemtime "$s_or_path") ))"
   } || {
     # Evaluate delta as $_<name> var if it is not a literal integer
-    printf "%s" -- "$s_or_path" | grep -vq '^[0-9]$' &&
+    printf -- "%s" "$s_or_path" | grep -vq '^[0-9]$' &&
         seconds="$(eval echo \"\$_$s_or_path\")" || seconds="$s_or_path"
   }
 
@@ -105,7 +102,7 @@ htd_file_mtype()
 # file_names=[01] file_deref=[01] htd file mtime FILE...
 htd_file_mtime()
 {
-  act=filemtime foreach_do "$@"
+  p= s= act=filemtime foreach_do "$@"
 }
 
 htd_file_mtime_relative()
@@ -209,4 +206,14 @@ htd_file_status()
 
   # Search for by other lookup
   echo TODO track htd__content "$localpath"
+}
+
+htd_file_extensions()
+{
+  filenamext "$@"
+}
+
+htd_file_stripext()
+{
+  filestripext "$1"
 }

@@ -40,3 +40,4 @@ zope.interface
 gspread
 oauth2client
 google-cloud-vision
+todotxt-machine

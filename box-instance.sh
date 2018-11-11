@@ -76,7 +76,7 @@ box_instance_main()
   case "$base" in
     $scriptname )
       box_instance_init || return $?
-      run_subcmd "$@" || return $?
+      main_run_subcmd "$@" || return $?
       ;;
     * )
       echo "$scriptname: not a frontend for $base"

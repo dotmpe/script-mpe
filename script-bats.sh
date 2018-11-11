@@ -30,7 +30,7 @@ script_bats__update()
     spec_name= feat_cat= is_spec= for_lib= for_bin=
     script_bats__parse_name "$path"
     falseish "$is_spec" && {
-      strerr info "Skipping non-spec $path" ; continue; } || noop
+      strerr info "Skipping non-spec $path" ; continue; } || true
     eval grep -q "'^$spec_name\\s'" features.tab || {
       stderr warn "Missing from features.tab: $path"
     }
@@ -75,7 +75,7 @@ script_bats__check_prefix()
 # Create a lookup table from features.tab
 script_bats__update_tab()
 {
-  rm .features.tab || noop
+  rm .features.tab || true
   fixed_table features.tab ID CAT TYPE DOC_REF PREREQ | while read vars
   do
     echo "$vars" >> .features.tab
@@ -96,7 +96,7 @@ script_bats__features()
 script_bats__colorize()
 {
   # TODO: rename to libexec/
-  $scriptpath/bats-color.sh
+  $scriptpath/bats-colorize.sh
 }
 
 
@@ -113,7 +113,7 @@ script_bats_main()
     $scriptname )
       local scriptpath="$(dirname $0)"
       script_bats_init || return $?
-      run_subcmd "$@" || return $?
+      main_run_subcmd "$@" || return $?
       ;;
     * )
       echo "$scriptname: not a frontend for $base"

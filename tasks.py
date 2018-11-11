@@ -41,7 +41,7 @@ Usage:
   tasks.py [options] info
   tasks.py [-T|--tag TAG]... [options] list-issues
   tasks.py [-T|--tag TAG]... [options] new-scan
-  tasks.py [-T|--tag TAG]... [options] read-issues
+  tasks.py [-T|--tag TAG]... [--update] [options] read-issues
   tasks.py [options] update-list [TODOLIST]
   tasks.py [options] parse-list [TODOLIST]
   tasks.py help
@@ -410,9 +410,17 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
                 failed.append(comment)
             log.warn("No issue link for %r" % ( comment, ) )
     issues.dirty = [ i.issue_id for i in created + updated ]
-    print(len(issues), 'Issues')
-    print(len(issues.dirty), 'Dirty')
-    #issues.commit()
+
+    log.info("%i Issues, %i Dirty", len(issues), len(issues.dirty))
+
+    if settings.redis:
+        pass
+
+    elif os.path.exists(tasks_file):
+        if settings['update']:
+            issues.commit(tasks_file)
+        else:
+            log.note("Not updating document (--no-update)")
 
 
 def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):

@@ -82,7 +82,7 @@ rst_main()
   case "$base" in $scriptname )
       local subcmd_func_pref=c_${base} verbosity=5 c_rst_default=version
       rst_lib
-      run_subcmd "$@" ;;
+      main_run_subcmd "$@" ;;
   esac
 }
 

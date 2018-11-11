@@ -2,12 +2,13 @@
 
 load init
 base=pd-lib
-load main.inc
 
 init
 
 setup()
 {
+  main_inc=$SHT_PWD/var/sh-src-main-mytest-funcs.sh
+  . $main_inc
   source $lib/util.sh
   source $lib/main.lib.sh
 }

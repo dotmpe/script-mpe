@@ -250,7 +250,7 @@ lst_main()
         test -n "$1" || set -- list
 
         lst_lib || exit $?
-        run_subcmd "$@" || exit $?
+        main_run_subcmd "$@" || exit $?
       ;;
 
     * )

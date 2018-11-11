@@ -13,10 +13,12 @@ version=0.0.4-dev # script-mpe
 
 statusdir_load()
 {
-  [ -z "$STATUSDIR_ROOT" ] && {
-      STATUSDIR_ROOT="$(echo ~/.statusdir/)"
-      export STATUSDIR_ROOT
+  test -z "$STATUSDIR_ROOT" && {
+      STATUSDIR_ROOT="$HOME/.statusdir/"
+  } || {
+      fnmatch "*/" "$STATUSDIR_ROOT" || STATUSDIR_ROOT="$STATUSDIR_ROOT/"
   }
+  export STATUSDIR_ROOT
 
   # Get temporary dir
   test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
@@ -143,15 +145,19 @@ statusdir__assert_dir()
 }
 
 # Specific statusdir__dir assert for .list file
-statusdir__index()
+statusdir__index_file()
 {
   test -n "$STATUSDIR_ROOT" || return 15
-	tree="$(echo "$@" | tr ' ' '/')"
-	path=$STATUSDIR_ROOT"index/"$tree".list"
-	mkdir -p $(dirname $path)
-	echo $path
+  tree="$(echo "$@" | tr ' ' '/')"
+  echo $STATUSDIR_ROOT"index/$tree.list"
 }
 
+statusdir__index()
+{
+  cat $(statusdir__index_file "$@")
+}
+
+# XXX: deprecate for index/index-file
 statusdir__file()
 {
   test -n "$STATUSDIR_ROOT" || return 16
@@ -373,7 +379,7 @@ statusdir_main()
   case "$scriptname" in $base | sd )
 
         statusdir_lib || exit $?
-        run_subcmd "$@" || exit $?
+        main_run_subcmd "$@" || exit $?
       ;;
 
     * )

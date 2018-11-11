@@ -3,8 +3,14 @@
 
 volumestat_lib_load()
 {
-  vstdir=$HOME/htdocs/.build/stat/volume/
-  mkdir -p $vstdir
+  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
+  test -n "$VOLSTAT_TAB" || VOLSTAT_TAB=${STATUSDIR_ROOT}/index/volumestat.tab
+  test -e "$VOLSTAT_TAB" || {
+    touch "$VOLSTAT_TAB" || return
+  }
+
+  vstdir=$STATUSDIR_ROOT/tree/volumestat
+  mkdir -vp "$vstdir/"
 
   case "$uname" in
 
@@ -21,7 +27,7 @@ volumestat_lib_load()
   esac
 }
 
-htd_volumestat_check()
+htd_volumestat_check() # Volume-Name [Volume-Path]
 {
   test -n "$1" || error "volume name expected" 1
   test -n "$2" || set -- "$1" "$vstdir/$1"
@@ -36,7 +42,7 @@ htd_volumestat_check()
   }
 }
 
-htd_volumestat_oninit()
+htd_volumestat_oninit() # Volume-Name [Volume-Path]
 {
   test -n "$1" || error "volume name expected" 1
   test -n "$2" || set -- "$1" "$vstdir/$1"
@@ -53,7 +59,7 @@ htd_volumestat_oninit()
   }
 }
 
-htd_volumestat_ondeinit()
+htd_volumestat_ondeinit() # Volume-Name [Volume-Path]
 {
   test -n "$1" || error "volume name expected" 1
   test -n "$2" || set -- "$1" "$vstdir/$1"
@@ -70,12 +76,42 @@ htd_volumestat_ondeinit()
   }
 }
 
+
 # On appearance/dissappearance of volumestat, mark it for init or deinit
 htd_volumestat_update()
 {
+  logger 'Update'
+  # Update status
   htd_volumestat_stat || warn "volstat stat ($?)"
-  htd_volumestat_init || warn "volstat init ($?)"
+  # Run de-init scripts for disappeared mounts
   htd_volumestat_deinit || warn "volstat deinit ($?)"
+  # Run init scripts for new mounts
+  htd_volumestat_init || warn "volstat init ($?)"
+}
+
+htd_volumestat_stat()
+{
+  for vol in "$voldir"/* ;
+  do
+    test -d "$vol" || continue
+    name="$(basename "$vol")"
+    stat="$vstdir/$name"
+    test -e "$stat.mounted" -o -e "$stat.umount" || {
+      touch "$stat.init"
+      note "'$name' was mounted"
+    }
+  done
+  for stat_mounted in "$vstdir"/*.mounted
+  do
+    test -e "$stat_mounted" || continue
+    name="$(basename "$stat_mounted" .mounted)"
+    stat="$vstdir/$name"
+    vol="$voldir/$name"
+    test -e "$vol" || {
+      note "'$name' was unmounted"
+      touch "$stat.deinit"
+    }
+  done
 }
 
 htd_volumestat_init()
@@ -108,6 +144,7 @@ htd_volumestat_deinit()
   done
 }
 
+
 htd_volumestat_umount()
 {
   test -n "$1" || error "volume name expected" 1
@@ -119,34 +156,8 @@ htd_volumestat_umount()
   rm "$stat.umount"
   warn "Using sudo to mount $1"
   test "$uname" = "Darwin" && {
-    sudo diskutil unmount /Volumes/$1/
+    sudo diskutil unmount $voldir/$1/
   } || {
-    sudo umount /Volumes/$1/
+    sudo umount $voldir/$1/
   }
-}
-
-htd_volumestat_stat()
-{
-  test -z "$*" || error "unexpected arguments '$*'" 1
-  for vol in "$voldir"/*
-  do
-    test -e "$vol" || continue
-    name="$(basename "$vol")"
-    stat="$vstdir/$name"
-    test -e "$stat.mounted" -o -e "$stat.umount" || {
-      touch "$stat.init"
-      note "'$name' was mounted"
-    }
-  done
-  for stat_mounted in "$vstdir"/*.mounted
-  do
-    test -e "$stat_mounted" || continue
-    name="$(basename "$stat_mounted" .mounted)"
-    stat="$vstdir/$name"
-    vol="$voldir/$name"
-    test -e "$vol" || {
-      note "'$name' was unmounted"
-      touch "$stat.deinit"
-    }
-  done
 }

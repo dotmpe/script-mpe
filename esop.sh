@@ -108,7 +108,7 @@ esop_main()
   debug esop-main-lib
   esop_lib || return $?
   debug esop-main-run-subcmd
-  run_subcmd "$@" || return $?
+  main_run_subcmd "$@" || return $?
 }
 
 # FIXME: Pre-bootstrap init
@@ -118,7 +118,7 @@ esop_init()
     export LOG=/usr/local/share/mkdoc/Core/log.sh
   export SCRIPTPATH=$scriptpath
   . $scriptpath/util.sh load-ext
-  lib_load str sys os std stdio main argv bash box src
+  lib_load str sys os std stdio main argv shell box src
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   # -- esop box init sentinel --

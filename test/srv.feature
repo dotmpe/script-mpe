@@ -14,7 +14,7 @@ Feature: srv
     #Then the identical data is shown
 
 
-    @todo
+  @todo
   Scenario: generic reports in summary, brief and complete formats
 
 

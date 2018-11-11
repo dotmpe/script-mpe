@@ -5,7 +5,7 @@ License: Python-like
 """
 import os, itertools, re
 
-# XXX: some bin may be able to read PS stream directly
+# NOTE: some bin may be able to read PS stream directly
 PSVIEWER='graphviz'     # you may change these with
 PNGVIEWER='kview' # your preferred viewers
 # Using generic file-open (OSX does a PDF conversion before showing with # Preview)

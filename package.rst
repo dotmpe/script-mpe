@@ -1,38 +1,105 @@
 ``package.y*ml``: YAML file for project metadata
 =================================================
 
-Root level is a list, with at least one object,
-required to contain a ``main`` attribute.
+Root level is a list, with at least one object.
+TODO: if no ``main`` attribute is given it is equal to the current checkout dirs
+name.
 
-Items in the root list may be an object, that
-may conform to the schema::
+Items in the root list may be an object, that may conform to the schema::
 
   type: <mediatype>
   id: <main-id>
+
+The ``main`` attribute value is used as project or package-id. The main
+package is one object from the list with settings for Pd, Htd etc.
+XXX: The intent is to store different kinds of project config metadata in one
+common file, ie. need to abstract into one or several YAML dialect (Uses JSON
+schema to validate blocks).
+
+TODO: The ``mediatype`` should be used to distinguish each config block as an
+implementation of extension of some config scheme.
+Currently the type is mostly ignored and the following are equiv.::
+
+  - main: my-project-2018
+    my-setting: 123
+  - id: my-project-2018
+
+and:
+
+  - main: my-project-2018
+    my-setting: 123
+    id: my-project-2018
 
 TODO: perhaps allow 'packages' or '<prefix>.{type,package}' schemes for root mapping iso. lists.
 
 NOTE: version concerns main component version, not metadata
 
+TODO: .env by docker-compose modes: import or symlink/write
+
 Usage
 -----
-In various places where project metadata is needed. Ie. to enable specific
-projects to offer a more abstract check/test/build/... lifecycle either
-explicitly or implicitly acc. to different systems, languages, etc.
+User commands via ``htd``, see help. Eg::
 
-Used in conjection with ``pd`` scripts?
+    htd package update
+    htd package sh-scripts  init check build clean
+    htd package remotes-reset
+
+Other subcommands can use ``package.lib.sh`` and access JSON and Shell script
+variant generated from the main ``package.{y*ml,json}``.
+
+The variants are re-written by ``update``, and stored at ``$PWD/.htd/package*``.
+
+Pre-processing is done on ``#include NAME`` directives. If found, lines like
+these are substituted by the file contents retrieved at `NAME`.
+`PACKMETA` is set to point to the compiled file, not the projects metadata document.
+`PACKMETA_SRC` env will point to the project package file.
+
+The main uses currently for package:
+
+- provide routines for project tasks
+- list remote repositories, or checkout instances
+- establish a mode for env initialization
 
 See `test/pd-spec <test/pd-spec.rst>`_  for tested specifications.
 Specifically `spec pd/0/1/6 <test/pd-spec#/pd/0/1/6>`_  that describes how the
 scripts interact with the Pdoc, local package metadata and other context.
 
+XXX: using YAML requries JSOTK present. Converting YAML or JSON to shell also
+requires jsotk.
 
-Other (optional) attributes
+Files
+-----
+For YAML first a JSON variant is generated. From the JSON variant, the main
+block is extracted with ``jq``.
+
+This main block is converted to shell vars, see `jsotk` ``fkv`` format. It
+should support simple numbers, strings or lists of strings as values.
+
+NOTE: This causes the following to be equivalent::
+
+  {"key1": {"value": 123}}
+  {"key1-value": 123}
+  {"key1/value": 123}
+  {"key1.value": 123}
+  {"key1_value": 123}
+
+Ie ``key1_value=123``.
+
+
+Attributes
 -----------------------------
 
 environments
-  names for environments, by convention exported as ENV, if not present.
-  And used as such in project scripts.
+  Name(s) for environment(s). If given, first is the default, unless ENV_NAME
+  is set.
+
+env
+  Script lines to initialize environment. At this stage ENV_NAME is set, but
+  nothing else is sourced yet. If a cmd line or script is provided, it should
+  update (load/modify/execute) the env setup for the other package scripts.
+
+  If not given, the default is effectively ``. $PACKMETA_SH``, to make all of
+  the package's main settings available under ``package_*=...``.
 
 scripts
   Mapping of named scripts for this project, used with alike named subcommands.

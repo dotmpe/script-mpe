@@ -5,6 +5,16 @@ darwin_lib_load()
 {
   test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
   test -n "$xattr" || xattr=xattr-2.7
+  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
+  test -d "$STATUSDIR_ROOT/logs/$hostname" ||
+      mkdir -p "$STATUSDIR_ROOT/logs/$hostname"
+  test -n "$sleeplog" || sleeplog=$HOME/.statusdir/logs/$hostname/sleep.log
+  test -n "$locklog" || locklog=$HOME/.statusdir/logs/$hostname/lock.log
+}
+
+darwin_locklog_env()
+{
+  locklog_raw=$HOME/.statusdir/logs/$hostname/lock-raw-${1}.log
 }
 
 setup_launchd_service()
@@ -157,7 +167,7 @@ darwin_sata_data()
 darwin_disk_table()
 {
   #disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
-  for disk in $(disk_list)
+  for disk in $(os_disk_list)
   do
     system_profiler SPSerialATADataType | grep -q $(basename $disk)'\>' && {
       echo SerialATA disk=$disk
@@ -239,6 +249,235 @@ htd_darwin_tb()
 htd_darwin_storage()
 {
     system_profiler -detailLevel full SPStorageDataType
+}
+
+
+htd_darwin_list_profiles()
+{
+  system_profiler -listDataTypes
+}
+
+
+htd_darwin_profile()
+{
+  local grep="$1"
+  htd_darwin_list_profiles | while read dtype
+  do
+    test -n "$grep" &&  {
+      system_profiler $dtype | eval grep "$grep" &&
+        echo "$dtype for $grep" || true
+    } || {
+      system_profiler $dtype
+    }
+  done
+}
+
+# Darwin power-management
+htd_darwin_sleeplog_update()
+{
+  mv "$sleeplog" "$sleeplog.tmp" || touch "$sleeplog.tmp"
+  { cat "$sleeplog.tmp"
+    pmset -g log |
+      $ggrep "^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" |
+      $ggrep '[0-9][0-9]\ \<\(Sleep\|Wake\)\ \ '
+  } | sort -u > "$sleeplog"
+  rm "$sleeplog.tmp"
+}
+
+htd_darwin_sleeplog()
+{
+  htd_darwin_sleeplog_update
+  local state= start= duration=
+  nowts="$($gdate +"%s")"
+  cat "$sleeplog" | while read -r date time tzd domain_msg_rest
+  do
+    domain="$(echo $(echo "$domain_msg_rest" | cut -c1-21))"
+    case "$domain" in Sleep|Wake ) ;; * ) continue ;; esac
+    ts="$(gdate -d "${date}T${time}${tdz}" +"%s")"
+    day="$(gdate -d "${date}T${time}${tdz}" +"%a")"
+    msg="$(echo "$domain_msg_rest" | cut -c22-)"
+    ts_rel_multi "$(( $nowts - $ts ))" hours minutes seconds ; time_ago="$dt_rel"
+
+    test "$domain" = "$state" || {
+      test -n "$start" && {
+        ts_rel_multi "$(( $ts - $start ))" hours minutes seconds
+        note "$day, $time_ago ago: state $state ended, lasted $dt_rel: new state: $domain: $msg"
+      } || {
+        note "$day, $time_ago ago: initial state $domain"
+      }
+      start="$ts"
+      state="$domain"
+    }
+  done
+}
+
+htd_darwin_sleeplog_summary()
+{
+  local nowts="$($gdate +"%s")"
+  read_nix_style_file "$sleeplog" | while read -r date time tzd state descr
+  do
+    s="$($gdate -d "${date}T${time}${tzd}" +"%s" )"
+    ts_rel_multi "$(( $nowts - $s ))" hours minutes seconds
+    note "${state}, ${dt_rel} ago"
+  done
+}
+
+htd_darwin_locklog_list()
+{
+  {
+    test -n "$1" && {
+      test -n "$2" && {
+        sudo log show --start "$1" --end "$2"
+      } || {
+        sudo log show --start "$1"
+      }
+    } || {
+      sudo log show
+    }
+  } | grep gIOScreenLockState
+}
+
+htd_darwin_locklog_update_day()
+{
+  test -n "$1" &&
+      date="$($gdate -d "$1" +"%Y-%m-%d")" || date="$($gdate +"%Y-%m-%d")"
+  darwin_locklog_env "$date"
+  set -- "$1" "$locklog_raw"
+
+  day_end="$($gdate -d "$date" -d "+1 day" +"%s")"
+  test -e "$2" && {
+    test $(filemtime "$2") -gt $day_end && return
+  }
+
+  end="$($gdate -d "$date" -d "+1 day" +"%Y-%m-%d")"
+  test -e "$2" && mv "$2" "$2.tmp" ||
+      echo "# Timestamp                     Thread     Type        Activity             PID    TTL  Description" > "$2.tmp"
+  {
+    grep -v "^$date" "$2.tmp"
+    htd_darwin_locklog_list "$date" "$end"
+  } > "$2.new"
+  test -e "$2" && {
+    diff -q "$2" "$2.new" && mv "$2.new" "$2" || rm "$2.new"
+  } || {
+    mv "$2.new" "$2"
+  }
+  rm "$2.tmp"
+}
+
+htd_darwin_locklog_update()
+{
+  # Update yesterday and today
+  htd_darwin_locklog_update_day -1day
+  htd_darwin_locklog_update_day
+}
+
+htd_darwin_locklog_raw() # Date-Tag
+{
+  test -n "$locklog_raw" || {
+      test -n "$1" &&
+          date="$($gdate -d "$1" +"%Y-%m-%d")" || date="$($gdate +"%Y-%m-%d")"
+      darwin_locklog_env "$date"
+  }
+  lib_load table
+  fixed_table_cuthd "$locklog_raw" $(fixed_table_hd_ids "$locklog_raw")
+  fixed_table "$locklog_raw" "$cutf"
+}
+
+darwin_locklog_rawstate()
+{
+    case "$state" in
+        1 ) echo unlocked ;;
+        3 ) echo locked ;;
+    esac
+}
+
+htd_darwin_locklog_raw2state()
+{
+  while read sh_props
+  do
+    eval $sh_props
+    fnmatch "*: gIOScreenLockState *" "$Description" || continue
+    new_lock_state="$( echo "$Description" | sed 's/^.* gIOScreenLockState \([0-9]*\).*/\1/' )"
+    test "$new_lock_state" = "$state" && continue
+
+    ts="$(gdate -d "${Timestamp}" +"%s")"
+    test -z "$start" || {
+        ts_rel_multi "$(( $ts - $start ))" hours minutes seconds ; duration="$dt_rel"
+        state_str=$(darwin_locklog_rawstate "$state")
+        echo $($gdate -d "@${start}" --iso-8601=seconds) $state_str $duration
+    }
+
+    # XXX: verbose
+    #day="$(gdate -d "${Timestamp}" +"%a")"
+    #ts_rel_multi "$(( $nowts - $ts ))" hours minutes seconds ; time_ago="$dt_rel"
+    #test -n "$state" && {
+    #  info "$day, $time_ago ago: new state '$state->$new_lock_state'"
+    #} || {
+    #  info "$day, $time_ago ago: initial state '$new_lock_state'"
+    #}
+
+    start="$ts"
+    state="$new_lock_state"
+  done
+
+  nowts="$($gdate +"%s")"
+  ts_rel_multi "$(( $nowts - $start ))" hours minutes seconds
+  state_str=$(darwin_locklog_rawstate "$state")
+  note "Current: $state_str ($dt_rel)"
+}
+
+htd_darwin_locklog_summary() #
+{
+  local nowts="$($gdate +"%s")"
+  read_nix_style_file "$locklog" | while read -r datetime state period
+  do
+    s="$($gdate -d "$datetime" +"%s" )"
+    note "$state duration: $period, $( fmtdate_relative "$s" )"
+  done
+}
+
+htd_darwin_locklog() #
+{
+  note "Updating raw event log(s)..."
+  htd_darwin_locklog_update
+
+  test -e "$locklog" && {
+    note "Updating lock log..."
+    test "$locklog" -nt "$locklog_raw" || {
+
+      note "Rebuilding from today's raw..."
+      mv "$locklog" "$locklog.tmp"
+      {
+        grep -v "^$($gdate +"%Y-%m-%d")" "$locklog.tmp"
+        htd_darwin_locklog_raw | htd_darwin_locklog_raw2state
+      } | sort -u > "$locklog"
+      rm "$locklog.tmp"
+    }
+  } || {
+    note "Initializing lock log..."
+    for locklog_raw in $STATUSDIR_ROOT/logs/$hostname/lock-raw-*.log
+    do note "Parsing '$(basename "$locklog_raw")'..."
+      htd_darwin_locklog_raw | htd_darwin_locklog_raw2state
+    done > "$locklog"
+  }
+
+  #test -n "$2" &&  {
+  #  grep "^$2" "$3"
+  #} || {
+  #  tail -n 5 "$3"
+  #}
+}
+
+darwin_uptime()
+{
+  test -n "$nowts" || nowts="$($gdate +"%s")"
+  # usec? sysctl -n kern.boottime | cut -d' ' -f7
+  echo $(( $nowts - $(darwin_boottime) ))
+}
+
+darwin_boottime()
+{
+  sysctl -n kern.boottime | tr -d ',' | cut -d' ' -f4
 }
 
 

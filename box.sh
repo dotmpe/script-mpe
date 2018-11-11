@@ -483,7 +483,7 @@ box_main()
   case "$base" in $scriptname )
         box_lib box || error "box-src-lib $scriptname" 1
         # Execute
-        run_subcmd "$@"
+        main_run_subcmd "$@"
       ;;
 
     * )

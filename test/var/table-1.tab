@@ -1,4 +1,10 @@
-# FOO      BAR           BAZ
+#!/foo
+# Description: something.
+#
+# FOO      BAR            BAZ
+
 123.5      -ABC           a b c
 456.9      -DEF           d e f
 789.1      -XYZ           x y z
+   
+#:vim:ft=todo.txt:

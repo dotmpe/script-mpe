@@ -13,7 +13,7 @@ pd_check__fs_autoconfig()
 pd_load__fs_clean=i
 pd__fs_clean()
 {
-  mkid "fs:clean:TODO:$@"
+  mkid "fs:clean:TODO:$@" "" ""
   echo "$id" >> $skipped
 }
 
@@ -21,8 +21,6 @@ pd__fs_clean()
 pd_load__fs_names=i
 pd__fs_names()
 {
-  mkid "fs:names:TODO:$@"
+  mkid "fs:names:TODO:$@" "" ""
   echo "$id" >> $skipped
 }
-
-

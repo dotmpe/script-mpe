@@ -1,0 +1,24 @@
+alias htd=htd.sh
+alias ht=ht.sh
+alias statusdir=statusdir.sh
+alias sd=statusdir.sh
+alias vc=vc.sh
+alias box=box.sh
+alias topic=topic.py
+alias dckr=docker-sh.sh
+alias tm=treemap.py
+alias lst=list.sh
+
+alias rabo2myLedger=rabo2myLedger.py
+
+#alias basename-reg-old=basename-reg.py
+
+alias dictdiff-yaml.php=dictdiff.php
+alias finfo-app.py=finfo.py
+alias jsotk=jsotk.py
+alias libcmd_stacked_test.py=libcmd_test.py
+alias meta-sh=meta-sh.sh
+alias pd=projectdir.sh
+alias projectdir-meta=pd_meta.py
+alias topics=topics.sh
+alias vagrant-sh=vagrant-sh.sh

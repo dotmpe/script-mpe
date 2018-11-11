@@ -28,5 +28,4 @@ x (F)     2017-05-13 2017-05-13 closed
 (XYZ)  """quote for quote""" 'quote' ''quote'' '''quote''' `quote` ``quote`` ```quote```
 (XYZ)  <scheme:localname#localid> <http://foo> <mailto:me>
 
-
 # vim:ft=todo.txt

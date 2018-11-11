@@ -1,0 +1,23 @@
+1..22
+ok 1 /Users/berend/bin/main incr x (amount): increments var x, output is clean
+ok 2 /Users/berend/bin/main incr-c: increments var c, output is clean
+ok 3 /Users/berend/bin/main std__help
+ok 4 /Users/berend/bin/main try_help
+ok 5 /Users/berend/bin/main echo_local
+ok 6 /Users/berend/bin/main try_value
+ok 7 /Users/berend/bin/main try_local_var
+ok 8 /Users/berend/bin/main try_spec
+ok 9 /Users/berend/bin/main std-usage
+ok 10 /Users/berend/bin/main std-commands
+ok 11 /Users/berend/bin/main locate-name
+ok 12 /Users/berend/bin/main get-cmd-{alias,func,func-name}
+ok 13 /Users/berend/bin/main get-cmd-func-name sets local _func from internal vars
+ok 14 /Users/berend/bin/main get-subcmd-args,parse-subcmd-{valid-args,alias,opts}
+ok 15 /Users/berend/bin/main main-load
+ok 16 /Users/berend/bin/main main-debug
+ok 17 /Users/berend/bin/main main
+ok 18 /Users/berend/bin/main should source (functions) without polluting environment (with vars)
+ok 19 /Users/berend/bin/main expect some *nix env
+ok 20 /Users/berend/bin/main expect the env for Box # skip not requiring exports for now.. but should test PREFIX, UCONFDIR handling. .
+ok 21 util-lib: baseline: test env
+ok 22 util-lib: baseline: script env

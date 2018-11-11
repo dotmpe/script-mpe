@@ -47,7 +47,7 @@ update_or_add_after_header()
 	test -n "$3" -a -f "$3" ||
 		error "generated-by-ba Expected existing file '$3'" 3
 	test -n "$2" || set -- "$(pathname "$2" .sh)" "$2" "$3"
-	header_comment "$3" >/dev/null
+	#read_header_comment "$3" >/dev/null
 	#insert_at
 	#splice_file_at "$3" "$last_comment_line" "$2"
 }

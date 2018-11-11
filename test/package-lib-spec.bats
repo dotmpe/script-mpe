@@ -2,53 +2,36 @@
 
 load init
 base=package.lib
-
 init
+load assert
+lib_load package sys
 
 
 setup()
 {
-  . $lib/util.sh
-  lib_load package sys
   export package_id=
 }
 
 
-@test "${lib}/${base} - lib loads" {
+@test "$base: lib-load sets env" {
 
-  func_exists package_lib_load
-  func_exists package_basename
-  func_exists update_package_json
-  func_exists jsotk_package_sh_defaults
-  func_exists update_package_sh
-  func_exists update_temp_package
-  func_exists update_package
-  func_exists package_sh
-  func_exists package_default_env
-  func_exists package_sh_env
-  func_exists package_sh_script
+  assert_equal "./package.yaml" "$PACKMETA"
+  #assert_equal "py" "$out_fmt" 
 }
 
 
-@test "${lib}/${base} - lib-load sets env" {
-
-  test -n "$PACKMETA" -a "$PACKMETA" = "./package.yaml"
-  test -n "$out_fmt" -a "$out_fmt" = "py"
-}
-
-
-@test "${lib}/${base} - lib-set-local sets env" {
+@test "$base: lib-set-local sets env" {
 
   package_lib_set_local "."
-  test -n "$PACKMETA_BN" -a "$PACKMETA_BN" = "package"
-  test -n "$PACKMETA_JS_MAIN" -a "$PACKMETA_JS_MAIN" = "./.package.main.json" ||
-    fail "$PACKMETA_JS_MAIN"
-  test -n "$PACKMETA_SH" -a "$PACKMETA_SH" = "./.package.sh"
-  test -n "$package_id" -a "$package_id" = "script-mpe"
+
+  assert_equal "package" "$PACKMETA_BN"
+  assert_equal "./.htd/package.main.json" "$PACKMETA_JS_MAIN"
+  assert_equal "./.htd/package.sh" "$PACKMETA_SH"
+  assert_equal "script-mpe" "$package_id"
 }
 
 
-@test "${lib}/${base} - package-sh" {
+@test "$base: package-sh" {
   cd /tmp
 
   PACKMETA_BN="$(package_basename)"
@@ -72,7 +55,7 @@ setup()
 }
 
 
-@test "${lib}/${base} - package test/var dirs" {
+@test "$base: package test/var dirs" {
 
   cd test/var/package/0
   package_lib_load
@@ -82,7 +65,7 @@ setup()
 }
 
 
-@test "${lib}/${base} - package test/var/package/1 - main and secondary project" {
+@test "$base: package test/var/package/1 - main and secondary project" {
 
   cd test/var/package/1
 
@@ -104,3 +87,16 @@ setup()
   test_ok_nonempty "*id=other key=baz" || stdfail 4
 }
 
+@test "$base: package_sh_list" {
+
+  . test/var/package-1-tpl.sh
+  echo "$package_1_tpl__1__contents" > /tmp/package.sh
+
+  run package_sh_list "/tmp/package.sh" list_1 "" test_
+  test_ok_lines "a" "abc" "34 x" || stdfail 1
+
+  run package_sh_list "/tmp/package.sh" list_2 "v" test_
+  test_ok_lines "q" "xyz" "13 5" || stdfail 2
+
+  rm /tmp/package.sh
+}

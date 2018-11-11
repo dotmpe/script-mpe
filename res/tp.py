@@ -45,7 +45,7 @@ def typebuilder(data, type_, default=None):
         return default
 
     else:
-        return type_(data) or default
+        return type_(*data) or default
 
 def typebuilder_from_re(match, type_, default, *groups):
     """

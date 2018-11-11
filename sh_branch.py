@@ -14,7 +14,7 @@ def bashlex_parse(src):
   #src, srcr = sub3(';', src.strip())
   print(src)
   #src = """
-  #test -n "$scriptpath" || export scriptpath="$(pwd -P)"
+  #test -n "$scriptpath" || scriptpath="$(pwd -P)"
   #""".strip()
   import bashlex
   parts = bashlex.parse(src)

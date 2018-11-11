@@ -162,7 +162,7 @@ disk__info()
 disk_man_1__local="Show disk info TODO: test this works at every platform"
 disk__local()
 {
-  test -n "$1" || set -- $(disk_list)
+  test -n "$1" || set -- $(os_disk_list)
   info "Devices: '$*'"
   {
     echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
@@ -192,7 +192,7 @@ disk_load__list_local=f
 disk_man_1__list='List local devices'
 disk__local_devices()
 {
-  disk_list
+  os_disk_list
 }
 
 disk__mounts()
@@ -211,7 +211,7 @@ disk__x_local()
     darwin_disk_table
 
   } || {
-    test -n "$1" || set -- $(disk_list)
+    test -n "$1" || set -- $(os_disk_list)
     while test $# -gt 0
     do
       test -n "$1" || continue
@@ -372,7 +372,7 @@ Sort of wizard, check/init vol(s) interactively for current disks
 "
 disk__check_all()
 {
-  disk_list | while read dev
+  os_disk_list | while read dev
   do
     # Get disk meta
 
@@ -485,14 +485,14 @@ disk_main()
           sock= \
           c=0
 
-				export SCRIPTPATH=$scriptpath
+				SCRIPTPATH=$scriptpath
         . $scriptpath/util.sh
         util_init
         disk_init "$@" || error "init failed" $?
         shift $c
 
         disk_lib || exit $?
-        run_subcmd "$@" || exit $?
+        main_run_subcmd "$@" || exit $?
       ;;
 
     * )
@@ -532,7 +532,6 @@ disk_lib()
 # Pre-exec: post subcmd-boostrap init
 disk_load()
 {
-  disk_run
   #test -x "/sbin/parted" || error "parted required" 1
   #test -x "/sbin/fdisk" || error "fdisk required" 1
   test -n "$disk_session_id" || disk_session_id=$(get_uuid)
@@ -546,7 +545,6 @@ disk_load()
       # here we trigger by non-tty stderr
       test "$stdio_2_type" = "t" &&
         choice_interactive=1 || choice_interactive=0
-      export choice_interactive
     }
   }
 
@@ -555,7 +553,7 @@ disk_load()
 
     R ) # Device read access
         test -n "$dev_pref" || {
-          ( for device in $(disk_list)
+          ( for device in $(os_disk_list)
           do
             test -r "$device" && {
               stderr ok "Read/Write at $device"
@@ -564,7 +562,7 @@ disk_load()
             }
           done
           ) || {
-            export dev_pref="sudo"
+            dev_pref="sudo"
             sudo echo >/dev/null || {
               note "Got r00t? (need sudo for /dev/* read-access)"
               sudo printf "Got it."
@@ -579,7 +577,7 @@ disk_load()
 
     i ) # io-setup: set all requested io varnames with temp.paths
         setup_io_paths $subcmd-${disk_session_id}
-        export $disk__inputs $disk__outputs
+        # XXX: inherit? export $disk__inputs $disk__outputs
       ;;
 
     o ) #

@@ -1,46 +1,55 @@
 #!/bin/sh
 
 
-disk_run()
+disk_lib_load()
 {
   test -n "$uname" || uname=$(uname)
   test -n "$whoami" || whoami=$(whoami)
   test -n "$hostname" || hostname=$(hostname)
-  test -n "$domainname" || domainname=$(domainname)
 
-  test -n "$DISK_CATALOG" || export DISK_CATALOG=$HOME/.diskdoc
-  #test -n "$DISK_VOL_DIR" || export DISK_VOL_DIR=/srv
+  test -n "$DISK_CATALOG" || DISK_CATALOG=$HOME/.diskdoc
 
+  disk_lib_init
+}
+
+disk_lib_init()
+{
   test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
   mkdir -p $DISK_CATALOG/disk
   mkdir -p $DISK_CATALOG/volume
 
-  export mnt_pref="sudo " dev_pref=
+  mnt_pref="sudo " dev_pref=
   case "$(groups)" in
     *" disk "* ) ;;
     * )
       warn "No disk access, using sudo to read disk device info"
-      export dev_pref="sudo" ;; esac
-  export fdisk="$dev_pref $(which fdisk)"
-  export parted="$dev_pref $(which parted)"
-  export blkid="$dev_pref $(which blkid)"
+      dev_pref="sudo" ;;
+  esac
 }
+
 
 req_fdisk()
 {
   test -x "$(which fdisk)" || {
     error "$1: missing fdisk" 1
-    return
   }
+  fdisk="$dev_pref $(which fdisk)"
 }
-
 
 req_parted()
 {
   test -n "$parted" -a -x "/sbin/parted" || {
     error "$1: missing parted" 1
-    return
   }
+  parted="$dev_pref $(which parted)"
+}
+
+req_blkid()
+{
+  test -n "$blkid" -a -x "/sbin/blkid" || {
+    error "$1: missing blkid" 1
+  }
+  blkid="$dev_pref $(which blkid)"
 }
 
 
@@ -105,14 +114,6 @@ disk_id()
         # Rather going to skip device ID and move to volumes directly.
 
         error "unkown disk $bsd_name" 1
-        return
-
-        # FIXME: this only works with one disk, would need to parse XML plist
-        system_profiler SPSerialATADataType | grep -qv $bsd_name || {
-          error "Parse SPSerialATADataType plist" 1
-        }
-        echo $(system_profiler SPSerialATADataType | grep Serial.Number \
-          | cut -d ':' -f 2)
       ;;
 
     * ) error "Disk-fdisk-Id: $uname" 1 ;;
@@ -132,7 +133,8 @@ disk_model()
 {
   case "$uname" in
 
-    Linux )
+    Linux ) req_parted disk-model || return
+
         req_parted disk-model || return
         {
           $parted -s $1 print || {
@@ -159,7 +161,7 @@ disk_size()
 {
   case "$uname" in
 
-    Linux )
+    Linux ) req_parted disk-size || return
         req_parted disk-size || return
         {
           $parted -s $1 print || {
@@ -182,7 +184,7 @@ disk_tabletype()
 {
   case "$(uname)" in
 
-    Linux )
+    Linux ) req_parted disk-tabletype || return
         req_parted disk-tabletype || return
         {
           $parted -s $1 print || {
@@ -255,12 +257,12 @@ disk_mounts()
 
     #Linux ) ;;
 
-    * ) error "Disk-Mounts: $uname" 1 ;;
+    * ) error "Disk-Mounts not supported on: $uname" 1 ;;
   esac
 }
 
 # List (local) disks (from /dev, mounted or not)
-disk_list()
+os_disk_list()
 {
   case "$uname" in
 
@@ -272,7 +274,6 @@ disk_list()
       ;;
 
     Darwin )
-        # FIXME: deal with system_profiler plist datatypes
         echo /dev/disk[0-9]* |
             tr ' ' '\n' |
             grep -v '[0-9]s[0-9]*$'
@@ -309,9 +310,9 @@ disk_list_part_local()
 
 disk_partition_type()
 {
+  req_blkid disk-partition-type || return
   test -z "$1" || local dev=$1
-  $blkid -o value -s TYPE $dev \
-    || return $?
+  $blkid -o value -s TYPE $dev || return $?
   # Or parse sudo file -Ls $dev
 }
 
@@ -357,7 +358,7 @@ mount_tmp()
   warn "Mounting temporary disk $1"
   $mnt_pref mount $1 $tmpd || return $?
   note "Mounted $1 at $tmpd"
-  export tmp_mnt=$tmpd
+  tmp_mnt=$tmpd
 }
 
 is_mounted()
@@ -599,7 +600,7 @@ EOM
 
 disk_smartctl_attrs()
 {
-  smartctl -A disk0 -f old | tail -n +8 | while \
+  smartctl -A "$1" -f old | tail -n +8 | while \
       read id attr flag value worst thresh type updated when_failed raw_value
     do
         test -n "$attr" || continue
@@ -608,21 +609,19 @@ disk_smartctl_attrs()
     done
 }
 
+# Getting disk0 runtime (days)
 disk_runtime()
 {
-  note "Getting disk0 runtime (days)..."
-  eval local $(disk_smartctl_attrs)
+  eval local $(disk_smartctl_attrs $1)
   python -c "print $Power_On_Hours_Raw / 24.0"
   #echo "$Power_On_Hours_Raw / 24.0" | bc
   #echo "$Power_On_Hours"
 }
 
-disk_stats()
+disk_bootnumber()
 {
-  note "Stats (from main disk):"
-  eval local $(disk_smartctl_attrs)
-  note "Total runtime: $Power_On_Hours ($Power_On_Hours_Raw)"
-  note "Boots: $Power_Cycle_Count ($Power_Cycle_Count_Raw)"
-  note "Improper shutdowns: $Power_Off_Retract_Count ($Power_Off_Retract_Count_Raw)"
-  note "Disk temperature: $Temperature_Celsius ($Temperature_Celsius_Raw)"
+  note "TODO: Getting disk0 boot count-crash count..."
+  eval local $(disk_smartctl_attrs disk0)
+  echo "$Power_Cycle_Count_Raw-$Power_Off_Retract_Count_Raw"
+  echo "$Power_Cycle_Count-$Power_Off_Retract_Count"
 }

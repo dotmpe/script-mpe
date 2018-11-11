@@ -2,7 +2,9 @@
 
 # Keep current shell settings and mute while preparing env, restore at the end
 shopts=$-
-test -n "$DEBUG" && set -x || set +x
+test -n "$DEBUG" && {
+  set -x || true
+}
 
 
 # Restore shell -e opt
@@ -29,10 +31,11 @@ esac
 
 type error >/dev/null 2>&1 || { echo "std.lib missing" >&2 ; exit 1 ; }
 type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
-export scriptname scriptpath SCRIPTPATH
-var_isset scriptname || error "scriptname=$scriptname" 1
-var_isset scriptpath || error "scriptpath=$scriptpath" 1
-var_isset SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
+
+#export scriptname scriptpath SCRIPTPATH
+#var_isset scriptname || error "scriptname=$scriptname" 1
+#var_isset scriptpath || error "scriptpath=$scriptpath" 1
+#var_isset SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
 #req_vars LIB || error "LIB=$LIB" 1
 
 req_vars verbosity || export verbosity=7
@@ -44,11 +47,9 @@ var_isset SHELLCHECK_OPTS ||
 
 ### Start of build job parameterisation
 
-GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
+#GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
 
-
-BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F "$GIT_CHECKOUT" \
-        | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
+#BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F "$GIT_CHECKOUT" | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
 project_env_bin node npm lsof
 
@@ -57,7 +58,11 @@ test -n "$TEST_FEATURE_BIN" -o ! -x "./vendor/bin/behat" ||
 test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behat || true)"
 test -n "$TEST_FEATURE_BIN" && {
     # Command to run one or all feature tests
-    TEST_FEATURE="$TEST_FEATURE_BIN -f junit -o$TEST_RESULTS --tags ~@todo&&~@skip --suite default"
+    test -n "$TEST_RESULTS" && {
+        TEST_FEATURE="$TEST_FEATURE_BIN -f junit -o$TEST_RESULTS --tags '~@todo&&~@skip' --suite default"
+    } || {
+        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo&&~@skip' --suite default"
+    }
     # XXX: --tags '~@todo&&~@skip&&~@skip.travis'
     # Command to print def lines
     TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"
@@ -162,7 +167,6 @@ req_vars sudo || export sudo=
 
 test -n "$Project_Env_Requirements" ||
   export Project_Env_Requirements="bats bats-specs docutils lsof"
-test -n "$ProjectTest_BATS_Specs" || export ProjectTest_BATS_Specs="tests/bats/{,*-}spec.bats"
 
 test -z "$Build_Offline" && {
   export projectenv_dep_web=1
@@ -175,24 +179,11 @@ test -n "$Jenkins_Skip" || {
 }
 
 
-req_vars RUN_INIT || export RUN_INIT=
 req_vars BUILD_STEPS || export BUILD_STEPS="\
  dev test "
 
-req_vars TEST_SHELL || export TEST_SHELL=sh
-
 # Required specs, each of these must test OK
 req_vars REQ_SPECS ||
-  export REQ_SPECS="util 1_1-helper"\
-" str sys os std stdio argv bash match.lib vc.lib matchbox src main"\
-" sh box box-cmd box-lib box-src pd-meta finfo table package"
-
-# Specs for report but not counting in final test-result judgement
-req_vars TEST_SPECS || \
-  export TEST_SPECS="statusdir htd basename-reg dckr lst"\
-" rsr edl vc match schema table"\
-" jsotk-py jsotk-xml libcmd_stacked mimereg radical"\
-" meta pd disk diskdoc py-lib-1"
 
 req_vars INSTALL_DEPS || {
   INSTALL_DEPS=" basher "
@@ -211,6 +202,7 @@ req_vars INSTALL_DEPS || {
 
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 
+export PYTHONPATH="$HOME/lib/py:$PYTHONPATH"
 
 
 ### Env of build job parameterisation
@@ -219,7 +211,6 @@ test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 note "Build Steps: $BUILD_STEPS"
 note "Test Specs: $TEST_SPECS"
 note "Required Specs: $REQ_SPECS"
-
 
 
 

@@ -346,7 +346,6 @@ __vc_push ()
 __vc_gitrepo()
 {
   test -e .git || err "not a checkout" 240
-  test -e .package && . .package.sh
 
   test -z "$package_mpe_meta_get_repo" \
     || set -- "$package_mpe_meta_get_repo"
@@ -1071,8 +1070,6 @@ vc__list_all_branches()
   local pwd=$(pwd)
   test -z "$1" || cd "$1"
   vc_getscm "." || return $?
-  # Read branches and strip remote/ prefix (GIT only)
-  vc_branches all | sed 's/^'"$vc_rt_def"'\///g' | sort -u
   #vc_branches all | while read f ; do basename "$f"; done | sort -u
   test -z "$1" || cd "$pwd"
 }
@@ -1113,15 +1110,27 @@ vc__branches()
 # - remote branches: refs/remote/<remote>/*
 vc__ref_exists()
 {
-  git show-ref --verify -q "$1" || return $?
+  vc_ref_exists "$@"
+}
+
+# Check repository knows Branch, tag or commit
+vc__exists() # Version [Remote]
+{
+  vc_exists "$@"
 }
 
 # Check wether branch name exists somewhere
-vc__branch_exists()
+vc__branch_exists() # Local or remote-prefixed ref (branch)
 {
-  vc__ref_exists "refs/heads/$1" && return
-  vc__ref_exists "refs/remotes/$1" && return
+  vc_ref_exists "refs/heads/$1" && return
+  vc_ref_exists "refs/remotes/$1" && return
   return 1
+}
+
+vc__local_branch_exists()
+{
+  test -z "$2" || error "Unexpected remote" 1
+  vc_exists_local "$@"
 }
 
 
@@ -1169,12 +1178,14 @@ vc__regenerate_stale()
 }
 
 
+vc_run__gitrepo=fq
 vc__gitrepo()
 {
   __vc_gitrepo || return $?
 }
 
 # Add/update local git bare repo
+vc_run__local=fq
 vc__local()
 {
   test -n "$1" || set -- "SCM_GIT_DIR" "$2"
@@ -1362,7 +1373,7 @@ vc__gitflow()
         test -n "$2" || set -- "$1" gitflow.tab
         test -e "$2" || error "missing gitflow file" 1
         note "Reading from '$2'"
-        read_nix_style_file "$2" | while read upstream downstream isfeature
+        read_nix_style_file "$2" | while read -r upstream downstream isfeature
         do
           test -n "$upstream" -a -n "$downstream" || continue
           test -n "$upstream" || error "Missing upstream $downstream"
@@ -1391,7 +1402,7 @@ vc__gitflow()
           test $new_at_down -eq 0 && {
             trueish "$isfeature" && {
               echo "downstream '$downstream' has no commits and could be removed"
-            } || noop
+            } || true
           } ||
             echo "$new_at_down commits '$upstream' <- '$downstream' "
 
@@ -1741,13 +1752,18 @@ vc__info()
 }
 
 
-vc_man_1__dist='Push commits to all remotes'
-vc__dist()
+vc_man_1__dist='Push commits to remotes.
+If none given set to Package-Dist, or all remotes'
+vc_run__dist=q
+vc__dist() # [Remotes]
 {
-  vc__remotes | while read remote url
-  do
-      git push $remote --all
-  done
+  test -n "$1" || set -- $package_dist
+  test -n "$1" || set -- $( package_sh_list "$PACKMETA_SH" "dist" )
+  test -n "$1" || set -- $(vc__remotes | lines_to_words)
+
+  note "distributing to '$*'..."
+  vc_dist_inner() { git push "$1" --all ; }
+  p= s= act=vc_dist_inner foreach_do "$@"
 }
 
 
@@ -1770,6 +1786,27 @@ vc__update_local()
   vc__switch $startbranch
 }
 
+
+vc__blame()
+{
+  vc_getscm || return $?
+  test -n "$1" || error "Expected existing file '$1'" 1
+  vc_blame "$@"
+}
+
+
+vc__up()
+{
+  false # TODO: take current branch, find upstream(s) in vcflow and update (merge/rebase)
+}
+
+vc__down()
+{
+  false # XXX: local repo, contrary to up?
+  # Ie. like undo-commit, but go to last merge/rebase
+}
+
+
 # -- vc box insert sentinel --
 
 
@@ -1780,8 +1817,7 @@ vc__update_local()
 vc_main()
 {
   # Do something if script invoked as 'vc.sh'
-  local scriptname=vc base="$(basename "$0" .sh)" \
-    subcmd=$1
+  local scriptname=vc base="$(basename "$0" .sh)" subcmd=$1
   case "$base" in $scriptname )
 
         test -n "$scriptpath" || \
@@ -1797,7 +1833,7 @@ vc_main()
             failed= \
             ext_sh_sub=
 
-        lib_load str match main std stdio sys os src vc date
+        lib_load str match main std stdio sys os src vc date package
         type $func >/dev/null 2>&1 && {
           shift 1
           vc_load || return
@@ -1888,6 +1924,25 @@ vc_load()
           exit 0
         } || debug "cache:$?"
       ;;
+
+    q ) # set if not set, don't update and eval package main env
+        test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
+            test -n "$PACKMETA" -a -e "$PACKMETA" &&
+                note "Using package '$PACKMETA'" ||
+                error "No local package" 5
+            package_lib_set_local "$CWD" ||
+                error "Setting local package ($CWD)" 6
+        }
+
+        # Evaluate package env
+        . $PACKMETA_SH || error "local package" 7
+
+        test "$package_type" = "application/vnd.org.wtwta.project" ||
+                error "Project package expected (not $package_type)" 4
+        test -n "$package_env" || export package_env=". $PACKMETA_SH"
+        debug "Found package '$package_id'"
+      ;;
+
     esac
   done
 }

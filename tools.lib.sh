@@ -3,7 +3,21 @@
 
 tools_lib_load()
 {
-  true # upper=0 default_env out-fmt tty || true
+  #upper=0 default_env out-fmt tty
+  test -n "$out_fmt" || export out_fmt=tty
+
+  # default_env Htd-ToolsFile "$CWD/tools.yml"
+  test -n "$HTD_TOOLSFILE" || export HTD_TOOLSFILE="$CWD"/tools.yml
+
+  # default_env Htd-ToolsDir "$HOME/.htd-tools"
+  test -n "$HTD_TOOLSDIR" || export HTD_TOOLSDIR=$HOME/.htd-tools
+
+  # default_env Htd-BuildDir .build
+  test -n "$HTD_BUILDDIR" || export HTD_BUILDDIR=".build"
+
+  export B="$HTD_BUILDDIR"
+
+  tools_json
 }
 
 tools_json()
@@ -165,65 +179,4 @@ uninstall_bin()
     note "Running '$scriptline'.."
     eval $scriptline || exit $?
   done
-}
-
-htd_tools_list()
-{
-  tools_list
-}
-
-htd_tools_installed()
-{
-  test -n "$1" || set -- $(tools_list) ; test -n "$*" || return 2 ;
-  test "$out_fmt" = "yml" && echo "tools:" ; while test -n "$1"
-  do
-    installed $B/tools.json "$1" && {
-      note "Tool '$1' is present"
-      test "$out_fmt" = "yml" && printf "  $1:\n    installed: true\n" || noop
-    } || {
-      test "$out_fmt" = "yml" && printf "  $1:\n    installed: false\n" || noop
-    }
-    shift
-  done
-}
-
-htd_tools_install()
-{
-  local verbosity=6
-  while test -n "$1"
-  do
-    install_bin $B/tools.json $1 \
-      && info "Tool $1 is installed" \
-      || info "Tool $1 install error: $?"
-    shift
-  done
-}
-
-htd_tools_uninstall()
-{
-  local verbosity=6
-  while test -n "$1"
-  do
-    uninstall_bin $B/tools.json "$1" \
-      && info "Tool $1 is not installed" \
-      || { r=$?;
-        test $r -eq 1 \
-          && info "Tool $1 uninstalled" \
-          || info "Tool uninstall $1 error: $r" $r
-      }
-    shift
-  done
-}
-
-htd_tools_validate()
-{
-  tools_json_schema || return 1
-  # Note: it seems the patternProperties in schema may or may not be fouling up
-  # the results. Going to venture to outline based format first before returning
-  # to which JSON schema spec/validator supports what.
-  jsonschema -i $B/tools.json $B/tools-schema.json &&
-      stderr ok "jsonschema" || stderr warn "jsonschema"
-  jsonspec validate --document-file $B/tools.json \
-    --schema-file $B/tools-schema.json &&
-      stderr ok "jsonspec" || stderr warn "jsonspec"
 }

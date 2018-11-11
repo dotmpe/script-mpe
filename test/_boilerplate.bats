@@ -1,10 +1,26 @@
 #!/usr/bin/env bats
 
-base=boilerplate
 load init
-init
+base=boilerplate
+#init
 #init_bin
+#load assert
 
+setup()
+{
+  init &&
+  load assert &&
+  lib_load setup-sh-tpl date &&
+  tmpd &&
+  diag "$BATS_TEST_NUMBER. Tmp-Dir: $tmpd ($BATS_TEST_DESCRIPTION)"
+}
+
+teardown()
+{
+  cd "$BATS_CWD"
+  # remove tmpdir for clean tests
+  test -n "$BATS_ERROR_STATUS" || rm -rf "$tmpd"
+}
 
 @test "$base -vv -n help" {
   skip "some reason to skip test"
@@ -12,20 +28,11 @@ init
   test_ok_empty || stdfail
 }
 
-@test "${base} - function should ..." {
+@test "${base}: function should ..." {
   TODO fix this or that # tasks-ignore
   run function args
-  test_ok_nonempty || stdfail
-}
-
-@test "${base} - should succeed" {
-  run true
-  test_ok_empty || stdfail
-}
-
-@test "${base} - should fail" {
-  run false
-  test_ok_empty || stdfail
+  { test_ok_nonempty 1 && test_lines "args" "..." 
+  } || stdfail
 }
 
 #@test "${lib}/${base} - function should ..." {
@@ -33,15 +40,5 @@ init
 #    TODO "envs $envs: implement lib (test) for env" # tasks-ignore
 #  diag $BATS_TEST_DESCRIPTION
 #  run function args
-#  test true && pass || fail
-#  test_ok_empty || stdfail
-#  test_nok_empty || stdfail
-#  test_nonempty || stdfail
-#  test_ok_nonempty "*match*" || stdfail
-#  { test_nok_nonempty "*match*" &&
-#    test ${status} -eq 1 &&
-#    fnmatch "*other*" &&
-#    test ${#lines[@]} -eq 3
-#  } || stdfail
 #  test_lines, test_ok_lines, test_nok_lines
 #}

@@ -17,7 +17,7 @@ srv_man_1__list="List all service volume instances"
 srv__list()
 {
   # Get service names and locations from DB, error if paths are missing
-  noop
+  true
 }
 srv__global_status=list
 
@@ -25,7 +25,7 @@ srv__global_status=list
 srv_spc__list_raw='list-raw [GLOB [FMT]]'
 srv__list_raw()
 {
-  noop
+  true
 }
 
 
@@ -33,7 +33,7 @@ srv_man_1__info="Quick stats.."
 srv__info()
 {
   # Give info on service volume instance, or generic stats
-  noop
+  true
 }
 
 
@@ -43,7 +43,7 @@ srv__status()
   # Recompile staging, by running update for our contexts w/o commit
   srv__update_services
   # Final comment on changes in staging
-  noop
+  true
 }
 
 
@@ -69,12 +69,12 @@ srv__update_services()
 {
   # Get service names and locations from DB and see wether paths exist and are
   # targetted correctly, or update
-  noop
+  true
   # Walk over service names in FS roots, check wether they are tracked as
   # service or prepare an entry
-  noop
+  true
   # Report on all services in staging, commit if required
-  noop
+  true
 }
 
 
@@ -133,7 +133,7 @@ srv_main()
         test -n "$1" || set -- list
 
         srv_lib || exit $?
-        run_subcmd "$@" || exit $?
+        main_run_subcmd "$@" || exit $?
       ;;
 
     * )

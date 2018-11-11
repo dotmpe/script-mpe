@@ -21,6 +21,8 @@ Usage:
   txt.py [-v... options] ( fold OUTLINE [LIST] | unfold LIST [OUTLINE] )
   txt.py [-v... options] [ LIST | todolist [LIST] ]
   txt.py [-v... options] todotxt TXT
+  txt.py [-v... options] txtstat-tree [STAT]
+  txt.py [-v... options] proc LIST
   txt.py [-v... options] memdebug
   txt.py -h|--help
   txt.py help [CMD]
@@ -43,7 +45,6 @@ import os
 from itertools import chain
 
 from script_mpe.libhtd import *
-
 
 ctx = taxus.Taxus(version=None)
 
@@ -80,10 +81,17 @@ def cmd_todotxt(TXT, g):
         ctx.out(o)
     ctx.flush()
 
+def cmd_proc(LIST, g):
+    prsr = res.lst.ListTxtParser()
+
+
+
 def cmd_doctree(LIST, DIR, g):
 
     """
-    Go over files in DIR, get all document files. TODO: construct topic tree,
+    Go over files in DIR, get all document files.
+
+    TODO: construct topic tree,
     sync update catalog, couchdoc and/or LIST
     """
     global ctx
@@ -150,15 +158,60 @@ def cmd_doctree(LIST, DIR, g):
     catalog.save(ctx)
 
 
+def cmd_txtstat_tree(STAT, g):
+    """
+    """
+    print(STAT)
+
+
 ### Box fold outline
 
 def cmd_fold(OUTLINE, LIST, g):
     """
-    Parse nested plain text format.
+    TODO: Parse nested plain text format.
     """
-    pass
+    import scrow
+    from scrow.resolve import resolve
+    from scrow.aparse import indented_blocks
+
+	# TODO: remove ctx from scrow API
+    cstream, null = resolve(ctx, False)
+
+    lines = scrow.translit.Lines()
+    lines.read(cstream)
+
+    linespans = list(lines.iter_spans())
+    indent = list(indented_blocks(lines.data, linespans, ctx))
+
 
 def cmd_unfold(LIST, OUTLINE, g):
+    """
+    TODO: Parse LIST and reformat as indented OUTLINE text.
+
+    Items are grouped by tag expressions, see options below. The groups are
+    output in sequence with the arguments, earlier selector options win from
+    later selectors. As last the un-selected entries are output un-indented.
+
+    -t, --term TERMS
+        One or more terms of tag or tags. Selected entries must contain each tag.
+        XXX: use literal match on raw entry fields, maybe glob/re things
+        XXX: to output a subset, use path-expr <Tag>/<Tag>
+
+        -t @Dev -t @Dev/@Script
+
+        with path-expr the first -t becomes obsolete, but the basepath redundant
+        ie. -t @Dev/@Script -t @Dev/@Flow
+
+        bash can solve this, if we change from option to arguments ::
+
+            @Dev/{@Script,@Flow}
+
+    -j '[{"@Dev":[{"@Dev/@Script"
+
+        maybe allow a JSON expr, but that is cumbersome
+
+    XXX: without arguments maybe build tree from topics.
+    """
     pass
 
 

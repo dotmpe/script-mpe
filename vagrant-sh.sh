@@ -255,7 +255,7 @@ vagrant_sh_main()
         test -n "$1" || set -- list
 
         vagrant_sh_lib || exit $?
-        run_subcmd "$@" || exit $?
+        main_run_subcmd "$@" || exit $?
       ;;
 
     * )

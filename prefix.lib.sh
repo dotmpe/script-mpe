@@ -5,15 +5,22 @@ prefix_lib_load()
 {
   test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf
   test -n "$pathnames" || pathnames=pathnames.tab
+  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
+  test -n "$BASEDIR_TAB" || BASEDIR_TAB=${STATUSDIR_ROOT}/index/basedirs.tab
+  test -e "$BASEDIR_TAB" || {
+    touch "$BASEDIR_TAB" || return $?
+  }
 }
 
 
 # Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
 get_pathnames_tab()
 {
-  test -n "$1" || set -- $UCONFDIR/$pathnames
+  test -n "$1" || set -- "$UCONFDIR/$pathnames" "$2"
 
   { test -n "$1" -a -s "$1" && {
+
+    # Store temporary sh-script wrapping pathnames.tab template
     local tmpsh=$(setup_tmpf .topic-names-index.sh)
     { echo 'cat <<EOM'
       read_nix_style_file "$1"
@@ -33,10 +40,14 @@ EOM
 # Setup temp-file index for shell env profile, created from pathnames-table
 req_prefix_names_index() # Pathnames-Table
 {
-  test -n "$1" || set -- $pathnames
-  test -n "$index" || export index=$(setup_tmpf .prefix-names-index)
-  test -s "$index" -a "$index" -nt "$UCONFDIR/$1" || {
-    get_pathnames_tab "$UCONFDIR/$1" > $index
+  test -n "$1" || set -- "$UCONFDIR/$pathnames" "$2"
+  test -n "$2" || set -- "$1" "$BASEDIR_TAB"
+
+  test -n "$index" || export index=$2
+  test -s "$index" -a "$index" -nt "$1" || {
+    info "Building $index from '$1'"
+    #{ get_pathnames_tab "$1" || return $? ; }> "$index"
+    get_pathnames_tab "$1" > "$index"
   }
 }
 

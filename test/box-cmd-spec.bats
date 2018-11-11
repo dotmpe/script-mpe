@@ -111,6 +111,7 @@ init
 }
 
 @test "${bin} -vv -n help" {
+  skip FIXME
   #skip "envs: envs=$envs FIXME is hardcoded in test/helper.bash current_test_env"
   #check_skipped_envs || TODO "envs $envs: implement bin (test) for env"
   run $BATS_TEST_DESCRIPTION

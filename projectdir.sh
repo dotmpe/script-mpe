@@ -22,7 +22,7 @@ pd__edit()
 {
   $EDITOR $0 \
     $scriptpath/projectdir*sh \
-    $scriptpath/projectdir-meta \
+    $scriptpath/pd_meta.py \
     $scriptpath/meta.lib.sh \
     "$@"
 }
@@ -213,7 +213,7 @@ pd__status_old()
           statusdir.sh assert-json \
             'project/'$checkout'/tags[]=to-clean'
         }
-      } || noop
+      } || true
     }
 
   done
@@ -488,7 +488,7 @@ pd__sync()
   } | while read remote branch
   do
 
-    fnmatch "*annex*" $branch && continue || noop
+    fnmatch "*annex*" $branch && continue || true
 
 
     cd $pwd/$prefix
@@ -899,7 +899,7 @@ pd__copy() # HOST PREFIX [ VOLUME ]
 
 
   $scriptpath/$scriptname.sh meta -sq get-repo "$2" \
-    && error "Prefix '$2' already exists at $hostname" 1 || noop
+    && error "Prefix '$2' already exists at $hostname" 1 || true
 
 
   pdoc=~/.conf/project/$1/projects.yaml \
@@ -1285,7 +1285,12 @@ pd_man_1__exists='Path exists as dir with mechanism to handle local names.
 pd__exists()
 {
   test -z "$2" || error "One dir at a time" 1
-  vc_getscm "$1" || return $?
+  pd__meta_sq get-repo "$1"
+  #{
+  #  vc_getscm "$1" || { }
+  #}
+  #test -e "$(echo "$1"/package.y*ml | cut -f1 -d' ')"
+  return $?
   note "Found '$1'"
   # XXX: cleanup
   #echo choice_known=$choice_known
@@ -1460,7 +1465,7 @@ pd_load()
   SCR_SYS_SH=bash-sh
 
   # Selective per-subcmd init
-  info "Loading '$subcmd': $(try_value "${subcmd}" load | sed 's/./&\ /g')"
+  debug "Loading subcmd '$subcmd', flags: $(try_value "${subcmd}" load | sed 's/./&\ /g')"
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
     a )
@@ -1606,7 +1611,7 @@ pd_load()
         test -n "$pd_root" || pd_finddoc
       ;;
 
-  esac; debug "'$x' done"; done
+  esac; debug "'$subcmd' flag '$x' loaded"; done
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
@@ -1665,7 +1670,9 @@ pd_unload()
 
 pd_init()
 {
-  test -z "$scriptpath" || return 13
+  { env | grep -v '^\(base\|[a-z_]*_lib_loaded\|scriptpath\)='
+  } || return 13 # Env pollution
+
   scriptpath="$(dirname "$(realpath "$0")")"
   export SCRIPTPATH=$scriptpath
   test -n "$LOG" || export LOG=$scriptpath/log.sh
@@ -1693,7 +1700,7 @@ pd_lib()
   test -z "$__load_lib" || return 14
   local __load_lib=1
   test -n "$scriptpath" || return 12
-  lib_load box meta list match date doc table ignores vc projectdir
+  lib_load box meta list match date doc table ignores vc projectdir package
   . $scriptpath/vc.sh
   # -- pd box lib sentinel --
 }
@@ -1708,11 +1715,13 @@ pd_main()
     base="$(basename "$0" .sh)" scriptpath=
 
   pd_init || exit $?
+  debug "Initialized for '$base'..."
 
   case "$base" in
 
     $scriptname | $scriptalias )
 
+        info "Starting for '$base': '$*'..."
         unset pd_session_id
 
         # invoke with function name first argument,
@@ -1731,7 +1740,6 @@ pd_main()
         try_subcmd "$@" && {
 
           #record_env_keys pd-subcmd pd-env
-
           box_lib $0 $scriptalias
           shift 1
 

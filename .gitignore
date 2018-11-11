@@ -39,9 +39,15 @@ Makefile
 schema/*.json
 schema/*.n3
 .cdn.sh
-.shell-deps
 doc/figures/*.svg
 doc/figures/*.ps
 doc/figures/*.pdf
 doc/figures/*.png
 build
+test/redo.txt
+doc/src/sh/*.gv
+doc/src/sh/*.png
+doc/src/sh/*.rst
+_tmp
+*.tmp
+test/var/nix_comments.txt.header

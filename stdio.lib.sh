@@ -1,21 +1,13 @@
-#!/bin/sh
 
 # stdio.lib.sh: additional io for shell scripts
 
 
-stdio_lib_load()
-{
-  return 0
-}
-
-
 # setup-io-paths: helper names all temp. IO files (setup_tmpf)
-# args: PREFIX
-setup_io_paths()
+setup_io_paths() # Tmp-Prefix Base
 {
   test -n "$1" || error "Unique prefix for proc expected" 1
   fnmatch "*/*" "$1" && error "Illegal chars" 12
-  for io_name in $(try_value inputs) $(try_value outputs)
+  for io_name in $(try_value inputs "" $base) $(try_value outputs "" $base)
   do
     tmpname=$(setup_tmpf .$io_name $1)
     touch $tmpname
@@ -89,6 +81,7 @@ rm_failed()
 clean_io_lists()
 {
   local count= path=
+  debug "clean-io-list '$*'"
   while test -n "$1"
   do
     count=0 path="$(eval echo \$$1)"
@@ -99,21 +92,20 @@ clean_io_lists()
       #eval ${1}_abbrev="fail"
       #eval ${1}_abbrev="'$(tail -n 1 $path ) and $(( $count - 1 )) more'"
       test $count -gt 2 && {
-        export ${1}_abbrev="$(tail -n 1 $path ) and $(( $count - 1 )) more"
+        eval ${1}_abbrev=\"$(tail -n 1 $path ) and $(( $count - 1 )) more\"
         #eval ${1}_abbrev="'$(tail -n 1 $path )) and $(( $count - 1 )) more'"
         #rotate-file $failed .failed
       } || {
         #echo eval ${1}_abbrev="'$(echo $(sort -u $path | lines_to_words ))'"
         #cat $path
         #eval ${1}_abbrev="'$(tail -n 1 $path )'"
-        export ${1}_abbrev="$(tail -n 1 $path )"
+        eval ${1}_abbrev=\"$(tail -n 1 $path )\"
         #cat $path | lines_to_words )"
         #rm $1
       }
     }
     test ! -e $path || rm $path
     eval ${1}_count="$count"
-    export ${1}_count ${1}_abbrev
     shift
   done
 }
@@ -121,46 +113,58 @@ clean_io_lists()
 
 # Echo Helpers
 
+# XXX: should transpile all these from a common template, but deferring code
+# compile & ctx for a bit
+
 passed()
 {
-  test -n "$1" && {
-    test -z "$2" || error "passed '$2': surplus args" 1
-    echo "$1" >&3
-    stderr ok "$1"
+  test -n "$1" && { echo "$1" >&3;
+    stderr ok "$1";
   } || {
-    cat >&3
+    cat >&3;
   }
 }
 skipped()
 {
-  test -n "$1" && {
-    test -z "$2" || error "skipped '$2': surplus args" 1
-    echo "$1" >&4
-    stderr skip "$1"
-  } ||  {
-    cat >&4
-  }
+  test -n "$1" && { echo "$1" >&4; stderr skip "$1"; } || { cat >&4; }
 }
 errored()
 {
-  test -n "$1" && {
-    test -z "$2" || error "errored '$2': surplus args" 1
-    echo "$1" >&5
-    stderr error "$1"
-  } || {
-    cat >&5
-  }
+  test -n "$1" && { echo "$1" >&5; stderr error "$1"; } || { cat >&5; }
 }
 failed()
 {
-  test -n "$1" && {
-    test -z "$2" || error "failed '$2': surplus args" 1
-    echo "$1" >&6
-    stderr fail "$1"
-  } || {
-    cat >&6
-  }
+  test -n "$1" && { echo "$1" >&6; stderr fail "$1"; } || { cat >&6; }
 }
+
+_passed_()
+{
+  test -n "$1" && {
+    echo "$1" >"$passed"; stderr fail "$1"; } || { cat >"$passed"; }
+}
+_passed_=_passed_
+
+_skipped_()
+{
+  test -n "$1" && {
+    echo "$1" >"$skipped"; stderr fail "$1"; } || { cat >"$skipped"; }
+}
+_skipped_=_skipped_
+
+_errrored_()
+{
+  test -n "$1" && {
+    echo "$1" >"$errored"; stderr fail "$1"; } || { cat >"$errored"; }
+}
+_errored_=_errrored_
+
+_failed_()
+{
+  test -n "$1" && {
+    echo "$1" >"$failed"; stderr fail "$1"; } || { cat >"$failed"; }
+}
+_failed_=_failed_
+
 
 
 # IO reporting helpers

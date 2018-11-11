@@ -11,15 +11,60 @@
 
 .. Possibly manual as fifth or just chunk into appendices.
 
+
+.. Explicit symbols, not including all of isonum.txt:
+
+.. |md| unicode:: U+00B7 .. interpunct or middle-dot
+   :trim:
+.. |reg| unicode:: U+000AE .. REGISTERED SIGN
+   :ltrim:
+.. |---| unicode:: U+02014 .. em dash
+   :trim:
+.. |--| unicode:: U+02013 .. en dash
+   :trim:
+.. |'| unicode:: U+0027 .. apostrophe
+   :trim:
+
+
+.. Global names, Ids
+.. For local references:
+
 .. _Statusdir: /statusdir.rst
 .. _Topics: /topics.rst
 .. _Package: /package.rst
 .. _Pd: /projectdir.rst
 .. _Tasks: /tasks.rst
 .. _Htd: /htd.rst
-.. _`package.y*ml`: ./package.rst
+.. _`package.y*ml`: Package_
+.. _Package: /package.rst
+.. _Tools: /tools.rst
+.. _Project: /project.rst
+.. _Main Dev Docs: Doc-Dev_
+.. _Doc-Dev: /doc/dev.rst
+.. _Build: /build.rst
+.. _`Project Dev/Build Scripts`: Build_
+.. _Build-Checks: /build-checks.rst
+.. _`Project Dev Checks`: Build-Checks_
+.. _Build-Test: /build-test.rst
+.. _`Project Test Scripts`: Build-Test_
+.. _Workflow: /workflow.rst
+.. _Resource: Resourcer_
+.. _Resourcer: /Resourcer.rst
+.. _Features: /doc/features.rst
 
 .. role:: live-code(code)
    :class: sf-mf sf-code
 .. role:: sh(live-code)
    :class: sf-mf sf-code mf-sh-cmd
+
+
+.. Global names, Ids
+.. For global references:
+
+.. _U-S: `User-Scripts`_
+.. _User-Scripts: //github.com/bvberkum/user-scripts
+.. _U-C: `User-Config`_
+.. _User-Conf: `User-Config`_
+.. _User-Config: //github.com/bvberkum/user-conf
+
+..

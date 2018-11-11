@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Archive files, list/update contents, unpack and cleanup
+
 
 # TODO: update/list files out of sync
 # XXX: best way seems to use CRC (from -lv output at Darwin)
@@ -94,7 +96,7 @@ read_unzip_verbose_list()
   # Lines
   while read line
   do
-    fnmatch *----* "$line" && break || noop
+    fnmatch *----* "$line" && break
     printf -- "%s\n" "$line"
     # Increment counter
     c=$(cat "$cnt")

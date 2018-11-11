@@ -2,20 +2,20 @@
 
 load init
 load vc
-base=vc.sh
+base=vc.lib
 
 init
 
 setup()
 {
-  . ./$base load-ext
-  . ./util.sh load-ext
-  lib_load os sys str std match vc
-  . ./vc.sh
+  . ./vc.sh load-ext &&
+  . ./util.sh load-ext &&
+  lib_load os sys str std match vc &&
+  . ./vc.sh &&
   setup_clean_git
 }
 
-@test ". $bin vc_dir/vc_gitdir - reports GIT dir in GIT checkout" {
+@test "${base}: vc_dir/vc_gitdir - reports GIT dir in GIT checkout" {
 
   tmpd=$(pwd -P)
 
@@ -39,13 +39,13 @@ setup()
   } || fail "3. Lines: ${lines[@]} ($tmpd)"
 }
 
-@test ". $bin vc_status" {
+@test "${base}: vc_status" {
 
   run vc_stats
   test_ok_nonempty || fail 1
 }
 
-@test ". $bin vc_flags_git - " {
+@test "${base}: vc_flags_git - " {
 
   run vc_flags_git
   { test_ok_nonempty && test "$(echo ${lines[@]})" = "(master)"
@@ -60,7 +60,7 @@ setup()
   } || fail 2
 }
 
-@test ". $bin vc_stats" {
+@test "${base}: vc_stats" {
 
   run vc_stats
   test_ok_nonempty || fail 1
@@ -83,7 +83,7 @@ setup()
   #shopt -u extglob
 }
 
-@test ". $bin __vc_gitrepo - report a vendor/project repo ID-ish" {
+@test "${base}: __vc_gitrepo - report a vendor/project repo ID-ish" {
 
   #run __vc_gitrepo
   #test_ok_empty || stdfail 1

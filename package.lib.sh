@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069,SC2029
-# See htd.sh for shellcheck descriptions
-
 
 # Deal with package metadata files
 
@@ -11,18 +7,22 @@
 # Set
 package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
-  #lib_load src
+  #lib_load sys os src
+
   test -n "$1" || set -- .
   #upper=0 default_env out-fmt py || true
+  test -n "$PACK_DIR" || PACK_DIR=.htd
+  test -d "$1"/$PACK_DIR || mkdir "$1"/$PACK_DIR
+  test -n "$PACK_TOOLS" || PACK_TOOLS=$PACK_DIR/tools
+  test -n "$PACK_SCRIPTS" || PACK_SCRIPTS=$PACK_DIR/scripts
   # Get first existing file
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
-  test -d "$1"/.htd || mkdir "$1"/.htd
   # Detect wether Pre-process is needed
   {
       test -e "$PACKMETA" && grep -q '^#include\ ' "$PACKMETA"
   } && {
     PACKMETA_SRC=$PACKMETA
-    PACKMETA="$1"/.htd/package.yaml
+    PACKMETA="$1"/$PACK_DIR/package.yaml
   } || PACKMETA_SRC=''
   preprocess_package || true
 }
@@ -36,28 +36,88 @@ preprocess_package()
       add_sentinels=1 expand_include_sentinels "$PACKMETA_SRC" > "$PACKMETA"
     }
   }
-  export PACKMETA PACKMETA_SRC
+}
+
+package_lib_reset()
+{
+  default_package_id=
+  default_package_shell=/bin/sh
+  # :!grep -ho '\$package_[a-zA-Z0-9_]*' *.sh|sort -u|cut -c2-
+  # XXX: rename
+  package_build_unit_spec=
+  package_specs_units=
+  #
+  package_components=
+  package_cwd=
+  package_default=
+  package_description=
+  package_doc_find=
+  package_docs_find=
+  package_env=
+  package_ext_make_files=
+  #package_id=
+  package_lib_loaded=
+  package_lists_contexts_std=
+  package_log=
+  package_log_dir=
+  package_log_doctitle_fmt=
+  package_main=
+  package_paths=
+  package_pd_meta_checks=
+  package_pd_meta_tests=
+  package_pd_meta_git_hooks_pre_commit_script=
+  package_pd_meta_stats=
+  package_pd_meta_tasks_document=
+  package_pd_meta_tasks_done=
+  package_repo=
+  package_shell=
+  package_type=
+  package_vendor=
+  package_version=
+  package_check_method=
+  package_build_method=
+  package_test_method=
+  package_permalog_method=
 }
 
 package_lib_set_local()
 {
-  test -n "$1" || error "package.lib load" 1
+  test -n "$1" || error "package.lib set-local" 1
+  test -z "$default_package_id" || package_lib_reset
   # Default package is entry named as main
   default_package_id=$(package_default_id "$1")
   test -n "$package_id" -a "$package_id" != "(main)" || {
     package_id="$default_package_id"
-    note "Set main '$package_id' from $1/package default"
+    info "Set main '$package_id' from $1/package default"
   }
   test "$package_id" = "$default_package_id" && {
     PACKMETA_BN="$(package_basename)"
   } || {
     PACKMETA_BN="$(package_basename)-${package_id}"
   }
-  PACKMETA_JSON=$1/.htd/$PACKMETA_BN.json
-  PACKMETA_JS_MAIN=$1/.htd/$PACKMETA_BN.main.json
-  PACKMETA_SH=$1/.htd/$PACKMETA_BN.sh
+  PACKMETA_JSON=$1/$PACK_DIR/$PACKMETA_BN.json
+  PACKMETA_JS_MAIN=$1/$PACK_DIR/$PACKMETA_BN.main.json
+  PACKMETA_SH=$1/$PACK_DIR/$PACKMETA_BN.sh
 
-  export package_id PACKMETA PACKMETA_BN PACKMETA_JS_MAIN PACKMETA_SH
+  test -n "$package_components" || package_components=package_components
+  test -n "$package_env_file" || package_env_file=$PACK_TOOLS/env.sh
+  test -n "$package_log_dir" -o -n "$package_log" ||
+      package_log="$package_log_dir"
+
+  test -z "$tasks_lib_loaded" || {
+    tasks_package_defaults
+  }
+  package_defaults
+}
+
+package_defaults()
+{
+  test -n "$package_permalog_path" || package_permalog_path=cabinet
+  test -n "$package_permalog_method" || package_permalog_method=archive
+  test -n "$package_pd_meta_checks" || package_pd_meta_checks=
+  test -n "$package_check_method" || package_check_method=
+  test -n "$package_pd_meta_tests" || package_pd_meta_tests=
+  test -n "$package_pd_meta_targets" || package_pd_meta_targets=
 }
 
 package_default_id()
@@ -85,13 +145,6 @@ package_file()
     }
   }
   test -e "$metaf" || return 1
-}
-
-
-htd_package_list_ids()
-{
-  test -e "$PACKMETA" || error "htd-package-list-ids no file '$PACKMETA'" 1
-  jsotk.py -I yaml -O py objectpath $PACKMETA '$.*[@.id is not None].id'
 }
 
 
@@ -151,9 +204,11 @@ update_package_sh()
     note "Regenerating $metash from $metaf.."
 
     # Format Sh default env settings
-    { jsotk_package_sh_defaults "$metaf" || {
+
+    test -n "$package_shell" || package_shell="$default_package_shell"
+    { echo "#!$package_shell" ; { jsotk_package_sh_defaults "$metaf" || {
       test ! -e $metash || rm $metash
-    }; } | sort -u > $metash
+    }; } | sort -u ; } > $metash
 
     test -s "$metash" && {
       grep -q Exception $metash && rm $metash
@@ -177,10 +232,12 @@ update_package_sh()
       return 16
     }
 
-    jsotk.py --output-prefix=package to-flat-kv $metamain | sort -u >> $metash || {
+    { { echo "#!$package_shell";
+      jsotk.py --output-prefix=package to-flat-kv $metamain | sort -u
+    } >> "$metash" ; } || {
       warn "Failed writing package Sh from $1 ($?)"
       test -z "$metash" -o ! -e "$metash" ||
-        rm $metash
+        rm "$metash"
       return 15
     }
   }
@@ -208,7 +265,7 @@ update_temp_package()
   test -e $metaf -a $metaf -nt $pdoc || {
     pd__meta package $1 > $metaf
   }
-  export PACKMETA=$metaf
+  PACKMETA=$metaf
 }
 
 
@@ -311,35 +368,59 @@ package_default_env()
 }
 
 
-# TODO list shell profile script to initialize shell env with for 'scripts' tasks
-# TODO eval shell profile
+# Example/CLI getting from env
+package_sh_get_env() # Name V-Id
+{
+  test -n "$1" || error "Path/key name expected" 1
+  test -n "$2" || set -- "$1" "$(upper=0 mkvid "$1" ; echo "$vid")"
+  eval echo "\$package_${2}"
+}
+
+# Read from package.sh
+package_sh_get() # PACKAGE-SH NAME-KEY
+{
+  test -n "$1" || set -- $PACKMETA_SH "$2"
+  # XXX: eval modes anyway, for certain interpolations?
+  grep '^package_'"$2"'=' "$1" |
+    sed -E 's/^[^=]*=(['\''"](.*)['\''"]$|(.*))$/\2\3/g' | sed 's/\\"/"/g'
+}
+
+# List shell profile scriptline(s), to initialize shell env with for 'scripts'
+# and other project tasks (sh routines, make, cron, CI/CD, etc.)
 package_sh_env()
 {
   test -n "$PACKMETA_SH" || package_lib_set_local .
+  test -n "$package_shell" || package_shell="$default_package_shell"
+  echo "#!$package_shell"
   test -n "$package_env" && {
     # Single line script
     echo "$package_env"
   } || {
+    # Multiline-script
     package_sh_list "$PACKMETA_SH" "env"
   }
 }
 
-package_sh_env_script()
+# Compile env-init scriptlines to executable script
+package_sh_env_script() # [Path]
 {
-  local script_out=.htd/tools/env.sh
+  local script_out=
+  test -n "$1" && script_out="$1" || script_out="$package_env_file"
   test -n "$PACKMETA_SH" || package_lib_set_local .
   test -s $script_out -a $script_out -nt $PACKMETA && {
-    note "Newest version of $script_out exists"
+    info "Newest version of Env-Script $script_out exists"
   } || {
     mkdir -vp "$(dirname "$script_out")" &&
+    . "$PACKMETA_SH" &&
     package_sh_env > "$script_out" &&
-    note "Updated $script_out"
+    note "Updated Env-Script $script_out"
   }
 }
 
-# iso. using .package.sh read lines from JSON
+
+# iso. using .package.sh read scriptlines from JSON variant
 # package-sh-script SCRIPTNAME [JSOTKFILE]
-package_sh_script()
+package_js_script()
 {
   test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   test -n "$2" || set -- "$1" $PACKMETA_JS_MAIN
@@ -352,189 +433,120 @@ package_sh_script()
 }
 
 
-# package-sh-list PACKAGE-SH LIST-KEY
-package_sh_list()
+# Read from package.sh, no env required. But source env if using show-eval(on)
+package_sh_list() # show_index=0 show_item=1 show_eval=1 PACKAGE-SH LIST-KEY
 {
-  test -n "$1" || set -- $PACKMETA_SH "$2"
+  test -n "$1" || set -- $PACKMETA_SH "$2" "$3" "$4"
   test -n "$2" || error package_sh_list:list-key 1
+  test -n "$4" || set -- "$1" "$2" "$3" "package_"
   test -n "$show_index" || show_index=0
   test -n "$show_item" || show_item=1
   test -n "$show_eval" || show_eval=1
   trueish "$show_eval" && {
       test -n "$package_main" || . $1
     }
-  read_nix_style_file $1 | grep '^package_'"$2[_=]" |
-    sed 's/^package_'"$2"'__\([0-9]*\)/\1/g' |
-    while IFS='=' read index item
+  local subp="$3" ; test -n "$subp" && subp="__$subp" || subp=''
+
+  grep '^'"$4$2__[0-9]*$subp=" "$1" |
+    sed -E 's/^'"$4$2"'__([0-9]+)'"$subp"'=(['\''"](.*)['\''"]$|(.*))$/\1 \3\4/g' |
+    while read -r index item
     do
       echo \
         $(trueish "$show_index" && echo "$index") \
         "$( trueish "$show_item" && { \
                 trueish "$show_eval" && \
                 { eval echo $item ; } || \
-                { echo "$item" ; } ; \
+                { echo "$item" | sed 's/\\"/"/g' ; } ; \
             } )"
     done
 }
 
 
-# NOTE: scripts must be lists or this doesn't go..
+# NOTE: scripts must be lists or this doesn't go.
 package_sh_list_exists()
 {
-  test -n "$1" || set -- $PACKMETA_SH "$2"
-  test -n "$2" || set -- $1 "scripts"
-  test -n "$(eval echo "\$package_${2}__0")"
+  test -n "$(eval echo "\$package_${1}__0")"
 }
 
-
-htd_package_update()
+package_sh_name_exists()
 {
-  test -n "$1" || set -- "$(pwd)"
-  package_lib_set_local "$1" && update_package $1
+  test -n "$(eval echo "\$package_${1}")"
 }
 
-
-htd_package_debug()
+package_sh_list_or_name_exists()
 {
-  #test -z "$1" || export package_id=$1
-  package_lib_set_local "$(pwd -P)"
-  test -n "$1" && {
-    # Turn args into var-ids
-    _p_extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
-    _p_lookup() {
-      . $PACKMETA_SH
-      # See if lists are requested, and defer
-      for k in $@; do
-        package_sh_list_exists "" "$k" || continue
-        package_sh_list "" $k
-        shift
-      done
-      test -z "$*" ||
-        map=package_ package_sh "$@"
-    }
-    echo "$(_p_lookup $(_p_extra "$@"))"
+  package_sh_list_exists "$1" || package_sh_name_exists "$1"
+}
 
-  } || {
-    read_nix_style_file $PACKMETA_SH | while IFS='=' read key value
+package_component_name()
+{
+  filename_baseid "$1"
+  echo "$id" | gsed -E '
+    s/-((spec)|(lib))//g
+    s/-[0-9]+$//g
+  '
+}
+
+# Use package's paths script, or vc-tracked, to retrieve component names and
+# locations. This loads all lines to do a group on the first word and takes
+# significant time, but should complete without a minute for a large project
+package_components()
+{
+  local spwd=.
+
+# Grok either given paths on stdin, or...
+  { test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
+
+# ... retrieve using defined script or vc-tracked to fetch paths
+      test -n "$package_paths" && {
+        eval $package_env || return $?
+      } || package_paths=vc_tracked
+      $package_paths
+    } || cat -
+  } | while read -r name
+
+# Then Id by basename, and use join-lines to group common paths at that prefix
     do
-      eval $LOG header2 "$(kvsep=' ' pretty_print_var "$key" "$value")"
-    done
-  }
+      compid="$($package_component_name "$name")"
+      echo "$compid $name"
+
+# Remove hidden files lazily, then group paths after first word
+    done | grep -v '^[_-]' | join_lines - ' '
 }
 
-# List strings at main package 'urls' key
-htd_package_urls()
+package_component_roots()
 {
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
-  jsotk.py path -O pkv "$PACKMETA_JS_MAIN" urls
+  local spwd=.
+
+# Grok either given paths on stdin, or...
+  { test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
+
+# ... retrieve using defined script or vc-tracked to fetch paths
+      test -n "$package_paths" && {
+        eval $package_env || return $?
+      } || package_paths=vc_tracked
+      $package_paths
+    } || cat -
+  } | while read -r name
+
+# Then Id by basename, and use join-lines to group common paths at that prefix
+    do
+      fnmatch "*/*" "$name" && name="$(basedir "$name")"
+      filename_baseid "$name" && echo "$id $name"
+    done | sort -u | join_lines - ' '
 }
 
-htd_package_open_url()
+package_lists_contexts_map() #
 {
-  test -n "$1" || error "name expected" 1
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  . $PACKMETA_SH
-  url=$( upper=0 mkvid "$1" && eval echo \$package_urls_$vid )
-  test -n "$url" || error "no url for name '$1'" 1
-  note "Opening '$1': <$url>"
-  open "$url"
-}
-
-# Take PACKMETA file and read main package's 'repositories', looking for a local
-# remote repository or adding/updating each name/URL.
-htd_package_remotes_init()
-{
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
-  vc_getscm
-  jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
-      tr '=' ' ' | while read -r remote url
+  local local_name="$1"
+  while test -z "$2"
   do
-    # Get rid of quotes, but don't interpolate ie. expand home?
-    eval "remote=$remote url=$url"
-
-    test -n "$remote" -a -n "$url" || {
-      warn "empty package repo var '$remote $url'"; continue; }
-    # NOTE: multitype repo projects? determine type per suffix..
-    fnmatch "*.$scm" "$url" || continue
-
-    debug "scm: $scm; remote: '$remote' url: '$url'"
-    htd_repository_url "$remote" "$url" || continue
-    info "remote: '$remote' url: '$url'"
-    vc_git_update_remote "$remote" "$url"
+    upper=0 mkvid "package_lists_contexts_map_$local_name" ;
+    set -- $( eval echo \"\$$vid\" )
+    test -z "$1" || echo "$1"
+    local_name="$(dirname "$local_name")"
+    test "$local_name" != "/" -a "$local_name" != "." || break
   done
-}
-
-htd_package_remotes_reset()
-{
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  git remote | while read -r remote
-  do
-      git remote remove $remote && info "Removed '$remote'"
-  done
-  note "Removed all remotes, re-adding.."
-  htd_package_remotes_init
-}
-
-htd_package_scripts_write() # [env script_out=.htd/scripts/NAME] : NAME
-{
-  test -n "$1" || set -- "init"
-  test -n "$script_out" || script_out=.htd/scripts/$1.sh
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  test -n "$script_line_eval" || script_line_eval=1
-  test -s $script_out -a $script_out -nt $PACKMETA && {
-    note "Newest version of $script_out exists"
-  } || {
-    mkdir -vp "$(dirname "$script_out")" &&
-    trueish "$script_line_eval" && { {
-        upper=0 mkvid "$1" &&
-        package_sh_list "$PACKMETA_SH" "scripts_$vid" >"$script_out"
-      } || return $?
-    } || {
-      package_sh_script "$1" >"$script_out"
-    }
-    note "Updated $script_out"
-  }
-  unset script_out
-}
-
-htd_package_sh_scripts() # NAMES...
-{
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  test -n "$package_main" || . $PACKMETA_SH
-  while test $# -gt 0
-  do
-    htd_package_scripts_write "$1" || return
-    shift
-  done
-}
-
-# Initialize package.yaml file, using values `from` extractors
-htd_package_init() #
-{
-  case "$from" in
-
-    git ) htd_package_from_$from ;;
-
-    * ) error "no such 'from' value '$from'" 1 ;;
-  esac
-}
-
-# Initialize package.yaml from (local) GIT checkout
-htd_package_from_git() # [DIR=. [REMOTE [FROM...]]]
-{
-  htd_package_print_from_git "$@" > $PACKMETA
-}
-
-# See htd-package-init
-htd_package_print_from_git() # [DIR=. [REMOTE [FROM...]]]
-{
-  # Get ID for package from primary (default) remote
-
-  # Find first/root commit (date(s))
-  # Echo package meta and remotes list
-  echo
 }
 
 # Id: script-mpe/0.0.4-dev package.lib.sh

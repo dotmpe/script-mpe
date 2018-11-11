@@ -1,15 +1,14 @@
 #!/usr/bin/env bats
 
-base=main
 load init
-load main.inc
-
+base=main
 init
 
 setup()
 {
   BOX_INIT=1
-  load main.inc
+  main_inc=$SHT_PWD/var/sh-src-main-mytest-funcs.sh
+  . $main_inc
   export SCR_SYS_SH=
   sys_lib_load
 }
@@ -19,7 +18,7 @@ setup()
 # main / Incr-C
 
 
-@test "$lib/main incr x (amount): increments var x, output is clean" {
+@test "$base: incr x (amount): increments var x, output is clean" {
 
   var_isset x && fail "Unexpected 'x' var in env (x=$x)" || true
 
@@ -37,26 +36,26 @@ setup()
 }
 
 
-@test "$lib/main incr-c: increments var c, output is clean" {
+@test "$base: incr-c: increments var c, output is clean" {
 
   var_isset c && fail "Unecpected 'c' var in env (c=$c)" || true
 
+  run incr_c
+  test_ok_empty
+
   incr_c
-  test $? -eq 0
-  test -z "${lines[*]}"
   test -n "$c"
   test $c -eq 1
   unset c
 
   incr_c && incr_c && incr_c
-  test -z "${lines[*]}"
   test $? -eq 0
   test $c -eq 3
   unset c
 }
 
 
-@test "$lib/main std__help" {
+@test "$base: std__help" {
   base=cmd
   cmd_man_1__sub="Bar1"
   #cmd__man_1_sub="Bar2"
@@ -66,7 +65,7 @@ setup()
 }
 
 
-@test "$lib/main try_help" {
+@test "$base: try_help" {
   base=cmd
   cmd_spc__sub="sub|-b ARG"
   cmd_man_1__sub="Bar"
@@ -78,9 +77,9 @@ setup()
 }
 
 
-#@test "$lib/main echo_help" {
+#@test "$base: echo_help" {
 
-@test "$lib/main echo_local" {
+@test "$base: echo_local" {
   base=
   test "$(echo_local abc)" = "__abc"
   test "$(echo_local abc 123)" = "_123__abc"
@@ -100,7 +99,7 @@ setup()
   test "$(echo_local var)" = "cmd__var"
 }
 
-@test "$lib/main try_value" {
+@test "$base: try_value" {
   base=cmd
   cmd__var=var1
   test "$(try_value var)" = "var1"
@@ -108,17 +107,19 @@ setup()
   test "$(try_value var x)" = "var2"
 }
 
-@test "$lib/main try_local_var" {
-  var_isset myvar1 && test -z 'unexpected myvar1' || true
+@test "$base: try_local_var" {
+  var_isset myvar1 && stdfail 'unexpected myvar1' || true
   base=
   _x__b=123
   try_local_var myvar1 b x
   test "$myvar1" = "123"
-  var_isset myvar1 || test -z 'expected myvar1'
+  set | grep -q '^myvar1='
+  #var_isset myvar1 || stdfail "expected myvar1 ($SCR_SYS_SH)"
+  SCR_SYS_SH=bash-sh var_isset myvar1 || stdfail "expected myvar1 ($SCR_SYS_SH)"
   unset myvar1
 }
 
-@test "$lib/main try_spec" {
+@test "$base: try_spec" {
   cmd_spc__sub=spec1
   cmd2_spc__sub=spec2
   subcmd_pref=cmd
@@ -128,56 +129,56 @@ setup()
   test "$(try_spec sub cmd)" = spec1
 }
 
-#@test "$lib/main try_func" {
-#@test "$lib/main try_subcmd" {
-#@test "$lib/main std-help" {
+#@test "$base: try_func" {
+#@test "$base: try_subcmd" {
+#@test "$base: std-help" {
 
-@test "$lib/main std-usage" {
-
-  check_skipped_envs || TODO "envs $envs: implement for env"
-}
-
-@test "$lib/main std-commands" {
+@test "$base: std-usage" {
 
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
-@test "$lib/main locate-name" {
+@test "$base: std-commands" {
 
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
-@test "$lib/main get-cmd-{alias,func,func-name}" {
+@test "$base: locate-name" {
+
+  check_skipped_envs || TODO "envs $envs: implement for env"
+}
+
+@test "$base: get-cmd-{alias,func,func-name}" {
 
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 
-@test "$lib/main get-cmd-func-name sets local ${1}_func from internal vars" {
+@test "$base: get-cmd-func-name sets local ${1}_func from internal vars" {
 
   var_isset test_name && 
     fail "Unexpected test_name= var in env ('$test_name')" ||
-    noop
+    true
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
 
-@test "$lib/main get-subcmd-args,parse-subcmd-{valid-args,alias,opts}" {
+@test "$base: get-subcmd-args,parse-subcmd-{valid-args,alias,opts}" {
 
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
-@test "$lib/main main-load" {
+@test "$base: main-load" {
 
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
-@test "$lib/main main-debug" {
+@test "$base: main-debug" {
 
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
 
-@test "$lib/main main" {
+@test "$base: main" {
 
   check_skipped_envs || TODO "envs $envs: implement for env"
 }
@@ -186,45 +187,49 @@ setup()
 # main / Clean Env
 
 
-@test "$lib/main should source (functions) without polluting environment (with vars)" {
+@test "$base: should source (functions) without polluting environment (with vars)" {
+  unset verbosity
+
+  check_isset()
+  {
+    run var_isset $1
+    test_nok_empty || stdfail "Unexpected $1=${!1} var in env"
+  }
 
   # check for vars we use
-  var_isset subcmd && test -z "Unexpected subcmd= var in env" || true
-  var_isset subcmd_name && test -z "Unexpected subcmd_name= var in env" || true
-  var_isset subcmd_pref && test -z "Unexpected subcmd_pref= var in env" || true
-  var_isset subcmd_suf && test -z "Unexpected subcmd_suf= var in env" || true
-  var_isset func && test -z "Unexpected func= var in env" || true
-  var_isset func_name && test -z "Unexpected func_name= var in env" || true
-  var_isset func_pref && test -z "Unexpected func_pref= var in env" || true
-  var_isset func_suf && test -z "Unexpected func_suf= var in env" || true
-  var_isset base && test -z "Unexpected base= var in env" || true
-  var_isset scriptname && test -z "Unexpected scriptname= var in env" || true
-  var_isset script_name && test -z "Unexpected script_name= var in env" || true
+  check_isset subcmd
+  check_isset subcmd_name
+  check_isset subcmd_pref
+  check_isset subcmd_suf
+  check_isset func
+  check_isset func_name
+  check_isset func_pref
+  check_isset func_suf
 
-  var_isset PREFIX && test -z "Unexpected PREFIX= var in env" || true
-  var_isset SRC_PREFIX && test -z "Unexpected SRC_PREFIX= var in env" || true
+  check_isset base
+  check_isset scriptname
+  check_isset script_name
+  check_isset PREFIX
+  check_isset SRC_PREFIX
 
-  var_isset fn && test -z "Unexpected fn= var in env" || true
-  var_isset name && test -z "Unexpected name= var in env" || true
-  var_isset flags && test -z "Unexpected flags= var in env" || true
-  var_isset pref && test -z "Unexpected pref= var in env" || true
-  var_isset suf && test -z "Unexpected suf= var in env" || true
-  var_isset verbosity && test -z "Unexpected verbosity= var in env" || true
-  var_isset silence && test -z "Unexpected silence= var in env" || true
-  var_isset tag && test -z "Unexpected tag= var in env" || true
+  check_isset fn
+  check_isset name
+  check_isset flags
+  check_isset pref
+  check_isset suf
+  check_isset verbosity
+  check_isset silence
+  check_isset tag
 }
 
 
-@test "$lib/main expect some *nix env" {
+@test "$base: expect some *nix env" {
 
-  var_isset HOME || test -z "Expected HOME= var in env"
+  var_isset HOME || stdfail "Expected HOME= var in env"
 }
 
-@test "$lib/main expect the env for Box" {
+@test "$base: expect the env for Box" {
 
   skip "not requiring exports for now.. but should test PREFIX, UCONFDIR handling. ."
-  var_isset BOX_DIR || test -z "Expected BOX_DIR= var in env"
+  var_isset BOX_DIR || stdfail "Expected BOX_DIR= var in env"
 }
-
-
-

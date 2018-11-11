@@ -5,7 +5,7 @@
 
 htd_rule_post_proc()
 {
-  noop
+  true
 }
 
 #htd_process()

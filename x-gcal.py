@@ -61,7 +61,10 @@ SCOPES = 'https://www.googleapis.com/auth/calendar'
 # XXX: cleanup
 #CLIENT_SECRET_FILE = 'client_secret.json'
 #CLIENT_SECRET_FILE = os.getenv('GSPREAD_CREDS_JSON')
-CLIENT_SECRET_FILE = "/Users/berend/.local/etc/simza-script-d2efacfe6f41.json"
+#CLIENT_SECRET_FILE = "/Users/berend/.local/etc/simza-script-d2efacfe6f41.json"
+TOKEN_D = os.path.expanduser('~/.local/etc/tokens.d')
+CLIENT_SECRET_FILE = TOKEN_D+"/script-gspread-banded-lexicon-d2efacfe6f41.json"
+
 #if not os.path.exists(CLIENT_SECRET_FILE):
 #    raise Exception("Missing CLIENT_SECRET_FILE=%r" % CLIENT_SECRET_FILE)
 

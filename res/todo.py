@@ -5,6 +5,8 @@ import re
 import os
 import base64
 from UserDict import UserDict
+import uriref
+
 
 # local
 import mb
@@ -21,16 +23,25 @@ class TodoListItemParser(
     txt2.AbstractTxtLineParser,
 ):
     fields = (
+        "completed:completed::1",
+        "uriref:urls::0",
         "sections:sections::0",
     )
 
-    sections_r = r"(^|\W|\ )([%s]+):(\ |$)" % ( mb.value_c )
+    sections_r = r"(^|(?<=\W|\ ))([%s]+):(\ |$)" % ( mb.value_c )
+    completed_r = r"^x(\ )"
+    uriref_r = r"(^|(?<=\W|\ ))<([^\ ]+)>(\ |$)"
 
     def __init__(self, *args, **kwds):
         self.field_names.update(dict(
-            sections= (self.sections_r, unicode, 0)
+            sections= (self.sections_r, unicode, 0),
+            completed= (self.completed_r, unicode, 0),
+            urls= (self.uriref_r, uriref.URIRef, 2)
         ))
         super(TodoListItemParser, self).__init__(*args, **kwds)
+"""
+    def parse_fieldargs_completed(self, text, onto, name, descr, *args):
+        print(123, text, onto, name, descr, args)
 
     def parse_fieldargs_sections(self, text, onto, name, descr, *args):
         t = text
@@ -42,6 +53,7 @@ class TodoListItemParser(
                 continue
             self.sections[k] = sk_m.span()
         return t
+"""
 
 
 class TodoListParser(
@@ -52,7 +64,7 @@ class TodoListParser(
 
 
 
-class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
+class TodoTxtTaskParser(txt.AbstractTxtRecordParser_Old):
 
     """
     Split up todo.txt line into parts, and clean-up description.
@@ -165,7 +177,7 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser):
         else: args = ( "", )
         args += ( self.doc_id, "", #self.issue_id,
                 self.src_id, hash(self) )
-        return "TodoTxtTask:%s;%s;%s;%s;<#%x>" % args
+        return "TodoTxtTaskParser:%s;%s;%s;%s;<#%x>" % args
 
 
 class TodoTxtParser(UserDict):
@@ -174,27 +186,28 @@ class TodoTxtParser(UserDict):
         tags
             List of primary tag followed by secondary tags.
     """
+    # TODO: still uses old parser
     def __init__(self, tags=[]):
         UserDict.__init__(self)
         self.tags = tags
         self.dirty = []
         self.issues = {}
-        # TODO: SCRIPT-MPE:2 should really not be using docid. And srcid needs to be
-        # improved better.
+        # TODO: SCRIPT-MPE:2 should really not be using docid. srcid needs refinement
         self.doc_ids = {}
         self.src_ids = {}
         self.tag_ids = {}
-    def commit(self):
+    def commit(self, tasks_file):
+        """
+        XXX: append new/dirty task items to list file
+        """
         for k in self.dirty:
             ttt = self[k]
             txt = ttt.todotxt()
             # TODO: SCRIPT-MPE:2 replace doc line, and also have format for src line
             # for now append to storage doc only
-            if ttt.doc_id:
-                fn = ttt.attrs['doc_name']
-            else:
-                fn = self.doc_name
-            open(fn, 'a+').write(txt+'\n')
+            #if ttt.doc_id:
+            #    fn = ttt.attrs['doc_name']
+            open(tasks_file, 'a+').write(txt+'\n')
     def load(self, fn):
         for i, l in enumerate(open(fn).readlines()):
             yield self.parse(l, src_name=fn, src_line=i+1)

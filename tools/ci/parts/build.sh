@@ -30,7 +30,7 @@ do case "$BUILD_STEP" in
         )
 
         # TODO install again? note "gtasks:"
-        ./gtasks || noop
+        ./gtasks || true
       ;;
 
     jekyll )
@@ -104,7 +104,7 @@ do case "$BUILD_STEP" in
         }
       ;;
 
-    noop )
+    true )
         note "Empty step ($BUILD_STEP)" 0
       ;;
 

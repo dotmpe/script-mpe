@@ -56,21 +56,21 @@ Install sitefile::
   cd .../script-mpe
   sitefile
 
-Surf to sitefile service, default is `localhost:4500`__.
+Surf to sitefile service, default is `localhost:4500 <http://localhost:4500>`__.
 
-.. __: http://localhost:4500
+Documents are here and there, mostly rSt maybe some MD, etc. The main entries
+are:
 
+- `Dev Docs <doc/dev.rst>`_
+- `Documentation index <doc/index.rst>`_
 
-Other documents
----------------
+And then there are many docs together with Sh or Py files, feature tests, specs.
+the SCM timestamps should indicate wether they may be stale.
+
+Also:
+
 - `Change Log <ChangeLog.rst>`_
 - `Bugs <Bugs.rst>`_
-- `Dev Docs <doc/dev.rst>`_
-- `Other Documentation <doc/>`_
-
-
-TODO: https://github.com/ok-borg/borg
-
 
 .. _dispatch: https://github.com/Mosai/workshop/blob/master/doc/dispatch.md
 

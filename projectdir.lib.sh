@@ -3,18 +3,22 @@
 
 projectdir_lib_load()
 {
-  . $scriptpath/projectdir-bats.inc.sh
-  . $scriptpath/projectdir-fs.inc.sh
-  . $scriptpath/projectdir-git.inc.sh
-  . $scriptpath/projectdir-git-versioning.inc.sh
-  . $scriptpath/projectdir-grunt.inc.sh
-  . $scriptpath/projectdir-npm.inc.sh
-  . $scriptpath/projectdir-make.inc.sh
-  . $scriptpath/projectdir-lizard.inc.sh
-  . $scriptpath/projectdir-vagrant.inc.sh
-
+  projectdir_lib_init || return
   # Local pdoc name, used by most command to determine pdir
   test -n "$pdoc" || pdoc=.projects.yaml
+}
+
+projectdir_lib_init()
+{
+  . $scriptpath/projectdir-fs.inc.sh &&
+  . $scriptpath/projectdir-git.inc.sh &&
+  . $scriptpath/projectdir-git-versioning.inc.sh &&
+  . $scriptpath/projectdir-grunt.inc.sh &&
+  . $scriptpath/projectdir-npm.inc.sh &&
+  . $scriptpath/projectdir-make.inc.sh &&
+  . $scriptpath/projectdir-lizard.inc.sh &&
+  . $scriptpath/projectdir-vagrant.inc.sh &&
+  . $scriptpath/projectdir-bats.inc.sh
 }
 
 no_act()
@@ -29,9 +33,9 @@ pd_auto_clean()
 {
   debug "Runing Pd auto-clean (Force-Clean: $force_clean)"
   trueish "$force_clean" && {
-    ( cd $1; git clean -dfx ; git checkout . ; git submodule update --recursive )
+    ( cd $1 && git clean -dfx && git checkout . && git submodule update --recursive )
   } || {
-    ( cd $1; git clean -df )
+    ( cd $1 && git clean -df )
   }
 }
 
@@ -39,10 +43,10 @@ pd_auto_clean()
 pd_clean()
 {
   # Stage one, show just the modified files (always consider mode tracked)
-  (cd "$1"; git diff --quiet) && {
+  (cd "$1" && git diff --quiet) && {
     info "No modifications found ($1)"
   } || {
-    dirty="$(cd "$1"; git diff --name-only)"
+    dirty="$(cd "$1" && git diff --name-only)"
     return 1
   }
 
@@ -56,17 +60,17 @@ pd_clean()
 
   test "$pd_meta_clean_mode" = tracked || {
 
-    #cruft="$(cd $1; vc.sh excluded)"
+    #cruft="$(cd $1 && vc.sh excluded)"
 
     test "$pd_meta_clean_mode" = excluded \
-      && cruft="$(cd $1; vc.sh excluded)" \
-      || cruft="$(cd $1; vc.sh unversioned-files)"
+      && cruft="$(cd $1 && vc.sh excluded)" \
+      || cruft="$(cd $1 && vc.sh unversioned-files)"
   }
 
 
   test -z "$cruft" || {
     trueish $choice_force && {
-      ( cd "$1" ; git clean -dfx )
+      ( cd "$1"  && git clean -dfx )
       warn "Force cleaned everything in $1"
     } || return 2
   }
@@ -96,7 +100,7 @@ backup_if_comments()
   grep -q '^\s*#' $1 && {
     test ! -e $1.comments || error "backup exists: '$1.comments'" 1
     cp $1 $1.comments
-  } || noop
+  } || true
 }
 
 
@@ -108,8 +112,8 @@ generate_git_hooks()
 {
   # Create default script from pd-check
   test -n "$package_pd_meta_git_hooks_pre_commit_script" || {
-    test -n "$package_pd_meta_check" || error "pre-commit hook script requried" 1
-    package_pd_meta_git_hooks_pre_commit_script="set -e ; pd run $package_pd_meta_check"
+    test -n "$package_pd_meta_checks" || error "pre-commit hook script requried" 1
+    package_pd_meta_git_hooks_pre_commit_script="set -e ; pd run $package_pd_meta_checks"
   }
 
   for script in $GIT_HOOK_NAMES
@@ -168,7 +172,7 @@ pd_regenerate()
   set | grep -q '^package_pd_meta_git_' && {
     generate_git_hooks && install_git_hooks \
       || echo "pd-regenerate:git-hooks:$1" 1>&6
-  } || noop
+  } || true
 
 }
 
@@ -266,7 +270,7 @@ pd_finddoc()
   pd_prefix="$(normalize_relative "$go_to_before")"
 
   # Build path name based on real Pd path
-  c= mksid "$pd_realpath"
+  mksid "$pd_realpath" '' ''
   fnmatch "*/*" "$sid" && error "Illegal chars sid='$sid'" 11
 
   p="$sid"
@@ -678,15 +682,15 @@ pd_run()
 {
   test -n "$1" || error args 1
 
-    fnmatch ":*" "$1" && {
-      set -- "$base$1"
-    } || {
-      fnmatch "-*" "$1" || {
-        fnmatch "sh*" "$1" || {
-          set -- "sh:$1"
-        }
+  fnmatch ":*" "$1" && {
+    set -- "$base$1"
+  } || {
+    fnmatch "-*" "$1" || {
+      fnmatch "sh*" "$1" || {
+        set -- "sh:$1"
       }
     }
+  }
 
   test -z "$2" || error "surplus args '$*'" 1
 
@@ -705,7 +709,7 @@ pd_run()
         mv $failed $failed.ignore
         touch $failed $errored
         (
-          pd_run $(expr_substr ${1} 2 ${#1}) || noop
+          pd_run $(expr_substr ${1} 2 ${#1}) || true
           clean_failed "*IGNORED* Failed targets:"
         )
         mv $errored.ignore $errored

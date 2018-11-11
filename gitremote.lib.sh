@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# shellcheck disable=SC2086,SC2015,SC2154,SC2155,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069,SC2029,SC2005
-# See htd.sh for shellcheck descriptions
 
 gitremote_lib_load()
 {

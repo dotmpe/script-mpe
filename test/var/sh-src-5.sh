@@ -1,1 +1,1 @@
-true && cat <(echo $(echo foo))
+true && time cat <(echo $(echo foo))

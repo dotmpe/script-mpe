@@ -5,9 +5,9 @@ workspace:
 pipeline:
 
   build:
-    image: bvberkum/ubuntu-treebox:xenial
+    image: bvberkum/treebox:latest
     volumes:
-     - /home/ubuntu/bin:/srv/docker-volumes-local/user-script/
+     - ${HOME}/bin:/srv/docker-volumes-local/user-script/
     commands:
      - export USER=treebox;
        export HOME=/home/treebox;
@@ -25,6 +25,7 @@ pipeline:
      - SCR_SYS_SH=bash-sh
      - export LOG=/srv/docker-volumes-local/user-script/log.sh
      - cd /srv/docker-volumes-local/user-script ;
+       EXIT_ON_ERROR=0 . ./.htd/tools/env.sh ;
        scriptname="before-install" ;
        . ./tools/sh/init.sh ;
        . ./tools/sh/env.sh ;
@@ -33,14 +34,16 @@ pipeline:
        mkdir /home/treebox/build ;
        sudo=sudo UCONFDIR=$HOME/etc Build_Deps_Default_Paths=1 . ./tools/ci/parts/install.sh
 
-  hackyhack:
-    image: bvberkum/alpine-docker:edge
-    volumes:
-     - /var/run/docker.sock:/var/run/docker.sock
-    commands:
-     - docker commit drone_step_0 ubuntu-user-script:build
-     - docker tag ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
-     - docker push localhost:5000/ubuntu-user-script:build
-     #- docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build
-     #- docker push freyr/ubuntu-user-script:build
-     #- docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
+#       . ./tools/ci/parts/install.sh
+
+#  hackyhack:
+#    image: bvberkum/alpine-docker:edge
+#    volumes:
+#     - /var/run/docker.sock:/var/run/docker.sock
+#    commands:
+#     - docker commit drone_step_0 ubuntu-user-script:build
+#     - docker tag ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
+#     - docker push localhost:5000/ubuntu-user-script:build
+#     #- docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build
+#     #- docker push freyr/ubuntu-user-script:build
+#     #- docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build

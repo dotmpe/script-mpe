@@ -8,7 +8,6 @@ Delegate sophisticated user interfaces to specific verticals. Use
 appropiate languages to build programs with complex objects, and handle
 in-memory opeartions and non-file storeage and queries.
 
-
 Design
 ------
 - shell scripts for user-command frontends, move reusable code to
@@ -18,6 +17,13 @@ Design
 
 * Maybe look at dispatch_ a bit, a run-subcmd handler in 48 lines Bash.
   But Bash.
+
+- TODO: Documentation generate `Shell library docs </doc/src/sh/main.rst>`__
+- and revise per-component docs, ie. start with Htd, Ht.
+- See ../.default.rst for in-rSt approach of current script-mpe docs..
+
+* TODO: https://github.com/ok-borg/borg
+  see also u-s/user-scripts
 
 Issues
 ------

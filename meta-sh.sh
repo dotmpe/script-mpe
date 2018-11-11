@@ -132,7 +132,7 @@ meta_sh__main()
         meta_sh_lib
 
         # Execute
-        run_subcmd "$@"
+        main_run_subcmd "$@"
       ;;
 
 

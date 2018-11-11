@@ -3,17 +3,19 @@
 base=match.sh
 load init
 init
-. $lib/match.lib.sh
+setup()
+{
+  . $lib/match.lib.sh
+}
 
 
-
-@test "$bin no arguments no-op" {
+@test "${base}: no arguments no-op" {
   run ${bin}
   test $status -eq 1
   fnmatch "*match.*Error*No command given*" "${lines[*]}"
 }
 
-@test "$bin no arguments no-op (plain)" {
+@test "${base}: no arguments no-op (plain)" {
   run ${bin}
   #echo "${lines[*]}" > /tmp/1
   test $status -eq 1
@@ -21,62 +23,64 @@ init
   #test "${lines[0]}" = "[match.sh] Error: No command given, see \"help\"" || TODO "should some colorless terminal?"
 }
 
-@test "${bin} help" {
-  run $BATS_TEST_DESCRIPTION
+@test "${base}: help" {
+  run ${bin} help
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
 #  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || true
 }
 
-@test "${bin} -h" {
-  run $BATS_TEST_DESCRIPTION
+@test "${base}: -h" {
+  run ${bin} -h
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
 # FIXME  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || true
 }
 
-@test "${bin} -h help" {
-  run $BATS_TEST_DESCRIPTION
+@test "${base}: -h help" {
+  run ${bin} -h help
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
   fnmatch "*Usage: * match -h|help \[ID]*" "${lines[*]}" # usage info on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || true
 }
 
-@test "${bin} help help" {
-  run $BATS_TEST_DESCRIPTION
-  test ${status} -eq 0
-  fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
-  fnmatch "*Usage: * match -h|help \[ID]*" "${lines[*]}" # usage info on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+@test "${base}: help help" {
+  run ${bin} help help
+  test_ok_lines \
+      "Usage:*" \
+          "*match -h|help \[ID]" \
+      "Help 'help':*" \
+          || stdfail
 }
 
+@test "${base}: glob matches path" {
 
-@test "$bin glob matches path" {
-
-  run ${bin} -s glob 'test.*' test.name
+  silent=1
+  # FIXME: silent -s
+  run ${bin} glob 'test.*' test.name
   { test $status -eq 0 &&
     test -z "${lines[*]}"
   } || stdfail 1
 
-  run ${bin} -s glob '*.name' test.name
+  run ${bin} glob '*.name' test.name
   { test $status -eq 0 &&
     test -z "${lines[*]}"
   } || stdfail 2
 
-  run ${bin} -s glob '*.*' test.name
+  run ${bin} glob '*.*' test.name
   { test $status -eq 0 &&
     test -z "${lines[*]}"
   } || stdfail 3
 
-  run ${bin} -s glob 'path/.*.ext' path/.name.ext
+  run ${bin} glob 'path/.*.ext' path/.name.ext
   { test $status -eq 0 &&
     test -z "${lines[*]}"
   } || stdfail 4
 
-  run ${bin} -s glob './path/.*.ext' ./path/.name.ext
+  run ${bin} glob './path/.*.ext' ./path/.name.ext
   { test $status -eq 0 &&
     test -z "${lines[*]}"
   } || stdfail 5
@@ -98,9 +102,12 @@ word_diff()
   diff $f1 $f2
 }
 
-@test "$bin lists var names" {
+@test "${base}: lists var names" {
   check_skipped_envs travis || skip "FIXME names"
-  run ${bin} -s var-names
+  # FIXME --silent alias run ${bin} -s var-names
+  #run ${bin} --silent var-names
+  silent=1
+  run ${bin} var-names
   test $status -eq 0
   vars="ALPHA CK_CKS DOMAIN EXT IDCHAR IDCHARS MD5_CKS NAMECHARS NAMEDOTPARTS NAMEPART NUM OPTPART PART SHA1_CKS SZ"
   test "${lines[0]}" = "$vars" \
@@ -109,7 +116,7 @@ word_diff()
 
 # TODO: test wether named patterns still exists, and notice any out-of-date testcase
 
-@test "$bin lists var names in name pattern" {
+@test "${base}: lists var names in name pattern" {
   run match.sh name-pattern-opts ./@NAMEPART.@SHA1_CKS.@EXT
   {
     test $status -eq 0 &&
@@ -119,43 +126,3 @@ word_diff()
     test "$(echo ${lines[@]})" = "EXT NAMEPART SHA1_CKS"
   } || fail "Unexpected output: '${lines[*]}'"
 }
-
-@test "$bin compile regex for name pattern" {
-  check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
-  source ./match.sh load-ext
-  source ./match.lib.sh
-  silent=true
-  match_load
-  match__name_pattern_test ./@NAMEPART.@SHA1_CKS.@EXT
-  test $? -eq 0
-  test "$grep_pattern" = "\.\/[A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\.[a-z0-9]\{2,5\}"
-}
-
-@test "$bin compile regex for name pattern (II)" {
-  check_skipped_envs travis || skip "FIXME broken after main.lib.sh rewrite"
-  source ./match.sh load-ext
-  source ./match.lib.sh
-  silent=true
-  match_load
-  match_name_pattern ./@NAMEPART.@SHA1_CKS@OPTPART.@EXT
-  test $? -eq 0
-  test "$grep_pattern" = "\.\/[A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\(\.\(partial\|part\|incomplete\)\)\?\.[a-z0-9]\{2,5\}"
-}
-
-@test "$bin compile regex for name pattern (III)" {
-  check_skipped_envs travis || skip "FIXME seems requires ~/.conf or something"
-  source ./match.sh load-ext
-  source ./match.lib.sh
-  silent=true
-  match_load
-  match_name_pattern ./@NAMEPART.@SHA1_CKS@PART.@EXT
-  test $? -eq 0
-  test "$grep_pattern" = "\.\/[A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\.\(partial\|part\|incomplete\)\.[a-z0-9]\{2,5\}"
-  match_name_pattern ./@NAMEPART.@SHA1_CKS@PART.@EXT PART
-  test $? -eq 0
-  expected="\.\/[A-Za-z0-9_,-]\{1,\}\.[a-f0-9]\{40\}\(\.\(partial\|part\|incomplete\)\)\.[a-z0-9]\{2,5\}"
-  test "$grep_pattern" = "$expected" \
-    || fail "Mismatch pattern: '$grep_pattern', but expected '$expected'"
-}
-
-

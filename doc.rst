@@ -1,4 +1,7 @@
+Documents
+=========
 Commands and functions dealing with documents.
+
 
 Objectives
 ----------
@@ -28,6 +31,7 @@ Objectives
 
 - Order files to find most significant result
 - List results in line-based formats, for use by other scripts
+- Define metadata and structure conventions
 
 
 Design
@@ -63,6 +67,7 @@ Arguments
 More details on the exact business heuristics, and design/component implications
 are are in addendums to the unit/feature tests, listed in the Test__ section
 below.
+
 
 Components
 ----------
@@ -133,5 +138,57 @@ ______
         :find-fragment:
             :<id>:
                 | func(): [ARG]
+
+
+Structure
+-----------
+Du/rSt offers a lot of structure. Too much. Other formats may be plagued by
+dialects, ad-hoc syntax additions.
+
+To process the document while maintaining a flexible user-oriented system,
+first a common level at character offset like in Xanalogical hypertext would
+be preferable.
+
+That being what it is, the goal instead is to model one or some specific
+forms of composition and conventions based on line markers and restricted
+character sets on some fields with special purpose.
+
+..
+
+    XXX: +docutils-ext-mpe may be a more appropiate platform for processing
+    but current +script-mpe uses vanilla python-docutils and XSLT (xsltproc or
+    saxon) to get metadata and external Ids for structure.
+
+See `docstat`_ for current indexing.
+
+
+.. _docstat: docstat.rst
+
+Metadata
+________
+
+:Id:
+:Created:
+:Updated:
+
+Use of contexts allows to match sets of documents, ie. set a processing class.
+For more specific structure and/or metadata. See docstat again, and other
+concrete compositions: Task, Journal.
+
+
+Definition terms are converted to external Id's.
+Nesting is reflected in '/' separated paths.
+
+Can do the same for titles, sections. Real outlines. All for specific contexts.
+
+Compositions
+------------
+Aggregation or migration require processing on structured data but call
+for additional modelling for that structure. And as said limit the flexibility,
+imposing sanitation and/or user restraint or require user fixes.
+
+TODO: Listing other modules using docstat data
+
+Journal
 
 ..

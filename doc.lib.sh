@@ -1,14 +1,24 @@
 #!/bin/sh
 
-# shellcheck disable
 
 doc_lib_load()
 {
-  lib_load list match
+  lib_load match
   test -n "$DOC_EXT" || DOC_EXT=.rst
   test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt .feature .html .htm"
+  test -n "$DOC_MAIN" || DOC_MAIN="ReadMe main ChangeLog index doc/main docs/main"
 }
 
+doc_lib_init()
+{
+  test -n "$package_log_doctitle_fmt" ||
+      package_log_doctitle_fmt="%a, week %V. '%g"
+  test -z "$package_lists_documents_exts" ||
+      DOC_EXTS="$package_lists_documents_exts"
+
+  DOC_EXTS_RE="\\$(printf -- "$DOC_EXTS" | $gsed 's/\ /\\|\\/g')"
+  DOC_MAIN_RE="\\$(printf -- "$DOC_MAIN" | $gsed -e 's/\ /\\|/g' -e 's/[\/]/\\&/g')"
+}
 
 doc_path_args()
 {
@@ -18,16 +28,32 @@ doc_path_args()
   }
 }
 
+doc_find()
+{
+  # TODO: cleanup doc-find code
+  #doc_path_args
+  #test -n "$1" || return $?
+
+  #info "Searching files with matching name '$1' ($paths)"
+  #doc_find_name "$1"
+
+  #info "Searching matched content '$1' ($paths)"
+  #doc_grep_content "\<$1\>"
+
+  test -n "$package_doc_find" || return $?
+  $package_doc_find "$@"
+}
+
 # Find document,
 doc_find_name()
 {
   info "IGNORE_GLOBFILE=$IGNORE_GLOBFILE"
-  local find_ignores= find_=
+  local find_ignores="" find_=""
 
   find_ignores="-false $(find_ignores $IGNORE_GLOBFILE | tr '\n' ' ')"
   find_="-false $(for ext in $DOC_EXTS ; do printf -- " -o -iname '*$ext'" ; done )"
 
-  # XXX: doc_path_args
+  # XXX: doc-find_path_args
   htd_find $(pwd) "$find_"
 }
 
@@ -40,176 +66,148 @@ doc_grep_content()
     | sed 's/'$p_'//'
 }
 
+doc_list_local()
+{
+  test -n "$package_lists_documents" ||
+      package_lists_documents=doc-list-files-exts-re
+  upper=0 mkvid "$package_lists_documents"
+  ${vid}
+}
+
+doc_list_files_exts_re()
+{
+  spwd=. vc_tracked | grep '\('"$DOC_EXTS_RE"'\)$'
+}
 
 doc_main_files()
 {
-  for x in "" .txt .md .rst
+  for x in "" $DOC_EXTS
   do
-    for y in ReadMe main ChangeLog index doc/main docs/main
+    for y in $DOC_MAIN
     do
       for z in $y $(str_upper $y) $(str_lower $y)
       do
-        test ! -e $z$x || printf -- "$z$x\n"
+        test ! -e $z$x || printf -- "$z$x\\n"
       done
     done
   done
 }
 
-# Generate or update document file, and keep checksum for generated files
-htd_rst_doc_create_update()
+# Go over documents and cksums, and remove file if its md5sum matches exactly.
+# Else add file to GIT. Some pattern skips the action for that file argument:
+# '<*>' e.g. <noclean> <skip>
+# The cksums list is build by htd-rst-doc-create-update for new boilerplates
+htd_doc_cleanup_generated()
 {
-  test -n "$1" || error htd-rst-doc-create-update 12
-  local outf="$1" title="$2" ; shift 2
-  test -s "$outf" && new=0 || new=1
-  test -n "$log" || log="$package_log"
-  test -n "$log" -a -d "$log" || error "package log env expected" 1
-  test $new -eq 1 || {
+  foreach "$cksums" | {
+      while test $# -gt 0
+      do
+        read cksum || error "No cksums left for '$1'" 1
+        { fnmatch "<*>" "$cksum" || test ! -e "$1" ; } && { shift ; continue ; }
+# allow editor to work on symbolic date paths but check-in actual file
+        f="$(realpath "$1")"
+        new_ck="$(md5sum "$f" | cut -f 1 -d ' ')"
 
-    # Document file exists, update
-    updated=":\1pdated: $(date +%Y-%m-%d)"
-    grep -qi '^\:[Uu]pdated\:.*$' $outf && {
-      sed -i.bak 's/^\:\([Uu]\)pdated\:.*$/'"$updated"'/g' $outf
-    } || {
-      warn "Cannot update 'updated' field."
+        test "$cksum" = "$new_ck" && {
+# Remove unchanged generated file, if not added to git
+          git ls-files --error-unmatch "$f" >/dev/null 2>&1 || {
+            rm "$f"
+            note "Removed unchanged generated file ($f)"
+          }
+        } || {
+          git add "$f"
+        }
+        shift
+      done
     }
-  }
-
-  # By default set title if given as argument,
-  # to skip use any sensical argument ie. no-title
-  test -z "$title" -o -n "$1" || set -- title
-
-  while test -n "$1"
-  do
-    case "$1" in
-
-      # Title always starts file, but only if required.
-      title ) test $new -eq 0 || {
-                # Use the basedir for the file-entry path to generate title
-                test -n "$title" ||
-                    title="$(basename "$(dirname "$(realpath "$outf")")")"
-                echo "$title" > $outf
-                echo "$title" | tr -C '\n' '=' >> $outf
-            } ;;
-
-      # Other arguments indicate lines to add to newly generated file
-      created )  test $new -eq 1 || break ;
-            echo ":created: $(date +%Y-%m-%d)" >> $outf ;;
-      updated )  test $new -eq 1 || break ;
-            echo ":updated: $(date +%Y-%m-%d)" >> $outf ;;
-      default-rst ) test $new -eq 1 || break ;
-            test -e .default.rst && {
-            fnmatch "/*" "$outf" &&
-              # FIXME: get common basepath and build rel if abs given
-              includedir="$(pwd -P)" ||
-                includedir="$(dirname $outf | sed 's/[^/]*/../g')"
-            relp="$(realpath --relative-to=$(dirname "$outf") $includedir)"
-            {
-              echo ; echo ; echo ".. include:: $relp/.default.rst"
-            } >> $outf
-          }
-        ;;
-
-      # Link up with period (week/month/Q/Y) stats files
-      link-year-up )
-          # Get year...
-          thisyear=$(realpath "${log}${log_path_ysep}year$EXT")
-          title="$(date_fmt "" "%G")"
-          test -s "$thisyear" || {
-            htd_rst_doc_create_update "$thisyear" "$title" \
-                title created default-rst
-          }
-          # TODO htd_rst_doc_create_update "$thisyear" "" link-all-years
-          grep -q '\.\.\ footer::' "$outf" || {
-            thisyearrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}year$EXT")
-            {
-              printf -- ".. footer::\n\n  - \`$title <$thisyearrel>\`_"
-            } >> $outf
-          }
-        ;;
-
-      link-month-up )
-          # Get month...
-          thismonth=$(realpath "${log}${log_path_ysep}month$EXT")
-          title="$(date_fmt "" "%B %G")"
-          test -s "$thismonth" || {
-            htd_rst_doc_create_update "$thismonth" "$title" \
-                title created default-rst link-year-up
-          }
-          # TODO: for further mangling need beter editor
-          #{ test -n "$thisweek" && grep -Fq "$thisweekrel" "$outf"
-          #} || {
-          #  sed 's/.. htd journal week insert sentitel//'
-          #}
-          htd_rst_doc_create_update "$thismonth" "" link-year-up
-          grep -q '\.\.\ footer::' "$outf" || {
-            thismonthrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}month$EXT")
-            {
-              printf -- ".. footer::\n\n  - \`$title <$thismonthrel>\`_"
-            } >> $outf
-          }
-        ;;
-
-      link-week-up )
-          thisweek=$(realpath "${log}${log_path_ysep}week$EXT")
-          title="$(date_fmt "" "%V week %G")"
-          test -s "$thisweek" || {
-            htd_rst_doc_create_update "$thisweek" "$title" \
-                title created default-rst
-          }
-          htd_rst_doc_create_update "$thisweek" "" link-month-up
-          grep -q '\.\.\ footer::' "$outf" || {
-            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
-            {
-              printf -- ".. footer::\n\n  - \`$title <$thisweekrel>\`_"
-            } >> $outf
-          }
-        ;;
-
-      link-day )
-          # Get week...
-          thisweek=$(realpath "${log}${log_path_ysep}week$EXT")
-          title="$(date_fmt "" "Week %V, %G")"
-          test -s "$thisweek" || {
-            htd_rst_doc_create_update "$thisweek" "$title" \
-                title created default-rst
-          }
-          htd_rst_doc_create_update "$thisweek" "" link-week-up
-
-          #test $new -eq 1 || break ;
-          grep -q '\.\.\ footer::' "$outf" || {
-            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
-            {
-              printf -- ".. footer::\n\n  - \`$title <$thisweekrel>\`_"
-            } >> $outf
-          }
-        ;;
-
-    esac; shift
-  done
-  test -e "$outf" || touch $outf
-
-  test $new -eq 0 || {
-    note "New file '$outf'"
-    export cksum="$(md5sum $outf | cut -f 1 -d ' ')"
-    export cksums="$cksums $cksum"
-  }
 }
 
-# Start EDITOR, after succesful exit cleanup generated files
-htd_edit_and_update()
+# Get first line if second line is all title adoration.
+# FIXME: this misses rSt with non-content stuff required before title, ie.
+# replacement roles, includes for roles, refs etc.
+rst_doc_title()
 {
-  test -e "$1" || error htd-edit-and-update-file 1
+  head -n 2 "$1" | tail -n 1 | $ggrep -qe "^[=\"\'-]\+$" || return 1
+  head -n 1 "$1"
+}
 
-  eval $EDITOR $evoke "$@" || return $?
+rst_docinfo() # Document Fieldname
+{
+  # Get field value (including any ':'), w.o. leading space.
+  # No further normalization.
+  $ggrep -m 1 -i '^\:'"$2"'\:.*$' "$1" | cut -d ':' -f 3- | cut -c2-
+}
 
-  new_ck="$(md5sum "$1" | cut -f 1 -d ' ')"
-  test "$cksum" = "$new_ck" && {
-    # Remove unchanged generated file, if not added to git
-    git ls-files --error-unmatch $1 >/dev/null 2>&1 || {
-      rm "$1"
-      note "Removed unchanged generated file ($1)"
-    }
-  } || {
-    git add "$(realpath $1)"
+rst_docinfo_date() # Document Fieldname
+{
+  local dt="$(rst_docinfo "$@" | normalize_ws_str)"
+  test -n "$dt" || return 1
+  fnmatch "* *" "$dt" && {
+    # TODO: parse various date formats
+    error "Single datetime str required at '$1': '$dt'"
+    return 1
   }
+  echo "$dt"
+}
+
+rst_doc_date_fields() # Document Fields...
+{
+  local rst_doc="$1" ; shift
+  rst_docinfo_inner() {
+    rst_docinfo_date "$rst_doc" "$1" || echo "-"
+  }
+  act=rst_docinfo_inner foreach_do "$@"
+}
+
+# Double-join args Var_Id-Var_Id, remove ws. Convert each argument to name ID,
+# and concatenate as a string-id.
+args_to_filename() # Title-Descr
+{
+  while test $# -gt 0
+  do
+    mkid "$1" _ '%_-'
+    test $# -gt 1 && echo "$id" || printf -- "%s" "$id"
+    shift
+  done | lines_to_words | tr ' ' '-'
+}
+
+# Separate each description with hyphen,
+# TODO: unless some pattern is recognized. tags? todotxt?
+args_to_title() # Title-Descr
+{
+  c=0
+  { while test $# -gt 0
+    do
+      { context_exists "$1" || context_existsub "$1"
+      } && {
+        shift
+        continue
+      }
+
+      test $c -eq 0 && {
+        printf -- "%s \\n" "$1"
+      } || {
+      test $# -gt 1 && {
+        printf -- " %s \\n" "$1"
+      } || {
+        printf -- " %s" "$1"
+      };}
+      incr_c
+      shift
+    done ; } | tr '\n' '-'
+}
+
+# Given a string(s), convert to ID and title
+doc_title_id() # Title-Descr...
+{
+  doc_id="$(args_to_filename "$@")"
+  note "Doc-Title-Id: Doc-Id: $doc_id"
+  tags="$tags $( for t in "$@" ; do
+          context_exists "$t" && echo "@$t" || {
+          context_existsub "$t" && {
+              context_subtag_env "$t" ; echo "@$tagid" ; } ; }
+          continue ; done | lines_to_words | normalize_ws_str )"
+
+  note "Doc-Title-Id: Tags: $tags"
+  doc_title="$(args_to_title "$@")"
 }

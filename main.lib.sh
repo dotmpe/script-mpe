@@ -1,9 +1,5 @@
 #!/bin/sh
 
-set -e
-# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069
-
 
 # Main: CLI helpers; init/run func as subcmd
 
@@ -14,19 +10,9 @@ incr_c()
   incr c $1
 }
 
-# Get help str if exists for $section $id
-# 1:section-number 2:help-id
-# :*:help_descr
-# Man sections:
-# 1. (user) commands
-# (2. System calls)
-# (3. C Library Fuctions)
-# 4. Devices and special files
-# 5. File formats and conventions
-# 6. Games et. Al.
-# 7. Miscellenea (overview, conventions, misc.)
-# 8. SysAdmin tools and Daemons
-try_help()
+
+# Get help if exists for $section $id
+try_help() # 1:section-number 2:help-id
 {
   local b=
   for b in "" std
@@ -51,9 +37,10 @@ try_help()
 echo_help()
 {
   #try_exec_func ${help_base}__usage $1 || std__usage $1
-  try_help 1 $1 && return 0 || \
-  try_help 5 $1 && return 0 || \
-  try_help 7 $1 && return 0
+  for i in $(seq 1 7)
+  do
+    try_help $i $1 && return 0
+  done
   return 1
 }
 
@@ -67,10 +54,11 @@ std_usage()
 std_man() # [Section] Id
 {
   test -n "$*" || set -- man
-  test $# -eq 1 && section=1 help_id="$1" ||
-  test $# -eq 2 && section=$1 help_id="$2"
+  test $# -eq 1 && section= help_id="$1" || {
+      test $# -eq 2 && section=$1 help_id="$2"
+    }
 
-  try_help $section "$help_id"
+  try_help "$section" "$help_id"
 }
 
 std_help()
@@ -120,7 +108,7 @@ echo_local() # Subcmd [ Property [ Base ] ]
   echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
 }
 
-# Get echo-local output, and return 1 on empty value
+# Get echo-local output, and return 1 on empty value. See echo-local spec.
 try_value()
 {
   local value="$(eval echo "\"\$$(echo_local "$@")\"")"
@@ -134,13 +122,13 @@ try_local_var() # Export-Var [ Subcmd [ Property [ Base ] ] ]
   test -n "$1" || error "var" 1
   local value="$(eval echo "\$$(echo_local "$2" "$3" "$4")")"
   test -n "$value" && {
-    export $1="$value"
+    eval $1="$value"
   } || return $?
 }
 
 # Look for the 'spc' property on base/field, used for argument pattern spec.
 # Stop after first value.
-try_spec()
+try_spec() # Subcmd Base
 {
   local b=
   for b in "$2" "std"
@@ -200,14 +188,13 @@ get_subcmd_func()
             subcmd_args_pre=""
         test -z "$DEBUG" || warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
         set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
-        export subcmd subcmd_args_pre
       }
     }
 
     # Break on first existing function
     try_local_func "$@" && {
       subcmd_func="$(echo_local "$@")"
-      #test "$base" = "$b" || export base=$b
+      #test "$base" = "$b" || base=$b
       return
     }
   done
@@ -218,17 +205,11 @@ get_subcmd_func()
 try_subcmd()
 {
   #test -z "$1" || {
-  #  get_subcmd_args "$@" || {
+  #  main_subcmd_args "$@" || {
   #    error "parsing args" $?
   #  }
   #}
-  # TODO: allow envs here
-  #while fnmatch "*=*" "$1"
-  #do
-  #  eval export "$1"
-  #  shift 1
-  #done
-  test -z "$subcmd" && export subcmd=$1
+  test -z "$subcmd" && subcmd=$1
 
   get_subcmd_func "$1" || {
     e=$?
@@ -246,6 +227,52 @@ try_subcmd()
       }
     }
   }
+}
+
+
+try_subcmd_prefixes()
+{
+  upper=0 mkvid "$1" ; shift ;
+  for p in ${prefixes}
+  do
+    func_exists ${p}$vid || continue
+    cmd=${p}$vid
+    $cmd "$@"
+    return $?
+  done
+  error "No prefixed subcmd func for '$vid'" 1
+}
+
+try_package_action()
+{
+  use_cache=1 htd_scripts_run "$action" "$@"
+}
+
+try_context_actions()
+{
+  local action="$1" ctxts= ; shift
+
+  while test $# -gt 0 -a "$1" != '--'
+  do
+      ctxts="$ctxts $1" ; shift
+  done
+  test "$1" != '--' || shift
+
+  note "Ctxts: $ctxts"
+  note "Args: $*"
+
+  test -n "$(eval echo \"\$package_scripts_${action}\$package_scripts_${action}__0\")" && {
+    action=$action try_package_action "$@"
+    return $?
+  }
+
+  for ctx in $ctxts
+  do
+    upper=0 mkvid "$ctx" ; ctx_id="$vid"
+    htd_ctx__${ctx_id}__${action} "$@"
+    return $?
+  done
+  return 1
 }
 
 
@@ -311,7 +338,7 @@ std__commands()
   test -z "$choice_debug" || echo "local_id=$local_id"
 
   local cont= file= local_file=
-  list_functions "$@" | while read line
+  list_functions_foreach "$@" | while read line
   do
     # Check sentinel for new file-name
     test "$(expr_substr "$line" 1 1)" = "#" && {
@@ -400,10 +427,9 @@ locate_name()
   test -n "$1" || set -- "$scriptname" "$2"
   test -n "$2" || set -- "$1" .sh
   test -n "$1" || error "locate-name: script name required" 1
-  # Test with and without extension, export `fn`
+  # Test with and without extension
   fn="$(which "$1")"
   test -n "$fn" || fn="$(which "$1$2")"
-  test -n "$fn" && export fn || return 1
 }
 
 parse_subcmd_valid_flags()
@@ -425,7 +451,7 @@ parse_subcmd_valid_flags()
   return 1
 }
 
-get_cmd_alias()
+main_subcmd_alias() # Target-Var Cmd-Id
 {
   try_local_var $1_alias $(echo "$2" | tr '-' '_') als \
     || try_local_var $1_alias $(echo "$2" | tr '-' '_') als std
@@ -487,47 +513,48 @@ parse_box_subcmd_opts()
 }
 
 # FIXME: this is getting a bit long. Split off box flags. Add subcmd opt parsing.
-get_subcmd_args()
+main_subcmd_args()
 {
-  local sc=0 tc=$c
+  local sc=0 tc=$c opt=
 
-  while [ $# -gt 0 ]
-  do  case "$1" in
-
-    -|-- )
-      break
-      ;;
-
-    #--* )
-    #  error "no long options $1" 1
-    #  ;;
-
-    -* )
+  while test $# -gt 0
+  do case "$1" in
+    -|-- ) break ;; # Stop at first std '-' arg or '--' separator
+    FIXME-* )
 
       # BUG: -ne wont work, -en will. Should always split flags here.
-      get_cmd_alias subcmd "$(expr_substr "$1" 1 2 )"
-      test -n "$subcmd_alias" && {
-        subcmd=$subcmd_alias
-        flag="$1"
-        shift 1
-        flags="-$(expr_substr "$flag" 3 ${#flag})"
-        test "$flags" = "-" && {
-          incr sc
-          continue
-        } || {
-          set --  "-$(expr_substr "$flag" 3 ${#flag})" "${1+$@}"
-        }
-      } || true
 
-      parse_box_subcmd_opts $* && {
-        test $c -gt 0 && {
-          sc=$(( $c + $sc )); shift $c ; c=0;
-          continue
-        }
-      } || { r=$?
-        test $r -eq 1 && continue
-        error "unparsable opt? $1 from '$*' returns '$r'"
+      # Cut to single option '-X'
+      opt="$(expr_substr "$1" 1 2 )"
+      main_subcmd_alias subcmd "$opt" && {
+
+          # Shortopt is a sub-cmd alias
+          subcmd=$subcmd_alias
+          flag="$1"
+          shift 1
+          flags="-$(expr_substr "$flag" 3 ${#flag})"
+          test "$flags" = "-" && {
+            incr sc
+            continue
+          } || {
+            set -- "-$(expr_substr "$flag" 3 ${#flag})" "${1+$@}"
+          }
+
+      } || {
+
+          # Shortop is not an sub-cmd alias, pass it on to subcmd
+          true
       }
+
+      # parse_box_subcmd_opts $* && {
+      #  test $c -gt 0 && {
+      #    sc=$(( $c + $sc )); shift $c ; c=0;
+      #    continue
+      #  }
+      #} || { r=$?
+      #  test $r -eq 1 && continue
+      #  error "unparsable opt? $1 from '$*' returns '$r'"
+      #}
       ;;
 
     * )
@@ -536,20 +563,21 @@ get_subcmd_args()
         subcmd=$1
 
       } || {
-
-        # XXX
-        try_exec_func ${base}_init_args_$subcmd $* && {
-
-          test $c -gt 0 && {
-            sc=$(( $c + $sc )); shift $c ; c=0;
-            continue
-          }
-
-        } || {
-
-          # XXX note "subcmd should parse $*"
           break
-        }
+
+        # XXX: make more flexible commands by scanning for more command name parts?
+      #  try_exec_func ${base}_init_args_$subcmd $* && {
+
+      #    test $c -gt 0 && {
+      #      sc=$(( $c + $sc )); shift $c ; c=0;
+      #      continue
+      #    }
+
+      #  } || {
+
+      #    # XXX note "subcmd should parse $*"
+      #    break
+      #  }
       }
       ;;
 
@@ -575,10 +603,10 @@ get_cmd_func_name()
   test -z "$cmd_alias" || {
     $LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
     cmd_name=$cmd_alias
-    export ${1}_alias=$cmd_alias
+    eval ${1}_alias=$cmd_alias
   }
 
-  export ${1}_func=$(echo "${func_pref}${cmd_name}${func_suf}" | tr '-' '_')
+  eval ${1}_func=$(echo "${func_pref}${cmd_name}${func_suf}" | tr '-' '_')
 }
 
 # set ${1}_name to cmd-function
@@ -590,13 +618,13 @@ get_cmd_func()
   for tag in pref suf; do
     # allow empty setting
     var_isset ${1}_func_${tag} && {
-      export func_${tag}=$(eval echo \$${1}_func_${tag})
+      eval func_${tag}=$(eval echo \$${1}_func_${tag})
       debug "set func_${tag} for ${1} to $(eval echo \$func_${tag})"
     }
   done
 
   # get cmd_name
-  test -n "$(eval echo \$${1})" || export ${1}=$(eval echo \$${1}_def)
+  test -n "$(eval echo \$${1})" || eval ${1}=$(eval echo \$${1}_def)
 
   get_cmd_func_name $1
 
@@ -631,19 +659,19 @@ main_init()
 }
 
 
-# Run any load routines
-load_subcmd()
+# Run any load routines, pass it subcmd args
+load_subcmd() #  Box-Prefix [Argv]
 {
   test -n "$1" || error "main-load argument expected" 1
-  local r=
+  local box_prefix="$1" r= ; shift
   try_exec_func std_load && {
     debug "Standard load OK"
   } || true # { r=$? error "std load failed"; return $r; }
-  try_exec_func ${1}_load && {
-    debug "Load $1 OK"
+  try_exec_func ${box_prefix}_load "$@" && {
+    debug "Load $box_prefix OK"
   } || {
     test -z "$r" || {
-      test $r -eq 0 || error "std and ${1} load failed" 1
+      test $r -eq 0 || error "std and ${box_prefix} load failed" 1
     }
   }
 }
@@ -711,7 +739,7 @@ main_debug()
 
 
 
-run_subcmd()
+main_run_subcmd()
 {
   local e= c=0 \
     subcmd= subcmd_alias= subcmd_func= \
@@ -725,12 +753,12 @@ run_subcmd()
 
   test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
 
-  get_subcmd_args "$@" || {
+  main_subcmd_args "$@" || {
     error "parsing args" $?
   }
-
   test $c -gt 0 && shift $c ; c=0
-  main_debug $*
+
+  #main_debug $*
 
   #box_lib="$(box_list_libs "$0")"
 
@@ -745,7 +773,7 @@ run_subcmd()
   }
   test -z "$subcmd_args_pre" || set -- "$subcmd_args_pre" "$@"
 
-  load_subcmd $box_prefix || return $?
+  load_subcmd $box_prefix "$@" || return $?
   debug "$base loaded"
 
   test -z "$dry_run" \
@@ -778,7 +806,7 @@ daemon()
 
   while read argline
   do
-    run_subcmd "$argline" || {
+    main_run_subcmd "$argline" || {
       echo "?=$?"
     }
   done
@@ -809,7 +837,7 @@ stat_key()
 {
   test -n "$1" || set -- stat
   mkvid "$(pwd)"
-  export $1_key="$hnid:${base}-${subcmd}:$vid"
+  eval $1_key="$hnid:${base}-${subcmd}:$vid"
 }
 
 # Write/Parse simple line protocol from main_bg instance at main_sock
@@ -835,4 +863,46 @@ main_bg_writeread()
     esac
     echo $line
   done
+}
+
+run_check()
+{
+  fnmatch ":*" "$1" && {
+    set -- "$base$1"
+  } || {
+    fnmatch "-*" "$1" || {
+      fnmatch "sh*" "$1" || {
+        set -- "sh:$1"
+      }
+    }
+  }
+
+  s= p= prefixes=${base}_check_ try_subcmd_prefixes "$1"
+
+  return $?
+
+#    check:
+#      # - htd vcflow check-doc
+#      - verbosity=1 git-versioning check
+#      - projectdir.sh run :bats:specs
+#      - ./vendor/bin/behat --dry-run --strict
+#      #- projectdir.sh run :git:status
+#      - SCR_SYS_SH=bash-sh
+#      - scriptname="check-includes"
+#      - . ./tools/sh/init.sh
+#      - . ./tools/sh/env.sh
+#      - . ./tools/ci/parts/init.sh
+#      - . ./tools/ci/check-env.sh
+#
+#    check-rst:
+#      - . ~/.pyvenv/htd/bin/activate ;
+#        git ls-files | grep '\.rst$' | while read rst ; do
+#          rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null;
+#        done
+
+#  local pwd="$(pwd -P)" ppwd="$(pwd)" spwd=. scm= scmdir=
+#  vc_getscm && {
+#    cd "$(dirname "$scmdir")"
+#    vc_clean "$(vc_dir)"
+#  }
 }

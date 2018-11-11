@@ -32,7 +32,7 @@ htd_topics_list()
       htd__tpath_raw "$S" ||
           printf -- "\n# Failure for '$S' ($?)\n"
   }
-  foreach_setexpr
+  foreach_match_setexpr
 
   eval find $topics_roots -false $find_ignores -o -iname \'"*.rst"\' -print |
       s= p= act=foreach_ foreach_do

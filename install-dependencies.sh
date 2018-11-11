@@ -98,7 +98,7 @@ composer_install()
       test -e composer.lock && {
         composer update
       } || {
-        rm -rf vendor || noop
+        rm -rf vendor || true
         composer install
       }
     } ||
@@ -109,6 +109,7 @@ composer_install()
 install_docopt()
 {
   test -n "$install_f" || install_f="$py_setup_f"
+
   git clone https://github.com/bvberkum/docopt-mpe.git $SRC_PREFIX/docopt-mpe
   ( cd $SRC_PREFIX/docopt-mpe \
       && git checkout 0.6.x \
@@ -235,7 +236,7 @@ main_entry()
     ;; esac
 
   case "$1" in bats-force-local )
-      uninstall_bats && stderr "BATS uninstall OK" || stderr "BATS uninstall failed ($?)"
+      #uninstall_bats && stderr "BATS uninstall OK" || stderr "BATS uninstall failed ($?)"
       install_bats || return $?
       PATH=$PATH:$PREFIX/bin bats --version ||
         stderr "BATS install to $PREFIX failed" 1

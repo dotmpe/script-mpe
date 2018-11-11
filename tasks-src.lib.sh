@@ -2,11 +2,11 @@
 
 tasks__src()
 {
-  noop
+  true
 }
 
 tasks__src_add()
 {
-  noop
+  true
 }
 

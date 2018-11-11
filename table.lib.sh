@@ -1,3 +1,4 @@
+#!/bin/sh
 
 # Deal with simple whitespace formatted tables
 
@@ -13,10 +14,11 @@ fixed_table_hd_offset()
   test -n "$3" || error "table expected" 1
   test -e "$3" || error "table expected: $3" 1
   # correct for first col, or for line-end
+
   test "$1" = "$2" \
     && echo 0 \
-    || echo $(( $(grep '^#' $3 | head -n 1 |
-  sed 's/^\(.*\)'$1'.*/\1/g' | wc -c) - 1 ))
+    || echo $($ggrep -m 1 -E '^# ?'$2' [^\!\/\.,]+$' $3 |
+    $gsed -E 's/^(.*)\ \<'$1'\>( .*|$)/\1/g' | wc -c)
 }
 
 # fixed_table_hd_offsets TAB HD...
@@ -35,7 +37,7 @@ fixed_table_hd_offsets()
 
 # Create a file with arguments for the posix `cut` command, to split each
 # tabulated line into its separate column fields.
-fixed_table_hd_cuts()
+fixed_table_hd_cuts() # Tab Colds...
 {
   local tab=$1 fc=$2 offset= lc= old_offset=
   shift
@@ -69,20 +71,20 @@ fixed_table_cuts()
   echo "$colh -c$(( $old_offset + 1 ))-"
 }
 
-# Find first unix-y comment-line and use as table headers
-fixed_table_hd()
+# Find first unix-y comment-line and use as table headers. Ignore bashbang or
+# any pre-proc directive without leading space, and any lines with period(s)
+grep_list_head()
 {
-  test -s "$1" -a -z "$2" ||
-		error "fixed-table-hd only one non-zero file argument expected ('$*')" 1
-  grep -m 1 '^#' "$1" | sed 's/^#//g'
+  list_head_line="$($ggrep -E -m 1 '^#\ ?[^!\/\.]+$' "$1")" || return
+  echo "$list_head_line" | $gsed -E 's/^\s*# ?//g'
 }
 
 fixed_table_hd_ids()
 {
-  echo $( fixed_table_hd "$1" )
+  echo $( grep_list_head "$1" )
 }
 
-
+# Build cut-file
 fixed_table_cuthd()
 {
   cutf="$(dirname "$1")/$(basename "$1" .tab).cuthd"
@@ -106,15 +108,17 @@ fixed_table()
   test -e "$1" -o "$1" = "-" || error "fixed-table Table file expected" 1
   local tab="$1" cutf=
   test -n "$2" -a -e "$2" && cutf="$2" || {
-    test -n "$fields" || fields="$(fixed_table_hd_ids "$1")"
     # Get headers from first comment if not given
-    test -n "$2" || set -- "$1" "$fields"
+    test -n "$2" || {
+      test -n "$fields" || fields="$(fixed_table_hd_ids "$1")"
+      set -- "$1" "$fields"
+    }
     # Assemble COLID CUTFLAG table (if missing or stale)
     fixed_table_cuthd "$@"
   }
   # expand contained code, var references on eval
   upper=0 default_env expand 1
-  trueish "$expand" && _q='\\"' || _q="\\'"
+  trueish "$expand" && _q='\\"' || _q='\'\'
   # Walk over rows, columns and assemble Sh vars, include raw-src in $line
   local row_nr=0
   cat "$tab" | grep -v '^\s*\(#.*\)\?$' | while read line

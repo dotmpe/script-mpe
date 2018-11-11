@@ -1,9 +1,9 @@
 default:
   autoload:
-    '': %paths.base%/test/bootstrap
+    '': "%paths.base%/test/bootstrap"
   suites:
     default:
       contexts:
       - FeatureContext
       paths:
-      - %paths.base%/test/
+      - "%paths.base%/test/"

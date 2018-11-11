@@ -28,6 +28,4 @@ scr_test_bash_main()
   esac
 }
 
-
 scr_test_bash_main "$@"
-

@@ -1,8 +1,12 @@
 Feature: Htd helper for local repositories and vendorized checkout dirs
+
+    Background:
+
+        Given `env` 'verbosity=0'
+        Given `opts` key `debug_command` 'on'
     
     Scenario: list local repositories
 
-        Given `env` 'verbosity=0'
         When the user runs "htd gitrepo --dir=/srv/scm-git-local bvberkum/*.git"
         Then each `output` line matches the pattern '.*.git$'
         And `stderr` is empty
@@ -14,7 +18,8 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
 
     Scenario: list local repositories (defaults)
 
-        Given `env` 'verbosity=0'
+        # FIXME: need quite a setup to test or mock this more properly
+        #And `vars` key `NS_NAME` 'vendor'
         When the user runs "htd show repos dir stdio_0_type NS_NAME"
         Then `output` equals:
         """
@@ -32,7 +37,6 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
 
     Scenario: list repositories in dir and/or for glob
 
-        Given `env` 'verbosity=0'
         When the user runs "htd gitrepo --dir=/src/github.com bvberkum/*/.git"
         Then `stderr` is empty
         And `output` has the lines:
@@ -40,7 +44,6 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
         /src/github.com/bvberkum/mkdoc/.git
         """
 
-        Given `env` 'verbosity=0'
         When the user runs "htd gitrepo --dir=/src */*/x-meta/.git"
         Then `stderr` is empty
         And `output` has the lines:
@@ -50,8 +53,6 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
     
     Scenario: gitrepo scripted use
         
-        Given `env` 'verbosity=0'
-
         When the user runs "repos='foo bar' htd gitrepo"
 
         Then `stderr` is empty
@@ -64,11 +65,13 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
         When the user runs "repos='foo bar' htd gitrepo x y z"...
         Then `status` should not be '0'
 
-    Scenario: gitrepo stdin
+    Scenario: gitrepo env and stdin
 
-        Given `env` 'NS_NAME=vendor verbosity=0'
-        And `stdin` '{ echo foo; echo bar; }'
+        Given `vars` key `NS_NAME` 'vendor'
+        When the user runs "htd show NS_NAME"
+        Then `output` equals 'vendor'
 
+        Given `stdin` '{ echo foo; echo bar; }'
         When the user runs "htd gitrepo"
 
         Then `stderr` is empty

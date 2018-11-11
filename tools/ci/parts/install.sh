@@ -39,7 +39,7 @@ test "$(whoami)" = "travis" || {
     cpan install XML::Generator
     test -x "$(which tap-to-junit-xml)" ||
       basher install jmason/tap-to-junit-xml
-    tap-to-junit-xml --help || noop
+    tap-to-junit-xml --help || true
   }
 }
 

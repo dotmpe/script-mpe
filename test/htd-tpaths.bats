@@ -94,7 +94,7 @@ EOM
   test "${lines[3]}" = "/Public/Note"
 }
 
-@test "$bin tpath-raw - prints paths to definition-list terms" {
+@test "$bin tpath-raw - prints paths to definition-list terms I" {
 
   cd $BATS_TMPDIR
   {
@@ -124,7 +124,7 @@ EOM
 }
 
 
-@test "$bin tpath-raw - prints paths to definition-list terms" {
+@test "$bin tpath-raw - prints paths to definition-list terms II" {
 
   cd $BATS_TMPDIR
   {

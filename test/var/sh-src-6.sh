@@ -1,1 +1,1 @@
-echo ciao
+sudo echo ciao

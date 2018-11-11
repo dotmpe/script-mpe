@@ -21,10 +21,11 @@ Feature: paths can be named by prefix, and each local name tracked when opened
     exist, and to Htd-prefixes it does not matter wether these are actually
     distinct paths or symbolic variants of the same location.
 
+    Background:
+        Given `env` 'verbosity=0'
 
     Scenario: given a definition I can either shorten and expand any path
 
-        Given `env` 'verbosity=0'
         When the user executes "htd prefixes raw-table"...
         Then `output` has:
         """
@@ -62,7 +63,6 @@ Feature: paths can be named by prefix, and each local name tracked when opened
       Aside from a local mapping of paths and IDs, Htd-prefixes helps to record
       open paths over the course of time.
 
-        Given `env` 'verbosity=0'
         When the user executes "htd prefixes op"
       # Then the output all lists paths attached to shells (ie. CWD/PWD).
       # With htd_act on prints a + for lines updated within the last hour,

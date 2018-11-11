@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069
-# See htd.sh for shellcheck descriptions
-
 
 # OS: files, paths
 
@@ -11,7 +7,13 @@ os_lib_load()
 {
   test -n "$uname" || uname="$(uname -s)"
   test -n "$os" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  export name os
+
+  test -n "$gsed" || case "$uname" in
+      Linux ) gsed=sed ;; * ) gsed=gsed ;;
+  esac
+  test -n "$ggrep" || case "$uname" in
+      Linux ) ggrep=grep ;; * ) ggrep=ggrep ;;
+  esac
 }
 
 
@@ -67,6 +69,11 @@ pathnames() # exts=... [ - | PATHS ]
   }
 }
 
+realpaths()
+{
+  act=realpath p= s= foreach_do "$@"
+}
+
 # Cumulative dirname, return the root directory of the path
 basedir()
 {
@@ -76,6 +83,7 @@ basedir()
     set -- "$(dirname "$1")"
     test "$1" != "/" || break
   done
+  echo "$1"
 }
 
 dotname() # Path [Ext-to-Strip]
@@ -124,7 +132,8 @@ filenamext() # Name..
 # elements for name.
 filestripext() # Name
 {
-  basename "$1" ".$(filenamext "$1")"
+  ext="$(filenamext "$1")"
+  basename "$1" ".$ext"
 }
 
 # Check wether name has extension, return 0 or 1
@@ -137,6 +146,12 @@ fileisext() # Name Exts..
   do test ".$ext" = "$mext" && return 0
   done
   return 1
+}
+
+filename_baseid()
+{
+  basename="$(filestripext "$1")"
+  mkid "$basename" '' '_-'
 }
 
 # Use `file` to get mediatype aka. MIME-type
@@ -233,7 +248,7 @@ file_stat_flags()
 
 
 # Split expression type from argument and set envs expr_/type_
-foreach_setexpr() # [Type:]Expression
+foreach_match_setexpr() # [Type:]Expression
 {
   test -n "$1" || set -- '*'
   expr_="$1"
@@ -271,18 +286,21 @@ foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject
   esac && $act "$S" || $no_act "$S" ; done
 }
 
-# Go over arguments and echo. If no arguments given, or on argumnet '-' the
-# standard input is read instead or in-place respectively. Strips empty lines.
+
+# Go over arguments and echo. If no arguments given, or on argument '-' the
+# standard input is cat instead or in-place respectively. Strips empty lines.
+# (Does not open filenames and read from files. Except cat for stdin. See
+# lines-while.)
 foreach()
 {
   {
     test -n "$*" && {
       while test $# -gt 0
       do
-        test "$1" != "-" && {
-          printf -- '%s\n' "$1"
-        } || {
+        test "$1" = "-" && {
           cat -
+        } || {
+          printf -- '%s\n' "$1"
         }
         shift
       done
@@ -290,19 +308,35 @@ foreach()
   } | grep -v '^$'
 }
 
-# Read `foreach` lines and act, default is echo
+# Read `foreach` lines and act, default is echo ie. same result as `foreach`
 foreach_do()
 {
   test -n "$act" || act="echo"
   foreach "$@" | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
 }
 
-foreach_newcol()
+# Extend rows by mapping each value line using act, add result tab-separated to line
+foreach_addcol()
 {
   test -n "$act" || act="echo"
   foreach "$@" | while read -r _S
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
 }
+
+foreach_inscol()
+{
+  test -n "$act" || act="echo"
+  foreach "$@" | while read -r _S
+    do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
+}
+
+# Add column to sort paths at mtimes, then remove mtime column listing
+# most-recent modified file first.
+sort_mtimes()
+{
+  p= s= act=filemtime foreach_addcol "$@" | sort -r -k 2 | cut -f 1
+}
+
 
 normalize_relative()
 {
@@ -369,54 +403,90 @@ split_multipath()
   test -n "$root" || error "No root found" 1
 }
 
-# Read file filtering octotorphe comments, like this one and empty lines
+# Read file filtering octothorp comments, like this one, and empty lines
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
-read_nix_style_file()
+read_nix_style_file() # [cat_f=] ~ File [Grep-Filter]
 {
   test -n "$1" || return 1
-  test -z "$2" || error "read-nix-style-file: surplus arguments '$2'" 1
-  cat $cat_f "$1" | grep -Ev '^\s*(#.*|\s*)$' || return 1
+  test -n "$2" || set -- "$1" '^\s*(#.*|\s*)$'
+  test -z "$3" || error "read-nix-style-file: surplus arguments '$2'" 1
+  cat $cat_f "$1" | grep -Ev "$2" || return 1
 }
 
-# Number lines from read-nix-style-file
+# Number lines from read-nix-style-file by src, filter comments after.
 enum_nix_style_file()
 {
-  cat_f=-n read_nix_style_file "$@" || return
+  cat_f=-n read_nix_style_file "$@" '^[0-9]*:\s*(#.*|\s*)$' || return
 }
 
+# Test for file or return before read
 read_if_exists()
 {
   test -n "$1" || return 1
-  read_nix_style_file $@ 2>/dev/null || return 1
+  read_nix_style_file "$@" 2>/dev/null || return 1
 }
 
-# [0|1] [1] read-file-lines-while file-path [while-expr]
-# Read lines in file while second argument evaluates (ie. w/o exiting non-zero)
-# Echo's each line, and count lines in line_number global var. Expression
-# while-expr is run within a `while read line` loop, and can refer to '$line'
-# and/or '$line_number' (and to '$1' also..).
-# Default while-expr is to read only blank or commented lines.
-# Return non-zero if no match was found.
-read_file_lines_while()
+# Read $line as long as CMD evaluates, and increment $line_number.
+# CMD can be silent or verbose in anyway, but when it fails the read-loop
+# is broken.
+lines_while() # CMD
+{
+  test -n "$1" || return
+
+  line_number=0
+  while read -r line
+  do
+    eval $1 || break
+    line_number=$(( $line_number + 1 ))
+  done
+  test $line_number -gt 0 || return
+}
+
+# Offset content from input/file to line-based window.
+lines_slice() # [First-Line] [Last-Line] [-|File-Path]
+{
+  test -n "$3" || error "File-Path expected" 1
+  test "$3" = "-" && set -- "$1" "$2"
+  test -n "$1" && {
+    test -n "$2" && { # Start - End: tail + head
+      tail -n "+$1" "$3" | head -n $(( $2 - $1 + 1 ))
+    } || { # Start - ... : tail
+      tail -n "+$1" "$3"
+    }
+
+  } || {
+    test -n "$2" && { # ... - End : head
+      head -n "$2" "$3"
+    } || { # Otherwise cat
+      cat "$3"
+    }
+  }
+}
+
+# [0|1] [line_number=] read-lines-while FILE WHILE [START] [END]
+#
+# Read FILE lines and set line_number while WHILE evaluates true. No output,
+# WHILE should evaluate silently, see lines-while. This routine sets up a
+# (subshell) pipeline from lines-slice START END to lines-while, and captures
+# only the status and var line-number from the subshel.
+#
+read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
 {
   test -n "$1" || error "Argument expected (1)" 1
   test -f "$1" || error "Not a filename argument: '$1'" 1
-  test -n "$2" || set -- "$1" 'echo "$line" | grep -qE "^\s*(#.*|\s*)$"'
-  line_number=0
-  local ln_f="$(setup_tmpf)"
-  test -n "$ln_f" -a ! -e "$ln_f" || error 'tmpf exists' $?
+  test -n "$2" -a -z "$5" || return
+  local stat=''
 
-  while read -r line
-  do
-    eval $2 || { echo $line_number>$ln_f; return; }
-    line_number=$(( $line_number + 1 ))
-    echo $line
-  done < "$1"
-
-  test -s "$ln_f" \
-    && export line_number=$(cat $ln_f) \
-    || unset line_number
-  rm $ln_f 2>/dev/null || return $?
+  read_lines_while_inner()
+  {
+    local r=0
+    lines_slice "$3" "$4" "$1" | {
+        lines_while "$2" || r=$? ; echo "$r $line_number"; }
+  }
+  stat="$(read_lines_while_inner "$@")"
+  test -n "$stat" || return
+  line_number=$(echo "$stat" | cut -f2 -d' ')
+  return "$(echo "$stat" | cut -f1 -d' ')"
 }
 
 
@@ -795,18 +865,19 @@ ziplists() # [SEP=\t] Rows
   while true
   do
     col=$(( $col + 1 )) ;
-    for row in $(seq 1 $1)
-    do read -r row${row}_col${col} || break 2 ; done
+    for row in $(seq 1 $1) ; do
+      read -r row${row}_col${col} || break 2
+    done
   done
+  col=$(( $col - 1 ))
 
   for r in $(seq 1 $1)
   do
     for c in $(seq 1 $col)
     do
       eval printf \"%s\" \"\$row${r}_col${c}\"
-      printf "$SEP"
+      test $c -lt $col && printf "$SEP" || printf '\n'
     done
-    printf '\n'
   done
 }
 
@@ -831,4 +902,20 @@ rsync_pairs()
     rsync $rsync_a "$p$1" "$to$target"
     shift
   done
+}
+
+linux_uptime()
+{
+  cut -d' ' -f1 /proc/uptime
+}
+
+linux_boottime()
+{
+  echo $(( $($gdate +"%s" ) + $(linux_uptime) ))
+}
+
+# Remove duplicate lines (unlike uniq -u) without sorting
+remove_dupes()
+{
+  awk '!a[$0]++' "$@"
 }

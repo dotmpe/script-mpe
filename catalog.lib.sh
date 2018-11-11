@@ -8,7 +8,7 @@ catalog_lib_load()
     test -n "$CATALOGS" || CATALOGS=$HOME/.cllct/catalogs.list
   } || {
     # Catalog files currently found at CWD
-    test -n "$CATALOGS" || CATALOGS=.cllct/catalogs.list
+    test -n "$CATALOGS" || CATALOGS=$PWD/.cllct/catalogs.list
   }
   # Default catalog file (or relative path) for PWD
   test -n "$CATALOG_DEFAULT" || {
@@ -44,13 +44,13 @@ htd_catalog_as_json()
   local jsonfn="$(pathname "$1" .yml .yaml).json"
   { test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
         {
-          not_falseish "$update_json" || test -e "$jsonfn"
+          trueish "$update_json" || test ! -e "$jsonfn"
         } && {
-          jsotk yaml2json "$1" "$jsonfn"
+          jsotk yaml2json --ignore-alias "$1" "$jsonfn"
         }
       }
     } >&2
-  test -e "$jsonfn" || error "Unable to get CATALOG json" 1
+  test -e "$jsonfn" || error "Unable to get CATALOG json for '$1' '$jsonfn'" 1
   cat "$jsonfn"
 }
 
@@ -58,17 +58,17 @@ htd_catalog_from_json()
 {
   test -n "$1" || set -- "$CATALOG"
   local jsonfn="$(pathname "$1" .yml .yaml).json"
-  jsotk json2yaml "$jsonfn" "$1"
+  jsotk json2yaml --ignore-alias "$jsonfn" "$1"
 }
 
 
 # Look for exact string match in catalog files
-htd_catalog_find()
+htd_catalog_find() # Str
 {
   htd_catalog_list_files | while read catalog
   do
     grep -qF "$1" "$catalog" || continue
-    note "Found $1 in $catalog"
+    note "Found '$1' in $catalog"
   done
 }
 
@@ -76,7 +76,6 @@ htd_catalog_ignores()
 {
   {
     ignores_cat global ignore scm
-    echo 'catalog.y*ml'
   } | sort -u
 }
 
@@ -106,10 +105,10 @@ htd_catalog_listtree()
   { test -n "$scm" && {
     info "SCM: $scm (listing untracked/ignored only)"
     req_cons_scm
-    # XXX: { vc tracked-files || error "Listing all from SCM" 1; } ||
+    # XXX: { vc.sh tracked-files || error "Listing all from SCM" 1; } ||
     trueish "$scm_all" && {
-      { vc ufx || error "Listing with from SCM" 1; } ; } ||
-      { vc uf || error "Listing from SCM" 1; };
+      { vc.sh ufx || error "Listing with from SCM" 1; } ; } ||
+      { vc.sh uf || error "Listing from SCM" 1; };
   } || {
     trueish "$use_find" &&
       info "Override SCM, tracking files directly ($Catalog_Ignores)" ||
@@ -131,7 +130,14 @@ htd_catalog_index()
   htd_catalog_listtree "$1" |
       while read fname
       do
-          test -f "$fname" || { warn "File expected '$fname'" ; continue ; }
+          test -f "$fname" || {
+            test -d "$fname" && {
+              trueish "$recursive" || {
+                warn "Skipping dir '$fname'" ; continue ; }
+              htd_catalog_index "$fname"
+            }
+            warn "File expected '$fname'" ; continue ; }
+
           htd_catalog_has_file "$fname" || {
             warn "Missing '$fname'"
             echo "$fname" >>"$failed"
@@ -155,7 +161,7 @@ htd_catalog_organize()
           } || {
               ext="$(filenamext "$fname")"
               title="$(basename "$fname" .$ext)"
-              newname="$(mkid "$title").$ext"
+              newname="$(mkid "$title" "" "").$ext"
               note "Title '$title' $newname ($ext)"
 
           }
@@ -281,7 +287,7 @@ htd_catalog_has_file() # File
   test -s "$CATALOG" || return 1
 
   local basename="$(basename "$1" | sed 's/"/\\"/g')"
-  grep -q "\\<name:\\ ['\"]\?$(match_grep "$basename")" $CATALOG
+  grep -q "^[-]\?  *\\<name:\\ ['\"]\?$(match_grep "$basename")" $CATALOG
 }
 
 
@@ -392,8 +398,7 @@ htd_catalog_add() # File..
         note "Added folder '$1'" || error "Adding folder '$1'" 1
     } || {
       htd_catalog_add_file "$1" && note "Added file '$1'" || { r=$?
-        test $r -eq 2 && continue
-        error "Adding '$1' ($r)"
+        test $r -eq 2 || error "Adding '$1' ($r)"
       }
     }
     shift
@@ -431,6 +436,7 @@ htd_catalog_add_all_larger() # DIR SIZE
   done
 }
 
+# See listtree, check all files for catalog entry or echo local path
 htd_catalog_untracked()
 {
   htd_catalog_listtree "$1" | while read fn

@@ -3,7 +3,7 @@
 # Must be started from project root.
 
 # Import minimal setup and shell util functions.
-test -n "$scriptpath" || export scriptpath="$(pwd -P)"
+test -n "$scriptpath" || scriptpath="$(pwd -P)"
 
 # if not provided, auto-setup env
 # assuming execution starts in script dir (project root)
@@ -17,12 +17,11 @@ test -n "$SCRIPTPATH" || {
       test -z "$DEBUG" || echo "Missing LIB" >&2
       exit 99
     }
-    export LIB
   }
-  #test -n "$LIB" || export LIB="$( test -n "$scriptpath" &&
+  #test -n "$LIB" || LIB="$( test -n "$scriptpath" &&
   #    echo $scriptpath || ( cd $(dirname $(dirname $0)); pwd -P ))"
 
-  #export SCRIPTPATH="$( case "$LIB" in /* ) echo $LIB ;; * )
+  #SCRIPTPATH="$( case "$LIB" in /* ) echo $LIB ;; * )
   #    echo $(cd "$LIB"; pwd -P)
   #  ;; esac )"
 
@@ -31,7 +30,6 @@ test -n "$SCRIPTPATH" || {
   case "$LIB" in "/"* ) ;; * )
     SCRIPTPATH="$(cd "$LIB"; pwd -P)"
   ;;esac
-  export SCRIPTPATH
 }
 
 # Now include script and run util_init to source other utils

@@ -142,7 +142,7 @@ box_grep()
 
 # box-script-insert-point FILE SUBCMD PROPERTY BOX-PREFIX
 # Return line-nr before function
-box_script_insert_point()
+box_script_insert_point() # File Sub-Cmd Property Box-Prefix
 {
   test -e "$1" || { error "box-script-insert-point: file-arg required"
     return 1 ; }
@@ -259,7 +259,7 @@ box_update()
 
   #on_host "$box_host" || ssh_req $box_host $box_user
   #run_cmd "$box_host" "cd \$HOME/.conf && git fetch --all && git pull"
-  #run_cmd "$box_host" "cd \$HOME/.conf && vc update-local"
+  #run_cmd "$box_host" "cd \$HOME/.conf && vc.sh update-local"
 
   # TODO: cleanup ansible
   #ansible-playbook -l $box_host ansible/playbook/user-conf.yml
@@ -340,4 +340,40 @@ box_lib_current_path()
 
   box_lib="$box_lib $*"
   test -z "$*" || . "$@"
+}
+
+# List distinct values for "grp" attribute.
+box_list_function_groups() # [ Src-Files... ]
+{
+  test -n "$1" || set -- "$0"
+  for src in "$@"
+  do
+    grep '^[a-z][0-9a-z_]*_grp__[a-z][0-9a-z_]*=.*' $src | sed 's/^.*=//g'
+  done | uniq
+}
+
+# List all box functions with their attribute key-names. By default set FILE to
+# executing script (ie. htd).
+box_list_functions_attrs() # [FILE]
+{
+  test -n "$1" || set -- $0
+  for f in $@
+  do
+    grep '^[a-z][0-9a-z_]*__[0-9a-z_]*().*$' $f | sed 's/().*$//g' |
+      grep -v 'optsv' | grep -v 'argsv' | sort -u |
+      while read subcmd_func
+    do
+      base=$(echo $subcmd_func | sed 's/__.*$//g')
+      function=$(echo $subcmd_func | sed 's/^.*__//g')
+      printf -- "  $(echo $function | tr '_' '-')\n"
+      eval grep "'^${base}_.*__${function}\\(\\(=.*\\)\\|()\\)$'" $f |
+        sed -E 's/(=|\().*$//g' | while read attr_field
+      do
+        printf -- "   - $(echo $attr_field |
+          cut -c1-$(( ${#attr_field} - ${#field} - 2 )) |
+          cut -c$(( ${#base} + 2 ))- |
+          tr '_' '-')\n"
+      done
+    done
+  done
 }

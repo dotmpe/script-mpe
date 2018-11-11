@@ -1,11 +1,6 @@
 #!/bin/sh
 
 
-pm2_lib_load()
-{
-  true
-}
-
 pm2_json()
 {
   test -n "$1" || set -- ~/htdocs/app "$2"
@@ -17,8 +12,16 @@ pm2_json()
 
 htd_pm2_list()
 {
-  pm2_json "$@"
+  test -n "$json" || pm2_json "$@"
   jq -r '.apps[] | .name' $json
+}
+
+htd_pm2_app_json()
+{
+  test -n "$json" || pm2_json "$@"
+  printf -- "["
+  jq '.apps[] | select(.name=="'"$1"'")' "$json"
+  printf -- "]"
 }
 
 htd_pm2_start_if_stopped()
@@ -26,8 +29,10 @@ htd_pm2_start_if_stopped()
   test -n "$1" || error "pm2 start: name expected" 1
   local pid=$(pm2 pid "$1") name="$1" ; shift
   test -n "$pid" || {
-    pm2_json "$@"
-    pm2 -s start "$json" || error "pm2 start $name: $?" 1
+    test -n "$json" || pm2_json "$@"
+    htd_pm2_app_json "$name" | pm2 start - &&
+        note "pm2 '$name' started" ||
+        error "pm2 start $name: $?" 1
   }
 }
 
@@ -36,6 +41,7 @@ htd_pm2_stop_if_running()
   test -n "$1" || error "pm2 stop: name expected" 1
   local pid=$(pm2 pid "$1") name="$1" ; shift
   test -z "$pid" || {
-    pm2 -s delete "$name" || error "pm2 stop $name: $?" 1
+    pm2 -s delete "$name" &&
+        note "pm2 '$name' stopped" || error "pm2 stop $name: $?" 1
   }
 }

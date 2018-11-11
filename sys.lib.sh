@@ -1,11 +1,6 @@
 #!/bin/sh
 
-# Sys: lower level Sh helpers; dealing with vars, functions, env and other shell
-# ideosyncracities
-
-# shellcheck disable=SC2015,SC2154,SC2086,SC205,SC2004,SC2120,SC2046,2059,2199
-# shellcheck disable=SC2039,SC2069
-
+# Sys: dealing with vars, functions, env.
 
 sys_lib_load()
 {
@@ -16,10 +11,12 @@ sys_lib_load()
   #test -n "$MIN_SIZE" || MIN_SIZE=1
   test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
 
-  test -n "$uname" || export uname="$(uname -s)"
+  test -n "$uname" || uname="$(uname -s)"
+  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
+  test -n "$username" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -n "$architecture" || architecture="$(uname -p)"
-  test -n "$machine_hw" || machine_hw="$(uname -m)"
+  test -n "$arch" || arch="$(uname -p)"
+  test -n "$mach" || mach="$(uname -m)"
 
   test -n "$SCR_SYS_SH" ||  {
     test -n "$SHELL" &&
@@ -36,7 +33,7 @@ sys_lib_load()
     }
   } || {
     test -d /tmp || error "No /tmp" 1
-    export TMPDIR=/tmp
+    TMPDIR=/tmp
     $LOG info "$scriptname" "TMPDIR=$TMPDIR (should be in shell profile)" >&2
   }
 }
@@ -44,7 +41,7 @@ sys_lib_load()
 
 require_fs_casematch()
 {
-  test -n "$CWD" || CWD="$(pwd)"
+  local CWD="$(pwd)"
   test -n "$1" && {
     cd "$1"
   }
@@ -57,15 +54,15 @@ require_fs_casematch()
       echo 'notok' > ABC
       test "$(echo $( cat abc ABC))" = "ok notok" && {
         $LOG debug "$scriptname" "Case-sensitive fs '$1' OK" >&2
-        rm abc ABC || noop
+        rm abc ABC || true
         touch .fs-casematch
       } || {
         test "$(echo $( cat abc ABC))" = "notok notok" && {
-          rm abc || noop
+          rm abc || true
           $LOG warn "$scriptname" "Case-insensitive fs '$1' detected!" >&2
           touch .fs-nocasematch
         } || {
-          rm abc ABC || noop
+          rm abc ABC || true
           cd "$CWD"
           $LOG error "$scriptname" "Unknown error" 1 >&2
         }
@@ -81,13 +78,7 @@ incr()
   local incr_amount
   test -n "$2" && incr_amount=$2 || incr_amount=1
   v=$(eval echo \$$1)
-  export $1=$(( $v + $incr_amount ))
-}
-
-# TODO: file-based (or statusdir?) based increment
-fincr()
-{
-  set --
+  eval $1=$(( $v + $incr_amount ))
 }
 
 getidx()
@@ -103,6 +94,7 @@ getidx()
 # test for var decl, io. to no override empty
 var_isset()
 {
+    test "$1" = "base" && return 1
   test -n "$1" || error "var-isset arg expected" 1
   # [2017-02-03] somehow Sh compatible setup broke so (testing at least) so
   #   split it up into bash, and expanded on testing. And some more testing and
@@ -117,7 +109,8 @@ var_isset()
 
     bash )
         # Bash: https://www.cyberciti.biz/faq/linux-unix-howto-check-if-bash-variable-defined-not/
-        $scriptpath/tools/sh/var-isset.bash "$1" || return 1
+        [[ ! ${!1} && ${!1-unset} ]] && return 1 || return 0
+        #$HOME/bin/tools/sh/var-isset.bash "$1"
       ;;
 
     * )
@@ -137,30 +130,17 @@ req_vars()
   done
 }
 
-# No-Op(eration)
-noop()
-{
-  #. /dev/null # source empty file
-  #echo -n # echo nothing
-  #printf "" # id. if echo -n incompatible
-  set -- # clear arguments to this function
-  #return # since we're in a function
-}
-
 # Error unless non-empty and true-ish value
-trueish()
+trueish() # Str
 {
   test -n "$1" || return 1
-  case "$1" in
-    [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1)
-      return 0;;
-    * )
-      return 1;;
+  case "$1" in [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1) return 0;;
+    * ) return 1;;
   esac
 }
 
-# No error on empty or value unless matches trueish
-not_trueish() # falsish or non-empty, ie. cannot anything other than unset or false
+# No error on empty, or not trueish match
+not_trueish()
 {
   test -n "$1" || return 0
   trueish "$1" && return 1 || return 0
@@ -178,10 +158,10 @@ falseish()
   esac
 }
 
-# Error on empty or other falseish, but not other values
-not_falseish() # trueish or nonempty, ie. only be unset or trueish
+# No error on empty, or not-falseish match
+not_falseish() # Str
 {
-  test -n "$1" || return 1
+  test -n "$1" || return 0
   falseish "$1" && return 1 || return 0
 }
 
@@ -261,7 +241,7 @@ setup_tmpd()
   echo "$2/$1"
 }
 
-# Return path to new file in temp. dir. with ${base}- as filename prefix,
+# Echo path to new file in temp. dir. with ${base}- as filename prefix,
 # .out suffix and subcmd with uuid as middle part.
 # setup-tmp [ext [uuid [(RAM_)TMPDIR]]]
 setup_tmpf() # [Ext [UUID [TMPDIR]]]
@@ -307,7 +287,7 @@ assert_list() # LIST VALUES...
 			fnmatch "* $value *" " $items " && continue;
 			echo $value;
 		done )"
-	export $list="$(echo $items $to_add)"
+	eval $list="$(echo $items $to_add)"
 }
 
 # If ITEM is in items of LIST, add VALUES not already in list
@@ -356,16 +336,17 @@ add_env_path() # Prepend-Value Append-Value
   test -n "$1" && {
     case "$PATH" in
       $1:* | *:$1 | *:$1:* ) ;;
-      * ) export PATH=$1:$PATH ;;
+      * ) eval PATH=$1:$PATH ;;
     esac
   } || {
     test -n "$2" && {
       case "$PATH" in
         $2:* | *:$2 | *:$2:* ) ;;
-        * ) export PATH=$PATH:$2 ;;
+        * ) eval PATH=$PATH:$2 ;;
       esac
     }
   }
+  # XXX: to export or not to launchctl
   #test "$uname" != "Darwin" || {
   #  launchctl setenv "$1" "$(eval echo "\$$1")" ||
   #    echo "Darwin setenv '$1' failed ($?)" >&2
@@ -383,13 +364,13 @@ add_env_path_lookup() # Var-Name Prepend-Value Append-Value
   test -n "$2" && {
     case "$val" in
       $2:* | *:$2 | *:$2:* ) ;;
-      * ) test -n "$val" && export $1=$2:$val || export $1=$2;;
+      * ) test -n "$val" && eval $1=$2:$val || eval $1=$2;;
     esac
   } || {
     test -n "$3" && {
       case "$val" in
         $3:* | *:$3 | *:$3:* ) ;;
-        * ) test -n "$val" && export $1=$val:$3 || export $1=$3;;
+        * ) test -n "$val" && eval $1=$val:$3 || eval $1=$3;;
       esac
     }
   }
@@ -438,15 +419,16 @@ lookup_path_shadows() # VAR-NAME LOCAL
 default_env() # VAR-NAME DEFAULT-VALUE
 {
   test -n "$1" -a $# -eq 2 || error "default-env requires two args ($*)" 1
-  local vid= sid=
+  local vid= sid= id=
   trueish "$title" && upper= || {
     test -n "$upper" || upper=1
   }
   mkvid "$1"
   mksid "$1"
+  unset upper
   test -n "$(eval echo \$$vid)" || {
     debug "No $sid env ($vid), using '$2'"
-    export $vid="$2"
+    eval $vid="$2"
     return 0
   }
   return 1
@@ -510,4 +492,115 @@ rnd_passwd()
 {
   test -n "$1" || set -- 11
   cat /dev/urandom | LC_ALL=ascii tr -cd 'a-z0-9' | head -c $1
+}
+
+min()
+{
+  p= s= act=echo foreach_do "$@" | sort -r | tail -n 1
+}
+
+max()
+{
+  p= s= act=echo foreach_do "$@" | sort | tail -n 1
+}
+
+# Capture cmd/func output in file, return status. Set out_file to provide path.
+# The fourth argument signals to pass current stdin or the given file to the
+# subshell pipeline.
+capture() # CMD [RET-VAR=ret_var] [OUT-FILE-VAR=out_file] [-|FILE]
+{
+  local exec_name="$1" _ret_var_="$2" _out_var_="$3" input="$4"
+  shift 4 # Regard rest as func/cmd-args
+  test -n "$_ret_var_" || _ret_var_=ret_var
+  test -n "$_out_var_" || _out_var_=out_file
+
+  stdout="$(eval echo \"\$$_out_var_\")"
+  test -n "$stdout" || stdout=$(setup_tmpf .capture-stdout)
+
+  local return_status=
+  test -n "$input" && {
+    test "$input" != "-" && {
+      test -f "$input" || error "Input file '$input' expected" 1
+    } || {
+      input=$(setup_tmpf .capture-input)
+      cat >"$input"
+    }
+
+    return_status="$(cat "$input" | $exec_name "$@" >"$stdout" ; echo $?)"
+  } || {
+    return_status="$($exec_name "$@" >"$stdout" ; echo $?)"
+  }
+
+  eval $_ret_var_=$return_status
+  eval $_out_var_="$stdout"
+}
+
+# Capture cmd/func output in var, status
+# env: pref= set_always=
+# don't use names cmd_name, _ret_var_ or _out_var_; those would overlap with
+# local vars
+capture_var() # CMD [RET-VAR=ret_var] [OUT-VAR=out_var] [ARGS...]
+{
+  test -n "$2" || set -- "$1" "ret_var" "$3"
+  local cmd_name="$1" _ret_var_="$2" _out_var_="$3"
+
+  note "Capture: $1 $2 $3"
+  shift 3
+  test -n "$_out_var_" || {
+    fnmatch "* *" "$cmd_name" && _out_var_=out_var || _out_var_=$cmd_name
+  }
+
+  # Execute, store return value at path and capture stdout in tmp var.
+  local failed=$(setup_tmpf .capture-failed)
+
+  test -n "$pref" && {
+      local tmp="$(${pref} $cmd_name || echo $?>$failed)"
+    } || {
+      local tmp="$($cmd_name "$@" || echo $?>$failed)"
+    }
+
+  note "Captured: $_out_var_: $tmp"
+
+  # Set return var and cleanup
+  test -e "$failed" && {
+      eval $_ret_var_=$(head -n1 "$failed")
+      trueish "$set_always" && {
+          eval $_out_var_="$tmp"
+      } || true
+      rm "$failed"
+    } || {
+      eval $_ret_var_=0
+      eval $_out_var_="$tmp"
+    }
+}
+
+# Turn '--' seperated argument seq. into lines
+exec_arg_lines()
+{
+  local exec=
+  while test $# -gt 0
+  do
+    test "$1" = "--" && { echo "$exec"; exec=; shift; continue; }
+    test -n "$exec" && exec="$exec $1" || exec="$1"
+    shift
+  done
+  test -z "$exec" || echo "$exec"
+}
+
+# Execute arguments, or return on first failure, empty args, or no cmdlines
+exec_arg() # CMDLINE [ -- CMDLINE ]...
+{
+  test -n "$*" || return 2
+  local execs=$(setup_tmpf .execs) execnr=0
+  exec_arg_lines "$@" | while read -r execline
+    do
+      test -n "$execline" || continue
+      echo "$execline">>"$execs"
+      execnr=$(count_lines "$execs")
+      debug "Execline: $execnr. '$execline'"
+      $execline || return 3
+    done
+  test ! -e "$execs" || { execnr=$(count_lines "$execs"); rm "$execs"; }
+  info "Exec-arg: executed $execnr lines"
+  test $execnr -gt 0 || return 1
 }

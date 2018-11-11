@@ -84,11 +84,10 @@ tasks__trc_next_id()
 
 tasks__trc_init()
 {
-  noop
+  true
 }
 
 tasks__trc_add()
 {
-  noop
+  true
 }
-

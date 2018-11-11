@@ -21,6 +21,8 @@ Design
 
 statusdir.sh
 
+  A wrapper for Redis/ other kv store, or also doc/JSON stores?
+
   @test "statusdir.sh help"
     - run $BATS_TEST_DESCRIPTION
     - test ${status} -eq 0
@@ -30,7 +32,6 @@ statusdir.sh
     ..
   sd assert-state
     ..
-
 
   sd list
     ..
@@ -44,3 +45,35 @@ statusdir.sh
     ..
   sd decr
     ..
+
+..
+
+    TODO: dir/files to JSON and vice versa @Dev/Dirstat-JSON
+
+..
+
+STATUSDIR_ROOT (~/.statusdir)
+    | index/<tree>.list
+    | tree/<tree>
+
+..
+
+    TODO: index/<name>.<ext> entries refer to tree/<name>/<entry>...
+
+..
+
+<tree>
+    Wordlist with ' ' replaced by '/'
+
+statusdir__file "state.json"
+    Eq. $STATUSDIR_ROOT"index/$tree"
+
+statusdir__assert [status.json] [default]
+    Eq. STATUSDIR_ROOT/$1 or STATUSDIR_ROOT/$2/$1
+
+format=[properties|sh]
+    Formatter for properties (output)
+
+Sh Main
+    Sort of standard <base>_main, ~_init, ~_lib seq.
+    No per-func run flags, but with load and unload.

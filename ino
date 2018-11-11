@@ -242,7 +242,7 @@ ino_main()
       ino_lib
 
       # Execute
-      run_subcmd "$@"
+      main_run_subcmd "$@"
       ;;
 
   esac

@@ -1,6 +1,5 @@
 #!/bin/sh
 
-set -e
 
 
 projectenv_lib_load()
@@ -81,7 +80,7 @@ require_env()
 provided_by_env()
 {
   # File exists
-  test -e "$1" && return || noop
+  test -e "$1" && return || true
 
   local vid=
   mkvid "$1"

@@ -11,6 +11,9 @@ from script_mpe.res.dt import obj_serialize_datetime
 
 import ruamel.yaml
 
+# TODO sort out different formats
+#from script_mpe.jsotk_format.keyvalue import *
+
 
 def yaml_load(*args, **kwds):
     # XXX: cleanup, hack for JJB content
@@ -44,6 +47,7 @@ def is_path(key):
 
 re_non_escaped = re.compile('[\[\]\$%:<>;|\ ]')
 re_alphanum = re.compile('[^a-z0-9A-Z]')
+
 
 class AbstractKVParser(object):
 

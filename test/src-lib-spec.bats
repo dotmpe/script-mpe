@@ -1,39 +1,51 @@
 #!/usr/bin/env bats
 
 load init
-base=argv.lib
-
+base=src.lib
 init
-#. $lib/util.sh
+
+testf="test/var/nix_comments.txt"
+testf_expected_header_md5="082a6d7b5ff8c0c85a6acf1daa151586"
 
 setup()
 {
+  load helper &&
   lib_load src
 }
 
-@test "$lib/${base} header-comment test/var/nix_comments.txt prints file header comment, exports env" {
-  local testf=test/var/nix_comments.txt r=
-  header_comment $testf > $testf.header || r=$?
-  md5ck="$(echo $(md5sum $testf.header | awk '{print $1}'))"
-  rm $testf.header
-  test -z "$r" 
-  test "$md5ck" = "b37a5e1dd5f33d5ea937de72587052c7"
-  test $line_number -eq 4
+
+@test "$base: read-header-comment $testf prints file header comment, exports env" {
+
+  run read_head_comment $testf
+
+  { test_ok_nonempty && test_lines \
+      "Header comment lines 1/4" \
+      "Header comment lines 2/4" \
+      "Header comment lines 3/4" \
+      "Header comment lines 4/4"
+  } || stdfail
+
+  # Test vars locally
+  read_head_comment $testf
+  load assert
+  assert_equal "$first_line" 1
+  assert_equal "$last_line" 4
 }
 
 
-@test "$lib/${base} backup-header-comment test/var/nix_comments.txt writes comment-header file" {
-  local testf=test/var/nix_comments.txt
+@test "$base: backup-header-comment $testf writes comment-header file" {
+
   run backup_header_comment $testf
-  test $status -eq 0
-  test -z "${lines[*]}"
-  test -s $testf.header
-  test "$(echo $(md5sum $testf.header | awk '{print $1}'))" \
-    = "b37a5e1dd5f33d5ea937de72587052c7"
+  { test_ok_empty &&
+    test -s $testf.header &&
+    test "$(echo $(md5sum $testf.header | awk '{print $1}'))" \
+      = "$testf_expected_header_md5" &&
+    rm $testf.header
+  } || stdfail "$testf_expected_header_md5"
 }
 
 
-@test "$lib truncate_trailing_lines: " {
+@test "$base: truncate_trailing_lines: " {
 
   echo
   tmpd
@@ -46,27 +58,27 @@ setup()
 }
 
 
-@test "$lib file_insert_where_before" {
+@test "$base: file_insert_where_before" {
   TODO
 }
 
-@test "$lib file_insert_at" {
+@test "$base: file_insert_at" {
   TODO
 }
 
-@test "$lib file_where_before" {
+
+@test "$base: file_where_before" {
 
   func_exists file_where_before
   run file_where_before
   {
     test $status -eq 1 &&
     fnmatch "*where-grep arg required*" "${lines[*]}"
-  } || stdfail
-
+  } || stdfail 1.
+ 
   run file_where_before where
   {
     test $status -eq 1 &&
-    fnmatch "*file-path or input arg required*" "${lines[*]}"
-  } || stdfail
+    fnmatch "*file-where-grep: file-path or input arg required*" "${lines[*]}"
+  } || stdfail 2.
 }
-

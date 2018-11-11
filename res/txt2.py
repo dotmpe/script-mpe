@@ -297,6 +297,12 @@ class AbstractTxtLineParserSimpleFieldArgsStrategy(AbstractTxtLineParserTargetSt
 
     default_field_handler_prefix = 'parse_fieldargs'
 
+    def field_map(self):
+        for f in self.fields:
+            f_ = f.split(':')
+            if len(f_) > 1: yield f_[0], f_[1]
+            else: yield f_[0], f_[0]
+
     def field_targets(self):
         for f in self.fields:
             f_ = f.split(':')
@@ -338,7 +344,7 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
     fields by named regex(es).
 
     Field specs correspond to a ~RegexFields.field_names entry, which specifies
-    regex, construct and optional regex groups to map match groups to constructor
+    regex, constructor and optional regex groups to map match groups to constructor
     arguments.
 
     Additional field specs 3: cardinality and 4: symbol are taken in to
@@ -360,8 +366,9 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
         # Pre-compile regex patterns
         self.re_opts = (re.VERBOSE,)
         self._mb = {}
-        for name in self.field_names:
-            r = self.field_names[name][0]
+        for name, target, in self.field_map():
+            if target not in self.field_names: target = name
+            r = self.field_names[target][0]
             self._mb[name] = re.compile(r, *self.re_opts)
 
     # Private methods implementing the ~RegexFields addon
@@ -372,11 +379,11 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
 
     def __nextfield(self, name, descr, cardinality, symbol):
         "Before setting new data"
-        get, set = descr
-        current = get()
+        _get, _set = descr
+        current = _get()
         if current == None:
-            if cardinality > 1:
-                set([])
+            if cardinality > 1 or cardinality == 0:
+                _set([])
         else:
             if cardinality == 1 or len(current) == cardinality:
                 raise ValueError("Data instance exists for %s field" % name)
@@ -411,11 +418,14 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
         Observes cardinality given as first rest-fieldspec, see __fieldargs.
         """
         get, set = descr
-        newtype, groups = self.field_names[name][1], self.field_names[name][3:]
+        if get.name in self.field_names: target = get.name
+        else: target = name
+
+        newtype, groups = self.field_names[target][1], self.field_names[target][2:]
 
         # Use current value as default for typebuilder in case of complex types
         current = None
-        if cardinality > 1: current = get()
+        if cardinality > 1 or cardinality == 0: current = get()
         if groups:
             # Group numbers should provide typebuilder data tuple,
             # (key, val)'s for dict, items for list or one specific sub-match
@@ -426,7 +436,7 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
             # no processing parts from regex match object
             data = tp.typebuilder(match.group(0), newtype, current)
 
-        if cardinality > 1:
+        if cardinality > 1 or cardinality == 0:
             if data and data not in current:
                 current.append(data)
         elif cardinality == 1:
@@ -644,5 +654,3 @@ class SimpleTxtLineItem(object):
             assert f, f
             d[f] = getattr(self, f)
         return d
-
-#

@@ -22,7 +22,7 @@ init
   { test ${status} -eq 0 &&
     fnmatch "*Usage:*" "${lines[*]}" && # usage info on out
 #  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
-    { fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop; }
+    { fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || true; }
   } || stdfail
 }
 
@@ -32,7 +32,7 @@ init
   test ${status} -eq 0
   fnmatch "*Usage:*" "${lines[*]}" # usage info on out
 #  fnmatch "*Commands:*" "${lines[*]}" # detailed usage on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || true
 
 #  echo ${status} > /tmp/1
 #  echo "${lines[*]}" >> /tmp/1
@@ -45,7 +45,7 @@ init
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
   fnmatch "*Usage: * docker?sh -h|help \[ID]*" "${lines[*]}" # usage info on out
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || true
 }
 
 @test "${bin} help help" {
@@ -54,7 +54,7 @@ init
   test ${status} -eq 0
   fnmatch "*Help 'help':*" "${lines[*]}" # manual on out
   fnmatch "*Usage: * docker?sh -h|help \[ID]*" "${lines[*]}" # usage info on out
-  echo "${lines[*]}" |grep 'Error:' && test -z "errors in output" || noop
-  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || noop
+  echo "${lines[*]}" |grep 'Error:' && test -z "errors in output" || true
+  fnmatch "*Error:*" "${lines[*]}" && test -z "errors in output" || true
 }
 

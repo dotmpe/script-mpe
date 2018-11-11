@@ -11,14 +11,15 @@ version=0.0.4-dev # script-mpe
 setup() {
   scriptname=test-$base
 
-  type require_env >/dev/null 2>&1 && {
+  #type require_env >/dev/null 2>&1 && {
     #. $ENV
-    . ./tools/sh/init.sh
-    lib_load projectenv env-deps
-  } || {
-    . ./tools/ci/env.sh
-    project_env_bin node npm lsof
-  }
+  #  . ./tools/sh/init.sh &&
+  #  lib_load &&
+  #  lib_load projectenv env-deps
+  #} || {
+  #  . ./tools/ci/env.sh &&
+  #  project_env_bin node npm lsof
+  #}
 }
 
 @test "$bin no arguments no-op" {
@@ -145,7 +146,7 @@ setup() {
   #   also, may want to have larger offsets and wider time-windows: months, years
 
   rm -rf bats-test-log
-  rm -rf journal || noop
+  rm -rf journal || true
 
   run $BATS_TEST_DESCRIPTION
   test $status -eq 1
@@ -163,6 +164,7 @@ setup() {
 }
 
 @test "$bin check-disks" {
+  skip FIXME check-disks
   test "$(uname)" = "Linux" && skip "check-disks Linux"
   case "$hostname" in boreas* ) skip "Boreas";; esac
   run $BATS_TEST_DESCRIPTION
@@ -171,7 +173,6 @@ setup() {
 }
 
 @test "$bin ck-init" {
-
   skip "FIXME: boreas"
   tmpd
   mkdir -p $tmpd/foo
@@ -191,7 +192,7 @@ setup() {
 @test "$bin update (ck-prune, ck-clean, ck-update)" {
   skip "Deprecated"
   run $bin update
-  rm table.*missing || noop
+  rm table.*missing || true
   git checkout table.*
   test ${status} -eq 0 ||
     fail "Status: $status; Output: ${lines[*]}"
@@ -277,20 +278,16 @@ setup() {
 
 @test "$bin scripts names - list script names" {
   run $bin scripts names
-  { test_ok_nonempty &&
-    fnmatch *" check "* " ${lines[*]} " &&
-    fnmatch *" build "* " ${lines[*]} " &&
-    fnmatch *" test "* " ${lines[*]} "
-  } || stdfail
+  { test_ok_nonempty && test_lines "init" "check" "build" "test"; } || stdfail
 }
 
 
 @test "$bin scripts list - gives script outline (list indented script names and lines)" {
-  run $bin scripts list
-  { test_ok_nonempty &&
-    fnmatch *" check "* " ${lines[*]} " &&
-    fnmatch *" build "* " ${lines[*]} " &&
-    fnmatch *" test "* " ${lines[*]} "
+  verbosity=0
+  run $bin scripts list build
+  { test_ok_nonempty 8 && test_lines "build" \
+    "        export SCR_SYS_SH=bash-sh" \
+    "        . ./tools/ci/parts/build.sh"
   } || stdfail
 }
 

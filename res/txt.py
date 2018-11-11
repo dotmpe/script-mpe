@@ -1,5 +1,6 @@
 """
 """
+# TODO: replace txt.*Parser* with txt2
 
 import re
 from collections import OrderedDict
@@ -11,10 +12,10 @@ import task
 
 
 
-class AbstractTxtLineParser(object):
+class AbstractTxtLineParser_Old(object):
     fields = ()
     def __init__(self, raw, parser=None, **attrs):
-        super(AbstractTxtLineParser, self).__init__()
+        super(AbstractTxtLineParser_Old, self).__init__()
         self._raw = t = raw.strip()
         self.attrs = attrs
         # Access to parent parser, if needed to bring session onto instance
@@ -59,12 +60,12 @@ class AbstractTxtLineParser(object):
         return "%s(%r)" % ( self.__class__.__name__, self.text )
 
 
-class AbstractTxtSegmentedRecordParser(AbstractTxtLineParser):
+class AbstractTxtSegmentedRecordParser_Old(AbstractTxtLineParser_Old):
     section_key_re = re.compile(r"(^|\W|\ )([%s]+):(\ |$)" % (
         task.meta_tag_c ))
     def __init__(self, raw, **attrs):
         self.sections = {}
-        super(AbstractTxtSegmentedRecordParser, self).__init__(raw, **attrs)
+        super(AbstractTxtSegmentedRecordParser_Old, self).__init__(raw, **attrs)
     def parse_sections(self, t, tag=None):
         for sk_m in self.section_key_re.finditer(t):
             k = sk_m.group(2)
@@ -76,7 +77,7 @@ class AbstractTxtSegmentedRecordParser(AbstractTxtLineParser):
         return t
 
 
-class AbstractTxtRecordParser(AbstractTxtLineParser):
+class AbstractTxtRecordParser_Old(AbstractTxtLineParser_Old):
     """
     A list-item parser that interacts with local and remote Id strategies
     on the container::
@@ -101,7 +102,7 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
         self.dates = None
         self.contexts = []
         self.projects = []
-        super(AbstractTxtRecordParser, self).__init__(raw, **attrs)
+        super(AbstractTxtRecordParser_Old, self).__init__(raw, **attrs)
     def parse_attrs(self, t, tag):
         attr, cl = {}, []
         for meta_m in self.meta_re.finditer(t):
@@ -190,15 +191,15 @@ class AbstractTxtRecordParser(AbstractTxtLineParser):
         return t
 
 
-class AbstractRecordIdStrategy(AbstractTxtLineParser):
+class AbstractRecordIdStrategy_Old(AbstractTxtLineParser_Old):
     """
-    Mixing for records to retrieve Id, working together with AbstractIdStrategy
+    Mixing for records to retrieve Id, working together with AbstractIdStrategy_Old
     iface on container.
     """
     key_re = re.compile(r"(^|\W|\ )([%s]+):(\ |$)" % (
         task.meta_tag_c ))
     def __init__(self, raw, **attrs):
-        super(AbstractRecordIdStrategy, self).__init__(raw, **attrs)
+        super(AbstractRecordIdStrategy_Old, self).__init__(raw, **attrs)
     def parse_id(self, t, tag):
         if self.sections:
             # First section is id for item
@@ -216,10 +217,10 @@ class AbstractRecordIdStrategy(AbstractTxtLineParser):
         return t
 
 
-class AbstractRecordReferenceStrategy(AbstractTxtLineParser):
+class AbstractRecordReferenceStrategy_Old(AbstractTxtLineParser_Old):
     def __init__(self, raw, **attrs):
         self.refs = {}
-        super(AbstractRecordReferenceStrategy, self).__init__(raw, **attrs)
+        super(AbstractRecordReferenceStrategy_Old, self).__init__(raw, **attrs)
     def parse_refs(self, txt, tag):
         return txt
 
@@ -228,7 +229,7 @@ class AbstractRecordReferenceStrategy(AbstractTxtLineParser):
 ### List parsers
 
 
-class AbstractTxtListParser(object):
+class AbstractTxtListParser_Old(object):
 
     """
     The base class for text.list file parsers has methods to parse and process
@@ -244,14 +245,14 @@ class AbstractTxtListParser(object):
     before the itm is yielded to the caller of AbstractTxtListParser.load.
     """
 
-    item_parser = AbstractTxtRecordParser
+    item_parser = AbstractTxtRecordParser_Old
     "The line-parser class"
 
     # Initialize/reset parser
 
     def __init__(self, be={}, apply_contexts=[]):
         assert isinstance(apply_contexts, list), apply_contexts
-        super(AbstractTxtListParser, self).__init__()
+        super(AbstractTxtListParser_Old, self).__init__()
         if not isinstance(be, confparse.Values):
             be = confparse.Values(be)
         self.be = be
@@ -302,20 +303,20 @@ class AbstractTxtListParser(object):
 
 #
 
-class AbstractIdStrategy(AbstractTxtListParser):
+class AbstractIdStrategy_Old(AbstractTxtListParser_Old):
 
     """
     By providing a 'records' attribute on the container, allow indexed access to
     items by Id. And for record parsers to check for existing reference.
     """
 
-    item_parser= AbstractRecordIdStrategy
+    item_parser= AbstractRecordIdStrategy_Old
 
     def __init__(self, record_cites=False, **kwds):
         self.records = OrderedDict()
         self.references = {}
         self.record_cites = record_cites
-        super(AbstractIdStrategy, self).__init__(**kwds)
+        super(AbstractIdStrategy_Old, self).__init__(**kwds)
     def items(self):
         return self.records.values()
     def init_id(self, record):

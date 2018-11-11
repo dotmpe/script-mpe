@@ -1,5 +1,5 @@
 #!/bin/bash
-# system tests
+# XXX: recover old system tests
 
 NUM="$1"
 PREFIX="/tmp/tests/script-mpe/system_$NUM"

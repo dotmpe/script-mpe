@@ -1,7 +1,9 @@
 #!/bin/sh
 
-set -e
-
+vc_lib_load()
+{
+  test -n "$vc_rt_def" || vc_rt_def=origin
+}
 
 # See if path is in GIT checkout
 vc_isgit()
@@ -135,12 +137,12 @@ vc_fsck()
 
 vc_remotes_git()
 {
-  git remote
+  git remote "$@"
 }
 
 vc_remotes_hg()
 {
-  hg paths
+  hg paths "$@"
 }
 
 vc_remotes()
@@ -226,6 +228,7 @@ vc_unversioned_hg()
   hg status --unknown | cut -c3-
 }
 
+# List untracked paths (excluding ignored files)
 vc_unversioned()
 {
   test -n "$spwd" || error spwd-13 13
@@ -252,31 +255,31 @@ vc_unversioned()
 
 vc_untracked_bzr()
 {
-  bzr ls --ignored --unknown || return $?
+  bzr ls --ignored --unknown "$@" || return $?
 }
 
 vc_untracked_git()
 {
-  git ls-files --others --dir || return $?
+  git ls-files --others --dir "$@" || return $?
 }
 
 vc_untracked_svn()
 {
-  { svn status --no-ignore || return $?
+  { svn status --no-ignore "$@" || return $?
   } | grep '^?' | sed 's/^?\ *//g'
 }
 
 vc_untracked_hg()
 {
-  hg status --ignored --unknown | cut -c3-
+  hg status --ignored --unknown "$@" | cut -c3-
 }
 
+# List any untracked paths (including ignored files)
 vc_untracked()
 {
-  test -n "$spwd" || error spwd-13 13
+  test -n "$spwd" || error spwd-12 12
 
-  # list paths not under version (including ignores)
-  vc_untracked_$scm
+  vc_untracked_$scm "$@"
 
   test "$scm" = "git" && {
 
@@ -285,7 +288,7 @@ vc_untracked()
       smpath="$ppwd/$prefix"
       cd "$smpath"
       ppwd=$smpath spwd=$spwd/$prefix \
-        vc_untracked \
+        vc_untracked "$@" \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
     done
@@ -297,32 +300,34 @@ vc_untracked()
 
 vc_tracked_git()
 {
-  git ls-files
+  git ls-files "$@"
 }
 
 vc_tracked_bzr()
 {
-  bzr ls -R
+  bzr ls -R "$@"
 }
 
 vc_tracked_svn()
 {
-  { svn list --depth infinity || return $?
+  { svn list --depth infinity "$@" || return $?
   } | grep '^?' | sed 's/^?\ *//g'
 }
 
 vc_tracked_hg()
 {
-  { hg status --clean --modified --added || return $?
+  { hg status --clean --modified --added "$@" || return $?
   } | cut -c3-
 }
 
+# List file tracked in version
 vc_tracked()
 {
-  test -n "$spwd" || error spwd-13 13
+  test -n "$spwd" || error spwd-11 11
+  test -n "$scm" || vc_getscm
 
   # list paths under version control
-  vc_tracked_$scm
+  vc_tracked_$scm "$@"
 
   # submodules too for GIT
   test "$scm" = "git" && {
@@ -332,7 +337,7 @@ vc_tracked()
       smpath="$ppwd/$prefix"
       cd "$smpath"
       ppwd="$smpath" spwd="$spwd/$prefix" \
-        vc_tracked_git \
+        vc_tracked_git "$@" \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
     done
@@ -370,7 +375,7 @@ vc_modified_bzr() { false; }
 vc_modified()
 {
   test -n "$scm" || vc_getscm
-  vc_modified_${scm}
+  vc_modified_${scm} "$@"
 }
 
 
@@ -416,7 +421,9 @@ vc_branches_git()
 {
   test -n "$1" || set -- refs/heads
   test "$1" != "all" || set -- refs/heads "refs/remotes/$vc_rt_def"
-  git for-each-ref --format='%(refname:short)' "$@"
+  # Strip remote prefix
+  git for-each-ref --format='%(refname:short)' "$@" |
+      grep -v HEAD | sed 's/^'"$vc_rt_def"'\///g' | sort -u
 }
 vc_branches_hg()
 {
@@ -436,6 +443,11 @@ vc_branches_bzr() { false; }
 vc_branches()
 {
   vc_branches_${scm} "$@"
+}
+
+vc_list_all_branches()
+{
+  vc_branches all
 }
 
 
@@ -491,7 +503,7 @@ vc_roots_hg()
 vc_roots()
 {
   test -n "$scm" || vc_getscm
-  vc_roots_${scm}
+  vc_roots_${scm} "$@"
 }
 
 
@@ -532,7 +544,7 @@ vc_diskuse_git()
 vc_diskuse()
 {
   test -n "$scm" || vc_getscm
-  vc_diskuse_${scm}
+  vc_diskuse_${scm} "$@"
 }
 
 
@@ -555,20 +567,21 @@ vc_status_hg() { false; }
 vc_status_svn() { false; }
 vc_status_bzr() { false; }
 
-
 # Report on various checkout/repo state
 vc_status()
 {
-  vc_status_${scm}
+  vc_status_${scm} "$@"
 }
 
 
-# Cleanup the checkout, and report on the state
+# XXX: Cleanup the checkout, and report on the state
 vc_clean()
 {
   (
-    trueish "$1" && { vc_unversioned
-    } || { vc_untracked
+  trueish "$1" && {
+      vc_unversioned
+    } || {
+      vc_untracked
     }
   )
 }
@@ -836,27 +849,56 @@ vc_fetch()
 }
 
 
-git_ref_exists()
+git_ref_exists() # [Branch|Tag]
 {
-	git show-ref --verify -q "$1" || return $?
+  git show-ref --verify -q "$1" || return $?
+}
+vc_ref_exists() # [Branch|Tag]
+{
+  ${scm}_ref_exists
 }
 
-git_remote_branch()
+
+git_remote_branch() # ( Branch-Name Remote | Remote/Branch )
 {
-	test -n "$1" || error "remote branch name missing" 1
-	test -n "$2" || set -- "$1" "$2"
-	git_ref_exists "refs/remotes/$2/$1" || return $?
+  test -n "$1" || error "remote branch name missing" 1
+  test -n "$2" || {
+    fnmatch "*/*" "$1" && {
+      set -- "$1" "$(echo "$1" | cut -d '/' -f 2-)"
+      set -- "$(echo "$1" | cut -d '/' -f 1)" "$2"
+    }
+  }
+  test -n "$2" || error "remote name missing '$*'" 1
+  git_ref_exists "refs/remotes/$2/$1" || return $?
 }
 
-git_local_branch()
+git_local_branch() # Branch-Name
 {
-	test -n "$1" || error "local branch name missing" 1
-	git_ref_exists "refs/heads/$1" || return $?
+  test -n "$1" || error "local branch name missing" 1
+  git_ref_exists "refs/heads/$1" || return $?
 }
 
 git_branch_exists()
 {
-	git_local_branch "$1" || git_remote_branch "$@"
+  test -n "$2" || set -- "$1" origin
+  git_local_branch "$1" || git_remote_branch "$@"
+}
+
+git_tag_exists()
+{
+  test -n "$1" || error "tag name missing" 1
+  test -z "$2" || error "TODO: check for tag at remote?" 1
+  git_ref_exists "refs/tags/$1" || return $?
+}
+
+vc_exists() # Branch [Remote]
+{
+  ${scm}_branch_exists "$@" || ${scm}_tag_exists "$@"
+}
+
+vc_exists_local() # Branch
+{
+  ${scm}_local_branch "$@" || ${scm}_tag_exists "$@"
 }
 
 
@@ -865,14 +907,48 @@ vc_revision_git()
   git show-ref --head HEAD -s
 }
 vc_revision_hg() { false; }
-vc_revision_svn() { false; }
-vc_revision_bzr() { false; }
+vc_revision_svn()
+{
+  svn info --show-item revision
+}
+vc_revision_bzr()
+{
+  bzr revno
+}
 
 # Return version for working tree, aka revision Id, commit Id, etc.
 vc_revision()
 {
   test -n "$scm" || vc_getscm
   vc_revision_${scm}
+}
+
+
+# List linenumber, commit-ID, and linecount.
+vc_blame_git() # File [Start- End-Line]
+{
+  {
+    test -n "$2" && {
+      git blame --porcelain --incremental --root -L $2,$3 -- "$1"
+    } || {
+      git blame --porcelain --incremental --root -- "$1"
+    }
+  } |
+      grep '^[0-9a-f]*\ [0-9\ ]*$' |
+      while read -r sha1ref srcline finalline numlines
+  do
+      echo $finalline $sha1ref $numlines $(( $finalline + $numlines ))
+  done |
+      sort -n
+}
+vc_blame_hg() { false; }
+vc_blame_svn() { false; }
+vc_blame_bzr() { false; }
+
+vc_blame()
+{
+  test -n "$scm" || vc_getscm
+  vc_blame_${scm} "$@"
 }
 
 

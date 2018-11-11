@@ -5,6 +5,21 @@ Edit Decision Lists
 
 .. figure:: edl/comp-1.svg
 
+transquoter EDL are lists of clinks (content-links), referencing pieces of
+text (ie. char ranges at URL's or files).
+
+other link styles could "markup" ranges: add styling, semantics, jump
+hyperlinks, or other relations.
+
+Ie. EDL could be used to list other sort of links beside refs to remote
+ranges.
+Two elements (no typing, possibly simple cite or transclusion, jump),
+three elements (one "relation" spec)
+or four elements (ie. one home-document for link or additional context ID)
+
+Links in Xu88/Green are four-element, made up of three tumbler
+address ranges and one home-document tumbler address.
+
 
 Range link formats
 ------------------

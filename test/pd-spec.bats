@@ -31,8 +31,8 @@ setup()
   tmpd
   mkdir -p $tmpd/empty
   {
-    echo 'package_pd_meta_check=":bats-specs"'
-    echo 'package_pd_meta_test=":bats-specs :bats"'
+    echo 'package_pd_meta_checks=":bats-specs"'
+    echo 'package_pd_meta_tests=":bats-specs :bats"'
     echo package_pd_meta_git_hooks_pre_commit=./tools/ci/pre-commit.sh
   } > $tmpd/empty/.package.sh
   { cat <<EOF
@@ -192,7 +192,7 @@ cleanup_tmpd()
   test ${lines[0]} = :bats
 
 # FIXME:
-  #{ echo package_pd_meta_test=:foo; } > .package.sh
+  #{ echo package_pd_meta_tests=:foo; } > .package.sh
   #run $BATS_TEST_DESCRIPTION
   #test $status -eq 0
   #diag "${#lines[@]} Out: ${lines[*]}"

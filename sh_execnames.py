@@ -17,6 +17,7 @@ TODO: partial sh-script parser to merge with other sh_*py
 
 Usage:
     sh-execnames [options] dump <src>...
+    sh-execnames [options] [--exec] [--vars] names <src>...
     sh-execnames [-h|--help|help]
 
 Options:
@@ -49,7 +50,7 @@ class OutputFormat:
 
 class ShellScriptParserContext:
 
-    def __init__(self, ignore, format=OutputFormat.OFFSET, tokens):
+    def __init__(self, ignore, format=OutputFormat.OFFSET, tokens=None):
         self.ignore = ignore
         self.format = format
         self.comment = ''
@@ -84,15 +85,15 @@ class ShellScriptParserContext:
             else:
                 self.buffer += token
 
-        if self.buffer == '$('
+        if self.buffer == '$(':
             self.cmd = []
         elif token == ')':
+            pass
 
 
     def end_line():
         if self.comment: self.comment = ''
         self.new_indent = ''
-        continue
 
 
 class ShellScriptParser:
@@ -204,17 +205,41 @@ class ShellScriptParser:
 
 # Subcommand handlers
 
+def H_names(ctx):
+    """
+    scan for name of executables or references to variables
+    XXX: shlex does not help much tokenizing shell script
+    """
+    for sh_fn in ctx.opts.args.src:
+        lexer = shlex.shlex( open(sh_fn).read() )
+        for t in lexer:
+            if re_cmd.match(t):
+                print(t)
+                if is_exec(t):
+                    print(t)
+
+def is_exec(name):
+    try:
+        lib.cmd("which "+name)
+    except:
+        return False
+    return True
+
+re_cmd = re.compile('^[A-Za-z_][A-Za-z0-9\._-]*$')
+
 def H_dump(ctx):
     output_format = ctx.opts.flags.output_format.upper()
     if hasattr(OutputFormat, output_format):
         output_format = getattr(OutputFormat, output_format)
 
     for sh_fn in ctx.opts.args.src:
-        ssp = ShellScriptParser(sh_fn)
-        ssp.read(ctx.opts.flags.ignore.split(','), output_format)
+        #ssp = ShellScriptParser(sh_fn)
+        #ssp.read(ctx.opts.flags.ignore.split(','), output_format)
 
         lexer = shlex.shlex( open(sh_fn).read() )
         # Start parsing
+        for t in lexer:
+            print(t)
 
 
 ### Main

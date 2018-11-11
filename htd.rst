@@ -6,7 +6,6 @@ Prototype commands for processing local site content/structure
 _______________________________________________________________________________
 
 
-
 Design
 ------
 - Shell. Bourne Shell, prefer compatibility [#]_.
@@ -46,7 +45,7 @@ htd tasks-hub
 
 Dev
 -------
-
+- Project tooling <project.rst>
 
 Issues
 -------

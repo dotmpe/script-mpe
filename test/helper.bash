@@ -3,10 +3,11 @@
 
 # Add fallbacks for non-std BATS functions
 
+# XXX: conflicts with ztombl assert's lib
 type fail >/dev/null 2>&1 || {
   fail()
   {
-    test -z "$1" || echo "Reason: $1" >> $BATS_OUT
+    test -n "$1" && echo "Reason: $1" >>"$BATS_OUT"
     exit 1
   }
 }
@@ -42,7 +43,9 @@ type stdfail >/dev/null 2>&1 || {
   stdfail()
   {
     test -n "$1" || set -- "Unexpected. Status"
-    fail "$1: $status, output(${#lines[@]}) is '${lines[*]}'"
+    diag "$1: $status, output(${#lines[@]}) was:"
+    printf "  %s\n" "${lines[@]}" >>"$BATS_OUT"
+    exit 1
   }
 }
 
@@ -75,8 +78,11 @@ type test_nonempty >/dev/null 2>&1 || {
     do
         case "$match" in
 
-          # Test line-count if number given
-          "[0-9]"* ) test "${#lines[*]}" = "$1"  || return $? ;;
+          # Test line-count if number given.
+          # NOTE BATS 0.4 strips empty lines! not blank lines.
+          # As wel as combining stdout/err
+          [0-9]|[0-9][0-9]|[0-9][0-9][0-9] )
+            test "${#lines[*]}" = "$1"  || return $? ;;
 
           # Each match applies to entire line list otherwise
           * ) fnmatch "$1" "${lines[*]}" || return $? ;;

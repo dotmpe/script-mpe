@@ -21,7 +21,7 @@ init
   eval $BATS_TEST_DESCRIPTION > $tmpf
   test -n "$tmpf"
   file_equal $expectf $tmpf || {
-    diff $expectf $tmpf >> $BATS_OUT || noop
+    diff $expectf $tmpf >> $BATS_OUT || true
     fail "Mismatch: $expectf $tmpf, output does not match"
   }
 }
