@@ -58,9 +58,9 @@ setup()
 
 @test "$base: gdate weekdays baseline" {
 
-skip "FIXME"
   run $gdate -d monday -d -1day "+%A"
   test_ok_nonempty "Sunday" || stdfail 0.1
+
   run $gdate -d monday -d +1week "+%A"
   test_ok_nonempty "Monday" || stdfail 0.2
 }

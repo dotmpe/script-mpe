@@ -6,7 +6,10 @@ scriptpath=$REDO_BASE . $REDO_BASE/util.sh &&
   cd "$REDO_BASE" &&
   lib_load build-test &&
   build_test_init &&
-  redo-ifchange $( component_depnames "$5" | words_to_lines ) &&
+  paths="$( component_depnames "$5" | words_to_lines )" &&
+  test -z "$paths" || {
+    redo-ifchange $paths || exit $?
+  }
   build_test "$5" >"$4"
 
 redo-stamp <"$4"

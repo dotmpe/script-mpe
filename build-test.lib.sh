@@ -38,7 +38,7 @@ build_test_init() # Specs...
   test -n "$default_watch_poll_sleep" || default_watch_poll_sleep=5
 
   case "$component_map" in component_map_list )
-      test -n "$component_map_list" || component_map_list=$HOME/bin/test-map.list
+      test -n "$component_map_list" || component_map_list=$PWD/test-map.list
   ;; esac
   test -n "$component_map" || component_map=component_map_basenameid
 
@@ -508,7 +508,7 @@ totest()
 build_test()
 {
   test -n "$testruns" || get_tmpio_env "testruns" "build-test"
-  $component_tests "$1" | p='' s='' act=$component_test foreach_do
+  $component_tests "$@" | p='' s='' act=$component_test foreach_do
 }
 
 ## Specs for report but not counting in final test-result judgement
@@ -594,6 +594,7 @@ test_status()
 
 all_tests_static()
 {
+  pwd -P &&
   static &&
   all &&
   baselines &&

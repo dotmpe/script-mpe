@@ -61,7 +61,7 @@ htd_rst_doc_create_update()
               includedir="$(pwd -P)" ||
               includedir="$(dirname $outf | sed 's/[^/]*/../g')"
 
-            relp="$(realpath --relative-to=$(dirname "$outf") $includedir)"
+            relp="$(grealpath --relative-to=$(dirname "$outf") $includedir)"
             {
               echo ; echo ; echo ".. include:: $relp/.default.rst"
             } >> $outf
@@ -81,7 +81,7 @@ htd_rst_doc_create_update()
           }
           # TODO htd_rst_doc_create_update "$thisyear" "" link-all-years
           grep -q '\.\.\ footer::' "$outf" || {
-            thisyearrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}year$EXT")
+            thisyearrel=$(grealpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}year$EXT")
             {
               printf -- ".. footer::\n\n  - \`$title <$thisyearrel>\`_"
             } >> $outf
@@ -106,7 +106,7 @@ htd_rst_doc_create_update()
           # Recurse
           htd_rst_doc_create_update "$thismonth" "" link-year-up
           grep -q '\.\.\ footer::' "$outf" || {
-            thismonthrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}month$EXT")
+            thismonthrel=$(grealpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}month$EXT")
             {
               printf -- ".. footer::\n\n  - \`$title <$thismonthrel>\`_"
             } >> $outf
@@ -123,7 +123,7 @@ htd_rst_doc_create_update()
           }
           htd_rst_doc_create_update "$thisweek" "" link-month-up
           grep -q '\.\.\ footer::' "$outf" || {
-            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
+            thisweekrel=$(grealpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
             {
               printf -- ".. footer::\n\n  - \`$title <$thisweekrel>\`_"
             } >> $outf
@@ -149,7 +149,7 @@ htd_rst_doc_create_update()
 
           #test $new -eq 1 || break ;
           grep -q '\.\.\ footer::' "$outf" || {
-            thisweekrel=$(realpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
+            thisweekrel=$(grealpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
             {
               printf -- ".. footer::\n\n  - \`$title <$thisweekrel>\`_"
             } >> $outf

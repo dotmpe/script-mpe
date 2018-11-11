@@ -12,13 +12,6 @@ set -e
 #lib_load build-test &&
 #build_test_init &&
 
-docker pull bvberkum/treebox:dev &&
-docker run --rm \
-    -w /dut \
-    -v $(pwd -P)/tools/ci/docker.sh:/dut/run.sh \
-    bvberkum/treebox:dev sh ./run.sh
-
-exit $?
 #rm .cllct/testruns/*.tap || true
 
 export CS=dark
@@ -27,7 +20,11 @@ export CS=dark
 
 #shells=bash test_shells ./build.sh required_tests
 
-./build.sh test_any_feature "$@"
+docker pull bvberkum/treebox:dev &&
+docker run --rm \
+    -w /dut \
+    -v $(pwd -P)/tools/ci/docker.sh:/dut/run.sh \
+    bvberkum/treebox:dev sh ./run.sh
 
 exit $?
 

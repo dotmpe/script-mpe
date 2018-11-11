@@ -12,8 +12,8 @@ python:
 addons:
   apt:
     packages:
-      - tree
       - realpath
+      - tree
       - uuid-runtime
       - moreutils
       - curl
@@ -32,18 +32,18 @@ services:
 - couchdb
 - docker
 
-before_install: []
+before_install:
   - export scriptname="before-install" before_install_ts="$(date +%s)"
   - set -e
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh || { . ./tools/ci/env.sh ; . ./tools/ci/parts/init.sh ; }
   - . ./tools/ci/parts/announce.sh
 
-install: []
+install:
   - export scriptname=install install_ts="$(date +%s)"
   - . ./tools/ci/parts/install.sh
 
-before_script: []
+before_script:
   - export scriptname="before-script" before_script_ts="$(date +%s)"
   - echo Starting $scriptname
   - . ./tools/ci/parts/check.sh
@@ -52,10 +52,11 @@ before_script: []
 script:
   - export scriptname=script script_ts="$(date +%s)"
   - echo Starting $scriptname
-#  - failed=/tmp/htd-build-test-$(uuidgen).failed
-#  - lib_load build-test && build_test_init && required_tests
-#  - . ./tools/ci/parts/build.sh
-#  - test "$SHIPPABLE" = true || test ! -e "$failed"
+  - failed=/tmp/htd-build-test-$(uuidgen).failed
+  - lib_load build-test && build_test_init && all_tests_static
+    #- test_any_feature "test/stattab.feature"
+  #- . ./tools/ci/parts/build.sh
+  - test "$SHIPPABLE" = true || test ! -e "$failed"
 
 #before_cache:
 #  - export scriptname=before-cache before_cache_ts="$(date +%s)"
@@ -105,6 +106,7 @@ env:
     - BATS_REPO=https://github.com/bvberkum/bats-core.git
     - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
     - COUCH_DB=test
+    - verbosity=4
 
 branches:
   only:

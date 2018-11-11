@@ -8401,13 +8401,13 @@ htd__photos()
   find "$OSX_PHOTOS/Thumbnails" -type f |
   while read thumb
   do
-      realpath --relative-to="$OSX_PHOTOS" "$thumb"
+      grealpath --relative-to="$OSX_PHOTOS" "$thumb"
   done
 
   find "$OSX_PHOTOS/Masters" -type f |
   while read master
   do
-      realpath --relative-to="$OSX_PHOTOS" "$master"
+      grealpath --relative-to="$OSX_PHOTOS" "$master"
   done
 }
 

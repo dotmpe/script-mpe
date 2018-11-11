@@ -23,13 +23,13 @@ build_init()
   test -n "$base" || base=build.lib
   test -n "$build_id" || build_id=$(uuidgen)
 
-  test -n "$src_stat" || src_stat="$HOME/bin/$cllct_src_base"
+  test -n "$src_stat" || src_stat="$PWD/$cllct_src_base"
 
   test -n "$sh_list" || sh_list="$src_stat/sh-files.list"
   test -n "$sh_file_exts" || sh_file_exts="sh bash do"
   test -n "$sh_shebang_re" || sh_shebang_re='^\#\!\/bin\/.*sh\>'
 
-  test -n "$TAP_COLORIZE" || TAP_COLORIZE="$HOME/bin/script-bats.sh colorize"
+  test -n "$TAP_COLORIZE" || TAP_COLORIZE="$PWD/script-bats.sh colorize"
 
   test -n "$project_scm_add_checks" ||
       project_scm_add_checks=project_scm_add_checks
@@ -127,11 +127,16 @@ build_list() # Spec-Set
 # resolve to a test-file path-name.
 component_map_basenameid() # SRC-FILE
 {
+  echo "$(component_id "$@") $1"
+}
+
+component_id()
+{
   # XXX: test echo "$(basename "$1" .$(filenamext "$1")) $1"
   #filename_baseid "$1"
   basename="$(exts="-spec -lib" basenames "$(filestripext "$1")")"
   mkid "$basename" '' '_-'
-  echo "$id $1"
+  echo "$id"
 }
 
 # Checkout from given remote if it is ahead, for devops work on branch & CI.
@@ -243,10 +248,12 @@ static()
   test -n "$build_id" || build_init
 
   test -n "$sh_list" || error "Static-Init error" 1
+  echo redo-ifchange $sh_list
   redo-ifchange $sh_list
 
   test -n "$src_stat" || error "Static-Init error" 2
   redo-ifchange $src_stat/sh-libs.list
+
   # XXX: testing...
   redo-ifchange $src_stat/functions/default-lib.func-list
   redo-ifchange $src_stat/functions/default-lib/default_lib_load.func-deps

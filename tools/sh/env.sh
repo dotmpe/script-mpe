@@ -3,7 +3,7 @@
 # Keep current shell settings and mute while preparing env, restore at the end
 shopts=$-
 test -n "$DEBUG" && {
-  set -x || true
+    set -x || true;
 }
 
 
@@ -77,7 +77,7 @@ test -n "$TEST_FEATURE" || {
 
 test -n "$TEST_FEATURE" || {
     error "Nothing to test features with"
-    TEST_FEATURE="echo"
+    TEST_FEATURE="echo No tester for"
 }
 
 TAP_COLORIZE="script-bats.sh colorize"

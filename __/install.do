@@ -2,6 +2,11 @@
 
 set -e
 
+
 redo-always
-pip install -r requirements.txt
-npm install
+redo-ifchange ../requirements.txt
+redo-ifchange ../package.json
+
+pip install -r ../requirements.txt
+
+( NODE_ENV=development && cd .. && npm install )

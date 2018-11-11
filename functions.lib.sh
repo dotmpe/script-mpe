@@ -7,7 +7,7 @@ functions_lib_load()
   #  sh_list_calls="coffee $(lookup_path PATH sh.coffee | head -n1)"
   #} ||
   test -n "$cllct_src_base" || cllct_src_base=.cllct/src
-  test -n "$src_stat" || src_stat=$HOME/bin/$cllct_src_base
+  test -n "$src_stat" || src_stat=$PWD/$cllct_src_base
 }
 
 # List all function declaration lines found in given source, or current executing

@@ -19,7 +19,7 @@ test "$(whoami)" = "travis" || {
   }
 }
 
-./install-dependencies.sh all pip php dev bats-force-local redo
+./install-dependencies.sh all python php dev bats-force-local redo
 
 test "$(whoami)" = "travis" || {
   pip install --upgrade pip

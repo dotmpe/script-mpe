@@ -347,7 +347,7 @@ std__commands()
         file="$(expr_substr "$line" 8 ${#line})"
         debug "File: $(basename "$file" .sh)"
         test -e "$file" || warn "$line" 1
-        local_file="$(realpath --relative-to="$(pwd)" "$file")"
+        local_file="$(grealpath --relative-to="$(pwd)" "$file")"
 
         # XXX: test -z "$local_id" && {
         #  # Global mode: list all commands

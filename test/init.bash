@@ -6,7 +6,7 @@ test_env_init()
   test -n "$base" || return 12
   test -n "$uname" || uname=$(uname)
   test -n "$scriptpath" || scriptpath=$(pwd -P)
-  SHT_PWD="$(realpath --relative-to=$BATS_CWD $BATS_TEST_DIRNAME )"
+  SHT_PWD="$(grealpath --relative-to=$BATS_CWD $BATS_TEST_DIRNAME )"
   test -n "$VND_GH_SRC" ||
       VND_GH_SRC=/srv/src-local/github.com
   hostname_init

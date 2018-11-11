@@ -45,4 +45,5 @@ build_main()
   "$@"
 }
 
+echo build_main "$@"
 build_main "$@"

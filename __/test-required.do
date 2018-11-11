@@ -1,2 +1,2 @@
 #!/bin/sh
-redo 
+redo ../.cllct/testruns/__required__
