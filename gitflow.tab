@@ -15,6 +15,9 @@ dev f_sh_parseopts
 dev features/radical
 dev features/travis-local
 
+# Docker CI branch to change Travis to a docker build
+dev features/docker-ci
+
 # gh-pages
 # git-annex
 # synced/dev
