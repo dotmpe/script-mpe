@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
 note "Entry for CI pre-test / check phase"
 
@@ -37,10 +35,13 @@ realpath --version
 git-versioning version
 test -x $(which basher) || error "No basher" 1
 
-not_falseish "$SHIPPABLE" && {
-  perl ~/.basher/cellar/bin/tap-to-junit-xml --help || test $? -eq 1
-  perl $(which tap-to-junit-xml) --help || test $? -eq 1
-}
+
+#not_falseish "$SHIPPABLE" && {
+#
+#  perl ~/.basher/cellar/bin/tap-to-junit-xml --help || test $? -eq 1
+#
+#  perl $(which tap-to-junit-xml) --help || test $? -eq 1
+#}
 
 # Local commands should be on PATH and working OK
 

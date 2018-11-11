@@ -179,6 +179,9 @@ install_apenwarr_redo()
     test -n "$sudo" && global=1 || global=0
   }
 
+  #git clone https://github.com/apenwarr/redo.git /src/github.com/apenwarr/redo && \
+  #cd /src/github.com/apenwarr/redo && ./redo test && ./redo install
+
   test $global -eq 1 && {
 
     test -d /usr/local/lib/python2.7/site-packages/redo \
@@ -291,6 +294,10 @@ main_entry()
 
   case "$1" in npm|redmine|tasks)
       npm install -g redmine-cli || return $?
+    ;; esac
+
+  case "$1" in all|project|redo )
+      install_apenwarr_redo
     ;; esac
 
   case "$1" in all|project|git|git-lfs )

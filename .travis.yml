@@ -52,7 +52,8 @@ script:
   - export scriptname=script script_ts="$(date +%s)"
   - echo Starting $scriptname
   - failed=/tmp/htd-build-test-$(uuidgen).failed
-  - . ./tools/ci/parts/build.sh
+  - lib_load build-test && build_test_init && required_tests
+#  - . ./tools/ci/parts/build.sh
 #  - test "$SHIPPABLE" = true || test ! -e "$failed"
 
 #before_cache:
@@ -77,12 +78,12 @@ after_script:
 after_success:
   - export scriptname=after-success after_success_ts="$(date +%s)"
   - echo Starting $scriptname
-  - . ./tools/ci/parts/publish.sh
+#  - . ./tools/ci/parts/publish.sh
 
 after_failure:
   - export scriptname=after-failure after_failure_ts="$(date +%s)"
   - echo Starting $scriptname
-  - . ./tools/ci/parts/publish.sh
+#  - . ./tools/ci/parts/publish.sh
 
 #matrix:
 #  include: []
