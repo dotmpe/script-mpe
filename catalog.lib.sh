@@ -21,10 +21,16 @@ catalog_lib_load()
   test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
   test -n "$Catalog_Duplicates" || Catalog_Duplicates=.cllct/duplicates
-  test -d .cllct || mkdir .cllct
-  test -n "$ANNEX_DIR" || ANNEX_DIR="/srv/$(readlink /srv/annex-local)"
+  test -n "$ANNEX_DIR" || {
+    ANNEX_DIR="/srv/annex-local"
+    test ! -h "$ANNEX_DIR" || ANNEX_DIR="/srv/$(readlink /srv/annex-local)"
+  }
 }
 
+catalog_init()
+{
+  test -d .cllct || mkdir .cllct
+}
 
 htd_catalog_name() # [Dir]
 {

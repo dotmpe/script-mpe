@@ -413,6 +413,11 @@ read_nix_style_file() # [cat_f=] ~ File [Grep-Filter]
   cat $cat_f "$1" | grep -Ev "$2" || return 1
 }
 
+grep_nix_lines()
+{
+  grep -Ev '^\s*(#.*|\s*)$' "$@"
+}
+
 # Number lines from read-nix-style-file by src, filter comments after.
 enum_nix_style_file()
 {

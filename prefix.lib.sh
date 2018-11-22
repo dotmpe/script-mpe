@@ -7,11 +7,15 @@ prefix_lib_load()
   test -n "$pathnames" || pathnames=pathnames.tab
   test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
   test -n "$BASEDIR_TAB" || BASEDIR_TAB=${STATUSDIR_ROOT}/index/basedirs.tab
+}
+
+prefix_init()
+{
   test -e "$BASEDIR_TAB" || {
+    mkdir -p "$(dirname "$BASEDIR_TAB")"
     touch "$BASEDIR_TAB" || return $?
   }
 }
-
 
 # Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
 get_pathnames_tab()

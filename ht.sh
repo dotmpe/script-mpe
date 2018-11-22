@@ -88,7 +88,7 @@ ht__file()
 {
   test -n "$1" || set -- info
   lib_load file
-  prefixes=htd_file_\ file_ try_subcmd_prefixes "$@"
+  subcmd_prefs=htd_file_\ file_ try_subcmd_prefixes "$@"
 }
 ht_als__test_name=file\ test-name
 ht_als__file_info=file\ format
@@ -225,7 +225,7 @@ ht__ssh()
 {
   test -n "$1" || set -- info
   lib_load ssh
-  prefixes=ssh_ try_subcmd_prefixes "$@"
+  subcmd_prefs=ssh_ try_subcmd_prefixes "$@"
 }
 
 # -- ht box insert sentinel --
@@ -240,7 +240,7 @@ ht_main()
     upper= \
     package_id= package_cwd= package_env= \
     subcmd= subcmd_alias= subcmd_args_pre= \
-    arguments= prefixes= options= \
+    arguments= subcmd_prefs= options= \
     passed= skipped= error= failed=
 
   test -n "$verbosity" || verbosity=5

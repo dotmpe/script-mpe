@@ -2,7 +2,7 @@
 
 set -e
 
-stderr()
+stderr_()
 {
   echo "$log_pref$1" >&2
   test -z "$2" || exit $2
@@ -24,7 +24,7 @@ test -z "$Build_Deps_Default_Paths" || {
       || PREFIX=$HOME/.local
   }
 
-  stderr "Setting default paths: SRC_PREFIX=$SRC_PREFIX PREFIX=$PREFIX"
+  stderr_ "Setting default paths: SRC_PREFIX=$SRC_PREFIX PREFIX=$PREFIX"
 }
 
 test -n "$sudo" || sudo=
@@ -39,35 +39,32 @@ test -z "$dry_run" || pref="echo $pref"
 #}
 # -U : upgrade
 
+pip_flags=-q
+
 
 test -n "$SRC_PREFIX" ||
-  stderr "Not sure where to checkout (SRC_PREFIX missing)" 1
+  stderr_ "Not sure where to checkout (SRC_PREFIX missing)" 1
 
 test -n "$PREFIX" ||
-  stderr "Not sure where to install (PREFIX missing)" 1
+  stderr_ "Not sure where to install (PREFIX missing)" 1
 
 
-echo SRC_PREFIX=$SRC_PREFIX
-echo PREFIX=$PREFIX
-echo "install-dependencies: '$*'"
 test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
 test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
 
-
 uninstall_bats()
 {
-  stderr "Uninstalling bats"
+  stderr_ "Uninstalling bats"
   ${pref} rm -rf $PREFIX/bin/bats \
       $PREFIX/libexec/bats \
       $PREFIX/share/man/man1/bats* \
       $PREFIX/share/man/man7/bats*
 }
 
-
 install_bats()
 {
-  stderr "Installing bats"
+  stderr_ "Installing bats"
   test -n "$BATS_BRANCH" || BATS_BRANCH=master
   test -n "$BATS_REPO" || BATS_REPO=https://github.com/bats-core/bats-core.git
   test -d $SRC_PREFIX/bats || {
@@ -93,7 +90,7 @@ composer_install()
 {
   ( export PATH=$PATH:$PREFIX/bin
     test -x "$(which composer)" ||
-      stderr "Composer installed to $PREFIX but not found on PATH! Aborting. " 1
+      stderr_ "Composer installed to $PREFIX but not found on PATH! Aborting. " 1
     test -e composer.json && {
       test -e composer.lock && {
         composer update
@@ -102,18 +99,23 @@ composer_install()
         composer install
       }
     } ||
-      stderr "No composer.json"
+      stderr_ "No composer.json"
   )
 }
 
 install_docopt()
 {
   test -n "$install_f" || install_f="$py_setup_f"
+  local src=github.com/bvberkum/docopt-mpe
 
-  git clone https://github.com/bvberkum/docopt-mpe.git $SRC_PREFIX/docopt-mpe
-  ( cd $SRC_PREFIX/docopt-mpe \
-      && git checkout 0.6.x \
-      && $pref python ./setup.py install $install_f )
+  test -d $src || {
+    mkdir -p "$(dirname "$src")"
+    git clone "https://$src.git" "$SRC_PREFIX/$src"
+  }
+  ( cd $SRC_PREFIX/$src &&
+      git checkout 0.6.x &&
+      $pref python ./setup.py install $install_f &&
+      git checkout . && git clean -dfx )
 }
 
 install_git_versioning()
@@ -126,10 +128,10 @@ install_git_lfs()
 {
   # XXX: for debian only, and requires sudo
   test -n "$sudo" || {
-    stderr "sudo required for GIT LFS"
+    stderr_ "sudo required for GIT LFS"
     return 1
   }
-  stderr "Installing GIT LFS"
+  stderr_ "Installing GIT LFS"
   curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
   $pref apt-get install git-lfs
   # TODO: must be in repo. git lfs install
@@ -138,7 +140,7 @@ install_git_lfs()
 install_mkdoc()
 {
   test -n "$MKDOC_BRANCH" || MKDOC_BRANCH=master
-  stderr "Installing mkdoc ($MKDOC_BRANCH)"
+  stderr_ "Installing mkdoc ($MKDOC_BRANCH)"
   (
     cd $SRC_PREFIX
     test -e mkdoc ||
@@ -203,11 +205,11 @@ install_apenwarr_redo()
     which basher 2>/dev/null >&2 && {
 
       basher install apenwarr/redo ||
-          stderr "install apenwarr/redo" $?
+          stderr_ "install apenwarr/redo" $?
 
     } ||
 
-      stderr "Need basher to install apenwarr/redo locally" 1
+      stderr_ "Need basher to install apenwarr/redo locally" 1
   }
 }
 
@@ -226,7 +228,7 @@ main_entry()
 
   case "$1" in all|project|test|git )
       git --version >/dev/null ||
-        stderr "Sorry, GIT is a pre-requisite" 1
+        stderr_ "Sorry, GIT is a pre-requisite" 1
     ;; esac
 
   case "$1" in pip|python )
@@ -239,16 +241,16 @@ main_entry()
     ;; esac
 
   case "$1" in bats-force-local )
-      #uninstall_bats && stderr "BATS uninstall OK" || stderr "BATS uninstall failed ($?)"
+      #uninstall_bats && stderr_ "BATS uninstall OK" || stderr_ "BATS uninstall failed ($?)"
       install_bats || return $?
       PATH=$PATH:$PREFIX/bin bats --version ||
-        stderr "BATS install to $PREFIX failed" 1
+        stderr_ "BATS install to $PREFIX failed" 1
     ;; esac
 
   case "$1" in all|build|test|sh-test|bats )
       test -x "$(which bats)" || { install_bats || return $?; }
       PATH=$PATH:$PREFIX/bin bats --version ||
-        stderr "BATS install to $PREFIX failed" 1
+        stderr_ "BATS install to $PREFIX failed" 1
     ;; esac
 
   case "$1" in php|composer )
@@ -306,28 +308,29 @@ main_entry()
 
   case "$1" in travis|test )
       test -x "$(which gem)" ||
-        stderr "ruby/gemfiles required" 1
+        stderr_ "ruby/gemfiles required" 1
       ruby -v
       gem --version
       test -x "$(which travis)" ||
-    	${sudo} gem install travis -v 1.8.6 --no-rdoc --no-ri
+        ${sudo} gem install travis -v 1.8.6 --no-rdoc --no-ri
     ;; esac
 
-  stderr "OK. All pre-requisites for '$1' checked"
+  stderr_ "OK. All pre-requisites for '$1' checked"
 }
+
 
 main_load()
 {
   #test -x "$(which tput)" && ...
   log_pref="[install-dependencies] "
-  stderr "Loaded"
+  stderr_ "Loaded"
 }
 
 
 {
   test "$(basename "$0")" = "install-dependencies.sh" ||
   test "$(basename "$0")" = "bash" ||
-    stderr "0: '$0' *: $*" 1
+    stderr_ "0: '$0' *: $*" 1
 } && {
   test -n "$1" -o "$1" = "-" || set -- all
   while test -n "$1"

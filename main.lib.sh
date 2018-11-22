@@ -3,6 +3,11 @@
 
 # Main: CLI helpers; init/run func as subcmd
 
+main_lib_load()
+{
+  test -n "$subcmd_default" || subcmd_default=default
+}
+
 
 # Count arguments consumed
 incr_c()
@@ -232,8 +237,9 @@ try_subcmd()
 
 try_subcmd_prefixes()
 {
+  test -n "$1" || set -- "$subcmd_default"
   upper=0 mkvid "$1" ; shift ;
-  for p in ${prefixes}
+  for p in ${subcmd_prefs}
   do
     func_exists ${p}$vid || continue
     cmd=${p}$vid
@@ -877,7 +883,7 @@ run_check()
     }
   }
 
-  s= p= prefixes=${base}_check_ try_subcmd_prefixes "$1"
+  s= p= subcmd_prefs=${base}_check_ try_subcmd_prefixes "$1"
 
   return $?
 

@@ -13,8 +13,8 @@ project_stats_req()
 
 project_stats_init()
 {
+  test -e "${STATUSDIR_ROOT}/logs" || mkdir -vp "${STATUSDIR_ROOT}/logs/"
   test -n "$LIB_LINES_TAB" || {
-    test -e "${STATUSDIR_ROOT}/logs" || mkdir -vp "${STATUSDIR_ROOT}/logs/"
     LIB_LINES_TAB="${STATUSDIR_ROOT}/logs/${package_name}-lib-lines.tab"
   }
   test -n "$LIB_LINES_COLS" || {
@@ -49,4 +49,25 @@ project_stats_lib_size_lines_merge()
   } >"$LIB_LINES_TAB"
 
   rm "$1" "$LIB_LINES_TAB.tmp"
+}
+
+project_stats_list() # TAB LOGNUM
+{
+  test -n "$1" || set -- "$LIB_LINES_TAB" "$2"
+  test -f "$1" || error "Tab expected '$1'" 1
+  test -n "$2" || set -- "$1" $(count_cols "$1")
+
+  local tab="$1" col="$2"
+  grep_nix_lines "$1" | while read file stats
+  do
+    set -- "" $stats
+    eval "echo \"\$$col\" $file"
+  done | sort -rn
+}
+
+project_stats_list_summarize()
+{
+  last_record_num=$(( $(count_cols "$1") - 1))
+  note "$(count_lines "$1") lib(s) $last_record_num record(s)"
+  note "Last record ($last_record_num): $( tail -n 1 "$2" )"
 }

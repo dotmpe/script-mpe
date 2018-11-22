@@ -2,15 +2,25 @@
 
 htd_project_stats_lib_load()
 {
-  lib_load date build && package_init && build_init && project_stats_init
+  lib_load date statusdir build &&
+      statusdir_init && package_init && build_init && project_stats_init
 }
 
 htd_project_stats_stat()
 {
   test -e "$LIB_LINES_TAB" || warn "No Lib-linecount report" 1
   test -e "$LIB_LINES_COLS" || warn "No Lib-linecount report list" 1
-  records=$(( $(count_cols "$LIB_LINES_TAB") - 1))
-  note "$(count_lines "$LIB_LINES_TAB") lib(s) $records record(s)"
+
+  project_stats_list_summarize "$LIB_LINES_TAB" "$LIB_LINES_COLS"
+  project_stats_list "$LIB_LINES_TAB" "" | head -n 7
+  echo "... ($(( $(count_lines "$LIB_LINES_TAB" ) - 14 )) items)"
+  project_stats_list "$LIB_LINES_TAB" "" | tail -n 7
+}
+
+htd_project_stats_list()
+{
+  project_stats_list "$LIB_LINES_TAB" ""
+  project_stats_list_summarize "$LIB_LINES_TAB" "$LIB_LINES_COLS"
 }
 
 htd_project_stats_build()

@@ -29,7 +29,7 @@ htd_functions()
     ranges ) shift ; functions_ranges "$@" ;;
     filter-ranges ) shift ; functions_filter_ranges "$@" ;;
 
-    * ) s= p= prefixes=functions_ try_subcmd_prefixes "$@" ;;
+    * ) s= p= subcmd_prefs=functions_ try_subcmd_prefixes "$@" ;;
 	# error "'$1'?" 1 ;;
   esac
 }

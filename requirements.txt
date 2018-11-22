@@ -3,7 +3,6 @@ bencode
 braceexpand
 cherrypy
 couchdb
-docopt-mpe
 docutils
 fusepy
 git+https://github.com/hackerhelmut/ObjectPath.git

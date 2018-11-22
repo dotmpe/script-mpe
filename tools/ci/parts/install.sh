@@ -19,13 +19,25 @@ test "$(whoami)" = "travis" || {
   }
 }
 
+./install-dependencies.sh basher
+
+basher help
+
 ./install-dependencies.sh all python php dev bats-force-local redo
 
+#pip install https://github.com/bvberkum/docopt-mpe/archive/0.6.x.zip
+pip uninstall -qy docopt || true
+
+pip install -q docopt-mpe
+
+#./install-dependencies.sh docopt
+#python -c 'import docopt;print(docopt.__version__)'
+
 test "$(whoami)" = "travis" || {
-  pip install --upgrade pip
+  pip install -q --upgrade pip
 }
-pip install keyring requests_oauthlib
-pip install gtasks
+pip install -q keyring requests_oauthlib
+pip install -q gtasks
 
 test -x "$(which tap-json)" || npm install -g tap-json
 test -x "$(which any-json)" || npm install -g any-json

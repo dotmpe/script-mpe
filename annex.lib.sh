@@ -7,7 +7,10 @@ annex_lib_load()
 
     # TODO: scan for .annex/objects folder, move this to user-conf
   #content_annices="$()"
+}
 
+annex_init()
+{
   . ~/.local/composure/find_by_sha2.inc
 }
 

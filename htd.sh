@@ -1423,7 +1423,7 @@ htd_spc__tools="tools (<action> [<args>...])"
 htd__tools()
 {
   test -n "$1" || set -- list
-  prefixes=${base}_tools_ try_subcmd_prefixes "$@"
+  subcmd_default=list subcmd_prefs=${base}_tools_ try_subcmd_prefixes "$@"
 }
 htd_grp__tools=htd-tools
 
@@ -2283,7 +2283,7 @@ htd__tasks()
     "" ) shift || true ; htd_tasks_scan "$@" ;;
 
     * )
-        prefixes=${base}__tasks_\ ${base}_tasks_ try_subcmd_prefixes "$@"
+        subcmd_prefs=${base}__tasks_\ ${base}_tasks_ try_subcmd_prefixes "$@"
       ;;
   esac
 }
@@ -2799,7 +2799,7 @@ htd_libs__urls=web
 htd__urls()
 {
   test -n "$1" || set -- list
-  prefixes=${base}_urls_\ urls_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_urls_\ urls_ try_subcmd_prefixes "$@"
 }
 
 
@@ -2902,7 +2902,7 @@ htd__gitremote()
   }
 
   test -n "$1" || set -- list
-  prefixes=gitremote_ try_subcmd_prefixes "$@"
+  subcmd_prefs=gitremote_ try_subcmd_prefixes "$@"
 }
 
 
@@ -3105,7 +3105,7 @@ htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --gre
 htd_run__git_grep=iAO
 htd__git_grep()
 {
-  set -- $(cat $arguments)
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep='\<git.grep\>'; }
 
   test -n "$grep_args" -o -n "$grep_eval" && {
@@ -3196,7 +3196,7 @@ htd_run__git=l
 htd__git()
 {
   test -n "$1" || set -- info
-  prefixes=${base}_git_\ git_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_git_\ git_ try_subcmd_prefixes "$@"
 }
 
 
@@ -3226,7 +3226,7 @@ htd_run__file=fl
 htd__file()
 {
   test -n "$1" || set -- info
-  prefixes=${base}_file_\ file_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_file_\ file_ try_subcmd_prefixes "$@"
 }
 htd_als__test_name=file\ test-name
 htd_als__file_info=file\ format
@@ -3268,7 +3268,7 @@ htd_libs__date=date\ htd-date
 htd__date()
 {
   test -n "$1" || set -- relative
-  prefixes=date_\ htd_date_\ fmtdate_ try_subcmd_prefixes "$@"
+  subcmd_prefs=date_\ htd_date_\ fmtdate_ try_subcmd_prefixes "$@"
 }
 
 
@@ -3280,7 +3280,7 @@ htd_run__vcflow=fl
 htd__vcflow()
 {
   test -n "$1" || set -- status
-  prefixes=${base}_vcflow_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_vcflow_ try_subcmd_prefixes "$@"
 }
 htd_als__gitflow_check_doc=vcflow\ check-doc
 htd_als__gitflow_check=vcflow\ check
@@ -3881,7 +3881,7 @@ htd__push_commit()
   } &&
     note "id=$id update=$update amend=$amend all=$all push=$push any=$any every=$every"
   # FIXME: losing quotation marks!!
-  set -- "$(cat $arguments | lines_to_words )"
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   test -n "$1" && { not_trueish "$amend" || {
       error "Commit message given and --amend '$*'" 1
     }; } || { not_falseish"$amend" || {
@@ -3996,7 +3996,7 @@ htd__cabinet()
 {
   cabinet_req
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  prefixes=${base}_cabinet_\ cabinet_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_cabinet_\ cabinet_ try_subcmd_prefixes "$@"
 }
 htd_grp__cabinet=cabinet
 htd_run__cabinet=ilAO
@@ -4181,7 +4181,7 @@ htd__package()
         shift && set -- debug "$@"
       }
     } || set -- debug
-  prefixes=${base}_package_\ package_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_package_\ package_ try_subcmd_prefixes "$@"
 }
 
 htd_man_1__ls="List local package names"
@@ -4196,7 +4196,7 @@ htd_man_1__topics='List topics'
 htd__topics()
 {
   test -n "$1" || set -- list
-  prefixes=${base}_topics_\ topics_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_topics_\ topics_ try_subcmd_prefixes "$@"
 }
 htd_run__topics=iAOpx
 
@@ -4220,7 +4220,7 @@ htd_libs__scripts='package htd-scripts'
 htd__scripts()
 {
   test -n "$1" || set -- names
-  prefixes=${base}_scripts_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_scripts_ try_subcmd_prefixes "$@"
 }
 
 htd_run__script_opts=iAOpfl
@@ -4722,7 +4722,7 @@ htd__table_reformat()
 htd__table()
 {
   test -n "$1" || set -- list
-  #prefixes=try_subcmd_prefixes "$@"
+  #subcmd_prefs=try_subcmd_prefixes "$@"
   case "$1" in
     fixed-hd ) shift ;     grep_list_head "$@" ;;
     fixed-hd-ids ) shift ; fixed_table_hd_ids "$@" ;;
@@ -5239,7 +5239,7 @@ htd__tmux()
 
     resurrect ) shift ; htd__tmux_resurrect "$@" || return ;;
 
-    * ) prefixes=${base}_tmux_ try_subcmd_prefixes "$@" || return ;;
+    * ) subcmd_prefs=${base}_tmux_ try_subcmd_prefixes "$@" || return ;;
   esac
 
   # TODO: cleanup old tmux setup
@@ -5317,7 +5317,7 @@ See tmux-resurrect in section 5. (file-formats) for more details.
 htd__tmux_resurrect()
 {
   test -n "$1" || set -- lastname
-  prefixes=tmux_resurrect_ try_subcmd_prefixes "$@"
+  subcmd_prefs=tmux_resurrect_ try_subcmd_prefixes "$@"
 }
 
 
@@ -5390,7 +5390,7 @@ htd__disk()
     test -e /proc || error "/proc/* required" 1
   }
   test -n "$1" || set -- list
-  prefixes=${base}_${os}_disk_\ ${base}_disk_\ disk_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_${os}_disk_\ ${base}_disk_\ disk_ try_subcmd_prefixes "$@"
 }
 
 htd_als__runtime=disk\ runtime
@@ -6285,7 +6285,7 @@ htd_man_1__archive='Deal with archive files (tar, zip)
 htd__archive()
 {
   test -n "$1" || set -- status
-  prefixes=${base}_archive_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_archive_ try_subcmd_prefixes "$@"
 }
 htd_run__archive=fl
 htd_libs__archive=archive\ htd-archive
@@ -7062,7 +7062,7 @@ htd__annex()
           annex_dropkeys
       ;;
 
-    * ) prefixes=${base}_annex_ try_subcmd_prefixes "$@" || return ;;
+    * ) subcmd_prefs=${base}_annex_ try_subcmd_prefixes "$@" || return ;;
 
   esac
 }
@@ -7960,7 +7960,7 @@ htd_libs__vfs=vfs
 htd__vfs()
 {
   # FIXME default vfs status test -n "$1" || set -- status
-  verify=1 prefixes=${base}_vfs_ try_subcmd_prefixes "$@"
+  verify=1 subcmd_prefs=${base}_vfs_ try_subcmd_prefixes "$@"
 }
 
 
@@ -7969,7 +7969,7 @@ htd_libs__hoststat=hoststat
 htd__hoststat()
 {
   test -n "$1" || set -- status
-  prefixes=${base}_hoststat_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_hoststat_ try_subcmd_prefixes "$@"
 }
 
 
@@ -7978,14 +7978,14 @@ htd_libs__volumestat=volumestat
 htd__volumestat()
 {
   test -n "$1" || set -- status
-  prefixes=${base}_volumestat_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_volumestat_ try_subcmd_prefixes "$@"
 }
 
 
 htd__darwin()
 {
   test -n "$1" || set -- list
-  prefixes=${base}_darwin_\ darwin_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_darwin_\ darwin_ try_subcmd_prefixes "$@"
 }
 htd_run__darwin=f
 
@@ -8011,7 +8011,7 @@ htd_env__checkout='
 '
 htd__checkout()
 {
-  #set -- $(cat $arguments)
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   test -e "$1" && fn="$1" || fn="$symlinks_file"
   test -x "$fn" && table_f=- || table_f="$fn"
 
@@ -8533,7 +8533,7 @@ catalog-lib-load. Std. format is YAML.
 htd__catalog()
 {
   test -n "$1" || set -- status
-  prefixes=${base}_catalog_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_catalog_ try_subcmd_prefixes "$@"
 }
 htd_run__catalog=f
 
@@ -8544,7 +8544,7 @@ htd_als__fsck_catalog='catalog fsck'
 htd__annexdir()
 {
   test -n "$1" || set -- status
-  prefixes=annexdir_ try_subcmd_prefixes "$@"
+  subcmd_prefs=annexdir_ try_subcmd_prefixes "$@"
 }
 htd_run__annexdir=f
 
@@ -8718,7 +8718,7 @@ htd__doc()
 {
   test -n "$1" || set -- main-files
   doc_lib_init
-  prefixes=${base}_doc_\ doc_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_doc_\ doc_ try_subcmd_prefixes "$@"
 }
 htd_als__docs=doc\ list
 
@@ -8737,7 +8737,7 @@ htd__dangling_blobs()
 htd__pm2()
 {
   test -n "$1" || set -- list
-  prefixes=${base}_pm2_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_pm2_ try_subcmd_prefixes "$@"
 }
 htd_run__pm2=f
 
@@ -8749,7 +8749,7 @@ htd_man_1__make='
 htd__make()
 {
   test -n "$1" || set -- status
-  prefixes=${base}_make_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_make_ try_subcmd_prefixes "$@"
 }
 htd_run__make=f
 
@@ -8807,7 +8807,7 @@ See also embyapi'
 htd__meta()
 {
   lib_load meta
-  prefixes=meta_ try_subcmd_prefixes "$@"
+  subcmd_prefs=meta_ try_subcmd_prefixes "$@"
 }
 
 
@@ -8829,7 +8829,7 @@ htd_run__src=fl
 htd__src()
 {
   test -n "$1" || set -- default
-  prefixes=${base}_src_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_src_ try_subcmd_prefixes "$@"
 }
 
 
@@ -8854,7 +8854,7 @@ htd__docstat()
 {
   test -n "$1" || set -- list
   doc_lib_init
-  prefixes=docstat_ try_subcmd_prefixes "$@"
+  subcmd_prefs=docstat_ try_subcmd_prefixes "$@"
 }
 htd_run__docstat=ql
 htd_libs__docstat=docstat\ ctx-doc\ doc
@@ -8866,7 +8866,7 @@ htd_man_1__context='
 htd__context()
 {
   test -n "$1" || set -- list
-  prefixes=${base}_context_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_context_ try_subcmd_prefixes "$@"
 }
 htd_run__context=l
 htd_libs__context=context\ htd-context
@@ -8899,8 +8899,9 @@ htd_man_1__urlstat='Build urlstat index
 '
 htd__urlstat()
 {
-  set -- $(cat $arguments) ; urlstat_check_update=$update ; test -n "$1" || set -- list
-  prefixes=urlstat_ try_subcmd_prefixes "$@"
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  subcmd_default=list urlstat_check_update=$update \
+      subcmd_prefs=urlstat_ try_subcmd_prefixes "$@"
 }
 htd_run__urlstat=qliAO
 htd_libs__urlstat=urlstat
@@ -8928,8 +8929,8 @@ htd_man_1__scrtab='Build scrtab index
 '
 htd__scrtab()
 {
-  set -- $(cat $arguments | lines_to_words) ; test -n "$1" || set -- list
-  prefixes=scrtab_\ htd_scrtab_ try_subcmd_prefixes "$@"
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  subcmd_default=list subcmd_prefs=scrtab_\ htd_scrtab_ try_subcmd_prefixes "$@"
 }
 htd_run__scrtab=qliAO
 
@@ -8937,8 +8938,7 @@ htd_run__scrtab=qliAO
 htd_man_1__redo=''
 htd__redo()
 {
-  test -n "$1" || set -- list
-  prefixes=redo_ try_subcmd_prefixes "$@"
+  subcmd_default=list subcmd_prefs=redo_ try_subcmd_prefixes "$@"
 }
 htd_run__redo=l
 
@@ -8955,8 +8955,8 @@ htd_man_1__stattab='Build stattab index
 '
 htd__sttab()
 {
-  set -- $(cat $arguments | lines_to_words) ; test -n "$1" || set -- list
-  prefixes=stattab_\ htd_stattab_ try_subcmd_prefixes "$@"
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  subcmd_default=list subcmd_prefs=stattab_\ htd_stattab_ try_subcmd_prefixes "$@"
 }
 htd_run__sttab=qliAO
 htd_libs__sttab=stattab
@@ -8966,10 +8966,10 @@ htd_man_1__project_stats=''
 htd_spc__project_stats='project-stats [CMD ARGS..]'
 htd__project_stats()
 {
-  project_stats_req
+  project_stats_req || return
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  test -n "$1" || set -- stat
-  prefixes=${base}_project_stats_\ project_stats_ try_subcmd_prefixes "$@"
+  subcmd_default=stat
+  subcmd_prefs=${base}_project_stats_\ project_stats_ try_subcmd_prefixes "$@"
 }
 htd_run__project_stats=qilAO
 htd_libs__project_stats=project-stats\ htd-project-stats
@@ -8981,7 +8981,7 @@ htd_spc__str='str [CMD ARGS..]'
 htd__str()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  prefixes=${base}_str_\ str_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_str_\ str_ try_subcmd_prefixes "$@"
 }
 htd_run__str=ilAO
 htd_libs__str=str\ htd-str
@@ -9006,7 +9006,7 @@ htd_main()
     upper= \
     package_id= package_cwd= package_env= \
     subcmd= subcmd_alias= subcmd_args_pre= \
-    arguments= prefixes= options= \
+    arguments= subcmd_prefs= options= \
     passed= skipped= error= failed=
 
   test -n "$verbosity" || local verbosity=5

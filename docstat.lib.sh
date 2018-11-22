@@ -7,13 +7,18 @@ docstat_lib_load()
 
   test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
   test -n "$DOCSTAT_TAB" || DOCSTAT_TAB=${STATUSDIR_ROOT}/index/docstat.list
-  test -e "$DOCSTAT_TAB" || {
-    touch "$DOCSTAT_TAB" || return
-  }
   test -n "$DOCSTAT" || DOCSTAT=${STATUSDIR_ROOT}/tree/docstat
   test -d "$DOCSTAT" || mkdir "$DOCSTAT"
   test -n "$DOCSTAT_PREF" || DOCSTAT_PREF=$DOCSTAT/
   test -n "$DOC_EXT" || export DOC_EXT=.rst
+}
+
+docstat_init()
+{
+  test -e "$DOCSTAT_TAB" || {
+    mkdir -p "$(dirname "$DOCSTAT_TAB")"
+    touch "$DOCSTAT_TAB" || return
+  }
 }
 
 docstat_file_env() # Doc-Path [New]

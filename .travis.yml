@@ -54,29 +54,34 @@ script:
   - echo Starting $scriptname
   - failed=/tmp/htd-build-test-$(uuidgen).failed
   - lib_load build-test && build_test_init
+  - htd package update
+  - export verbosity=7
+  - htd project-stats build
     #&& all_tests_static
     #- test_any_feature "test/stattab.feature"
   #- . ./tools/ci/parts/build.sh
   - test "$SHIPPABLE" = true || test ! -e "$failed"
 
-#before_cache:
-#  - export scriptname=before-cache before_cache_ts="$(date +%s)"
-#  - echo Starting $scriptname
-#  - rm -f $HOME/.cache/pip/log/debug.log
+before_cache:
+  - export scriptname=before-cache before_cache_ts="$(date +%s)"
+  - echo Starting $scriptname
+  - rm -f $HOME/.cache/pip/log/debug.log
 
 #cache:
 #  directories:
 #     - ./node_modules
 #     - ./vendor
-#     - $HOME/.local
+#     #- $HOME/.local
 #     - $HOME/.basher
 #     - $HOME/.cache/pip
 #     - $HOME/virtualenv
 #     - $HOME/.npm
-
-after_script:
-  - export scriptname=after-script after_script_ts="$(date +%s)"
-  - echo Starting $scriptname
+#     - $HOME/.composer
+#     - $HOME/.rvm/
+#
+#after_script:
+#  - export scriptname=after-script after_script_ts="$(date +%s)"
+#  - echo Starting $scriptname
 
 after_success:
   - export scriptname=after-success after_success_ts="$(date +%s)"
