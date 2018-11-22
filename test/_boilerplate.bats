@@ -22,6 +22,7 @@ teardown()
   test -n "$BATS_ERROR_STATUS" || rm -rf "$tmpd"
 }
 
+
 @test "$base -vv -n help" {
   skip "some reason to skip test"
   run $BATS_TEST_DESCRIPTION

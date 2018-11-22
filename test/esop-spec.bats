@@ -71,6 +71,7 @@ init
 }
 
 @test "${bin} -vv -n help" {
+  TODO "FIXME: subcmd alias"
   export verbosity=5 # Go to level 7 with -vv
   run $BATS_TEST_DESCRIPTION
   test_ok_lines "*DRY-RUN*" "*esop loaded*" \
@@ -79,12 +80,3 @@ init
     "*subcmd=help subcmd_alias= subcmd_def=" \
     || stdfail
 }
-
-#@test "${lib}/${base} - function should ..." {
-#  check_skipped_envs || \
-#    TODO "envs $envs: implement lib (test) for env"
-#  run function args
-#  { test_ok_nonempty && fnmatch "* ... * " "${lines[*]}" ; } || stdfail
-#  { test_ok_empty ; } || stdfail
-#  test ${status} -eq 0
-#}

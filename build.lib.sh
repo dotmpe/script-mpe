@@ -42,6 +42,8 @@ build_init()
                                  ./contexts/ctx-\${id}.lib.sh \
                                  ./commands/\${id}.lib.sh \
                                  ./commands/htd-\${id}.lib.sh"
+  test -n "$package_specs_libs" ||
+    package_specs_libs="$package_specs_script_libs"
   test -n "$package_specs_scripts" ||
       package_specs_scripts="./\${id}.sh \
                                  ./\${id} \
@@ -292,7 +294,7 @@ build_sh_idx()
 # Build all graphs
 build_graphs()
 {
-  test -n "$package_component_name" || package_component_name=package_component_name
+  package_init_env ; package_req_env || return
 
   _inner()
   {
@@ -313,18 +315,17 @@ build_graphs()
 
 build_package_script_lib_list()
 {
-  test -n "$package_components" && { . "$PACKMETA_SH" || return $? ; }
-  test -n "$package_component_name" || package_component_name=package_component_name
+  package_init_env ; package_req_env || return
+
   expand_spec_src script_libs |
       p= s= act=$package_component_name foreach_inscol
 }
 
 build_components_id_path_map()
 {
-  test -n "$package_components" && { . "$PACKMETA_SH" || return $? ; }
-  test -n "$package_components" || package_components=package_components
-  test -n "$package_component_name" || package_component_name=package_component_name
-  verbosity=7 $package_components
+  package_init_env ; package_req_env || return
+
+  $package_components "$@"
 }
 
 # Build deps list for one function
@@ -400,7 +401,7 @@ build_refdocs()
   _inner()
   {
     filename_baseid "$1" ; base_id="$id"
-    comp_id="$(package_component_name "$1")"
+    comp_id="$$(package_component_name "$1")"
     #mksid "$(basename "$1" .sh)" ; docid=$sid
 
     #note "Inner: '$*' $base_id $comp_id"

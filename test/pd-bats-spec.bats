@@ -7,7 +7,7 @@ init
 
 setup()
 {
-  . $lib/util.sh
+  . $scriptpath/util.sh
 }
 
 # Static, local tests for projectdir-bats.inc.sh

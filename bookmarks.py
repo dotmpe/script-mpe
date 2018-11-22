@@ -28,7 +28,7 @@ chrome_history_path=   '~/Library/Application Support/Google/Chrome/Default/Hist
 __usage__ = """
 
 Usage:
-  bookmarks.py [-v... options] list [NAME] --tags=TAG...
+  bookmarks.py [-v... options] list [NAME] [ --tags=TAG... ]
   bookmarks.py [-v... options] (add|modify|assert|show) REF [ NAME ] [ TAGS... ]
   bookmarks.py [-v... options] remove REF
   bookmarks.py [-v... options] tags [TAGS...]

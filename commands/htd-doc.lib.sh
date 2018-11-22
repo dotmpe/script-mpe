@@ -4,20 +4,30 @@
 # See also docstat-list XXX: see also doc-find, list from SCM etc.
 htd_doc_list()
 {
+  lib_load package &&
   doc_list_local
 }
 
+# Get log env, test for and copy from package-log-dir
 req_logdir_env()
 {
-  test -n "$log" || log="$package_log"
-  test -n "$log" -a -d "$log" || error "package log env expected" 1
+  test -n "$log" || {
+    test -n "$package_name" || {
+        package_lib_set_local .
+        . "$PACKMETA_SH"
+        note "Package: $package_name #$package_id v$package_version"
+    }
+    log="$package_log_dir"
+  }
+  test -n "$log" -a -d "$log" || error "package log env expected ($log)" 1
 }
 
-# Generate or update document file, and keep checksum for generated files
-# Pure shell version.
+# Generate or update document file, and keep checksum for generated files.
+# XXX: this is getting a bit longish, should split up specific rst-doc fields
+# and allow them to be overriden.
 htd_rst_doc_create_update()
 {
-  test -n "$1" || error htd-rst-doc-create-update 12
+  test -n "$1" || error "htd-rst-doc-create-update" 12
   local outf="$1" title="$2" ; shift 2
   test -s "$outf" && new=0 || new=1
 
@@ -63,7 +73,7 @@ htd_rst_doc_create_update()
 
             relp="$(grealpath --relative-to=$(dirname "$outf") $includedir)"
             {
-              echo ; echo ; echo ".. include:: $relp/.default.rst"
+              echo ; echo ; echo ".. insert:" ; echo ".. include:: $relp/.default.rst"
             } >> $outf
           }
         ;;
@@ -171,14 +181,38 @@ htd_rst_doc_create_update()
 }
 
 
+# Frontend for -htd-doc-query-or-create-or-edit, see htd-doc-new for info.
+htd_doc_exists() # Title-Descr...
+{
+  lib_load context ctx-base
+  query=1 _htd_doc_query_or_create_or_edit "$@"
+}
+
+# Frontend for -htd-doc-query-or-create-or-edit, see htd-doc-new for info.
+htd_doc_edit() # Title-Descr...
+{
+  lib_load context ctx-base
+  edit=1 _htd_doc_query_or_create_or_edit "$@"
+}
 
 # Build a new permalog entry, ie. a docpath that includes a date and that will
 # exists indefinitely. Its content never changes, or not for a significant time.
-
-htd_doc_new() # Title-Descr
+#
+# rst title and created fields builtin. enters entry into docstat, and adds
+# permalog pseudo-directive to journal:today file.
+#
+# Frontend for -htd-doc-query-or-create-or-edit
+htd_doc_new() # Title-Descr...
 {
   lib_load context ctx-base
+  create=1 edit=1 _htd_doc_query_or_create_or_edit "$@"
+}
 
+
+# Get archived path for given title-descr, create and/or start editor for path,
+# this wraps htd-doc-file and doc-title-id for Title-Descr to doc-id.
+_htd_doc_query_or_create_or_edit() # [query=] [create=] [edit=] ~ [Title-Descr...]
+{
   test -n "$title_fmt" || title_fmt="$package_log_doctitle_fmt"
   test -z "$1" && {
 
@@ -186,7 +220,7 @@ htd_doc_new() # Title-Descr
     test -n "$now" &&
         title="$(date_fmt "$now" "$title_fmt")" ||
         title="$(date_fmt "" "$title_fmt")"
-    htd_doc_newfile "%a-%g_w%V" "$title" || return $?
+    htd_doc_file "%a-%g_w%V" "$title" || return $?
 
   } || {
 
@@ -197,14 +231,23 @@ htd_doc_new() # Title-Descr
           fnmatch "*%*" "$a" && $gdate +"\"$a\"" || echo \"$a\"
         done | lines_to_words )
     doc_title_id "$@" || return $?
-    htd_doc_newfile "$doc_id" "$($gdate +"$doc_title")"
+    htd_doc_file "$doc_id" "$($gdate +"$doc_title")"
   }
 }
 
 
-htd_doc_newfile() # [date=now] . Title-Descr..
+# Build path to document file, each argument corresponding to a topic or title,
+# and being concatenated for document filename and title entry. But formatted
+# according to use, with no arguments set to calendar day for [date].
+#
+# Without create or edit env settings then query=1.
+# Otherwise ff query set then create=0 edit=0.
+#
+# TODO: unify package-permalog-method settings
+htd_doc_file() # [date=now] [query=] [edit=] [create=] ~ [Title-Descr..]
 {
   test -n "$1" || error "Name-Id required" 1
+  test -n "$htd_doc_init_fields" || htd_doc_init_fields="title created"
 
   lib_load context ctx-base ctx-std
 
@@ -220,31 +263,46 @@ htd_doc_newfile() # [date=now] . Title-Descr..
     docname="$($gdate +"$(basename "$1" $EXT)")"
 
   docstat_file_env "$docname" 1
-  info "Doc-New Name-Id: $docstat_id"
-  docstat_exists && warn "Entry exists '$docstat_id'" 1
+
+  test -z "$query" -a -z "$create" -a -z "$edit" &&
+      eval query=1 create=0 edit=0 || {
+    trueish "$query" && eval create=0 edit=0
+  }
+
+  trueish "$create" && {
+    docstat_exists && warn "Entry exists '$docstat_id'" 1
+    info "Doc-New Name-Id: $docstat_id"
+  }
 
   # Build strftime pathstr
   archive_path "$package_permalog_path/$1" "$now"
-  note "Doc-New Path: $archive_path"
+  note "Doc Path: $archive_path"
 
   # Create file and add docstat entry
-  mkdir -p "$(dirname "$archive_path")"
-  touch "$archive_path"
+  trueish "$create" && {
+      mkdir -p "$(dirname "$archive_path")"
+      touch "$archive_path"
+  }
   req_logdir_env
 
-  htd_rst_doc_create_update "$archive_path" "$2" title created
-  docstat_src="$archive_path" ext=$(echo "$EXT" | cut -c2-) docstat_new "$2"
-
-  test ! -e "$log/today.rst" || {
-
-    # Append/insert file as rSt comment to todays entry
-    jrnl_line=".. permalog $2 $archive_path"
-    grep -q '^\s*\.\. ins.*' "$log/today.rst" && {
-      file_insert_where_after '^\s*\.\.\ ins.*' "$log/today.rst" "$jrnl_line"
-    } || {
-      echo "$jrnl_line" >> "$log/today.rst"
-    }
+  test -e "$archive_path" && {
+    htd_rst_doc_create_update "$archive_path" "$2" $htd_doc_init_fields
   }
+  trueish "$create" && {
+    docstat_src="$archive_path" ext=$(echo "$EXT" | cut -c2-) docstat_new "$2"
+  }
+  note "c:$create q:$query e:$edit path: $archive_path"
+
+  trueish "$query" && {
+
+    test -e "$archive_path" || return
+    echo $archive_path
+    return
+  }
+  trueish "$edit" || return 0
+  test -e "$archive_path" || return
+  cabinet_permalog "$log/today.rst" "$docstat_id" "$archive_path"
+  $EDITOR "$archive_path"
 }
 
 # Start EDITOR, after succesful exit cleanup generated files

@@ -1,7 +1,7 @@
 setup()
 {
   verbosity=0
-  load init
+  load init && init
 }
 
 @test "doc, docs, find-doc and find-docs have online help" {
@@ -26,7 +26,7 @@ setup()
     package_docs_find=echo htd find-docs "$@"
   }
   run _Test foo
-  test_ok_nonempty "*foo"
+  test_ok_nonempty "*foo" || stdfail 1.
 }
 
 @test "htd find-doc returns output from package-doc-find handler" {
@@ -35,5 +35,5 @@ setup()
     package_doc_find=echo htd find-doc "$@"
   }
   run _Test foo2
-  test_ok_lines "foo2"
+  test_ok_lines "foo2" || stdfail 2.
 }

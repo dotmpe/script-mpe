@@ -1,3 +1,19 @@
+2018-11-20
+
+limit lib size, monitor lines
+
+Boost Lib can do looped pre-proc
+
+TODO: fix vc so it does blame for GIT submodule paths
+
+gistify flow; add files, receive GIST id, record (mini) project.
+
+have a gander at CSP
+
+http://github.com/BlueFlo0d/CSP/wiki/Implementation-details
+<https://stackoverflow.com/questions/14401377/y-combinator-and-the-c-preprocessor>
+<https://github.com/BlueFlo0d/CSP/wiki/Implementation-details>
+
 2018-10-22 FIXME: <test/env-pollution.sh>
 2017-04-03 TODO: deprecate move functionality to db_sa.py based store +script-mpe uid:h2U_MT git:b7fc8a7f src_name:tag.py ~berend+dev.mpe
 # no dbm compatibility layer here. Removed ``tag.py``, started ``db.py`` [h2U_MT]

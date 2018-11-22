@@ -1,21 +1,151 @@
 #!/usr/bin/env bats
 
-load init
 base=sys.lib
+load init
 
 setup()
 {
-  init &&
+  init 0 &&
+
   main_inc=$SHT_PWD/var/sh-src-main-mytest-funcs.sh &&
-  . $main_inc &&
-  export SCR_SYS_SH= &&
-  sys_lib_load
+  . $main_inc #&&
+}
+
+
+@test "$base: incr VAR [AMOUNT]" {
+
+#export SCR_SYS_SH= && lib_load sys
+  lib_load sys
+
+  COUNT=2
+  run incr COUNT 5
+  test_ok_empty || stdfail "1."
+
+  incr COUNT 5
+  test $COUNT -eq 7 || stdfail "2. ($COUNT)"
+}
+
+
+@test "$base: trueish VALUE" {
+
+  lib_load sys
+
+  run trueish 1 ; test_ok_empty || stdfail 1.A.
+  run trueish 0 ; test_nok_empty || stdfail 1.B.
+
+  run trueish True ; test_ok_empty || stdfail 2.A.
+  run trueish False ; test_nok_empty || stdfail 2.B.
+
+  run trueish On ; test_ok_empty || stdfail 3.A.
+  run trueish Off ; test_nok_empty || stdfail 3.B.
+
+  run trueish Yes ; test_ok_empty || stdfail 4.A.
+  run trueish No ; test_nok_empty || stdfail 4.B.
+
+  run trueish - ; test_nok_empty || stdfail 5.A.
+  run trueish "" ; test_nok_empty || stdfail 5.B.
+
+}
+
+@test "$base: not-trueish VALUE" {
+
+  lib_load sys
+
+  run not_trueish 1 ; test_nok_empty || stdfail 1.A.
+  run not_trueish 0 ; test_ok_empty || stdfail 1.B.
+
+  run not_trueish True ; test_nok_empty || stdfail 2.A.
+  run not_trueish False ; test_ok_empty || stdfail 2.B.
+
+  run not_trueish On ; test_nok_empty || stdfail 3.A.
+  run not_trueish Off ; test_ok_empty || stdfail 3.B.
+
+  run not_trueish Yes ; test_nok_empty || stdfail 4.A.
+  run not_trueish No ; test_ok_empty || stdfail 4.B.
+
+  run not_trueish - ; test_ok_empty || stdfail 5.A.
+  run not_trueish "" ; test_ok_empty || stdfail 5.B.
+
+}
+
+@test "$base: falseish VALUE" {
+
+  lib_load sys
+
+  run falseish 1 ; test_nok_empty || stdfail 1.A.
+  run falseish 0 ; test_ok_empty || stdfail 1.B.
+
+  run falseish True ; test_nok_empty || stdfail 2.A.
+  run falseish False ; test_ok_empty || stdfail 2.B.
+
+  run falseish On ; test_nok_empty || stdfail 3.A.
+  run falseish Off ; test_ok_empty || stdfail 3.B.
+
+  run falseish Yes ; test_nok_empty || stdfail 4.A.
+  run falseish No ; test_ok_empty || stdfail 4.B.
+
+  run falseish - ; test_nok_empty || stdfail 5.A.
+  run falseish "" ; test_nok_empty || stdfail 5.B.
+}
+
+@test "$base: not-falseish VALUE" {
+
+  lib_load sys
+
+  run not_falseish 1 ; test_ok_empty || stdfail 1.A.
+  run not_falseish 0 ; test_nok_empty || stdfail 1.B.
+
+  run not_falseish True ; test_ok_empty || stdfail 2.A.
+  run not_falseish False ; test_nok_empty || stdfail 2.B.
+
+  run not_falseish On ; test_ok_empty || stdfail 3.A.
+  run not_falseish Off ; test_nok_empty || stdfail 3.B.
+
+  run not_falseish Yes ; test_ok_empty || stdfail 4.A.
+  run not_falseish No ; test_nok_empty || stdfail 4.B.
+
+  run not_falseish - ; test_ok_empty || stdfail 5.A.
+  run not_falseish "" ; test_ok_empty || stdfail 5.B.
+}
+
+
+@test "$base: cmd-exists NAME" {
+
+  lib_load sys
+
+  run cmd_exists "ls"
+  test_ok_empty || stdfail "A."
+
+  run cmd_exists ""
+  test_nok_empty || stdfail "B.1."
+  
+  run which "$(get_uuid)"
+  test_nok_empty || stdfail "B.2."
+
+  run cmd_exists "$(get_uuid)"
+  test_nok_empty || stdfail "B.3."
+}
+
+
+@test "$base: func-exists NAME" {
+
+  myfunc() { false; }
+
+  lib_load sys os
+
+  run func_exists myfunc
+  test_ok_empty || stdfail A.
+
+  run func_exists $(get_uuid)
+  test_nok_empty || stdfail B.
 }
 
 
 # util / Try-Exec
 
-@test "$base: try_exec_func on existing function" {
+@test "$base: try-exec-func on existing function" {
+
+  lib_load std sys
 
   run try_exec_func mytest_function
   { test $status -eq 0 &&
@@ -23,16 +153,24 @@ setup()
   } || stdfail
 }
 
-@test "$base: try_exec_func on non-existing function" {
+@test "$base: try-exec-func on non-existing function" {
 
+  lib_load sys
   run try_exec_func no_such_function
   test $status -eq 1
 }
 
-@test "$base: try_exec_func (bash) on existing function" {
 
-  run bash -c 'scriptpath='$lib' && __load_mode=boot source '$lib'/util.sh && \
-    source '$main_inc' && try_exec_func mytest_function'
+@test "$base: try-exec-func (bash) on existing function" {
+
+  run bash -c "$(cat <<EOM
+
+source $scriptpath/tools/sh/init.sh &&
+lib_load &&
+source '$main_inc' &&
+try_exec_func mytest_function
+EOM
+    )"
   diag "Output: ${lines[0]}"
   {
     test $status -eq 0 &&
@@ -40,17 +178,26 @@ setup()
   } || stdfail 3.
 }
 
-@test "$base: try_exec_func (bash) on non-existing function" {
+@test "$base: try-exec-func (bash) on non-existing function" {
 
   export verbosity=6
-  run bash -c 'scriptpath='$lib' && __load_mode=boot source '$lib'/util.sh && try_exec_func no_such_function'
-  {
-    test "" = "${lines[*]}" &&
-    test $status -eq 1
+  lib_load sys
+
+  run bash -c "$( cat <<EOM
+# source '$scriptpath'/util.sh && try_exec_func no_such_function
+source '$scriptpath'/tools/sh/init.sh && lib_load && try_exec_func no_such_function
+EOM
+    )"
+  #run bash -c 'scriptpath='$lib' && __load_mode=boot source '$lib'/util.sh && try_exec_func no_such_function'
+  { test "" = "${lines[*]}" && test $status -eq 1
   } || stdfail 4.1.1
 
   export verbosity=7
-  run bash -c 'scriptpath='$lib' && __load_mode=boot source '$lib'/util.sh && try_exec_func no_such_function'
+  run bash -c "$( cat <<EOM
+export scriptpath='$scriptpath'
+__load_mode=boot source '$scriptpath'/util.sh && try_exec_func no_such_function
+EOM
+)"
   {
     fnmatch "*try-exec-func 'no_such_function'*" "${lines[*]}" &&
     test $status -eq 1
@@ -64,10 +211,11 @@ setup()
   } || stdfail 4.2
 }
 
-@test "$base: try_exec_func (sh) on existing function" {
+@test "$base: try-exec-func (sh) on existing function" {
 
+  lib_load sys
   export verbosity=5
-  run sh -c 'TERM=dumb && scriptpath='$lib' && __load_mode=boot . '$lib'/util.sh && \
+  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && __load_mode=boot . '$scriptpath'/util.sh && \
     . '$main_inc' && try_exec_func mytest_function'
   {
     test -n "${lines[*]}" &&
@@ -76,11 +224,12 @@ setup()
   } || stdfail
 }
 
-@test "$base: try_exec_func (sh) on non-existing function" {
+@test "$base: try-exec-func (sh) on non-existing function" {
 
+  lib_load sys
   export verbosity=5
 
-  run sh -c 'TERM=dumb && scriptpath='$lib' && __load_mode=boot . '$lib'/util.sh && try_exec_func no_such_function'
+  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && __load_mode=boot . '$scriptpath'/util.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}" || stdfail 1
 
   case "$(uname)" in
@@ -110,6 +259,7 @@ setup()
 
 @test "$base: var-isset depends on SCR-SYS-SH " {
 
+  lib_load sys
   diag "Shell: $SHELL, Scr-Sys-Sh: $SCR_SYS_SH"
   {
     fnmatch "bash-sh" "$SCR_SYS_SH" || fnmatch "sh" "$SCR_SYS_SH"
@@ -122,6 +272,7 @@ setup()
 
 @test "$base: var-isset detects vars correctly even if empty" {
 
+  lib_load sys
   ( 
     env | grep -v '^[A-Z0-9_]*=' | grep '\<foo_bar='
   ) && fail "unexpected" || true
@@ -143,6 +294,7 @@ setup()
 
 @test "$base: var-isset detects vars correctly even if empty (sh wrapper)" {
 
+  lib_load sys
   ./test/util-lib-spec.sh var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || echo
 
   run ./test/util-lib-spec.sh var-isset foo_bar
@@ -156,6 +308,7 @@ setup()
 
 @test "$base: var-isset detects vars correctly even if empty (bash wrapper)" {
 
+  lib_load sys
   local scriptpath="$(pwd)"
   ./test/util-lib-spec.bash var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
 
@@ -168,6 +321,8 @@ setup()
 
 
 @test "$base: var-isset detects vars correctly even if empty, exported" {
+
+  lib_load sys
   var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
   run var_isset foo_bar
   test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
@@ -187,6 +342,7 @@ setup()
 
 @test "$base: var-isset detects vars correctly even if empty, local declaration" {
 
+  lib_load sys
   # XXX: Bats with non-bash test subshell?
   diag "Sh: $SHELL"
   test -n "$SHELL" -a "$(basename $SHELL)" = "sh" || skip
@@ -205,6 +361,7 @@ setup()
 
 @test "${base}: capture CMD captures subshell return status to var while redirecting output" {
 
+  lib_load sys os
   run capture true '' '' '' "foo"
   test_ok_empty || stdfail 1.1.
   run capture false '' '' '' "bar" "baz"
@@ -226,6 +383,7 @@ setup()
 
 @test "${base}: capture CMD handles command pipeline input as well" {
 
+  lib_load sys os
   tmpf ; input=$tmpf
   tmpf ; out_file=$tmpf
   __test__() {
@@ -245,8 +403,8 @@ setup()
 
 @test "${base}: capture-var or eval cmd-string" {
 
+  lib_load std sys os
   func_exists capture_var
-
   my_cmd()
   {
     echo "${1}2ab"

@@ -96,3 +96,18 @@ tools:
 
   git-annex-finddups:
     url: https://rawgit.com/aspiers/git-config/master/bin/git-annex-finddups
+
+  go-up:
+    bin: up
+    path: ~/go/bin
+    description: |
+      Interactive pipes TUI app, pass a stdin and continue literally editing a
+      "pipeline" while lines below update from the command after pressing return.
+    install:
+    - go get -u github.com/akavel/up
+
+  nix: {} # curl https://nixos.org/nix/install | sh
+
+  go-bane:
+    installer: go-get
+    id: github.com/genuinetools/bane

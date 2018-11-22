@@ -544,6 +544,21 @@ count_lines()
   }
 }
 
+# Wrap wc but correct files with or w.o. trailing posix line-end
+line_count()
+{
+  test -s "$1" || return 42
+  test $(filesize "$1") -gt 0 || return 43
+  lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
+  case "$lc" in "\n" ) ;;
+    "\r" ) error "POSIX line-end required" 1 ;;
+    * ) printf '\n' >>$1 ;;
+  esac
+  local lc=$(wc -l $1 | awk '{print $1}')
+  echo $lc
+}
+
+# Count words
 count_words()
 {
   test -z "$1" -o "$1" = "-" && {
@@ -557,6 +572,7 @@ count_words()
   }
 }
 
+# Count every character
 count_chars()
 {
   test -n "$1" && {
@@ -570,18 +586,27 @@ count_chars()
   }
 }
 
-# Wrap wc but correct files with or w.o. trailing posix line-end
-line_count()
+# Count occurence of character each line
+count_char() # Char
 {
-  test -s "$1" || return 42
-  test $(filesize "$1") -gt 0 || return 43
-  lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
-  case "$lc" in "\n" ) ;;
-    "\r" ) error "POSIX line-end required" 1 ;;
-    * ) printf '\n' >>$1 ;;
-  esac
-  local lc=$(wc -l $1 | awk '{print $1}')
-  echo $lc
+  local ch="$1" ; shift
+  awk -F$ch '{print NF-1}' |
+      # strip -1 "error" for empty line
+      sed 's/^-1$//'
+}
+
+# Count tab-separated columns on first line. One line for each file.
+count_cols()
+{
+  test -n "$1" && {
+    while test -n "$1"
+    do
+      { printf '\t'; head -n 1 "$1"; } | count_char '\t'
+      shift
+    done
+  } || {
+    { printf '\t'; head -n 1; } | count_char '\t'
+  }
 }
 
 xsed_rewrite()
@@ -892,15 +917,23 @@ zipfiles()
   } | ziplists $rows
 }
 
+# Read pairs and rsync. Env dry-run=0 to execute, rsync-a to override 'vaL' flags.
 rsync_pairs()
 {
   test -n "$rsync_a" || rsync_a=-vaL
-  while read -r target
+  falseish "$dry_run" || rsync_a=${rsync_a}n
+
+  while read -r src dest
   do
-    #echo "rsync $rsync_a '$p$1' '$to$target'"
-    mkdir -p "$(dirname "$to$target")"
-    rsync $rsync_a "$p$1" "$to$target"
-    shift
+    mkdir -p "$(dirname "$dest")"
+    rsync $rsync_a "$src" "$dest" && {
+        falseish "$dry_run" &&
+        note "Synced <$src> to <$dest>" ||
+        note "**dry run ** Synced <$src> to <$dest>"
+    } || {
+        error "Syncing <$src> to <$dest>"
+        return 1
+    }
   done
 }
 

@@ -135,6 +135,102 @@ ht__run()
 }
 
 
+# Test command with OSX Automator
+ht__xconsole()
+{
+  test -n "$1" || set -- test
+  test -n "$ALT_EDITOR" || ALT_EDITOR=gvim
+  case "$1" in
+
+    -dialog )
+        osascript -sso - "$2" <<EOF
+on run argv
+  display dialog "Hello, " & (item 1 of argv) & "."
+end run
+EOF
+      ;;
+
+    -query ) # NOTE: on my BSD this returns quoted output no-matter what,
+        # so should eval str to sh var afterward.
+        test -n "$2" || set -- "$1" Prompt
+        osascript -sso <<EOF
+on run
+  set query to display dialog "$2:" default answer "" with icon note buttons {"Cancel", "Continue"} default button "Continue"
+  if button returned of query is equal to "Cancel" then
+    error number -128
+  end if
+  copy text returned of query to stdout
+end run
+EOF
+      ;;
+
+    -custom )
+        eval cmd=$(ht__xconsole -query Command)
+        eval "EDITOR=$ALT_EDITOR $cmd"
+      ;;
+
+    vt )
+        cd ~/htdocs
+        EDITOR=$ALT_EDITOR htd vt
+      ;;
+
+    doc )
+        cd ~/htdocs
+        htd doc exists && {
+          EDITOR=$ALT_EDITOR htd doc edit || return $?
+        } || {
+          EDITOR=$ALT_EDITOR htd doc new
+        }
+      ;;
+
+    doc-title ) 
+        title_args_="$(ht__xconsole -query "Title/IDs")"
+        title_args="$(echo "$title_args_" | cut -c2-$(( ${#title_args_} - 1)) )"
+
+        cd ~/htdocs
+        eval "EDITOR=$ALT_EDITOR htd doc exists $title_args" || {
+            eval "EDITOR=$ALT_EDITOR htd doc new $title_args"
+            return $?
+        }
+        eval "EDITOR=$ALT_EDITOR htd doc edit $title_args"
+      ;;
+
+    new-doc-title )
+        cd ~/htdocs
+        eval "EDITOR=$ALT_EDITOR htd doc new $(ht__xconsole -query "Title/IDs")"
+      ;;
+
+    new-doc )
+        cd ~/htdocs
+        EDITOR=$ALT_EDITOR htd doc new
+      ;;
+
+    status )
+      ;;
+
+    info )
+      ;;
+
+    help )
+      ;;
+
+  esac
+
+  #open 
+}
+
+
+ht_run__ssh=fl
+ht__ssh()
+{
+  test -n "$1" || set -- info
+  lib_load ssh
+  prefixes=ssh_ try_subcmd_prefixes "$@"
+}
+
+# -- ht box insert sentinel --
+
+
 # Script main functions
 
 ht_main()

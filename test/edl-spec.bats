@@ -5,7 +5,7 @@ load init
 init
 
 
-@test "$lib resolve_prefix_element" "" "" {
+@test "$lib resolve_prefix_element" {
 
   ref="prefix:file:123:<4>:<5>:<6>:<7>:<8>:<9>:<10>: Comment: Foo "
   

@@ -2,13 +2,14 @@
 
 load init
 load vc
-base=vc.sh
+base=vc
+#.sh
 
 init
 
 setup()
 {
-  SCR_SYS_SH=bash-sh
+  #SCR_SYS_SH=bash-sh
   lib_load vc
 }
 

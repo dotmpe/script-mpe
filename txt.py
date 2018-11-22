@@ -120,6 +120,7 @@ def cmd_doctree(LIST, DIR, g):
                 continue # XXX: skipping duplicate dir where-files index/ReadMe/main
 
         if name in catalog:
+            print(name, path)
             catalog.verify_docentry(name, path)
             continue
 
@@ -170,11 +171,14 @@ def cmd_fold(OUTLINE, LIST, g):
     """
     TODO: Parse nested plain text format.
     """
+    global ctx
+
     import scrow
     from scrow.resolve import resolve
     from scrow.aparse import indented_blocks
 
-	# TODO: remove ctx from scrow API
+    # TODO: remove ctx from scrow API
+    ctx.opts.args.URI = OUTLINE
     cstream, null = resolve(ctx, False)
 
     lines = scrow.translit.Lines()
@@ -232,6 +236,7 @@ def defaults(opts, init={}):
     opts.flags.update(cmd_default_settings)
     ctx.settings.update(opts.flags)
     opts.flags.update(ctx.settings)
+    ctx.opts = opts
 
     return init
 

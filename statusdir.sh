@@ -73,7 +73,7 @@ statusdir__info()
 statusdir_man_1__root='Echo statusdir store location'
 statusdir__root()
 {
-  test -n "$STATUSDIR_ROOT" || return 12
+  test -n "$STATUSDIR_ROOT" || return 14
   path=$STATUSDIR_ROOT
   [ -e "$path" ] || mkdir -p $path
   echo $path
@@ -125,7 +125,7 @@ statusdir__assert()
 # echos path.
 statusdir__assert_elems()
 {
-  test -n "$STATUSDIR_ROOT" || return 13
+  test -n "$STATUSDIR_ROOT" || return 60
   tree="$(echo "$@" | tr ' ' '/')"
   path=$STATUSDIR_ROOT"tree/"$tree
   mkdir -vp $path
@@ -137,7 +137,7 @@ statusdir__assert_elems()
 # (does not touch file, but echos it)
 statusdir__assert_dir()
 {
-  test -n "$STATUSDIR_ROOT" || return 14
+  test -n "$STATUSDIR_ROOT" || return 64
   tree="$(echo "$@" | tr ' ' '/')"
   path=$STATUSDIR_ROOT$tree
   mkdir -vp $(dirname $path)
@@ -147,7 +147,7 @@ statusdir__assert_dir()
 # Specific statusdir__dir assert for .list file
 statusdir__index_file()
 {
-  test -n "$STATUSDIR_ROOT" || return 15
+  test -n "$STATUSDIR_ROOT" || return 65
   tree="$(echo "$@" | tr ' ' '/')"
   echo $STATUSDIR_ROOT"index/$tree.list"
 }
@@ -160,7 +160,7 @@ statusdir__index()
 # XXX: deprecate for index/index-file
 statusdir__file()
 {
-  test -n "$STATUSDIR_ROOT" || return 16
+  test -n "$STATUSDIR_ROOT" || return 66
   tree="$(echo "$@" | tr ' ' '/')"
   case "$tree" in *\* ) ;; * )
     statusdir__assert_dir "$@" >/dev/null

@@ -26,6 +26,12 @@ date_lib_load()
   export _1MONTH=$(( 4 * $_1WEEK ))
   export _1YEAR=$(( 365 * $_1DAY ))
 
+  date_lib_init_bin
+}
+
+
+date_lib_init_bin()
+{
   case "$uname" in
     Darwin ) gdate="gdate" ;;
     Linux ) gdate="date" ;;
@@ -181,7 +187,7 @@ timestamp2touch() # [ FILE | DTSTR ]
 touch_ts() # [ FILE | TIMESTAMP FILE ]
 {
   test -n "$2" || set -- "$1" "$1"
-  touch -t $(timestamp2touch $1) $2
+  touch -t "$(timestamp2touch "$1")" "$2"
 }
 
 # NOTE: BSD date -v style TAG-values are used, translated to GNU date -d
@@ -194,18 +200,24 @@ date_fmt_darwin() # TAGS DTFMT
 # Allow some abbrev. from BSD/Darwin date util with GNU date
 bsd_gsed_pre(){
   $gsed \
-     -e 's/[0-9]*s\b/&ec/g' \
-     -e 's/[0-9]*m\b/&in/g' \
-     -e 's/[0-9]*d\b/&ay/g' \
-     -e 's/[0-9]*w\b/&eek/g' \
-     -e 's/7d\>/1week/g'
+     -e 's/[0-9][0-9]*s\b/&ec/g' \
+     -e 's/[0-9][0-9]*m\b/&in/g' \
+     -e 's/[0-9][0-9]*d\b/&ay/g' \
+     -e 's/[0-9][0-9]*w\b/&eek/g' \
+     -e 's/[0-9][0-9]*y\b/&ear/g' \
+     -e 's/\<7d\>/1week/g'
 }
 
 date_fmt() # Date-Ref Str-Time-Fmt
 {
-  # NOTE patching for GNU date
-  _inner_() { printf -- '-d ' ; echo "$1" | bsd_gsed_pre ;}
-  test -z "$1" && tags="-d today" || tags=$( p= s= act=_inner_ foreach_do $1 )
+  test -z "$1" && {
+    tags="-d today"
+  } || {
+    # NOTE patching for GNU date
+    _inner_() { printf -- '-d ' ; echo "$1" | bsd_gsed_pre ;}
+    test -e "$1" && { tags="-d @$(filemtime "$1")"; } ||
+      tags=$( p= s= act=_inner_ foreach_do $1 )
+  }
   $gdate $date_flags $tags +"$2"
 }
 

@@ -6,11 +6,11 @@ init
 
 setup()
 {
-  source $lib/util.sh
-  pwd=$(pwd -P)
+  source $scriptpath/util.sh &&
+  pwd=$(pwd -P) &&
 
-  usage_line_1="${base}.sh Bash/Shell script helper"
-  usage_line_2="Usage:"
+  usage_line_1="${base}.sh Bash/Shell script helper" &&
+  usage_line_2="Usage:" &&
   usage_line_3="  ${base} <cmd> [<args>..]"
 }
 

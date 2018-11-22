@@ -16,6 +16,11 @@ doc_lib_init()
   test -z "$package_lists_documents_exts" ||
       DOC_EXTS="$package_lists_documents_exts"
 
+  test -n "$package_docs_find" || package_docs_find=doc_find_name
+  test -n "$package_doc_find" || package_doc_find=doc_find_name
+
+  spwd=.
+
   DOC_EXTS_RE="\\$(printf -- "$DOC_EXTS" | $gsed 's/\ /\\|\\/g')"
   DOC_MAIN_RE="\\$(printf -- "$DOC_MAIN" | $gsed -e 's/\ /\\|/g' -e 's/[\/]/\\&/g')"
 }
@@ -28,8 +33,18 @@ doc_path_args()
   }
 }
 
+# FIXME pass arguments as -iname query
+doc_find_all()
+{
+  test -n "$package_docs_find" || doc_lib_init
+  note "'$package_docs_find' '$*'"
+  $package_docs_find "$@"
+}
+
+# FIXME pass arguments as -iname query
 doc_find()
 {
+  test -n "$package_doc_find" || doc_lib_init
   # TODO: cleanup doc-find code
   #doc_path_args
   #test -n "$1" || return $?

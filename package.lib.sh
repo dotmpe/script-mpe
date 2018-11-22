@@ -27,6 +27,11 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
   preprocess_package || true
 }
 
+package_init()
+{
+  package_init_env && package_req_env || warn "Default package env"
+}
+
 # Preprocess YAML
 preprocess_package()
 {
@@ -99,19 +104,21 @@ package_lib_set_local()
   PACKMETA_JS_MAIN=$1/$PACK_DIR/$PACKMETA_BN.main.json
   PACKMETA_SH=$1/$PACK_DIR/$PACKMETA_BN.sh
 
-  test -n "$package_components" || package_components=package_components
-  test -n "$package_env_file" || package_env_file=$PACK_TOOLS/env.sh
-  test -n "$package_log_dir" -o -n "$package_log" ||
-      package_log="$package_log_dir"
-
-  test -z "$tasks_lib_loaded" || {
-    tasks_package_defaults
-  }
-  package_defaults
+  package_defaults || return
+  test -z "$tasks_lib_loaded" && return
+  tasks_package_defaults
 }
 
 package_defaults()
 {
+  test -n "$package_main" || package_main="$package_id"
+  test -n "$package_name" || package_name="$package_id"
+  test -n "$package_env_file" || package_env_file=$PACK_TOOLS/env.sh
+  test -n "$package_log_dir" -o -n "$package_log" || package_log="$package_log_dir"
+
+  test -n "$package_components" || package_components=package_components
+  test -n "$package_component_name" || package_component_name=package_component_name
+
   test -n "$package_permalog_path" || package_permalog_path=cabinet
   test -n "$package_permalog_method" || package_permalog_method=archive
   test -n "$package_pd_meta_checks" || package_pd_meta_checks=
@@ -184,6 +191,28 @@ jsotk_package_sh_defaults()
   } | sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g'
 }
 
+# Setup eithr local or default package env.
+package_init_env()
+{
+  test -n "$PACKMETA_SH" || {
+    note "Setting package lib env"
+    package_lib_set_local . || {
+
+        warn "No local package config set"
+        package_lib_reset && package_defaults
+        return 1
+    }
+  }
+}
+
+# Require sh package env.
+package_req_env()
+{
+  test -n "$PACKMETA_SH" || return
+  note "Loading package lib env"
+  . "$PACKMETA_SH" || return
+  package_defaults
+}
 
 # Easy access for shell to package.yml/json: convert to Sh vars.
 update_package_sh()
@@ -480,6 +509,7 @@ package_sh_list_or_name_exists()
 
 package_component_name()
 {
+  test -n "$1" || error package-component-name 1
   filename_baseid "$1"
   echo "$id" | gsed -E '
     s/-((spec)|(lib))//g
@@ -487,23 +517,26 @@ package_component_name()
   '
 }
 
+package_paths_io()
+{
+  local spwd=.
+
+  test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
+
+# ... retrieve using defined script or vc-tracked to fetch paths
+    test -n "$package_paths" || package_paths=vc_tracked
+    #eval $package_env || return $?
+    $package_paths "$@" || return
+  } || cat -
+}
+
 # Use package's paths script, or vc-tracked, to retrieve component names and
 # locations. This loads all lines to do a group on the first word and takes
 # significant time, but should complete without a minute for a large project
 package_components()
 {
-  local spwd=.
-
 # Grok either given paths on stdin, or...
-  { test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
-
-# ... retrieve using defined script or vc-tracked to fetch paths
-      test -n "$package_paths" && {
-        eval $package_env || return $?
-      } || package_paths=vc_tracked
-      $package_paths
-    } || cat -
-  } | while read -r name
+  package_paths_io "$@" | while read -r name
 
 # Then Id by basename, and use join-lines to group common paths at that prefix
     do
@@ -516,18 +549,8 @@ package_components()
 
 package_component_roots()
 {
-  local spwd=.
-
 # Grok either given paths on stdin, or...
-  { test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
-
-# ... retrieve using defined script or vc-tracked to fetch paths
-      test -n "$package_paths" && {
-        eval $package_env || return $?
-      } || package_paths=vc_tracked
-      $package_paths
-    } || cat -
-  } | while read -r name
+  package_paths_io "$@" | while read -r name
 
 # Then Id by basename, and use join-lines to group common paths at that prefix
     do

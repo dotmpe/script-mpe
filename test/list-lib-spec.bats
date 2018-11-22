@@ -9,7 +9,6 @@ testf2=test/var/nix_comments.txt
 
 setup()
 { 
-  load helper &&
 # TODO: group with list(format) or re-distribute over os, src, table..
   lib_load src table
 }

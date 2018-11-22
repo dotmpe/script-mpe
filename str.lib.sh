@@ -202,6 +202,21 @@ lines_to_words()
     tr '\n' ' '
   }
 }
+
+# Quote each line
+lines_quoted() # [-|FILE]
+{
+  test -n "$1" || set -- "-"
+  cat "$1" |
+  sed 's/^.*$/"&"/' "$1"
+}
+
+# Quote each line, remove linebreaks. Print one line on stdout.
+lines_to_args() # [-|FILE]
+{
+  lines_quoted "$@" | tr '\n' ' '
+}
+
 # replace linesep with given char
 linesep()
 {
@@ -411,7 +426,7 @@ strip_last_nchars() # Num
 # See https://unix.stackexchange.com/questions/193748/join-lines-of-text-with-repeated-beginning
 join_lines() # [Src] [Delim]
 {
-  test -n "$1" || set -- "-" " "
+  test -n "$1" || set -- "-" "$2"
   test -n "$2" || set -- "$1" " "
   test "-" = "$1" -o -e "$1" || error "join-lines: file expected '$1'" 1
 
@@ -419,7 +434,7 @@ join_lines() # [Src] [Delim]
   awk '{
 		k=$2
 		for (i=3;i<=NF;i++)
-			k=k " " $i
+			k=k "'"$2"'" $i
 		if (! a[$1])
 			a[$1]=k
 		else
@@ -427,7 +442,7 @@ join_lines() # [Src] [Delim]
 	}
 	END{
 		for (i in a)
-			print i " " a[i]
+			print i "'"$2"'" a[i]
 	}' "$1"
 }
 

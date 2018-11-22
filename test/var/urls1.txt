@@ -1,0 +1,10 @@
+WordNet <https://wordnet.princeton.edu/> @Dev @Semweb
+WordNet RDF/OWL Files <https://www.w3.org/2006/03/wn/wn20/> @Dev @Semweb
+
+todo.txt format <https://github.com/todotxt/todo.txt> @Dev @Text
+
+with some comment about that <http://example.com>
+2017-12-25 200 foo <http://google.com>
+bar <http://example.net>
+
+# vim:ft=todo.txt

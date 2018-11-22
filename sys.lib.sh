@@ -114,7 +114,7 @@ var_isset()
       ;;
 
     * )
-        error "SCR_SYS_SH='$SCR_SYS_SH'" 12
+        error "SCR_SYS_SH='$SCR_SYS_SH'" 14
       ;;
 
   esac
@@ -167,7 +167,11 @@ not_falseish() # Str
 
 cmd_exists()
 {
-  test -x $(which $1) || return $?
+  test -n "$1" || return
+
+  set -- "$1" "$(which "$1")" || return
+
+  test -n "$2" -a -x "$2"
 }
 
 func_exists()

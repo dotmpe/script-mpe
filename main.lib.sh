@@ -413,8 +413,8 @@ std_man_1__version="Version info"
 std_spc__version="-V|version"
 std__version()
 {
-	test -n "$scriptpath" || exit 156
-	test -n "$version" || exit 157
+  test -n "$scriptpath" || exit 11
+  test -n "$version" || exit 157
   echo "$(cat $scriptpath/.app-id)/$version"
 }
 

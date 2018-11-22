@@ -71,6 +71,26 @@ docker_sh__c()
   echo $docker_sh_c
 }
 
+docker_sh_man_1__port="List exposed port for SSH for one or all running containers."
+docker_sh_spc__port="port [<PORT>] [<image-name>]"
+docker_sh__port()
+{
+  echo "$1" | grep -q '^[0-9][0-9]*$' && {
+    docker_sh_port=$1 ; shift
+  } || {
+    docker_sh_port=22
+  }
+  test -n "$1" && {
+    docker_sh_port $1
+  } || {
+    docker_sh_names | while read docker_name
+    do
+      port=$(docker_sh_port $docker_name)
+      test -z "$port" || echo "$port  $docker_name "
+    done
+  }
+}
+
 docker_sh_man_1__ip="List IP for one or all running containers."
 docker_sh_spc__ip="ip [<image-name>]"
 docker_sh__ip()
@@ -991,8 +1011,17 @@ docker_sh_ip()
   test -n "$1" || set -- $docker_sh_c
   test -n "$1" || set -- $docker_name
   test -n "$1" || error "dckr-ip: container required" 1
-  ${sudo}docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1 \
-    || error "docker IP inspect on $1 failed" 1
+  ${sudo}docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1 ||
+    error "docker IP inspect on $1 failed" 1
+}
+
+docker_sh_port()
+{
+  test -n "$1" || set -- $docker_sh_c
+  test -n "$1" || set -- $docker_name
+  test -n "$1" || error "dckr-ip: container required" 1
+  test -n "$2" || set -- "$1" $docker_sh_port
+  ${sudo}docker inspect --format '{{ (index (index .NetworkSettings.Ports "'$2'/tcp") 0).HostPort }}' "$1" || error "docker port $2 inspect on $1 failed" 1
 }
 
 # gobble up flags and set $docker_sh_f, and/or set and return $docker_cmd upon first arg.
@@ -1156,7 +1185,8 @@ docker_sh_init()
   . $scriptpath/util.sh load-ext
   lib_load
   . $scriptpath/tools/sh/box.env.sh
-  lib_load main box projectdir
+  lib_load main box
+  #lib_load projectdir
   box_run_sh_test
   # -- dckr-sh box init sentinel --
 }

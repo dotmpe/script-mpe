@@ -1,4 +1,7 @@
 #!/bin/sh
 
+# Usage:
+#   docker-ip <Container>
+
 exec docker inspect --format '{{ .NetworkSettings.IPAddress }}' "$@"
 

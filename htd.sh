@@ -65,11 +65,6 @@ htd_load()
     debug "Using Htd-Ext dirs '$HTD_EXT'"
   default_env Htd-ServTab $UCONFDIR/htd-services.tab ||
     debug "Using Htd-ServTab table file '$HTD_SERVTAB'"
-  test -e cabinet && {
-    default_env Cabinet-Dir "$(pwd)/cabinet"
-  } || {
-    default_env Cabinet-Dir "$HTDIR/cabinet"
-  }
   debug "Using Cabinet-Dir '$CABINET_DIR'"
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p "$HTD_TOOLSDIR/bin"
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p "$HTD_TOOLSDIR/cellar"
@@ -976,7 +971,8 @@ htd__find_doc()
   doc_find "$@"
 }
 htd_als___F=find-doc
-htd_run__find_doc=x
+htd_run__find_doc=lx
+htd_libs__find_doc=doc
 
 
 htd_man_1__find_docs='Find documents
@@ -988,11 +984,10 @@ XXX: replace pwd basename strip with prefix compat routine
 htd_spc__find_docs='find-docs [] [] [PROJECT]'
 htd__find_docs()
 {
-  note "'$package_docs_find' '$*'"
-  $package_docs_find "$@"
-  #doc_find_name "$@"
+  doc_find_all "$@"
 }
-htd_run__find_docs=pqx
+htd_run__find_docs=pqlx
+htd_libs__find_docs=doc
 
 
 htd_man_1__volume='See htd volumes'
@@ -1002,6 +997,7 @@ htd_man_1__volumes='Volumes
   also: ls-vol[umes]|list-volumes
 
   volumes check
+  id DIR
 '
 htd_spc__volumes='volumes [--(,no-)catalog] [CMD]'
 htd_env__volumes="catalog=true"
@@ -1009,7 +1005,7 @@ htd_of__volumes=list
 htd_run__volumes=eiAO
 htd__volumes()
 {
-  set -- "$(cat $arguments)" # Remove options from args
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   test -n "$1" || set -- list
   lib_load volume
   case "$1" in
@@ -1018,6 +1014,10 @@ htd__volumes()
     check ) shift ; htd_check_volumes "$@" ;;
     path?tab ) shift ; htd_path_names "$@" ;;
     treemap ) shift ; htd_volumes_treemap "$@" ;;
+
+    id ) shift
+        get_cwd_volume_id "$1"
+      ;;
 
     * ) error "? '$*'" 1 ;;
   esac
@@ -2172,7 +2172,7 @@ htd_spc__random_str='(rndstr|random-str) [12]'
 htd_als__rndstr=random-str
 htd__random_str()
 {
-  test -n "$1" || set -- 12
+  test -n "$1" || set -- 12 # Set default htd:random-str length
   python -c "import os, base64;print base64.urlsafe_b64encode(os.urandom($1))"
 }
 htd_grp__random_str=box
@@ -2252,7 +2252,7 @@ htd_run__tasks=iqlAO
 htd_libs__tasks=htd-tasks\ tasks
 htd__tasks()
 {
-  set -- $(cat $arguments | lines_to_words) # Remove options from args
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   case "$1" in
 
     info )
@@ -2548,7 +2548,7 @@ htd_als__tte=todotxt-edit
 
 htd__todotxt()
 {
-  test -n "$UCONFDIR" || error UCONFDIR 12
+  test -n "$UCONFDIR" || error UCONFDIR 15
   test -n "$1" || set -- edit
   case "$1" in
 
@@ -2819,7 +2819,41 @@ htd__save_url()
 htd_grp__save_url=annex
 
 
-htd_man_1__git='FIXME: cleanup below
+htd_man_1__git='
+
+  info
+    Compile some info on checkouts (remote names and URLs) in $PROJECTS.
+
+  find [VENDOR] <user>/<repo>
+    Look in all /srv/scm-git for repo.
+
+  req|require [VENDOR] <user>/<repo> [Check-Branch]
+    See that checkout for repo is available, print path. With branch or other
+    version check version of checkout as well.
+
+  get [VENDOR] <user>/<repo>
+    Create or upate repo at /srv/scm-git, then make checkout at $VND_GH_SRC.
+    Link that to $PROJECT_DIR.
+
+  get-env [ENV] [VENDOR] <user>/<repo> [Commit]
+    Make a reference checkout in a new subdir of $SRC_LOCAL and set it to commit
+    or Env-Ver.
+
+Helpers
+
+  list
+    Find repo checkouts in $PROJECTS.
+  scm-list
+    Find bare repos in $PROJECTS_SCM.
+  scm-find <user>/<repo>
+    Looks for (partial) [<user>/]<repo>.git (glob pattern) in SCM basedirs.
+  scm-get VENDOR <user>/<repo>
+    Create bare repo from vendor.
+  src-get VENDOR <user>/<repo>
+    Create checkout from local SCM. Fix remote to vendor, and $PROJECT_DIR
+    symlink.
+
+FIXME: cleanup below
 
     git-remote
     git-init-local
@@ -3133,7 +3167,7 @@ htd_env__gitrepo="dir="
 htd_run__gitrepo=eiAO
 htd__gitrepo()
 {
-  set -- $(cat $arguments | lines_to_words) # Remove options from args
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
   gitrepos "$@"
 }
@@ -3155,6 +3189,14 @@ htd__git_import()
       mv -v "$1/$pathname" "$pathname"
     }
   done
+}
+
+htd_libs__git=git\ htd-git
+htd_run__git=l
+htd__git()
+{
+  test -n "$1" || set -- info
+  prefixes=${base}_git_\ git_ try_subcmd_prefixes "$@"
 }
 
 
@@ -3198,6 +3240,7 @@ htd_als__filenamext=file\ extensions
 htd_als__filestripext=file\ stripext
 
 htd_als__wherefrom=wherefrom
+
 
 
 htd__content()
@@ -3937,26 +3980,27 @@ htd_run__push_commit_all=iIAO
 htd_als__pcia=push-commit-all
 
 
-htd_man_1__archive='Move path to archive path in htdocs cabinet, preserving
-timestamps and attributes. Use filemtime for file unless now=1.
+htd_man_1__cabinet='Manage files, folders with perma-URL style archive-paths
 
-    <refs>...  =>  <Cabinet-Dir>/%Y/%m%d-<ref>...
+  cabinet add [--{not-,}-dry-run] [--archive-date=] REFS..
+    Move path to Cabinet-Dir, preserving timestamps and attributes. Use filemtime
+    for file unless now=1.
+
+        <refs>...  =>  <Cabinet-Dir>/%Y/%m/%d-<ref>...
 
 Env
     CABINET_DIR $PWD/cabinet $HTDIR/cabinet
-
-See also backup, archive-path.
 '
-htd_spc__archive='archive REFS..'
-htd__archive()
+htd_spc__cabinet='cabinet [CMD ARGS..]'
+htd__cabinet()
 {
-  test -d "$CABINET_DIR" || error "Cabinet required <$CABINET_DIR>" 1
-  test -n "$1" || warn "expected references to backup" 1
-  archive_paths "$@" | rsync_pairs "$@"
+  cabinet_req
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  prefixes=${base}_cabinet_\ cabinet_ try_subcmd_prefixes "$@"
 }
-htd_grp__archive=cabinet
-htd_run__archive=iAO
-htd_argsv__archive()
+htd_grp__cabinet=cabinet
+htd_run__cabinet=ilAO
+htd_argsv__cabinet()
 {
   opt_args "$@"
 }
@@ -4131,7 +4175,7 @@ into env.
 htd_run__package=iAOpq
 htd__package()
 {
-  set -- $(cat $arguments | lines_to_words) # Remove options from args
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   test -n "$*" && {
       test -n "$1" || {
         shift && set -- debug "$@"
@@ -4183,7 +4227,7 @@ htd_run__script_opts=iAOpfl
 htd_libs__script_opts='package htd-scripts'
 htd__script_opts()
 {
-  set -- $(cat $arguments | lines_to_words) # Remove options from args
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   htd__scripts "$@"
 }
 
@@ -4200,7 +4244,7 @@ htd__run()
     htd__scripts names
     return 1
   }
-  set -- $(cat $arguments | lines_to_words) # Remove options from args
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
   htd_scripts_run "$@"
 }
 
@@ -5341,12 +5385,12 @@ htd__uptime()
 htd_man_1__disk='Enumerate disks '
 htd__disk()
 {
-  lib_load htd-disk disk $os
+  lib_load disk htd-disk $os || return
   test "$uname" = Linux && {
     test -e /proc || error "/proc/* required" 1
   }
   test -n "$1" || set -- list
-  prefixes=${base}_${os}_disk_\ ${base}_disk_ try_subcmd_prefixes "$@"
+  prefixes=${base}_${os}_disk_\ ${base}_disk_\ disk_ try_subcmd_prefixes "$@"
 }
 
 htd_als__runtime=disk\ runtime
@@ -6469,7 +6513,6 @@ htd_man_1__srv='Manage service container symlinks and dirs.
   update
   init
       ..
-
   -instances
       List unique local service-containers (FIXME: ignore local..)
       Plumping for a grep on ls output
@@ -6835,14 +6878,6 @@ htd__munin_export()
   done
 }
 
-
-
-htd_man_1__count_lines='Count lines in file(s)'
-htd_spc__count_lines='count-lines FILE [FILE..]'
-htd__count_lines()
-{
-  count_lines "$@"
-}
 
 
 htd_man_1__count_files='Count files under dir(s)'
@@ -8514,6 +8549,7 @@ htd__annexdir()
 htd_run__annexdir=f
 
 
+# TODO move foreach to htd str
 htd_man_1__foreach='Execute based on match for each argument or line
 
 Executes "$act" and "$no_act" for each arg or line based on glob, regex, etc.
@@ -8924,6 +8960,37 @@ htd__sttab()
 }
 htd_run__sttab=qliAO
 htd_libs__sttab=stattab
+
+
+htd_man_1__project_stats=''
+htd_spc__project_stats='project-stats [CMD ARGS..]'
+htd__project_stats()
+{
+  project_stats_req
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  test -n "$1" || set -- stat
+  prefixes=${base}_project_stats_\ project_stats_ try_subcmd_prefixes "$@"
+}
+htd_run__project_stats=qilAO
+htd_libs__project_stats=project-stats\ htd-project-stats
+htd_argsv__project_stats=opt_args
+
+
+htd_man_1__str=''
+htd_spc__str='str [CMD ARGS..]'
+htd__str()
+{
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  prefixes=${base}_str_\ str_ try_subcmd_prefixes "$@"
+}
+htd_run__str=ilAO
+htd_libs__str=str\ htd-str
+htd_argsv__str=opt_args
+
+htd_als__count_words=str\ wordcount
+htd_als__count_lines=str\ linecount
+htd_als__count_columns=str\ colcount
+htd_als__count_chars=str\ charcount
 
 
 # -- htd box insert sentinel --

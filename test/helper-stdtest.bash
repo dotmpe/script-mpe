@@ -150,10 +150,3 @@ type test_nok_lines >/dev/null 2>&1 || {
     }
   }
 }
-
-type fnmatch >/dev/null 2>&1 || {
-  fnmatch() # Glob Str
-  {
-    case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
-  }
-}

@@ -3,6 +3,7 @@
 vc_lib_load()
 {
   test -n "$vc_rt_def" || vc_rt_def=origin
+  test -n "$vc_br_def" || vc_br_def=master
 }
 
 # See if path is in GIT checkout
@@ -137,7 +138,12 @@ vc_fsck()
 
 vc_remotes_git()
 {
-  git remote "$@"
+  test -n "$1" && {
+    git config --get remote.$1.url
+    return $?
+  } || {
+    git remote
+  }
 }
 
 vc_remotes_hg()
@@ -145,17 +151,74 @@ vc_remotes_hg()
   hg paths "$@"
 }
 
-vc_remotes()
+vc_remotes() # DIR [NAME]
 {
-  test -d "$1" || error "vc-remote expected dir argument" 1
   test -z "$3" || error "vc-remote surplus arguments" 1
-
-  local pwd=$(pwd)
-  cd "$1"
-  vc_remotes_$scm "$2"
-  cd "$pwd"
+  local pwd=$(pwd) r=
+  test -z "$1" || {
+    cd "$1"
+    vc_getscm
+  }
+  test -z "$2" && {
+      vc_remotes_$scm || r=$?
+    } || {
+      vc_remotes_$scm "$2" || r=$?
+    }
+  test -z "$1" || {
+    cd "$pwd"
+  }
+  return $?
 }
 
+
+vc_ls_remote_git()
+{
+  test -n "$1" || error "remote expected" 1
+  git ls-remote "$1"
+}
+
+vc__ls_remote()
+{
+  test -n "$scm" || vc_getscm
+  vc_ls_remote_${scm} "$@"
+}
+
+
+
+# Return table for all repos on stdin
+vc_dirtab()
+{
+  while read -r dirpath
+  do
+    remotepath="$(dirname "$dirpath")"
+    vendor="$(dirname "$remotepath")"
+    account_handle="$(basename "$remotepath")"
+    project_name="$(basename "$dirpath")"
+
+    vc_remotes "$dirpath" | while read -r remote_name
+    do
+      remote_url="$(vc_remotes "$dirpath" "$remote_name")"
+      echo "$remote_name $remote_url $project_name $account_handle $vendor"
+    done
+  done
+}
+
+vc_remote_dirs() # [FMT] [DIR] []
+{
+  test -n "$2" || set -- "$1" "." "$3"
+
+  vc_remotes "$2" "$3" | while read -r remote
+  do
+    case "$1" in
+      '')
+        echo $remote $(git config remote.$remote.url);;
+      sh|var)
+        echo $remote=$(git config remote.$remote.url);;
+      *)
+        error "illegal $1" 1;;
+    esac
+  done
+}
 
 vc_remote_git()
 {

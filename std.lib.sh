@@ -159,6 +159,7 @@ stdio_type()
     bld="$(tput bold)"
     underline="$(tput smul)"
     standout="$(tput smso)"
+
     norm="$(tput sgr0)"
 
     test -n "$verbosity" && {
@@ -177,15 +178,15 @@ stdio_type()
       #norm="\033[0m"
 
       test "$CS" = 'dark' && {
-        nrml="\033[38;5;254m"
-        bnrml="\033[38;5;231m"
+        default="\033[38;5;254m"
+        bdefault="\033[38;5;231m"
         grey="\033[38;5;244m"
         dgrey="\033[38;5;238m"
         drgrey="\033[38;5;232m"
       }
       test "$CS" = 'light' && {
-        nrml="\033[38;5;240m"
-        bnrml="\033[38;5;232m"
+        default="\033[38;5;240m"
+        bdefault="\033[38;5;232m"
         grey="\033[38;5;245m"
         dgrey="\033[38;5;250m"
         drgrey="\033[38;5;255m"
@@ -195,7 +196,7 @@ stdio_type()
 
     else
 
-      grey=${nrml}
+      grey=${default}
 
       black="$(tput setaf 0)"
       red="$(tput setaf 1)"
@@ -204,8 +205,8 @@ stdio_type()
       blue="$(tput setaf 4)"
       prpl="$(tput setaf 5)" # magenta
       cyan="$(tput setaf 6)"
-      nrml="$(tput setaf 7)"
-      bnrml=${bld}${nrml}
+      default="$(tput setaf 7)"
+      bdefault=${bld}${default}
     fi
   fi
 #fi
@@ -254,16 +255,27 @@ log()
   case $stdout_type in
     t )
         test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
-        log_$LOG_TERM "${bb}[${bk}${key}${bb}] ${norm}$1"
+        if test $LOG_TERM = bw
+        then
+            log_$LOG_TERM "[${key}] $1"
+        else
+            log_$LOG_TERM "${bb}[${bk}${key}${bb}] ${norm}$1"
+        fi
       ;;
 
     p|f )
         test -n "$subcmd" && key=${key}${bb}:${bk}${subcmd}
-        log_$LOG_TERM "${bb}# [${bk}${key}${bb}] ${norm}$1"
+        if test $LOG_TERM = bw
+        then
+            log_$LOG_TERM "# [${key}] $1"
+        else
+            log_$LOG_TERM "${bb}# [${bk}${key}${bb}] ${norm}$1"
+        fi
       ;;
   esac
 }
 
+# FIXME: move all highlighting elsewhere / or transform/strip for specific log-TERM
 stderr() # level msg exit
 {
   test -z "$4" || {
@@ -276,28 +288,28 @@ stderr() # level msg exit
   case "$(echo $1 | tr 'A-Z' 'a-z')" in
 
     crit*)
-        bb=${ylw}; bk=$nrml
+        bb=${ylw}; bk=$default
         test "$CS" = "light" \
           && crit_label_c="\033[38;5;226;48;5;249m" \
           || crit_label_c="${ylw}"
-        log "${bld}${crit_label_c}$1${norm}${blackb}: ${bnrml}$2${norm}" 1>&2 ;;
+        log "${bld}${crit_label_c}$1${norm}${blackb}: ${bdefault}$2${norm}" 1>&2 ;;
     err*)
         bb=${red}; bk=$grey
-        log "${bld}${red}$1${blackb}: ${norm}${bnrml}$2${norm}" 1>&2 ;;
+        log "${bld}${red}$1${blackb}: ${norm}${bdefault}$2${norm}" 1>&2 ;;
     warn*|fail*)
         bb=${dylw}; bk=$grey
         test "$CS" = "light" \
             && warning_label_c="\033[38;5;255;48;5;220m"\
             || warning_label_c="${dylw}";
-        log "${bld}${warning_label_c}$1${norm}${grey}${bld}: ${nrml}$2${norm}" 1>&2 ;; notice )
+        log "${bld}${warning_label_c}$1${norm}${grey}${bld}: ${default}$2${norm}" 1>&2 ;; notice )
         bb=${prpl}; bk=$grey
-        log "${grey}${nrml}$2${norm}" 1>&2 ;;
+        log "${grey}${default}$2${norm}" 1>&2 ;;
     info )
         bb=${blue}; bk=$grey
         log "${grey}$2${norm}" 1>&2 ;;
     ok|pass* )
         bb=${grn}; bk=$grey
-        log "${nrml}$2${norm}" 1>&2 ;;
+        log "${default}$2${norm}" 1>&2 ;;
     * )
         bb=${drgrey} ; bk=$dgrey
         log "${grey}$2${norm}" 1>&2 ;;

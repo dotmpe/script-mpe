@@ -77,7 +77,7 @@ def rhash_cksum(f, algo='crc32b'):
 def hashlib_cksum(f, algo='crc32'):
   data = open(f, 'rb').read()
   cks = getattr(hashlib, algo)(data).hexdigest()
-  return cks, len(data)
+  return int(cks, 16), len(data)
 
 def php_crc32b_zip(f):
   cmd = [ 'php', '-r', '$f="%s";echo hexdec(hash_file("crc32b", $f))." ".filesize($f).PHP_EOL;' % ( f, ) ]

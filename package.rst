@@ -90,8 +90,7 @@ Attributes
 -----------------------------
 
 environments
-  Name(s) for environment(s). If given, first is the default, unless ENV_NAME
-  is set.
+  Name(s) for environment(s). If given, first is the default, unless ENV_NAME is set. These are only names, that together with ``env`` to provide control to set/define the environment for scripts.
 
 env
   Script lines to initialize environment. At this stage ENV_NAME is set, but
@@ -272,4 +271,55 @@ status
   And there is publish when uploading to NPM registry.
   stop/start, and restart.
 
+Environment Attributes
+---------------------------------------------------------------------------
+In addition to a ``main`` package declaration with metadata, it can be
+usefull to track environments for this package. Using YAML aliases
+it is also possible to re-use (parts of) environment definitions.
 
+cwd
+  ..
+version
+  While project ``version`` metadata does not reflect checkout directly, with `git.lib` either version setting can be used to create a special checkout at `Local-Source`_.
+env
+  ..
+env-name
+  ..
+scripts
+  ..
+
+Variables
+---------------------------------------------------------------------------
+Static globals, should be managed in user shell profile.
+
+Should only change by reloading ``ENV``, or maybe by resetting some ``ENV_*`` and calling some partial reinit, with hooks..
+
+.. _Env:
+
+- ``$ENV``:
+
+.. _Env-Name:
+
+- ``$ENV_NAME``:
+
+.. _Vnd-Gh-Src:
+
+- ``$VND_GH_SRC``: default: ``/src/github.com``
+
+.. _Local-Source:
+
+- ``$LOCAL_SOURCE``: default: ``/src/local``
+
+.. _Projects:
+
+- ``$PROJECTS``: PATH-like var for project dirs
+
+  default: ``$HOME/project:/srv/project-local:/src/*.*/:/src/local/``
+
+.. _Project-Dir:
+
+- ``$PROJECT_DIR``: preferred dir for project
+
+  default: ``/srv/project-local`` if exists else ``~/project/``
+
+..

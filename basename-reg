@@ -23,6 +23,8 @@ Options:
     -c, --check
                  Verify that extension matches one known to be in use for
                  file mediatype.
+    -o FMT, --output-format FMT
+                 ..
     --num-exts NUM
                  ..
     --no-mime-check
@@ -142,8 +144,19 @@ def cmd_check(PATH, g, opts):
                 unknown_exts.append(ce)
      
         if not ( mime_mismatch or unknown_exts ):
+            """
+            for ext in exts:
+                mime = opts.database['mime_ext_reg'][ext]
+                exts, cat, descr = opts.database['mime_xref'][mime]
+                print(mime)
+
+            """
             if g.quiet < 2:
-                print("%s  %s" % (a, " ".join(exts)))
+                if not g.output_format: g.output_format = 'text'
+                if g.output_format.lower() == 'csv':
+                    print("%s,%s" % (a, " ".join(exts)))
+                else:
+                    print("%s  %s" % (a, " ".join(exts)))
         else:
             v = False
             if g.quiet < 2:

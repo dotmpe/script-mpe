@@ -6,7 +6,7 @@ base=sh-spec
 setup()
 {
    init
-   . $lib/util.sh
+   . $scriptpath/util.sh
 }
 
 

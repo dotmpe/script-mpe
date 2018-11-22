@@ -11,6 +11,7 @@
 
 make_lib_load()
 {
+  test -n "$ggrep" || ggrep=ggrep
   # Special (GNU) Makefile vars
   make_special_v="$(cat <<EOM
 MAKEFILE_LIST
@@ -49,11 +50,19 @@ EOM
 # NOTE: without targets it seems make will only go so far in building its
 # database, so including all makefile dirs by default (assuming they may have
 # targets associated; it seems make will then also load the DB with these)
-htd_make_dump()
+make_dump()
 {
-    local q=0 ; make -pq "$@" ; q=$?
-    trueish "$make_question" || return 0
-    return $q
+  local q=0 ; make -pq -f "$@" ; q=$?
+  trueish "$make_question" || return 0
+  return $q
+}
+
+# No builtin rules or vars
+make_dump_nobi()
+{
+  local q=0 ; make -Rrpq -f "$@" ; q=$?
+  trueish "$make_question" || return 0
+  return $q
 }
 
 # List all local makefiles; the exact method differs a bit per workspace.
@@ -114,31 +123,53 @@ htd_make_srcfiles()
 # Return all targets/prerequisites given a make data base dump on stdin
 make_targets()
 {
-    esc=$(printf -- '\033')
-    grep -v \
-        -e '^ *#' \
-        -e '^[A-Za-z\.,^+*%?<@\/_][A-Za-z0-9\.,^?<@\/_-]* \(:\|\+\|?\)\?=[ 	]' \
-        -e '^\(	\| *$\)' \
-        -e '^\$(.*)$' \
-        -e '^[ 	]*'"$esc"'\[[0-9];[0-9];[0-9]*m' \
-    | while IFS="$(printf '\n')" read -r line
-    do
-      case "$line" in
-        "include "* )
-            continue
-          ;;
-        "define "* )
-            while read -r directive_end
-            do test "$directive_end" = "endef" || continue
-                break
-            done
-            continue
-          ;;
-      esac
-      echo "$line"
-    done | sed \
-        -e 's/\/\.\//\//g' \
-        -e 's/\/\/\/*/\//g'
+  esc=$(printf -- '\033')
+  grep -v -e '^ *#.*' -e '^\t' -e '^[^:]*\ :\?=\ ' |
+  while IFS="$(printf '\n')" read -r line
+  do
+    case "$line" in
+      "include "* )
+          continue
+        ;;
+      "define "* )
+          while read -r directive_end
+          do test "$directive_end" = "endef" || continue
+              break
+          done
+          continue
+        ;;
+    esac
+    echo "$line"
+  done | $ggrep -oe '^[^:]*:*'
+}
+
+make_targets_()
+{
+  esc=$(printf -- '\033')
+  grep -v \
+      -e '^ *#' \
+      -e '^[A-Za-z\.,^+*%?<@\/_][A-Za-z0-9\.,^?<@\/_-]* \(:\|\+\|?\)\?=[ 	]' \
+      -e '^\(	\| *$\)' \
+      -e '^\$(.*)$' \
+      -e '^[ 	]*'"$esc"'\[[0-9];[0-9];[0-9]*m' |
+  while IFS="$(printf '\n')" read -r line
+  do
+    case "$line" in
+      "include "* )
+          continue
+        ;;
+      "define "* )
+          while read -r directive_end
+          do test "$directive_end" = "endef" || continue
+              break
+          done
+          continue
+        ;;
+    esac
+    echo "$line"
+  done | sed \
+      -e 's/\/\.\//\//g' \
+      -e 's/\/\/\/*/\//g'
 }
 
 # List all targets (from every makefile dir by default)
@@ -152,7 +183,7 @@ htd_make_targets()
   # around to get back at src-file after listing all targets, somewhere else.
 
   verbosity=0  \
-  htd_make_dump "$@" 2>/dev/null | make_targets "$@" | {
+  make_dump "$@" 2>/dev/null | make_targets | {
     case "$out_fmt" in
 
         json-stream )

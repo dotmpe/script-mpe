@@ -7,7 +7,7 @@ init
 
 setup()
 {
-  . $lib/util.sh
+  . $scriptpath/util.sh &&
 
   pd=$(pwd)/projectdir.sh \
   testid="$(echo $BATS_TEST_DESCRIPTION | cut -f 1 -d ' ')"

@@ -10,7 +10,7 @@ setup()
   projectenv_dep_node=1
   Chrome_TO=1
   stdpreq=node
-  #source $lib/util.sh load-ext
+  #source $scriptpath/util.sh load-ext
   #lib_load str std sys
   lib_load projectenv
   Level_DB="$HOME/Library/Application Support/Google/Chrome/Default/IndexedDB/chrome-extension_eggkanocgddhmamlbiijnphhppkpkmkl_0.indexeddb.leveldb/" 

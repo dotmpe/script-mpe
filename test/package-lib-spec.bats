@@ -2,13 +2,12 @@
 
 load init
 base=package.lib
-init
-load assert
-lib_load package sys
-
 
 setup()
 {
+  init &&
+  load assert &&
+  lib_load package sys
   export package_id=
 }
 

@@ -5,7 +5,7 @@ base=pd-lib
 #load main.inc
 
 init
-. $lib/util.sh
+. $scriptpath/util.sh
 
 
 setup()

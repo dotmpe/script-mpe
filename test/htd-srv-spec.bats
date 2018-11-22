@@ -10,8 +10,23 @@ init
   test "$status" = "0"
 }
 
-@test "$bin srv -cnames" {
-  run $bin srv -cnames
+@test "$bin srv -names" {
+  run $bin srv -names
+  test "$status" = "0"
+}
+
+@test "$bin srv -instances" {
+  run $bin srv -instances
+  test "$status" = "0"
+}
+
+@test "$bin srv -paths" {
+  run $bin srv -paths
+  test "$status" = "0"
+}
+
+@test "$bin srv -vpaths" {
+  run $bin srv -vpaths
   test "$status" = "0"
 }
 

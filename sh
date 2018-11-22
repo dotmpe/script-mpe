@@ -1,18 +1,21 @@
 #!/bin/sh
 set -e
 
+test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
+bats test/*.bats
+exit $?
 
-#test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
-#scriptpath=$(pwd) . ./util.sh
-#lib_load
+scriptpath=$(pwd) . ./util.sh
+lib_load
 #lib_load src table projectenv
 
+#cd "$REDO_BASE" &&
+#  lib_load build-test &&
+#  build_test_init &&
+#  expand_spec_src baselines
+#exit $?
+
 #build_redo_changed=1 ./build.sh all
-
-#lib_load build-test &&
-#build_test_init &&
-
-#rm .cllct/testruns/*.tap || true
 
 export CS=dark
 #./build.sh all_tests_static

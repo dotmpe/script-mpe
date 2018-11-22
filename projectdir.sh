@@ -1536,7 +1536,7 @@ pd_load()
         } || {
           io_id=-$base-$subcmd-${pd_session_id}
         }
-        fnmatch "*/*" "$io_id" && error "Illegal chars" 12
+        fnmatch "*/*" "$io_id" && error "Illegal chars" 11
         for io_name in $pd_inputs $pd_outputs
         do
           #test -n "$(eval echo \$$io_name)" || {
@@ -1699,7 +1699,7 @@ pd_lib()
 {
   test -z "$__load_lib" || return 14
   local __load_lib=1
-  test -n "$scriptpath" || return 12
+  test -n "$scriptpath" || return 11
   lib_load box meta list match date doc table ignores vc projectdir package
   . $scriptpath/vc.sh
   # -- pd box lib sentinel --

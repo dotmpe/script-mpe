@@ -6,7 +6,6 @@ load init
 setup()
 {
   init &&
-  load helper &&
   lib_load sys &&
 
   # var/table-1.tab: File with 5 comment lines, 3 rows, 1 empty and 1 blank (ws)

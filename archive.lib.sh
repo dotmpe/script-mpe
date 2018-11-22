@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# Archive files, list/update contents, unpack and cleanup
+# Deal with Archive files (packed files, folders' usually compressed):
+# list/update contents, unpack and cleanup.
 
 
 # TODO: update/list files out of sync

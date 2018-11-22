@@ -671,7 +671,7 @@ vc__gh()
 vc__largest_objects()
 {
   test -n "$1" || set -- 10
-  test -n "$scriptpath" || error scriptpath 1
+  test -n "$scriptpath" || error scriptpath 11
   $scriptpath/git-largest-objects.sh "$1"
 }
 
@@ -1020,23 +1020,13 @@ vc__projects()
   done
 }
 
-vc__remotes()
+vc__remotes() # [FMT] [DIR] []
 {
-  git remote | while read remote
-  do
-    case "$1" in
-      '')
-        echo $remote $(git config remote.$remote.url);;
-      sh|var)
-        echo $remote=$(git config remote.$remote.url);;
-      *)
-        error "illegal $1" 1;;
-    esac
-  done
   # FIXME: vc-remote lib
-  #test -n "$1" || set -- all
-  #vc_getscm "$(pwd)" || return $?
-  #vc_remotes "$(pwd)" "$@"
+  test -n "$1" || set -- "$(pwd)" "$2"
+  #test -n "$2" || set -- all
+  vc_getscm "$1" || return $?
+  vc_remotes "$@"
 }
 
 vc__remote()

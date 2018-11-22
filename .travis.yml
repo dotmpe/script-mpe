@@ -53,7 +53,8 @@ script:
   - export scriptname=script script_ts="$(date +%s)"
   - echo Starting $scriptname
   - failed=/tmp/htd-build-test-$(uuidgen).failed
-  - lib_load build-test && build_test_init && all_tests_static
+  - lib_load build-test && build_test_init
+    #&& all_tests_static
     #- test_any_feature "test/stattab.feature"
   #- . ./tools/ci/parts/build.sh
   - test "$SHIPPABLE" = true || test ! -e "$failed"

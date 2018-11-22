@@ -36,7 +36,6 @@ type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
 #var_isset scriptname || error "scriptname=$scriptname" 1
 #var_isset scriptpath || error "scriptpath=$scriptpath" 1
 #var_isset SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
-#req_vars LIB || error "LIB=$LIB" 1
 
 req_vars verbosity || export verbosity=7
 req_vars DEBUG || export DEBUG=

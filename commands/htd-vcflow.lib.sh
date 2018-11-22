@@ -74,7 +74,7 @@ htd_vcflow_summary() # Flow Branch
 
   # Read either related branches from doc, or list all local
   {
-    test -n "$1" && {
+    test -n "$1" -a \( "$1" != "all" \) && {
       vcflow_lib_set_local "$1" || return
       grep -q "\\<$2\\>" "$vcflow" || error "No flows for $2 in $vcflow" 1
       info "Summary for $2 ($1)"

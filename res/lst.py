@@ -58,7 +58,7 @@ class URLListItemParser(
 
     def __init__(self, *args, **kwds):
         self.field_names.update(dict(
-            uriref= (self.uriref_r, uriref.URIRef, 1),
+            uriref= (self.uriref_r, uriref.URIRef, 2),
         ))
         super(URLListItemParser, self).__init__(*args, **kwds)
 

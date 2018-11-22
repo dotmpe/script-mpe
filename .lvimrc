@@ -5,4 +5,3 @@ set tags=.ctags
 
 " See htd.sh for shellcheck descriptions
 let g:syntastic_sh_shellcheck_args="-e SC2086,SC2015,SC2154,SC2155,SC205,SC2004,SC2120,SC2046,SC2059,SC2199,SC2039,SC2069,SC2029,SC2005,SC2034"
-

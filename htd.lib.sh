@@ -602,19 +602,6 @@ htd_edit_note()
   htd_edit_and_update $note
 }
 
-archive_pairs()
-{
-  trueish "$now" && prefix="$(date +%Y/%m/%d)-" || prefix=''
-  while read _S
-  do
-    trueish "$now" ||
-        prefix=$(date_flags="-r $(filemtime "$1")" date_fmt "" %Y/%m/%d-)
-    echo "$CABINET_DIR/$prefix$_S"
-    shift
-  done
-}
-
-
 gitrepos()
 {
   test -n "$repos" && { test -z "$*" || error no-args-expected 41

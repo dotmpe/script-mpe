@@ -56,7 +56,7 @@ SCRIPT-MPE-5 TODO: use projectenv.lib iso. test/helper.bash
   - use `require-env` in setup or test-cases.
   - deprecate is-skipped, current-test-env etc.
   - see env-deps.lib.sh for per-project collections of callbacks. Should
-    start to scan scriptpath/LIB elements somehow?
+    start to scan scriptpath elements somehow?
 
   SCRIPT-MPE-6 TODO: deprecate most of helper.bash, restructure
     - See user-conf for up to date setup, and minimal lib versions.

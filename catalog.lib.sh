@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# Catalog: maintain card records for files with Id and meta info
 
 catalog_lib_load()
 {
