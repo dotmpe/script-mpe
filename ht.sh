@@ -249,7 +249,7 @@ ht_main()
 
   case "$base" in $scriptname | sd )
 
-        ht_lib || exit $?
+        ht_lib "$1" || exit $?
 
         # Fast boot for simple or direct cmd function suffix
         type ht__$1 1>/dev/null 2>&1 && {
@@ -316,6 +316,15 @@ ht_lib()
 {
   test -z "$__load_lib" || return 14
   local __load_lib=1
+
+  . $scriptpath/shell.lib.sh
+  shell_lib_load
+  shell_check
+
+  # Don't shadown system commands, wrap them
+  test -x "$(which "$1")" && {
+  } || {
+  }
   # -- ht box lib sentinel --
   set --
 }

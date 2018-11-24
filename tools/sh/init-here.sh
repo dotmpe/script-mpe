@@ -5,7 +5,7 @@
 # env keys instead this evaluates $@ after taking args. And it is still able to
 # use $0 to get this scripts pathname and $PWD to add other dir.
 
-# init-here [SRC-Base-Dir] "$@"
+# <...>/init-here.sh [SRC-Base-Dir] "$@"
 
 scriptpath="$(dirname "$(dirname "$(dirname "$0")" )" )"
 

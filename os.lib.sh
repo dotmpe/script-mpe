@@ -289,16 +289,24 @@ foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject
 
 # Go over arguments and echo. If no arguments given, or on argument '-' the
 # standard input is cat instead or in-place respectively. Strips empty lines.
-# (Does not open filenames and read from files. Except cat for stdin. See
-# lines-while.)
+# (Does not open filenames and read from files). Multiple '-' arguments are
+# an error, as the input is not buffered and rewounded. This simple setup
+# allows to use arguments as stdin, insert arguments-as-lines before or after
+# stdin, and the pipeline consumer is free to proceed.
+#
+# If this routine is given no data is hangs indefinitely. It does not have
+# indicators for data availble at stdin.
 foreach()
 {
+  local foreach_stdin= # tracks stdin is read [1] and been read and closed [0]
   {
     test -n "$*" && {
       while test $# -gt 0
       do
         test "$1" = "-" && {
+          foreach_stdin=1
           cat -
+          foreach_stdin=0
         } || {
           printf -- '%s\n' "$1"
         }
@@ -308,14 +316,18 @@ foreach()
   } | grep -v '^$'
 }
 
+
 # Read `foreach` lines and act, default is echo ie. same result as `foreach`
+# but with p(refix) and s(uffix) wrapped around each item produced. The
+# unwrapped loop-var is _S.
 foreach_do()
 {
   test -n "$act" || act="echo"
   foreach "$@" | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
 }
 
-# Extend rows by mapping each value line using act, add result tab-separated to line
+# Extend rows by mapping each value line using act, add result tab-separated
+# to line. See foreach-do for other details.
 foreach_addcol()
 {
   test -n "$act" || act="echo"
@@ -323,6 +335,7 @@ foreach_addcol()
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
 }
 
+# See -addcol and -do.
 foreach_inscol()
 {
   test -n "$act" || act="echo"
@@ -330,8 +343,9 @@ foreach_inscol()
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
 }
 
-# Add column to sort paths at mtimes, then remove mtime column listing
-# most-recent modified file first.
+
+# Sort paths by mtime. Uses foreach-addcol to add mtime column, sort on and then
+# remove again. Listing most-recent modified file name/path first.
 sort_mtimes()
 {
   p= s= act=filemtime foreach_addcol "$@" | sort -r -k 2 | cut -f 1

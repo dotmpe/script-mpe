@@ -2824,18 +2824,18 @@ htd_man_1__git='
   info
     Compile some info on checkouts (remote names and URLs) in $PROJECTS.
 
-  find [VENDOR] <user>/<repo>
+  find <user>/<repo>
     Look in all /srv/scm-git for repo.
 
-  req|require [VENDOR] <user>/<repo> [Check-Branch]
+  req|require <user>/<repo> [Check-Branch]
     See that checkout for repo is available, print path. With branch or other
     version check version of checkout as well.
 
-  get [VENDOR] <user>/<repo>
+  get <user>/<repo> [Version]
     Create or upate repo at /srv/scm-git, then make checkout at $VND_GH_SRC.
     Link that to $PROJECT_DIR.
 
-  get-env [ENV] [VENDOR] <user>/<repo> [Commit]
+  get-env [ENV] <user>/<repo> [Version]
     Make a reference checkout in a new subdir of $SRC_LOCAL and set it to commit
     or Env-Ver.
 

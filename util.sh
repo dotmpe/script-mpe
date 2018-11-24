@@ -26,7 +26,7 @@ lib_load()
   local lib_id= f_lib_loaded= f_lib_path=
   # __load_lib: true if inside util.sh:lib-load
   test -n "$default_lib" ||
-      export default_lib="os std sys str stdio src main argv match vc shell"
+      default_lib="os std sys str stdio src main argv match vc shell"
 
   test -n "$__load_lib" || local __load_lib=1
   test -n "$1" || set -- $default_lib

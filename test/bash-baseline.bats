@@ -1,83 +1,101 @@
 #!/usr/bin/env bats
 
 load init
-base=sh-spec
+base=bash-baseline
 
 setup()
 {
-   init
-   . $scriptpath/util.sh
+   init && . $scriptpath/util.sh && load assert
 }
 
 
-@test "std globbing" {
-
+@test "$base: std globbing" {
   #shopt | grep extglob | grep 'off' \
   #  || fail "Extglob sh option is turned on by default"
+
+  tmpd && test -d "$tmpd"
+  cd $tmpd
+ 
+  assert_equal "$(echo foo.*)" "foo.*"
+  touch foo.bar
+  assert_equal "$(echo foo.*)" "foo.bar"
+  rm foo.bar
 
   shopt -u nullglob
   shopt -u globstar
   shopt -u failglob
   shopt -u extglob
 
-  tmpd
-  cd $tmpd
- 
-  test "$(echo foo.*)" = "foo.*"
-  touch foo.bar
-  test "$(echo foo.*)" = "foo.bar"
-  rm foo.bar
+  assert_equal "$(echo {foo,bar}-{el,baz})" "foo-el foo-baz bar-el bar-baz"
 
-  test "$(echo {foo,bar}-{el,baz})" = "foo-el foo-baz bar-el bar-baz"
+  cd "$BATS_CWD"
+  rm -rf "$tmpd"
 
 }
 
 
-@test "Shell variable name indirection" {
+@test "$base: Shell variable name indirection" {
 
   FOO=foo
   BAR=FOO
 
-  test "$( echo ${!BAR} )" = "foo"
+  assert_equal "${!BAR}" "foo"
+
 }
 
 
-@test "Shell variable name expansion" {
+@test "$base: Shell variable name expansion" {
 
   foo_1=a
   foo_bar=b
 
-  test "$( echo ${!foo*} )" = "foo_1 foo_bar"
+  assert_equal "$( echo ${!foo*} )" "foo_1 foo_bar"
+
 }
 
 
-@test "Shell substring removal" {
+@test "$base: Shell substring removal" {
 
   PARAMETER="PATTERN foo"
-  test "${PARAMETER#PATTERN}" = " foo"
-  test "${PARAMETER##P* }" = "foo"
+  assert_equal "${PARAMETER#PATTERN}" " foo"
+  assert_equal "${PARAMETER##P* }" "foo"
 
   PARAMETER="foo PATTERN"
-  test "${PARAMETER%PATTERN}" = "foo "
-  test "${PARAMETER%% P*}" = "foo"
+  assert_equal "${PARAMETER%PATTERN}" "foo "
+  assert_equal "${PARAMETER%% P*}" "foo"
 
 }
 
 
-@test "Shell substring replace" {
+@test "$base: Shell substring replace" {
 
   STRING=foobarbar
   PATTERN=bar
   SUBSTITUTE=baz
-  test "${STRING/$PATTERN/$SUBSTITUTE}" = "foobazbar"
-  test "${STRING//$PATTERN/$SUBSTITUTE}" = "foobazbaz"
+  assert_equal "${STRING/$PATTERN/$SUBSTITUTE}" "foobazbar"
+  assert_equal "${STRING//$PATTERN/$SUBSTITUTE}" "foobazbaz"
 
-	#${PARAMETER/PATTERN}
-	#${PARAMETER//PATTERN}
+  # Anchoring
+  MYSTRING=xxxxxxxxxx
+  assert_equal "${MYSTRING/#x/y}" "yxxxxxxxxx"
+  assert_equal "${MYSTRING/%x/y}" "xxxxxxxxxy"
 
-	# Anchoring
-	MYSTRING=xxxxxxxxxx
-	test "${MYSTRING/#x/y}" = "yxxxxxxxxx"
-	test "${MYSTRING/%x/y}" = "xxxxxxxxxy"
+}
+
+
+@test "$base: aliases are recognized (Bash)" {
+  lib_load shell
+  shell_init
+
+  _r() {
+    shopt -s expand_aliases
+    alias foo='bar'
+    type foo
+  }
+  run _r
+  { test_ok_nonempty 1 && test_lines 'foo is aliased to `bar'"'"
+  } || stdfail "alias foo=bar"
+
+  assert test $IS_BASH -eq 1
 
 }
