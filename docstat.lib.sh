@@ -16,8 +16,9 @@ docstat_lib_load()
 docstat_init()
 {
   test -e "$DOCSTAT_TAB" || {
-    mkdir -p "$(dirname "$DOCSTAT_TAB")"
+    mkdir -p "$(dirname "$DOCSTAT_TAB")" || return
     touch "$DOCSTAT_TAB" || return
+    mkdir -p "$DOCSTAT" || return
   }
 }
 
