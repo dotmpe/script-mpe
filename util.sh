@@ -112,8 +112,8 @@ util_init()
       exit 106 # No SCRIPTPATH or scriptpath env
     }
   }
-  test -n "$LOG" || export LOG=$scriptpath/log.sh
-  lib_load
+  test -n "$default_lib" || return
+  lib_load $default_lib
 }
 
 case "$0" in
@@ -149,7 +149,7 @@ case "$0" in
       esac
       case "$__load_mode" in
         boot )
-            lib_lib_load
+            lib_lib_load &&
             lib_load $default_lib
           ;;
         #ext|load-*|* ) ;; # External include, do nothing

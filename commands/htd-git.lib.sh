@@ -31,12 +31,18 @@ htd_git_get() # <user>/<repo> [Version]
     set -- "$NS_NAME/$1" "$2"
   }
   local git_scm_find_out=
+
+  # Find (and echo) path at which SCM is
   git_scm_find "$1" || {
 
+    note "No SCM found, creating one from $SCM_VND.."
     git_scm_get "$SCM_VND" "$1" || return
+    note "OK, new SCM for $1 from $SCM_VND"
   }
 
   lib_load volume
+  # Verbosely create user checkout and symlink if not exists, otherwise
+  # echo link + target
   git_src_get "$1" || return
   rm "$git_scm_find_out"
 }

@@ -24,7 +24,8 @@ git_lib_load()
           echo ":$path"
       done | remove_dupes | tr -d '\n' | tail -c +2 )"
   }
-  lib_load environment statusdir vc gitremote
+  lib_load environment statusdir vc gitremote &&
+    statusdir_init
 }
 
 # Use find to list repos on $PROJECTS path
@@ -80,6 +81,7 @@ git_src_get() # <user>/<repo>
   test -n "$1" || return
 
   test -e "$SRC_DIR/$SCM_VND/$1" || {
+    note "Creating main user checkout for $1..."
     remote_name=$( get_cwd_volume_id "$SRC_DIR" )
     test -n "$remote_name" || remote_name=local
     git clone "$GIT_SCM_SRV/$1.git" "$SRC_DIR/$SCM_VND/$1" \
@@ -90,7 +92,9 @@ git_src_get() # <user>/<repo>
   }
 
   name="$(basename "$1")"
-  test -e "$PROJECT_DIR/$name" || {
+  test -e "$PROJECT_DIR/$name" && {
+    echo "$1: $PROJECT_DIR/$name -> $(readlink "$PROJECT_DIR/$name")"
+  } || {
     test -h "$PROJECT_DIR/$name" && rm -v "$PROJECT_DIR/$name"
     ln -vs "$SRC_DIR/$SCM_VND/$1" "$PROJECT_DIR/$name"
   }

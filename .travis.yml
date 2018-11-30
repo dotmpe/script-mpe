@@ -34,7 +34,6 @@ services:
 
 before_install:
   - export scriptname="before-install" before_install_ts="$(date +%s)"
-  - set -e
   - . ./tools/ci/env.sh
   - . ./tools/ci/parts/init.sh || { . ./tools/ci/env.sh ; . ./tools/ci/parts/init.sh ; }
   - . ./tools/ci/parts/announce.sh
