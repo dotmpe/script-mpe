@@ -12,38 +12,28 @@
 make_lib_load()
 {
   test -n "$ggrep" || ggrep=ggrep
+  test -n "$make_op_fd" || make_op_fd=4
+
   # Special (GNU) Makefile vars
-  make_special_v="$(cat <<EOM
-MAKEFILE_LIST
-.DEFAULT_GOAL
-MAKE_RESTARTS
-MAKE_TERMOUT
-MAKE_TERMERR
-.RECIPEPREFIX
-.VARIABLES
-.FEATURES
-.INCLUDE_DIRS
-EOM
-)"
+  make_special_v="$(echo MAKEFILE_LIST .DEFAULT_GOAL MAKE_RESTARTS \
+    MAKE_TERMOUT MAKE_TERMERR .RECIPEPREFIX .VARIABLES .FEATURES .INCLUDE_DIRS)"
+
+  make_other_builtin_v="$(echo .SHELLFLAGS GNUMAKEFLAGS MAKE MAKELEVEL \
+    MAKE_HOST MAKECMDGOALS MAKE_VERSION MAKE_COMMAND MAKEFLAGS MAKEFILES \
+    "<D ?F ?D @D @F %F *D ^D %D *F +D +F <F ^F" \
+    CURDIR OLDPWD MFLAGS SUFFIXES "-*-eval-flags-*-" )"
+
   # Special (GNU) Makefile targets
-  make_special_t="$(cat <<EOM
-.PHONY
-.SUFFIXES
-.DEFAULT
-.PRECIOUS
-.INTERMEDIATE
-.SECONDARY
-.SECONDEXPANSION
-.DELETE_ON_ERROR
-.IGNORE
-.LOW_RESOLUTION_TIME
-.SILENT
-.EXPORT_ALL_VARIABLES
-.NOTPARALLEL
-.ONESHELL
-.POSIX
-EOM
-)"
+  make_special_t=' .PHONY .SUFFIXES .DEFAULT .PRECIOUS .INTERMEDIATE
+.SECONDARY .SECONDEXPANSION .DELETE_ON_ERROR .IGNORE .LOW_RESOLUTION_TIME
+.SILENT .EXPORT_ALL_VARIABLES .NOTPARALLEL .ONESHELL .POSIX EOM '
+
+  # Expand to single line of var-names
+  make_list_internal_vars='filter-out $(shell env | sed '\''s/=.*//g'\''), $(.VARIABLES)'
+  make_list_vars='filter-out $(shell env | sed '\''s/=.*//g'\'') '"$make_special_v"' '"$make_other_builtin_v"', $(.VARIABLES)'
+
+  # Expand to shell recipe echo'ing var name/values
+  make_expand_vars='{ $(foreach VAR,%s,echo $(VAR)="$($(VAR))";) }'
 }
 
 # Print DB, no action
@@ -52,17 +42,32 @@ EOM
 # targets associated; it seems make will then also load the DB with these)
 make_dump()
 {
-  local q=0 ; make -pq -f "$@" ; q=$?
-  trueish "$make_question" || return 0
-  return $q
+  make -p -f "$@"
 }
 
 # No builtin rules or vars
 make_dump_nobi()
 {
-  local q=0 ; make -Rrpq -f "$@" ; q=$?
-  trueish "$make_question" || return 0
-  return $q
+  make -Rrp -f "$@"
+}
+
+make_nobi()
+{
+  trueish "$make_question" && {
+    make -Rrq -f "$@"
+    return $?
+  } || {
+    make -Rr -f "$@"
+    return $?
+  }
+}
+
+
+make_nobi_eval() # Expr [Makefile] [Make-args...]
+{
+  local mkf="$2" expr="$1" ; shift 2
+  test -n "$mkf" || mkf="/dev/null"
+  make -Rr -f"$mkf" --eval="$expr" "$@"
 }
 
 # List all local makefiles; the exact method differs a bit per workspace.
@@ -84,7 +89,7 @@ htd_make_files()
         continue
     }
     test "$method" = "db" && {
-        htd_make_expand MAKEFILE_LIST | tr ' ' '\n'
+        htd_make_srcfiles
         continue
     }
     test -d "./$method/" && {
@@ -94,31 +99,86 @@ htd_make_files()
   done
 }
 
-# Expand variable from database
-htd_make_expand()
+# Append target with make-eval and call that target, embedding the expression
+# from stdin. See make-echo-op var for printf string template. Capture the
+# output with fd-4, so stdout,err is ignored, and shell, make and even Bats
+# can go about their way (the makefile root may contain macros thats run
+#  directly).
+make_op() # [make_op_fd=4] ~ [Makefile] [echo|recipe]
 {
-    test -n "$1" || set -- MAKEFILE_LIST
-    varname="$1" ; shift
-    make -pq "$@" 2>/dev/null |
-        grep '^'"$varname"' := ' |
-        sed 's/^'"$varname"' := //'
+  test -n "$2" || set -- "$1" "echo"
+  local strf="$(eval echo \"\$make_graft_${2}_op\")"
+  local outf=$(setup_tmpf .out)
+  eval "exec $make_op_fd>$outf"
+  debug "make_nobi_eval '\$( printf '$strf >&$make_op_fd' '\$( cat )' ) '$1' htd-make-op"
+  make_nobi_eval "$( printf "$strf >&4" "$( cat )" )" "$1" htd-make-op \
+        2>&1 \
+        1>/dev/null
+  cat "$outf"
+  rm "$outf"
 }
 
-htd_make_expandall()
+# Default make part to append target which expands make expression to one line
+make_graft_echo_op='\nhtd-make-op:: ; @echo "$(%s)"'
+
+# Generic fmt to add target with recipe (shell with make macro)
+make_graft_recipe_op='\nhtd-make-op:: ; @%s'
+
+
+# List variable names, excluding inherited env. But includes all specials and
+# other builtins.
+htd_make_list_internal_vars() # Makefile
 {
-  show_key()
-  {
-    test -n "$1" || return
-    echo $1: $(htd_make_expand "$1")
-  }
-  act=show_key foreach_do "$make_special_v"
+  echo "$make_list_internal_vars" | make_op "$1" | tr ' ' '\n'
 }
 
-# List all included makefiles
-htd_make_srcfiles()
+# List variable names, but only those defined by this or included makefiles.
+# Excludes inherited shell env, and all special and other builtin vars.
+htd_make_list_vars() # Makefile
 {
-  htd_make_expand MAKEFILE_LIST
+  echo "$make_list_vars" | make_op "$1" | tr ' ' '\n'
 }
+
+
+# "Expand" make variable or macro from given Makefile. See make-op.
+htd_make_expand() # Var-Name [Makefile]
+{
+  test -n "$1" || error "var-name expected" 1
+  echo "$1" | make_op "$2"
+}
+
+
+# Instead of a foreach invoking make Nth time, extract the vars in one expression
+htd_make_expand_all() # [Makefile] [Vars...]
+{
+  local mkf="$1" ; shift
+  test -n "$1" || set -- "\$($make_list_vars)"
+  printf "$make_expand_vars" "$*" | make_op "$mkf" recipe
+}
+
+
+# Show make var declaration (grep from database dump)
+htd_make_vardef() # Var [Makefile] [Make-args...]
+{
+  local varname="$1" mkf="$2" ; shift 2
+  make -qpRr -f"$mkf" "$@" |
+      grep '^'"$varname"'\ *:\?=\ *' |
+      sed 's/^.*\ *[?:+!]*=\ *//'
+}
+
+
+# Print features of local make dist
+htd_make_features()
+{
+  htd_make_expand .FEATURES | tr ' ' '\n'
+}
+
+# List all included makefiles, usefull to build dependency list for cache validation
+htd_make_srcfiles() # [Makefile]
+{
+  htd_make_expand MAKEFILE_LIST "$1" | tr ' ' '\n'
+}
+
 
 # Return all targets/prerequisites given a make data base dump on stdin
 make_targets()
@@ -171,6 +231,7 @@ make_targets_()
       -e 's/\/\.\//\//g' \
       -e 's/\/\/\/*/\//g'
 }
+
 
 # List all targets (from every makefile dir by default)
 htd_make_targets()

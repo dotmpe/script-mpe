@@ -1,0 +1,22 @@
+test/var/make/test-2-variables-1.mk 
+" VAR1_1a foo
+" VAR1a foo
+" VAR1_1b foo
+" VAR1_2a 
+" VAR1b foo
+" VAR1_2b foo
+
+test/var/make/test-2-variables-2.mk
+" VAR2_1a foo
+" VAR2_1b foo
+" VAR2_2a foo bar-a-2
+" VAR2_2b foo bar-b-2
+
+test/var/make/test-2-variables-3.mk
+" VAR3_1 test/var/make/test-*-*-3.mk
+" VAR3_2 test/var/make/test-2-variables-3.mk
+" VAR3_3 test/var/make/test-2-variables-3.mk
+
+test/var/make/test-2-variables-4.mk
+" VAR4_1 abc123
+" VAR4_2 foo

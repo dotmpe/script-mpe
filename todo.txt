@@ -1,3 +1,10 @@
+# script.mpe tasks
+# See <todo-at-Dsgn> for test tracking current specs
+# Other experimental generated in <todo-res>
+
+2018-11-30 Setup spec to list commit date for line with vc blame
+2018-11-30 Move specs into todo-at-Dsgn
+2018-11-30 Sort Dev and not-registered issues into todo-at-Dev? or vice versa registered issues in -at-Plan, -at-Release etc. Hmm.
 2018-11-20
 
 limit lib size, monitor lines

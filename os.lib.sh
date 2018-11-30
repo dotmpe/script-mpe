@@ -423,7 +423,7 @@ read_nix_style_file() # [cat_f=] ~ File [Grep-Filter]
 {
   test -n "$1" || return 1
   test -n "$2" || set -- "$1" '^\s*(#.*|\s*)$'
-  test -z "$3" || error "read-nix-style-file: surplus arguments '$2'" 1
+  test -z "$3" || $LOG error "os" "read-nix-style-file: surplus arguments '$2'" "" 1
   cat $cat_f "$1" | grep -Ev "$2" || return 1
 }
 
@@ -901,7 +901,7 @@ filesizesum()
 }
 
 
-# XXX: turn lists into columns, using shell vars but does that scale?
+# Turn lists into columns, using shell vars.
 ziplists() # [SEP=\t] Rows
 {
   local col=0 row=0

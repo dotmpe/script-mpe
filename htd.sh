@@ -9074,7 +9074,7 @@ htd_init()
   local __load_lib=1
   export SCRIPTPATH=$scriptpath:$scriptpath/commands:$scriptpath/contexts
   . $scriptpath/util.sh || return $?
-  lib_load os std sys str stdio src main argv match vc
+  lib_load os std sys sys-htd str stdio src main argv match vc
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load htd vc web src

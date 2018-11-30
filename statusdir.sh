@@ -401,14 +401,13 @@ EOM
 
 statusdir_init()
 {
-  test -n "$scriptpath"
+  test -n "$scriptpath" || return
   export SCRIPTPATH=$scriptpath
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-  . $scriptpath/util.sh load-ext
-  lib_load
+  __load=boot . $scriptpath/util.sh
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  lib_load src main box date
+  lib_load box date
   # -- statusdir box init sentinel --
 }
 

@@ -5,6 +5,12 @@
 # Env: $name-env-id
 # Description.
 
+lib_lib_load()
+{
+  test -n "$LOG" || exit 102
+  test -n "$default_lib" ||
+      default_lib="os std sys sys-htd str stdio src main argv match vc shell"
+}
 
 lib_path_exists()
 {
@@ -23,17 +29,20 @@ lib_path() # local-name path-var-name
 lib_load()
 {
   test -n "$LOG" || exit 102
+      default_lib="os std sys sys-htd str stdio src main argv match vc shell"
   local lib_id= f_lib_loaded= f_lib_path=
   # __load_lib: true if inside util.sh:lib-load
-  test -n "$default_lib" ||
-      default_lib="os std sys str stdio src main argv match vc shell"
 
   test -n "$__load_lib" || local __load_lib=1
-  test -n "$1" || set -- $default_lib
+
+  #test -n "$1" || set -- $default_lib
+  test -n "$1" || return 1
   while test -n "$1"
   do
     lib_id=$(printf -- "${1}" | tr -Cs 'A-Za-z0-9_' '_')
-    test -n "$lib_id" || { echo "err: lib_id=$lib_id" >&2; exit 1; }
+    test -n "$lib_id" || {
+      $LOG error lib "err: lib_id=$lib_id" "" 1 || return
+    }
     f_lib_loaded=$(eval printf -- \"\$${lib_id}_lib_loaded\")
 
     test -n "$f_lib_loaded" || {
@@ -46,18 +55,22 @@ lib_load()
             echo "$sp/$1.lib.sh"
             break
           done)"
-        test -n "$f_lib_path" || { $LOG error "No path for lib '$1'" ; exit 1; }
+        test -n "$f_lib_path" || {
+          $LOG error "lib" "No path for lib '$1'" "" 1
+                  #|| return
+        }
         . $f_lib_path
 
         # again, func_exists is in sys.lib.sh. But inline here:
         type ${lib_id}_lib_load  2> /dev/null 1> /dev/null && {
-           ${lib_id}_lib_load || error "in lib-load $1 ($?)" 1
+          ${lib_id}_lib_load || {
+            $LOG error "lib" "in lib-load $1 ($?)" 1 || return
+          }
         }
 
         eval ENV_SRC=\""$ENV_SRC $f_lib_path"\"
-        #echo "'$ENV_SRC' '$f_lib_path'" >&2
         eval ${lib_id}_lib_loaded=1
-        #echo "note: ${lib_id}: 1" >&2
+        $LOG info "lib" "Finished loading ${lib_id}: OK"
         unset lib_id
     }
     shift
@@ -130,8 +143,14 @@ case "$0" in
         util_init
       }
       case "$__load_mode" in
+        lib )
+            lib_lib_load
+          ;;
+      esac
+      case "$__load_mode" in
         boot )
-            lib_load
+            lib_lib_load
+            lib_load $default_lib
           ;;
         #ext|load-*|* ) ;; # External include, do nothing
       esac

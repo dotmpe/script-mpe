@@ -8,10 +8,23 @@ test_env_init()
 {
   test -n "$base" || return 12
   test -n "$uname" || uname=$(uname)
+
   test -n "$scriptpath" || scriptpath=$(pwd -P)
-  SHT_PWD="$(grealpath --relative-to=$BATS_CWD $BATS_TEST_DIRNAME )"
-  test -n "$VND_GH_SRC" ||
-      VND_GH_SRC=/srv/src-local/github.com
+  test -n "$script_util" || script_util=$(pwd -P)/tools/sh
+
+  test -n "$testpath" || testpath=$(pwd -P)/test
+  #test -n "$default_lib" ||
+  default_lib="os sys str std main"
+
+  test -n "$BATS_LIB_PATH" || BATS_LIB_PATH=$testpath:$testpath/helper
+
+  # XXX: relative path to templates/fixtures?
+  SHT_PWD="$( cd $BATS_CWD && realpath $BATS_TEST_DIRNAME )"
+#SHT_PWD="$(grealpath --relative-to=$BATS_CWD $BATS_TEST_DIRNAME )"
+
+  # Locate ztombol helpers and other stuff from github
+  test -n "$VND_SRC_PREFIX" || VND_SRC_PREFIX=/srv/src-local
+  test -n "$VND_GH_SRC" || VND_GH_SRC=$VND_SRC_PREFIX/github.com
   hostname_init
 }
 
@@ -20,28 +33,91 @@ hostname_init()
   hostnameid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
 }
 
+# XXX: temporary override for Bats load
+
+load() # ( PATH | NAME )
+{
+  while test $# -gt 0 
+  do
+    load_helper "$1" || return $?
+    shift
+  done
+}
+
+test -n "$BATS_LIB_PATH" || {
+  BATS_LIB_PATH=$BATS_CWD:$BATS_TEST_DIRNAME:$BATS_TEST_DIRNAME/helper
+}
+
+test -n "$BATS_LIB_EXTS" || BATS_LIB_EXTS=bash\ sh
+test -n "$BATS_LIB_DEFAULT" || BATS_LIB_DEFAULT=load
+
+load_helper()
+{
+  test -e "$1" && {
+    . "$1"
+    return $?
+  }
+  for i in ${BATS_LIB_PATH//:/ }
+  do
+    test -d "$i/$1" && {
+
+      for e in $BATS_LIB_EXTS
+      do
+        test -e "$i/$1/$BATS_LIB_DEFAULT.$e" && {
+          . "$i/$1/$BATS_LIB_DEFAULT.$e"
+          return $?
+        }
+      done
+
+    } || {
+
+      test -e "$i/$1" && {
+        . "$i/$1"
+        return $?
+      }
+      for e in $BATS_LIB_EXTS
+      do
+        test -e "$i/$1.$e" && {
+          . "$i/$1.$e"
+          return $?
+        }
+      done
+    }
+  done
+  return 1
+}
+
 init()
 {
   test_env_init || return
-
-  __load_mode=load-ext . $scriptpath/tools/sh/init.sh
-  # __load_mode=load-ext . $scriptpath/util.sh
-  test "$1" = "0" || {
-    test -n "$1" || set -- os sys str std main
-    lib_load "$@"
-  }
 
   # Detect when base is exec
   test -x $PWD/$base && {
     bin=$base
   } || {
-    test -x "$(which $base)" &&
-        bin=$(which $base) || lib=$(basename $base .lib)
+    test -x "$(which $base)" && bin=$(which $base) || lib=$(basename $base .lib)
   }
 
-  load helper-extra
-  load helper-stdtest
-#  load assert # XXX: conflicts, load overrides 'fail'
+  # Get lib-load, and optional libs/boot script/helper
+
+  test -n "$2" && init_sh_boot="$2"
+  test "$1" = "0" || { test -n "$init_sh_boot" || init_sh_boot="null"; }
+
+# XXX scriptpath
+  scriptpath=$PWD/src/sh/lib SCRIPTPATH=$PWD/src/sh/lib:$HOME/bin
+  init_sh_libs="$1" . $script_util/init.sh
+  #__load_mode=load-ext . $scriptpath/tools/sh/init.sh
+  # __load_mode=load-ext . $scriptpath/util.sh
+
+  test "$1" = "0" || {
+    lib_load $default_lib
+  }
+
+  test "$2" = "0" || {
+    load extra
+    load stdtest
+    #load assert # XXX: conflicts, load overrides 'fail'
+  }
 
   #export ENV=./tools/sh/env.sh
   export ENV_NAME=testing

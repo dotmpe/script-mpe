@@ -5,17 +5,12 @@ load init
 
 setup()
 {
-  init 0 &&
-
-  main_inc=$SHT_PWD/var/sh-src-main-mytest-funcs.sh &&
-  . $main_inc #&&
+  init 0 && lib_load sys &&
+  main_inc=$SHT_PWD/var/sh-src-main-mytest-funcs.sh
 }
 
 
 @test "$base: incr VAR [AMOUNT]" {
-
-#export SCR_SYS_SH= && lib_load sys
-  lib_load sys
 
   COUNT=2
   run incr COUNT 5
@@ -23,12 +18,11 @@ setup()
 
   incr COUNT 5
   test $COUNT -eq 7 || stdfail "2. ($COUNT)"
+
 }
 
 
 @test "$base: trueish VALUE" {
-
-  lib_load sys
 
   run trueish 1 ; test_ok_empty || stdfail 1.A.
   run trueish 0 ; test_nok_empty || stdfail 1.B.
@@ -49,8 +43,6 @@ setup()
 
 @test "$base: not-trueish VALUE" {
 
-  lib_load sys
-
   run not_trueish 1 ; test_nok_empty || stdfail 1.A.
   run not_trueish 0 ; test_ok_empty || stdfail 1.B.
 
@@ -70,8 +62,6 @@ setup()
 
 @test "$base: falseish VALUE" {
 
-  lib_load sys
-
   run falseish 1 ; test_nok_empty || stdfail 1.A.
   run falseish 0 ; test_ok_empty || stdfail 1.B.
 
@@ -86,11 +76,10 @@ setup()
 
   run falseish - ; test_nok_empty || stdfail 5.A.
   run falseish "" ; test_nok_empty || stdfail 5.B.
+
 }
 
 @test "$base: not-falseish VALUE" {
-
-  lib_load sys
 
   run not_falseish 1 ; test_ok_empty || stdfail 1.A.
   run not_falseish 0 ; test_nok_empty || stdfail 1.B.
@@ -104,14 +93,13 @@ setup()
   run not_falseish Yes ; test_ok_empty || stdfail 4.A.
   run not_falseish No ; test_nok_empty || stdfail 4.B.
 
-  run not_falseish - ; test_ok_empty || stdfail 5.A.
-  run not_falseish "" ; test_ok_empty || stdfail 5.B.
+  run not_falseish "" ; test_ok_empty || stdfail 5.A.
+  run not_falseish - ; test_ok_empty || stdfail 5.B.
+
 }
 
 
 @test "$base: cmd-exists NAME" {
-
-  lib_load sys
 
   run cmd_exists "ls"
   test_ok_empty || stdfail "A."
@@ -124,6 +112,7 @@ setup()
 
   run cmd_exists "$(get_uuid)"
   test_nok_empty || stdfail "B.3."
+
 }
 
 
@@ -131,7 +120,7 @@ setup()
 
   myfunc() { false; }
 
-  lib_load sys os
+  lib_load os
 
   run func_exists myfunc
   test_ok_empty || stdfail A.
@@ -145,19 +134,19 @@ setup()
 
 @test "$base: try-exec-func on existing function" {
 
-  lib_load std sys
-
+  . $main_inc
   run try_exec_func mytest_function
   { test $status -eq 0 &&
     fnmatch "mytest" "${lines[*]}"
   } || stdfail
+
 }
 
 @test "$base: try-exec-func on non-existing function" {
 
-  lib_load sys
   run try_exec_func no_such_function
   test $status -eq 1
+
 }
 
 
@@ -252,110 +241,6 @@ EOM
       test $status -eq 127
       ;;
   esac
-}
-
-
-# util / Var Isset
-
-@test "$base: var-isset depends on SCR-SYS-SH " {
-
-  lib_load sys
-  diag "Shell: $SHELL, Scr-Sys-Sh: $SCR_SYS_SH"
-  {
-    fnmatch "bash-sh" "$SCR_SYS_SH" || fnmatch "sh" "$SCR_SYS_SH"
-  } && {
-    type set
-  } || {
-    true
-  }
-}
-
-@test "$base: var-isset detects vars correctly even if empty" {
-
-  lib_load sys
-  ( 
-    env | grep -v '^[A-Z0-9_]*=' | grep '\<foo_bar='
-  ) && fail "unexpected" || true
-  var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || true
-
-  run var_isset foo_bar
-  test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
-
-  # XXX: Bats with non-bash test subshell?
-  test -n "$SHELL" -a "$(basename $SHELL)" = "sh" || skip
-
-  foo_bar=
-  run var_isset foo_bar
-  test $status -eq 0 || fail "3. Expected foo_bar set ($status)"
-  unset foo_bar
-  run var_isset foo_bar
-  test $status -eq 1 || fail "4. Unexpected foo_bar set ($status)"
-}
-
-@test "$base: var-isset detects vars correctly even if empty (sh wrapper)" {
-
-  lib_load sys
-  ./test/util-lib-spec.sh var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || echo
-
-  run ./test/util-lib-spec.sh var-isset foo_bar
-  test $status -eq 1 || 
-    fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
-
-  run sh -c "foo_bar= ./test/util-lib-spec.sh var-isset foo_bar"
-  test $status -eq 0 || fail "3. Expected foo_bar set ($status; out ${lines[*]})"
-}
-
-
-@test "$base: var-isset detects vars correctly even if empty (bash wrapper)" {
-
-  lib_load sys
-  local scriptpath="$(pwd)"
-  ./test/util-lib-spec.bash var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
-
-  run ./test/util-lib-spec.bash var-isset foo_bar
-  test $status -eq 1 ||
-    fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
-  run bash -c "foo_bar= ./test/util-lib-spec.bash var-isset foo_bar"
-  test $status -eq 0 || fail "3. Expected foo_bar set ($status; out ${lines[*]})"
-}
-
-
-@test "$base: var-isset detects vars correctly even if empty, exported" {
-
-  lib_load sys
-  var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
-  run var_isset foo_bar
-  test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
-  export foo_bar=
-  run var_isset foo_bar
-  test $status -eq 0 || fail "3. Expected foo_bar set ($status)"
-  unset foo_bar
-  run var_isset foo_bar
-  test $status -eq 1 || fail "4. Unexpected foo_bar set ($status)"
-  export foo_bar=
-  run var_isset foo_bar
-  test $status -eq 0 || fail "5. Expected foo_bar set ($status)"
-  unset foo_bar
-  run var_isset foo_bar
-  test $status -eq 1 || fail "6. Unexpected foo_bar set ($status)"
-}
-
-@test "$base: var-isset detects vars correctly even if empty, local declaration" {
-
-  lib_load sys
-  # XXX: Bats with non-bash test subshell?
-  diag "Sh: $SHELL"
-  test -n "$SHELL" -a "$(basename $SHELL)" = "sh" || skip
-
-  local foo_bar_baz=
-  run var_isset foo_bar_baz 
-  test $status -eq 0 || fail "Expected foo_bar_baz set ($status)"
-
-  unset foo_bar_baz
-  run var_isset foo_bar_baz
-  test $status -eq 1 || fail "Unexpected foo_bar_baz ($status)"
-
-  unset foo_bar
 }
 
 

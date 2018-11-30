@@ -5,8 +5,8 @@ load init
 
 setup()
 {
-  init &&
-  lib_load sys &&
+  init 0 &&
+  lib_load sys os &&
 
   # var/table-1.tab: File with 5 comment lines, 3 rows, 1 empty and 1 blank (ws)
   testf1="test/var/table-1.tab" &&

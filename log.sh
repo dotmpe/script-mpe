@@ -1,7 +1,41 @@
-#!/bin/bash
+#!/bin/sh
+
+# Logger: arg-to-colored ansi
+# Usage:
+#   log.sh [Line-Type] [Header] [Msg] [Ctx] [Exit]
+
+
+DEBUG=${DEBUG:-}
+test -z "$verbosity" && {
+    test -n "$DEBUG" && verbosity=7 || verbosity=6
+}
+
+logger_stderr_num() # Level-Name
+{
+  case "$1" in
+      emerg ) echo 1 ;;
+      crit  ) echo 2 ;;
+      error ) echo 3 ;;
+      warn  ) echo 4 ;;
+      note  ) echo 5 ;;
+      info  ) echo 6 ;;
+      debug ) echo 7 ;;
+      * ) return 1 ;;
+  esac
+}
+
+lvl=$(logger_stderr_num "$1")
+
+test $verbosity -ge $lvl || {
+  test -n "$5" && exit $5 || {
+    exit 0
+  }
+}
+
+
 
 # left align first columnt at:
-FIRSTTAB=${FIRSTTAB-24}
+test -n "$FIRSTTAB" || FIRSTTAB=32
 
 if [ -z "$CS" ]
 then
@@ -60,7 +94,7 @@ mk_p_trgt_red="$c1[$c7%s$c1]$c0"
 mk_updtd="$c4<$c7%s$c4>$c0"
 
 
-__log ()
+__log()
 {
 	linetype=$(echo $1|tr 'A-Z' 'a-z')
 	targets=$(echo "$2")
@@ -137,12 +171,13 @@ __log ()
 			;;
 	esac
 	if [ $len -lt 0 ]; then len=0; fi
+	# FIXME: should use printf
 	padd=" ";
 	padding=''
 	while [ ${#padding} -lt $len ]; do
 		padding="$padd$padding"
 	done;
-	echo -e " $padding$targets $msg$c0 "
+	printf " $padding$targets $msg$c0\n"
 }
 
 
@@ -150,7 +185,7 @@ __log ()
 if test "$1" = '-'
 then
 	export IFS="	"; # tab-separated fields for $inp
-	while read -r lt t m s;
+	while read lt t m s;
 	do
 		__log "$lt" "$t" "$m" "$s";
 	done

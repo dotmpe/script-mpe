@@ -111,3 +111,6 @@ tools:
   go-bane:
     installer: go-get
     id: github.com/genuinetools/bane
+
+  x11docker:
+    url: https://raw.githubusercontent.com/mviereck/x11docker/master/x11docker

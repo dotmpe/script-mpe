@@ -1,25 +1,35 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
-bats test/*.bats
+__load=boot scriptpath=$PWD . ./util.sh
+
+failed=/tmp/htd-build-test-$(uuidgen).failed
+lib_load build-test && build_test_init
+htd package update
+export verbosity=7
+htd project-stats build
+
 exit $?
 
-scriptpath=$(pwd) . ./util.sh
-lib_load
-#lib_load src table projectenv
+scriptpath=
+SCRIPTPATH=
+for x in test/{sys,os,str}*.bats
+do
+  echo bats "$x"
+  bats "$x"
+done
 
-#cd "$REDO_BASE" &&
-#  lib_load build-test &&
-#  build_test_init &&
-#  expand_spec_src baselines
-#exit $?
+exit $?
+#
+scriptpath=$PWD . ./util.sh
+lib_load && lib_load mkvar make
 
-#build_redo_changed=1 ./build.sh all
-
-export CS=dark
-#./build.sh all_tests_static
-#build_coverage ./build.sh all_tests_static
+#mkvar_preproc <"test/var/mkvar/test1.kv"
+#mkvar_preproc <"test/var/mkvar/test1b.kv"
+#mkvar_preproc <"test/var/mkvar/test1c.kv"
+mkvar_preproc <"test/var/mkvar/test1d.kv"
+#mkvar_preproc <"test/var/mkvar/test2.kv"
+exit $?
 
 #shells=bash test_shells ./build.sh required_tests
 
@@ -28,17 +38,14 @@ docker run --rm \
     -w /dut \
     -v $(pwd -P)/tools/ci/docker.sh:/dut/run.sh \
     bvberkum/treebox:dev sh ./run.sh
-
 exit $?
 
 . ./tools/sh/env.sh
-
 test_any_feature "$@"
 exit $?
 
 p='' s='' act=$component_tests foreach_do "$@" |
       p='' s='' act=$component_test foreach_do
-
 exit $?
 
 projectdir.sh run :git:status
@@ -61,7 +68,6 @@ exit $?
 #}
 #exec_watch_poll testme echo "\$foo" -- touch build.lib.sh
 
-
 #poll_sleep=2
 #lib_load vc
 #reload()
@@ -71,15 +77,16 @@ exit $?
 #}
 #exec_watch_scm reload
 
-
 #verbosity=7
 exec_watch_scm
 exit $?
-  
+
+
 htd tasks --Check-All-Tags --Check-All-Files --update
 
 #redo doc/src/sh/default.dot.gv
 exit $?
+
 
 lib_load build
 project_test mod_jsotk jsotk-py jsotk-xml
@@ -99,3 +106,11 @@ exit $?
 # https://explainshell.com/explain?cmd=rst2html+--record-dependencies%3DFILE
 
 exit $?
+
+# TODO: record as benchmark or other report, onto docker image
+failed=/tmp/htd-build-test-$(uuidgen).failed
+lib_load build-test && build_test_init
+htd package update
+export verbosity=7
+htd project-stats build
+

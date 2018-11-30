@@ -4,8 +4,7 @@
 # Initialize Project Build Scripts shell modules
 build_lib_load()
 {
-  test -n "$std_lib_loaded" || error "Expected std def. env" 1
-  #lib_load std stdio build-checks
+  # XXX cleanup lib_load std stdio build-checks
 
   test -n "$cllct_set_base" || cllct_set_base=.cllct/specsets
   test -n "$cllct_src_base" || cllct_src_base=.cllct/src

@@ -65,14 +65,14 @@ uninstall_bats()
 install_bats()
 {
   stderr_ "Installing bats"
-  test -n "$BATS_BRANCH" || BATS_BRANCH=master
+  test -n "$BATS_VERSION" || BATS_VERSION=master
   test -n "$BATS_REPO" || BATS_REPO=https://github.com/bats-core/bats-core.git
   test -d $SRC_PREFIX/bats || {
     git clone $BATS_REPO $SRC_PREFIX/bats || return $?
   }
   (
-    cd $SRC_PREFIX/bats
-    git checkout $BATS_BRANCH
+    cd $SRC_PREFIX/bats &&
+    git checkout $BATS_VERSION &&
     ${pref} ./install.sh $PREFIX
   )
 }
