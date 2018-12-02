@@ -1,17 +1,14 @@
 #!/usr/bin/env bats
 
 load init
-load vc
 base=vc.lib
-
-init
 
 setup()
 {
-  . ./vc.sh load-ext &&
-  . ./util.sh load-ext &&
-  lib_load os sys str std match vc &&
-  . ./vc.sh &&
+  init && load vc &&
+  __load_lib=1 . ./vc.sh &&
+  lib_load match vc &&
+  #. ./vc.sh &&
   setup_clean_git
 }
 

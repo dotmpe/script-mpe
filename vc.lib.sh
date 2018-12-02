@@ -1028,7 +1028,7 @@ vc_commit_for_line() # File Line-Nr
   local srcf="$1" ; shift
   while read firstln commit lncnt lastln
   do
-    test $1 -le $firstln || continue
+    test $1 -ge $firstln || continue
     test $1 -lt $lastln && {
         echo "$commit"
         shift
@@ -1039,9 +1039,14 @@ vc_commit_for_line() # File Line-Nr
   test $# -eq -0
 }
 
-vc_commit_date()
+vc_commit_date() # Commit
 {
   git show -s --format=%ci "$1"
+}
+
+vc_author_date() # Commit
+{
+  git show -s --format=%ai "$1"
 }
 
 

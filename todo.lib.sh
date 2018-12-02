@@ -15,3 +15,9 @@ todo_txt_grep_dt_id()
 {
   false # TODO: grep-dt-id
 }
+
+# Should not re-open tasks. Insert date after closed and/or prio tags.
+todo_txt_set_created()
+{
+    sed -E 's/^(x\ )?(\([^\)]+\) )?/\1\2'"$1"' /g'
+}

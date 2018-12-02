@@ -3,4 +3,4 @@
 (D) clean up old code XXX-jybtyDKFdOCC XXX-ZnV3whzhLzOM XXX-KSPpSK8SiElJ
 (F) foo meta:bar meta2:x some.thing:value other/thing:value +AnotherPrefTag @DifferentPrefTag
 Edit edit edit +prj1 +prj2 +prj3 +prj4
-Minor edit to commit @ctx-1 @ctx2 @ctx3 @ctx4
+x Minor edit to commit @ctx-1 @ctx2 @ctx3 @ctx4

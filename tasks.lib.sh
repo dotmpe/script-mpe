@@ -101,15 +101,18 @@ todo_read_line()
 }
 
 
+# [tasks_echo] [tasks_modify]
 tasks_add_dates_from_scm_or_def() # [date] ~ TODO.TXT [date_def]
 {
+  trueish "$tasks_echo" && tasks_modify=0 || tasks_modify=1
   vc_getscm && {
     vc_commit_for_line "$1" 1 >/dev/null # Setup cache now
   } || {
     test -n "$2" && date="$2"
     test -n "$date" || error "Nothing to get date from" 1
   }
-  cp "$1" "$1".tmp.add-dates || return 1
+  local tmpf="$(setup_tmpf .tasks-add-dates)"
+  cp "$1" "$tmpf"
 
   local lnr=0 todotxt= date_def=$date date=
   while read todotxt
@@ -119,17 +122,20 @@ tasks_add_dates_from_scm_or_def() # [date] ~ TODO.TXT [date_def]
     { # Unless we have a date or comment line, lookup the commit ISO date
       test -n "$date" || echo "$todotxt" | $ggrep -q '^\s*\(#.*\)\?$'
     } || {
-      sha1=$(vc_commit_for_line "$1" "$lnr")
-      date="$(vc_commit_date "$sha1" | cut -d' ' -f1)"
+      sha1=$(vc_commit_for_line "$1" "$lnr") || continue
+      date="$(vc_author_date "$sha1" | cut -d' ' -f1)"
       test -n "$date" && {
-        note "$sha1 $lnr $date $todotxt"
-        #echo "$date $todotxt"
+        echo "$todotxt" | todo_txt_set_created "$date"
       } || {
-        echo "$date_def $todotxt"
+        echo "$todotxt" | todo_txt_set_created "$date_def"
       }
       continue
     }
     echo "$todotxt"
-  done <"$1".tmp.add-dates
-  rm "$1".tmp.add-dates
+  done <"$tmpf" | {
+    trueish "$tasks_modify" && {
+      cat >"$1" || return
+    } || cat
+  }
+  rm "$tmpf"
 }

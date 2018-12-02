@@ -10,8 +10,8 @@ setup_clean_git()
   touch .gitignore
   git add .
 
-  note "Checking GIT user"
   git config --get user.name || {
+    warn "Adding GIT user"
     git config --global user.email "dev+travis@dotmpe.com"
     git config --global user.name "Travis"
   }
