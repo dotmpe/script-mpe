@@ -1,0 +1,15 @@
+# Tasks lists tracking test specs
+
+2018-11-30 @Htd vt
+2018-12-01 @Htd doc new
+
+2018-11-30 @Htd git get
+2018-12-01 @Htd vc
+2018-12-01 @Htd vcflow
+
+2018-12-01 @Htd tasks sync
+
+2018-11-30 @Htd meta
+2018-12-01 @Htd emby->meta
+
+# vim:ft=todo.txt:nowrap:

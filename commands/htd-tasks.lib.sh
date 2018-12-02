@@ -10,6 +10,55 @@ htd_tasks_lib_load()
     eval $(map=package_pd_meta_ package_sh tasks_hub)
     test -z "$tasks_hub" -o -e "$tasks_hub" || mkdir -p "$tasks_hub"
   }
+  lib_load os str std list vc tasks todo
+}
+
+htd__tasks()
+{
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  case "$1" in
+
+# Read-only
+
+    info )
+        htd_tasks_load
+        note "$(var2tags  todo_slug todo_document todo_done )"
+      ;;
+
+    be.src )
+        mkvid "$2" ; cmid=$vid
+        . ./to/be-src.sh ; shift 2
+        htd__tasks__src__${cmid} "$@"
+      ;;
+
+    be* )
+        be=$(printf -- "$1" | cut -c4- )
+        test -n "$be" || error "No default tasks backend" 1
+        mksid "$1" '' ''; ctxid=$sid
+        test -e ./to/$sid.sh || error "No tasks backend '$1' ($be)" 1
+        . ./to/$ctxid.sh ;
+        mkvid "$be" ; beid=$vid
+        mkvid "$2" ; cmid=$vid
+        . ./to/$ctxid.sh ; shift 2
+        htd__tasks__${beid}__${cmid} "$@"
+      ;;
+
+    tags ) shift ;  htd_tasks_tags "$@" ;;
+
+    "" ) shift || true ; htd_tasks_scan "$@" ;;
+
+# Modify/proc/update list
+
+    add-dates ) req_fcontent_arg "$2"
+        tasks_add_dates_from_scm_or_def "$2"  "$3"
+      ;;
+
+# Default
+
+    * )
+        subcmd_prefs=${base}__tasks_\ ${base}_tasks_ try_subcmd_prefixes "$@"
+      ;;
+  esac
 }
 
 # htd_run__tasks_session_start=epqiA

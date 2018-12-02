@@ -570,7 +570,10 @@ vc_roots()
 }
 
 
-vc_epoch_git()
+# Get commit date as seconds in Unix epoch
+# vc_epoch_*
+
+vc_epoch_git() # Commit
 {
   set -- $( git rev-list --max-parents=0 HEAD )
   git show -s --format=%ct "$1"
@@ -1012,6 +1015,33 @@ vc_blame()
 {
   test -n "$scm" || vc_getscm
   vc_blame_${scm} "$@"
+}
+
+
+# XXX: really like blame but stashes blame-idx in local file, for
+# cleanup into status dir or some htd/pd thing
+vc_commit_for_line() # File Line-Nr
+{
+  test $# -gt 0 || return
+  vc_getscm || return
+  vc_blame "$1" >"$1".blameidx
+  local srcf="$1" ; shift
+  while read firstln commit lncnt lastln
+  do
+    test $1 -le $firstln || continue
+    test $1 -lt $lastln && {
+        echo "$commit"
+        shift
+        test $# -gt 0 || break
+    }
+    continue
+  done <"$srcf".blameidx
+  test $# -eq -0
+}
+
+vc_commit_date()
+{
+  git show -s --format=%ci "$1"
 }
 
 

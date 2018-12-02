@@ -2,7 +2,6 @@
 
 tasks_lib_load()
 {
-  lib_load os str std list
   test -n "$TASK_EXT" || TASK_EXT="ttxtm"
   test -n "$TASK_EXTS" || TASK_EXTS=".ttxtm .list .txt"
   test -n "$tasks_hub" || {
@@ -99,4 +98,38 @@ todo_read_line()
   test "$ln" -eq "$ln" 2> /dev/null \
     || error "Please include line-numbers in the TODO.list" 1
   comment=${line:$((  ${#fn} + ${#ln} + 2  ))}
+}
+
+
+tasks_add_dates_from_scm_or_def() # [date] ~ TODO.TXT [date_def]
+{
+  vc_getscm && {
+    vc_commit_for_line "$1" 1 >/dev/null # Setup cache now
+  } || {
+    test -n "$2" && date="$2"
+    test -n "$date" || error "Nothing to get date from" 1
+  }
+  cp "$1" "$1".tmp.add-dates || return 1
+
+  local lnr=0 todotxt= date_def=$date date=
+  while read todotxt
+  do
+    lnr=$(( $lnr + 1 ))
+    date="$(echo "$todotxt" | todo_txt_grep_date)"
+    { # Unless we have a date or comment line, lookup the commit ISO date
+      test -n "$date" || echo "$todotxt" | $ggrep -q '^\s*\(#.*\)\?$'
+    } || {
+      sha1=$(vc_commit_for_line "$1" "$lnr")
+      date="$(vc_commit_date "$sha1" | cut -d' ' -f1)"
+      test -n "$date" && {
+        note "$sha1 $lnr $date $todotxt"
+        #echo "$date $todotxt"
+      } || {
+        echo "$date_def $todotxt"
+      }
+      continue
+    }
+    echo "$todotxt"
+  done <"$1".tmp.add-dates
+  rm "$1".tmp.add-dates
 }

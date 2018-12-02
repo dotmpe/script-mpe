@@ -316,6 +316,7 @@ date_id() {
   }
 }
 
+# Parse compressed datetime ID format (Y-M-DTH:M:s)  to ISO datetime
 date_idp() {
   echo "$1" | $gsed -E \
       -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})([0-9]{2})/\1-\2-\3T\4:\5:\6/' \

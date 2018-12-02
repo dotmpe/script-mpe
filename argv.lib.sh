@@ -120,15 +120,27 @@ req_bin()
 }
 
 
+# Require at least one argument that is an existing path
 req_path_arg()
 {
-	test -n "$1" -a -e "$1" || error "path or file argument expected: '$1'" 1
+  [ $# -gt 0 ] || error "Path or file name expected" 1
+  [ -e "$1" ] || error "No such path or file '$1'" 1
 }
 
 
+# Require at least one argument that is a file
 req_file_arg()
 {
-	test -n "$1" -a -f "$1" || error "file argument expected: '$1'" 1
+  [ $# -gt 0 ] || error "File name expected" 1
+  [ -f "$1" ] || error "No file '$1'" 1
+}
+
+
+# Require at least one argument that is a non-empty file
+req_fcontent_arg()
+{
+  [ $# -gt 0 ] || error "File name expected" 1
+  [ -s "$1" ] || error "No such or empty file '$1'" 1
 }
 
 

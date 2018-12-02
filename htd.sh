@@ -327,6 +327,11 @@ htd_load()
         # TODO: query/update stats?
       ;;
 
+    t ) # more terminal tooling: load shell and init
+        lib_load shell
+        shell_init
+      ;;
+
     S )
         # Get a path to a storage blob, associated with the current base+subcmd
         S=$(try_value "${subcmd}" S htd)
@@ -2234,6 +2239,7 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
         that checks every list in the hub. While this by default uses the local
         todo.txt/done.txt file, and any filename given as the third and following
         arguments
+    htd tasks add-dates TODOTXT
 
   Default: tasks-scan.
   See tasks-hub for more local functions.
@@ -2248,46 +2254,9 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
   See also package.rst docs.
   The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
 '
-htd_run__tasks=iqlAO
+htd_run__tasks=iqtlAO
 htd_libs__tasks=htd-tasks\ tasks
-htd__tasks()
-{
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
-  case "$1" in
-
-    info )
-        htd_tasks_load
-        note "$(var2tags  todo_slug todo_document todo_done )"
-      ;;
-
-    be.src )
-        mkvid "$2" ; cmid=$vid
-        . ./to/be-src.sh ; shift 2
-        htd__tasks__src__${cmid} "$@"
-      ;;
-
-    be* )
-        be=$(printf -- "$1" | cut -c4- )
-        test -n "$be" || error "No default tasks backend" 1
-        mksid "$1" '' ''; ctxid=$sid
-        test -e ./to/$sid.sh || error "No tasks backend '$1' ($be)" 1
-        . ./to/$ctxid.sh ;
-        mkvid "$be" ; beid=$vid
-        mkvid "$2" ; cmid=$vid
-        . ./to/$ctxid.sh ; shift 2
-        htd__tasks__${beid}__${cmid} "$@"
-      ;;
-
-    tags ) shift ;  htd_tasks_tags "$@" ;;
-
-    "" ) shift || true ; htd_tasks_scan "$@" ;;
-
-    * )
-        subcmd_prefs=${base}__tasks_\ ${base}_tasks_ try_subcmd_prefixes "$@"
-      ;;
-  esac
-}
-htd_grp__tasks=tasks
+htd__tasks() { false; }
 
 
 htd_man_1__tasks_edit='Edit local todo/done.txt generated from to/do-{at,in}*
