@@ -134,7 +134,11 @@ tasks_add_dates_from_scm_or_def() # [date] ~ TODO.TXT [date_def]
     echo "$todotxt"
   done <"$tmpf" | {
     trueish "$tasks_modify" && {
-      cat >"$1" || return
+      cat >"$1.tmp" || return
+      # Dont update during pipeline, wait for cat to complete.
+      cat "$1.tmp"> "$1"
+      rm "$1.tmp"
+
     } || cat
   }
   rm "$tmpf"

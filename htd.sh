@@ -2239,7 +2239,10 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
         that checks every list in the hub. While this by default uses the local
         todo.txt/done.txt file, and any filename given as the third and following
         arguments
-    htd tasks add-dates TODOTXT
+    htd tasks add-dates [--date=] [--echo] TODOTXT [date-def]
+      Rewrite tasks lines, adding dates from SCM blame-log if non found.
+      This sets the creation date(s) to the known author date,
+      when the line was last changed.
 
   Default: tasks-scan.
   See tasks-hub for more local functions.

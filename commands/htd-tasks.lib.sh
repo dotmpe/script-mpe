@@ -16,6 +16,8 @@ htd_tasks_lib_load()
 htd__tasks()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
+  test -z "$echo" || tasks_echo=$echo
+
   case "$1" in
 
 # Read-only
