@@ -72,7 +72,7 @@ ck_git()
   } || echo "$cksum"
 }
 
-# See ck-git
+# See ck-git for description.
 ck_md5()
 {
   test -n "$abbrev" || abbrev=7
@@ -88,7 +88,7 @@ ck_md5()
   } || echo "$cksum"
 }
 
-# See ck-git
+# See ck-git for description.
 # TODO: rewrite prefix; ck_sha() { ck_sha1 "$@"; }
 ck_sha1()
 {
@@ -105,7 +105,7 @@ ck_sha1()
   } || echo "$cksum"
 }
 
-# See ck-git
+# See ck-git for description.
 ck_sha2()
 {
   test -n "$abbrev" || abbrev=7

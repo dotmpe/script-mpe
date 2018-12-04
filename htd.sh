@@ -2243,6 +2243,9 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
       Rewrite tasks lines, adding dates from SCM blame-log if non found.
       This sets the creation date(s) to the known author date,
       when the line was last changed.
+    htd tasks sync SRC DEST
+      Go over entries and update/add new(er) entries in SRC to DEST.
+      SRC may have changes, DEST should have clean SCM status.
 
   Default: tasks-scan.
   See tasks-hub for more local functions.
@@ -3366,46 +3369,9 @@ See also
     sync-functions|diff-functions FILE FILE|DIR
     diff-sh-lib [DIR=$scriptpath]
 '
-htd__function()
-{
-  test -n "$1" || set -- copy
-  case "$1" in
-
-    copy ) shift
-        copy_function "$@" || return $?
-      ;;
-
-    start-line ) shift
-        function_linenumber "$@" || return $?
-        echo $line_number
-      ;;
-
-    range ) shift
-        function_linerange "$@" || return $?
-        echo $start_line $span_lines $end_line
-      ;;
-
-    help ) shift ; local file= grep_line=
-        htd_function_comment "$@"
-        htd_function_help
-      ;;
-
-    comment ) shift
-        test -n "$1" || error "name or string-id expected" 1
-        htd_function_comment "$@"
-      ;;
-
-    copy-paste ) shift
-
-        test -f "$2" -a -n "$1" -a -z "$3" || error "usage: FUNC FILE" 1
-        copy_paste_function "$1" "$2"
-        note "Moved function $1 to $cp"
-      ;;
-
-    * ) error "'$1'?" 1
-      ;;
-  esac
-}
+htd__function() { false; }
+htd_run__function=l
+htd_libs__function=htd-function
 
 
 htd_man_1__diff_function='
@@ -3443,6 +3409,8 @@ htd__diff_function()
   var_isset copy_only || {
     trueish "$sync" && copy_only=true || copy_only=false
   }
+
+  lib_load functions
 
   # Extract both functions to separate file, and source at original scriptline
   mkid "$1" "" "_-" ; ext="$(filenamext "$1")"
@@ -3525,6 +3493,7 @@ htd__diff_functions() # FILE FILE|DIR
   test -f "$2" || set -- "$1" "$2/$1"
   test -e "$2" || { info "No remote side for '$1'"; return 1; }
   test -z "$3" || error "surplus arguments: '$3'" 1
+  lib_load functions
   functions_list $1 | sed 's/\(\w*\)()/\1/' | sort -u | while read -r func
   do
     grep -bqr "^$func()" "$2" || {
@@ -7489,8 +7458,8 @@ source-code info.
 
 '
 htd_run__functions=iAOl
-htd__functions() { htd_functions "$@"; }
-htd_libs__functions='functions htd-functions'
+htd__functions() { false; }
+htd_libs__functions=htd-functions\ functions
 
 htd_als__list_functions=functions\ list
 htd_als__list_funcs=functions\ list
@@ -8740,7 +8709,7 @@ htd_man_1__composure='Composure: dont fear the Unix chainsaw
 A set of 7 shell functions, to rule all the others:
 
 cite KEYWORD.. - create keyword function
-draft NAME - create shell routine function of last command
+draft NAME [HIST] - create shell routine function of last command or history index
 glossary - list all composure functions
 metafor - retrieve string from typeset output
 reference FUNC - print usage

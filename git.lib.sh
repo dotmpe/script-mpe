@@ -28,6 +28,14 @@ git_lib_load()
     statusdir_init
 }
 
+git_lib_init()
+{
+  test -d "$SRC_DIR" &&
+  test -d "$VND_GH_SRC" &&
+  test -d "$GIT_SCM_SRV" &&
+  test -d "$PROJECT_DIR"
+}
+
 # Use find to list repos on $PROJECTS path
 git_list() # PROJECTS ~
 {
@@ -80,13 +88,13 @@ git_src_get() # <user>/<repo>
 {
   test -n "$1" || return
 
-  test -e "$SRC_DIR/$SCM_VND/$1" || {
+  test -e "$VND_GH_SRC/$1" || {
     note "Creating main user checkout for $1..."
     remote_name=$( get_cwd_volume_id "$SRC_DIR" )
     test -n "$remote_name" || remote_name=local
-    git clone "$GIT_SCM_SRV/$1.git" "$SRC_DIR/$SCM_VND/$1" \
+    git clone "$GIT_SCM_SRV/$1.git" "$VND_GH_SRC/$1" \
       --origin "$remote_name" --branch "$vc_br_def" || return
-    ( cd  "$SRC_DIR/$SCM_VND/$1" &&
+    ( cd  "$VND_GH_SRC/$1" &&
        git remote add "$vc_rt_def" "http://$SCM_VND/$1.git" || return
     )
   }
@@ -96,7 +104,7 @@ git_src_get() # <user>/<repo>
     echo "$1: $PROJECT_DIR/$name -> $(readlink "$PROJECT_DIR/$name")"
   } || {
     test -h "$PROJECT_DIR/$name" && rm -v "$PROJECT_DIR/$name"
-    ln -vs "$SRC_DIR/$SCM_VND/$1" "$PROJECT_DIR/$name"
+    ln -vs "$VND_GH_SRC/$1" "$PROJECT_DIR/$name"
   }
 }
 
@@ -115,10 +123,10 @@ git_require() # <user>/<repo> [Check-Branch]
     }
   done
 
-  test "$2" = "$(vc_branch "$SRC_DIR/$SCM_VND/$1")" || {
+  test "$2" = "$(vc_branch "$VND_GH_SRC/$1")" || {
     warn "Project checkout $1 is not at version '$2'" 1
   }
-  echo "$SRC_DIR/$SCM_VND/$1"
+  echo "$VND_GH_SRC/$1"
 }
 
 git_get_branch() # [ENV] <user>/<repo>

@@ -55,6 +55,12 @@ htd__tasks()
         tasks_add_dates_from_scm_or_def "$2"  "$3"
       ;;
 
+  sync ) req_fcontent_arg "$2"
+        # TODO: req_clean_content_arg "$3"
+        req_fcontent_arg "$3"
+        tasks_sync_from_to "$2" "$3"
+      ;;
+
 # Default
 
     * )

@@ -143,3 +143,15 @@ tasks_add_dates_from_scm_or_def() # [date] ~ TODO.TXT [date_def]
   }
   rm "$tmpf"
 }
+
+
+# Go over entries and update/add new(er) entries in SRC to DEST.
+# SRC may have changes, DEST should have clean SCM status.
+tasks_sync_from_to() # SRC DEST
+{
+  # both files unchanged:
+  # could check for merge points maybe? Use object sha1 to find which is newer/
+  # what changed.
+
+  true
+}

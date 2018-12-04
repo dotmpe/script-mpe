@@ -1,11 +1,6 @@
 #!/bin/sh
 
 
-volume_lib_load()
-{
-  true #test -n ""
-}
-
 # Load config settings for device and host
 source_device_catalog() # Device [Hostname]
 {
@@ -240,6 +235,7 @@ gotovolroot() # [Enable-Source]
   done
 }
 
+# Find volume disk-id and part-idx by looking for .volumes.sh at root
 get_cwd_volume_id() # [DIR] [SEP]
 {
   local cwd=$(pwd) r=

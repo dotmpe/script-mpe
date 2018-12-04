@@ -76,16 +76,16 @@ docker_sh_spc__port="port [<PORT>] [<image-name>]"
 docker_sh__port()
 {
   echo "$1" | grep -q '^[0-9][0-9]*$' && {
-    docker_sh_port=$1 ; shift
+    docker_sh_c_port=$1 ; shift
   } || {
-    docker_sh_port=22
+    docker_sh_c_port=22
   }
   test -n "$1" && {
-    docker_sh_port $1
+    docker_sh_c_port $1
   } || {
     docker_sh_names | while read docker_name
     do
-      port=$(docker_sh_port $docker_name)
+      port=$(docker_sh_c_port $docker_name)
       test -z "$port" || echo "$port  $docker_name "
     done
   }
@@ -96,11 +96,11 @@ docker_sh_spc__ip="ip [<image-name>]"
 docker_sh__ip()
 {
   test -n "$1" && {
-    docker_sh_ip $1
+    docker_sh_c_ip $1
   } || {
     docker_sh_names | while read docker_name
     do
-      ip=$(docker_sh_ip $docker_name)
+      ip=$(docker_sh_c_ip $docker_name)
       test -z "$ip" || echo "$ip  $docker_name "
     done
   }
@@ -271,7 +271,7 @@ docker_sh__shipyard_init()
   local docker_name=shipyard-rethinkdb
   docker_sh_p && {
     printf "Shipyard at vs1:8080 running from IP "
-    docker_sh_ip
+    docker_sh_c_ip
   } || {
     sudo bash -c ' curl -s https://shipyard-project.com/deploy | bash -s '
   }
@@ -558,7 +558,7 @@ docker_sh__mysql()
       ;;
 
     status )
-        ${dckr} inspect -f '{{.State.Running}}' $docker_name ||
+        docker_sh_c_status >/dev/null ||
            stderr warn "Not running: '$docker_name'" 1
       ;;
 
@@ -1001,29 +1001,6 @@ docker_sh_rm()
   }
 }
 
-docker_sh_names()
-{
-  ${sudo}docker inspect --format='{{.Name}}' $(${sudo}docker ps -aq --no-trunc)
-}
-
-docker_sh_ip()
-{
-  test -n "$1" || set -- $docker_sh_c
-  test -n "$1" || set -- $docker_name
-  test -n "$1" || error "dckr-ip: container required" 1
-  ${sudo}docker inspect --format '{{ .NetworkSettings.IPAddress }}' $1 ||
-    error "docker IP inspect on $1 failed" 1
-}
-
-docker_sh_port()
-{
-  test -n "$1" || set -- $docker_sh_c
-  test -n "$1" || set -- $docker_name
-  test -n "$1" || error "dckr-ip: container required" 1
-  test -n "$2" || set -- "$1" $docker_sh_port
-  ${sudo}docker inspect --format '{{ (index (index .NetworkSettings.Ports "'$2'/tcp") 0).HostPort }}' "$1" || error "docker port $2 inspect on $1 failed" 1
-}
-
 # gobble up flags and set $docker_sh_f, and/or set and return $docker_cmd upon first arg.
 # $c is the amount of arguments consumed
 docker_sh_f_argv()
@@ -1185,7 +1162,7 @@ docker_sh_init()
   . $scriptpath/util.sh load-ext
   lib_load
   . $scriptpath/tools/sh/box.env.sh
-  lib_load main box
+  lib_load main box docker-sh
   #lib_load projectdir
   box_run_sh_test
   # -- dckr-sh box init sentinel --

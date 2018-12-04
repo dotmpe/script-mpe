@@ -1,8 +1,13 @@
 #!/bin/sh
 
 
+htd_functions_lib_load()
+{
+  lib_load functions
+}
 
-htd_functions()
+
+htd__functions()
 {
   test -n "$1" || set -- copy
   case "$1" in
