@@ -517,7 +517,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
             echo "Error loading $scriptname: $1" 1>&2
             exit 1
           }
-          __load=boot . ./util.sh
+          util_mode=boot . ./util.sh
           lib_load std sys os
         ;;
 

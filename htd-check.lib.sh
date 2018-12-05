@@ -8,7 +8,7 @@ htd_check_tasks_hub()
 {
     #check: pd check
   echo htd_tasks_load tasks-hub && {
-    info "Looking for open contexts..."
+    std_info "Looking for open contexts..."
     echo htd tasks-hub tagged
   }
   # TODO ":tasks-hub htd:gitflow-check-doc :verbose=1:vchk :bats:specs"
@@ -43,7 +43,7 @@ htd_check_vchk()
 htd_check_fsck()
 {
   # Check file integrity
-  info "Checking file integrity"
+  std_info "Checking file integrity"
   echo subcmd=fsck htd__fsck && stderr ok "File integrity check successful"
 }
 

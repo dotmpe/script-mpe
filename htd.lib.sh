@@ -46,7 +46,7 @@ htd_report()
 
       passed )
           test $passed_count -gt 0 \
-            && info "Passed ($passed_count): $passed_abbrev"
+            && std_info "Passed ($passed_count): $passed_abbrev"
         ;;
 
       skipped )
@@ -142,7 +142,7 @@ htd_repository_url() # Remote Url
 {
   local remote_hostinfo= remote_dir= remote_id= domain=
 
-  info "Getting local references for repo '$1' with URL '$2'"
+  std_info "Getting local references for repo '$1' with URL '$2'"
 
   fnmatch "*.*" "$1" && {
       remote_id="$(echo $1 | cut -f1 -d'.')"
@@ -323,7 +323,7 @@ htd_resolve_paged_json() # URL Num-Query Page-query
     out=$tmpd/page-$page.json
     curl -sSf "$1$2=$page_size&$3=$page" > $out
     json_list_has_objects "$out" || { rm "$out" ; break; }
-    info "Fetched $page <$out>"
+    std_info "Fetched $page <$out>"
     page=$(( $page + 1 ))
   done
 

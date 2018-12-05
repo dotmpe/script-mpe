@@ -79,7 +79,7 @@ htd_make_files()
 {
   test -n "$package_ext_make_files" || method="git db"
   test -n "$method" || method="$package_ext_make_files"
-  info "make-files method: '$method'"
+  std_info "make-files method: '$method'"
   for method in $method
   do
     # XXX: Makefile may indicate different makefile base! still, including

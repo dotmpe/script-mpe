@@ -271,7 +271,7 @@ htd_doc_file() # [date=now] [query=] [edit=] [create=] ~ [Title-Descr..]
 
   trueish "$create" && {
     docstat_exists && warn "Entry exists '$docstat_id'" 1
-    info "Doc-New Name-Id: $docstat_id"
+    std_info "Doc-New Name-Id: $docstat_id"
   }
 
   # Build strftime pathstr

@@ -113,14 +113,6 @@ echo_local() # Subcmd [ Property [ Base ] ]
   echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
 }
 
-# Get echo-local output, and return 1 on empty value. See echo-local spec.
-try_value()
-{
-  local value="$(eval echo "\"\$$(echo_local "$@")\"")"
-  test -n "$value" || return 1
-  echo "$value"
-}
-
 # Export echo-local to given env var-name
 try_local_var() # Export-Var [ Subcmd [ Property [ Base ] ] ]
 {
@@ -336,7 +328,7 @@ std__commands()
   trueish "$choice_global" || {
     trueish "$choice_all" || {
       local_id=$(pwd | tr '/-' '__')
-      info "Local-ID: $local_id"
+      std_info "Local-ID: $local_id"
       echo 'Local commands: '$(short)': '
     }
   }
@@ -656,7 +648,7 @@ main_init()
   stdio_type 1 $$
   stdio_type 2 $$
 
-  #stderr info "Verbosity $verbosity"
+  #std_info "Verbosity $verbosity"
   var_isset verbosity || verbosity=6
 
   #test -n "$scsep" || scsep=__
@@ -671,10 +663,10 @@ load_subcmd() #  Box-Prefix [Argv]
   test -n "$1" || error "main-load argument expected" 1
   local box_prefix="$1" r= ; shift
   try_exec_func std_load && {
-    debug "Standard load OK"
+    std_debug "Standard load OK"
   } || true # { r=$? error "std load failed"; return $r; }
   try_exec_func ${box_prefix}_load "$@" && {
-    debug "Load $box_prefix OK"
+    std_debug "Load $box_prefix OK"
   } || {
     test -z "$r" || {
       test $r -eq 0 || error "std and ${box_prefix} load failed" 1
@@ -711,7 +703,7 @@ main_unload()
   # XXX: cleanup
   local r=
   try_exec_func std_unload && {
-    debug "Standard unload OK"
+    std_debug "Standard unload OK"
   } || {
     # f
     r=$?; test -n "$1" || {
@@ -720,7 +712,7 @@ main_unload()
   }
   test -n "$1" || return
   try_exec_func ${1}_unload && {
-    debug "Load $1 OK"
+    std_debug "Load $1 OK"
   } || {
     test -z "$r" || {
       test $r -eq 0 || error "std and ${1} unload failed" 1
@@ -730,7 +722,7 @@ main_unload()
 
 main_debug()
 {
-  debug "vars:
+  std_debug "vars:
     cmd=$base args=$*
     subcmd=$subcmd subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def
     script_name=$script_name script_subcmd=$script_subcmd
@@ -780,11 +772,11 @@ main_run_subcmd()
   test -z "$subcmd_args_pre" || set -- "$subcmd_args_pre" "$@"
 
   load_subcmd $box_prefix "$@" || return $?
-  debug "$base loaded"
+  std_debug "$base loaded"
 
   test -z "$dry_run" \
-    && debug "executing $scriptname $subcmd" \
-    || info "** starting DRY RUN $scriptname $subcmd **"
+    && std_debug "executing $scriptname $subcmd" \
+    || std_info "** starting DRY RUN $scriptname $subcmd **"
 
   # Execute and exit
   $subcmd_func "$@" && {
@@ -801,8 +793,8 @@ main_run_subcmd()
   }
 
   test -z "$dry_run" \
-    && info "$subcmd completed normally" 0 \
-    || info "$subcmd dry-drun completed" 0
+    && std_info "$subcmd completed normally" 0 \
+    || std_info "$subcmd dry-drun completed" 0
 }
 
 

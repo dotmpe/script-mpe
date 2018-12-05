@@ -18,7 +18,7 @@ case "$shopts"
         set +e
       } || {
         msg="[$0] Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
-        test -n "$PS1" && warn "$msg" || info "$msg"
+        test -n "$PS1" && warn "$msg" || std_info "$msg"
       }
     ;;
 
@@ -37,8 +37,8 @@ type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
 #var_isset scriptpath || error "scriptpath=$scriptpath" 1
 #var_isset SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
 
-req_vars verbosity || export verbosity=7
-req_vars DEBUG || export DEBUG=
+req_vars verbosity && export verbosity || export verbosity=7
+req_vars DEBUG && export DEBUG || export DEBUG=
 
 var_isset SHELLCHECK_OPTS ||
     export SHELLCHECK_OPTS="-e SC2154 -e SC2046 -e SC2015 -e SC1090 -e SC2016 -e SC2209 -e SC2034 -e SC1117 -e SC2100 -e SC2221"
@@ -76,7 +76,7 @@ test -n "$TEST_FEATURE" || {
 
 test -n "$TEST_FEATURE" || {
     error "Nothing to test features with"
-    TEST_FEATURE="echo No tester for"
+    TEST_FEATURE="echo No Test-Feature for"
 }
 
 TAP_COLORIZE="script-bats.sh colorize"
@@ -110,6 +110,15 @@ test -n "$ENV_NAME" || {
   esac
 }
 
+# TODO: fetching tags is no use if checked out with --depth and no
+# rechable tags are available. Should check that tags don't threaten to
+# go beyond some threshold.
+
+git fetch origin --tags
+# TODO: see project-description, 'build' tag based on gitflow/branch-name.
+export GIT_DESCRIBE="$(git describe --always)"
+
+
 ## Per-env settings
 
 case "$ENV_NAME" in
@@ -119,12 +128,11 @@ case "$ENV_NAME" in
       ;;
 
     production )
-        DESCRIBE="$(git describe --tags)"
-        grep '^'$DESCRIBE'$' ChangeLog.rst && {
+        grep '^'$GIT_DESCRIBE'$' ChangeLog.rst && {
           echo "TODO: get log, tag"
           exit 1
         } || {
-          echo "Not a release: missing change-log entry $DESCRIBE: grep $DESCRIBE ChangeLog.rst)"
+          echo "Not a release: missing change-log entry $GIT_DESCRIBE: grep $GIT_DESCRIBE ChangeLog.rst)"
         }
       ;;
 
@@ -133,7 +141,7 @@ case "$ENV_NAME" in
       ;;
 
     testing )
-        BUILD_STEPS=test
+        BUILD_STEPS=dev\ test
       ;;
 
     * )

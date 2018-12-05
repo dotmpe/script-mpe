@@ -110,7 +110,7 @@ htd_catalog_listtree()
   test -n "$1" || set -- "."
   local scm='' ; trueish "$use_find" || vc_getscm "$1"
   { test -n "$scm" && {
-    info "SCM: $scm (listing untracked/ignored only)"
+    std_info "SCM: $scm (listing untracked/ignored only)"
     req_cons_scm
     # XXX: { vc.sh tracked-files || error "Listing all from SCM" 1; } ||
     trueish "$scm_all" && {
@@ -118,8 +118,8 @@ htd_catalog_listtree()
       { vc.sh uf || error "Listing from SCM" 1; };
   } || {
     trueish "$use_find" &&
-      info "Override SCM, tracking files directly ($Catalog_Ignores)" ||
-      info "No SCM, tracking files directly ($Catalog_Ignores)"
+      std_info "Override SCM, tracking files directly ($Catalog_Ignores)" ||
+      std_info "No SCM, tracking files directly ($Catalog_Ignores)"
     { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY
     } || htd_catalog_update_ignores
     local find_ignores="-false $(find_ignores "$Catalog_Ignores") "\
@@ -332,7 +332,7 @@ htd_catalog_add_file() # File
 {
   # TODO: check other catalogs, dropped entries too before adding.
   htd_catalog_has_file "$1" && {
-    info "File '$(basename "$1")' already in catalog"
+    std_info "File '$(basename "$1")' already in catalog"
     return 2
   }
 
@@ -356,7 +356,7 @@ htd_catalog_add_file() # File
     htd_catalog_get_by_key "" "$md5sum" "$sha2sum" | tee -a $Catalog_Duplicates
     return 1
   } || {
-    info "New keys for '$1' generated.."
+    std_info "New keys for '$1' generated.."
   }
 
   local mtype="$(filemtype "$1")" \
@@ -649,7 +649,7 @@ htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
     eval $(echo "$block" | grep 'name=')
     note "Importing $name JSON.."
     json="$(echo "$block" | jsotk.py dump -I pkv)"
-    info "JSON for $name: $json"
+    std_info "JSON for $name: $json"
     test ! -s "$jq_scr" || printf " |\\n" >>"$jq_scr"
     grep -q "name:[\\ \"\']$name" $CATALOG && {
       printf -- "map(if .name==\"$name\" then . * $json else . end )" >>"$jq_scr"
@@ -754,7 +754,7 @@ htd_catalog_scan_for()
 {
   while read -r ck key
   do
-    info "Scanning catalogs for $ck of $1..."
+    std_info "Scanning catalogs for $ck of $1..."
     htd_catalog_scan_for_${ck} "$key" && return
   done
 }

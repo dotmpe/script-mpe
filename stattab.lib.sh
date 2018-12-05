@@ -140,8 +140,8 @@ stattab_entry_parse() # Tab-Entry
   sttab_tags_raw="$(echo "$sttab_record"|cut -d' ' -f2-|$gsed 's/^[^\[+@<]*//'|normalize_ws)"
   sttab_tags="$(echo "$sttab_tags_raw"|$ggrep -o '[+@][^ ]*'|normalize_ws)"
 
-  info "Tags: '$sttab_tags'"
-  info "Tags-Raw: '$sttab_tags_raw'"
+  std_info "Tags: '$sttab_tags'"
+  std_info "Tags-Raw: '$sttab_tags_raw'"
 }
 
 stattab_parse_std_descr()

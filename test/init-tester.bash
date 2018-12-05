@@ -2,7 +2,7 @@
 
 init_tester__run_load()
 {
-  __load_mode=load-ext . $scriptpath/util.sh &&
+  util_mode=ext . $scriptpath/util.sh &&
   lib_load "$@"
 }
 

@@ -1,7 +1,7 @@
 redo-ifchange "sh-files.list"
 
 (
-  scriptpath=$REDO_BASE . $REDO_BASE/util.sh && lib_load
+  util_mode=boot scriptpath=$REDO_BASE . $REDO_BASE/util.sh
 
   scriptname="do:$REDO_PWD:$1"
   cd "$REDO_BASE" &&

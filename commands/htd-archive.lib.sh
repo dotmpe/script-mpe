@@ -38,7 +38,7 @@ htd_test_unpacked() # ARCHIVE [DIR]
 
   cd $oldwd
 
-  test -z "$dirty" && info "OK $1" || warn "Crufty $1" 1
+  test -z "$dirty" && std_info "OK $1" || warn "Crufty $1" 1
 }
 
 
@@ -144,5 +144,5 @@ htd__note_unpacked() # ARCHIVE [DIR]
 
   cd "$oldwd"
 
-  test ! -e "$dirty" && info "OK $1" || warn "Crufty $1" 1
+  test ! -e "$dirty" && std_info "OK $1" || warn "Crufty $1" 1
 }

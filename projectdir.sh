@@ -77,8 +77,8 @@ pd_spc__status="st|stat|status $pd_registered_prefix_target_spec"
 pd__status()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
-  info "Pd targets requested: $*"
-  info "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
+  std_info "Pd targets requested: $*"
+  std_info "Pd prefixes requested: $(lines_to_words < $prefixes )"
 
   # Set default option
   test -s "$options" || format_yaml=1
@@ -90,10 +90,10 @@ pd__status()
   do
     test -f "$checkout" -o -h "$checkout" && {
       echo "pd:status:$pd_prefix" >$failed
-      note "Not a checkout path at $checkout"
+      stderr note "Not a checkout path at $checkout"
       continue
     }
-    note "pd-prefix=$pd_prefix ($CWD)"
+    stderr note "pd-prefix=$pd_prefix ($CWD)"
     trueish "$format_yaml" && {
 
       {
@@ -114,7 +114,7 @@ pd__status()
 
     }
     trueish "$format_stm_yaml" && {
-      note "TODO"
+      stderr note "TODO"
     }
 
   done < $prefixes
@@ -163,9 +163,9 @@ pd__status_old()
     done
   }
 
-  #note "Getting status for checkouts in '$prefix_args'"
-  #info "Prefixes: $(echo "$prefixes" | unique_words)"
-  #debug "Registered: $(echo "$registered" | unique_words)"
+  #stderr note "Getting status for checkouts in '$prefix_args'"
+  #stderr info "Prefixes: $(echo "$prefixes" | unique_words)"
+  #stderr debug "Registered: $(echo "$registered" | unique_words)"
   #local union="$(echo "$prefixes $registered" | words_to_unique_lines )"
   for checkout in $prefixes
     # XXX union
@@ -233,7 +233,7 @@ pd__clean()
   local scm= scmdir=
   vc_getscm "$1"
 
-  info "Checkout at $1 ($scm), Clean Mode: $pd_meta_clean_mode"
+  std_info "Checkout at $1 ($scm), Clean Mode: $pd_meta_clean_mode"
 
   pd_auto_clean "$1" || {
     error "Auto-clean failure for checkout '$1'"
@@ -244,7 +244,7 @@ pd__clean()
 
   case "$R" in
     0|"" )
-        info "OK $(vc_flags_${scm} "$1")"
+        std_info "OK $(vc_flags_${scm} "$1")"
       ;;
     1 )
         warn "Dirty: $(vc_flags_${scm} "$1")"
@@ -355,7 +355,7 @@ pd__update_all()
   do
 
     test -d "$1" -a -e "$1/.git" || {
-      info "Skipped non-checkout path $1"
+      std_info "Skipped non-checkout path $1"
       shift
       continue
     }
@@ -525,7 +525,7 @@ pd__sync()
       || behind=$(git rev-list ${branch}..${remoteref} --count)
 
     test $ahead -eq 0 -a $behind -eq 0 && {
-      info "In sync: $prefix $remoteref"
+      std_info "In sync: $prefix $remoteref"
       continue
     }
 
@@ -561,8 +561,8 @@ pd__sync()
   test $remote_cnt -gt 0 || echo 'remotes:0' >>$failed
 
   test -s "$failed" \
-    && { error "Not in sync: $prefix" ; return 1; }\
-    || info "In sync with at least one remote: $prefix";
+    && { stderr error "Not in sync: $prefix" ; return 1; }\
+    || stderr info "In sync with at least one remote: $prefix";
 }
 
 pd_load__enable_all=ybf
@@ -587,7 +587,7 @@ pd__enable()
         note "Nothing to check out"
         return
     }
-    info "Checking out missing prefixes"
+    std_info "Checking out missing prefixes"
     pd__meta list-enabled | while read prefix
     do
       test -d "$prefix" || {
@@ -662,7 +662,7 @@ pd__init_new()
 {
   init -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   init -n "$1" || set -- $(pd__ls_targets init 2>/dev/null)
-  info "Tests to run ($pd_prefixes): $*"
+  std_info "Tests to run ($pd_prefixes): $*"
   pd_run_suite init "$@" || return $?
 }
 
@@ -729,13 +729,13 @@ pd__disable()
 
 
   pd__meta_sq disabled "$1" && {
-    info "Already disabled: prefix '$1' in '$pdoc'"
+    std_info "Already disabled: prefix '$1' in '$pdoc'"
   } || {
     pd__meta disable $1 && note "Disabled prefix '$1' in '$pdoc'"
   }
 
   test ! -d "$1" && {
-    info "No dir '$1', nothing to do"
+    std_info "No dir '$1', nothing to do"
   } || {
     note "Found dir at '$1', running pd-clean..."
     pd__clean $1 || return $?
@@ -813,7 +813,7 @@ pd__add_new()
   # FIXME: where ar the defaults: host and user defined, and project defined.
   props="clean=tracked sync=true $props"
 
-  info "New repo $prefix, props='$(echo $props)'"
+  std_info "New repo $prefix, props='$(echo $props)'"
 
   pd__meta put-repo $prefix $props \
     && note "Added metadata for $prefix" \
@@ -871,7 +871,7 @@ pd__update_repo()
     || {
       local r=$?;
       test $r -eq 42 && {
-        info "Metadata already up-to-date for $prefix"
+        std_info "Metadata already up-to-date for $prefix"
       } || {
         warn "Error updating $prefix with '$(echo $props)'"
         echo "update-repo:$prefix:$r" >>$failed
@@ -919,7 +919,7 @@ pd__run()
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   #record_env_keys pd-run pd-subcmd pd-env
   note "Pd targets requested: $*"
-  note "Pd prefixes requested: $(cat $prefixes | lines_to_words)"
+  note "Pd prefixes requested: $(lines_to_words < $prefixes )"
 
   while read pd_prefix
   do
@@ -929,7 +929,7 @@ pd__run()
     # Iterate targets
     set -- $(cat $arguments | lines_to_words )
     test -n "$1" || {
-      info "Setting targets to states of 'init' for '$pd_root/$pd_prefix'"
+      std_info "Setting targets to states of 'init' for '$pd_root/$pd_prefix'"
       set -- $(pd__ls_targets init 2>/dev/null)
     }
     while test -n "$1"
@@ -976,7 +976,7 @@ pd__test()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets test 2>/dev/null)
-  info "Tests to run ($pd_prefixes): $*"
+  std_info "Tests to run ($pd_prefixes): $*"
   pd_run_suite test "$@"
 }
 
@@ -1003,7 +1003,7 @@ pd__check()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets check 2>/dev/null)
-  info "Checks to run ($pd_prefixes): $*"
+  std_info "Checks to run ($pd_prefixes): $*"
   pd_run_suite check "$@"
 }
 
@@ -1014,7 +1014,7 @@ pd__build()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets build 2>/dev/null)
-  info "Checks to run ($pd_prefixes): $*"
+  std_info "Checks to run ($pd_prefixes): $*"
   pd_run_suite build "$@" || return $?
 }
 
@@ -1026,7 +1026,7 @@ pd__tasks()
   test -n "$pd_prefixes" -o \( -n "$pd_prefix" -a -n "$pd_root" \) \
     || error "Projectdoc context expected" 1
   test -n "$1" || set -- $(pd__ls_targets tasks 2>/dev/null)
-  info "Checks to run ($pd_prefixes): $*"
+  std_info "Checks to run ($pd_prefixes): $*"
   pd_run_suite tasks "$@" || return $?
 
   #local r=0 suite=tasks
@@ -1143,7 +1143,7 @@ pd__ls_targets()
       (
         cd $pd_prefix
         pd_package_meta "$name" && continue
-        info "Autodetect for '$name'"
+        std_info "Autodetect for '$name'"
         pd_autodetect $name
       )
     done
@@ -1182,7 +1182,7 @@ pd__list_paths()
   find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
   find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
 
-  debug "Find ignores: $find_ignores"
+  stderr debug "Find ignores: $find_ignores"
   eval find $path $find_ignores -o -path . -o -print
 }
 pd__list_paths_opts()
@@ -1465,7 +1465,7 @@ pd_load()
   SCR_SYS_SH=bash-sh
 
   # Selective per-subcmd init
-  debug "Loading subcmd '$subcmd', flags: $(try_value "${subcmd}" load | sed 's/./&\ /g')"
+  stderr debug "Loading subcmd '$subcmd', flags: $(try_value "${subcmd}" load | sed 's/./&\ /g')"
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
     a )
@@ -1518,7 +1518,7 @@ pd_load()
           fd_num=$(( $fd_num + 1 ))
           # TODO: only one descriptor set per proc, incl. subshell. So useless?
           test -e "$io_dev_path/$fd_num" || {
-            debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"
+            stderr debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"
             eval exec $fd_num\>$(eval echo \$$fd_name)
           }
         done
@@ -1611,7 +1611,7 @@ pd_load()
         test -n "$pd_root" || pd_finddoc
       ;;
 
-  esac; debug "'$subcmd' flag '$x' loaded"; done
+  esac; stderr debug "'$subcmd' flag '$x' loaded"; done
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
@@ -1677,7 +1677,7 @@ pd_init()
   export SCRIPTPATH=$scriptpath
   test -n "$LOG" || export LOG=$scriptpath/log.sh
   pd_preload || exit $?
-  _lib_load=1 . $scriptpath/util.sh load-ext
+  util_mode=ext . $scriptpath/util.sh load-ext
   lib_load str sys os std stdio src match main argv
   . $scriptpath/tools/sh/box.env.sh
   lib_load meta box package
@@ -1715,13 +1715,13 @@ pd_main()
     base="$(basename "$0" .sh)" scriptpath=
 
   pd_init || exit $?
-  debug "Initialized for '$base'..."
+  stderr debug "Initialized for '$base'..."
 
   case "$base" in
 
     $scriptname | $scriptalias )
 
-        info "Starting for '$base': '$*'..."
+        std_info "Starting for '$base': '$*'..."
         unset pd_session_id
 
         # invoke with function name first argument,
@@ -1746,7 +1746,7 @@ pd_main()
           pd_load "$@" || error "pd_load" $?
 
           test -z "$arguments" -o ! -s "$arguments" || {
-            info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
+            std_info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
             set -f; set -- $(cat $arguments | lines_to_words) ; set +f
           }
 

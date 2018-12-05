@@ -30,7 +30,7 @@ gv__bg()
   do note "Waiting for Bg at $sock"; sleep 2;
   done
 
-  info "Backgrounded"
+  std_info "Backgrounded"
 }
 
 gv_run__info=G #b
@@ -147,7 +147,7 @@ gv_main()
         local subcmd_func= c=0
 
   		export SCRIPTPATH=$scriptpath
-		__load_mode=boot . $scriptpath/util.sh
+		util_mode=boot . $scriptpath/util.sh
 
         gv_init "$@" || {
           error "init error '$@'" 1

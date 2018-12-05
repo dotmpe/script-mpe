@@ -12,7 +12,7 @@ build_lib_load()
 
   test -n "$docbase" || docbase="doc/src/sh"
 
-  lib_load date os sys str tasks du vc match src functions package argv
+  lib_load date os sys str tasks du vc match src function functions shell package argv
 }
 
 # Initialize Project Build Scripts settings
@@ -152,7 +152,11 @@ checkout_if_newer()
   test -n "$url" && {
     test "$url" = "$3" || git remote set-url $2 $3
   } || git remote add $2 $3
-  git fetch $2
+  git fetch $2 || return
+
+  git show-ref -q --heads $1 || return # Not a local branch
+  git show-ref -q --heads $2/$1 || return # Not at remote
+
   behind=$( git rev-list $1..$2/$1 --count )
   test $behind -gt 0 && {
     from="$(git rev-parse HEAD)"

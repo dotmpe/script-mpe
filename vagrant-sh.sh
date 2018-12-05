@@ -272,8 +272,8 @@ vagrant_sh_init()
     export LOG=/usr/local/share/mkdoc/Core/log.sh
 
   test -n "$scriptpath"
-  . $scriptpath/util.sh
-  lib_load
+  util_mode=ext . $scriptpath/util.sh
+  lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load main meta box doc date table remote
@@ -328,8 +328,8 @@ vagrant_sh_unload()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "$__load_lib" || {
+  test "$1" != load-ext || util_mode=ext
+  test -n "$util_mode" || {
     vagrant_sh_main "$@" || exit $?
   }
 ;; esac

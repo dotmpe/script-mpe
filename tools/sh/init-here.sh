@@ -20,7 +20,7 @@ test -n "$1" && {
 
 
 # Now include module loader with `lib_load` by hand
-__load_mode=ext . $scriptpath/util.sh
+util_mode=ext . $scriptpath/util.sh
 
 shift 3
 

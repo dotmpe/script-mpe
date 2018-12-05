@@ -1,11 +1,34 @@
 #!/bin/sh
 
-
 # std: logging and dealing with the shell's stdio decriptors
+
 
 std_lib_load()
 {
   test -n "$uname" || uname="$(uname -s)"
+}
+
+std_lib_init()
+{
+  test -x "$(which readlink)" || error "readlink util required for stdio-type" 1
+  test -x "$(which file)" || error "file util required for stdio-type" 1
+}
+
+std_lib_check()
+{
+  std_iotype_check
+}
+
+std_iotype_check()
+{
+  case "$uname" in
+
+    Linux | CYGWIN_NT-* ) ;;
+    Darwin ) ;;
+
+    * ) error "No stdio-type for $uname" ;;
+  esac
+  return 1
 }
 
 io_dev_path()
@@ -37,10 +60,11 @@ list_io_nums()
 
 get_stdio_type()
 {
-  test -n "$uname" || uname=$(uname)
+  local io= pid=
+  test -n "$1" && io=$1 || io=1
   case "$uname" in
 
-    Linux )
+    Linux | CYGWIN_NT-* )
         test -n "$2" && pid=$2 || pid=$$
         test -e /proc/$pid/fd/${1} || error "No $uname FD $io"
         if readlink /proc/$pid/fd/$io | grep -q "^pipe:"; then
@@ -64,6 +88,7 @@ get_stdio_type()
         fi
       ;;
 
+    * ) error "No stdio-type for $uname" ;;
   esac
 }
 
@@ -342,38 +367,44 @@ std_exit()
   }
 }
 
-emerg()
+emerg() { std_emerg "$@"; }
+crit() { std_crit "$@"; }
+error() { std_error "$@"; }
+warn() { std_warn "$@"; }
+note() { std_note "$@"; }
+debug() { std_debug "$@"; }
+
+std_emerg()
 {
   std_v 1 || std_exit $2 || return 0
   stderr "Emerg" "$1" $2
 }
-crit()
+std_crit()
 {
   std_v 2 || std_exit $2 || return 0
   stderr "Crit" "$1" $2
 }
-error()
+std_error()
 {
   std_v 3 || std_exit $2 || return 0
   stderr "Error" "$1" $2
 }
-warn()
+std_warn()
 {
   std_v 4 || std_exit $2 || return 0
   stderr "Warning" "$1" $2
 }
-note()
+std_note()
 {
   std_v 5 || std_exit $2 || return 0
   stderr "Notice" "$1" $2
 }
-# FIXME: core tool name
-info()
+std_info()
 {
   std_v 6 || std_exit $2 || return 0
   stderr "Info" "$1" $2
 }
-debug()
+std_debug()
 {
   std_v 7 || std_exit $2 || return 0
   stderr "Debug" "$1" $2
@@ -388,7 +419,7 @@ std_demo()
   error "Foo bar"
   warn "Foo bar"
   note "Foo bar"
-  info "Foo bar"
+  std_info "Foo bar"
   debug "Foo bar"
   echo
   stderr log "Log line"
@@ -404,7 +435,8 @@ std_demo()
   stderr failed "Foo bar"
   stderr skipped "Foo bar"
   echo
-  for x in emerg crit error warn note info debug
+  for x in emerg crit error warn note debug \
+        std_emerg std_crit std_error std_warn std_note std_info std_debug
     do
       $x "testing $x out"
     done

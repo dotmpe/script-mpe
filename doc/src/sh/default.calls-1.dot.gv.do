@@ -1,6 +1,6 @@
 (
   test -n "$scriptpath" ||
-      { scriptpath=$REDO_BASE . $REDO_BASE/util.sh && lib_load; }
+      { util_mode=ext scriptpath=$REDO_BASE . $REDO_BASE/util.sh && lib_load; }
 
   scriptname="do:$REDO_PWD:$1"
   cd "$REDO_BASE" &&

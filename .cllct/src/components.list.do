@@ -1,6 +1,6 @@
 redo-ifchange "scm-status"
 (
-  scriptpath=$REDO_BASE . $REDO_BASE/util.sh && lib_load
+  unit_mode=boot scriptpath=$REDO_BASE . $REDO_BASE/util.sh
 
   scriptname="do:$REDO_PWD:$1"
   cd "$REDO_BASE" &&

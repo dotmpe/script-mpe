@@ -180,15 +180,15 @@ htd_tmux_get()
     test -e "$TMUX_SOCK" &&
       $tmux has-session -t "$1" >/dev/null 2>&1
   } && {
-    info "Session '$1' exists"
+    std_info "Session '$1' exists"
     logger "Session '$1' exists"
     # See if window is there with session
     htd_tmux_session_list_windows "$1" "$2" && {
-      info "Window '$2' exists with session '$1'"
+      std_info "Window '$2' exists with session '$1'"
       logger "Window '$2' exists with session '$1'"
     } || {
       $tmux new-window -c "$cwd" -t "$1" -n "$2" "$3"
-      info "Created window '$2' with session '$1'"
+      std_info "Created window '$2' with session '$1'"
       logger "Created window '$2' with session '$1'"
     }
   } || {

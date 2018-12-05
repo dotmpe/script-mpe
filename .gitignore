@@ -43,7 +43,7 @@ doc/figures/*.svg
 doc/figures/*.ps
 doc/figures/*.pdf
 doc/figures/*.png
-build
+/build
 test/redo.txt
 doc/src/sh/*.gv
 doc/src/sh/*.png

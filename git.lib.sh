@@ -88,14 +88,25 @@ git_src_get() # <user>/<repo>
 {
   test -n "$1" || return
 
+  test -e "$VND_GH_SRC/$1" -a ! -e "$VND_GH_SRC/$1/.git" && {
+
+    sys_confirm "Found non-GIT checkout dir, remove?" || return
+    rm -rf "$VND_GH_SRC/$1"
+  }
+
   test -e "$VND_GH_SRC/$1" || {
     note "Creating main user checkout for $1..."
+    lib_load volume
     remote_name=$( get_cwd_volume_id "$SRC_DIR" )
     test -n "$remote_name" || remote_name=local
     git clone "$GIT_SCM_SRV/$1.git" "$VND_GH_SRC/$1" \
       --origin "$remote_name" --branch "$vc_br_def" || return
+    # Add local bare-repo, and update from remote as well
     ( cd  "$VND_GH_SRC/$1" &&
-       git remote add "$vc_rt_def" "http://$SCM_VND/$1.git" || return
+      git remote add "$vc_rt_def" "http://$SCM_VND/$1.git" || return
+      git fetch "$vc_rt_def" &&
+      git fetch --tags "$vc_rt_def" &&
+      git push "$remote_name"
     )
   }
 

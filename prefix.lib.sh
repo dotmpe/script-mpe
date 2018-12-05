@@ -49,7 +49,7 @@ req_prefix_names_index() # Pathnames-Table
 
   test -n "$index" || export index=$2
   test -s "$index" -a "$index" -nt "$1" || {
-    info "Building $index from '$1'"
+    std_info "Building $index from '$1'"
     #{ get_pathnames_tab "$1" || return $? ; }> "$index"
     get_pathnames_tab "$1" > "$index"
   }

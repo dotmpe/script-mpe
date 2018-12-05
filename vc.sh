@@ -913,7 +913,7 @@ vc__contains()
   test -z "$3" || error "surplus args" 1
 
   sha1="$(git hash-object "$1")"
-  info "SHA1: $sha1"
+  std_info "SHA1: $sha1"
 
   { ( cd "$2" ; git rev-list --objects --all | grep "$sha1" ); } && {
     note "Found regular GIT object"
@@ -932,7 +932,7 @@ vc__annex_contains()
   size="$(stat -Lf '%z' "$1")"
   sha256="$(shasum -a 256 "$1" | cut -f 1 -d ' ')"
   keyglob='*s'$size'--'$sha256'.*'
-  info "SHA256E key glob: $keyglob"
+  std_info "SHA256E key glob: $keyglob"
   { find $2 -ilname $keyglob | while read path; do echo $path;ls -la $path; done;
   } || warn "Found nothing for '$keyglob'"
 }
@@ -1135,12 +1135,12 @@ vc__regenerate()
 
   test -e $excludes.header || backup_header_comment $excludes
 
-  info "Resetting local GIT excludes file"
+  std_info "Resetting local GIT excludes file"
   read_nix_style_file $excludes | sort -u > $excludes.list
   cat $excludes.header $excludes.list > $excludes
   rm $excludes.list
 
-  info "Adding other git-ignore files"
+  std_info "Adding other git-ignore files"
   for x in .gitignore-* $HOME/.gitignore*-global
   do
     test "$(basename "$x" .regex)" = "$(basename "$x")" || continue
@@ -1814,9 +1814,9 @@ vc_main()
             scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
         pwd="$(pwd -P)" ppwd="$(pwd)" spwd=.
 
-        export SCRIPTPATH=$scriptpath
+        export SCRIPTPATH=$scriptpath:/srv/project-local/user-scripts/src/sh/lib
         test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-        __load_lib=1 . $scriptpath/util.sh
+        util_mode=ext . $scriptpath/util.sh
 
         test -n "$verbosity" || verbosity=5
         local func=$(echo vc__$subcmd | tr '-' '_') \

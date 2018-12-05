@@ -1,8 +1,4 @@
 #!/bin/sh
-
-twitter_src=$_
-test -z "$__load_lib" || set -- "load-ext"
-
 set -e
 
 
@@ -103,7 +99,7 @@ twitter_init()
 {
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh
+  util_mode=ext . $scriptpath/util.sh
   util_init
   . $scriptpath/match.lib.sh
   . $scriptpath/tools/sh/box.env.sh

@@ -89,11 +89,25 @@ try_exec_func()
   $func "$@" || return $?
 }
 
+# TODO: redesign
 try_var()
 {
   local value="$(eval echo "\$$1")"
   test -n "$value" || return 1
   echo $value
+}
+
+# Get echo-local output, and return 1 on empty value. See echo-local spec.
+try_value()
+{
+  local value=
+  test $# -gt 1 && {
+    value="$(eval echo "\"\$$(echo_local "$@")\"")"
+  } || {
+    value="$(echo $(eval echo "\$$1"))"
+  }
+  test -n "$value" || return 1
+  echo "$value"
 }
 
 # setup-tmp [(RAM_)TMPDIR]
@@ -136,7 +150,7 @@ sys_prompt()
   test -n "$2" || set -- "$1" choice_confirm
   test -z "$3" || $LOG error sys "surplus-args '$3'" 1
   echo $1
-  read $2
+  read -n 1 $2
 }
 
 # sys-confirm PROMPT

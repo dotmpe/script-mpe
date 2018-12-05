@@ -104,7 +104,7 @@ tasks_init()
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
+  util_mode=ext . $scriptpath/util.sh load-ext
   util_init
   . $scriptpath/match.lib.sh
   . $scriptpath/tools/sh/box.env.sh

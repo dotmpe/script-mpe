@@ -125,7 +125,7 @@ disk_id_for_dev()
   local dev="$1" ;
   local disk_id="$(disk_id "$dev")" || error "disk-id: '$dev'" 1
   test -z "$disk_id" && error "No disk Id for device '$dev'" 1
-  info "Using Disk-ID '$disk_id' for '$dev'"
+  std_info "Using Disk-ID '$disk_id' for '$dev'"
   echo "$disk_id"
 }
 
@@ -467,8 +467,8 @@ disk_catalog_update_disk()
   test "$disk_index" = "$volumes_main_disk_index" \
     || error "disk-index mismatch '$1'" 1
 
-  info "Current host: '$disk_host'"
-  info "Existing volumes: '$disk_volumes'"
+  std_info "Current host: '$disk_host'"
+  std_info "Existing volumes: '$disk_volumes'"
 
   local update=
   fnmatch *"$volumes_main_id"* "$disk_volumes" || update=1
@@ -554,7 +554,7 @@ disk_catalog_import()
     disk_catalog_update "$1" || return $?
     disk_catalog_update_volume "$1" || return $?
   )
-  info "Imported '$1'"
+  std_info "Imported '$1'"
 }
 
 disk_report()

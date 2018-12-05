@@ -957,21 +957,21 @@ docker_sh_start()
 docker_sh_stop()
 {
   test -n "$docker_sh_c" && {
-    info "Stopping container $docker_sh_c:"
+    std_info "Stopping container $docker_sh_c:"
     ${sudo}docker stop $docker_sh_c
     return
   }
   test -z "$docker_name" && {
     test -z "$image_name" || {
-      info "Looking for running container by image-name $image_name:"
+      std_info "Looking for running container by image-name $image_name:"
       docker_sh_c
-      info "Stopping container by image-name $image_name:"
+      std_info "Stopping container by image-name $image_name:"
       ${sudo}docker stop $docker_sh_c
     }
   } || {
     # check for container with name and remove
     ${sudo}docker ps | grep -q '\<'$docker_name'\>' && {
-      info "Stopping container by container-name $docker_name:"
+      std_info "Stopping container by container-name $docker_name:"
       ${sudo}docker stop $docker_name
     } || true
   }
@@ -989,13 +989,13 @@ docker_sh_rm()
     test -z "$image_name" || {
       debug "Looking for container by image-name $image_name:"
       docker_sh_c -a
-      info "Removing container $docker_sh_c"
+      std_info "Removing container $docker_sh_c"
       ${sudo}docker rm $docker_sh_c
     }
   } || {
     # check for container with name and remove
     ${sudo}docker ps -a | grep -q '\<'$docker_name'\>' && {
-      info "Removing container by container-name $docker_name:"
+      std_info "Removing container by container-name $docker_name:"
       ${sudo}docker rm $docker_name
     } || true
   }
@@ -1029,7 +1029,7 @@ docker_sh_name_argv()
   }
   test -z "$1" && name=$(basename $(pwd)) || name=$1
   docker_name=${pref}${name}
-_ test -n "$1" || info "Using dir for dckr-name: $docker_name"
+_ test -n "$1" || std_info "Using dir for dckr-name: $docker_name"
 }
 
 docker_sh_image_argv()
@@ -1159,8 +1159,8 @@ docker_sh_init()
     test -w /var/run/docker.sock || sudo="sudo "
     dckr=${sudo}docker
   }
-  . $scriptpath/util.sh load-ext
-  lib_load
+  util_mode=ext . $scriptpath/util.sh load-ext
+  lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   lib_load main box docker-sh
   #lib_load projectdir

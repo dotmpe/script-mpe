@@ -22,7 +22,7 @@ test ! -e "$1" -o -s "$1" || rm "$1"
 
 # Pass filename to build routine
 (
-  scriptpath=$REDO_BASE . $REDO_BASE/util.sh && lib_load
+  util_mode=boot scriptpath=$REDO_BASE . $REDO_BASE/util.sh
 
   scriptname="do:$REDO_PWD:$1" && {
     test -n "$docid" -a -n "$paths" || {

@@ -106,8 +106,8 @@ docstat_try_or_default_parse_stat() # [Primary-Ctx]
 
   # But fall-back to std descriptor if no function matches
   func_exists docstat_parse_${primctx_id}_descr &&
-      info "Parsing stat fields as '$primctx'" || {
-        info "No stat fields for '$primctx', using std"
+      std_info "Parsing stat fields as '$primctx'" || {
+        std_info "No stat fields for '$primctx', using std"
         primctx=std
       }
   docstat_parse_${primctx_id}_descr $stat
@@ -126,7 +126,7 @@ docstat_init() # Doc-Path
 docstat_init_fields_rst() # Doc-Path
 {
   test -n "$docstat_id" || docstat_file_env "$1"
-  info "Initializing index fields (rst format) for '$docstat_id'"
+  std_info "Initializing index fields (rst format) for '$docstat_id'"
   warnings="$DOCSTAT/$PREFNAME$id.warnings" \
   warning_level=2 \
     du_getxml "$1" || error "Processing docfile '$1'" 1
@@ -145,9 +145,9 @@ docstat_descr() # [Prim-Ctx]
 
   # fall-back to std status descriptor if no function matches primctx
   func_exists docstat_init_${primctx_id}_descr && {
-      info "Initializing stat fields as '$primctx' for '$docstat_src'"
+      std_info "Initializing stat fields as '$primctx' for '$docstat_src'"
     } || {
-      info "No initializer '$primctx' for '$docstat_src', using std"
+      std_info "No initializer '$primctx' for '$docstat_src', using std"
       vid=std
     }
 

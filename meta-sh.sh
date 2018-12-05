@@ -149,8 +149,8 @@ meta_sh_init()
   test -z "$BOX_INIT" || return 1
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
-  lib_load
+  util_mode=ext . $scriptpath/util.sh load-ext
+  lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load main box meta

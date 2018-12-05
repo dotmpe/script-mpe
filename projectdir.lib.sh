@@ -44,7 +44,7 @@ pd_clean()
 {
   # Stage one, show just the modified files (always consider mode tracked)
   (cd "$1" && git diff --quiet) && {
-    info "No modifications found ($1)"
+    std_info "No modifications found ($1)"
   } || {
     dirty="$(cd "$1" && git diff --name-only)"
     return 1
@@ -722,7 +722,7 @@ pd_run()
         # NOTE: pd run sh automatically accepts env decl. beacuse 's/:/ /g'
         local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
         record_key=$(printf "$1" | cut -d ':' -f 2 )
-        info "Running Sh '$shcmd' ($1)"
+        std_info "Running Sh '$shcmd' ($1)"
         (
           unset $pd_inputs $pd_inputs
           export \
@@ -836,7 +836,7 @@ pd_run()
 
           {
             cd "$pd_realdir"
-            info "Updating Pdoc $pd_prefix"
+            std_info "Updating Pdoc $pd_prefix"
 
             # Update status result
             test -n "$states" && {

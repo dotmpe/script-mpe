@@ -80,7 +80,7 @@ argv_vars()
 
   local vars=$1
   shift
-  info "Parameters: $(
+  std_info "Parameters: $(
       for varname in $vars
       do
         printf " $varname=$1"

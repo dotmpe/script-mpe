@@ -160,7 +160,7 @@ compile_globs()
   do
     compile_glob "$glob"
   done > $1$2
-  info "Recompiled $(count_lines "$1$2") ($1$2)"
+  std_info "Recompiled $(count_lines "$1$2") ($1$2)"
 }
 
 # wrapper for compile-globs

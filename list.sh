@@ -238,7 +238,7 @@ lst_main()
   test -n "$verbosity" || verbosity=5
 
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh
+  util_mode=ext . $scriptpath/util.sh
   util_init
 
   lst_init || exit $?
@@ -273,7 +273,6 @@ lst_init()
 # FIXME: 2nd boostrap init
 lst_lib()
 {
-  local __load_lib=1
   lib_load date meta list
   lib_load ignores
   #lst_load

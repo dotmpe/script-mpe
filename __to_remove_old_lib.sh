@@ -71,10 +71,10 @@ util_boot()
   test -n "$__load_boot" || {
     __load_boot="$(basename "$0" .sh)"
   }
-  test -z "$__load_mode" -a -n "$1" && {
-    __load_mode=$1
+  test -z "$util_mode" -a -n "$1" && {
+    util_mode=$1
   } || {
-    test -n "$1" || set -- "$__load_mode"
+    test -n "$1" || set -- "$util_mode"
   }
 }
 
@@ -92,7 +92,7 @@ util_init()
     }
   }
   test -n "$LOG" || export LOG=$scriptpath/log.sh
-  lib_load
+  lib_load $default_lib
 }
 
 case "$0" in
@@ -108,8 +108,8 @@ case "$0" in
 
       } || {
 
-        test -n "$__load_mode" || __load_mode=$__load
-        case "$__load_mode" in
+        test -n "$util_mode" || util_mode=$__load
+        case "$util_mode" in
 
           # Setup SCRIPTPATH and include other scripts
           boot|main )
@@ -121,9 +121,9 @@ case "$0" in
       test -n "$SCRIPTPATH" || {
         util_init
       }
-      case "$__load_mode" in
+      case "$util_mode" in
         boot )
-            lib_load
+            lib_load $default_lib
           ;;
         #ext|load-*|* ) ;; # External include, do nothing
       esac

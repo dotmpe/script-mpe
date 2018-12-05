@@ -62,7 +62,7 @@ doc_find()
 # Find document,
 doc_find_name()
 {
-  info "IGNORE_GLOBFILE=$IGNORE_GLOBFILE"
+  std_info "IGNORE_GLOBFILE=$IGNORE_GLOBFILE"
   local find_ignores="" find_=""
 
   find_ignores="-false $(find_ignores $IGNORE_GLOBFILE | tr '\n' ' ')"

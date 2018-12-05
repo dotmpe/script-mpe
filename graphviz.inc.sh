@@ -139,7 +139,7 @@ gv_bg_run()
     gv__meta &
     while test ! -e $sock
     do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded at $sock for $doc (PID $!)"
+    std_info "Backgrounded at $sock for $doc (PID $!)"
   }
 }
 
@@ -150,7 +150,7 @@ gv_bg_teardown()
     gv__meta exit
     while test -e $sock
     do note "Waiting for background shutdown.." ; sleep 1 ; done
-    info "Closed background service"
+    std_info "Closed background service"
     test -z "$no_background" || warn "no-background on while sock existed"
   }
 }

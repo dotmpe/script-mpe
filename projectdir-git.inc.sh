@@ -36,7 +36,7 @@ pd__git_status()
   case "$R" in
 
     0|"" )
-        info "OK $(vc__stat "$1")"
+        std_info "OK $(vc__stat "$1")"
       ;;
 
     1 )

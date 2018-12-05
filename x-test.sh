@@ -76,9 +76,9 @@ test_main()
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-"* ) ;; * )
   test -n "$f_lib_load" || {
-    __load_mode=main . $(dirname "$0")/util.sh
-    test "$1" = "$__load_mode" ||
-      set -- "$__load_mode" "$@"
+    util_mode=main . $(dirname "$0")/util.sh
+    test "$1" = "$util_mode" ||
+      set -- "$util_mode" "$@"
 
     case "$1" in
       main ) shift ; test_main "$@" ;;

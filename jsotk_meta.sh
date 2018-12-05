@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
 
-. ~/bin/util.sh
-lib_load
+util_mode=ext . ~/bin/util.sh
+lib_load $default_lib
 jsotk_sock=/tmp/jsotk-serv.sock
 
 fnmatch "$1" "-*" || {

@@ -4,11 +4,16 @@ project_stats_lib_load()
 {
   test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
 }
+project_stats_lib_init()
+{
+  project_stats_init && project_stats_req
+}
 
 project_stats_req()
 {
   test -n "$LIB_LINES_TAB" || error "No Lib-linecount report name" 1
   test -n "$LIB_LINES_COLS" || error "No Lib-linecount reports list name" 1
+  lib_assert package
 }
 
 project_stats_init()
@@ -22,13 +27,20 @@ project_stats_init()
   }
 }
 
+project_edition()
+{
+  test -n "$TRAVIS_JOB_NUMBER" && {
+    echo "$TRAVIS_COMMIT-$TRAVIS_JOB_NUMBER"
+  } || git describe
+}
+
 project_stats_lib_size_lines()
 {
   test -e "$LIB_LINES_TAB" &&
     set -- "$LIB_LINES_TAB.latest" || set -- "$LIB_LINES_TAB"
 
   record_nr=$(count_cols "$LIB_LINES_TAB")
-  echo "$( git describe ) $( datet_isomin )" >>"$LIB_LINES_COLS"
+  echo "$(project_edition) $( datet_isomin )" >>"$LIB_LINES_COLS"
 
   printf "#Lib-Line_Count\t$record_nr\n" >"$@"
   expand_spec_src libs | p= s= act=count_lines foreach_addcol >>"$@"

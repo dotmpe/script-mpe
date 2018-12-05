@@ -159,11 +159,18 @@ Dev
   etc.
 
 """
-from StringIO import StringIO
+try:
+    from io import StringIO
+except:
+    # ImportError or ModuleNotFoundError
+    from StringIO import StringIO
 import traceback
 import types
 
-from objectpath import Tree
+try:
+    from objectpath import Tree
+except ModuleNotFoundError:
+    pass
 
 import libcmd_docopt, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \

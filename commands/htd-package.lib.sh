@@ -83,7 +83,7 @@ htd_package_remotes_init()
 
     debug "scm: $scm; remote: '$remote' url: '$url'"
     htd_repository_url "$remote" "$url" || continue
-    info "remote: '$remote' url: '$url'"
+    std_info "remote: '$remote' url: '$url'"
     vc_git_update_remote "$remote" "$url"
   done
 }
@@ -93,7 +93,7 @@ htd_package_remotes_reset()
   test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
   git remote | while read -r remote
   do
-      git remote remove $remote && info "Removed '$remote'"
+      git remote remove $remote && std_info "Removed '$remote'"
   done
   note "Removed all remotes, re-adding.."
   htd_package_remotes_init

@@ -29,7 +29,7 @@ docstat_parse_std_descr()
 
 scr__std__tags()
 {
-  info "Tags for '$scr_src' '$scr_file'"
+  std_info "Tags for '$scr_src' '$scr_file'"
   test -z "$*" || {
     words_to_lines "$@"
   }

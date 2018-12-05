@@ -21,6 +21,7 @@
 # shellcheck disable=SC2155 # declare separately to avoid return masking
 # shellcheck disable=SC2209 # Use var=$(command) to assign output (or quote to assign string)
 # shellcheck disable=SC2230 # which is non-standard
+# shellcheck disable=SC2116 # Useless echo in cmd-args; is not useless while normalizing unquoted whitespace for printf
 htd_src=$_
 
 set -o posix
@@ -51,7 +52,6 @@ htd_load()
   default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
   default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
   test -n "$FIRSTTAB" || export FIRSTTAB=50
-  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
   default_env Script-Etc "$( htd_init_etc|head -n 1 )" ||
     debug "Using Script-Etc '$SCRIPT_ETC'"
   default_env Htd-ToolsFile "$CWD/tools.yml"
@@ -80,7 +80,7 @@ htd_load()
   upper=0 title=
 
   test -n "$stdio_0_type" -a  -n "$stdio_1_type" -a -n "$stdio_2_type" ||
-      error "stdio lib should be initialized" 1
+      stderr error "stdio lib should be initialized" 1
 
   # Check stdin/out are t(ty), unless f(file) or p(ipe) set interactive mode
   test "$stdio_0_type" = "t" -a "$stdio_1_type" = "t" &&
@@ -111,7 +111,7 @@ htd_load()
     # Prefix is a relative path from the workspace base to the current projects
     # checkout.
     prefix="$(normalize_relative "$go_to_before")"
-    test -z "$prefix" && error "prefix from go-to-before '$go_to_before'" 1
+    test -z "$prefix" && stderr error "prefix from go-to-before '$go_to_before'" 1
     test "$prefix" = "." || {
 
       # Add a little warning our records are incomplete
@@ -155,7 +155,7 @@ htd_load()
   }
 
   test -n "$htd_tmp_dir" || htd_tmp_dir="$(setup_tmpd)"
-  test -n "$htd_tmp_dir" || error "htd_tmp_dir load" 1
+  test -n "$htd_tmp_dir" || stderr error "htd_tmp_dir load" 1
   fnmatch "dev*" "$ENV" || {
     #rm -r "${htd_tmp_dir:?}"/*
     test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
@@ -181,7 +181,7 @@ htd_load()
     # Underlying code usually expects env arguments and options set. Maybe others.
     # See 'i'. And htd_inputs/_outputs env.
         test -n "$options" -a -n "$arguments" ||
-            error "options/arguments env paths expected" 1
+            stderr error "options/arguments env paths expected" 1
         local htd_subcmd_argsv=$(echo_local $subcmd argsv)
         func_exists $htd_subcmd_argsv || {
           htd_subcmd_argsv="$(eval echo "\$$htd_subcmd_argsv")"
@@ -231,9 +231,9 @@ htd_load()
     e ) # env: default/clear for env
         local htd_subcmd_env=$(try_value $subcmd env htd)
         test -n "$htd_subcmd_env" ||
-          error "run 'e': $subcmd env attr is empty" 1
+          stderr error "run 'e': $subcmd env attr is empty" 1
         eval $htd_subcmd_env
-        info "1. Env: $(var2tags $(echo $htd_subcmd_env | sed 's/=[^\ ]*//g' ))"
+        stderr info "1. Env: $(var2tags $(echo $htd_subcmd_env | sed 's/=[^\ ]*//g' ))"
       ;;
 
     f ) # failed: set/cleanup failed varname
@@ -306,17 +306,17 @@ htd_load()
     q ) # set if not set, don't update and eval package main env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
             test -n "$PACKMETA" -a -e "$PACKMETA" &&
-                note "Using package '$PACKMETA'" ||
-                error "No local package" 5
+                stderr note "Using package '$PACKMETA'" ||
+                stderr error "No local package" 5
             package_lib_set_local "$CWD" ||
-                error "Setting local package ($CWD)" 6
+                stderr error "Setting local package ($CWD)" 6
         }
 
         # Evaluate package env
-        . $PACKMETA_SH || error "local package" 7
+        . $PACKMETA_SH || stderr error "local package" 7
 
         test "$package_type" = "application/vnd.org.wtwta.project" ||
-                error "Project package expected (not $package_type)" 4
+                stderr error "Project package expected (not $package_type)" 4
         test -n "$package_env" || export package_env=". $PACKMETA_SH"
         debug "Found package '$package_id'"
       ;;
@@ -345,7 +345,7 @@ htd_load()
         htd_load_ignores
       ;;
 
-    *) error "No such run option ($subcmd): $x" 1 ;;
+    *) stderr error "No such run option ($subcmd): $x" 1 ;;
 
     esac
   done
@@ -411,7 +411,7 @@ htd_unload()
   do
     eval unset $var
   done
-  test -n "$htd_tmp_dir" || error "htd_tmp_dir unload" 1
+  test -n "$htd_tmp_dir" || stderr error "htd_tmp_dir unload" 1
   #test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" \
   #  || warn "Leaving HtD temp files $(echo $htd_tmp_dir/*)"
   unset htd_tmp_dir
@@ -429,7 +429,7 @@ htd_load_ignores()
   # Initialize one IGNORE_GLOBFILE file.
   ignores_lib_load
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
-      error "expected $base ignore dotfile" 1
+      stderr error "expected $base ignore dotfile" 1
   lst_init_ignores
   lst_init_ignores "" ignore
   #lst_init_ignores .names
@@ -443,8 +443,8 @@ htd_load_xsl()
     test -x "$(which saxon)" && xsl_ver=2 || xsl_ver=1
   }
   test xsl_ver != 2 -o -x "$(which saxon)" ||
-      error "Saxon required for XSLT 2.0" 1
-  info "Set XSL proc version=$xsl_ver.0"
+      stderr error "Saxon required for XSLT 2.0" 1
+  stderr info "Set XSL proc version=$xsl_ver.0"
 }
 
 
@@ -648,7 +648,7 @@ htd__help()
 {
   note "Listing all commands, see usage or composure"
   std_help "$@"
-  info "Listing all commands, see usage or composure"
+  stderr info "Listing all commands, see usage or composure"
 }
 htd_als___h=help
 htd_als____help=help
@@ -699,7 +699,7 @@ htd__output_formats()
   } && {
     echo $output_formats | tr ' ' '\n'
   } || {
-    error "No sub-command or output formats for '$*'" 1
+    stderr error "No sub-command or output formats for '$*'" 1
   }
 }
 
@@ -760,7 +760,7 @@ htd__doctor()
 
   } || stderr warning "Missing todo/done.txt env"
 
-  info "Looking for empty files..."
+  stderr info "Looking for empty files..."
   subcmd=find-empty htd__find_empty ||
       stderr ok "No empty files" && stderr warnning "Empty files above"
 
@@ -958,10 +958,10 @@ htd__count()
 {
   doc_path_args
 
-  info "Counting files with matching name '$1' ($paths)"
+  stderr info "Counting files with matching name '$1' ($paths)"
   doc_find_name "$1" | wc -l
 
-  info "Counting matched content '$1' ($paths)"
+  stderr info "Counting matched content '$1' ($paths)"
   doc_grep_content "$1" | wc -l
 }
 
@@ -2092,8 +2092,8 @@ htd__ssh()
           do
             test $retries -gt 0 ||
               stderr warn "Unable to contact '$1' in allotted retries" 1
-            note "Trying to wake up $1.."
-            htd wake $1 || error "wol error $?" 1
+            stderr note "Trying to wake up $1.."
+            htd wake $1 || stderr error "wol error $?" 1
             retries=$(( $retries - 1 ))
             sleep 16
             stderr info "Testing ping to '$1'..."
@@ -2411,7 +2411,7 @@ htd_spc__tasks_session_start="tasks-session-start TODO.TXT DONE.TXT [ @PREFIX...
 htd_env__tasks_session_start="$htd_env__tasks_edit"
 htd__tasks_session_start()
 {
-  info "3.1. Env: $(var2tags \
+  stderr info "3.1. Env: $(var2tags \
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   set -- $todo_document $todo_done
   assert_files $1 $2
@@ -2419,7 +2419,7 @@ htd__tasks_session_start()
   tags="$(tasks_todotxt_tags "$1" "$2" | lines_to_words ) $tags"
   note "Session-Start Tags: ($(echo "$tags" | count_words
     )) $(echo "$tags" )"
-  info "3.2. Env: $(var2tags \
+  stderr info "3.2. Env: $(var2tags \
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # Get additional paths to all files, look for todo/done buffer files per tag
   buffers="$(htd_tasks_buffers $tags )"
@@ -3105,7 +3105,7 @@ htd__git_grep()
   gitrepos "$@" | { while read repo
     do
       {
-        info "$repo:"
+        stderr info "$repo:"
         cd $repo || continue
         test -n "$grep_eval" && {
           eval git --no-pager grep -il "'$grep'" "$grep_eval" || { r=$?
@@ -3143,7 +3143,7 @@ htd_run__gitrepo=eiAO
 htd__gitrepo()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
+  stderr info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
   gitrepos "$@"
 }
 
@@ -3172,6 +3172,15 @@ htd__git()
 {
   test -n "$1" || set -- info
   subcmd_prefs=${base}_git_\ git_ try_subcmd_prefixes "$@"
+}
+
+
+htd_libs__github=github
+htd_run__github=l
+htd__github()
+{
+  test -n "$1" || set -- default
+  subcmd_prefs=${base}_github_\ github_ try_subcmd_prefixes "$@"
 }
 
 
@@ -3491,7 +3500,7 @@ htd__diff_functions() # FILE FILE|DIR
   test -n "$2" || set -- "$1" $scriptpath
   test -e "$2" || error "Directory or file to compare to expected '$2'" 1
   test -f "$2" || set -- "$1" "$2/$1"
-  test -e "$2" || { info "No remote side for '$1'"; return 1; }
+  test -e "$2" || { stderr info "No remote side for '$1'"; return 1; }
   test -z "$3" || error "surplus arguments: '$3'" 1
   lib_load functions
   functions_list $1 | sed 's/\(\w*\)()/\1/' | sort -u | while read -r func
@@ -3543,7 +3552,7 @@ htd__find_empty()
 {
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
-  info "Compiling ignores..."
+  stderr info "Compiling ignores..."
   local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
   test -n "$find_ignores" || fail "Cannot compile find-ignores"
   eval find $1 -false $find_ignores -o -empty -a -print
@@ -3553,7 +3562,7 @@ htd__find_empty_dirs()
 {
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
-  info "Compiling ignores..."
+  stderr info "Compiling ignores..."
   local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
   test -n "$find_ignores" || fail "Cannot compile find-ignores"
   eval find $1 -false $find_ignores -o -empty -a -type d -a -print
@@ -3609,7 +3618,7 @@ htd__check_files()
 
       if test -d "$p" -a -n "$(htd__expand $p.{zip,tar{.gz,.bz2}})"
       then
-        info "Skipping unpacked dir $p"
+        stderr info "Skipping unpacked dir $p"
         for ck in ck sha1 md5
         do
           htd__ck_table_subtree $ck "$p" | while read p2
@@ -4972,7 +4981,7 @@ htd__ck_prune()
 {
   ck_write "$1"
   shift 1
-  info "Looking for missing files in $CK table.."
+  stderr info "Looking for missing files in $CK table.."
   htd__ck_table $CK \
     | grep -Ev '^(#.*|\s*)$' \
     | while read cks p
@@ -5718,7 +5727,7 @@ htd__jrnl_times()
                 note "New entry $date $time" ||
                 error "Entering $date $time for $file"
           } || {
-            info "Existing entry $date $time"
+            stderr info "Existing entry $date $time"
           }
         done
       ;;
@@ -5898,7 +5907,7 @@ htd__open_paths_diff()
     htd__current_paths >$lsof
 
     debug "Updated $lsof"
-    info "Commands: $(echo $(
+    stderr info "Commands: $(echo $(
         sed 's/\ .*$//' $lsof | sort -u
       ))"
 
@@ -6666,12 +6675,12 @@ htd__srv_list()
                     TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
                     echo "$TRGT_P [ label=\"$(dirname "$target")\" ] ;"
                     echo "$NAME -> $TRGT_P [ label=\"$(basename "$target")\" ] ;"
-                    info "Chain link '$name' to $target"
+                    stderr info "Chain link '$name' to $target"
                   } || {
                     test $depth -gt 1 && {
                       warn "Deep link '$name' to $target"
                     } || {
-                      info "Neighbour link '$name' to $target"
+                      stderr info "Neighbour link '$name' to $target"
                       echo "$NAME -> $TRGT [style=dotted] ;"
                     }
                   } ;;
@@ -6686,12 +6695,12 @@ htd__srv_list()
           note "Volume link '$name' to $target" ;;
       * )
           test $depth -eq 1 && {
-            info "Chain link '$name' to $target"
+            stderr info "Chain link '$name' to $target"
           } || {
             test $depth -gt 1 && {
               warn "Deep link '$name' to $target"
             } || {
-              info "Neighbour link '$name' to $target"
+              stderr info "Neighbour link '$name' to $target"
             }
           } ;;
 
@@ -6877,7 +6886,7 @@ htd__reader_update()
   do
     name="$(basename "$remote")"
     newer_than "$remote" _1HOUR && {
-      info "Remote $name is up-to-date"
+      stderr info "Remote $name is up-to-date"
     } || {
       note "Remote $name is too old, syncing"
       git annex sync $name && continue || error "sync failed"
@@ -7131,13 +7140,13 @@ htd__init_backup_repo()
     test -d "$1" || error "Dir expected" 1
   } || {
     test -d /srv/annex-local/ && set -- "/srv/annex-local"
-    info "Using local annex folder for annex-backup checkout"
+    stderr info "Using local annex folder for annex-backup checkout"
   }
 
-  git clone $(htd git-remote annex-backup) $1/backup \
-    && info "Cloned annex-backup into $1/backup" || return $?
-  ln -s $1/backup /srv/backup-local \
-    && info "Initialized backup-local symlink ($1/backup)" || return $?
+  git clone $(htd git-remote annex-backup) $1/backup &&
+      stderr info "Cloned annex-backup into $1/backup" || return $?
+  ln -s $1/backup /srv/backup-local &&
+      stderr info "Initialized backup-local symlink ($1/backup)" || return $?
 
   note "Initialized local backup annex ($1/backup)"
 }
@@ -7248,7 +7257,7 @@ htd__pack()
         test ! -e $tab || error "Manifest exists: $tab" 1
         htd__ck $tab "$2"
         find $2 -iname '*.tar*' >>$skipped
-        info "Creating archive from '$2'"
+        stderr info "Creating archive from '$2'"
         tar --exclude '*.tar*' --lzma -cvf "$3" $tab "$2" \
           2>&1 | grep '^a\ ' | sed 's/^a\ /htd:'"$subcmd"':create:added/g' \
           >> $passed
@@ -7956,7 +7965,7 @@ htd__checkout()
   test -e "$1" && fn="$1" || fn="$symlinks_file"
   test -x "$fn" && table_f=- || table_f="$fn"
 
-  info "2.2. Env: $(var2tags id symlinks_fn table_f )"
+  stderr info "2.2. Env: $(var2tags id symlinks_fn table_f )"
   test "$table_f" = "-" && {
     # TODO: either generate table
     #alternatively generate table dynamically?
@@ -7991,7 +8000,7 @@ htd_argsv__checkout()
   package_id=$symlinks_id package_lib_load
   eval $(map=package_:symlinks_ package_sh id file attrs)
   test -n "$symlinks_attrs" || symlinks_attrs="SRC DEST"
-  info "2.1. Env: $(var2tags package_id symlinks_id symlinks_attrs)"
+  stderr info "2.1. Env: $(var2tags package_id symlinks_id symlinks_attrs)"
 }
 
 
@@ -7999,7 +8008,7 @@ htd_man_1__date_shift='Adjust mtime forward or back by number of hours, or other
 unit if specified'
 htd__date_shift()
 {
-  test -e "$1" || error "date-shift $1"
+  test -e "$1" || stderr error "date-shift $1"
   case "$uname" in
     Linux )
         test -n "$2" || set -- "$1" '-1 day'
@@ -8752,16 +8761,41 @@ htd__meta()
 }
 
 
-htd_man_1__meta='
-'$emby_api_man_1
+htd_man_1__emby='
+
+  emby (un)favorite ID
+    Add/remove favorite item.
+  emby (un)like | remove-like ID
+    Add, change or remove "Likes" setting.
+
+  emby studio [ID]
+    List all or get one studio item.
+  emby year(s) [YEAR]
+    List all or show one year item.
+
+  emby logs
+    List available logs
+  emby plugins
+    List installed plugins
+  emby scheduled [ID]
+    List all or get one scheduled tasks item.
+
+  item-roots
+  items
+
+  TODO: items-sub
+  TODO: items-by-id
+  TODO: item-images
+    Tabulate images
+'
 htd__embyapi()
 {
-  lib_load meta
-  upper=0 mkvid "$1" ; shift ;
-  func_exists emby_api__$vid || error "$vid" 1
+  lib_load curl meta emby
   emby_api_init
-  emby_api__$vid "$@" || return $?
+  test $# -gt 0 || set -- default
+  subcmd_prefs=${base}_emby__\ emby_api__ try_subcmd_prefixes "$@"
 }
+htd__emby() { htd__embyapi "$@"; }
 
 
 htd_man_1__src=''
@@ -8934,6 +8968,16 @@ htd_als__count_columns=str\ colcount
 htd_als__count_chars=str\ charcount
 
 
+htd_run__user=ilAO
+htd_libs__user=user-scripts
+htd__user()
+{
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  echo subcmd_prefs=${base}_user_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_user_ try_subcmd_prefixes "$@"
+}
+
+
 # -- htd box insert sentinel --
 
 
@@ -8952,7 +8996,7 @@ htd_main()
 
   test -n "$verbosity" || local verbosity=5
 
-  htd_init || exit $?
+  htd_init || $LOG error htd-main "During htd-init" "" $?
   case "$base" in
 
     $scriptname )
@@ -8969,20 +9013,20 @@ htd_main()
         main_init
         export stdio_0_type stdio_1_type stdio_2_type
 
-        htd_lib "$@" || error htd-lib $?
+        htd_lib "$@" || $LOG error htd-main "During htd-lib" "" $?
         main_run_subcmd "$@" || r=$?
         htd_unload || r=$?
 
         # XXX: cleanup, run_subcommand with ingegrated modes?
         #  test -z "$arguments" -o ! -s "$arguments" || {
 
-        #    info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
+        #    stderr info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
         #    set -f; set -- $(cat $arguments | lines_to_words) ; set +f
         #  }
       ;;
 
     * )
-        error "not a frontend for $base ($scriptname)" 1
+        $LOG error htd-main "not a frontend for $base ($scriptname)" "" 1
       ;;
 
   esac
@@ -9010,11 +9054,15 @@ htd_optsv()
 
 htd_init()
 {
+  test -n "$LOG" -a -x "$LOG" || export LOG=$HOME/bin/log.sh
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptpath"
-  local __load_lib=1
-  export SCRIPTPATH=$scriptpath:$scriptpath/commands:$scriptpath/contexts
-  . $scriptpath/util.sh || return $?
+  
+  test -n "$SCRIPTPATH" || {
+    test -n "$scriptpath" || return
+    export SCRIPTPATH=$scriptpath:$scriptpath/commands:$scriptpath/contexts:$HOME/.conf/script
+  }
+
+  util_mode=ext . $scriptpath/util.sh || return $?
   lib_load os std sys sys-htd str stdio src main argv match vc
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test

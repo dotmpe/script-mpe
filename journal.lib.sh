@@ -12,7 +12,7 @@ jrnl_reqdir()
     debug "Journal dir jrnldir using '$jrnldir'"
   } || {
     jrnldir="$(pwd)/$JRNL_DIR"
-    info "Journal dir jrnldir set to PWD/JRNL-DIR: '$jrnldir'"
+    std_info "Journal dir jrnldir set to PWD/JRNL-DIR: '$jrnldir'"
   }
   jrnldir="$(strip_trail "$jrnldir")"
   test -d "$jrnldir" || error "Dir $1 must exist" 1

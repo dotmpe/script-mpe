@@ -16,7 +16,7 @@ build_main()
     grep -q "^$1()" "$lib" && {
       note "Found '$1' at '$lib'"
       lib_load $(basename "$lib" .lib.sh) &&
-        info "Loaded $lib" || error "Loading $lib"
+        std_info "Loaded $lib" || error "Loading $lib"
     } || continue
   done
 

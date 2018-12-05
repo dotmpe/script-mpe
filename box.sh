@@ -73,7 +73,7 @@ box__edit()
   test -z "$dry_run" || {
     debug "files='$files'"
     debug "evoke='$evoke'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
   note "starting '$EDITOR' for $scope files of $box_name/$subbox_name"
   note "invoking '$evoke'"
@@ -98,7 +98,7 @@ box__edit_main()
   test -z "$dry_run" || {
     debug "files='$files'"
     debug "evoke='$evoke'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
   note "starting '$EDITOR' for $files"
   note "invoking '$evoke'"
@@ -129,7 +129,7 @@ box__init()
     debug "script_subcmd_func=$script_subcmd_func"
     debug "global_func_name='$global_func_name'"
     debug "local_func_name='$local_func_name'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
 
   error "FIXME" 1
@@ -213,7 +213,7 @@ box__new()
   test -z "$dry_run" || {
     debug "script='$script'"
     debug "func='$func'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
   note "TODO check for existing function"
   box_add_function $func $script "$(cat <<-EOF
@@ -249,9 +249,9 @@ box__list()
   test -z "$dry_run" || {
     debug "nid_cwd='$nid_cwd'"
     debug "'$BOX_BIN_DIR/*'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
-  info "TODO box list: get script names for local box command"
+  std_info "TODO box list: get script names for local box command"
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
 box__als__l=list
@@ -324,7 +324,7 @@ box__run()
     debug "func_name=$func_name"
     debug "scope=$scope"
     debug "box_src=$box_src box_lib=$box_lib"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
 
   # test for function
@@ -337,9 +337,9 @@ box__run()
   # run function
   $func_name $@ && {
     test -n "$choice_global" && {
-      info "command $subbox_name completed"
+      std_info "command $subbox_name completed"
     } || {
-      info "command $subbox_name in $(pwd) completed"
+      std_info "command $subbox_name in $(pwd) completed"
     }
   } || {
     r=$?
@@ -372,7 +372,7 @@ box__check_install()
     test -d "$BOX_BIN_DIR/" || error "not a dir" 1
     test -x "$BOX_BIN_DIR/" || error "not accessible" 1
     box new BoxTest || error "unable to init BoxTest"
-    info "initialized BoxTest"
+    std_info "initialized BoxTest"
     test "$(which BoxTest)" = "$BOX_BIN_DIR/BoxTest" \
       || error "expected BoxTest on PATH"
     BoxTest || error "unable to run BoxTest" 1
@@ -381,7 +381,7 @@ box__check_install()
   } && {
 
     std_demo
-    info "install checks OK"
+    std_info "install checks OK"
 
   } || {
     rm -vf $BOX_BIN_DIR/BoxTest
@@ -393,7 +393,7 @@ box__check_install()
 box__log_demo()
 {
   debug "Debug msg"
-  info "Info msg"
+  std_info "Info msg"
   note "Notice msg"
   warn "Warning msg"
   error "Error msg"
@@ -497,7 +497,7 @@ box_init()
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   export SCRIPTPATH=$scriptpath
-  __load_mode=boot . $scriptpath/util.sh
+  util_mode=boot . $scriptpath/util.sh
   lib_load box main src
   # -- box box init sentinel --
 }

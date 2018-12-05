@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# TODO /etc/localtime
 
 date_lib_load()
 {
@@ -25,17 +26,24 @@ date_lib_load()
   # much if below is only used for fmtdate-relative.
   export _1MONTH=$(( 4 * $_1WEEK ))
   export _1YEAR=$(( 365 * $_1DAY ))
-
-  date_lib_init_bin
 }
 
 
-date_lib_init_bin()
+date_lib_init()
 {
+  lib_assert sys os str || return
   case "$uname" in
     Darwin ) gdate="gdate" ;;
     Linux ) gdate="date" ;;
   esac
+
+  TZ_OFF_1=$($gdate -d '1 Jan' +%z)
+  TZ_OFF_7=$($gdate -d '1 Jul' +%z)
+  TZ_OFF_NOW=$($gdate +%z)
+
+  test \( $TZ_OFF_NOW -gt $TZ_OFF_1 -a $TZ_OFF_NOW -gt $TZ_OFF_7 \) &&
+    IS_DST=1 || IS_DST=0
+
   export gdate
 }
 
@@ -47,7 +55,10 @@ newer_than() # FILE SECONDS
   test -e "$1" || error "newer-than expected existing path" 1
   test -n "$2" || error "newer-than expected delta seconds argument" 1
   test -z "$3" || error "newer-than surplus arguments" 1
-  test $(( $(date +%s) - $2 )) -lt $(filemtime "$1")
+
+  fnmatch "@*" "$2" || set -- "$1" "-$2"
+  test $(date_epochsec "$2") -lt $(filemtime "$1")
+  #test $(( $(date +%s) - $2 )) -lt $(filemtime "$1")
 }
 
 # older-than FILE SECONDS, filemtime must be less-than Now - SECONDS
@@ -57,7 +68,53 @@ older_than()
   test -e "$1" || error "older-than expected existing path" 1
   test -n "$2" || error "older-than expected delta seconds argument" 1
   test -z "$3" || error "older-than surplus arguments" 1
-  test $(( $(date +%s) - $2 )) -gt $(filemtime "$1")
+  fnmatch "@*" "$2" || set -- "$1" "-$2"
+  test $(date_epochsec "$2") -gt $(filemtime "$1")
+  #test $(( $(date +%s) - $2 )) -gt $(filemtime "$1")
+}
+
+date_ts()
+{
+  date +%s
+}
+
+date_epochsec()
+{
+  test -e "$1" && {
+      filemtime "$1"
+      return $?
+    } || {
+
+      fnmatch "-*" "$1" && {
+        echo "$(date_ts) $1" | bc
+        return $?
+      }
+
+      fnmatch "@*" "$1" && {
+        echo "$1" | cut -c2-
+        return $?
+      } || {
+        date_fmt "$1" "%s"
+        return $?
+      }
+    }
+  return 1
+}
+
+# Compare date, timestamp or mtime and return oldest as epochsec (ie. lowest val)
+date_oldest() # ( FILE | DTSTR | @TS ) ( FILE | DTSTR | @TS )
+{
+  set -- "$(date_epochsec "$1")" "$(date_epochsec "$2")"
+  test $1 -gt $2 && echo $2
+  test $1 -lt $2 && echo $1
+}
+
+# Compare date, timestamp or mtime and return newest as epochsec (ie. highest val)
+date_newest() # ( FILE | DTSTR | @TS ) ( FILE | DTSTR | @TS )
+{
+  set -- "$(date_epochsec "$1")" "$(date_epochsec "$2")"
+  test $1 -lt $2 && echo $2
+  test $1 -gt $2 && echo $1
 }
 
 # given timestamp, display a friendly human readable time-delta:
@@ -176,7 +233,7 @@ ts_rel_multi() # Seconds-Delta [Tag [Tag...]]
 # Get stat datetime format, given file or datetime-string. Prepend @ for timestamps.
 timestamp2touch() # [ FILE | DTSTR ]
 {
-  test -n "$1" || set -- "@$(date +%s)"
+  test -n "$1" || set -- "@$(date_ts)"
   test -e "$1" && {
     $gdate -r "$1" +"%y%m%d%H%M.%S"
   } || {
@@ -184,7 +241,8 @@ timestamp2touch() # [ FILE | DTSTR ]
   }
 }
 
-touch_ts() # [ FILE | TIMESTAMP FILE ]
+# Copy mtime from file or set to DATESTR or @TIMESTAMP
+touch_ts() # ( DATESTR | TIMESTAMP | FILE ) FILE
 {
   test -n "$2" || set -- "$1" "$1"
   touch -t "$(timestamp2touch "$1")" "$2"
@@ -277,10 +335,16 @@ datet_isomin() { date_iso "$1" minutes; }
 datet_isons() { date_iso "$1" ns; }
 
 # Print fractional seconds since Unix epoch
-epoch_microtime() { $gdate +%s.%N; }
+epoch_microtime() { $gdate +"%s.%N"; }
 
 date_microtime() { $gdate +"%Y-%m-%d %H:%M:%S.%N"; }
 
+sec_nomicro()
+{
+  fnmatch "*.*" "$1" && {
+      echo "$1" | cut -d'.' -f1
+  } || echo "$1"
+}
 
 # Output date at required resolution
 date_autores() # Date-Time-Str

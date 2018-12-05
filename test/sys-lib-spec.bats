@@ -177,14 +177,14 @@ EOM
 source '$scriptpath'/tools/sh/init.sh && lib_load && try_exec_func no_such_function
 EOM
     )"
-  #run bash -c 'scriptpath='$lib' && __load_mode=boot source '$lib'/util.sh && try_exec_func no_such_function'
+  #run bash -c 'scriptpath='$lib' && util_mode=boot source '$lib'/util.sh && try_exec_func no_such_function'
   { test "" = "${lines[*]}" && test $status -eq 1
   } || stdfail 4.1.1
 
   export verbosity=7
   run bash -c "$( cat <<EOM
 export scriptpath='$scriptpath'
-__load_mode=boot source '$scriptpath'/util.sh && try_exec_func no_such_function
+util_mode=boot source '$scriptpath'/util.sh && try_exec_func no_such_function
 EOM
 )"
   {
@@ -204,7 +204,7 @@ EOM
 
   lib_load sys
   export verbosity=5
-  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && __load_mode=boot . '$scriptpath'/util.sh && \
+  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && util_mode=boot . '$scriptpath'/util.sh && \
     . '$main_inc' && try_exec_func mytest_function'
   {
     test -n "${lines[*]}" &&
@@ -218,7 +218,7 @@ EOM
   lib_load sys
   export verbosity=5
 
-  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && __load_mode=boot . '$scriptpath'/util.sh && try_exec_func no_such_function'
+  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && util_mode=boot . '$scriptpath'/util.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}" || stdfail 1
 
   case "$(uname)" in

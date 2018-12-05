@@ -80,7 +80,7 @@ gitflow_foreach_downstream()
   test -n "$1" || set -- gitflow.tab "$2" "$3"
   test -e "$1" || error "foreach-downstream: missing gitflow file ($1)" 1
   test -n "$3" || set -- "$1" "$2" "$(git rev-parse --abbrev-ref HEAD)"
-  info "foreach-downstream: reading downstream for '$3' from '$1'"
+  std_info "foreach-downstream: reading downstream for '$3' from '$1'"
   read_nix_style_file "$1" | while read -r upstream downstream isfeature
   do
     test "$upstream" = "$3" || continue
@@ -120,7 +120,7 @@ gitflow_clean_local_features()
         git branch -d "$fb"
       }
     } || {
-      info "Local changes on '$fb'"
+      std_info "Local changes on '$fb'"
     }
   done
 }

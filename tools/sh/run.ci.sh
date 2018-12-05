@@ -1,3 +1,4 @@
+#!/bin/sh
 
 # CI run flow:
 
@@ -12,4 +13,3 @@ scriptname=ci-parts:check
 
 scriptname=ci-parts:build
 . $scriptpath/tools/ci/parts/build.sh
-

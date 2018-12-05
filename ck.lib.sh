@@ -198,7 +198,7 @@ ck_read_catalog()
 
     l=$(( $l + 1))
   done
-  info "Done reading checksums from catalog '$1'"
+  std_info "Done reading checksums from catalog '$1'"
 }
 
 ck_run_catalog()
@@ -327,7 +327,7 @@ ck_run_update()
       continue
     }
     test -f "$1" && {
-      info "Adding one file '$1'"
+      std_info "Adding one file '$1'"
       ${CK}sum "$1" > $table
       shift
       continue
@@ -422,7 +422,7 @@ ck_update_file()
 
 ck_update_find()
 {
-  info "Reading $T_CK, looking for files '$1'"
+  std_info "Reading $T_CK, looking for files '$1'"
   find_p="$(strip_trail=1 normalize_relative "$1")"
 
   var_isset failed || {

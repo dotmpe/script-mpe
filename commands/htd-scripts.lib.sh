@@ -61,19 +61,19 @@ htd_scripts_exec() # Script-Id
     . $PWD/$package_env_file
 
     # Write scriptline with expanded vars
-    info "Expanded '$(eval echo \"$@\")'"
+    std_info "Expanded '$(eval echo \"$@\")'"
     set -- $(eval echo \"$*\")
     run_scriptname="$1"
     shift
 
-    info "Starting '$run_scriptname' ($(pwd)) '$*'"
+    std_info "Starting '$run_scriptname' ($(pwd)) '$*'"
     package_js_script "$run_scriptname" | while read -r scriptline
     do
       export ln=$(( $ln + 1 ))
 
       # Header or verbose output
       not_trueish "$verbose_no_exec" && {
-        info "Scriptline: '$scriptline'"
+        std_info "Scriptline: '$scriptline'"
       } || {
         printf -- "\t$scriptline\n"
         continue
@@ -112,7 +112,7 @@ htd_scripts_run()
   { test -e "$PACK_SCRIPTS/$1.sh" && not_falseish "$use_cache"
   } && {
 
-    info "Using cached script"
+    std_info "Using cached script"
     htd_scripts_exec_compiled "$@"
     return $?
   }

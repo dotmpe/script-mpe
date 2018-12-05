@@ -168,7 +168,7 @@ annex_dropbykey() # File Key
   note "Dropping '$1'.."
   # NOTE: content does need to be present, key should exist ofcourse
   annex_parsekey "$2" || return
-  info "Dropping KEY=$2.."
+  std_info "Dropping KEY=$2.."
   git annex dropkey --force "$2" || echo dropkey-exit=$?
   test -n "$dropped" || dropped=./.catalog/dropped.sha2list
   test -n "$1" || set -- "$keyext" "$2"
@@ -377,7 +377,7 @@ annexdir_get()
 {
   test -n "$1" || set -- --auto
   #test -n "$1" || set -- .
-  info "Annexdir get '$*'..."
+  std_info "Annexdir get '$*'..."
   # From Annex/* dir, sync and an get all
   for a in $(pwd)/*/
   do
@@ -448,7 +448,7 @@ annices_findbysha2list()
 # contentlocation will be set to the local file path.
 annices_lookup_by_key()
 {
-  info "Lookup by key '$1'.."
+  std_info "Lookup by key '$1'.."
   for annex in $ANNEX_DIR/*/
   do
     test -d "$annex/.git/annex/objects" || {
@@ -477,7 +477,7 @@ annices_lookup_by_key()
 # instead key is a sha2. Set env backendfile and KEY as well.
 annices_lookup_by_sha2()
 {
-  info "Lookup by SHA-256 '$1'.."
+  std_info "Lookup by SHA-256 '$1'.."
   for annex in $ANNEX_DIR/*/
   do
     test -d "$annex/.git/annex/objects" || {

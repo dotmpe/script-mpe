@@ -27,7 +27,7 @@ du_getxml()
   fnmatch '*.rst' $1 && {
     test -n "$2" || set -- "$1" "$(setup_tmpd)/$(basename "$1" .rst).xml"
     test -e "$2" -a "$2" -nt "$1" || {
-        info "rst2xml: $rst2xml $1 $2"
+        std_info "rst2xml: $rst2xml $1 $2"
         $rst2xml \
           --exit-status=$warning_level \
           --quiet \

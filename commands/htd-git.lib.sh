@@ -40,7 +40,6 @@ htd_git_get() # <user>/<repo> [Version]
     note "OK, new SCM for $1 from $SCM_VND"
   }
 
-  lib_load volume
   # Verbosely create user checkout and symlink if not exists, otherwise
   # echo link + target
   git_src_get "$1" || return

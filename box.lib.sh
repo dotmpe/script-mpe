@@ -111,11 +111,11 @@ box_add_function()
 
   fnmatch "*:[0-9]*" $2 && {
 
-    info "Inserting funtion $1"
+    std_info "Inserting funtion $1"
     add_function "$1" "$2" "$3"
   } || {
 
-    info "Appending funtion $1 for $2"
+    std_info "Appending funtion $1 for $2"
 
     echo "$1()" >> $2
     echo "{" >> $2
@@ -231,7 +231,7 @@ box_list_libs()
     debug "scan total lines $line_diff"
     debug "nid_cwd='$nid_cwd'"
     debug "'$BOX_BIN_DIR/*'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
 
   test $line_diff -eq 0 || {
@@ -302,7 +302,7 @@ box_bg_setup()
     PID=$!
     while test ! -e $main_sock
     do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded $main_bg (PID $PID)"
+    std_info "Backgrounded $main_bg (PID $PID)"
 
   } || {
     note "Forcing foreground/cleaning up background"
@@ -318,7 +318,7 @@ box_bg_teardown()
     $main_bg exit
     while test -e $main_sock
     do note "Waiting for background shutdown.." ; sleep 1 ; done
-    info "Closed background metadata server"
+    std_info "Closed background metadata server"
     test -z "$no_background" || warn "no-background on while pd-sock existed"
   }
 }

@@ -58,8 +58,8 @@ init()
 # XXX scriptpath
   scriptpath=$PWD/src/sh/lib SCRIPTPATH=$PWD/src/sh/lib:$HOME/bin
   init_sh_libs="$1" . $script_util/init.sh
-  #__load_mode=load-ext . $scriptpath/tools/sh/init.sh
-  # __load_mode=load-ext . $scriptpath/util.sh
+  #util_mode=load-ext . $scriptpath/tools/sh/init.sh
+  # util_mode=load-ext . $scriptpath/util.sh
 
   test "$1" = "0" || {
     lib_load $default_lib

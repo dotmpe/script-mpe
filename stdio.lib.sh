@@ -188,7 +188,7 @@ _failed_=_failed_
 std_passed_rule()
 {
   test $passed_count -gt 0 \
-    && info "Passed ($passed_count): $passed_abbrev"
+    && std_info "Passed ($passed_count): $passed_abbrev"
 }
 
 std_skipped_rule()

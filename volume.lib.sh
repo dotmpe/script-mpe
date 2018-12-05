@@ -152,7 +152,7 @@ htd_check_volumes()
       source_mount_catalog $mount_point
       _volume_symlink
       test -e /srv/$sym && {
-        info "Found volume-$disk_index-$vol_part_index-$suffix"
+        std_info "Found volume-$disk_index-$vol_part_index-$suffix"
         continue
       }
       echo ln -s $mount_point /srv/$sym
@@ -185,7 +185,7 @@ _volume_symlink()
 # Give pathname.tab for use with htd prefixes
 htd_path_names()
 {
-  info "Listing path names for current mounts"
+  std_info "Listing path names for current mounts"
   # Reverse list b/c/ pathnames.tab root should come last
   disk_mounts | sort -r | while read mount_point
   do

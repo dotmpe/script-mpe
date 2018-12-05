@@ -187,13 +187,13 @@ scrtab_new() # [--script | --alias] [NAME] [CMD] [TAGS...]
   }
 
   #test -n "$scr_src" || scrtab_load "$NAME"
-  #info "ScrTab: $scr_id $scr_src $scr_vid"
-  #info "Tags: '$scr_primctx' '$scr_tags' '$scr_tags_raw'"
+  #stderr info "ScrTab: $scr_id $scr_src $scr_vid"
+  #stderr info "Tags: '$scr_primctx' '$scr_tags' '$scr_tags_raw'"
 
   scrtab_entry_exists "$scr_id" && error "Entry '$scr_id' exists" 1
 
   test -e "$scr_src" && {
-    note "'$scr_src' '$SCRDIR/$scr_id.sh'"
+    stderr note "'$scr_src' '$SCRDIR/$scr_id.sh'"
     scrtab_entry_create "" "$scr_src" > $SCRDIR/$scr_id.sh
   } || {
     test -z "$CMD" || {
@@ -212,9 +212,9 @@ scrtab_proc()
   test -e "$scr_file" || error "scrtab-proc: SCR file required: $1" 1
 
   # Parse
-  note "Process"
+  stderr note "Process"
   ( . $scr_file ) && new_status=0 || new_status=$?
-  note "Process $new_status"
+  stderr note "Process $new_status"
 
   # Notice mtime changes
   test -e "$scr_src" &&
@@ -262,11 +262,11 @@ scrtab_update() # SCR-Id [Tags]
   {
       trueish "$scrtab_update_cached" ||
       test "$scr_status" != "0" -o "$scr_status" != "200"
-  } || { note "No process and status:$scr_status OK " ; return 0 ; }
+  } || { stderr note "No process and status:$scr_status OK " ; return 0 ; }
 
   {
       trueish "$scrtab_process" || test "$scr_status" = "-"
-  } || { note "No reset and status:$scr_status cached" ; return 0 ; }
+  } || { stderr note "No reset and status:$scr_status cached" ; return 0 ; }
 
 
   not_trueish "$scrtab_update_cached" && {
@@ -278,7 +278,7 @@ scrtab_update() # SCR-Id [Tags]
 
       debug "new '$new_entry'"
       test "$new_entry" != "$scr_entry" || {
-        info "No stat or record changes"
+        stderr info "No stat or record changes"
         return
       }
 
@@ -309,7 +309,7 @@ scrtab_initid() # SCR-Name [LIST]
   last_id=$( $ggrep -o "^[0-9 +-]*\b$scr_id-[0-9]*\\ " "$2"|sed 's/^.*-\([0-9]*\) *$/\1/'|sort -n|tail -n 1)
   debug "Last Id: $last_id"
   scr_id=$scr_id-$(( $last_id + 1 ))
-  info "New Id: $scr_id"
+  stderr info "New Id: $scr_id"
 }
 
 # Parse statusdir index file line for {PREFNAME}$id (from env, see scrtab-file-env)
@@ -348,8 +348,8 @@ scrtab_parse() # Tab-Entry
   scr_tags_raw="$(echo "$scr_record"|cut -d' ' -f2-|$gsed 's/^[^\[+@<]*//'|normalize_ws)"
   scr_tags="$(echo "$scr_tags_raw"|$ggrep -o '[+@][^ ]*'|normalize_ws)"
 
-  info "Tags: '$scr_tags'"
-  info "Tags-Raw: '$scr_tags_raw'"
+  stderr info "Tags: '$scr_tags'"
+  stderr info "Tags-Raw: '$scr_tags_raw'"
 
   scr_ref="$(echo "$scr_tags_raw"|sed 's/^[^<]*<\([^>]*\)>.*/\1/')"
   scr_file="$(htd prefixes expand "$scr_ref")"

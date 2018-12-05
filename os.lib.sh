@@ -258,7 +258,7 @@ foreach_match_setexpr() # [Type:]Expression
   } || {
     type_=g
   }
-  info "Mode: $type_, Expression: '$expr_'"
+  std_info "Mode: $type_, Expression: '$expr_'"
 }
 
 # Execute act/no-act based on expression match, function/command or shell statement
@@ -710,7 +710,7 @@ lock_files()
 {
   local id=$1
   shift
-  info "Reserving resources for session $id ($*)"
+  std_info "Reserving resources for session $id ($*)"
   for f in $@
   do
     test -e "$f.lock" && {
@@ -728,7 +728,7 @@ unlock_files()
 {
   local id=$1 lock=
   shift
-  info "Releasing resources from session $id ($*)"
+  std_info "Releasing resources from session $id ($*)"
   for f in $@
   do
     test -e "$f.lock" && {

@@ -150,10 +150,10 @@ srv_init()
     export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
 
   test -n "$scriptpath"
-  . $scriptpath/util.sh load-ext
-  lib_load
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
+  util_mode=ext . $scriptpath/util.sh || return
+  lib_load $default_lib || return
+  . $scriptpath/tools/sh/box.env.sh || return
+  box_run_sh_test || return
   lib_load main meta box doc date table remote
   # -- srv box init sentinel --
 }

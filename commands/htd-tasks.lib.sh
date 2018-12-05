@@ -73,7 +73,7 @@ htd__tasks()
 htd_argsv_tasks_session_start()
 {
   htd_tasks_load
-  info "1.1. Env: $(var2tags \
+  std_info "1.1. Env: $(var2tags \
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   test -n "$*" || return 0
   while test $# -gt 0 ; do case "$1" in
@@ -89,18 +89,18 @@ htd_argsv_tasks_session_start()
           add_files="$add_files $1" ; shift
         ;;
   esac ; done
-  info "1.2. Env: $(var2tags \
+  std_info "1.2. Env: $(var2tags \
       id todo_slug todo_document todo_done tags buffers add_files locks colw)"
 }
 
 htd_tasks_session_end()
 {
-  info "6.1 Env: $(var2tags \
+  std_info "6.1 Env: $(var2tags \
       id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # clean empty buffers
   for f in $buffers
   do test -s "$f" -o ! -e "$f" || rm "$f"; done
-  info "Cleaned empty buffers"
+  std_info "Cleaned empty buffers"
   test ! -e "$todo_document" -o -s "$todo_document" || rm "$todo_document"
   test ! -e "$todo_done" -o -s "$todo_done" || rm "$todo_done"
   # release all locks
@@ -139,7 +139,7 @@ htd_tasks_load()
 
     tasks-hub | tasks-process )
   test -n "$tasks_hub" || { error "No tasks-hub env" ; return 1 ; }
-  info "Hub: $tasks_hub"
+  std_info "Hub: $tasks_hub"
   #test ! -e "./to" -o "$tasks_hub" = "./to" ||
   #  error "hub ./to left behind" 1
   ;;
@@ -167,7 +167,7 @@ htd_tasks_load()
 
 htd_migrate_tasks()
 {
-  info "Migrating tags: '$tags'"
+  std_info "Migrating tags: '$tags'"
   echo "$tags" | words_to_lines | while read tag
   do
     test -n "$tag" || continue
@@ -258,8 +258,8 @@ htd_tasks_scan() # tasks-scan [ --interactive ] [ --Check-All-Tags ] [ --Check-A
         || error "Could not update $todo_document " 1
     note "OK. $(read_nix_style_file $todo_document | count_lines) task lines"
   }
-  info "To-do: $(count_lines "$todo_document") items"
-  info "Done: $(count_lines "$todo_done") items"
+  std_info "To-do: $(count_lines "$todo_document") items"
+  std_info "Done: $(count_lines "$todo_done") items"
   test -s "$todo_document" || rm "$todo_document"
   test -s "$todo_done" || rm "$todo_done"
 }
@@ -314,10 +314,10 @@ EOM
 
 htd_tasks_edit()
 {
-  info "2.1. Env: $(var2tags \
+  std_info "2.1. Env: $(var2tags \
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   htd__tasks_session_start "$todo_document" "$todo_done" "$@"
-  info "2.2. Env: $(var2tags \
+  std_info "2.2. Env: $(var2tags \
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   # TODO: If locked import principle tasks to main
   trueish "$migrate" && htd_migrate_tasks "$todo_document" "$todo_done" "$@"
@@ -328,7 +328,7 @@ htd_tasks_edit()
   #newlocks="$(lock_files $id "$1" | lines_to_words )"
   #note "Acquired additional locks ($(basenames ".list" $newlocks | lines_to_words))"
   # TODO: Consolidate all tasks to proper project/context files
-  info "2.6. Env: $(var2tags \
+  std_info "2.6. Env: $(var2tags \
     id todo_slug todo_document todo_done tags buffers add_files locks colw)"
   trueish "$remigrate" && htd_remigrate_tasks "$todo_document" "$todo_done" "$@"
   # XXX: where does @Dev +script-mpe go, split up? refer principle tickets?

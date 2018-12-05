@@ -117,7 +117,7 @@ esop_init()
   test -n "$LOG" ||
     export LOG=/usr/local/share/mkdoc/Core/log.sh
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
+  util_mode=ext . $scriptpath/util.sh load-ext
   lib_load str sys os std stdio main argv shell box src
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test

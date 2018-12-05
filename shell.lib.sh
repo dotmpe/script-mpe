@@ -2,8 +2,18 @@
 
 shell_lib_load()
 {
+  test -n "$LOG" || return 102
+
+  lib_assert os sys str || return
+
   # Dir to record env-keys snapshots:SD-Shell-Dir
   test -n "$SD_SHELL_DIR" || SD_SHELL_DIR="$HOME/.statusdir/shell"
+
+  # Set defaults for required vars
+  #test -n "$ENV_NAME" || ENV_NAME=development
+
+  test -n "$MPE_ENV_NAME" || MPE_ENV_NAME=dev
+  test -n "$CS" || CS=dark
 
   test -n "$base" || base=$(test -e "$0" && basename "$0" .sh || printf -- "$0")
 

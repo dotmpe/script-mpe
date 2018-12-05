@@ -19,7 +19,7 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
   # Detect wether Pre-process is needed
   {
-      test -e "$PACKMETA" && grep -q '^#include\ ' "$PACKMETA"
+    test -e "$PACKMETA" && grep -q '^#include\ ' "$PACKMETA"
   } && {
     PACKMETA_SRC=$PACKMETA
     PACKMETA="$1"/$PACK_DIR/package.yaml
@@ -27,8 +27,10 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
   preprocess_package || true
 }
 
-package_init()
+package_lib_init()
 {
+  test -z "$package_id" -a  \
+      -z "$package_main" || warn "Already initialized ($package_id/$package_main)"
   package_init_env && package_req_env || warn "Default package env"
 }
 
@@ -93,7 +95,7 @@ package_lib_set_local()
   default_package_id=$(package_default_id "$1")
   test -n "$package_id" -a "$package_id" != "(main)" || {
     package_id="$default_package_id"
-    info "Set main '$package_id' from $1/package default"
+    std_info "Set main '$package_id' from $1/package default"
   }
   test "$package_id" = "$default_package_id" && {
     PACKMETA_BN="$(package_basename)"
@@ -310,7 +312,7 @@ update_package()
   test -n "$ppwd" || ppwd=$(cd $1; pwd)
 
   package_file "$1" || {
-    info "Creating temp package since none exists at '$metaf'"
+    std_info "Creating temp package since none exists at '$metaf'"
     update_temp_package "$1" || { r=$?
       test -z "$metaf" -o ! -e "$metaf" || rm $metaf
       error "update-temp-package: no '$metaf' for '$1'"
@@ -320,7 +322,7 @@ update_package()
   test -e "$metaf" || error "no such file ($(pwd), $1) PACKMETA='$PACKMETA'" 34
   package_lib_set_local "$1"
 
-  info "Metafile: $metaf ($(pwd))"
+  std_info "Metafile: $metaf ($(pwd))"
 
   # Package.sh is used by other scripts
   update_package_sh "$1" || { r=$?
@@ -437,7 +439,7 @@ package_sh_env_script() # [Path]
   test -n "$1" && script_out="$1" || script_out="$package_env_file"
   test -n "$PACKMETA_SH" || package_lib_set_local .
   test -s $script_out -a $script_out -nt $PACKMETA && {
-    info "Newest version of Env-Script $script_out exists"
+    std_info "Newest version of Env-Script $script_out exists"
   } || {
     mkdir -vp "$(dirname "$script_out")" &&
     . "$PACKMETA_SH" &&

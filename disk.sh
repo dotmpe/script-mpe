@@ -38,14 +38,14 @@ disk__status()
       vusg=$(disk_partition_usage $vol_dev)
       case "$fstype" in
         swap* )
-          info "[$disk_id_] $num_.$vol_idx: swap space ($vsize $vusg%% $fstype $vol_dev)"
+          std_info "[$disk_id_] $num_.$vol_idx: swap space ($vsize $vusg%% $fstype $vol_dev)"
           echo "$vol_dev" >>$swap
           echo "$num.$vol_idx: $vol_dev swap $vsize $vusg ($fstype) [$disk_id]" >>$list
           ;;
         * )
           test -n "$mount" \
             && {
-              info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
+              std_info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
               test -e "$mount/.volumes.sh" && {
                 echo "$vol_dev" >>$volume
                 echo "$num.$vol_idx: $vol_id: $vol_dev $vsize $vusg ($fstype) [$disk_id]" >>$list
@@ -55,11 +55,11 @@ disk__status()
               }
             } || {
               fnmatch "* extended partition table *" " $($dev_pref file -sL $vol_dev) " && {
-                info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
+                std_info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
                 echo "$vol_dev" >>$ext
                 echo "$num.$vol_idx: $vol_dev extended table [$disk_id]" >>$list
               } || {
-                info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
+                std_info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
                 echo "$vol_dev" >>$unknown
                 echo "$num.$vol_idx: $vol_dev unrecognized ($vsize $fstype) [$disk_id]" >>$list
               }
@@ -163,7 +163,7 @@ disk_man_1__local="Show disk info TODO: test this works at every platform"
 disk__local()
 {
   test -n "$1" || set -- $(os_disk_list)
-  info "Devices: '$*'"
+  std_info "Devices: '$*'"
   {
     echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
     {
@@ -486,7 +486,7 @@ disk_main()
           c=0
 
 				SCRIPTPATH=$scriptpath
-        . $scriptpath/util.sh
+        util_mode=ext . $scriptpath/util.sh
         util_init
         disk_init "$@" || error "init failed" $?
         shift $c
@@ -521,7 +521,6 @@ disk_init()
 disk_lib()
 {
   local __load_lib=1
-  . ~/bin/util.sh
   . ~/bin/box.lib.sh
   # -- disk box lib sentinel --
 }

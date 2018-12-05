@@ -285,7 +285,7 @@ ht_init_static()
   test -n "$scriptpath" || return
   export SCRIPTPATH=$scriptpath
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-  __load_mode=ext . $scriptpath/util.sh
+  util_mode=ext . $scriptpath/util.sh
   . $scriptpath/str.lib.sh
   . $scriptpath/sys.lib.sh
   . $scriptpath/os.lib.sh
@@ -305,8 +305,8 @@ ht_init_dyn()
   test -n "$scriptpath" || return
   export SCRIPTPATH=$scriptpath:$scriptpath/commands:$scriptpath/contexts
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-  __load_mode=ext . $scriptpath/util.sh
-  lib_load
+  util_mode=ext . $scriptpath/util.sh
+  lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   # -- ht box init-dynamic sentinel --

@@ -110,7 +110,7 @@ urlstat_descr() #
 # Get tags for url, src-file
 urlstat_tags() #
 {
-  info "Tags for '$urlstat_src' '$urlstat_file'"
+  std_info "Tags for '$urlstat_src' '$urlstat_file'"
   test -z "$*" || {
     words_to_lines "$@"
   }
@@ -179,7 +179,7 @@ urlstat_update() # URI-Ref [Tags]
       new_entry="$(urlstat_init_fields "$@" | normalize_ws )"
       debug "new '$new_entry'"
       test "$new_entry" != "$entry" || {
-        info "No stat or record changes"
+        std_info "No stat or record changes"
         return
       }
 
@@ -283,7 +283,7 @@ urlstat_check() # URI-Ref [Tags]
       trueish "$urlstat_check_update" ||
       trueish "$urlstat_update_process" ||
       test "$stat" != "$(urlstat_descr)"
-    } || { info "No update or process" ; return 0 ; }
+    } || { std_info "No update or process" ; return 0 ; }
 
     urlstat_update "$@"
     return $?

@@ -177,7 +177,7 @@ diskdoc_main()
           c=0
 
 				export SCRIPTPATH=$scriptpath
-        . $scriptpath/util.sh
+        util_mode=ext . $scriptpath/util.sh
         util_init
         diskdoc_init "$@" || error "init failed" $?
         shift $c

@@ -166,7 +166,7 @@ match_lib()
   test -z "$__load_lib" || return 1
   test -n "$scriptpath" || return 1
   export SCRIPTPATH=$scriptpath
-  __load=ext . $scriptpath/util.sh
+  util_mode=ext . $scriptpath/util.sh
   util_init
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test

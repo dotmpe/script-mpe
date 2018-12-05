@@ -1,6 +1,6 @@
 #!/bin/bash
 
-note "Entry for CI install phase"
+note "Entry for CI install phase ($scriptname)"
 
 
 test "$(whoami)" = "travis" || {
@@ -21,27 +21,27 @@ test "$(whoami)" = "travis" || {
 
 ./install-dependencies.sh basher
 
-basher help
-
-./install-dependencies.sh all python php dev bats-force-local redo
-
-#pip install https://github.com/bvberkum/docopt-mpe/archive/0.6.x.zip
 pip uninstall -qy docopt || true
+./install-dependencies.sh test bats-force-local
+for x in composer.lock .Gemfile.lock
+do
+  test -e $x || continue
+  rsync -avzui $x .htd/$x
+done
 
-pip install -q docopt-mpe
-
-#./install-dependencies.sh docopt
-#python -c 'import docopt;print(docopt.__version__)'
 
 test "$(whoami)" = "travis" || {
   pip install -q --upgrade pip
 }
+
 pip install -q keyring requests_oauthlib
 pip install -q gtasks
 
 test -x "$(which tap-json)" || npm install -g tap-json
 test -x "$(which any-json)" || npm install -g any-json
 npm install nano
+
+which github-release || npm install -g github-release-cli
 
 test "$(whoami)" = "travis" || {
   not_falseish "$SHIPPABLE" && {
@@ -55,6 +55,7 @@ test "$(whoami)" = "travis" || {
   }
 }
 
+gem install travis
 
 # FIXME: merge gh-pages into master
 #bundle install
@@ -63,6 +64,7 @@ test "$(whoami)" = "travis" || {
 
 # FIXME: htd install json-spec
 
-#set +e
+ci_install_end_ts=$($gdate +"%s.%N")
+
 note "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/install.sh

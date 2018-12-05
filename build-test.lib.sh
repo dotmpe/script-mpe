@@ -230,7 +230,7 @@ exec_watch_poll() # TEST CMD...
 {
   test -n "$poll_sleep" || poll_sleep=$default_watch_poll_sleep
   local test=$1 ; shift 1
-  info "Run '$*' if $test evaluates OK; sleep $poll_sleep, and restart"
+  std_info "Run '$*' if $test evaluates OK; sleep $poll_sleep, and restart"
   while true
   do
     eval $test && {
@@ -332,7 +332,7 @@ project_test() # [Units...|Comps..]
   }
   test -n "$testruns" || get_tmpio_env testruns test-run
 
-  info "Starting project-test: '$component_test' for '$*'"
+  std_info "Starting project-test: '$component_test' for '$*'"
 
   p='' s='' act=$component_tests foreach_do "$@" |
       p='' s='' act=$component_test foreach_do
@@ -359,19 +359,19 @@ component_test_exec() # Test-Files...
     case "$1" in
 
         *.feature )
-            info "Feature: '$TEST_FEATURE' -- '$1'"
+            std_info "Feature: '$TEST_FEATURE' -- '$1'"
             eval $TEST_FEATURE "$1"
             #component_set_status "$testruns" "$1" "$?"
           ;;
 
         *.py )
-            info "Unit: python script '$1'"
+            std_info "Unit: python script '$1'"
             python "$1"
             #component_set_status "$testruns" "$1" "$?"
           ;;
 
         *.bats )
-            info "Unit: bats '$1'"
+            std_info "Unit: bats '$1'"
             bats "$1"
             #component_set_status "$testruns" "$1" "$?"
             #test "$(get_stdio_type)" = "t" && {
@@ -382,7 +382,7 @@ component_test_exec() # Test-Files...
           ;;
 
         *.do )
-            info "Redo script '$1'"
+            std_info "Redo script '$1'"
             redo "$(basename "$1" .do)"
             #component_set_status "$testruns" "$1" "$?"
           ;;
@@ -409,7 +409,7 @@ component_set_status() # Tab Entry-Id Stat
 test_any_feature()
 {
   test -n "$TEST_FEATURE" || error "Test-Feature env required" 1
-  info "Test any feature '$*'"
+  std_info "Test any feature '$*'"
   test -n "$1" && {
 
     #local features="$(any_feature "$@" | tr '\n' ' ')"
@@ -471,7 +471,7 @@ any_component() # Spec-Set Comp-Id...
   while test $# -gt 0
   do
     mkid "$1" "" "-_*"; mksid "$1" ; mkvid "$1"
-    info "Looking for $_c component '$1' '$id' '$sid' '$vid'"
+    std_info "Looking for $_c component '$1' '$id' '$sid' '$vid'"
     for x in $spec
     do
       x="$(eval echo $x)"

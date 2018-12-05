@@ -26,8 +26,8 @@ htd_tools_install()
   while test -n "$1"
   do
     install_bin $B/tools.json $1 \
-      && info "Tool $1 is installed" \
-      || info "Tool $1 install error: $?"
+      && std_info "Tool $1 is installed" \
+      || std_info "Tool $1 install error: $?"
     shift
   done
 }
@@ -38,11 +38,11 @@ htd_tools_uninstall()
   while test -n "$1"
   do
     uninstall_bin $B/tools.json "$1" \
-      && info "Tool $1 is not installed" \
+      && std_info "Tool $1 is not installed" \
       || { r=$?;
         test $r -eq 1 \
-          && info "Tool $1 uninstalled" \
-          || info "Tool uninstall $1 error: $r" $r
+          && std_info "Tool $1 uninstalled" \
+          || std_info "Tool uninstall $1 error: $r" $r
       }
     shift
   done

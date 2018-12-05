@@ -127,8 +127,8 @@ script_bats_init()
 {
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
-  lib_load
+  util_mode=ext . $scriptpath/util.sh || return
+  lib_load $default_lib || return
   lib_load table
   # -- htd box init sentinel --
   set --

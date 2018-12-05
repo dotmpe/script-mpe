@@ -77,7 +77,7 @@ htd_vcflow_summary() # Flow Branch
     test -n "$1" -a \( "$1" != "all" \) && {
       vcflow_lib_set_local "$1" || return
       grep -q "\\<$2\\>" "$vcflow" || error "No flows for $2 in $vcflow" 1
-      info "Summary for $2 ($1)"
+      std_info "Summary for $2 ($1)"
       test -n "$3" || set -- "$1" "$2" 1
       vcflow_read_related "" "$2"
     } || {
@@ -92,7 +92,7 @@ htd_vcflow_summary() # Flow Branch
     vc_exists_local "$branch" || {
       test -n "$1" ||
         debug "Skipping remote '$branch'" &&
-        info "Missing local '$branch' for doc '$1'"
+        std_info "Missing local '$branch' for doc '$1'"
       continue
     }
 
@@ -145,7 +145,7 @@ htd_vcflow_check()
     #git_local_branch "$downstream" || {
     #  # Note: normally ignore missing downstreams features etc.
     #  non_branch_err="Downstream not a local branch at gitflow:"
-    #  info "$non_branch_err '$upstream $downstream $isfeature'" &&
+    #  std_info "$non_branch_err '$upstream $downstream $isfeature'" &&
     #    continue
     #}
 
@@ -263,14 +263,14 @@ gitflow_update_local()
       warn "No remote-ref at $1 for $branch, skipped"
       continue
     }
-    info "$3'ing $branch from $1..."
+    std_info "$3'ing $branch from $1..."
     (
        git_checkout "$branch" "$1" || return $?
        git fetch "$1" "$branch" || return $?
        git $3 "$1/$branch" || return $?
     ) && stderr ok "$3'd local branch '$branch'" || {
       trueish "$2" && {
-        info "Cleaning up failed $1..."
+        std_info "Cleaning up failed $1..."
         git $3 --abort
       } || git status
       error "Failed auto-update for local branch '$branch'" 1

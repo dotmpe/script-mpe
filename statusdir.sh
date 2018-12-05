@@ -404,7 +404,7 @@ statusdir_init()
   test -n "$scriptpath" || return
   export SCRIPTPATH=$scriptpath
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-  __load=boot . $scriptpath/util.sh
+  util_mode=ext . $scriptpath/util.sh
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load box date

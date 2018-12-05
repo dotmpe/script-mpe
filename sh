@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-__load=boot scriptpath=$PWD . ./util.sh
+util_mode=boot scriptpath=$PWD . ./util.sh
 
 failed=/tmp/htd-build-test-$(uuidgen).failed
 lib_load build-test && build_test_init
@@ -21,7 +21,7 @@ done
 
 exit $?
 #
-scriptpath=$PWD . ./util.sh
+util_mode=ext scriptpath=$PWD . ./util.sh
 lib_load && lib_load mkvar make
 
 #mkvar_preproc <"test/var/mkvar/test1.kv"

@@ -15,7 +15,7 @@ gitremote_init_uconf()
   . $C || return
 
   test -n "$remote_dir" || {
-    info "Using $NS_NAME for $1 remote vendor path"
+    std_info "Using $NS_NAME for $1 remote vendor path"
     remote_dir=$NS_NAME
   }
 

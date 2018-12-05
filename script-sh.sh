@@ -191,7 +191,7 @@ script_sh_main()
           var_isset verbosity || local verbosity=5
 
           test -z "$arguments" -o ! -s "$arguments" || {
-            info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
+            std_info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
             set -f; set -- $(cat $arguments | lines_to_words) ; set +f
           }
 
@@ -214,8 +214,8 @@ script_sh_init()
   export SCRIPTPATH=$scriptpath
   test -n "$SCRIPT_ETC" || SCRIPT_ETC="$scriptpath/etc"
 
-  . $scriptpath/util.sh load-ext
-  lib_load
+  util_mode=ext . $scriptpath/util.sh load-ext
+  lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load box

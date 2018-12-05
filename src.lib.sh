@@ -44,7 +44,6 @@ $1
 w" | ed -s $file_name
 }
 
-
 # Replace one entire line using Sed.
 file_replace_at() # ( FILE:LINE | ( FILE LINE ) ) INSERT
 {
@@ -362,38 +361,6 @@ backup_header_comment() # Src-File [.header]
 }
 
 
-# NOTE: its a bit fuzzy on the part after '<id>()' but works
-
-list_functions() # Sh-Files...
-{
-  test_out list_functions_head || true
-  trueish "$list_functions_scriptname" && {
-    grep '^\s*[A-Za-z0-9_\/-]*().*$' $1 | sed "s#^#$1 #"
-  } || {
-    grep '^\s*[A-Za-z0-9_\/-]*().*$' $1
-  }
-  test_out list_functions_tail || true
-  return 0
-}
-
-list_functions_foreach()
-{
-  p= s= act=list_functions foreach_do "$@"
-}
-
-# List functions matching grep pattern in files
-find_functions() # Grep Sh-Files
-{
-  local grep="$1" ; shift
-  falseish "$first_match" && first_match=
-  for file in $@
-  do
-    grep -q '^\s*'"$grep"'().*$' $file || continue
-    echo "$file"
-    test -n "$first_match" || break
-  done
-}
-
 # Return span of lines from Src, starting output at Start-Line and ending
 # Span-Lines later, or at before End-Line.
 #
@@ -434,7 +401,7 @@ expand_source_line() # Src-File Line
   test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
   expand_line "$@" "$srcfile" || return
   trueish "$keep_source" || rm $srcfile
-  info "Replaced line with resolved src of '$srcfile'"
+  stderr info "Replaced line with resolved src of '$srcfile'"
 }
 
 
@@ -444,7 +411,7 @@ expand_srcline()
   test -f "$srcfile" || error "src-file $*: '$srcfile'" 1
   expand_line "$@" "$srcfile"
   trueish "$keep_source" || rm $srcfile
-  info "Replaced line with resolved src of '$srcfile'"
+  stderr info "Replaced line with resolved src of '$srcfile'"
 }
 
 
@@ -518,14 +485,14 @@ copy_paste() # Where/Line Where/Span Src-File
   at_line=$(( $line_number - 1 ))
   trueish "$copy_only" && {
     copy_where $1 $2 $3 > $cp
-    info "copy-only ok"
+    std_info "copy-only ok"
   } || {
     cut_where $1 $2 $3 > $cp
     file_insert_at $3:$at_line "$(cat <<-EOF
 # htd source copy-paste: $cp
 EOF
     )"
-    info "copy-paste ok"
+    std_info "copy-paste ok"
   }
 }
 

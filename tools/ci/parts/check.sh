@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export ci_check_ts=$($gdate +"%s.%N")
+
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
 note "Entry for CI pre-test / check phase"
 
@@ -32,8 +34,17 @@ composer --version
 test -z "$TEST_FEATURE_BIN" || "$TEST_FEATURE_BIN" --version
 bats --version
 realpath --version
-git-versioning version
+
+basher help >/dev/null
 test -x $(which basher) || error "No basher" 1
+
+git-versioning check
+
+travis version && {
+  test -n "GITHUB_TOKEN" || error "Empty GITHUB_TOKEN" 1
+  travis login --github-token "$GITHUB_TOKEN" &&
+    travis history -r bvberkum/script-mpe
+}
 
 
 #not_falseish "$SHIPPABLE" && {
@@ -74,6 +85,5 @@ note "box-instance:"
 
 # Other commands in build #dev phase.
 
-set +e
 note "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/check.sh

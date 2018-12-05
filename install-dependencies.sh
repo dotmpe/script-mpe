@@ -4,7 +4,11 @@ set -e
 
 stderr_()
 {
-  echo "$log_pref$1" >&2
+  test -x "$LOG" && {
+    $LOG info "$log_pref" "$1"
+  } || {
+    echo "[$log_pref] $1" >&2
+  }
   test -z "$2" || exit $2
 }
 
@@ -67,11 +71,12 @@ install_bats()
   stderr_ "Installing bats"
   test -n "$BATS_VERSION" || BATS_VERSION=master
   test -n "$BATS_REPO" || BATS_REPO=https://github.com/bats-core/bats-core.git
-  test -d $SRC_PREFIX/bats || {
-    git clone $BATS_REPO $SRC_PREFIX/bats || return $?
+  test -d $SRC_PREFIX/bats-core/.git || {
+    test ! -e $SRC_PREFIX/bats-core || rm -rf $SRC_PREFIX/bats-core
+    git clone $BATS_REPO $SRC_PREFIX/bats-core || return $?
   }
   (
-    cd $SRC_PREFIX/bats &&
+    cd $SRC_PREFIX/bats-core &&
     git checkout $BATS_VERSION &&
     ${pref} ./install.sh $PREFIX
   )
@@ -103,7 +108,12 @@ composer_install()
   )
 }
 
-install_docopt()
+install_docopt_mpe()
+{
+  pip install -q docopt-mpe
+}
+
+install_docopt_src_mpe()
 {
   test -n "$install_f" || install_f="$py_setup_f"
   local src=github.com/bvberkum/docopt-mpe
@@ -140,17 +150,21 @@ install_git_lfs()
 install_mkdoc()
 {
   test -n "$MKDOC_BRANCH" || MKDOC_BRANCH=master
-  stderr_ "Installing mkdoc ($MKDOC_BRANCH)"
+  $LOG info install-dependencies "Installing mkdoc ($MKDOC_BRANCH)"
   (
-    cd $SRC_PREFIX
-    test -e mkdoc ||
-      git clone https://github.com/bvberkum/mkdoc.git
-    cd mkdoc
-    git checkout $MKDOC_BRANCH
+    test -d $SRC_PREFIX/mkdoc/.git && {
+
+      cd $SRC_PREFIX/mkdoc &&
+      git fetch --all && git reset --hard origin/$MKDOC_BRANCH || return
+    } || {
+    test ! -d $SRC_PREFIX/mkdoc || rm -rf $SRC_PREFIX/mkdoc
+      git clone https://github.com/bvberkum/mkdoc.git $SRC_PREFIX/mkdoc ||
+        return
+      cd $SRC_PREFIX/mkdoc && { git checkout $MKDOC_BRANCH || return ; }
+    }
+
     ./configure $PREFIX && ./install.sh
   )
-  rm Makefile || printf ""
-  ln -s $PREFIX/share/mkdoc/Mkdoc-full.mk Makefile
 }
 
 install_pylib()
@@ -204,6 +218,13 @@ install_apenwarr_redo()
 
     which basher 2>/dev/null >&2 && {
 
+      { redo -h || test $? -eq 97
+      } || {
+         basher package-path apenwarr/redo && {
+            basher uninstall apenwarr/redo || return
+        }
+      }
+
       basher install apenwarr/redo ||
           stderr_ "install apenwarr/redo" $?
 
@@ -211,6 +232,8 @@ install_apenwarr_redo()
 
       stderr_ "Need basher to install apenwarr/redo locally" 1
   }
+
+  redo -h || test $? -eq 97
 }
 
 
@@ -224,7 +247,7 @@ install_script()
 main_entry()
 {
   test -n "$1" || set -- all
-  main_load
+  main_load "$*"
 
   case "$1" in all|project|test|git )
       git --version >/dev/null ||
@@ -240,20 +263,21 @@ main_entry()
       $pref pip install $pip_flags -r test-requirements.txt
     ;; esac
 
-  case "$1" in bats-force-local )
-      #uninstall_bats && stderr_ "BATS uninstall OK" || stderr_ "BATS uninstall failed ($?)"
+  case "$1" in bats-force )
+      uninstall_bats &&
+        stderr_ "BATS uninstall OK" || stderr_ "BATS uninstall failed ($?)"
       install_bats || return $?
       PATH=$PATH:$PREFIX/bin bats --version ||
         stderr_ "BATS install to $PREFIX failed" 1
     ;; esac
 
-  case "$1" in all|build|test|sh-test|bats )
+  case "$1" in all|build|test|bats )
       test -x "$(which bats)" || { install_bats || return $?; }
       PATH=$PATH:$PREFIX/bin bats --version ||
         stderr_ "BATS install to $PREFIX failed" 1
     ;; esac
 
-  case "$1" in php|composer )
+  case "$1" in test|php|composer )
       test -x "$(which composer)" || {
         install_composer || return $?
       }
@@ -271,22 +295,30 @@ main_entry()
         install_git_versioning || return $?; }
     ;; esac
 
-  case "$1" in all|python|project|docopt )
+  case "$1" in all|project|test|python|docopt )
       # Using import seems more robust than scanning pip list
-      python -c 'import docopt' || { install_docopt || return $?; }
+      python -c 'import docopt' || { install_docopt_mpe || return $?; }
     ;; esac
 
   case "$1" in all|basher|test )
-      test -d ~/.basher ||
+      test -x ~/.basher/bin/basher || rm -rf ~/.basher
+      test -d ~/.basher/.git || {
+        test ! -d ~/.basher || rm -rf ~/.basher
         git clone https://github.com/basherpm/basher.git ~/.basher/
+      }
     ;; esac
 
-  case "$1" in all|mkdoc)
-      test -e Makefile || \
+  case "$1" in dev|makefile|mkdoc)
+      test -e $PREFIX/share/mkdoc/Mkdoc-full.mk || {
         install_mkdoc || return $?
+      }
+      test -e Makefile || {
+        rm Makefile || return
+        ln -s $PREFIX/share/mkdoc/Mkdoc-full.mk Makefile
+      }
     ;; esac
 
-  case "$1" in all|pylib)
+  case "$1" in all|dev|test|project|python|pylib)
       install_pylib || return $?
     ;; esac
 
@@ -298,15 +330,15 @@ main_entry()
       npm install -g redmine-cli || return $?
     ;; esac
 
-  case "$1" in all|project|redo )
-      install_apenwarr_redo
+  case "$1" in redo )
+      test -x "$(which redo)" || install_apenwarr_redo
     ;; esac
 
   case "$1" in all|project|git|git-lfs )
       # TODO: install_git_lfs
     ;; esac
 
-  case "$1" in travis|test )
+  case "$1" in travis|x-test )
       test -x "$(which gem)" ||
         stderr_ "ruby/gemfiles required" 1
       ruby -v
@@ -321,9 +353,10 @@ main_entry()
 
 main_load()
 {
+  # FIXME: logging for install-deps, see $LOG
   #test -x "$(which tput)" && ...
-  log_pref="[install-dependencies] "
-  stderr_ "Loaded"
+  log_pref="install-dependencies"
+  stderr_ "Starting '$1'..."
 }
 
 
@@ -338,6 +371,6 @@ main_load()
     main_entry "$1" || exit $?
     shift
   done
-} || printf ""
+} || true
 
 # Id: script-mpe/0 install-dependencies.sh

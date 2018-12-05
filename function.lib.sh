@@ -57,7 +57,7 @@ cut_function()
   copy_function "$@" || return
   file_truncate_lines "$2" "$(( $start_line - 1 ))" "$(( $end_line - 1 ))" ||
       return
-  info "cut-func removed $2 $start_line $end_line ($span_lines)"
+  std_info "cut-func removed $2 $start_line $end_line ($span_lines)"
 }
 
 # Isolate function into separate, temporary file.
@@ -84,14 +84,14 @@ copy_paste_function() # Func-Name Src-File
 
   trueish "$copy_only" && {
     copy_function "$1" "$2" > "$cp"
-    info "copy-only (function) ok"
+    std_info "copy-only (function) ok"
   } || {
     cut_function "$1" "$2" > "$cp"
     file_insert_at $2:$at_line "$(cat <<-EOF
 . $cp
 EOF
     ) "
-    info "copy-paste-function ok"
+    std_info "copy-paste-function ok"
   }
 }
 

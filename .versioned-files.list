@@ -87,3 +87,5 @@ volume.py
 wordnet.py
 statusdir.sh
 cksum.py
+tools/ci/env.sh
+tools/sh/build/test.sh

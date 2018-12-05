@@ -90,7 +90,7 @@ rst_init()
 {
   test -z "$BOX_INIT" || return 1
   export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh
+  util_mode=ext . $scriptpath/util.sh
   util_init
   . $scriptpath/tools/sh/box.env.sh
   . $scriptpath/box.lib.sh

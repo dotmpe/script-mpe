@@ -12,7 +12,7 @@ test -n "$exit" || exit=true
 
 lname=script-mpe
 
-type lib_load 2> /dev/null 1> /dev/null || __load=ext . $scriptpath/util.sh
+type lib_load 2> /dev/null 1> /dev/null || util_mode=ext . $scriptpath/util.sh
 
 lib_load sys os std str
 out=$(setup_tmpf .out)
