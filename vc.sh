@@ -1823,7 +1823,7 @@ vc_main()
             failed= \
             ext_sh_sub=
 
-        lib_load str match main std stdio sys os src vc date package
+        lib_load str match main std stdio sys os src vc-htd date package
         type $func >/dev/null 2>&1 && {
           shift 1
           vc_load || return

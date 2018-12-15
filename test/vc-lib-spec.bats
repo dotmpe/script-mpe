@@ -7,7 +7,7 @@ setup()
 {
   init && load vc &&
   __load_lib=1 . ./vc.sh &&
-  lib_load match vc &&
+  lib_load match vc-htd &&
   #. ./vc.sh &&
   setup_clean_git
 }

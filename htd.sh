@@ -9056,7 +9056,7 @@ htd_init()
 {
   test -n "$LOG" -a -x "$LOG" || export LOG=$HOME/bin/log.sh
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  
+
   test -n "$SCRIPTPATH" || {
     test -n "$scriptpath" || return
     export SCRIPTPATH=$scriptpath:$scriptpath/commands:$scriptpath/contexts:$HOME/.conf/script
@@ -9066,7 +9066,7 @@ htd_init()
   lib_load os std sys sys-htd str stdio src main argv match vc
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  lib_load htd vc web src
+  lib_load htd vc-htd web src
   lib_load box date
   case "$uname" in Darwin ) lib_load darwin ;; esac
   # -- htd box init sentinel --

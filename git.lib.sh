@@ -24,7 +24,7 @@ git_lib_load()
           echo ":$path"
       done | remove_dupes | tr -d '\n' | tail -c +2 )"
   }
-  lib_load environment statusdir vc gitremote &&
+  lib_load environment statusdir vc-htd gitremote &&
     statusdir_init
 }
 

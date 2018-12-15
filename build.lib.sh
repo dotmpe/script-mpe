@@ -12,7 +12,7 @@ build_lib_load()
 
   test -n "$docbase" || docbase="doc/src/sh"
 
-  lib_load date os sys str tasks du vc match src function functions shell package argv
+  lib_load date os sys str tasks du vc-htd match src function functions shell package argv
 }
 
 # Initialize Project Build Scripts settings

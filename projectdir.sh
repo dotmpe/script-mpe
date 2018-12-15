@@ -1700,7 +1700,7 @@ pd_lib()
   test -z "$__load_lib" || return 14
   local __load_lib=1
   test -n "$scriptpath" || return 11
-  lib_load box meta list match date doc table ignores vc projectdir package
+  lib_load box meta list match date doc table ignores vc-htd projectdir package
   . $scriptpath/vc.sh
   # -- pd box lib sentinel --
 }

@@ -5,7 +5,7 @@ base=tasks.lib
 
 setup()
 {
-  init && load assert && lib_load list todo vc tasks
+  init && load assert && lib_load list todo vc-htd tasks
 }
 
 
