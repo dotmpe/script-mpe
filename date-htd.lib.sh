@@ -2,7 +2,7 @@
 
 # TODO /etc/localtime
 
-date_lib_load()
+date_htd_lib_load()
 {
   export TODAY=+%y%m%d0000
 

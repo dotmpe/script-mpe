@@ -114,7 +114,7 @@
   scripts:
     get-env:
       - EXIT_ON_ERROR=0 . ./.htd/tools/env.sh
-    list-scripts: lib_load build && list_sh_files "$@"
+    list-scripts: lib_load build-htd && list_sh_files "$@"
     init:
       - htd package update
       - htd package write-scripts --no-eval init build install test get-env
@@ -124,7 +124,7 @@
       - test -e Makefile || { rm Makefile ; ln -s /usr/share/mkdoc/Mkdoc-full.mk Makefile ; }
       #- make symlinks
       - scriptname="init"
-      #- lib_load build
+      #- lib_load build-htd
       #- . ./tools/ci/parts/init.sh
     host-init:
       # Build scm-git remotes for volumes
@@ -238,8 +238,8 @@
            localhost:5000/ubuntu-user-script:build \
            'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
 
-    build-docs: lib_load build && build_docs "$@"
-    build-refdocs: lib_load build && build_refdocs "$@"
+    build-docs: lib_load build-htd && build_docs "$@"
+    build-refdocs: lib_load build-htd && build_refdocs "$@"
 
 
     # End of [0]/scripts

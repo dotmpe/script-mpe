@@ -28,7 +28,7 @@ test ! -e "$1" -o -s "$1" || rm "$1"
     } ; } &&
   mkdir -p "functions/$docid-lib/" &&
   cd "$REDO_BASE" &&
-  lib_load build && 
+  lib_load build-htd && 
   build_lib_func_deps_list "$funcname" "$path" >"$REDO_PWD/$3"
 )
 

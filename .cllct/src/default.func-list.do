@@ -29,7 +29,7 @@ test ! -e "$1" -o -s "$1" || rm "$1"
       error "'$docid' <$paths>" 1 ;
     } ; } &&
   cd "$REDO_BASE" &&
-  lib_load build &&
+  lib_load build-htd &&
   build_lib_func_list $paths >"$REDO_BASE/$REDO_PWD/$3"
 )
 

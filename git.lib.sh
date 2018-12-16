@@ -99,11 +99,13 @@ git_src_get() # <user>/<repo>
     lib_load volume
     remote_name=$( get_cwd_volume_id "$SRC_DIR" )
     test -n "$remote_name" || remote_name=local
+
     git clone "$GIT_SCM_SRV/$1.git" "$VND_GH_SRC/$1" \
       --origin "$remote_name" --branch "$vc_br_def" || return
     # Add local bare-repo, and update from remote as well
     ( cd  "$VND_GH_SRC/$1" &&
       git remote add "$vc_rt_def" "http://$SCM_VND/$1.git" || return
+      # Update local head and tag refs and
       git fetch "$vc_rt_def" &&
       git fetch --tags "$vc_rt_def" &&
       git push "$remote_name"

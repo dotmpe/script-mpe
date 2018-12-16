@@ -6,8 +6,13 @@ test -n "$sh_util_base" || sh_util_base=/tools/sh
 
 # if not provided, auto-setup env
 # assuming execution starts in script dir (project root)
+
+test -e "$U_S" || U_S=$HOME/project/user-scripts
+test -e "$U_S" || U_S=$HOME/build/bvberkum/user-scripts
+
 SCRIPTPATH_=$scriptpath/contexts:$scriptpath/commands:$scriptpath
 SCRIPTPATH_=$SCRIPTPATH_:$HOME/build/bvberkum/user-scripts/src/sh/lib
+SCRIPTPATH_=$SCRIPTPATH_:$U_S/src/sh/lib
 SCRIPTPATH_=$SCRIPTPATH_:$HOME/build/bvberkum/user-conf/script
 SCRIPTPATH_=$SCRIPTPATH_:$HOME/lib/sh
 
@@ -25,9 +30,9 @@ test -n "$script_util" || script_util="$U_S$sh_util_base"
 
 
 # Now include module loader with `lib_load`, setup by hand
-#lib_mode=ext . $scriptpath/lib.lib.sh
-util_mode=ext . ./util.sh
-unset util_mode
+. $U_S/src/sh/lib/lib.lib.sh
+#util_mode=ext . ./util.sh
+#unset util_mode
 lib_lib_load && lib_lib_loaded=1 ||
   $LOG "error" "init.sh" "Failed at lib.lib $?" "" 1
 
@@ -48,7 +53,7 @@ test "$init_sh_libs" = "0" || {
     test "$init_sh_boot" != "1" || init_sh_boot=stderr-console-logger
   }
 
-  scripts_init $init_sh_boot ||
+  script_util=$U_S$sh_util_base scripts_init $init_sh_boot ||
     $LOG "error" "init.sh" "Failed at bootstrap '$init_sh_boot' $?" "" 1
 
 }

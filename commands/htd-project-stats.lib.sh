@@ -2,7 +2,7 @@
 
 htd_project_stats_lib_load()
 {
-  lib_load date statusdir build &&
+  lib_load date statusdir build-htd &&
       statusdir_init && package_lib_init && build_init && project_stats_init
 }
 

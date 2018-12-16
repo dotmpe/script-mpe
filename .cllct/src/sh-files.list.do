@@ -4,7 +4,7 @@ redo-ifchange "scm-status"
   util_mode=boot scriptpath=$REDO_BASE . $REDO_BASE/util.sh
   scriptname="do:$REDO_PWD:$1"
   cd "$REDO_BASE" &&
-  lib_load build &&
+  lib_load build-htd &&
 
   list_sh_files >"$REDO_PWD/$3"
 

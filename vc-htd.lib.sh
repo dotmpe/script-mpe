@@ -294,7 +294,7 @@ vc_unversioned_hg()
 # List untracked paths (excluding ignored files)
 vc_unversioned()
 {
-  test -n "$spwd" || error spwd-13 13
+  test -n "$RCWD" || error spwd-13 13
 
   # list paths not in git (including ignores)
   vc_unversioned_$scm
@@ -303,16 +303,16 @@ vc_unversioned()
 
     vc_git_submodules | while read prefix
     do
-      smpath="$ppwd/$prefix"
+      smpath="$PCWD/$prefix"
       cd "$smpath"
-      ppwd="$smpath" spwd="$spwd/$prefix" \
+      ppwd="$smpath" spwd="$RCWD/$prefix" \
         vc_unversioned \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
     done
   }
 
-  cd "$ppwd"
+  cd "$PCWD"
 }
 
 
@@ -340,7 +340,7 @@ vc_untracked_hg()
 # List any untracked paths (including ignored files)
 vc_untracked()
 {
-  test -n "$spwd" || error spwd-12 12
+  test -n "$RCWD" || error spwd-12 12
 
   vc_untracked_$scm "$@"
 
@@ -348,16 +348,16 @@ vc_untracked()
 
     vc_git_submodules | while read prefix
     do
-      smpath="$ppwd/$prefix"
+      smpath="$PCWD/$prefix"
       cd "$smpath"
-      ppwd=$smpath spwd=$spwd/$prefix \
+      ppwd=$smpath spwd=$RCWD/$prefix \
         vc_untracked "$@" \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
     done
   }
 
-  cd "$ppwd"
+  cd "$PCWD"
 }
 
 
@@ -386,7 +386,8 @@ vc_tracked_hg()
 # List file tracked in version
 vc_tracked()
 {
-  test -n "$spwd" || error spwd-11 11
+  test -n "$RCWD" -a -n "$CWD" || push_cwd
+
   test -n "$scm" || vc_getscm
 
   # list paths under version control
@@ -397,16 +398,17 @@ vc_tracked()
 
     vc_git_submodules | while read prefix
     do
-      smpath="$ppwd/$prefix"
+      smpath="$PCWD/$prefix"
       cd "$smpath"
-      ppwd="$smpath" spwd="$spwd/$prefix" \
+      ppwd="$smpath" spwd="$RCWD/$prefix" \
         vc_tracked_git "$@" \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
     done
   }
 
-  cd "$ppwd"
+  test -n "$RCWD" -a -n "$CWD" || pop_cwd
+  #cd "$PCWD"
 }
 
 
@@ -514,19 +516,23 @@ vc_list_all_branches()
 }
 
 
-vc_git_submodules()
+vc_git_submodules() # [ppwd=.] ~
 {
+  test -z "$RCWD" -a -z "$CWD" || push_cwd || return
+
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
   do
-    smpath=$ppwd/$prefix
+    smpath=$PCWD/$prefix
     test -e $smpath/.git || {
-      warn "Not a submodule checkout '$prefix' ($spwd/$prefix)"
+      warn "Not a submodule checkout '$prefix' ($RCWD/$prefix)"
       continue
     }
     trueish "$quiet" ||
-        note "Submodule '$prefix' ($spwd/$prefix)"
+        note "Submodule '$prefix' ($RCWD/$prefix)"
     echo "$prefix"
   done
+
+  test -z "$RCWD" -a -z "$CWD" || pop_cwd
 }
 
 

@@ -101,7 +101,7 @@ shell_init || error "Failure in shell-init" 1
 
 test -n "$IS_BASH" || error "Need to know shell dist" 1
 #. ./tools/sh/init.sh &&
-lib_load build projectenv env-deps web
+lib_load build-htd projectenv env-deps web
 test 0 -eq $IS_BASH_SH && {
    export SCR_SYS_SH=sh || export SCR_SYS_SH=bash-sh
 } || true

@@ -904,3 +904,28 @@ run_check()
 #    vc_clean "$(vc_dir)"
 #  }
 }
+
+# For commands that always work relative to a basedir, ie. project root;
+# acquire required dir or set env with just one var
+# remember starting dir and track real vs. symbolic?
+push_cwd()
+{
+  test -n "$CWD" || CWD=$PWD
+
+  test -z "$RCWD" || cd $RCWD
+
+  #test "$CWD" = "$PWD"
+  #test "$CWD" = "$PCWD"
+
+  #CWD
+  #PCWD
+  #RCWD
+}
+
+pop_cwd()
+{
+  test -z "$RCWD" || {
+    cd "$CWD"
+    unset CWD
+  }
+}

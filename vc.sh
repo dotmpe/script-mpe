@@ -626,7 +626,7 @@ vc__prompt_command()
 
 vc__list_submodules()
 {
-  test -n "$spwd" || error spwd-12 12
+  test -n "$RCWD" || error spwd-12 12
   vc_git_submodules
 }
 
@@ -1810,9 +1810,12 @@ vc_main()
   local scriptname=vc base="$(basename "$0" .sh)" subcmd=$1
   case "$base" in $scriptname )
 
-        test -n "$scriptpath" || \
-            scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-        pwd="$(pwd -P)" ppwd="$(pwd)" spwd=.
+        test -n "$scriptpath" || scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
+
+        # PWD, real PWD and relative 'short/symbolic' path
+        ppwd="$(pwd -P)" ppwd="$PWD" spwd=.
+        # TODO: clean up vc env, replace with below
+        CWD="$PWD" PCWD="$(pwd -P)" RCWD=.
 
         export SCRIPTPATH=$scriptpath:/srv/project-local/user-scripts/src/sh/lib
         test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh

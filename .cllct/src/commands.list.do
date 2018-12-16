@@ -5,7 +5,7 @@ redo-ifchange "sh-files.list"
 
   scriptname="do:$REDO_PWD:$1"
   cd "$REDO_BASE" &&
-  lib_load build &&
+  lib_load build-htd &&
 # FIXME: lots of OSHC errors in scripts much up stderr
   functions_execs < $REDO_PWD/sh-files.list 2>/dev/null >"$REDO_PWD/$3"
 )

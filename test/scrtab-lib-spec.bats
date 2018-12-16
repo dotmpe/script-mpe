@@ -7,7 +7,7 @@ init
 setup()
 {
   tmpd && STATUSDIR_ROOT=$tmpd &&
-  lib_load scrtab date build setup-sh-tpl && build_init
+  lib_load scrtab date build-htd setup-sh-tpl && build_init
 }
 
 @test "$base: entry fields" {

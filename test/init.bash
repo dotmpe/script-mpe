@@ -14,7 +14,7 @@ test_env_init()
 
   test -n "$testpath" || testpath=$(pwd -P)/test
   #test -n "$default_lib" ||
-  default_lib="os sys str std main"
+  default_lib="os-htd sys-htd str std main"
 
 
   test -n "$BATS_LIB_PATH" || {
@@ -56,8 +56,11 @@ init()
   test "$1" = "0" || { test -n "$init_sh_boot" || init_sh_boot="null"; }
 
 # XXX scriptpath
-  scriptpath=$PWD/src/sh/lib SCRIPTPATH=$PWD/src/sh/lib:$HOME/bin
+  #scriptpath=$PWD/src/sh/lib
+  #SCRIPTPATH=$PWD/src/sh/lib:$HOME/bin
+
   init_sh_libs="$1" . $script_util/init.sh
+
   #util_mode=load-ext . $scriptpath/tools/sh/init.sh
   # util_mode=load-ext . $scriptpath/util.sh
 

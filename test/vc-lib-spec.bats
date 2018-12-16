@@ -5,11 +5,11 @@ base=vc.lib
 
 setup()
 {
-  init && load vc &&
+  init && load vc-setup &&
   __load_lib=1 . ./vc.sh &&
   lib_load match vc-htd &&
   #. ./vc.sh &&
-  setup_clean_git
+  vc_setup_clean_git
 }
 
 @test "${base}: vc_dir/vc_gitdir - reports GIT dir in GIT checkout" {

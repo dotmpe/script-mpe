@@ -3,7 +3,7 @@
 
 # OS: files, paths
 
-os_lib_load()
+os_htd_lib_load()
 {
   test -n "$uname" || uname="$(uname -s)"
   test -n "$os" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
