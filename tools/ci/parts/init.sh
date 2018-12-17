@@ -14,6 +14,8 @@ note "CI Env:"
 note "Build Env:"
 build_params | sed 's/^/	/' >&2
 
+test -n "$GITHUB_TOKEN" || error "Github token expected for Travis login" 1
+
 test -z "$TRAVIS_BRANCH" || {
 
     # Update GIT anyway on Travis rebuilds, but from different remote

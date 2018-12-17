@@ -1,9 +1,11 @@
 #!/bin/sh
 
-vc_lib_load()
+vc_htd_lib_load()
 {
   test -n "$vc_rt_def" || vc_rt_def=origin
   test -n "$vc_br_def" || vc_br_def=master
+
+  lib_load sys sys-htd match main std stdio src vc date package
 }
 
 # See if path is in GIT checkout
@@ -398,17 +400,20 @@ vc_tracked()
 
     vc_git_submodules | while read prefix
     do
-      smpath="$PCWD/$prefix"
-      cd "$smpath"
-      ppwd="$smpath" spwd="$RCWD/$prefix" \
+      push_cwd $prefix
+
+      #smpath="$CWD/$prefix"
+      #cd "$smpath"
+      #ppwd="$smpath" spwd="$CWD/$prefix" \
         vc_tracked_git "$@" \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
+
+      pop_cwd
     done
   }
 
   test -n "$RCWD" -a -n "$CWD" || pop_cwd
-  #cd "$PCWD"
 }
 
 
@@ -518,21 +523,20 @@ vc_list_all_branches()
 
 vc_git_submodules() # [ppwd=.] ~
 {
-  test -z "$RCWD" -a -z "$CWD" || push_cwd || return
+  push_cwd || return
 
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
   do
-    smpath=$PCWD/$prefix
+    smpath=$CWD/$prefix
     test -e $smpath/.git || {
-      warn "Not a submodule checkout '$prefix' ($RCWD/$prefix)"
+      warn "Not a submodule checkout '$prefix' ($CWD/$prefix)"
       continue
     }
-    trueish "$quiet" ||
-        note "Submodule '$prefix' ($RCWD/$prefix)"
+    trueish "$quiet" || note "Submodule '$prefix' ($CWD/$prefix)"
     echo "$prefix"
   done
 
-  test -z "$RCWD" -a -z "$CWD" || pop_cwd
+  pop_cwd
 }
 
 

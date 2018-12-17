@@ -7,6 +7,9 @@
 test_env_init()
 {
   test -n "$base" || return 12
+  test -n "$scriptname" &&
+    scriptname=$scriptname:test:$base ||
+    scriptname=test:$base
   test -n "$uname" || uname=$(uname)
 
   test -n "$scriptpath" || scriptpath=$(pwd -P)
@@ -14,15 +17,11 @@ test_env_init()
 
   test -n "$testpath" || testpath=$(pwd -P)/test
   #test -n "$default_lib" ||
-  default_lib="os-htd sys-htd str std main"
-
+  default_lib="main"
 
   test -n "$BATS_LIB_PATH" || {
     BATS_LIB_PATH=$BATS_CWD/test:$BATS_CWD/test/helper:$BATS_TEST_DIRNAME
   }
-  test -n "$BATS_LIB_EXTS" || BATS_LIB_EXTS=bash\ sh
-  test -n "$BATS_LIB_DEFAULT" || BATS_LIB_DEFAULT=load
-
 
   # XXX: relative path to templates/fixtures?
   SHT_PWD="$( cd $BATS_CWD && realpath $BATS_TEST_DIRNAME )"
@@ -39,7 +38,8 @@ hostname_init()
   hostnameid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
 }
 
-init()
+# 1:Init 2:Load-Libs 3:Boot-Std 4:Boot-Script
+init() # ( 0 | 1 1 1 1 )
 {
   test_env_init || return
 
@@ -79,10 +79,22 @@ init()
     shell_init
   }
 
+  load_init_bats
+
   #export ENV=./tools/sh/env.sh
   export ENV_NAME=testing
 }
 
+# Non-bats initialize to access helper libs 'load'
+load_init()
+{
+  test -n "$TMPDIR" || TMPDIR=/tmp
+  BATS_TMPDIR=$TMPDIR/bats-temp-$(get_uuid)
+  BATS_CWD=$PWD
+  BATS_TEST_DIRNAME=$PWD/test
+  load_init_bats
+#  test "$PWD" = "$scriptpath"
+}
 
 ### Helpers for conditional tests
 
@@ -147,7 +159,7 @@ load_old() {
 # XXX: intial bits shouldn't they be in suite exec.
 bats_autosetup_common_includes()
 {
-  : "${BATS_LIB_PATH_DEFAULTS:="helper node_modules vendor"}"
+  : "${BATS_LIB_PATH_DEFAULTS:="test helper test/helper node_modules vendor"}"
 
   # Basher has a GitHub <user>/<package> checkout tree
   : "${BASHER_PACKAGES:=$HOME/.basher/cellar/packages}"
@@ -195,11 +207,14 @@ bats_dynamic_include_path()
   done
 }
 
-test -n "$BATS_LIB_PATH" || bats_dynamic_include_path
-
-test -n "$BATS_LIB_EXTS" || BATS_LIB_EXTS=.bash\ .sh
-test -n "$BATS_VAR_EXTS" || BATS_VAR_EXTS=.txt\ .tab
-test -n "$BATS_LIB_DEFAULT" || BATS_LIB_DEFAULT=load
+load_init_bats()
+{
+  test -n "$BATS_LIB_PATH" || bats_dynamic_include_path
+  
+  test -n "$BATS_LIB_EXTS" || BATS_LIB_EXTS=.bash\ .sh
+  test -n "$BATS_VAR_EXTS" || BATS_VAR_EXTS=.txt\ .tab
+  test -n "$BATS_LIB_DEFAULT" || BATS_LIB_DEFAULT=load
+}
 
 load() # ( PATH | NAME )
 {
@@ -247,6 +262,3 @@ bats_lib_lookup()
   done
   return 1
 }
-     
-
-

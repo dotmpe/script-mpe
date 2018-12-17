@@ -4,7 +4,7 @@
 # Initialize Project Test Script shell modules
 build_test_lib_load()
 {
-  lib_load build-checks
+  lib_load build-htd build-checks
 }
 
 # Initialize build-test settings, set Test-Specs
@@ -58,6 +58,11 @@ build_test_init() # Specs...
 
   test -n "$package_specs_ignore" ||
       package_specs_ignore='*/_[a-z]* _[a-z]*'
+
+  # Enable BATS 'load' helper
+  . $HOME/bin/test/init.bash
+  load_init
+  BATS_LIB_PATH=$BATS_LIB_PATH:$HOME/bin/test:$HOME/bin/test/helper
 
   build_test_init=ok
 }

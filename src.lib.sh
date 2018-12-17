@@ -37,7 +37,7 @@ file_insert_at()
   # use ed-script to insert second file into first at line
   # Note: this loses trailing blank lines
   # XXX: should not have ed period command. Cannot sync this function, file-insert-at
-  stderr info "Inserting at $file_name:$line_number"
+  std_info "Inserting at $file_name:$line_number"
   echo "${line_number}a
 $1
 .
@@ -116,8 +116,8 @@ grep_to_first() # 1:Grep 2:File-Path 3:Line
 }
 
 
-# Like grep-to-last but go backward matching for Grep.
-grep_to_previous() # 1:Grep 2:File-Path 3:Line
+# Like grep-to-first but go forward matching for Grep.
+grep_to_last() # 1:Grep 2:File-Path 3:Line
 {
   from_line=$3
   while true
@@ -125,9 +125,9 @@ grep_to_previous() # 1:Grep 2:File-Path 3:Line
     tail -n +$3 "$2" | head -n 1 | grep -q "$1" || break
     set -- "$1" "$2" "$(( $3 + 1 ))"
   done
-  prev_line=$3
+  test $from_line -lt $3 || return
+  last_line=$3
 }
-
 
 # Like file-where-grep but set line-numer -= 1
 file_where_before()

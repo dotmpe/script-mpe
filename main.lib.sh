@@ -6,6 +6,7 @@
 main_lib_load()
 {
   test -n "$subcmd_default" || subcmd_default=default
+  lib_load sys
 }
 
 
@@ -910,7 +911,14 @@ run_check()
 # remember starting dir and track real vs. symbolic?
 push_cwd()
 {
-  test -n "$CWD" || CWD=$PWD
+  test -n "$CWD" && {
+    CWD_D=$PWD:$CWD
+  }
+  CWD=$PWD
+
+  test -z "$1" || {
+      fnmatch "/*" "$1" && return 1 || RCWD=$1
+  }
 
   test -z "$RCWD" || cd $RCWD
 
@@ -924,7 +932,13 @@ push_cwd()
 
 pop_cwd()
 {
-  test -z "$RCWD" || {
+  test -z "$CWD_D" || {
+    CWD="$(echo "$CWD_D" | cut -d':' -f1)"
+    CWD_D="$(echo "$CWD_D" | cut -d':' -f2-)"
+  }
+  test -n "$CWD_D" || unset CWD_D
+
+  test -z "$CWD" || {
     cd "$CWD"
     unset CWD
   }

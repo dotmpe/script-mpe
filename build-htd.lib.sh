@@ -12,7 +12,7 @@ build_htd_lib_load()
 
   test -n "$docbase" || docbase="doc/src/sh"
 
-  lib_load date os sys str tasks du vc-htd vc match src function functions shell package argv
+  lib_load main argv date tasks du vc-htd vc match src function functions shell
 }
 
 # Initialize Project Build Scripts settings
@@ -212,8 +212,8 @@ list_sh_files()
   test -n "$build_init" || build_init
   spwd=. vc_tracked | while read -r path ; do
 
-# Cant do anything with empty file
-    test -s "$path" || continue
+# Cant do anything with empty file or dirs
+    test -s "$path" -a ! -d "$path" || continue
 
 # Scan name extension first
     fnmatch "*.*" "$(basename "$path")" && {
@@ -318,7 +318,7 @@ build_graphs()
 
 build_package_script_lib_list()
 {
-  package_init_env ; package_req_env || return
+  # XXX package_init_env ; package_req_env || return
 
   expand_spec_src script_libs |
       p= s= act=$package_component_name foreach_inscol
@@ -326,7 +326,7 @@ build_package_script_lib_list()
 
 build_components_id_path_map()
 {
-  package_init_env ; package_req_env || return
+  # package_init_env ; package_req_env || return
 
   $package_components "$@"
 }

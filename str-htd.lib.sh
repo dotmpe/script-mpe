@@ -2,7 +2,7 @@
 
 
 # Set env for str.lib.sh
-str_lib_load()
+str_htd_lib_load()
 {
   test -n "$uname" || uname="$(uname -s)"
   case "$uname" in
@@ -179,7 +179,7 @@ x_re()
 # to prevent accidental expansion to local PWD filenames.
 fnmatch() # Glob Str
 {
-  case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
+  case "$2" in $1 ) return 0 ;; * ) return 1 ;; esac
 }
 
 words_to_lines()
@@ -420,30 +420,6 @@ str_title()
 strip_last_nchars() # Num
 {
   rev | cut -c $(( 1 + $1 ))- | rev
-}
-
-# Join lines in file based on first field
-# See https://unix.stackexchange.com/questions/193748/join-lines-of-text-with-repeated-beginning
-join_lines() # [Src] [Delim]
-{
-  test -n "$1" || set -- "-" "$2"
-  test -n "$2" || set -- "$1" " "
-  test "-" = "$1" -o -e "$1" || error "join-lines: file expected '$1'" 1
-
-  # use awk to build array of paths, for basename
-  awk '{
-		k=$2
-		for (i=3;i<=NF;i++)
-			k=k "'"$2"'" $i
-		if (! a[$1])
-			a[$1]=k
-		else
-			a[$1]=a[$1] "'"$2"'" k
-	}
-	END{
-		for (i in a)
-			print i "'"$2"'" a[i]
-	}' "$1"
 }
 
 # Normalize whitespace (replace newlines, tabs, subseq. spaces)

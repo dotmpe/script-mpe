@@ -44,12 +44,19 @@ setup()
 
 @test "$base: vc-git-submodules" {
 
+  CWD= RCWD= PCWD= quiet=1
+
   load vc-setup
-  vc_setup_clean_git
-  vc_setup_submodule
+  vc_setup_clean_git && gitdir=$tmpd
+  vc_setup_submodule && sm1=$tmpd
+  vc_setup_submodule my-docs && sm2=$tmpd
 
   run vc_git_submodules
-  test_ok_nonempty || stdfail
+  { test_ok_nonempty 2 && test_lines 'submodule' 'my-docs'
+  } || stdfail
+
+  cd "$BATS_CWD"
+  rm -rf "$gitdir" "$sm1" "$sm2"
 }
 
 teardown()

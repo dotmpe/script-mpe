@@ -182,7 +182,7 @@ __log()
 	while [ ${#padding} -lt $len ]; do
 		padding="$padd$padding"
 	done;
-	printf " %s%s %s%s\n" "$padding" "$targets" "$msg" "$c0$normal"
+	printf " %s%s %s%s\n" "$padding" "$targets" "$msg" "$c0$normal" >&2
 }
 
 

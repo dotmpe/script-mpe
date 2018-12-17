@@ -34,6 +34,8 @@ sys_htd_lib_load()
     TMPDIR=/tmp
     $LOG info "$scriptname" "TMPDIR=$TMPDIR (should be in shell profile)" >&2
   }
+
+  lib_load sys os os-htd str str-htd
 }
 
 require_fs_casematch()

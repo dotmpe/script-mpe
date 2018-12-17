@@ -1,0 +1,58 @@
+#!/bin/sh
+
+set -e
+
+SCRIPTPATH=$PWD/src/sh/lib:$HOME/bin
+
+. ./tools/sh/init.sh
+
+lib_load composure std src function functions ck shell git volume oil docker-sh
+
+lib_init
+composure_check_name_scripts
+#oil_docker_init
+
+for lib in src/sh/lib/*.lib.sh
+#for lib in src/sh/lib/function.lib.sh
+do
+  basename $lib .sh
+  functions_list $lib | cut -d'(' -f1 | while read fn
+  do
+    function_linerange "$fn" "$lib" || return $?
+    last_line=
+    #echo "$start_line ($span_lines) to $end_line"
+
+    grep_to_last '^\s*#' "$lib" "$end_line" && {
+      echo found $lib $fn func annotation trailer until $last_line
+
+      func_shaid=$(tail -n +$start_line $lib | head -n $span_lines | ck_sha1 -)
+
+      annotation_span_lines=$(( $last_line - $end_line ))
+      tail -n +$end_line $lib | head -n $annotation_span_lines |
+        parse_func_annotation
+      echo "# $func_shaid"
+      continue
+
+      span_lines=$(( $last_line - $start_line ))
+      tail -n +$start_line $lib | head -n $span_lines
+
+    } || true
+
+  done
+done
+exit $?
+
+copy_function  copy_function  src/sh/lib/function.lib.sh | ck_sha1 -
+#| oshc deps
+exit $?
+
+# XXX composure_lib_load
+#composure_lib_init
+#composure_check_name_scripts
+#composure_draft
+
+echo 'add_env_path_lookup   src/sh/lib/sys.lib.sh
+remove_env_path_lookup      src/sh/lib/sys.lib.sh
+copy_function               src/sh/lib/function.lib.sh
+' |  composure_shlib_sync_pairs
+

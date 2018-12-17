@@ -2,7 +2,7 @@
 
 # Sys: dealing with vars, functions, env.
 
-sys_htd_lib_load()
+sys_lib_load()
 {
   test -n "$LOG" || return 102
   test -n "$uname" || uname="$(uname -s)"

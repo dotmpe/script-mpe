@@ -92,7 +92,7 @@ package_lib_set_local()
   test -n "$1" || error "package.lib set-local" 1
   test -z "$default_package_id" || package_lib_reset
   # Default package is entry named as main
-  default_package_id=$(package_default_id "$1")
+  default_package_id=$(package_default_id "$1") || return
   test -n "$package_id" -a "$package_id" != "(main)" || {
     package_id="$default_package_id"
     std_info "Set main '$package_id' from $1/package default"
@@ -420,7 +420,7 @@ package_sh_get() # PACKAGE-SH NAME-KEY
 # and other project tasks (sh routines, make, cron, CI/CD, etc.)
 package_sh_env()
 {
-  test -n "$PACKMETA_SH" || package_lib_set_local .
+  test -n "$PACKMETA_SH" || package_lib_set_local . || return
   test -n "$package_shell" || package_shell="$default_package_shell"
   echo "#!$package_shell"
   test -n "$package_env" && {
@@ -437,7 +437,7 @@ package_sh_env_script() # [Path]
 {
   local script_out=
   test -n "$1" && script_out="$1" || script_out="$package_env_file"
-  test -n "$PACKMETA_SH" || package_lib_set_local .
+  test -n "$PACKMETA_SH" || package_lib_set_local . || return
   test -s $script_out -a $script_out -nt $PACKMETA && {
     std_info "Newest version of Env-Script $script_out exists"
   } || {
@@ -453,7 +453,7 @@ package_sh_env_script() # [Path]
 # package-sh-script SCRIPTNAME [JSOTKFILE]
 package_js_script()
 {
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
+  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)" || return
   test -n "$2" || set -- "$1" $PACKMETA_JS_MAIN
   test -e "$2"
   jsotk.py path -O lines "$2" scripts/$1 || {

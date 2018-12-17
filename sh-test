@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+. ./tools/sh/init.sh
+
+lib_load build-test
+lib_init
+build_test_init
+
+load extra
+load vc-setup
+
+vc_setup_clean_git && gitdir=$tmpd
+vc_setup_submodule && sm1=$tmpd
+vc_setup_submodule my-docs && sm2=$tmpd
+echo OK
+
+CWD= RCWD= PCWD=
+pwd
+git submodule foreach
+git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+vc_git_submodules
+
+rm -rf "$gitdir" "$sm1" "$sm2" "$BATS_TMPDIR"
+echo Done

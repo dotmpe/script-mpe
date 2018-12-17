@@ -27,7 +27,7 @@ setup()
   test "$PWD" = "$BATS_CWD" || fail 2.2
 }
 
-@test "$base: {push,pop}-cwd moves to ... " {
+@test "$base: {push,pop}-cwd moves to subdir and returns" {
 
   CWD=
 
@@ -41,4 +41,15 @@ setup()
 
   run pop_cwd
   test_ok_empty || stdfail
+}
+
+@test "$base: {push,pop}-cwd moves two subdirs, and returns" {
+
+  _run() { push_cwd test && push_cwd helper && pwd;
+  }; run _run
+  test_ok_lines "$BATS_CWD/test/helper" || stdfail 1
+
+  _run() { push_cwd test && push_cwd helper && pop_cwd && pop_cwd && pwd;
+  }; run _run
+  test_ok_lines "$BATS_CWD" || stdfail 2
 }
