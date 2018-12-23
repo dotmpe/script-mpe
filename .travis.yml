@@ -1,16 +1,10 @@
-#os: linux
+# Travis CI - test workflow </doc/dev/ci.md>
+
+os: linux
 #dist: precise
 #dist: trusty
-#dist: xenial
-
-language: python
-
-python: # TODO: keep all builds singular except at dedicated test matrix branch
-  - "2.7" # 2.7.14 [2018-12-07] 
-  # FIXME: python3 fix (jsotk at least) on other branch
-  #- "3" 'Forbidden'
-  #- "3.6"
-  #- "nightly" # 3.7.0a4+ [2018-12-07] 
+dist:
+  - xenial
 
 addons:
   apt:
@@ -29,86 +23,22 @@ addons:
 # - rhash
 # - pytz
 
+sudo: false
+
 services:
 - redis-server
 - memcached
 - couchdb
 - docker
 
-# 'sponge' some scripts' output to try to prevent Travis from cutting of build;
-# slow buffer?
-# but sponged scripts cannot import local env or functions into build context.
-#
-# Would test sync as alternative but need more syntax either way..
-before_install:
-  - export scriptname="before-install" before_install_ts="$(date +%s.%N)"
-  - . ./tools/ci/env.sh
-  - . ./tools/ci/parts/init.sh
-  - . ./tools/ci/parts/announce.sh
-
-install:
-  - export scriptname=install install_ts="$(date +%s)"
-  - note "Starting $scriptname..."
-  - . ./tools/ci/parts/install.sh
-
-before_script:
-  - export scriptname="before-script" before_script_ts="$(date +"%s.%N")"
-  - note "Starting $scriptname..."
-  - . ./tools/ci/parts/check.sh
-
-script:
-  - export scriptname=script script_ts="$($gdate +"%s.%N")"
-  - note "Starting $scriptname..."
-  - failed=/tmp/htd-build-test-$(get_uuid).failed
-  - . ./tools/ci/parts/build.sh
-  - export script_end_ts="$($gdate +"%s.%N")"
-  - test "$SHIPPABLE" = true || test ! -e "$failed"
-  - note "End of $scriptname"
-
-before_cache:
-  - export scriptname=before-cache before_cache_ts="$(date +"%s.%N")"
-  - . ./tools/ci/parts/before-cache.sh
-
-cache:
-  directories:
-     - .htd
-     - .redo
-     - ./node_modules
-     - ./vendor
-     - $HOME/.local
-     - $HOME/.basher
-     - $HOME/.cache/pip
-     - $HOME/virtualenv
-     - $HOME/.npm
-     - $HOME/.composer
-     - $HOME/.rvm/
-     - $HOME/.statusdir/
-     - $HOME/lib
-     - $HOME/build/apenwarr
-     - $HOME/build/ztombol
-     - $HOME/build/bvberkum/user-scripts
-     - $HOME/build/bvberkum/user-conf
-     - $HOME/build/bvberkum/docopt-mpe
-     - $HOME/build/bvberkum/git-versioning
-     - $HOME/build/bvberkum/bats-core
-
-after_success:
-  - export scriptname=after-success after_success_ts="$(date +"%s.%N")"
-  - std_note "End of $scriptname"
-
-after_failure:
-  - export scriptname=after-failure after_failure_ts="$(date +"%s.%N")"
-  - std_note "End of $scriptname"
-
-after_script:
-  - export scriptname=after-script after_script_ts="$(date +"%s.%N")"
-  - . ./tools/ci/parts/after.sh
-  - . ./tools/ci/parts/publish.sh
-  - std_note "End of $scriptname"
-  - echo done
-
-#matrix:
-#  include: []
+#language: shell
+language: python
+python: # TODO: keep all builds singular except at dedicated test matrix branch
+  - "2.7" # 2.7.14 [2018-12-07]
+  # FIXME: python3 fix (jsotk at least) on other branch
+  #- "3" 'Forbidden'
+  #- "3.6"
+  #- "nightly" # 3.7.0a4+ [2018-12-07]
 
 env:
   matrix:
@@ -130,6 +60,63 @@ env:
     # GITHUB_TOKEN
     - secure: "KcpgIZINqays/BZkCYcQTiI3/ACWhRJbLWYD2tHE7GLSTyyBc1nQQWFx3oEZMJcfwUWtHioLx7c7gzO7+UYoOtc3+XfnuTt1g7Fid3xnXE9F5qCTVrIYSuFFT50iDYj2Gp12mRoMwauhvFFRDS3bM/KT/6GOYq9dPdoviDgPtzg="
 
+
+before_install:
+  - . ./tools/ci/before-install.sh
+
+install:
+  - . ./tools/ci/install.sh
+
+before_script:
+  - . ./tools/ci/before.sh
+
+script:
+  - . ./tools/ci/script.sh
+
+before_cache:
+  - . ./tools/ci/before-cache.sh
+
+cache:
+  directories:
+     - .htd
+     - .redo
+     - ./node_modules
+     - ./vendor
+     - $HOME/.local
+     - $HOME/.basher
+     - $HOME/.cache/pip
+     - $HOME/virtualenv
+     - $HOME/.npm
+     - $HOME/.composer
+     - $HOME/.rvm/
+     - $HOME/.statusdir/
+     - $HOME/lib
+     - $HOME/build/apenwarr
+     - $HOME/build/ztombol
+    # NOTE: careful not to include repo-under-test
+     - $HOME/build/bvberkum/user-scripts-incubator
+     - $HOME/build/bvberkum/user-scripts
+     - $HOME/build/user-tools/user-scripts
+     - $HOME/build/user-tools/user-conf
+     - $HOME/build/bvberkum/user-conf
+     - $HOME/build/bvberkum/docopt-mpe
+     - $HOME/build/bvberkum/git-versioning
+     - $HOME/build/bats-core/bats-core
+     #- $HOME/build/bvberkum/bats-...
+
+
+after_failure:
+  - . ./tools/ci/after-failure.sh
+after_success:
+  - . ./tools/ci/after-success.sh
+after_script:
+  - . ./tools/ci/after.sh
+
+
+matrix:
+  include: []
+#  exclude: []
+
 branches:
   only:
     - master
@@ -149,5 +136,5 @@ branches:
 #    repo: dotmpe/script.mpe
 #    tags: true
 #    condition: $ENV = production
-#
+
 # Id: script-mpe/0.0.4-dev .travis.yml

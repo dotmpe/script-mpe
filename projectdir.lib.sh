@@ -775,7 +775,7 @@ pd_run()
           while true
           do
             als=$(echo_local $comp als)
-            var_isset $als || break
+            sh_isset $als || break
             comp=$(try_value $comp als)
           done
 

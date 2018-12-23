@@ -188,7 +188,7 @@ script_sh_main()
           box_lib script-sh || error "box-src-lib script-sh" 1
           shift 1
           script_sh_load "$@" || error "script-sh-load" $?
-          var_isset verbosity || local verbosity=5
+          sh_isset verbosity || local verbosity=5
 
           test -z "$arguments" -o ! -s "$arguments" || {
             std_info "Setting $(count_lines $arguments) args to '$subcmd' from IO"

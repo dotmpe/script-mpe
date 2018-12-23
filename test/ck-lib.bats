@@ -5,7 +5,7 @@ load init
 
 setup()
 {
-  init && lib_load ck
+  init && lib_load ck ck-htd
 }
 
 testf1=test/var/os/nix_comments.txt

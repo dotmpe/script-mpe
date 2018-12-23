@@ -478,7 +478,7 @@ box_main()
   # FIXME: only one instnce
   box_sock=/tmp/box-serv.sock
   box_init || return 0
-  var_isset verbosity || verbosity=5
+  sh_isset verbosity || verbosity=5
 
   case "$base" in $scriptname )
         box_lib box || error "box-src-lib $scriptname" 1

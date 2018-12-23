@@ -4,7 +4,7 @@
 # Deal with checksumming, and file manifests with checksums
 
 
-ck_lib_load()
+ck_htd_lib_load()
 {
   test -n "$ck_tab" || ck_tab=table
   test -n "$ck_exts" || ck_exts="ck crc32 md5 sha1 sha2 sha256"
@@ -55,71 +55,6 @@ ck_validate()
   done
 }
 
-# Helpers to validate checksum for file, or show how to get/echo checksum
-# abbrev=7 (default) allow abbreviated checksums even only 1 char, set minimum
-ck_git()
-{
-  test -n "$abbrev" || abbrev=7
-  cksum="$(git hash-object "$1")"
-  test -n "$2" && {
-    test ${#2} -eq ${#cksum} || { # length should be 40
-      test $abbrev -gt 0 || return
-      # Partial match but at least N chars
-      test ${#2} -ge $abbrev && fnmatch "$2*" "$cksum"
-      return $?
-    }
-    test "$2" = "$cksum" || return
-  } || echo "$cksum"
-}
-
-# See ck-git for description.
-ck_md5()
-{
-  test -n "$abbrev" || abbrev=7
-  cksum="$(md5sum "$1" | cut -f1 -d' ')"
-  test -n "$2" && {
-    test ${#2} -eq ${#cksum} || {
-      test $abbrev -gt 0 || return
-      # Partial match but at least N chars
-      test ${#2} -ge $abbrev && fnmatch "$2*" "$cksum"
-      return $?
-    }
-    test "$2" = "$cksum" || return
-  } || echo "$cksum"
-}
-
-# See ck-git for description.
-# TODO: rewrite prefix; ck_sha() { ck_sha1 "$@"; }
-ck_sha1()
-{
-  test -n "$abbrev" || abbrev=7
-  cksum="$(sha1sum "$1" | cut -f1 -d' ')"
-  test -n "$2" && {
-    test ${#2} -eq ${#cksum} || {
-      test $abbrev -gt 0 || return
-      # Partial match but at least N chars
-      test ${#2} -ge $abbrev && fnmatch "$2*" "$cksum"
-      return $?
-    }
-    test "$2" = "$cksum" || return
-  } || echo "$cksum"
-}
-
-# See ck-git for description.
-ck_sha2()
-{
-  test -n "$abbrev" || abbrev=7
-  cksum="$(shasum -a 256 "$1" | cut -f1 -d' ')"
-  test -n "$2" && {
-    test ${#2} -eq ${#cksum} || {
-      test $abbrev -gt 0 || return
-      # Partial match but at least N chars
-      test ${#2} -ge $abbrev && fnmatch "$2*" "$cksum"
-      return $?
-    }
-    test "$2" = "$cksum" || return
-  } || echo "$cksum"
-}
 
 # Run checksums from file [one checksum type per file, see ck_validate to
 # run individual ``*sum -c`` invocations per line on stdin]
@@ -425,7 +360,7 @@ ck_update_find()
   std_info "Reading $T_CK, looking for files '$1'"
   find_p="$(strip_trail=1 normalize_relative "$1")"
 
-  var_isset failed || {
+  sh_isset failed || {
     local failed_local=1 failed=$(setup_tmpf .failed)
     test ! -e $failed || rm $failed
   }

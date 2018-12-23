@@ -4,6 +4,8 @@ note "Entry for CI build phase: '$BUILD_STEPS'"
 export ci_build_ts="$($gdate +"%s.%N")"
 
 
+sh ./sh-github
+
 for BUILD_STEP in $BUILD_STEPS
 do case "$BUILD_STEP" in
 

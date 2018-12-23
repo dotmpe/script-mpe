@@ -89,3 +89,4 @@ statusdir.sh
 cksum.py
 tools/ci/env.sh
 tools/sh/build/test.sh
+tools/git-hooks/pre-commit.sh

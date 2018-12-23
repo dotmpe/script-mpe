@@ -119,11 +119,11 @@ htd_load()
         warn "No such project prefix '$prefix'"
       }
       test "$verbosity" -ge 5 &&
-      $LOG info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'" >&2
+      $htd_log info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'" >&2
       cd "$CWD"
     }
   } || {
-    $LOG warn "htd:load" "No local workspace" >&2
+    $htd_log warn "htd:load" "No local workspace" >&2
     cd "$CWD"
   }
 
@@ -3176,6 +3176,7 @@ htd__git()
 
 
 htd_libs__github=github
+htd_man_1__github='Github lib'
 htd_run__github=l
 htd__github()
 {
@@ -3410,12 +3411,12 @@ htd__diff_function()
     stderr error "Missing files '$1' or '$3'"
     error "usage: $htd_spc__diff_function" 23
   }
-  var_isset quiet || quiet=false
-  var_isset sync || {
+  sh_isset quiet || quiet=false
+  sh_isset sync || {
     trueish "$quiet" && sync=false || sync=true
   }
-  var_isset edit || edit=$sync
-  var_isset copy_only || {
+  sh_isset edit || edit=$sync
+  sh_isset copy_only || {
     trueish "$sync" && copy_only=true || copy_only=false
   }
 
@@ -3838,18 +3839,18 @@ htd__push_commit()
       error "Commit message expected" 1
     }; }
 
-  var_isset update && {
+  sh_isset update && {
     falseish "$update" && {
       trueish "$update" || error "unexpected value for update '$update'" 1
     } || {
-      var_isset all && {
+      sh_isset all && {
         falseish "$all" || error "--update and add --all are exclusive" 1
       }
     }
   } || {
     trueish "$all" && update=0 || update=1
   }
-  var_isset push || push=true
+  sh_isset push || push=true
 
   ## push-commit subcommand routine
   # Add modified files, or add all untracked files
@@ -4372,7 +4373,7 @@ htd__rules()
         #  esac
         #done
         test -z "$DEBUG" ||
-          $LOG ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX" >&2
+          $htd_log ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX" >&2
       ;;
 
     update | post-proc ) shift
@@ -4816,7 +4817,7 @@ htd_grp__ck_table=meta
 htd__ck_table()
 {
   lib_load match
-  var_isset ck_tab || local ck_tab=
+  sh_isset ck_tab || local ck_tab=
   # table ext
   ck_arg "$1"
   test -n  "$1" && shift 1
@@ -7437,19 +7438,19 @@ htd__src_info()
   for src in $@
   do
     src_id=$(htd_prefix $src)
-    $LOG file_warn $src_id "Listing info.." >&2
-    $LOG header "Box Source" >&2
+    $htd_log file_warn $src_id "Listing info.." >&2
+    $htd_log header "Box Source" >&2
     functions_=$(functions_list "$src" | count_lines)
     functions=$(( $functions + $functions_ ))
-    $LOG header2 "Functions" $functions_ >&2
+    $htd_log header2 "Functions" $functions_ >&2
     count=$(count_lines "$src")
     lines=$(( $lines + $count ))
-    $LOG header3 "Lines" $count >&2
-    $LOG file_ok $srC_id >&2
+    $htd_log header3 "Lines" $count >&2
+    $htd_log file_ok $srC_id >&2
   done
-  $LOG header2 "Total Functions" $functions >&2
-  $LOG header3 "Total Lines" $lines >&2
-  $LOG done $subcmd >&2
+  $htd_log header2 "Total Functions" $functions >&2
+  $htd_log header3 "Total Lines" $lines >&2
+  $htd_log done $subcmd >&2
 }
 
 
@@ -8798,6 +8799,16 @@ htd__embyapi()
 htd__emby() { htd__embyapi "$@"; }
 
 
+htd_man_1__github=''
+htd_libs__github=github
+htd_run__github=fl
+htd__github()
+{
+  test -n "$1" || set -- default
+  subcmd_prefs=${base}_github_ try_subcmd_prefixes "$@"
+}
+
+
 htd_man_1__src=''
 htd_libs__src=htd-src
 htd_run__src=fl
@@ -8995,8 +9006,13 @@ htd_main()
     passed= skipped= error= failed=
 
   test -n "$verbosity" || local verbosity=5
+  #test -n "$U_S" || U_S=/srv/project-local/user-scripts
+  #test -n "$htd_log" || htd_log=$U_S/tools/sh/log.sh
+  test -n "$script_util" || script_util=$scriptpath/tools/sh
+  test -n "$htd_log" || htd_log=$script_util/log.sh
 
-  htd_init || $LOG error htd-main "During htd-init" "" $?
+  htd_init || $htd_log error htd-main "During htd-init: $?" "$0" $? || return
+
   case "$base" in
 
     $scriptname )
@@ -9010,10 +9026,11 @@ htd_main()
           }
         }
 
-        main_init
+        main_init || return
+
         export stdio_0_type stdio_1_type stdio_2_type
 
-        htd_lib "$@" || $LOG error htd-main "During htd-lib" "" $?
+        htd_lib "$@" || $htd_log error htd-main "During htd-lib" "" $? || return
         main_run_subcmd "$@" || r=$?
         htd_unload || r=$?
 
@@ -9026,7 +9043,8 @@ htd_main()
       ;;
 
     * )
-        $LOG error htd-main "not a frontend for $base ($scriptname)" "" 1
+        $htd_log error htd-main "not a frontend for $base ($scriptname)" "" 1
+        return 1
       ;;
 
   esac
@@ -9054,31 +9072,48 @@ htd_optsv()
 
 htd_init()
 {
-  test -n "$LOG" -a -x "$LOG" || export LOG=$HOME/bin/log.sh
-  # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
+  set -e
 
-  test -n "$SCRIPTPATH" || {
-    test -n "$scriptpath" || return
-    export SCRIPTPATH=$scriptpath:$scriptpath/commands:$scriptpath/contexts:$HOME/.conf/script
-  }
+  test -n "$script_util" || return 103 # NOTE: sanity
 
-  util_mode=ext . $scriptpath/util.sh || return $?
-  lib_load os std sys sys-htd str stdio src main argv match vc
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load htd vc-htd web src
-  lib_load box date
-  case "$uname" in Darwin ) lib_load darwin ;; esac
+  # FIXME: instead going with hardcoded sequence for env-d like for lib.
+  test -n "$htd_env_d_default" ||
+      htd_env_d_default=init-log\ ucache\ scriptpath
+
+  for env_d in $htd_env_d_default
+  do
+    . $script_util/parts/env-$env_d.sh
+  done
+  $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
+
+  util_mode=ext . $scriptpath/util.sh || return
+  # XXX: util_mode=ext . $scriptpath/tools/sh/init.sh || return $?
+
+  lib_lib_load && lib_lib_init || return
+
+  $htd_log note "$scriptname" "Bootstrapping..." "$default_lib"
+  INIT_LOG=$htd_log
+  lib_load $default_lib || return
+  lib_init $default_lib || return
+
+  . $scriptpath/tools/sh/box.env.sh && box_run_sh_test
+
   # -- htd box init sentinel --
 }
 
 htd_lib()
 {
   local __load_lib=1
-  . $scriptpath/match.sh
-  lib_load list ignores table disk remote package htd-package htd-scripts \
+  . $scriptpath/match.sh || return
+  set -- sys-htd os-htd str-htd vc-htd htd match-htd std-htd \
+      date date-htd \
+      htd web box \
+      list ignores table disk remote package htd-package htd-scripts \
       service archive prefix tmux schema ck net \
-      catalog journal annex lfs pm2 make docstat du u-s htd-u-s
+      catalog journal annex lfs pm2 make docstat du u-s htd-u-s || return
+  lib_load "$@" && lib_init "$@"
+  # XXX: DEBUG  lib_loaded
+
   # -- htd box lib sentinel --
 }
 

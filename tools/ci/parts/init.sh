@@ -1,9 +1,6 @@
-#!/bin/dash
+#!/bin/ash
 
 export ci_init_ts=$($gdate +"%s.%N")
-
-
-# Using dash to allow brace-expansion, just in the init script
 
 note "Entry for CI pre-install / init phase"
 
@@ -26,6 +23,10 @@ test -z "$TRAVIS_BRANCH" || {
       } || true
 
   }
+
+
+. "$ci_util/parts/check-git.sh"
+
 
 note "GIT version: $GIT_DESCRIBE"
 
@@ -63,6 +64,38 @@ do
   rsync -avzui .htd/$x $x
 done
 
+echo '---------- Finished CI setup'
+echo "Travis Branch: $TRAVIS_BRANCH"
+echo "Travis Commit: $TRAVIS_COMMIT"
+echo "Travis Commit Range: $TRAVIS_COMMIT_RANGE"
+# TODO: gitflow comparison/merge base
+#vcflow-upstreams $TRAVIS_BRANCH
+# set env and output warning if we're behind
+#vcflow-downstreams
+# similar.
+echo
+echo "User Conf: $(cd ~/.conf && git describe --always)" || true
+echo "User Composer: $(cd ~/.local/composer && git describe --always)" || true
+echo "User Bin: $(cd ~/bin && git describe --always)" || true
+echo "User static lib: $(find ~/lib )" || true
+echo
+echo '---------- Listing user checkouts'
+for x in $HOME/build/*/
+do
+    test -e $x/.git && {
+        echo "$x at GIT $( cd $x && git describe --always )"
+        continue
 
+    } || {
+        for y in $x/*/
+        do
+            test -e $y/.git &&
+                echo "$y at GIT $( cd $y && git describe --always )" ||
+                echo "Unkown $y"
+        done
+    }
+done
+echo
 note "ci/parts/init Done"
+echo '---------- Starting build'
 # Id: script-mpe/0.0.4-dev tools/ci/parts/init.sh

@@ -1675,7 +1675,8 @@ pd_init()
 
   scriptpath="$(dirname "$(realpath "$0")")"
   export SCRIPTPATH=$scriptpath
-  test -n "$LOG" || export LOG=$scriptpath/log.sh
+  test -n "$U_S" || export U_S=/srv/project-local/user-scripts
+  test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
   pd_preload || exit $?
   util_mode=ext . $scriptpath/util.sh load-ext
   lib_load str sys os std stdio src match main argv

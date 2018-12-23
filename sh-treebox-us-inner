@@ -1,0 +1,23 @@
+#!/bin/sh
+
+set -e
+
+env
+exit $?
+
+. ~/.bash_profile
+
+BASHER_FULL_CLONE=true basher install bvberkum/user-scripts 
+export U_S="$(basher package-path bvberkum/user-scripts)/"
+cd "$U_S"
+git checkout r0.0
+
+cd /src/github.com/bvberkum/oil && \
+make configure &&
+build/dev.sh minimal
+
+. $U_S/tools/sh/init.sh
+
+$LOG notice $(basename $0) "Success!"
+#lib_load std
+#std_note "Success!"

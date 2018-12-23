@@ -1,5 +1,15 @@
+#!/bin/sh
 
 # stdio.lib.sh: additional io for shell scripts
+
+
+stdio_lib_init()
+{
+  lib_assert log
+
+  local log=; req_init_log
+  $log info "" "Loaded stdio.lib" "$0"
+}
 
 
 # setup-io-paths: helper names all temp. IO files (setup_tmpf)

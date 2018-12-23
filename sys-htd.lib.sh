@@ -15,6 +15,16 @@ sys_htd_lib_load()
   test -n "$username" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
   test -n "$arch" || arch="$(uname -p)"
   test -n "$mach" || mach="$(uname -m)"
+}
+
+sys_htd_lib_init()
+{
+  test -n "$INIT_LOG" || return 102
+
+  lib_assert sys os str main match || {
+    $INIT_LOG error "" "In sys.lib init" $0"" 1
+    return 100
+  }
 
   test -n "$SCR_SYS_SH" ||  {
     test -n "$SHELL" &&
@@ -32,10 +42,10 @@ sys_htd_lib_load()
   } || {
     test -d /tmp || error "No /tmp" 1
     TMPDIR=/tmp
-    $LOG info "$scriptname" "TMPDIR=$TMPDIR (should be in shell profile)" >&2
+    $INIT_LOG info "$scriptname" "TMPDIR=$TMPDIR (should be in shell profile)" >&2
   }
 
-  lib_load sys os os-htd str str-htd
+  $INIT_LOG info "" "Loaded sys.lib" "$0"
 }
 
 require_fs_casematch()
@@ -71,41 +81,12 @@ require_fs_casematch()
   cd "$CWD"
 }
 
-# test for var decl, io. to no override empty
-var_isset()
-{
-    test "$1" = "base" && return 1
-  test -n "$1" || error "var-isset arg expected" 1
-  # [2017-02-03] somehow Sh compatible setup broke so (testing at least) so
-  #   split it up into bash, and expanded on testing. And some more testing and
-  #   fiddling. Using SCR_SYS_SH=bash-sh to make some frontend exceptions.
-  case "$SCR_SYS_SH" in
-
-    bash-sh|sh|zsh )
-        # Aside from declare or typeset in newer reincarnations,
-        # in posix or modern Bourne mode this seems to work best:
-        ( set | grep -q '\<'"$1"'=' ) || return 1
-      ;;
-
-    bash )
-        # Bash: https://www.cyberciti.biz/faq/linux-unix-howto-check-if-bash-variable-defined-not/
-        [[ ! ${!1} && ${!1-unset} ]] && return 1 || return 0
-        #$HOME/bin/tools/sh/var-isset.bash "$1"
-      ;;
-
-    * )
-        error "SCR_SYS_SH='$SCR_SYS_SH'" 14
-      ;;
-
-  esac
-}
-
 # require vars to be initialized, regardless of value
 req_vars()
 {
   while test $# -gt 0
   do
-    var_isset "$1" || return 1
+    sh_isset "$1" || return 1
     shift
   done
 }
@@ -159,7 +140,7 @@ expand_item() # LIST ITEM VALUES...
 
 pretty_print_var()
 {
-  var_isset kvsep || kvsep='='
+  sh_isset kvsep || kvsep='='
   pretty_var="$(printf -- "$1" | tr -s '_' '-')"
   falseish "$2" && {
     printf "!$pretty_var\n"

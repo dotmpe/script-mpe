@@ -1,0 +1,3 @@
+#!/bin/sh
+
+BASH_ENV=tools/ci/env.sh bash tools/ci/script.sh

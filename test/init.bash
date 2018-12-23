@@ -3,45 +3,96 @@
 # Helpers for BATS project test env.
 
 
+# Return level number as string for use with line-type or logger level, channel
+log_level_name() # Level-Num
+{
+  case "$1" in
+      1 ) echo emerg ;;
+      2 ) echo crit ;;
+      3 ) echo error ;;
+      4 ) echo warn ;;
+      5 ) echo note ;;
+      6 ) echo info ;;
+      7 ) echo debug ;;
+      * ) return 1 ;;
+  esac
+}
+
+log_level_num() # Level-Name
+{
+  case "$1" in
+      emerg ) echo 1 ;;
+      crit  ) echo 2 ;;
+      error ) echo 3 ;;
+      warn* ) echo 4 ;;
+      note|notice  ) echo 5 ;;
+      info  ) echo 6 ;;
+      debug ) echo 7 ;;
+      * ) return 1 ;;
+  esac
+}
+
+
+fnmatch() { case "$2" in $1 ) true ;; * ) false ;; esac; }
+
+
+# Simple init-log shell function that behaves well in unintialzed env,
+# but does not add (vars) to env.
+err_() # [type] [cat] [msg] [tags] [status]
+{
+  test -z "$verbosity" -a -z "$DEBUG" && return
+  test -n "$2" || set -- "$1" "$base" "$3" "$4" "$5"
+  test -z "$verbosity" -a -n "$DEBUG" || {
+
+    case "$1" in [0-9]* ) true ;; * ) false ;; esac &&
+      lvl=$(log_level_name "$1") ||
+      lvl=$(log_level_num "$1")
+
+    test $verbosity -ge $lvl || {
+      test -n "$5" && exit $5 || {
+        return 0
+      }
+    }
+  }
+
+  printf -- "%s\n" "[$2] $1: $3 <$4> ($5)" >&2
+  test -z "$5" || exit $5 # NOTE: also exit on '0'
+}
+
+
+# Set env and other per-specfile init
+test_env_load()
+{
+  test -n "$script_util" || return 103 # NOTE: sanity
+  test -n "$INIT_LOG" || INIT_LOG=err_
+
+  # FIXME: hardcoded sequence for env-d like for lib. Using lib-util-env-d-default
+  for env_d in 0 log ucache scriptpath dev test
+  do
+     $INIT_LOG "debug" "" "Loading env-part" "$env_d"
+    . $script_util/parts/env-$env_d.sh ||
+        $INIT_LOG "warn" "" "Failed env-part"  "$? $env_d"
+  done
+
+  test -n "$base" || return 12 # NOTE: sanity
+  test -n "$INIT_LOG" || return 102 # NOTE: sanity
+  $INIT_LOG "info" "" "Env initialized from parts"
+}
+
 # Set env and other per-specfile init
 test_env_init()
 {
-  test -n "$base" || return 12
-  test -n "$scriptname" &&
-    scriptname=$scriptname:test:$base ||
-    scriptname=test:$base
-  test -n "$uname" || uname=$(uname)
-
-  test -n "$scriptpath" || scriptpath=$(pwd -P)
-  test -n "$script_util" || script_util=$(pwd -P)/tools/sh
-
-  test -n "$testpath" || testpath=$(pwd -P)/test
-  #test -n "$default_lib" ||
-  default_lib="main"
-
-  test -n "$BATS_LIB_PATH" || {
-    BATS_LIB_PATH=$BATS_CWD/test:$BATS_CWD/test/helper:$BATS_TEST_DIRNAME
-  }
-
-  # XXX: relative path to templates/fixtures?
-  SHT_PWD="$( cd $BATS_CWD && realpath $BATS_TEST_DIRNAME )"
-#SHT_PWD="$(grealpath --relative-to=$BATS_CWD $BATS_TEST_DIRNAME )"
-
-  # Locate ztombol helpers and other stuff from github
-  test -n "$VND_SRC_PREFIX" || VND_SRC_PREFIX=/srv/src-local
-  test -n "$VND_GH_SRC" || VND_GH_SRC=$VND_SRC_PREFIX/github.com
-  hostname_init
-}
-
-hostname_init()
-{
-  hostnameid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
-}
-
-# 1:Init 2:Load-Libs 3:Boot-Std 4:Boot-Script
-init() # ( 0 | 1 1 1 1 )
-{
-  test_env_init || return
+  test "$TEST_ENV" = "test" &&
+      export scriptname=test:$base ||
+      export scriptname=$TEST_ENV:test:$base
+  #test -n "$scriptname" && {
+  #  test -z "$scriptname_d" && {
+  #    scriptname_d="$scriptname test:$TEST_ENV"
+  #  } || {
+  #    fnmatch "$scriptname *" "$scriptname_d" ||
+  #      scriptname_d="$scriptname test:$TEST_ENV"
+  #  }
+  #  scriptname=$scriptname:test:$base
 
   # Detect when base is exec
   test -x $PWD/$base && {
@@ -49,45 +100,60 @@ init() # ( 0 | 1 1 1 1 )
   } || {
     test -x "$(which $base)" && bin=$(which $base) || lib=$(basename $base .lib)
   }
+}
+
+
+# Bootstrap test-env for Bats ~ 1:Init 2:Load-Libs 3:Boot-Std 4:Boot-Script
+init() # ( 0 | 1 [~ [~ [~]]] )
+{
+  test -z "$lib_loaded" || return 105
+  test -n "$script_util" || script_util=$(pwd -P)/tools/sh
+  test -d "$script_util" || return 103 # NOTE: sanity
+  test_env_load || return
+  test_env_init || return
 
   # Get lib-load, and optional libs/boot script/helper
 
-  test -n "$2" && init_sh_boot="$2"
-  test "$1" = "0" || { test -n "$init_sh_boot" || init_sh_boot="null"; }
-
-# XXX scriptpath
-  #scriptpath=$PWD/src/sh/lib
-  #SCRIPTPATH=$PWD/src/sh/lib:$HOME/bin
-
-  init_sh_libs="$1" . $script_util/init.sh
-
-  #util_mode=load-ext . $scriptpath/tools/sh/init.sh
-  # util_mode=load-ext . $scriptpath/util.sh
-
+  test $# -gt 0 || set -- 1
   test "$1" = "0" || {
-    lib_load $default_lib
-  }
 
-  test "$2" = "0" || {
-    load extra
-    load stdtest
-    #load assert # XXX: conflicts, load overrides 'fail'
-  }
+    test -n "$2" || set -- "$1" "$1" "$3" "$4"
+    test -n "$3" || set -- "$1" "$2" "$2" "$4"
+    test -n "$4" || set -- "$1" "$2" "$3" "$3"
 
-  test "$3" = "0" || {
-    lib_load shell
-    shell_init
+    test -n "$2" && init_sh_boot="$2"
+    test "$1" = "0" || { test -n "$init_sh_boot" || init_sh_boot="null"; }
+    init_sh_libs="$1" . $script_util/init.sh || return
+
+    test "$1" = "0" || {
+      lib_load $default_lib || return
+    }
+
+    test "$2" = "0" || {
+      { load extra && load stdtest; } || return
+      #load assert # FIXME: test-helper conflicts, load overrides 'fail'
+    }
+
+    test "$3" = "0" || {
+      lib_load shell || return
+    }
+
+    test -z "$lib_loaded" || {
+      lib_init $lib_loaded || return
+    }
   }
 
   load_init_bats
-
-  #export ENV=./tools/sh/env.sh
-  export ENV_NAME=testing
 }
 
-# Non-bats initialize to access helper libs 'load'
-load_init()
+
+# Non-bats bootstrap to initialize access to test-helper libs with 'load'
+load_init() # [ 0 ]
 {
+  test "$1" = "0" || {
+    test_env_init || return
+  }
+
   test -n "$TMPDIR" || TMPDIR=/tmp
   BATS_TMPDIR=$TMPDIR/bats-temp-$(get_uuid)
   BATS_CWD=$PWD
@@ -95,6 +161,7 @@ load_init()
   load_init_bats
 #  test "$PWD" = "$scriptpath"
 }
+
 
 ### Helpers for conditional tests
 

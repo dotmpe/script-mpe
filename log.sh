@@ -1,1 +1,1 @@
-tools/sh/log.sh
+/srv/project-local/user-scripts/tools/sh/log.sh

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# More
+mkdir -vp $HOME/build/user-tools/my-new-project
+cd $HOME/build/user-tools/my-new-project
+
+git init
+. $U_S/tools/sh/init-from.sh
+find ./ -not -path '*.git*'
+git status
+
+# Return for lib smoketesting
+cd $HOME/build/bvberkum/user-scripts

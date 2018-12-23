@@ -1,17 +1,23 @@
-#!/bin/sh
-
+#!/bin/ash
 set -e
 
-# Check that all functions are present
+unset  U_S  LOG  INIT_LOG  SCRIPTPATH
 
-SCRIPTPATH=$PWD/src/sh/lib:$HOME/bin
-. ./tools/sh/init.sh
-LOG=$PWD/tools/sh/log.sh
+#: "${U_S:="$HOME/project/user-scripts"}"
+: "${LOG:="$U_S/tools/sh/log.sh"}"
+: "${INIT_LOG:="$LOG"}"
 
-lib_load composure std src vc-htd function functions ck shell git volume oil docker-sh
+export  U_S  LOG  INIT_LOG
+export verbosity=7
+. $U_S/tools/sh/init.sh
+note OK
+
+lib_load composure std src vc-htd function functions ck-htd ck shell git volume oil docker-sh
 lib_load package
 lib_init
 composure_check_name_scripts
+note Done
+exit $?
 
 #vc_tracked
 
@@ -44,3 +50,5 @@ wc -l .cllct/src/functions/*.func-list | sort
 wc -l .cllct/src/functions/*/*.func-deps | sort
 wc -l .cllct/src/functions/*.missing-deps | sort
 wc -l .cllct/src/functions/*.lib-deps | sort
+
+# vim:ft=bash:

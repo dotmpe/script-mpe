@@ -237,9 +237,8 @@ lst_main()
 
   test -n "$verbosity" || verbosity=5
 
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh
-  util_init
+  #export SCRIPTPATH=$scriptpath
+  util_mode=boot . $scriptpath/util.sh
 
   lst_init || exit $?
 
@@ -263,9 +262,9 @@ lst_main()
 # FIXME: Pre-bootstrap init
 lst_init()
 {
-  test -n "$scriptpath"
-  . $scriptpath/tools/sh/box.env.sh
-  lib_load box main
+  test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/box.env.sh &&
+  lib_load box main &&
   box_run_sh_test
   # -- lst box init sentinel --
 }
@@ -273,7 +272,7 @@ lst_init()
 # FIXME: 2nd boostrap init
 lst_lib()
 {
-  lib_load date meta list
+  lib_load date meta list &&
   lib_load ignores
   #lst_load
   # -- lst box lib sentinel --

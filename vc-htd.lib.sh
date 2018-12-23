@@ -4,8 +4,6 @@ vc_htd_lib_load()
 {
   test -n "$vc_rt_def" || vc_rt_def=origin
   test -n "$vc_br_def" || vc_br_def=master
-
-  lib_load sys sys-htd match main std stdio src vc date package
 }
 
 # See if path is in GIT checkout
@@ -868,7 +866,7 @@ EOM
   cat <<EOM
 $2status-flags: $(vc_flags_${scm} "$1" "%s%s%s%s%s%s%s%s"  )
 $2type: $scm
-$2age: '$(vc_age_$scm) ($(datetime_iso $(vc_epoch_$scm)))'
+$2age: '$(vc_age_$scm) ($(date_iso $(vc_epoch_$scm)))'
 $2default: $package_default
 EOM
 

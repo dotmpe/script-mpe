@@ -48,8 +48,8 @@ script_bats__parse_name()
   test_file "$1"
   check_argc 1
   # FIXME: dev this on *nix first
-  #var_isset spec_name || local spec_name=
-  #var_isset feat_cat || local feat_cat=
+  #sh_isset spec_name || local spec_name=
+  #sh_isset feat_cat || local feat_cat=
   #local bn="$(basename "$1")"
   spec_name="$(basename "$1" -spec.bats | sed 's/^[0-9\.]*_//')"
   feat_cat="$(basename "$1" -spec.bats | sed -E 's/^([0-9\.]+)*(.*)?$/\1/')"
@@ -96,7 +96,7 @@ script_bats__features()
 script_bats__colorize()
 {
   # TODO: rename to libexec/
-  $scriptpath/bats-colorize.sh
+  $scriptpath/tools/sh/bats-colorize.sh
 }
 
 

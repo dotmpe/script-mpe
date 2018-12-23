@@ -20,7 +20,7 @@ setup()
 
 @test "$base: incr x (amount): increments var x, output is clean" {
 
-  var_isset x && fail "Unexpected 'x' var in env (x=$x)" || true
+  sh_isset x && fail "Unexpected 'x' var in env (x=$x)" || true
 
   incr x 3
   test $? -eq 0
@@ -38,7 +38,7 @@ setup()
 
 @test "$base: incr-c: increments var c, output is clean" {
 
-  var_isset c && fail "Unecpected 'c' var in env (c=$c)" || true
+  sh_isset c && fail "Unecpected 'c' var in env (c=$c)" || true
 
   run incr_c
   test_ok_empty
@@ -71,7 +71,7 @@ setup()
   cmd_man_1__sub="Bar"
   run try_help 1 sub
   { test_ok_nonempty "  Bar"
-  } || stdfail 
+  } || stdfail
   #test "${lines[*]}" = "$ cmd sub 	Bar Usage: 	cmd sub|-b ARG" &&
   #test "${lines[*]}" = "$ $base sub 	$cmd_man_1__sub Usage: 	$base $cmd_spc__sub"
 }
@@ -108,14 +108,14 @@ setup()
 }
 
 @test "$base: try_local_var" {
-  var_isset myvar1 && stdfail 'unexpected myvar1' || true
+  sh_isset myvar1 && stdfail 'unexpected myvar1' || true
   base=
   _x__b=123
   try_local_var myvar1 b x
   test "$myvar1" = "123"
   set | grep -q '^myvar1='
-  #var_isset myvar1 || stdfail "expected myvar1 ($SCR_SYS_SH)"
-  SCR_SYS_SH=bash-sh var_isset myvar1 || stdfail "expected myvar1 ($SCR_SYS_SH)"
+  #sh_isset myvar1 || stdfail "expected myvar1 ($SCR_SYS_SH)"
+  SCR_SYS_SH=bash-sh sh_isset myvar1 || stdfail "expected myvar1 ($SCR_SYS_SH)"
   unset myvar1
 }
 
@@ -156,7 +156,7 @@ setup()
 
 @test "$base: get-cmd-func-name sets local ${1}_func from internal vars" {
 
-  var_isset test_name && 
+  sh_isset test_name &&
     fail "Unexpected test_name= var in env ('$test_name')" ||
     true
   check_skipped_envs || TODO "envs $envs: implement for env"
@@ -192,7 +192,7 @@ setup()
 
   check_isset()
   {
-    run var_isset $1
+    run sh_isset $1
     test_nok_empty || stdfail "Unexpected $1=${!1} var in env"
   }
 
@@ -225,11 +225,11 @@ setup()
 
 @test "$base: expect some *nix env" {
 
-  var_isset HOME || stdfail "Expected HOME= var in env"
+  sh_isset HOME || stdfail "Expected HOME= var in env"
 }
 
 @test "$base: expect the env for Box" {
 
   skip "not requiring exports for now.. but should test PREFIX, UCONFDIR handling. ."
-  var_isset BOX_DIR || stdfail "Expected BOX_DIR= var in env"
+  sh_isset BOX_DIR || stdfail "Expected BOX_DIR= var in env"
 }

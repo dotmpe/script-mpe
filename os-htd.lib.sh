@@ -14,6 +14,12 @@ os_htd_lib_load()
   test -n "$ggrep" || case "$uname" in
       Linux ) ggrep=grep ;; * ) ggrep=ggrep ;;
   esac
+  test -n "$gstat" || case "$uname" in
+      Linux ) gstat=stat ;; * ) gstat=gstat ;;
+  esac
+  test -n "$guniq" || case "$uname" in
+      Linux ) guniq=uniq ;; * ) guniq=guniq ;;
+  esac
 }
 
 
@@ -550,6 +556,7 @@ get_targets()
   done | sort -u
 }
 
+# Count lines with wc (no EOF termination correction)
 count_lines()
 {
   test -z "$1" -o "$1" = "-" && {

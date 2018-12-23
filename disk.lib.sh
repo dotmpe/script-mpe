@@ -8,12 +8,12 @@ disk_lib_load()
   test -n "$hostname" || hostname=$(hostname)
 
   test -n "$DISK_CATALOG" || DISK_CATALOG=$HOME/.diskdoc
-
-  disk_lib_init
 }
 
 disk_lib_init()
 {
+  local log=; req_init_log
+
   test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
   mkdir -p $DISK_CATALOG/disk
   mkdir -p $DISK_CATALOG/volume
@@ -22,9 +22,12 @@ disk_lib_init()
   case "$(groups)" in
     *" disk "* ) ;;
     * )
-      warn "No disk access, using sudo to read disk device info"
+      $log warn "" "No disk access, using sudo to read disk device info"
+      # FIXME warn "No disk access, using sudo to read disk device info"
       dev_pref="sudo" ;;
   esac
+
+  $log info "" "Loaded disk.lib" "$0"
 }
 
 

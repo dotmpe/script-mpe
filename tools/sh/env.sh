@@ -1,4 +1,16 @@
-#!/bin/sh
+#!/bin/ash
+
+: "${CWD:=$PWD}"
+
+
+# XXX: sync with current user-script tooling; +user-scripts
+# : "${script_env_init:=$CWD/tools/sh/parts/env.sh}"
+# . "$script_env_init"
+
+
+# : "${USER_ENV:=tools/sh/env.sh}"
+# export USER_ENV
+
 
 # Keep current shell settings and mute while preparing env, restore at the end
 shopts=$-
@@ -32,17 +44,22 @@ esac
 type error >/dev/null 2>&1 || { echo "std.lib missing" >&2 ; exit 1 ; }
 type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
 
-#export scriptname scriptpath SCRIPTPATH
-#var_isset scriptname || error "scriptname=$scriptname" 1
-#var_isset scriptpath || error "scriptpath=$scriptpath" 1
-#var_isset SCRIPTPATH || error "SCRIPTPATH=$SCRIPTPATH" 1
+export scriptname=${scriptname:-$(basename "$0")}
+
+export uname=${uname:-$(uname -s)}
+
 
 req_vars verbosity && export verbosity || export verbosity=7
 req_vars DEBUG && export DEBUG || export DEBUG=
 
-var_isset SHELLCHECK_OPTS ||
+sh_isset SHELLCHECK_OPTS ||
     export SHELLCHECK_OPTS="-e SC2154 -e SC2046 -e SC2015 -e SC1090 -e SC2016 -e SC2209 -e SC2034 -e SC1117 -e SC2100 -e SC2221"
 
+# XXX: user-scripts tooling
+#. $script_util/parts/env-std.sh
+#. $script_util/parts/env-src.sh
+. $script_util/parts/env-ucache.sh
+#. $script_util/parts/env-test-bats.sh
 
 ### Start of build job parameterisation
 
@@ -52,32 +69,7 @@ var_isset SHELLCHECK_OPTS ||
 
 project_env_bin node npm lsof
 
-test -n "$TEST_FEATURE_BIN" -o ! -x "./vendor/bin/behat" ||
-    TEST_FEATURE_BIN="./vendor/bin/behat"
-test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(which behat || true)"
-test -n "$TEST_FEATURE_BIN" && {
-    # Command to run one or all feature tests
-    test -n "$TEST_RESULTS" && {
-        TEST_FEATURE="$TEST_FEATURE_BIN -f junit -o$TEST_RESULTS --tags '~@todo&&~@skip' --suite default"
-    } || {
-        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo&&~@skip' --suite default"
-    }
-    # XXX: --tags '~@todo&&~@skip&&~@skip.travis'
-    # Command to print def lines
-    TEST_FEATURE_DEFS="$TEST_FEATURE_BIN -dl"
-}
-
-test -n "$TEST_FEATURE" || {
-    test -n "$TEST_FEATURE_BIN" || TEST_FEATURE_BIN="$(command -v behave || true)"
-    test -n "$TEST_FEATURE_BIN" && {
-        TEST_FEATURE="$TEST_FEATURE_BIN --tags '~@todo' --tags '~@skip' -k"
-    }
-}
-
-test -n "$TEST_FEATURE" || {
-    error "Nothing to test features with"
-    TEST_FEATURE="echo No Test-Feature for"
-}
+. $script_util/parts/env-test-feature.sh
 
 TAP_COLORIZE="script-bats.sh colorize"
 
@@ -210,6 +202,13 @@ req_vars INSTALL_DEPS || {
 test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 
 export PYTHONPATH="$HOME/lib/py:$PYTHONPATH"
+
+
+#. $script_util/parts/env-basher.sh
+#. $script_util/parts/env-logger-stderr-reinit.sh
+#. $script_util/parts/env-github.sh
+# XXX: user-env?
+#. $script_util/parts/env-scriptpath.sh
 
 
 ### Env of build job parameterisation

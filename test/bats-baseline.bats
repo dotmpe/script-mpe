@@ -1,14 +1,56 @@
-#!/h usr/bin/env bats
+#!/usr/bin/env bats
 
-base=bats-baseline
 load init
+base='baseline:bats'
+
+setup()
+{
+  init 0 || err_ "error" "$?" "env-init" "$BATS_TEST_NAME" 1
+}
 
 
-# TODO: test envs are isolated, use other service to record status so
-# next test can query for prev. test state.
-#teardown()
-#{
-#  diag "BATS_TEST_COMPLETED=$BATS_TEST_COMPLETED"
-#  diag "BATS_ERROR_STATUS=$BATS_ERROR_STATUS"
-#  diag "BATS_COUNT_ONLY=$BATS_COUNT_ONLY"
-#}
+@test "$base: vanilla shell" {
+
+  run true
+  test ${status} -eq 0
+  test -z "${lines}"
+
+  run false
+  test ${status} -ne 0
+  test -z "${lines}"
+}
+
+@test "$base: assert lib" {
+
+  load assert
+
+  run true
+  assert_success
+  assert_output ""
+
+  run false
+  assert_failure
+  assert_output ""
+}
+
+@test "$base: helper lib (I)" {
+
+  load extra
+  load stdtest
+
+  run true
+  test_ok_empty
+}
+
+@test "$base: helper lib (II)" {
+
+  load extra
+  load stdtest
+
+  run false
+  test_nok_empty || stdfail
+
+  run echo 123
+  { test_ok_nonempty 1 && test_lines "123"
+  } || stdfail
+}

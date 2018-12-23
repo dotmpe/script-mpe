@@ -36,14 +36,13 @@ __version__ = '0.0.4-dev' # script-mpe
 __tasks_file__ = 'tasks.ttxtm'
 __grep_file__ = 'TODO.list'
 __to_do_list__ = 'to/do.list'
+__done_list__ = '.done.list'
 __usage__ = """
 Usage:
   tasks.py [options] info
   tasks.py [-T|--tag TAG]... [options] list-issues
-  tasks.py [-T|--tag TAG]... [options] new-scan
   tasks.py [-T|--tag TAG]... [--update] [options] read-issues
-  tasks.py [options] update-list [TODOLIST]
-  tasks.py [options] parse-list [TODOLIST]
+  tasks.py [options] parse-list [TASKLIST]
   tasks.py help
   tasks.py -h|--help
   tasks.py --version
@@ -68,7 +67,7 @@ case to case.
 
 Options:
   -t FILE --tasks-file=FILE
-                Document with ``todo.txt`` formatted tickets [default: %s].
+               Document with ``todo.txt`` formatted tickets [default: %s].
   -g FILE --grep-file=FILE
                 Result file with line references and single line descriptions
                 parsed from source [default: %s].
@@ -101,6 +100,12 @@ Options:
   --no-link-all
   --link-all
                 Automatically create issue references for inputs.
+  --include-any
+                Include any environment preset, ie. don't stop at first value.
+  --include-internal
+                Map environment presets keys plus internal name first.
+  -I --only-internal
+                Don't do normal environment preset map, except try only internal name.
   -i --interactive
                 Allow for non-fully configured invocations to query the user
                 via readline. Also enables different settings per input.
@@ -111,20 +116,32 @@ Options:
                 Set verbosity.
   -h --help     Show this usage description.
                 For a command and argument description use the command 'help'.
-  -V --version     Show version (%s)
+  -V --version  Show version (%s)
 
 Defaults:
-    (Would want to set defaults, but see docopt#36)
+    (Would want to set defaults for named arguments below, but see docopt#36).
 
-    TODOLIST      [default: %s]
+    TODOTXT       [default: %s]
+    DONETXT       XXX: no archiving impl. [default: %s]
 
-""" % ( __tasks_file__, __grep_file__, __version__, __to_do_list__ )
+Environment presets:
+    These env keys are loaded and if provided, used to override the static-
+    defaults given normally. Their internal lower case ID is given first.
+
+    tasks_document:  TODOTXT, todo_document
+    tasks_archive:   TODOTXT, todo_done
+
+    XXX: other settings currently ignored, ie. env always overrules. Would want
+    to give explicit opts/args precedence.
+
+""" % ( __tasks_file__, __grep_file__, __version__, __to_do_list__,
+        __done_list__ )
 
 from datetime import datetime
 import os
 import re
 import hashlib
-from pprint import pformat
+from pprint import pprint, pformat
 
 from script_mpe.lib import Prompt
 from script_mpe import log
@@ -332,6 +349,11 @@ def cmd_list_issues(settings, opts, tasks_file):
         v = issues[k]
         print(k,type(v),v)
 
+def cmd_new_scan(settings, opts):
+    """
+  tasks.py [-T|--tag TAG]... [options] new-scan
+    """
+    # TODO: tasks.py new-scan wrap grep?
 
 def cmd_read_issues(settings, opts, tasks_file, grep_file):
     """
@@ -422,15 +444,21 @@ def cmd_read_issues(settings, opts, tasks_file, grep_file):
         else:
             log.note("Not updating document (--no-update)")
 
+def cmd_update_list(settings, opts):
+    """
+  tasks.py [options] update-list [TODOTXT]
+    """
+    # TODO: tasks.py update-list
 
-def cmd_parse_list(settings, opts, TODOLIST):#='to/do.list'):
+def cmd_parse_list(settings, opts, TASKLIST):#='to/do.list'):
     """
+    Testing alt todo.txt syntax task-list parser.
     """
-    # FIXME: defaults
-    if not TODOLIST:
-        TODOLIST = __to_do_list__
+    if not TASKLIST: TASKLIST = __to_do_list__
+
     prsr = res.TaskListParser()
-    prsr.parse(TODOLIST)
+    print(prsr.parse(TASKLIST))
+    print(prsr)
 
 
 ### Transform cmd_ function names to nested dict
@@ -441,6 +469,37 @@ commands['help'] = libcmd_docopt.cmd_help
 
 ### Util functions to run above functions from cmdline
 
+def get_version():
+    return 'tasks.mpe/%s' % __version__
+
+env_map = (
+        #('tasks_cache', '', '' ),
+        #('tasks_annotation', '', '' ),
+
+        ('tasks_list', 'TASKLIST', ),
+        ('tasks_document', 'TODOTXT', 'todo_document' ),
+        ('tasks_archive', 'DONETXT', 'todo_done' )
+    )
+
+def get_keys_from_env(include_internal=False, only_internal=False):
+    """
+    Load presets from env, first key corresponds to target setting.
+    See `env_map`.
+    """
+    presets = {}
+    def try_env(tab, key, env_key=None):
+        "Set tab[key] to shell env value, if found and non-zero."
+        if not env_key: env_key = key
+        v = os.getenv(env_key)
+        if v: tab[key] = v
+    for keys in env_map:
+        dest_key = keys[0]
+        if include_internal: try_env(presets, dest_key)
+        for env_key in keys[1:]:
+            try_env(presets, dest_key, env_key)
+    return presets
+
+
 def main(opts):
 
     """
@@ -450,14 +509,18 @@ def main(opts):
     settings = opts.flags
     values = opts.args
 
+    # XXX: just merge env presets to settings; cannot provide defaults for
+    # arguments atm.
+    settings.update(get_keys_from_env(settings.include_internal,
+        settings.only_internal))
+
     return libcmd_docopt.run_commands(commands, settings, opts)
 
-def get_version():
-    return 'tasks.mpe/%s' % __version__
 
 if __name__ == '__main__':
     import sys
-    opts = libcmd_docopt.get_opts(__description__ + '\n' + __usage__, version=get_version())
+    opts = libcmd_docopt.get_opts(
+            __description__ + '\n' + __usage__, version=get_version())
     if opts.flags.v or opts.flags.verbosity:
         log.category = 6
     if not opts.flags.project_slug:

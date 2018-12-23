@@ -1,11 +1,20 @@
 #!/bin/sh
 set -e
 
-. ./tools/sh/init.sh
+unset  U_S  LOG  INIT_LOG  SCRIPTPATH
+
+: "${U_S:="$HOME/project/user-scripts"}"
+: "${LOG:="$U_S/tools/sh/log.sh"}"
+: "${INIT_LOG:="$LOG"}"
+
+export  U_S  LOG  INIT_LOG
+export verbosity=7
+. $U_S/tools/sh/init.sh
+note OK
 
 lib_load build-test
-lib_init
 build_test_init
+
 
 load extra
 load vc-setup

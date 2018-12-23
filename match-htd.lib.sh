@@ -48,7 +48,7 @@ match_load_defs()
 # match-grep-pattern-test.
 match_grep() # String
 {
-  echo "$1" | gsed -E 's/([^A-Za-z0-9{}(),?!@+_])/\\\1/g'
+  echo "$1" | $gsed -E 's/([^A-Za-z0-9{}(),?!@+_])/\\\1/g'
 }
 
 compile_glob()
@@ -106,10 +106,9 @@ s{
 match_grep_pattern_test()
 {
   p_="$(match_grep "$1")"
-  # test regex (nice for dev mode)
+  # test regex
   echo "$1" | grep -q "^$p_$" || {
     error "cannot build regex for $1: $p_"
-    echo "$p" > invalid.paths
     return 1
   }
 }

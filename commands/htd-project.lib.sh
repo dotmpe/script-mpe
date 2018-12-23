@@ -8,21 +8,13 @@ project_lib_load()
 htd_project_releases()
 {
   . $PACKMETA_SH || true
-  local ns_name=$package_vendor app_id=$package_id gh_r_j=
+
+  local ns_name=$package_vendor app_id=$package_id
+
   test -n "$ns_name" || ns_name=$NS_NAME
   test -n "$app_id" || app_id=$APP_ID
 
-  gh_r_j=$HOME/.statusdir/web/github.com/$ns_name/$app_id/releases.json
-  mkdir -p $(dirname $gh_r_j)
-
-  test -e "$gh_r_j" ||
-      github-release info --user $ns_name --repo $app_id -j > $gh_r_j
-
-  test "null" = "$(jq -r '.Releases' $gh_r_j)" && {
-      test "null" = "$(jq -r '.Tags' $gh_r_j)" && warn "No tags or releases" ||
-          jq -r '.Tags | to_entries[] as $k | $k.value.name,$k.value.tarball_url' $gh_r_j
-  } ||
-      jq -r '.Releases | to_entries[] as $k | $k.value.tag_name,$k.value.tarball_url' $gh_r_j
+  github_release_list "$ns_name" "$app_id"
 }
 
 # TODO: go from project Id, to namespace and provider.

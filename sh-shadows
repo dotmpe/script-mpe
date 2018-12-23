@@ -1,0 +1,29 @@
+#!/bin/ssh
+#set -e
+
+# Find duplicate libs
+
+# Reset script-path for testing scripts
+U_S=
+: "${U_S:="$HOME/project/user-scripts"}"
+: "${LOG:="$U_S/tools/sh/log.sh"}"
+SCRIPTPATH= . $U_S/tools/sh/init.sh
+note OK
+
+lib_init
+
+CWD=$PWD
+echo $SCRIPTPATH | tr ':' '\n' | while read path
+do
+
+  cd "$path" && ls *.lib.sh | tr ' ' '\n'
+
+# Sort, inverse unique (show repated lines) and only unique lines of those
+done | sort | guniq -D | uniq
+cd "$CWD"
+unset CWD
+
+
+note Done
+
+# vim:ft=bash:

@@ -266,19 +266,6 @@ bsd_gsed_pre(){
      -e 's/\<7d\>/1week/g'
 }
 
-date_fmt() # Date-Ref Str-Time-Fmt
-{
-  test -z "$1" && {
-    tags="-d today"
-  } || {
-    # NOTE patching for GNU date
-    _inner_() { printf -- '-d ' ; echo "$1" | bsd_gsed_pre ;}
-    test -e "$1" && { tags="-d @$(filemtime "$1")"; } ||
-      tags=$( p= s= act=_inner_ foreach_do $1 )
-  }
-  $gdate $date_flags $tags +"$2"
-}
-
 # Format path for date, default pattern: "$1/%Y/%m/%d.ext" for dirs, or
 # "$dirname/%Y/%m/%d/$name.ext" for fiels
 archive_path() # Y= M= D= . Dir [Date]
@@ -316,16 +303,6 @@ datelink() # Date Format Target-Path
     rm -v $target_path
   }
   mkrlink $datep $target_path
-}
-
-date_iso() # Ts [date|hours|minutes|seconds|ns]
-{
-  test -n "$2" || set -- "$1" date
-  test -n "$1" && {
-    $gdate -d @$1 --iso-8601=$2 || return $?
-  } || {
-    $gdate --iso-8601=$2 || return $?
-  }
 }
 
 # Print ISO-8601 datetime with minutes precision

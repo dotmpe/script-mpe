@@ -6,8 +6,17 @@
 main_lib_load()
 {
   test -n "$subcmd_default" || subcmd_default=default
-  lib_load sys
 }
+
+main_lib_init()
+{
+  lib_assert log
+
+  local log=; req_init_log
+  $log info "" "Loaded main.lib" "$0"
+}
+
+main_lib_log() { req_init_log; }
 
 
 # Count arguments consumed
@@ -616,7 +625,7 @@ get_cmd_func()
   # get extra function name parts
   for tag in pref suf; do
     # allow empty setting
-    var_isset ${1}_func_${tag} && {
+    sh_isset ${1}_func_${tag} && {
       eval func_${tag}=$(eval echo \$${1}_func_${tag})
       debug "set func_${tag} for ${1} to $(eval echo \$func_${tag})"
     }
@@ -645,12 +654,14 @@ main_init()
 {
   test -n "$1" || set -- "$base"
 
-  stdio_type 0 $$
-  stdio_type 1 $$
-  stdio_type 2 $$
+  {
+      stdio_type 0 $$ &&
+      stdio_type 1 $$ &&
+      stdio_type 2 $$
+  } || return
 
   #std_info "Verbosity $verbosity"
-  var_isset verbosity || verbosity=6
+  sh_isset verbosity || verbosity=6
 
   #test -n "$scsep" || scsep=__
 
@@ -664,10 +675,10 @@ load_subcmd() #  Box-Prefix [Argv]
   test -n "$1" || error "main-load argument expected" 1
   local box_prefix="$1" r= ; shift
   try_exec_func std_load && {
-    std_debug "Standard load OK"
+    debug "Standard load OK"
   } || true # { r=$? error "std load failed"; return $r; }
   try_exec_func ${box_prefix}_load "$@" && {
-    std_debug "Load $box_prefix OK"
+    debug "Load $box_prefix OK"
   } || {
     test -z "$r" || {
       test $r -eq 0 || error "std and ${box_prefix} load failed" 1
@@ -704,7 +715,7 @@ main_unload()
   # XXX: cleanup
   local r=
   try_exec_func std_unload && {
-    std_debug "Standard unload OK"
+    debug "Standard unload OK"
   } || {
     # f
     r=$?; test -n "$1" || {
@@ -713,7 +724,7 @@ main_unload()
   }
   test -n "$1" || return
   try_exec_func ${1}_unload && {
-    std_debug "Load $1 OK"
+    debug "Load $1 OK"
   } || {
     test -z "$r" || {
       test $r -eq 0 || error "std and ${1} unload failed" 1
@@ -723,7 +734,7 @@ main_unload()
 
 main_debug()
 {
-  std_debug "vars:
+  debug "vars:
     cmd=$base args=$*
     subcmd=$subcmd subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def
     script_name=$script_name script_subcmd=$script_subcmd
@@ -773,10 +784,10 @@ main_run_subcmd()
   test -z "$subcmd_args_pre" || set -- "$subcmd_args_pre" "$@"
 
   load_subcmd $box_prefix "$@" || return $?
-  std_debug "$base loaded"
+  debug "$base loaded"
 
   test -z "$dry_run" \
-    && std_debug "executing $scriptname $subcmd" \
+    && debug "executing $scriptname $subcmd" \
     || std_info "** starting DRY RUN $scriptname $subcmd **"
 
   # Execute and exit

@@ -20,7 +20,7 @@ scr_test_sh_main()
     load-ext )
       ;;
     var-isset )
-        var_isset "$2" && return || return $?
+        sh_isset "$2" && return || return $?
       ;;
     * )
         error "Missing/unknown '$1'." 12

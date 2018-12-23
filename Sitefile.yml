@@ -50,9 +50,9 @@ options:
       flags:
       - "--no-toc-backlinks"
       stylesheets:
-        $ref: '#/defs/scripts/default'
-      scripts:
         $ref: '#/defs/stylesheets/default'
+      scripts:
+        $ref: '#/defs/scripts/default'
     pug:
       merge:
         meta:

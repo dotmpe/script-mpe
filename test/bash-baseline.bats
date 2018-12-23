@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 load init
-base=bash-baseline
+base="baseline-2:bash"
 
 setup()
 {
@@ -85,7 +85,7 @@ setup()
 
 @test "$base: aliases are recognized (Bash)" {
   lib_load shell
-  shell_init
+  shell_lib_init
 
   _r() {
     shopt -s expand_aliases

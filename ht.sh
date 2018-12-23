@@ -31,7 +31,7 @@ ht_als__update_stats=update-status
 ht__update_status()
 {
   local scm= scmdir= failed=$(setup_tmpf .failed)
-  lib_load vc
+  lib_load vc-htd
   vc_getscm && {
     vc_status || {
       error "VC getscm/status returned $?"
@@ -183,7 +183,7 @@ EOF
         }
       ;;
 
-    doc-title ) 
+    doc-title )
         title_args_="$(ht__xconsole -query "Title/IDs")"
         title_args="$(echo "$title_args_" | cut -c2-$(( ${#title_args_} - 1)) )"
 
@@ -216,7 +216,7 @@ EOF
 
   esac
 
-  #open 
+  #open
 }
 
 
@@ -284,47 +284,54 @@ ht_init_static()
 {
   test -n "$scriptpath" || return
   export SCRIPTPATH=$scriptpath
-  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-  util_mode=ext . $scriptpath/util.sh
-  . $scriptpath/str.lib.sh
-  . $scriptpath/sys.lib.sh
-  . $scriptpath/os.lib.sh
-  __load=ext . $scriptpath/std.lib.sh
-  . $scriptpath/tools/sh/box.env.sh
-  #box_run_sh_test
-  str_lib_load
-  sys_lib_load
-  std_lib_load
-  os_lib_load
+  test -n "$U_S" || export U_S=/srv/project-local/user-scripts
+  test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
+
+  util_mode=ext . $scriptpath/util.sh || return
+  #. $scriptpath/tools/sh/init.sh || return
+  #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
+  lib_lib_load && lib_lib_init || return
+
+  INIT_LOG=$LOG
+
+  { __load=ext
+    . $scriptpath/os-htd.lib.sh &&
+    . $scriptpath/std-htd.lib.sh &&
+    . $scriptpath/sys-htd.lib.sh &&
+    . $scriptpath/str-htd.lib.sh
+  } || return
+  { __load=ext
+    . $U_S/src/sh/lib/os.lib.sh &&
+    . $U_S/src/sh/lib/std.lib.sh &&
+    . $U_S/src/sh/lib/sys.lib.sh &&
+    . $U_S/src/sh/lib/str.lib.sh &&
+    . $U_S/src/sh/lib/log.lib.sh
+  } || return
+  . $scriptpath/tools/sh/box.env.sh || return
+  box_run_sh_test || return
+  str_htd_lib_load &&
+  sys_htd_lib_load &&
+  std_lib_load &&
+  std_htd_lib_load &&
+  os_htd_lib_load &&
   . $scriptpath/main.lib.sh
+  unset INIT_LOG
   # -- ht box init-static sentinel --
 }
 
 ht_init_dyn()
 {
   test -n "$scriptpath" || return
-  export SCRIPTPATH=$scriptpath:$scriptpath/commands:$scriptpath/contexts
-  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-  util_mode=ext . $scriptpath/util.sh
-  lib_load $default_lib
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
+  util_mode=boot . $scriptpath/util.sh
   # -- ht box init-dynamic sentinel --
 }
 
 ht_lib()
 {
-  test -z "$__load_lib" || return 14
-  local __load_lib=1
-
-  . $scriptpath/shell.lib.sh
-  shell_lib_load
-  shell_check
-
-  # Don't shadown system commands, wrap them
-  test -x "$(which "$1")" && {
-  } || {
-  }
+  INIT_LOG=$LOG
+  . $U_S/src/sh/lib/shell.lib.sh || return
+  shell_lib_load && shell_lib_init || return
+  unset INIT_LOG
   # -- ht box lib sentinel --
   set --
 }

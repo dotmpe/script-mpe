@@ -1817,21 +1817,28 @@ vc_main()
         # TODO: clean up vc env, replace with below
         CWD="$PWD" PCWD="$(pwd -P)" RCWD=.
 
-        export SCRIPTPATH=$scriptpath:/srv/project-local/user-scripts/src/sh/lib
-        test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
-        util_mode=ext . $scriptpath/util.sh
+        test -n "$U_S" || export U_S=/srv/project-local/user-scripts
+        test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
+
+        util_mode=boot . $scriptpath/util.sh
+        #. $scriptpath/tools/sh/init.sh || return $?
 
         test -n "$verbosity" || verbosity=5
         local func=$(echo vc__$subcmd | tr '-' '_') \
             failed= \
             ext_sh_sub=
 
-        lib_load vc-htd
+        lib_load vc-htd || return
         type $func >/dev/null 2>&1 && {
           shift 1
+
+          lib_load sys-htd date package &&
+          lib_init sys-htd date package || return
+
           vc_load || return
           $func "$@" || return $?
           vc_unload || return
+
         } || {
           R=$?
           vc_load || return

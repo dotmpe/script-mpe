@@ -3,28 +3,34 @@
 
 box_lib_load()
 {
-  test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
-  test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "$box_name" || box_name=$hostname
+}
+
+box_lib_init()
+{
+  lib_assert src
+
   test -z "$DEBUG" || {
     test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
   }
+
+  test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
+  test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
+
   mkvid $(pwd)
   nid_cwd=$vid
   unset vid
-
-  #lib_load src
-
-  test -n "$box_name" || box_name=$hostname
 
   test -e "$BOX_DIR/bin/$box_name" \
     && box_file="$BOX_DIR/bin/$box_name" || true
 }
 
+
 box_docs()
 {
   true
-  #echo 'Docs:'
+  # XXX: echo 'Docs:'
 }
 
 

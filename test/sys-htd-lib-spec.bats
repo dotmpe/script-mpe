@@ -27,25 +27,25 @@ setup()
 
 @test "$base: var-isset detects vars correctly even if empty" {
 
-  func_exists var_isset
+  func_exists sh_isset
 
   lib_load sys
-  ( 
+  (
     env | grep -v '^[A-Z0-9_]*=' | grep '\<foo_bar='
   ) && fail "unexpected" || true
-  var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || true
+  sh_isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || true
 
-  run var_isset foo_bar
+  run sh_isset foo_bar
   test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
 
   # XXX: Bats with non-bash test subshell?
   test -n "$SHELL" -a "$(basename $SHELL)" = "sh" || skip
 
   foo_bar=
-  run var_isset foo_bar
+  run sh_isset foo_bar
   test $status -eq 0 || fail "3. Expected foo_bar set ($status)"
   unset foo_bar
-  run var_isset foo_bar
+  run sh_isset foo_bar
   test $status -eq 1 || fail "4. Unexpected foo_bar set ($status)"
 }
 
@@ -55,7 +55,7 @@ setup()
   ./test/util-lib-spec.sh var-isset foo_bar && fail "1. Unexpected foo_bar set ($?)" || echo
 
   run ./test/util-lib-spec.sh var-isset foo_bar
-  test $status -eq 1 || 
+  test $status -eq 1 ||
     fail "2. Unexpected foo_bar set ($status; pwd $(pwd); out ${lines[*]})"
 
   run sh -c "foo_bar= ./test/util-lib-spec.sh var-isset foo_bar"
@@ -80,20 +80,20 @@ setup()
 @test "$base: var-isset detects vars correctly even if empty, exported" {
 
   lib_load sys
-  var_isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
-  run var_isset foo_bar
+  sh_isset foo_bar && fail "1. Unexpected foo_bar set ($?)"
+  run sh_isset foo_bar
   test $status -eq 1 || fail "2. Unexpected foo_bar set ($status)"
   export foo_bar=
-  run var_isset foo_bar
+  run sh_isset foo_bar
   test $status -eq 0 || fail "3. Expected foo_bar set ($status)"
   unset foo_bar
-  run var_isset foo_bar
+  run sh_isset foo_bar
   test $status -eq 1 || fail "4. Unexpected foo_bar set ($status)"
   export foo_bar=
-  run var_isset foo_bar
+  run sh_isset foo_bar
   test $status -eq 0 || fail "5. Expected foo_bar set ($status)"
   unset foo_bar
-  run var_isset foo_bar
+  run sh_isset foo_bar
   test $status -eq 1 || fail "6. Unexpected foo_bar set ($status)"
 }
 
@@ -105,11 +105,11 @@ setup()
   test -n "$SHELL" -a "$(basename $SHELL)" = "sh" || skip
 
   local foo_bar_baz=
-  run var_isset foo_bar_baz 
+  run sh_isset foo_bar_baz
   test $status -eq 0 || fail "Expected foo_bar_baz set ($status)"
 
   unset foo_bar_baz
-  run var_isset foo_bar_baz
+  run sh_isset foo_bar_baz
   test $status -eq 1 || fail "Unexpected foo_bar_baz ($status)"
 
   unset foo_bar

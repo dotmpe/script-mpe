@@ -1,0 +1,24 @@
+#!/bin/sh
+
+set -e
+
+# Check that all functions are present
+
+# Reset script-path for testing scripts
+SCRIPTPATH=$PWD/src/sh/lib:$HOME/bin
+. ./tools/sh/init.sh
+
+lib_load composure std src vc-htd function functions ck ck-htd shell git volume oil docker-sh
+lib_load package
+lib_init
+composure_check_name_scripts
+
+#vc_tracked
+
+lib_load build-htd
+lib_init
+build_init
+
+#list_sh_files
+#expand_spec_src script_libs
+build_package_script_lib_list

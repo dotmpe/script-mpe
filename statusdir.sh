@@ -402,8 +402,9 @@ EOM
 statusdir_init()
 {
   test -n "$scriptpath" || return
-  export SCRIPTPATH=$scriptpath
-  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/log.sh
+  test -n "$U_S" || export U_S=/srv/project-local/user-scripts
+  test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
+  test -n "$SCRIPTPATH" || export SCRIPTPATH=$scriptpath
   util_mode=ext . $scriptpath/util.sh
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test

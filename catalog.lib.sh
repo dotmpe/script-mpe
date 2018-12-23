@@ -4,7 +4,7 @@
 
 catalog_lib_load()
 {
-  lib_load ck
+  lib_load ck-htd ck
   trueish "$usercat" && {
     test -n "$CATALOGS" || CATALOGS=$HOME/.cllct/catalogs.list
   } || {

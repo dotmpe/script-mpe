@@ -1,0 +1,58 @@
+#!/bin/ssh
+
+# Build project{,-repo}-stats for github repositories
+
+set -e
+
+export verbosity=7
+
+U_S=
+LOG=
+
+test -e "$(realpath "/srv/project-local/")" && {
+
+  : "${U_S:="/srv/project-local/user-scripts"}"
+} || {
+
+  test -d "/src/github.com/bvberkum" && {
+
+    : "${U_S:="/src/github.com/bvberkum/user-scripts"}"
+  } || {
+
+    : "${U_S:="$HOME/build/bvberkum/user-scripts"}"
+  }
+}
+
+echo U-s: $U_S
+
+: "${LOG:="$U_S/tools/sh/log.sh"}"
+
+export U_S LOG
+
+#export GITHUB_TOKEN=
+
+set -e
+scriptpath=$PWD util_mode=boot . $PWD/util.sh || return
+# XXX: test both . $U_S/tools/sh/init.sh
+
+
+note "Initialized, loading more libs..."
+
+lib_load github htd date
+lib_init github htd date
+
+#lib_load build package build-test
+#package_init
+#build_test_init
+
+note "OK"
+
+github_repo_list | tr '/' ' ' | while read ns_name repo
+do
+  echo "$ns_name $repo:"
+  #github_release_list "\$ns_name" "\$repo"
+done
+
+note "Done"
+
+# vim:ft=bash:

@@ -7,7 +7,7 @@ base=sh-baseline
 
 setup()
 {
-  init
+  init &&
   . $SHT_PWD/var/sh-src-main-mytest-funcs.sh
 }
 

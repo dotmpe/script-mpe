@@ -184,7 +184,7 @@ disk_man_1__list_local="Tabulate disk info for local disks (e.g. from /dev/)"
 disk_spc__list_local=list-local
 disk__list_local()
 {
-  disk__local || return && echo "# Disks at $(hostname), $(datetime_iso)"
+  disk__local || return && echo "# Disks at $(hostname), $(date_iso)"
 }
 disk_load__list_local=f
 
@@ -294,7 +294,7 @@ disk__list()
       unset host disk_id disk_index prefix volumes description
     done
   } | sort -n | column -tc 3
-  echo "# Catalog at $(hostname):$DISK_CATALOG, $(datetime_iso)"
+  echo "# Catalog at $(hostname):$DISK_CATALOG, $(date_iso)"
 }
 
 
@@ -480,18 +480,22 @@ disk_main()
         local scsep=__ bgd= \
           subcmd_pref=${scriptalias} \
           disk_default=status \
+          disk_log="$INIT_LOG" \
           func_exists= \
           func= \
           sock= \
           c=0
 
-				SCRIPTPATH=$scriptpath
-        util_mode=ext . $scriptpath/util.sh
-        util_init
-        disk_init "$@" || error "init failed" $?
+        test -n "$disk_log" || disk_log=$scriptpath/tools/sh/log.sh
+
+        $disk_log info "" "1/3 disk.sh init"
+        disk_init "$@" || $disk_log error "" "init failed" "" $?
         shift $c
 
-        disk_lib || exit $?
+        $disk_log info "" "2/3 disk.sh lib"
+        disk_lib "$@" || $disk_log error "" "lib failed" "" $?
+
+        std_info "3/3 disk.sh run"
         main_run_subcmd "$@" || exit $?
       ;;
 
@@ -508,20 +512,16 @@ disk_main()
 # FIXME: Pre-bootstrap init
 disk_init()
 {
-  local __load_lib=1
-  . $scriptpath/tools/sh/box.env.sh
-  . $scriptpath/box.lib.sh
-  box_run_sh_test
-  lib_load main htd meta box date doc table disk darwin remote match
-  test -n "$verbosity" || verbosity=6
+  util_mode=boot . $scriptpath/util.sh || return
   # -- disk box init sentinel --
 }
 
-# FIXME: 2nd boostrap init
 disk_lib()
 {
-  local __load_lib=1
-  . ~/bin/box.lib.sh
+  set -- disk date str-htd sys-htd os-htd table darwin remote
+
+  INIT_LOG=$init_log lib_load "$@" || return
+  INIT_LOG=$init_log lib_init "$@" || return
   # -- disk box lib sentinel --
 }
 
@@ -530,7 +530,7 @@ disk_lib()
 
 # Pre-exec: post subcmd-boostrap init
 disk_load()
-{
+
   #test -x "/sbin/parted" || error "parted required" 1
   #test -x "/sbin/fdisk" || error "fdisk required" 1
   test -n "$disk_session_id" || disk_session_id=$(get_uuid)
