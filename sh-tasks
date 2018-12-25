@@ -1,0 +1,17 @@
+#!/bin/ash
+
+
+current()
+{
+  true
+}
+
+
+# test $# -gt 0 -a "${1:-}" = "tasks
+
+#|| set -- tooling-baseline
+
+test $# -gt 0 || set -- current
+
+echo tasks
+# vim:ft=bash:

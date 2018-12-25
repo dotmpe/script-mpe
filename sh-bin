@@ -1,0 +1,9 @@
+#!/bin/ash
+
+
+init_sh_libs= init_sh_boot= __load_lib=
+
+. ./tools/sh/init.sh
+
+
+# vim:ft=bash:

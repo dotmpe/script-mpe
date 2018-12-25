@@ -14,7 +14,7 @@ addons:
       - uuid-runtime
       - moreutils
       - curl
-      - php5-cli
+      - php-cli
       - posh
       - dash
       - ruby-bundler
@@ -57,6 +57,7 @@ env:
     - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
     - COUCH_DB=test
     - TMPDIR=/tmp
+    - U_S=$HOME/build/bvberkum/user-scripts
     # GITHUB_TOKEN
     - secure: "KcpgIZINqays/BZkCYcQTiI3/ACWhRJbLWYD2tHE7GLSTyyBc1nQQWFx3oEZMJcfwUWtHioLx7c7gzO7+UYoOtc3+XfnuTt1g7Fid3xnXE9F5qCTVrIYSuFFT50iDYj2Gp12mRoMwauhvFFRDS3bM/KT/6GOYq9dPdoviDgPtzg="
 
@@ -113,8 +114,8 @@ after_script:
   - . ./tools/ci/after.sh
 
 
-matrix:
-  include: []
+#matrix:
+#  include: []
 #  exclude: []
 
 branches:

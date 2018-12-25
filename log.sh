@@ -1,1 +1,0 @@
-/srv/project-local/user-scripts/tools/sh/log.sh

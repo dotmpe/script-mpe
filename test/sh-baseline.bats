@@ -1,25 +1,23 @@
 #!/usr/bin/env bats
 
-load init
-
 base=sh-baseline
-
 
 setup()
 {
-  init &&
+  load init || $INIT_LOG "error" "" "load-init" "" 1
+  init || $INIT_LOG "error" "$?" "env-init" "$BATS_TEST_NAME" 1
   . $SHT_PWD/var/sh-src-main-mytest-funcs.sh
 }
 
 
-@test "${base}: true equals success" {
+@test "$base: true equals success" {
 
   func_exists true
   run true
   test_ok_empty || stdfail
 }
 
-@test "${base}: false equals failure" {
+@test "$base: false equals failure" {
 
   func_exists false
   run false

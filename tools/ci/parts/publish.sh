@@ -1,10 +1,14 @@
 #!/bin/sh
-# Publish build-report to CouchDB
+# Pub/dist
 
-export publish_ts=$(epoch_microtime)
-note "Starting $scriptname"
+# XXX: export publish_ts=$(epoch_microtime)
+export publish_ts=$($gdate +%s.%N)
+ci_stages="$ci_stages publish"
 
-. ./tools/ci/parts/report-times.sh
+ci_announce "Starting ci:publish"
+
+
+. "./tools/ci/parts/report-times.sh"
 
 # FIXME: pubish
 

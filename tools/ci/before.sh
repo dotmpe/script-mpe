@@ -1,4 +1,12 @@
-#!/bin/sh
-export scriptname="before-script" before_script_ts="$(date +"%s.%N")"
-note "Starting $scriptname..."
-. ./tools/ci/parts/check.sh
+#!/bin/ash
+# See .travis.yml
+
+export_stage before-script before_script && announce_stage
+
+. "./tools/ci/parts/check.sh"
+
+. "./tools/ci/parts/init-build-cache.sh"
+
+close_stage
+
+. "$ci_util/deinit.sh"

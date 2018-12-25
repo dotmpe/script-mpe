@@ -1,17 +1,51 @@
 #!/bin/ash
 set -e
 
+CWD="$PWD"
+PPWD="`pwd -P`"
+
 unset  U_S  LOG  INIT_LOG  SCRIPTPATH
 
-: "${U_S:="$HOME/project/user-scripts"}"
-: "${LOG:="$U_S/tools/sh/log.sh"}"
-: "${INIT_LOG:="$LOG"}"
+#test -n "${PROJECT_DIR:-}" || {
+#  test -w /srv/project-local &&
+#    PROJECT_DIR=/srv/project-local || PROJECT_DIR=$HOME/project
+#}
 
-export  U_S  LOG  INIT_LOG
+#U_S=/src/github.com/bvberkum/user-scripts
+#: "${U_S:="$HOME/build/bvberkum/user-scripts"}"
+#: "${U_S:="$HOME/project/user-scripts"}"
+#: "${LOG:="$PPWD/tools/sh/log.sh"}"
+#: "${LOG:="$U_S/tools/sh/log.sh"}"
+#: "${INIT_LOG:="$LOG"}"
+
+. "tools/sh/parts/env-ucache.sh"
+
+. "tools/ci/util.sh"
+
+. "tools/sh/parts/env-0.sh"
+. "tools/sh/parts/env-log.sh"
+. "tools/sh/parts/env-std.sh"
+. "tools/sh/parts/env-src.sh"
+. "tools/sh/parts/env-dev.sh"
+. "tools/sh/parts/env-test.sh"
+
+. "tools/ci/parts/init-user-repo.sh"
+
+unset SCRIPTPATH
+. "tools/sh/parts/env-scriptpath.sh"
+echo '-----'
+echo $SCRIPTPATH | tr ':' '\n'
+
+ci_announce '---------- Listing user checkouts'
+./bin/u-s user-repos
+echo
+
+#export  U_S  LOG  INIT_LOG
 export verbosity=7
-. $U_S/tools/sh/init.sh
-#. $HOME/bin/tools/sh/init.sh
+
+. $PPWD/tools/sh/init.sh
 note OK
+
 
 lib_load composure std src function functions ck shell git volume oil docker-sh
 lib_init

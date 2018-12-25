@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -o nounset
+set -o pipefail
+set -o errexit
+
+scriptname=sh-treebox-ci
+unset LOG INIT_LOG CWD U_S
+
+: "${CWD:="$PWD"}"
+: "${U_S:="$PWD"}"
+: "${ci_util:="$CWD/tools/ci"}"
+: "${script_util:="$CWD/tools/sh"}"
+: "${LOG:="$script_util/log.sh"}"
+: "${INIT_LOG:="$LOG"}"
+
+. "$ci_util/before-install.sh"
+#. "$ci_util/install.sh"
+
+#. "$ci_util/before-script.sh"
+#. "$ci_util/script.sh"
+
+#. "$ci_util/before-cache.sh"
+#. "$ci_util/cache.sh"
+
+#test $SCRIPT_RESULT -eq 0 && {
+#  . "$ci_util/after-success.sh"
+#} || {
+#  . "$ci_util/after-failure.sh"
+#}
+#. "$ci_util/after.sh"
+
+ci_announce "$scriptname OK"
+# Id: u-s/0.0 sh-treebox-ci

@@ -1,11 +1,12 @@
 #!/usr/bin/env bats
 
-load init
 base="baseline-2:bash"
 
 setup()
 {
-   init && . $scriptpath/util.sh && load assert
+  load init || $INIT_LOG "error" "" "load-init" "" 1
+  init || $INIT_LOG "error" "$?" "env-init" "$BATS_TEST_NAME" 1
+  . $scriptpath/util.sh && load assert
 }
 
 

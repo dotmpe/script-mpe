@@ -7,7 +7,7 @@ ENV_D_SCRIPTPATH=$UCACHE/user-env/$$-SCRIPTPATH.txt
 
 support_libs="user-scripts user-scripts-support user-scripts-incubator user-conf"
             #script-mpe user-scripts user-scripts-support user-conf
-base_dirs="$HOME/project $HOME/build/bvberkum $HOME/build/user-tools $HOME/lib/sh"
+base_dirs="$HOME/project $VND_GH_SRC/bvberkum $HOME/build/bvberkum $HOME/build/user-tools $HOME/lib/sh"
 
 test -n "$sh_src_base" || sh_src_base=/src/sh/lib
 

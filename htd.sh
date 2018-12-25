@@ -42,7 +42,7 @@ htd_load()
   # Default-Env upper-case: shell env constants
   local upper=1 title=
 
-  export CWD=$(pwd)
+  CWD=$(pwd)
   not_trueish "$DEBUG" || {
     test "$CWD" = "$(pwd -P)" || warn "Current path seems to be aliased ($CWD)"
   }
@@ -9005,11 +9005,11 @@ htd_main()
     arguments= subcmd_prefs= options= \
     passed= skipped= error= failed=
 
-  test -n "$verbosity" || local verbosity=5
   #test -n "$U_S" || U_S=/srv/project-local/user-scripts
   #test -n "$htd_log" || htd_log=$U_S/tools/sh/log.sh
   test -n "$script_util" || script_util=$scriptpath/tools/sh
   test -n "$htd_log" || htd_log=$script_util/log.sh
+  test -n "$verbosity" || verbosity=4
 
   htd_init || $htd_log error htd-main "During htd-init: $?" "$0" $? || return
 
@@ -9078,7 +9078,12 @@ htd_init()
 
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
   test -n "$htd_env_d_default" ||
-      htd_env_d_default=init-log\ ucache\ scriptpath
+      htd_env_d_default=init-log\ ucache\ scriptpath\ std
+
+  unset CWD
+  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
+  INIT_LOG=$LOG
+  U_S=/srv/project-local/user-scripts
 
   for env_d in $htd_env_d_default
   do
@@ -9086,8 +9091,8 @@ htd_init()
   done
   $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
 
-  util_mode=ext . $scriptpath/util.sh || return
   # XXX: util_mode=ext . $scriptpath/tools/sh/init.sh || return $?
+  util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
 
   lib_lib_load && lib_lib_init || return
 

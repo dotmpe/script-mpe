@@ -1,16 +1,25 @@
-#!/bin/sh
+#!/bin/ash
 
-. "${BASH_ENV:="$PWD/tools/ci/env.sh"}"
+export VND_SRC_PREFIX=$HOME/build
+: "${CWD:="$PWD"}"
 
+echo "Sourcing env (I)... <${BASH_ENV:-} $CWD $PWD>"
+: "${ci_util:="$CWD/tools/ci"}"
+. "${BASH_ENV:="$PWD/tools/ci/env.sh"}" || echo "Ignored: ERR:$?"
 
 export_stage before-install before_install
 
-# 'sponge' some scripts' output to try to prevent Travis from cutting of build;
-# slow buffer?
-# but sponged scripts cannot import local env or functions into build context.
-#
-# Would test sync as alternative but need more syntax either way..
 
-. ./tools/ci/env.sh
-. ./tools/ci/parts/init.sh
-. ./tools/ci/parts/announce.sh
+. "$ci_util/parts/announce.sh"
+
+# Get checkouts, tool installs and rebuild env (PATH etc.)
+. "$ci_util/parts/init-user-repo.sh"
+
+
+. "$ci_util/parts/check-git.sh"
+
+. "$ci_util/parts/init.sh"
+
+close_stage
+
+# Id: script-mpe/0.0.4-dev tools/ci/before-install.sh

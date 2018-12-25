@@ -1,3 +1,5 @@
 #!/bin/sh
 export_stage failure && announce_stage
-std_note "End of $scriptname"
+
+close_stage
+. "$ci_util/deinit.sh"

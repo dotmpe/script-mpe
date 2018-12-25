@@ -1,0 +1,9 @@
+# varspec                     cmdspec                                         #
+
+true                          bash ~/bin/sh-treebox-us-inner
+export  DEBUG=1 verbosity=7
+
+ENV_NAME=testing              bash ~/bin/sh-treebox-ci
+  export DEBUG=1 verbosity=7
+
+# vim:ft=bash:

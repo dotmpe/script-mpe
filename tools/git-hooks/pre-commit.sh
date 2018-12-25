@@ -1,13 +1,11 @@
-#!/bin/sh
+#!/bin/ash
 
 # Executes before commit-msg is determined, to check stage or tree and abort if desired
 
 # See man 5 githooks
 
-test -z "$scm_nok" || exit $scm_nok
 
-set -e
-
+test -z "${scm_nok:-}" || exit $scm_nok
 
 # TODO: limit output to about one screen max, about 80 lines;
 # start with top-10's for below scans.
@@ -58,7 +56,9 @@ EOF
 fi
 
 # If there are whitespace errors, print the offending file names and fail.
-git diff-index --check --cached $against --
+git diff-index --check --cached $against -- &&
+  $LOG note "OK" "Git whitespace checked" ||
+    $LOG warn "Not OK" "Git whitespace check failed"
 
 
 test ! -x $HOME/.git-checks || {

@@ -2,12 +2,28 @@
 
 # Report times for CI script phases
 
-note "Main CI Script run-time: $(echo "$script_end_ts - $script_ts"|bc) seconds"
-note "CI run-time since start: $(echo "$report_times_ts - $ci_env_ts"|bc) seconds"
+$LOG "info" "" "Main CI Script run-time: $(echo "$script_end_ts - $script_ts"|bc) seconds"
+$LOG "info" "" "CI run-time since start: $(echo "$report_times_ts - $ci_env_ts"|bc) seconds"
+
+
+$LOG "note" "" "Reporting CI phase event times (test):"
+for evt in $ci_stages
+do
+  echo "$evt:"
+  ts="$(eval echo \$${evt}_ts)"
+  ts_e="$(eval echo \$${evt}_end_ts)"
+  echo "  Start: $($gdate --iso=ns -d @$ts) ($ts)"
+  echo "  End: $($gdate --iso=ns -d @$ts_e) ($ts_e)"
+  true
+done
+
+
+lib_load date
+
 
 # Travis build-phases and CI/part scripts
 
-note "Reporting CI phase event times:"
+$LOG "note" "" "Reporting CI phase event times:"
 for event in \
     travis_ci_timer \
     before_install \
@@ -35,7 +51,7 @@ for event in \
     # Report event time relative to script-start
     deltamicro="$(echo "$script_ts - $ts" | bc )"
 
-    deltasec="$(( $(sec_nomicro "$script_ts") - $(sec_nomicro "$ts") ))"
+    deltasec="$(echo "$(sec_nomicro "$script_ts") - $(sec_nomicro "$ts")" | bc )"
 
     echo "$event: $(fmtdate_relative "" "$deltasec") ($deltamicro seconds)"
 

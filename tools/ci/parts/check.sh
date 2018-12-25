@@ -3,28 +3,28 @@
 export ci_check_ts=$($gdate +"%s.%N")
 
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
-note "Entry for CI pre-test / check phase"
+$LOG note "" "Entry for CI pre-test / check phase"
 
 
-note "User: $( whoami )"
-note "Host: $( hostname )"
+$LOG note "" "User: $( whoami )"
+$LOG note "" "Host: $( hostname )"
 
-note "*PATH* env:"
+$LOG note "" "*PATH* env:"
 env | grep PATH
 
-note "TERM=$TERM"
-note "TRAVIS_SKIP=$TRAVIS_SKIP"
-note "ENV=$ENV"
-note "Build dir: $(pwd)"
+$LOG note "" "TERM=$TERM"
+$LOG note "" "TRAVIS_SKIP=$TRAVIS_SKIP"
+$LOG note "" "ENV=$ENV"
+$LOG note "" "Build dir: $(pwd)"
 
 
-note "Pre-flight check.."
+$LOG note "" "Pre-flight check.."
 
 # Basicly if these don't run dont bother testing/building/publishing/...:
 
 bash --version
-test -x "$(which dash)" || error "No dash" 12
-#test -x "$(which posh)" || error "No posh" 12
+test -x "$(which dash)" || $LOG error "" "No dash" 12
+#test -x "$(which posh)" || $LOG error "" "No posh" 12
 
 not_trueish "$SHIPPABLE" || {
   perl --version
@@ -36,12 +36,12 @@ bats --version
 realpath --version
 
 basher help >/dev/null
-test -x $(which basher) || error "No basher" 1
+test -x $(which basher) || $LOG error "" "No basher" 1
 
 git-versioning check
 
 travis version && {
-  test -n "GITHUB_TOKEN" || error "Empty GITHUB_TOKEN" 1
+  test -n "GITHUB_TOKEN" || $LOG error "" "Empty GITHUB_TOKEN" 1
   travis login --github-token "$GITHUB_TOKEN" &&
     travis history -r bvberkum/script-mpe
 }
@@ -57,33 +57,33 @@ travis version && {
 # Local commands should be on PATH and working OK
 
 
-note "docker-sh"
+$LOG note "" "docker-sh"
 { { docker-sh.sh -V && docker-sh.sh --help
-} 2>&1 >/dev/null; } || error "docker-sh"
+} 2>&1 >/dev/null; } || $LOG error "" "docker-sh"
 
-note "sh-switch"
+$LOG note "" "sh-switch"
 { { sh_switch.py -V && sh_switch.py --help
-} 2>&1 >/dev/null; } || error "sh_switch"
+} 2>&1 >/dev/null; } || $LOG error "" "sh_switch"
 
-note "matchbox"
+$LOG note "" "matchbox"
 { { matchbox.py -V && matchbox.py --help
-} 2>&1 >/dev/null; } || error "matchbox"
+} 2>&1 >/dev/null; } || $LOG error "" "matchbox"
 
-note "Htd tools"
+$LOG note "" "Htd tools"
 { { htd tools
-} 2>&1 >/dev/null; } || error "htd tools"
+} 2>&1 >/dev/null; } || $LOG error "" "htd tools"
 
-note "Htd prefixes"
+$LOG note "" "Htd prefixes"
 { { htd list-prefixes
-} 2>&1 >/dev/null; } || error "htd list-prefixes"
+} 2>&1 >/dev/null; } || $LOG error "" "htd list-prefixes"
 
-note "box-instance:"
+$LOG note "" "box-instance:"
 { {
  box-instance.sh x foo bar && box-instance.sh y
-} 2>&1 >/dev/null; } || error "box-instance"
+} 2>&1 >/dev/null; } || $LOG error "" "box-instance"
 
 
 # Other commands in build #dev phase.
 
-note "Done"
+$LOG note "" "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/check.sh

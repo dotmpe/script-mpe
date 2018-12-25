@@ -1,26 +1,48 @@
-#!/bin/sh
+#!/usr/bin/env bash
+test -z "${ci_util_:-}" && ci_util_=1 || exit 98 # Recursion
+
+: "${ci_stages:=}"
 
 export_stage() {
   test -n "$1" || return 100
   test -n "$2" || set -- "$1" "$1"
-  export scriptname=$1 stage=$1 stage_id=$2 ${2}_ts="$(date +%s.%N)"
+
+  export scriptname=$1 stage=$1 stage_id=$2 ${2}_ts="$($gdate +%s.%N)"
+  ci_stages="$ci_stages $stage_id"
 }
+
 announce_stage() {
   test -n "$1" || set -- "$stage"
   test -n "$2" || set -- "$1" "$stage_id"
   test -n "$2" || set -- "$1" "$1"
-  echo "--- Starting '$stage'... ($(date --iso=ns -d @$(eval echo \$${2}_ts)))"
-}
-announce()
-{
-  echo "---------- $1 ($(date --iso=ns))"
+
+  print_yellow "$stage" "Starting stage... ($($gdate --iso=ns -d @$(eval echo \$${2}_ts)))"
 }
 
-# No error on empty, or not trueish match
-not_trueish()
+close_stage()
 {
-  test -n "$1" || return 0
-  trueish "$1" && return 1 || return 0
+  test -n "$1" || set -- "Done"
+
+  export ${stage_id}_end_ts="$($gdate +%s.%N)"
+  stages_done="$stages_done $stage_id"
+  print_yellow "$stage" "$1 ($($gdate --iso=ns))"
+}
+
+ci_announce()
+{
+  print_yellow "$stage" "$1 ($($gdate --iso=ns))"
+}
+
+ci_bail()
+{
+  test $# -eq 1 || return
+  print_red "$1" >&2 ; return 1
+}
+
+ci_abort()
+{
+  test $# -eq 1 || return
+  print_red "$1" >&2 ; exit 1
 }
 
 #

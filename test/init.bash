@@ -33,13 +33,24 @@ log_level_num() # Level-Name
 }
 
 
-fnmatch() { case "$2" in $1 ) true ;; * ) false ;; esac; }
+assert_equal()
+{
+  test $# -eq 2 || return
+  local actual="$1" expected="$2"
+  test "$actual" = "$expected" &&
+    $LOG "debug" "OK" "Matches:" "$expected" ||
+    $LOG "warn" "Not OK" "Failed:" "'$actual' != '$expected'" 1
+}
+
+diag() { echo "$@"; }
 
 
 # Simple init-log shell function that behaves well in unintialzed env,
 # but does not add (vars) to env.
 err_() # [type] [cat] [msg] [tags] [status]
 {
+  test $# -gt 0 || return
+  test $# -gt 1 || set -- "$@" "" "" "" ""
   test -z "$verbosity" -a -z "$DEBUG" && return
   test -n "$2" || set -- "$1" "$base" "$3" "$4" "$5"
   test -z "$verbosity" -a -n "$DEBUG" || {
@@ -155,9 +166,7 @@ load_init() # [ 0 ]
   }
 
   test -n "$TMPDIR" || TMPDIR=/tmp
-  BATS_TMPDIR=$TMPDIR/bats-temp-$(get_uuid)
-  BATS_CWD=$PWD
-  BATS_TEST_DIRNAME=$PWD/test
+  . "./tools/sh/parts/env-test-bats.sh"
   load_init_bats
 #  test "$PWD" = "$scriptpath"
 }
@@ -277,7 +286,7 @@ bats_dynamic_include_path()
 load_init_bats()
 {
   test -n "$BATS_LIB_PATH" || bats_dynamic_include_path
-  
+
   test -n "$BATS_LIB_EXTS" || BATS_LIB_EXTS=.bash\ .sh
   test -n "$BATS_VAR_EXTS" || BATS_VAR_EXTS=.txt\ .tab
   test -n "$BATS_LIB_DEFAULT" || BATS_LIB_DEFAULT=load
@@ -287,7 +296,7 @@ load() # ( PATH | NAME )
 {
   test $# -gt 0 || return 1
   : "${lookup_exts:=${BATS_LIB_EXTS}}"
-  while test $# -gt 0 
+  while test $# -gt 0
   do
     source $(bats_lib_lookup "$1" || return $? ) || return $?
     shift

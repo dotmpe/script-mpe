@@ -1809,7 +1809,6 @@ vc_main()
   # Do something if script invoked as 'vc.sh'
   local scriptname=vc base="$(basename "$0" .sh)" subcmd=$1
   case "$base" in $scriptname )
-
         test -n "$scriptpath" || scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
 
         # PWD, real PWD and relative 'short/symbolic' path
@@ -1817,13 +1816,21 @@ vc_main()
         # TODO: clean up vc env, replace with below
         CWD="$PWD" PCWD="$(pwd -P)" RCWD=.
 
-        test -n "$U_S" || export U_S=/srv/project-local/user-scripts
-        test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
-
-        util_mode=boot . $scriptpath/util.sh
-        #. $scriptpath/tools/sh/init.sh || return $?
-
+        test -z "$v" || verbosity=$v
         test -n "$verbosity" || verbosity=5
+        export verbosity DEBUG=
+
+        test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
+        INIT_LOG=$LOG \
+        U_S=/srv/project-local/user-scripts \
+        script_util=$scriptpath/tools/sh \
+            vc_env_load || return
+
+        #util_mode=boot . $scriptpath/tools/sh/init-wrapper.sh
+        #echo util_mode=boot . $scriptpath/tools/sh/init.sh
+        #util_mode=boot . $scriptpath/tools/sh/init.sh
+        . $scriptpath/tools/sh/init.sh || return $?
+
         local func=$(echo vc__$subcmd | tr '-' '_') \
             failed= \
             ext_sh_sub=
@@ -1832,8 +1839,9 @@ vc_main()
         type $func >/dev/null 2>&1 && {
           shift 1
 
-          lib_load sys-htd date package &&
-          lib_init sys-htd date package || return
+          lib_load main sys-htd std date package stdio &&
+          INIT_LOG=$LOG \
+          lib_init main sys-htd std date package stdio || return
 
           vc_load || return
           $func "$@" || return $?
@@ -1860,6 +1868,25 @@ vc_main()
       ;;
 
   esac
+}
+
+
+# Set env and other per-specfile init
+vc_env_load()
+{
+  test -n "$script_util" || return 103 # NOTE: sanity
+
+  # FIXME: hardcoded sequence for env-d like for lib. Using lib-util-env-d-default
+  for env_d in 0 log ucache scriptpath dev test
+  do
+     $INIT_LOG "debug" "" "Loading env-part" "$env_d"
+    . $script_util/parts/env-$env_d.sh ||
+        $INIT_LOG "warn" "" "Failed env-part"  "$? $env_d"
+  done
+
+  test -n "$base" || return 12 # NOTE: sanity
+  test -n "$INIT_LOG" || return 102 # NOTE: sanity
+  $INIT_LOG "info" "" "Env initialized from parts"
 }
 
 

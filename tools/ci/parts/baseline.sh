@@ -1,10 +1,23 @@
 #!/bin/ash
-# Part of ci:script, see also sh-baseline
+# Part of ci:script
 
 # Check project tooling and host env, 3rd party deps
 
-./.git/hooks/pre-commit || print_red "ci:script" git:hook:ERR:$?
+test -z "${sh_baseline:-}" ||
+    $LOG "error" "" "Baseline recursion?" "${sh_baseline:-}" 1
+export sh_baseline=1
 
-. ./tools/ci/parts/bl-sh-tooling.sh
 
-. ./tools/ci/parts/bl-bats-suite.sh
+. "./.git/hooks/pre-commit" || print_red "ci:script" "git:hook:ERR:$?"
+
+
+#print_yellow "" "Starting Tasks baseline..."
+#bats test/tasks-spec.bats -f baseline &&
+#  print_green "tasks baseline" "OK"||
+#    print_red "tasks baseline" "Not OK"
+
+# XXX: cleanup bats test/tasks-lib.bats @Htd
+
+
+export sh_baseline=0
+#

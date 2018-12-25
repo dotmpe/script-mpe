@@ -1,7 +1,63 @@
-#!/bin/ash
+#!/usr/bin/env bash
+test -z "${sh_env_:-}" && sh_env_=1 || return 98 # Recursion
 
-: "${CWD:=$PWD}"
 
+: "${DEBUG:=""}"
+: "${BASH_ENV:=""}"
+: "${CWD:="$PWD"}"
+
+export scriptname=${scriptname:-"`basename "$0"`"}
+
+test -n "${sh_util_:-}" || {
+
+  . "${script_util}/util.sh"
+  . "${script_util}/parts/print-color.sh"
+  print_yellow "sh:util" "Loaded"
+}
+
+test -z "$DEBUG" || print_yellow "" "Starting sh:env '$_' '$*' <$0>"
+
+# Keep current shell settings and mute while preparing env, restore at the end
+shopts=$-
+
+#test -n "$DEBUG" && {
+#    set -x || true;
+#}
+
+
+# Static init to run sh-dev-script based on PWD
+
+test $# -gt 0 || {
+  test -e "sh-`dirname "$PWD"`" && {
+      set -- "sh-`dirname "$PWD"`"
+  }
+}
+
+# Customizable user script config
+test -e tools/sh/user-env.sh && {
+  . "${USER_ENV:="$CWD/tools/sh/user-env.sh"}" || return
+  test -z "$DEBUG" ||
+    print_green "" "Loaded sh:user:env, continue with sh:env"
+
+} || {
+
+  test -z "$DEBUG" ||
+    print_yellow "" "No local sh:user:env, continue with sh:env"
+  : "${SCRIPT_ENV:="$CWD/tools/sh/env.sh"}"
+  : "${USER_ENV:="$SCRIPT_ENV"}"
+}
+export SCRIPT_ENV USER_ENV
+
+
+: "${SCRIPT_SHELL:="$SHELL"}"
+
+
+func_exists error || ci_bail "std.lib missing"
+func_exists req_vars || error "sys.lib missing" 1
+
+req_vars scriptname uname verbosity DEBUG CWD userscript LOG INIT_LOG
+
+set +o nounset # NOTE: apply nounset only during init
 
 # XXX: sync with current user-script tooling; +user-scripts
 # : "${script_env_init:=$CWD/tools/sh/parts/env.sh}"
@@ -11,65 +67,47 @@
 # : "${USER_ENV:=tools/sh/env.sh}"
 # export USER_ENV
 
-
-# Keep current shell settings and mute while preparing env, restore at the end
-shopts=$-
-test -n "$DEBUG" && {
-    set -x || true;
-}
+lib_load projectenv
 
 
 # Restore shell -e opt
-case "$shopts"
-
-  in *e* )
-      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" && {
-        # undo Jenkins opt, unless EXIT_ON_ERROR is on
-        msg="[$0] Shell will NOT exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
-        test -n "$PS1" && debug "$msg" || note "$msg"
-        set +e
-      } || {
-        msg="[$0] Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
-        test -n "$PS1" && warn "$msg" || std_info "$msg"
-      }
-    ;;
-
-  * )
-      # Turn on again
-      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" || set -e
-    ;;
-
-esac
-
-type error >/dev/null 2>&1 || { echo "std.lib missing" >&2 ; exit 1 ; }
-type req_vars >/dev/null 2>&1 || error "sys.lib missing" 1
-
-export scriptname=${scriptname:-$(basename "$0")}
-
-export uname=${uname:-$(uname -s)}
+#case "$shopts"
+#
+#  in *e* )
+#      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" && {
+#        # undo Jenkins opt, unless EXIT_ON_ERROR is on
+#        msg="[$0] Shell will NOT exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+#        test -n "$PS1" && debug "$msg" || note "$msg"
+#        set +e
+#      } || {
+#        msg="[$0] Shell will exit on error (EXIT_ON_ERROR=$EXIT_ON_ERROR)"
+#        test -n "$PS1" && warn "$msg" || std_info "$msg"
+#      }
+#    ;;
+#
+#  * )
+#      # Turn on again
+#      test "$EXIT_ON_ERROR" = "false" -o "$EXIT_ON_ERROR" = "0" || set -e
+#    ;;
+#
+#esac
 
 
-req_vars verbosity && export verbosity || export verbosity=7
-req_vars DEBUG && export DEBUG || export DEBUG=
+
+
+### Start of build job parameterisation
 
 sh_isset SHELLCHECK_OPTS ||
     export SHELLCHECK_OPTS="-e SC2154 -e SC2046 -e SC2015 -e SC1090 -e SC2016 -e SC2209 -e SC2034 -e SC1117 -e SC2100 -e SC2221"
 
-# XXX: user-scripts tooling
-#. $script_util/parts/env-std.sh
-#. $script_util/parts/env-src.sh
-. $script_util/parts/env-ucache.sh
-#. $script_util/parts/env-test-bats.sh
+GIT_CHECKOUT="$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ' || true)"
 
-### Start of build job parameterisation
+BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F "$GIT_CHECKOUT" | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
-#GIT_CHECKOUT=$(git log --pretty=oneline | head -n 1 | cut -f 1 -d ' ')
-
-#BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F "$GIT_CHECKOUT" | sed 's/.*\/\([^/]*\)$/\1/g' | sort -u ))"
 
 project_env_bin node npm lsof
 
-. $script_util/parts/env-test-feature.sh
+. "$script_util/parts/env-test-feature.sh"
 
 TAP_COLORIZE="script-bats.sh colorize"
 
@@ -80,8 +118,9 @@ test -d "$(dirname "$TEST_RESULTS")" || mkdir -vp "$(dirname "$TEST_RESULTS")"
 
 ## Determine ENV
 
-case "$ENV_NAME" in dev|testing ) ;; *|dev?* )
-      echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
+case "$ENV_NAME" in development|testing ) ;; *|dev?* )
+      test -z "$DEBUG" ||
+        echo "Warning: No env '$ENV_NAME', overriding to 'dev'" >&2
       export ENV_NAME=dev
     ;;
 esac
@@ -106,7 +145,8 @@ test -n "$ENV_NAME" || {
 # rechable tags are available. Should check that tags don't threaten to
 # go beyond some threshold.
 
-git fetch origin --tags
+# XXX: CI: git fetch origin --tags --quiet
+
 # TODO: see project-description, 'build' tag based on gitflow/branch-name.
 export GIT_DESCRIBE="$(git describe --always)"
 
@@ -233,5 +273,7 @@ case "$shopts" in
     esac
   ;;
 esac
+
+test -z "$DEBUG" || print_green "" "Finished sh:env"
 
 # Id: script-mpe/0.0.4-dev tools/sh/env.sh

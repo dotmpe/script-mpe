@@ -31,7 +31,8 @@ getidx()
 # Error unless non-empty and true-ish value
 trueish() # Str
 {
-  test -n "$1" || return 1
+  test $# -eq 1 || return
+  test -n "$1" || return
   case "$1" in [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1) return 0;;
     * ) return 1;;
   esac
@@ -143,11 +144,11 @@ setup_tmpf() # [Ext [UUID [TMPDIR]]]
   echo $3/$2$1
 }
 
-# sys-prompt PROMPT [VAR=choice_confirm]
+# sys-prompt PROMPT [VAR=returned]
 sys_prompt()
 {
   test -n "$1" || $LOG error sys "sys-prompt: arg expected" 1
-  test -n "$2" || set -- "$1" choice_confirm
+  test -n "$2" || set -- "$1" returned
   test -z "$3" || $LOG error sys "surplus-args '$3'" 1
   echo $1
   read -n 1 $2

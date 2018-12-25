@@ -1,23 +1,13 @@
 #!/usr/bin/env bats
 
+load init
 base=tasks.py
 
-#&& load stdtest
 setup()
 {
-  load init || $INIT_LOG "error" "" "load-init" "" 1
-  #verbosity=7
-  ##test -z "$lib_loaded" || return 105
-  #test -n "$script_util" || script_util=$(pwd -P)/tools/sh
-  ##test -d "$script_util" || return 103 # NOTE: sanity
-  #test_env_load || return
-  #test_env_init || return
-  #load stdtest
-
-  load_init_bats || err_ "error" "$?" "env-init" "$BATS_TEST_NAME" 1
-  #init 0 || err_ "error" "$?" "env-init" "$BATS_TEST_NAME" 1
-  #init_sh_libs="$1" . ./tools/sh/init.sh &&
+  init 0 && load stdtest
 }
+
 
 @test "$base: baseline" {
 

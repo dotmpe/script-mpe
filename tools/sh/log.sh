@@ -5,8 +5,10 @@
 #   log.sh [Line-Type] [Header] [Msg] [Ctx] [Exit]
 
 
-test -z "$verbosity" && {
+test -n "$verbosity" || {
+  test -n "$v" && verbosity="$v"
   test -n "$DEBUG" && verbosity=7 || verbosity=6
+  test $verbosity -gt 7 && DEBUG=1
 }
 
 

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# Treebox for ~/bin/
+
+set -e
+scriptname=sh-treebox
+PPWD="`pwd -P`"
+
+test $# -gt 0 || set -- bash sh-treebox-ci
+
+#    bash ./sh-treebox-ci
+#    sh sh-composure
+#    sh sh-baseline
+
+  # Cache somewhere
+  #-v $(realpath /srv/docker-volumes-local/treebox)/src-gh:/src/github.com \
+
+docker pull "${sh_treebox_img:="bvberkum/treebox:dev"}"
+
+docker run \
+  -ti --rm \
+  \
+  -v $PPWD:/home/treebox/bin \
+  -w /home/treebox/bin \
+    "${sh_treebox_img}" "$@"

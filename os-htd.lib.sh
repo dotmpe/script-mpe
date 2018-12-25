@@ -7,19 +7,13 @@ os_htd_lib_load()
 {
   test -n "$uname" || uname="$(uname -s)"
   test -n "$os" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+}
 
-  test -n "$gsed" || case "$uname" in
-      Linux ) gsed=sed ;; * ) gsed=gsed ;;
-  esac
-  test -n "$ggrep" || case "$uname" in
-      Linux ) ggrep=grep ;; * ) ggrep=ggrep ;;
-  esac
-  test -n "$gstat" || case "$uname" in
-      Linux ) gstat=stat ;; * ) gstat=gstat ;;
-  esac
-  test -n "$guniq" || case "$uname" in
-      Linux ) guniq=uniq ;; * ) guniq=guniq ;;
-  esac
+os_lib_init()
+{
+  test -n "$LOG" && os_htd_lib_log="$LOG" || os_htd_lib_log="$INIT_LOG"
+  test -n "$os_htd_lib_log" || return 102
+  $os_htd_lib_log info "" "Loaded os-htd.lib" "$0"
 }
 
 
@@ -56,6 +50,7 @@ pathname() # PATH EXT...
     printf -- "$name\\n"
   }
 }
+
 # basepath: see pathname as alt. to basename for ext stripping
 
 # Simple iterator over pathname

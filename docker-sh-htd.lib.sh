@@ -72,7 +72,12 @@ docker_sh_c_create() # [Container] [Docker-Image]
   test -n "$2" || set -- "$1" "$docker_image" "$3"
   test -n "$3" || set -- "$1" "$2" "$docker_cmd"
 
-  ${dckr_pref}docker run -di --name "$1" "$2" "$3" || return
+  ${dckr_pref} docker run \
+      -v ~/.ssh:/home/treebox/.ssh:ro \
+      -v $(realpath /etc/localtime):/etc/localtime \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -di --name "$1" "$2" "$3" || return
+
   # TODO: one-time-init, maybe use init/service scripts inside container here
   func_exists docker_sh_c_init && docker_init=docker_sh_c_init
   test -z "$docker_init" || {

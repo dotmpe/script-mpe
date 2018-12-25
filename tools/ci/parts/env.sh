@@ -14,8 +14,9 @@ export gawk=${gawk:-awk}
 export gstat=${gstat:-stat}
 export guniq=${guniq:-uniq}
 
-. $PWD/tools/sh/parts/env-0.sh
+. "$PWD/tools/sh/parts/env-0.sh"
 
+# XXX: cleanup
 #set -e
 #
 #set +o pipefail &&
