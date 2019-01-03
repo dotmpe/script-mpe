@@ -97,6 +97,8 @@ Options:
   --no-head     Do not print header/column line at start.
   --socket      Use socket server with 'serve'
   --fifo        Use FIFO IO with 'serve'
+  --stacktrace  Dump entire stack-trace after catching exception.
+  --info        Chat a bit more (but don't enable stacktraces).
   -V, --version
                 Print version
 
@@ -639,7 +641,26 @@ if __name__ == '__main__':
         sys.exit( main( ctx.opts.cmds[0], ctx ) )
     except Exception as err:
         if not ctx.opts.flags.quiet:
-            tb = traceback.format_exc()
-            sys.stderr.write(tb)
-            sys.stderr.write('Unexpected Error: %s\n' % err)
+            if ctx.opts.flags.stacktrace:
+                tbstr = traceback.format_exc()
+                sys.stderr.write(tbstr)
+
+            tb = traceback.extract_tb( sys.exc_info()[2] )
+            jsotk_tb = filter(None, map(
+                lambda t: t[2].startswith('H_') and "%s:%i" % (t[2], t[1]),
+              tb))
+            if not len(jsotk_tb):
+              jsotk_tb = filter(None, map(
+                  lambda t: 'jsotk' in t[0] and "%s:%i" % (
+                      t[2].replace('<module>', 'jsotk.py'), t[1]), tb))
+              # Remove two main lines (__main__ entrypoint and main() handler)
+              jsotk_tb = jsotk_tb[2:]
+
+            if ctx.opts.flags.info:
+                sys.stderr.write('jsotk %s: Unexpected Error: %s (%s)\n' % (
+                    ' '.join(sys.argv[1:]), err, ', '.join(jsotk_tb)))
+            else:
+                sys.stderr.write('jsotk: Unexpected Error: %s (%s)\n' % (
+                    err, ', '.join(jsotk_tb)))
+
         sys.exit(1)
