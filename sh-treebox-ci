@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -o nounset
 set -o pipefail
@@ -15,10 +15,10 @@ unset LOG INIT_LOG CWD U_S
 : "${INIT_LOG:="$LOG"}"
 
 . "$ci_util/before-install.sh"
-#. "$ci_util/install.sh"
+. "$ci_util/install.sh"
 
-#. "$ci_util/before-script.sh"
-#. "$ci_util/script.sh"
+. "$ci_util/before.sh"
+. "$ci_util/script.sh"
 
 #. "$ci_util/before-cache.sh"
 #. "$ci_util/cache.sh"

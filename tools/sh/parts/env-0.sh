@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 # Env without any pre-requisites.
 

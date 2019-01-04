@@ -72,9 +72,19 @@ docker_sh_c_create() # [Container] [Docker-Image]
   test -n "$2" || set -- "$1" "$docker_image" "$3"
   test -n "$3" || set -- "$1" "$2" "$docker_cmd"
 
+  # FIXME: treebox superuser setup on Darwin
+  #echo "%supergroup  ALL=NOPASSWD:ALL" >.etc-sudoers.d-treebox-supergroup
+  #  -v $PPWD/.etc-sudoers.d-treebox:/etc/sudoers.d/treebox-supergroup \
+  #dckr_u_s=/home/treebox/build/bvberkum/user-scripts
+  #dckr_u_s=/src/github.com/bvberkum/user-scripts
+
+  # FIXME: Hardcoded Notus volumes
+  #    -v ~/bin:/home/treebox/bin \
+  #    -v $PPWD:$dckr_u_s
   ${dckr_pref} docker run \
       -v ~/.ssh:/home/treebox/.ssh:ro \
       -v $(realpath /etc/localtime):/etc/localtime \
+      -v $(realpath /srv/scm-git-24-2-notus-brix/):/srv/scm-git-24-2-notus-brix \
       -v /var/run/docker.sock:/var/run/docker.sock \
       -di --name "$1" "$2" "$3" || return
 

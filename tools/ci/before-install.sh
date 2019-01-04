@@ -1,26 +1,49 @@
 #!/usr/bin/env bash
 
 export VND_SRC_PREFIX=$HOME/build
+: "${DEBUG:=""}"
 : "${CWD:="$PWD"}"
 
-./sh-main sh-baseline.tab '*'
+set -o errexit
+set -o pipefail
 
-echo "Sourcing env (I)... <${BASH_ENV:-} $CWD $PWD>"
+
+ci_cleanup()
+{
+  echo '------ Exited'
+  sleep 2
+  sync
+}
+
+trap ci_cleanup EXIT
+
+: "${script_util:="$CWD/tools/sh"}"
 : "${ci_util:="$CWD/tools/ci"}"
-. "${BASH_ENV:="$PWD/tools/ci/env.sh"}" || echo "Ignored: ERR:$?"
+init_sh_boot=null
+
+# Get checkouts, tool installs and rebuild env (PATH etc.)
+$script_util/parts/init.sh init-dependencies dependencies.txt
+
+echo "Sourcing env (I)... <${BASH_ENV:-} $CWD $PWD>" >&2
+. "${ci_util}/env.sh" || echo "Ignored: ERR:$?" >&2
 
 export_stage before-install before_install
 
-
 . "$ci_util/parts/announce.sh"
 
-# Get checkouts, tool installs and rebuild env (PATH etc.)
-. "$ci_util/parts/init-user-repo.sh"
 
+test "$USER" = "travis" || sudo=sudo
+${sudo} gem install travis
 
+# Sanity check that Travis-Commit matches actual checkout to catch setup fail
 . "$ci_util/parts/check-git.sh"
 
-. "$ci_util/parts/init.sh"
+echo Starting baseline check >&2
+scriptname=sh-main:baseline ./sh-main spec sh-baseline.tab '*' &&
+  echo "Baseline check OK" >&2 || echo "Baseline check fail $?" >&2
+
+# End with some settings and listings for current env.
+. "$ci_util/parts/init-information.sh"
 
 close_stage
 

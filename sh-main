@@ -2,6 +2,72 @@
 
 # Shell script wrapper for $PWD/sh-* scripts and other project/CI tooling
 
+
+run()
+{
+  "$@"
+}
+
+run-cmd()
+{
+  print_yellow "" "Running $SCRIPT_SHELL -c '$*'..."
+  $SCRIPT_SHELL -c "$@" &&
+    print_green "OK" "Command $SCRIPT_SHELL -c '$*'" ||
+    print_red "Not OK: $?" "Command $SCRIPT_SHELL -c '$*'"
+}
+
+spec()
+{
+  test $# -gt 0 || set -- sh-baseline.tab "*/bin/u-s *"
+
+  . "$U_S/tools/ci/parts/std-stack.sh"
+  . "$U_S/tools/ci/parts/std-runner.sh"
+
+  sh_spec "$1" | grep -v '^\s*\(#.*\|\s*\)$' | while read scriptline
+  do
+    fnmatch "$2" "$scriptline" || continue
+    run-cmd "$scriptline" </dev/tty
+  done
+}
+
+treebox()
+{
+  test $# -gt 0 || set -- sh-treebox-us.tab "*/sh-treebox-inner"
+  
+  test -n "$1" || {
+    test $# -eq 2 -a "$2" = "*" && set -- "$scriptname.tab" "$2"
+  }
+    
+  . "./tools/sh/parts/print-color.sh"
+  CWD=$PWD U_S=$PWD . "./tools/sh/parts/env-0.sh"
+
+  docker pull ${sh_treebox_img:="bvberkum/sandbox:dev"}
+
+  . "./commands/u_s-dckr.lib.sh"
+  docker_image=$sh_treebox_img dckr_load || return
+   
+  test ! -e "$PWD"/"$1" && {
+    run "$@" </dev/tty
+    return $?
+  
+  } || {
+    test $# -eq 2 || set -- "$1" "*"
+  
+    . "$U_S/tools/ci/parts/std-stack.sh"
+    . "$U_S/tools/ci/parts/std-runner.sh"
+  
+    sh_spec "$1" | grep -v '^\s*\(#.*\|\s*\)$' | while read scriptline
+    do
+      fnmatch "$2" "$scriptline" || continue
+
+      print_yellow "" "Running Treebox '$scriptline'..."
+      dckr_cmd "$scriptline" </dev/tty &&
+        print_green "OK" "Treebox '$scriptline" ||
+        print_red "Not OK: $?" "Treebox '$scriptline'"
+    done
+  }
+}
+
 # Establish tooling baseline
 tooling-baseline() {
 
@@ -179,6 +245,7 @@ test -e "$1" && {
     "$@" && print_green "" "Completed '$*'" || print_red "" "Failed '$*'"
 
 } || {
+
   "$@" && print_green "" "Completed '$*'" || print_red "" "Failed '$*'"
 }
 

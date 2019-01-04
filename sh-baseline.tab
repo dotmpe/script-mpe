@@ -7,7 +7,7 @@
 
 # varspec                                              cmdspec                #
 
-LOG=$PWD/tools/sh/log.sh                               ./tools/git-hooks/pre-commit.sh
+#LOG=$PWD/tools/sh/log.sh                               ./tools/git-hooks/pre-commit.sh
 
 true                                                   . ./tools/sh/util.sh
 true                                                   . ./tools/ci/util.sh
@@ -18,10 +18,11 @@ true                                                   . ./tools/sh/parts/env-de
 true                                                   . ./tools/sh/parts/env-test.sh
 true                                                   . ./tools/sh/parts/env-test-bats.sh
 
+CWD=$PWD                                                . ./tools/sh/env.sh
+
 
 # varspec                                              cmdspec                #
 
-CWD=$PWD                                                . ./tools/sh/env.sh
 
 
 # varspec                                              cmdspec                #
@@ -36,19 +37,22 @@ CWD=$PWD                                               . ./tools/sh/init.sh
 
 # varspec                                              cmdspec                #
 
-#v=4                                                    bats test/baseline/1-shell.bats
-#v=4                                                    bats test/baseline/2-bash.bats
-#v=5                                                    bats test/baseline/3-project.bats
-#v=4                                                    bats test/baseline/4-mainlibs.bats
-#v=1                                                    bats test/baseline/bats.bats
-#v=4                                                    bats test/baseline/git.bats
-#v=4                                                    bats test/baseline/realpath.bats
-#v=4                                                    bats test/baseline/redo.bats
+# FIXME: special syntax for bats; severly misbehaving, killing off the wrong process?
+
+#v=4                                                    ; ( bats test/baseline/*.bats )
+v=4                                                    ;( bats test/baseline/1-shell.bats )
+v=4                                                    ;( bats test/baseline/2-bash.bats )
+#v=5                                                    ; ( bats test/baseline/3-project.bats )
+#v=4                                                    ; ( bats test/baseline/4-mainlibs.bats )
+v=1                                                    ;( bats test/baseline/bats.bats )
+v=4                                                    ;( bats test/baseline/git.bats )
+v=4                                                    ;( bats test/baseline/realpath.bats )
+v=4                                                    ;( bats test/baseline/redo.bats )
 
 
 # varspec                                              cmdspec                #
 
-# TODO: CI suite tool tests
+# TODO: CI tool env and test suites; see sh-treebox docker isolated testing.
 #/CWD                                                 . ./tools/ci/env.sh
 
 

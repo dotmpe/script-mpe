@@ -2,12 +2,36 @@
 
 # Variable- and command specs for treebox/CI prototype suite. +U_s
 
-true                          bash ~/bin/sh-treebox-us-inner
-true                          ./sh-bin
+
+# varspec                     cmdspec                                         #
+
 true                          . ~/.bash_profile
-export  DEBUG=1 verbosity=7
+ export  DEBUG=1 verbosity=7
 
-ENV_NAME=testing              bash ~/bin/sh-treebox-ci
-  export DEBUG=1 verbosity=7
+script_util=$PWD/tools/sh
+  ci_util=$PWD/tools/ci
+   true                       . "./tools/sh/env.sh"
+   true                       . "./tools/ci/env.sh"
 
-# vim:ft=bash:
+
+# varspec                     cmdspec                                         #
+
+   true                       ./tools/sh/parts/init.sh init-git
+   true                       ./tools/sh/parts/init.sh init-basher
+   true                       ./tools/sh/parts/init.sh init-redo
+   true                       ./tools/sh/parts/init.sh init-dependencies
+#   true                       ./tools/sh/parts/init.sh init-golang
+#   true                       ./tools/sh/parts/init.sh init-github-release
+#   true                       ./tools/sh/parts/init.sh init-symlinks
+#true                          . ./sh-treebox-us-inner
+#
+#true                          . "./tools/sh/env.sh"
+#true                          . "./tools/ci/env.sh"
+# script_util=$PWD/tools/sh
+#   ci_util=$PWD/tools/ci
+#
+#ENV_NAME=testing              . ./sh-treebox-ci
+## export DEBUG=1 verbosity=7
+#
+#
+## vim:ft=bash:

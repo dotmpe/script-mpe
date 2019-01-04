@@ -188,7 +188,6 @@ ci_stages="$ci_stages ci_env"
 
 
 . "${script_util}/env.sh"
-: "${USER_ENV:="tools/sh/env.sh"}"
 
 
 #$LOG info tools/ci/env "Loading shell util"

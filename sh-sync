@@ -60,7 +60,9 @@ diff_files "$@" || vimdiff "$@" || true
 for x in ` remove_dupes <<EOM
 
 sh-main
+sh-treebox-ci
 sh-baseline.tab
+sh-project.tab
 tools/sh/build/dev.sh
 tools/sh/build/test.sh
 tools/sh/parts/env-0.sh
@@ -96,7 +98,7 @@ EOM
 
   test -h "$PWD/$x" && continue
 
-  diff -bqr $PWD/"$x" ~/project/user-scripts/"$x" && continue
+  diff -bqr ~/bin/"$x" ~/project/user-scripts/"$x" && continue
 
   vimdiff $( unique_files \
       ~/"bin/$x" ~/"project/user-scripts/$x" ~/"htdocs/$x" ~/.conf/"$x" || \

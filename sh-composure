@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 set -e
 
 CWD="$PWD"

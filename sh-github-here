@@ -1,4 +1,4 @@
-#!/bin/ssh
+#!/usr/bin/env bash
 
 # Build project{,-repo}-stats for github repositories
 

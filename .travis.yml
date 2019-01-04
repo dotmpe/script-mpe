@@ -44,6 +44,9 @@ env:
   matrix:
     - TEST_ENV=testing TEST_SHELL=sh
   global:
+    - export scriptname=Travis-CI
+    - LOG=$PWD/tools/sh/log.sh
+    - CWD=$PWD
     - ENV_NAME=testing
     - TEST_ENV=travis
     - ENV_D=test:travis

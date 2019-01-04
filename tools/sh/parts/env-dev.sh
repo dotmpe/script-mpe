@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 export U_S="${U_S:="$CWD"}"
 
