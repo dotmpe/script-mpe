@@ -43,12 +43,12 @@ test -n "$1" || {
 }
   
 . "./tools/sh/parts/print-color.sh"
-U_S=$PWD . "./tools/sh/parts/env-0.sh"
+CWD=$PWD U_S=$PWD . "./tools/sh/parts/env-0.sh"
 
 docker pull ${sh_treebox_img:="bvberkum/sandbox:dev"}
 
 test ! -e "$PWD"/"$1" && {
-  print_yellow "" "Running '$*'"
+  print_yellow "" "Running '$*'..."
   run "$@" &&
     print_green "OK" "Treebox U-s '$*'" ||
     print_red "Not OK: $?" "Treebox U-s '$*'"
@@ -64,6 +64,7 @@ test ! -e "$PWD"/"$1" && {
   do
     fnmatch "$2" "$scriptline" || continue
 
+    print_yellow "" "Running '$scriptline'..."
     run sh -c "$scriptline" &&
       print_green "OK" "Treebox U-s '$scriptline'" ||
       print_red "Not OK: $?" "Treebox U-s '$scriptline'"

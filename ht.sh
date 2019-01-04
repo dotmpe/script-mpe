@@ -243,7 +243,9 @@ ht_main()
     arguments= subcmd_prefs= options= \
     passed= skipped= error= failed=
 
-  test -n "$verbosity" || verbosity=5
+  test -n "$script_util" || script_util=$scriptpath/tools/sh
+  test -n "$htd_log" || htd_log=$script_util/log.sh
+  test -n "$verbosity" || verbosity=4
 
   ht_init || exit $?
 
@@ -271,58 +273,71 @@ ht_main()
 
 ht_init()
 {
+  test -n "$script_util" || return 103 # NOTE: sanity
+  set -e
+
   # NOTE: static init saves 100ms at 0.84s (12%)
   test -n "$ht_init_dyn" && {
-      ht_init_dyn
+    ht_init_dyn || $LOG "error" "ERR:$?" "Ht dynamic init error" "" 1
   } || {
-      ht_init_static
+    ht_init_static
   }
   # -- ht box init sentinel --
 }
 
 ht_init_static()
 {
+  test -n "$script_util" || return 103 # NOTE: sanity
   test -n "$scriptpath" || return
-  export SCRIPTPATH=$scriptpath
+  unset CWD
+  # FIXME: instead going with hardcoded sequence for env-d like for lib.
+  test -n "$htd_env_d_default" ||
+      htd_env_d_default=init-log\ ucache\ scriptpath\ std
+  #export SCRIPTPATH=$scriptpath
   test -n "$U_S" || export U_S=/srv/project-local/user-scripts
-  test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
-
-  util_mode=ext . $scriptpath/util.sh || return
-  #. $scriptpath/tools/sh/init.sh || return
-  #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
-  lib_lib_load && lib_lib_init || return
-
+  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
+  #test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
   INIT_LOG=$LOG
 
+  for env_d in $htd_env_d_default
+  do
+    . $script_util/parts/env-$env_d.sh
+  done
+  $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
+
+  util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
+  #. $scriptpath/tools/sh/init.sh || return
+  #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
+
+  lib_lib_load && lib_lib_init || return
+
   { __load=ext
-    . $scriptpath/os-htd.lib.sh &&
-    . $scriptpath/std-htd.lib.sh &&
-    . $scriptpath/sys-htd.lib.sh &&
-    . $scriptpath/str-htd.lib.sh
-  } || return
-  { __load=ext
-    . $U_S/src/sh/lib/os.lib.sh &&
-    . $U_S/src/sh/lib/std.lib.sh &&
-    . $U_S/src/sh/lib/sys.lib.sh &&
-    . $U_S/src/sh/lib/str.lib.sh &&
-    . $U_S/src/sh/lib/log.lib.sh
-  } || return
+    . $scriptpath/os-htd.lib.sh && os_htd_lib_loaded=1 && lib_loaded="$lib_loaded os_htd" &&
+    . $scriptpath/sys-htd.lib.sh && sys_htd_lib_loaded=1 && lib_loaded="$lib_loaded sys_htd" &&
+    . $scriptpath/std-ht.lib.sh && std_ht_lib_loaded=1 && lib_loaded="$lib_loaded std_ht" &&
+    . $scriptpath/str-htd.lib.sh && str_htd_lib_loaded=1 && lib_loaded="$lib_loaded str_htd" &&
+    . $scriptpath/main.lib.sh && main_lib_loaded=1 && lib_loaded="$lib_loaded main" &&
+    . $U_S/src/sh/lib/os.lib.sh && os_lib_loaded=1 && lib_loaded="$lib_loaded os" &&
+    . $U_S/src/sh/lib/sys.lib.sh && sys_lib_loaded=1 && lib_loaded="$lib_loaded sys" &&
+    . $U_S/src/sh/lib/std.lib.sh && std_lib_loaded=1 && lib_loaded="$lib_loaded std" &&
+    . $U_S/src/sh/lib/str.lib.sh && str_lib_loaded=1 && lib_loaded="$lib_loaded str" &&
+    . $U_S/src/sh/lib/log.lib.sh && log_lib_loaded=1 && lib_loaded="$lib_loaded log" &&
+    . $U_S/src/sh/lib/match.lib.sh && match_lib_loaded=1 && lib_loaded="$lib_loaded match" &&
+    true
+  } || $LOG "error" "ERR:$?" "Libs load" "" 1
+
   . $scriptpath/tools/sh/box.env.sh || return
   box_run_sh_test || return
-  str_htd_lib_load &&
-  sys_htd_lib_load &&
-  std_lib_load &&
-  std_htd_lib_load &&
-  os_htd_lib_load &&
-  . $scriptpath/main.lib.sh
-  unset INIT_LOG
+
+  lib_init $lib_loaded || $LOG "error" "ERR:$?" "Libs init" "" 1
+  unset INIT_LOG CWD
   # -- ht box init-static sentinel --
 }
 
 ht_init_dyn()
 {
-  test -n "$scriptpath" || return
-  util_mode=boot . $scriptpath/util.sh
+  test -n "$script_util" || return 103
+  util_mode=boot . $script_util/init-wrapper.sh || return
   # -- ht box init-dynamic sentinel --
 }
 

@@ -16,7 +16,7 @@ announce_stage() {
   test -n "$2" || set -- "$1" "$stage_id"
   test -n "$2" || set -- "$1" "$1"
 
-  print_yellow "$stage" "Starting stage... ($($gdate --iso=ns -d @$(eval echo \$${2}_ts)))"
+  print_yellow "$scriptname:$stage" "Starting stage... ($($gdate --iso=ns -d @$(eval echo \$${2}_ts)))"
 }
 
 close_stage()
@@ -30,7 +30,7 @@ close_stage()
 
 ci_announce()
 {
-  print_yellow "$stage" "$1 ($($gdate --iso=ns))"
+  print_yellow "$scriptname:$stage" "$1 ($($gdate --iso=ns))"
 }
 
 ci_bail()

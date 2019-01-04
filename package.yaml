@@ -4,6 +4,7 @@
 - type: application/vnd.org.wtwta.project
   main: script-mpe
   id: script-mpe
+  tag-id: htdocs_mpe
   version: 0.0.4-dev # script-mpe
   vendor: bvberkum
   distribution: public

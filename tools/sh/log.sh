@@ -6,9 +6,10 @@
 
 
 test -n "$verbosity" || {
-  test -n "$v" && verbosity="$v"
+  test -z "$v" || verbosity="$v"
+}
+test -n "$verbosity" || {
   test -n "$DEBUG" && verbosity=7 || verbosity=6
-  test $verbosity -gt 7 && DEBUG=1
 }
 
 
@@ -118,7 +119,7 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
   }
 
   lvl=$(log_level_num "$1")
-  test -z "$lvl" || {
+  test -z "$lvl" -o -z "$verbosity" || {
     test $verbosity -ge $lvl || {
       test -n "$5" && exit $5 || {
         return 0

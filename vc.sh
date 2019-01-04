@@ -1808,17 +1808,17 @@ vc_main()
 {
   # Do something if script invoked as 'vc.sh'
   local scriptname=vc base="$(basename "$0" .sh)" subcmd=$1
+
   case "$base" in $scriptname )
         test -n "$scriptpath" || scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
+        test -n "$script_util" || script_util=$scriptpath/tools/sh
+        test -n "$htd_log" || htd_log=$script_util/log.sh
+        test -z "$v" || verbosity=$v
+        test -n "$verbosity" || verbosity=4
+        export verbosity DEBUG=
 
         # PWD, real PWD and relative 'short/symbolic' path
         ppwd="$(pwd -P)" ppwd="$PWD" spwd=.
-        # TODO: clean up vc env, replace with below
-        CWD="$PWD" PCWD="$(pwd -P)" RCWD=.
-
-        test -z "$v" || verbosity=$v
-        test -n "$verbosity" || verbosity=5
-        export verbosity DEBUG=
 
         test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
         INIT_LOG=$LOG \
@@ -1839,9 +1839,9 @@ vc_main()
         type $func >/dev/null 2>&1 && {
           shift 1
 
-          lib_load main sys-htd std date package stdio &&
+          lib_load main sys-htd std std-ht date package stdio &&
           INIT_LOG=$LOG \
-          lib_init main sys-htd std date package stdio || return
+          lib_init main sys-htd std std-ht date package stdio || return
 
           vc_load || return
           $func "$@" || return $?

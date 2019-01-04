@@ -38,7 +38,7 @@ test -z "$DEBUG" ||
   lib_lib_load && lib_lib_loaded=1 &&
   lib_lib_init
 } ||
-  $INIT_LOG "error" "init.sh" "Failed at lib.lib $?" "" 1
+  $INIT_LOG "error" "$scriptname:init.sh" "Failed at lib.lib $?" "" 1
 
 
 # And conclude with logger setup but possibly do other script-util bootstraps.
@@ -47,14 +47,14 @@ test "$init_sh_libs" = "0" || {
   test -n "$init_sh_libs" -a "$init_sh_libs" != "1" ||
     init_sh_libs=sys\ os\ str\ script\ log\ shell
 
-  $INIT_LOG "info" "sh:init" "Loading" "$init_sh_libs"
+  $INIT_LOG "info" "$scriptname:sh:init" "Loading" "$init_sh_libs"
   test -n "$LOG" || LOG=$INIT_LOG
 
   lib_load $init_sh_libs ||
-    $INIT_LOG "error" "init.sh" "Failed loading libs: $?" "$init_sh_libs" 1
+    $INIT_LOG "error" "$scriptname:init.sh" "Failed loading libs: $?" "$init_sh_libs" 1
 
   lib_init $init_sh_libs ||
-    $INIT_LOG "error" "init.sh" "Failed init'ing libs: $?" "$init_sh_libs" 1
+    $INIT_LOG "error" "$scriptname:init.sh" "Failed init'ing libs: $?" "$init_sh_libs" 1
 
   test -n "$init_sh_boot" || init_sh_boot=1
   test -n "$init_sh_boot" && {
@@ -65,7 +65,7 @@ test "$init_sh_libs" = "0" || {
   test -z "$DEBUG" ||
     echo script_util=$U_S$sh_util_base scripts_init $init_sh_boot >&2
   script_util=$U_S$sh_util_base scripts_init $init_sh_boot ||
-    $INIT_LOG "error" "init.sh" "Failed at bootstrap '$init_sh_boot' $?" "" 1
+    $INIT_LOG "error" "$scriptname:init.sh" "Failed at bootstrap '$init_sh_boot' $?" "" 1
 
 }
 

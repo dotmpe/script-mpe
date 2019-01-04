@@ -1,0 +1,55 @@
+# varspec                                              cmdspec                #
+
+# Variable- and command specs for baseline suite. +script_mpe
+# Usage:
+#   ./sh-main tooling-baseline
+
+
+# varspec                                              cmdspec                #
+
+LOG=$PWD/tools/sh/log.sh                               ./tools/git-hooks/pre-commit.sh
+
+true                                                   . ./tools/sh/util.sh
+true                                                   . ./tools/ci/util.sh
+true                                                   . ./tools/sh/parts/env-0.sh
+true                                                   . ./tools/sh/parts/env-0-src.sh
+true                                                   . ./tools/sh/parts/env-std.sh
+true                                                   . ./tools/sh/parts/env-dev.sh
+true                                                   . ./tools/sh/parts/env-test.sh
+true                                                   . ./tools/sh/parts/env-test-bats.sh
+
+
+# varspec                                              cmdspec                #
+
+CWD=$PWD                                                . ./tools/sh/env.sh
+
+
+# varspec                                              cmdspec                #
+
+CWD=$PWD                                               . ./tools/sh/init.sh    
+ set -o nounset; set -e; BASHOPTS=
+  LOG=$PWD/tools/sh/log.sh                             
+   true
+   f_lib_load= util_mode= default_lib=                 . ./tools/sh/init-wrapper.sh
+    SCRIPTPATH=
+
+
+# varspec                                              cmdspec                #
+
+#v=4                                                    bats test/baseline/1-shell.bats
+#v=4                                                    bats test/baseline/2-bash.bats
+#v=5                                                    bats test/baseline/3-project.bats
+#v=4                                                    bats test/baseline/4-mainlibs.bats
+#v=1                                                    bats test/baseline/bats.bats
+#v=4                                                    bats test/baseline/git.bats
+#v=4                                                    bats test/baseline/realpath.bats
+#v=4                                                    bats test/baseline/redo.bats
+
+
+# varspec                                              cmdspec                #
+
+# TODO: CI suite tool tests
+#/CWD                                                 . ./tools/ci/env.sh
+
+
+# vim:ft=bash:

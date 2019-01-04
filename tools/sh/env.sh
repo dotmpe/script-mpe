@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+# Shell env profile script
+
 test -z "${sh_env_:-}" && sh_env_=1 || return 98 # Recursion
 
 
@@ -10,7 +13,7 @@ export scriptname=${scriptname:-"`basename "$0"`"}
 
 test -n "${sh_util_:-}" || {
 
-  . "${script_util}/util.sh"
+  . "${script_util:="$CWD/tools/sh"}/util.sh"
   . "${script_util}/parts/print-color.sh"
   print_yellow "sh:util" "Loaded"
 }
@@ -58,7 +61,6 @@ func_exists req_vars || error "sys.lib missing" 1
 req_vars scriptname uname verbosity DEBUG CWD userscript LOG INIT_LOG
 
 set +o nounset # NOTE: apply nounset only during init
-
 # XXX: sync with current user-script tooling; +user-scripts
 # : "${script_env_init:=$CWD/tools/sh/parts/env.sh}"
 # . "$script_env_init"
@@ -68,7 +70,6 @@ set +o nounset # NOTE: apply nounset only during init
 # export USER_ENV
 
 lib_load projectenv
-
 
 # Restore shell -e opt
 #case "$shopts"
@@ -149,7 +150,6 @@ test -n "$ENV_NAME" || {
 
 # TODO: see project-description, 'build' tag based on gitflow/branch-name.
 export GIT_DESCRIBE="$(git describe --always)"
-
 
 ## Per-env settings
 

@@ -10,9 +10,9 @@ main_lib_load()
 
 main_lib_init()
 {
-  lib_assert log
+  lib_assert log std std-ht || return
 
-  local log=; req_init_log
+  local log=; req_init_log || return
   $log info "" "Loaded main.lib" "$0"
 }
 
@@ -292,6 +292,8 @@ std__help()
   test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
 
   test -z "$1" && {
+
+    lib_load functions
 
     # Generic help (no args)
     try_exec_func ${box_prefix}__usage $1 || { std__usage $1; echo ; }

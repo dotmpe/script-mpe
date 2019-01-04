@@ -1,10 +1,6 @@
 #!/bin/bash
 
-
-env
-exit $?
-
-. ~/.bash_profile
+. ~/.bash_profile || { echo "No bash-profile" >&2; exit 100; }
 
 BASHER_FULL_CLONE=true basher install bvberkum/user-scripts 
 export U_S="$(basher package-path bvberkum/user-scripts)/"

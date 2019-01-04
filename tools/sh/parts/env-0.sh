@@ -3,7 +3,7 @@
 # Env without any pre-requisites.
 
 
-: "${INIT_LOG:="$U_S/tools/sh/log.sh"}"
+: "${INIT_LOG:="$CWD/tools/sh/log.sh"}"
 
 
 # Env pre-checks
@@ -60,7 +60,4 @@ esac
 
 : "${script_util:="$CWD/tools/sh"}"
 : "${ci_util:="$CWD/tools/ci"}"
-# XXX: lceanup
-#: "${script_util:="$userscript/tools/sh"}"
-#: "${ci_util:="$userscript/tools/ci"}"
 export script_util ci_util

@@ -3,16 +3,15 @@
 # std: logging and dealing with the shell's stdio decriptors
 
 
-std_htd_lib_load()
+std_ht_lib_load()
 {
   true
-
 }
 
-std_htd_lib_init()
+std_ht_lib_init()
 {
   test -n "$INIT_LOG" || return 102
-  $INIT_LOG info "" "Done std-htd"
+  $INIT_LOG info "" "Done std-ht"
 }
 
 io_dev_path()

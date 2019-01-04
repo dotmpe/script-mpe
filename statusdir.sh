@@ -401,13 +401,25 @@ EOM
 
 statusdir_init()
 {
+  test -n "$script_util" || return 103 # NOTE: sanity
   test -n "$scriptpath" || return
+  unset CWD
+  # FIXME: instead going with hardcoded sequence for env-d like for lib.
+  test -n "$htd_env_d_default" ||
+      htd_env_d_default=init-log\ ucache\ scriptpath\ std
   test -n "$U_S" || export U_S=/srv/project-local/user-scripts
   test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
-  test -n "$SCRIPTPATH" || export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
+  INIT_LOG=$LOG
+
+  for env_d in $htd_env_d_default
+  do
+    . $script_util/parts/env-$env_d.sh
+  done
+  $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
+
+  util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
+  . $scriptpath/tools/sh/box.env.sh &&
+  box_run_sh_test &&
   lib_load box date
   # -- statusdir box init sentinel --
 }

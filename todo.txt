@@ -61,4 +61,7 @@ x 2017-03-26 (D) @Dev 2017-03-25 +script-mpe ``htd jrnl-times to-cal`` entered a
 #include::HOME:bin:todo-res.outline: +script-mpe
 2018-10-01 SCRIPT-MPE-7: read, write, txt-line literal formats
 #include::HT:todo-mpe-7.txt: +script-mpe
+
+2019-01-03 TODO: merge ``sh*{tab,list}`` suites, but only once `sh-spec` generates more combinations @Dsgn @Build
+
 # vim:ft=todo.txt:nowrap:

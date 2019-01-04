@@ -1,6 +1,10 @@
 # varspec                     cmdspec                                         #
 
+# Variable- and command specs for treebox/CI prototype suite. +U_s
+
 true                          bash ~/bin/sh-treebox-us-inner
+true                          ./sh-bin
+true                          . ~/.bash_profile
 export  DEBUG=1 verbosity=7
 
 ENV_NAME=testing              bash ~/bin/sh-treebox-ci

@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 
 current()
@@ -14,4 +14,22 @@ current()
 test $# -gt 0 || set -- current
 
 echo tasks
+
+whishlist-grep()
+{
+  grep -srI 'Would\ ' "$@"
+}
+
+whishlist-grep \
+  cabinet/ \
+  personal/
+
+echo '--------'
+
+whishlist-grep \
+  cabinet/ \
+  personal/
+
+echo '--------'
+
 # vim:ft=bash:

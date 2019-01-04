@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
+# Shell script wrapper for $PWD/sh-* scripts and other project/CI tooling
 
 # Establish tooling baseline
 tooling-baseline() {
@@ -167,7 +168,7 @@ set -o nounset
 set -o pipefail
 set -o errexit
 
-. "${SCRIPT_ENV:="$PWD/tools/sh/env.sh"}"
+. "${script_util:="$PWD/tools/sh"}/env.sh"
 
 test $# -gt 0 || set -- tooling-baseline
 
@@ -178,7 +179,7 @@ test -e "$1" && {
     "$@" && print_green "" "Completed '$*'" || print_red "" "Failed '$*'"
 
 } || {
-    "$@" && print_green "" "Completed '$*'" || print_red "" "Failed '$*'"
+  "$@" && print_green "" "Completed '$*'" || print_red "" "Failed '$*'"
 }
 
 # vim:ft=bash:

@@ -9072,15 +9072,12 @@ htd_optsv()
 
 htd_init()
 {
-  set -e
-
   test -n "$script_util" || return 103 # NOTE: sanity
-
+  set -e
+  unset CWD
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
   test -n "$htd_env_d_default" ||
       htd_env_d_default=init-log\ ucache\ scriptpath\ std
-
-  unset CWD
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
   INIT_LOG=$LOG
   U_S=/srv/project-local/user-scripts
@@ -9091,8 +9088,10 @@ htd_init()
   done
   $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
 
-  # XXX: util_mode=ext . $scriptpath/tools/sh/init.sh || return $?
+  # XXX: cleanup
   util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
+  #. $scriptpath/tools/sh/init.sh || return
+  #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
 
   lib_lib_load && lib_lib_init || return
 
@@ -9110,7 +9109,7 @@ htd_lib()
 {
   local __load_lib=1
   . $scriptpath/match.sh || return
-  set -- sys-htd os-htd str-htd vc-htd htd match-htd std-htd \
+  set -- sys-htd os-htd str-htd vc-htd htd match-htd std-ht \
       date date-htd \
       htd web box \
       list ignores table disk remote package htd-package htd-scripts \

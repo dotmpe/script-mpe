@@ -1,19 +1,13 @@
 #!/bin/sh
 
-# Dev-Module for lib_load
-# FIXME: comment format:
-# [return codes] [exit codes] func-id [flags] pos-arg-id.. $name-arg-id..
-# Env: $name-env-id
-# Description.
-
-
+# Dev-Module for lib_loadXXX: cli wrapper, see init.sh
 . $U_S/src/sh/lib/lib.lib.sh
 
 
 lib_lib_load()
 {
   test -n "$default_lib" ||
-      default_lib="os std sys str log shell stdio src main argv match vc"
+      default_lib="os std sys str log shell stdio src main argv match vc std-ht"
 }
 
 

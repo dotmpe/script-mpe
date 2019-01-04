@@ -1,4 +1,7 @@
 #!/bin/sh
+
+# Shell user-env profile script
+
 test -z "${sh_usr_env:-}" && sh_usr_env=1 || exit 98 # Recursion
 
 test -z "$DEBUG" || print_yellow "" "Including sh:usr:env parts..."
@@ -21,8 +24,6 @@ func_exists lib_load || ci_bail "lib.lib missing"
 #: "${INIT_LOG:="$LOG"}"
 #: "${INIT_LOG:="$U_S/tools/sh/log.sh"}"
 : "${INIT_LOG:="$script_util/log.sh"}"
-
-lib_loaded || true
 
 . ./tools/sh/box.env.sh &&
 . ./box.lib.sh &&
