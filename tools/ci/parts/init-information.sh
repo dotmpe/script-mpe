@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 export ci_init_ts=$($gdate +"%s.%N")
 ci_stages="$ci_stages ci_init"

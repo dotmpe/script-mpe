@@ -34,14 +34,12 @@ print_err()
   test -z "$5" || exit $5 # NOTE: also exit on '0'
 }
 
-
 git_version()
 {
   test $# -eq 1 -a -d "$1" || return
   ( test "$PWD" = "$1" || cd "$1"
     git describe --always )
 }
-
 
 fnmatch() { case "$2" in $1 ) return ;; * ) return 1 ;; esac; }
 

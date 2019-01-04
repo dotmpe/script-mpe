@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 : "${default_lib:="main"}"
 : "${testpath:="`pwd -P`/test"}"

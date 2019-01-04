@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 : "${LOG:="$CWD/tools/sh/log.sh"}"
 

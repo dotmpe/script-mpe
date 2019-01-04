@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 : "${UCACHE:=""}"
 test -n "$UCACHE" || UCACHE=$HOME/.cache/local

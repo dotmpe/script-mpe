@@ -1,34 +1,30 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -o nounset
-set -o pipefail
-set -o errexit
+set -euo pipefail
 
-scriptname=sh-treebox-ci
-unset LOG INIT_LOG CWD U_S
+: "${dckr_user:="treebox"}"
+: "${repo_id:="origin"}"
+: "${repo_rev:="features/docker-ci"}"
+: "${repo_slug:="bvberkum/script-mpe"}"
 
-: "${CWD:="$PWD"}"
-: "${U_S:="$PWD"}"
-: "${ci_util:="$CWD/tools/ci"}"
-: "${script_util:="$CWD/tools/sh"}"
-: "${LOG:="$script_util/log.sh"}"
-: "${INIT_LOG:="$LOG"}"
+w=/src/github.com/${repo_slug}
+u=${dckr_user}
+c=u-s-dckr
 
-. "$ci_util/before-install.sh"
-#. "$ci_util/install.sh"
+docker exec -u $u -ti ${c} \
+  sh -c "test -e '$w' || { mkdir -p $(dirname $w) && git clone http://github.com/$repo_slug $w; } "
 
-#. "$ci_util/before-script.sh"
-#. "$ci_util/script.sh"
+: "${repo_id:="24-2-bare"}"
+: "${repo_url:="/srv/scm-git-24-2-notus-brix/bvberkum/x-ci.git"}"
 
-#. "$ci_util/before-cache.sh"
-#. "$ci_util/cache.sh"
+docker exec -w $w -u $u -ti ${c} git describe
+test "$repo_id" = "origin" || {
+  docker exec -w $w -u $u -ti ${c}  \
+    sh -c "git config remote.$repo_id.url || { git remote add $repo_id $repo_url && git fetch --all $repo_id; }"
+}
 
-#test $SCRIPT_RESULT -eq 0 && {
-#  . "$ci_util/after-success.sh"
-#} || {
-#  . "$ci_util/after-failure.sh"
-#}
-#. "$ci_util/after.sh"
+docker exec -w $w -u $u -ti ${c} git reset --hard ${repo_id}/${repo_rev}
 
-ci_announce "$scriptname OK"
+docker exec -w $w -u $u -ti ${c} bash -c '. ./sh-ci'
+
 # Id: u-s/0.0 sh-treebox-ci

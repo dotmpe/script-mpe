@@ -1,7 +1,9 @@
-#!/bin/ssh
-#set -e
+#!/usr/bin/env bash
 
 # Find duplicate libs
+
+
+set -e
 
 # Reset script-path for testing scripts
 U_S=

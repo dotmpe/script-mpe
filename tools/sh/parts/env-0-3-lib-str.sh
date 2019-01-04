@@ -1,3 +1,3 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 : "${str_lib_loaded:=""}"

@@ -1,6 +1,7 @@
-#!/bin/ash
+#!/usr/bin/env bash
 # See .travis.yml
 
+set -u
 export_stage before-script before_script && announce_stage
 
 . "./tools/ci/parts/check.sh"
@@ -8,5 +9,4 @@ export_stage before-script before_script && announce_stage
 . "./tools/ci/parts/init-build-cache.sh"
 
 close_stage
-
-. "$ci_util/deinit.sh"
+set +u

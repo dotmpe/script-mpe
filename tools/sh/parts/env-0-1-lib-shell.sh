@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 : "${shell_lib_loaded:=""}"
 : "${SD_SHELL_DIR:=""}"

@@ -58,17 +58,18 @@ export SCRIPT_ENV USER_ENV
 func_exists error || ci_bail "std.lib missing"
 func_exists req_vars || error "sys.lib missing" 1
 
-req_vars scriptname uname verbosity DEBUG CWD userscript LOG INIT_LOG
+# FIXME: @Travis DEBUG
+req_vars scriptname uname verbosity userscript || true
+
+#req_vars scriptname uname verbosity userscript LOG INIT_LOG CWD ||
+#  echo FIXME:ERR:$?
+
+#req_vars scriptname uname verbosity DEBUG CWD userscript LOG INIT_LOG
 
 set +o nounset # NOTE: apply nounset only during init
 # XXX: sync with current user-script tooling; +user-scripts
 # : "${script_env_init:=$CWD/tools/sh/parts/env.sh}"
 # . "$script_env_init"
-
-
-# : "${USER_ENV:=tools/sh/env.sh}"
-# export USER_ENV
-
 lib_load projectenv
 
 # Restore shell -e opt
@@ -150,6 +151,7 @@ test -n "$ENV_NAME" || {
 
 # TODO: see project-description, 'build' tag based on gitflow/branch-name.
 export GIT_DESCRIBE="$(git describe --always)"
+
 
 ## Per-env settings
 

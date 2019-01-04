@@ -4,6 +4,8 @@
 
 test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 
+: "${CWD:="$PWD"}"
+
 : "${script_util:="$CWD/tools/sh"}"
 . "${script_util}/util.sh"
 . "${script_util}/parts/print-color.sh"
@@ -20,6 +22,8 @@ print_yellow "ci:util" "Loaded"
 : "${package_build_tool:="redo"}"
 : "${u_s_version:="feature/docker-ci"}"
 : "${u_s_version:="r0.0"}"
+
+: "${BUILD_STEPS:=}"
 
 : "${DOCKER_NS:="bvberkum"}"
 : "${SHIPPABLE:=}"
@@ -60,8 +64,6 @@ req_usage_fail()
 
 main_() # [Base] [Cmd-Args...]
 {
-  export TEST_ENV package_build_tool
-
   local main_ret= base="$1" ; shift 1
   test -n "$base" || base="$(basename "$0" .sh)"
 
@@ -188,7 +190,6 @@ ci_stages="$ci_stages ci_env"
 
 
 . "${script_util}/env.sh"
-: "${USER_ENV:="tools/sh/env.sh"}"
 
 
 #$LOG info tools/ci/env "Loading shell util"

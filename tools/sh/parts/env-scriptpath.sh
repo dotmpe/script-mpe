@@ -5,9 +5,8 @@
 # pipeline result value
 ENV_D_SCRIPTPATH=$UCACHE/user-env/$$-SCRIPTPATH.txt
 
-support_libs="user-scripts user-scripts-support user-scripts-incubator user-conf"
-            #script-mpe user-scripts user-scripts-support user-conf
-base_dirs="$HOME/project $VND_GH_SRC/bvberkum $HOME/build/bvberkum $HOME/build/user-tools $HOME/lib/sh"
+support_libs="user-scripts user-scripts-support user-scripts-incubator user-conf script-mpe"
+base_dirs="$HOME/.basher/cellar/packages/user-tools $HOME/.basher/cellar/packages/bvberkum $HOME/project $VND_GH_SRC/bvberkum $HOME/build/bvberkum $HOME/build/user-tools $HOME/lib/sh"
 
 test -n "$sh_src_base" || sh_src_base=/src/sh/lib
 
@@ -24,6 +23,8 @@ test -n "$sh_src_base" || sh_src_base=/src/sh/lib
   done
 
   # FIXME: script-path legacy, soem for cleanup
+  #test -d $HOME/build/bvberkum/script-mpe &&
+
   test -d $HOME/bin && echo $HOME/bin
   test -d $HOME/lib/sh && echo $HOME/lib/sh
   test -d $HOME/.conf && echo $HOME/.conf/script
@@ -44,6 +45,7 @@ done | tr '\n' ':' | sed 's/:$/\
 
   # FIXME: script-path legacy, soem for cleanup
   test -d $HOME/bin && SCRIPTPATH=$SCRIPTPATH:$HOME/bin
+  test -d $HOME/build/bvberkum/script-mpe && SCRIPTPATH=$SCRIPTPATH:$HOME/build/bvberkum/script-mpe
   test -d $HOME/lib/sh && SCRIPTPATH=$SCRIPTPATH:$HOME/lib/sh
   test -d $HOME/.conf && SCRIPTPATH=$SCRIPTPATH:$HOME/.conf/script
 

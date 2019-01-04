@@ -29,6 +29,8 @@ git_src_info()
 
 git_scm_list() # [PROJECTS_SCM] ~ [*.git]
 {
+  test $# -le 2 || return
+  while test $# -lt 2 ; do set -- "$@" "" ; done
   test -n "$1" || set -- "*.git"
   fnmatch "*/*" "$1" && set -- "$1" "$1"
   for path in $(echo "$PROJECTS_SCM" | tr ':' '\n' | realpaths | remove_dupes )

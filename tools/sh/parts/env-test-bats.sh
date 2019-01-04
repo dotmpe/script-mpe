@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 : "${BATS_VERSION:="v1.1.0"}"
 : "${BATS_REPO:="https://github.com/bats-core/bats-core.git"}"

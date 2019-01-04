@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 : "${log_lib_loaded:=""}"
 : "${logger_log_hooks:=""}"

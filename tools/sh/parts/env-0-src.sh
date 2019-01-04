@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/usr/bin/env bash
 
 : "${SRC_PREFIX:="/src"}"
 : "${VND_GH_SRC:="$SRC_PREFIX/github.com"}"
