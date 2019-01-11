@@ -33,13 +33,13 @@ test -z "${CWD:-}" || {
 
 
 export scriptname=${scriptname:-"`basename "$0"`"}
-export uname=${uname:-"`uname -s`"}
+export uname=${uname:-"`uname -s | tr '[:upper:]' '[:lower:]'`"}
 
 
 # Set GNU 'aliases' to try to build on Darwin/BSD
 
 case "$uname" in
-  Darwin )
+  darwin )
       export gdate=${gdate:-"gdate"}
       export ggrep=${ggrep:-"ggrep"}
       export gsed=${gsed:-"gsed"}
@@ -47,7 +47,7 @@ case "$uname" in
       export gstat=${gstat:-"gstat"}
       export guniq=${guniq:-"guniq"}
     ;;
-  Linux )
+  linux )
       export gdate=${gdate:-"date"}
       export ggrep=${ggrep:-"grep"}
       export gsed=${gsed:-"sed"}
@@ -55,6 +55,7 @@ case "$uname" in
       export gstat=${gstat:-"stat"}
       export guniq=${guniq:-"uniq"}
     ;;
+  * ) $LOG "warn" "" "uname" "$uname" ;;
 esac
 
 

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+: "${PROJECT_BASE:="`git rev-parse --show-toplevel`"}"
+
+BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)"
+
+echo $SCRIPTPATH
+
+SCRIPTPATH=$PWD/scripts/lib:$SCRIPTPATH .git/hooks/pre-commit

@@ -7,7 +7,6 @@
 
 
 # Verbose test + return status
-
 # Also simple default helper for lookup-path
 test_exists() # Local-Name [ Base-Dir ]
 {
@@ -42,10 +41,15 @@ test_file() # Path
   }
 }
 
-# XXX: test wether glob expands to itself
+# test wether glob expands to itself
+# XXX: which to use, what about symlinks.
 test_glob() # Glob
 {
   test "$(echo $1)" = "$1" && return 1 || return 0
+#  for x in $1
+#  do
+#    test -e "$x" || return 1
+#  done
 }
 
 # Echo arguments as sh vars (use with local, export, etc)
@@ -70,7 +74,6 @@ arg_vars() # VARNAMES VALUES...
   }
 }
 
-
 # Same as arg_vars but with usage, and debug verbosity
 argv_vars()
 {
@@ -89,10 +92,6 @@ argv_vars()
     )"
 }
 
-
-# Exit on error
-
-
 # Abort on surplus arguments
 check_argc()
 {
@@ -101,7 +100,6 @@ check_argc()
   local value="$(eval echo \$$argi)"
   test -z "$value" || error "surplus arguments (expected $1): '$value'" 1
 }
-
 
 # Find an executable script on path. Try with and without extension, in that
 # order. Default extension: .phar
@@ -237,4 +235,3 @@ define_var_from_opt()
     * ) error "Not an option '$1'" 1 ;;
   esac
 }
-

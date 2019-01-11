@@ -49,7 +49,8 @@ export script_util ci_util
 
 . "$script_util/parts/env-0-1-lib-shell.sh"
 
-: "${RAM_TMPDIR:=/tmp}"
+: "${TMPDIR:=/tmp}"
+: "${RAM_TMPDIR:=}"
 
 # Locate ztombol helpers and other stuff from github
 : "${VND_GH_SRC:="/srv/src-local/github.com"}"

@@ -89,6 +89,9 @@ then
   # updated, blue
   c4="$(tput setaf 4)"
   c41="$bold$c4"
+  # generic, purple
+  c5="$(tput setaf 5)"
+  c51="$bold$c5"
 fi
 ## Make output strings
 mk_title_blue="$c7$c41%s$c7:$c0"
@@ -108,6 +111,8 @@ mk_trgt_red="$c1<$c7%s$c1>$c0"
 mk_p_trgt_red="$c1[$c7%s$c1]$c0"
 mk_updtd="$c4<$c7%s$c4>$c0"
 
+mk_trgt_purple="$c5<$c7%s$c5>$c0"
+mk_p_trgt_purple="$c5[$c7%s$c5]$c51"
 
 __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
 {
@@ -175,8 +180,12 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
     err* | fatal | fail* ) # red
       targets=$(printf "$mk_p_trgt_red" "$targets")
       ;;
-     ok | "done" | info | *  )
+    ok | "done" | info | pass )
       targets=$(printf "$mk_p_trgt_green" "$targets")
+      ;;
+
+    * )
+      targets=$(printf "$mk_p_trgt_purple" "$targets")
       ;;
 
   esac

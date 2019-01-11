@@ -83,7 +83,6 @@ $LOG note "" "box-instance:"
 } 2>&1 >/dev/null; } || $LOG error "" "box-instance"
 
 
-# Other commands in build #dev phase.
 
-$LOG note "" "Done"
+$LOG note "$scriptname:$stage:check" "Done"
 # Id: script-mpe/0.0.4-dev tools/ci/parts/check.sh

@@ -7,6 +7,9 @@ sys_lib_load()
   test -n "$LOG" || return 102
   test -n "$uname" || uname="$(uname -s)"
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+
+  test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
+  test -n "$base" || base=$scriptname:sys
 }
 
 # Sh var-based increment
@@ -114,6 +117,9 @@ try_value()
 # setup-tmp [(RAM_)TMPDIR]
 setup_tmpd()
 {
+  test $# -le 2 || return
+  while test $# -lt 2 ; do set -- "$@" "" ; done
+
   test -n "$1" || set -- "$base-$(get_uuid)" "$2"
   test -n "$2" -o -z "$RAM_TMPDIR" || set -- "$1" "$RAM_TMPDIR"
   test -n "$2" -o -z "$TMPDIR" || set -- "$1" "$TMPDIR"
@@ -122,7 +128,7 @@ setup_tmpd()
         test -w "/dev/shm" && RAM_TMPDIR=/dev/shm/tmp
       }
   test -d $2/$1 || mkdir -p $2/$1
-  test -n "$2" -a -d "$2" || $LOG error sys "Not a dir: '$2'" 1
+  test -n "$2" -a -d "$2" || $LOG error sys "Not a dir: '$2'" "" 1
   echo "$2/$1"
 }
 
@@ -131,13 +137,15 @@ setup_tmpd()
 # setup-tmp [ext [uuid [(RAM_)TMPDIR]]]
 setup_tmpf() # [Ext [UUID [TMPDIR]]]
 {
+  test $# -le 3 || return
+  while test $# -lt 3 ; do set -- "$@" "" ; done
+
   test -n "$1" || set -- .out "$2" "$3"
   test -n "$2" || set -- $1 $(get_uuid) "$3"
-  test -n "$1" -a -n "$2" || $LOG error sys "empty arg(s)" 1
-  test -z "$4" || $LOG error sys "surplus arg(s) '$3'" 1
+  test -n "$1" -a -n "$2" || $LOG error sys "empty arg(s)" "" 1
 
   test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
-  test -n "$3" -a -d "$3" || $LOG error sys "Not a dir: '$3'" 1
+  test -n "$3" -a -d "$3" || $LOG error sys "Not a dir: '$3'" "" 1
 
   test -n "$(dirname $3/$2$1)" -a "$(dirname $3/$2$1)" \
     || mkdir -p "$(dirname $3/$2$1)"
@@ -147,9 +155,9 @@ setup_tmpf() # [Ext [UUID [TMPDIR]]]
 # sys-prompt PROMPT [VAR=returned]
 sys_prompt()
 {
-  test -n "$1" || $LOG error sys "sys-prompt: arg expected" 1
+  test -n "$1" || $LOG error sys "sys-prompt: arg expected" "" 1
   test -n "$2" || set -- "$1" returned
-  test -z "$3" || $LOG error sys "surplus-args '$3'" 1
+  test -z "$3" || $LOG error sys "surplus-args '$3'" "" 1
   echo $1
   read -n 1 $2
 }
@@ -225,6 +233,7 @@ lookup_path_list() # VAR-NAME
 lookup_path() # VAR-NAME LOCAL-PATH
 {
   test -n "$lookup_test" || lookup_test="test_exists"
+
   lookup_path_list $1 | while read _PATH
   do
     eval $lookup_test \""$_PATH"\" \""$2"\" && {
@@ -347,7 +356,7 @@ capture() # CMD [RET-VAR=ret_var] [OUT-FILE-VAR=out_file] [-|FILE]
   local return_status=
   test -n "$input" && {
     test "$input" != "-" && {
-      test -f "$input" || $LOG error sys "Input file '$input' expected" 1
+      test -f "$input" || $LOG error sys "Input file '$input' expected" "" 1
     } || {
       input=$(setup_tmpf .capture-input)
       cat >"$input"

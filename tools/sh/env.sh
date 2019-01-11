@@ -21,7 +21,7 @@ test -n "${sh_util_:-}" || {
 test -z "$DEBUG" || print_yellow "" "Starting sh:env '$_' '$*' <$0>"
 
 # Keep current shell settings and mute while preparing env, restore at the end
-shopts=$-
+: "${shopts:="$-"}"
 
 #test -n "$DEBUG" && {
 #    set -x || true;
@@ -93,8 +93,6 @@ lib_load projectenv
 #    ;;
 #
 #esac
-
-
 
 
 ### Start of build job parameterisation

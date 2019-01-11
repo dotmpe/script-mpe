@@ -33,8 +33,9 @@ date_lib_init()
 {
   lib_assert sys os str || return
   case "$uname" in
-    Darwin ) gdate="gdate" ;;
-    Linux ) gdate="date" ;;
+    darwin ) gdate="gdate" ;;
+    linux ) gdate="date" ;;
+    * ) $INIT_LOG "error" "" "uname" "$uname" 1 ;;
   esac
 
   TZ_OFF_1=$($gdate -d '1 Jan' +%z)

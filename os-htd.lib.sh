@@ -5,7 +5,7 @@
 
 os_htd_lib_load()
 {
-  test -n "$uname" || uname="$(uname -s)"
+  test -n "$uname" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   test -n "$os" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 }
 

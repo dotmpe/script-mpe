@@ -105,7 +105,7 @@ init-github-release()
   go get github.com/aktau/github-release
 }
 
-init-dependencies()
+init-deps()
 {
   test -d "$VND_GH_SRC" -a -w "$VND_GH_SRC" || return
 
@@ -138,6 +138,7 @@ init-dependencies()
         $LOG "error" "$?" "Error resetting to $version" "$supportlib"
       }
     }
+    $LOG "note" "" "Checked $intaller $supportlib..." "$version"
   done
 }
 

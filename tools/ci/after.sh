@@ -8,5 +8,5 @@ echo 'Travis test-result: '"$TRAVIS_TEST_RESULT"
 
 . "./tools/ci/parts/publish.sh"
 
-close_stage
+stage_id=after close_stage
 set +u

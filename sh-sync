@@ -6,6 +6,7 @@ remove_dupes() # ~
 {
   awk '!a[$0]++'
 }
+# Sh-Copy: HT:tools/u-s/parts/remove-dupes.inc.sh
 
 unique_files() # PATHNAME...
 {
@@ -14,6 +15,7 @@ unique_files() # PATHNAME...
     test -e "$path" && realpath "$path" || echo "$path"
   done | remove_dupes
 }
+# Sh-Copy: HT:tools/u-s/parts/unique-files.inc.sh
 
 diff_files() # FILEPATH PATHNAME...
 {
@@ -25,8 +27,11 @@ diff_files() # FILEPATH PATHNAME...
     diff -bqr "$1" "$path" && continue
   done
 }
+# Sh-Copy: HT:tools/u-s/parts/diff-files.inc.sh
 
 set -e
+
+local gitdir="$(git rev-parse --show-toplevel)"
 
 set -- $(unique_files "$PWD/.git/hooks/pre-commit" $HOME/.git-pre-commit* | \
     tr '\n' ' ')
@@ -73,6 +78,7 @@ tools/sh/bats-colorize.sh
 tools/sh/run.sh
 tools/sh/util.sh
 $(echo tools/ci/*.sh | tr ' ' '\n')
+$(echo tools/ci/parts/*.sh | tr ' ' '\n')
 tools/sh/user-env.sh
 tools/sh/env.sh
 tools/ci/env.sh

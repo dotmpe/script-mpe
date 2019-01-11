@@ -9,7 +9,7 @@ export_stage()
   test -n "${1:-}" || return 100
   test -n "${2:-}" || set -- "$1" "$1"
 
-  export scriptname=$1 stage=$1 stage_id=$2 ${2}_ts="$($gdate +%s.%N)"
+  export stage=$1 stage_id=$2 ${2}_ts="$($gdate +%s.%N)"
   ci_stages="$ci_stages $stage_id"
 }
 
@@ -21,21 +21,27 @@ announce_stage()
   test -n "${2:-}" || set -- "$1" "$stage_id"
   test -n "$2" || set -- "$1" "$1"
 
-  print_yellow "$scriptname:$stage" "Starting stage... ($($gdate --iso=ns -d @$(eval echo \$${2}_ts)))"
+  local ts="$(eval echo \$${2}_ts)"
+  deltamicro="$(echo "$ts - $travis_ci_timer_ts" | bc )"
+  print_yellow "$scriptname:$stage" "$deltamicro sec: Starting stage..."
 }
 
 close_stage()
 {
   test -n "${1:-}" || set -- "Done"
 
-  export ${stage_id}_end_ts="$($gdate +%s.%N)"
+  local ts=$($gdate +%s.%N)
+  export ${stage_id}_end_ts="$ts"
   stages_done="$stages_done $stage_id"
-  print_yellow "$stage" "$1 ($($gdate --iso=ns))"
+  deltamicro="$(echo "$ts - $travis_ci_timer_ts" | bc )"
+  print_yellow "$scriptname:$stage" "$deltamicro sec: $1"
 }
 
 ci_announce()
 {
-  print_yellow "$scriptname:$stage" "$1 ($($gdate --iso=ns))"
+  local ts=$($gdate +%s.%N)
+  deltamicro="$(echo "$ts - $travis_ci_timer_ts" | bc )"
+  print_yellow "$scriptname:$stage" "$deltamicro sec: $1"
 }
 
 ci_bail()

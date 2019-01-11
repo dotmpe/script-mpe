@@ -1,16 +1,19 @@
 #!/bin/sh
-ci_announce '---------- Check for sane GIT state'
+ci_announce 'Checking for sane GIT state'
 
 GIT_COMMIT="$(git rev-parse HEAD)"
-test "$GIT_COMMIT" = "$TRAVIS_COMMIT" || {
 
-  # For Sanity: Travis won't complain if you accidentally
-  # cache the checkout, but this should:
-  git reset --hard $TRAVIS_COMMIT || {
-    ci_announce '---------- git reset:'
-    env | grep -i Travis
-    git status
-    $LOG error ci:build "Unexpected checkout $GIT_COMMIT" "" 1
-    return 1
+test "$(whoami)" != "travis" || {
+  test "$GIT_COMMIT" = "$TRAVIS_COMMIT" || {
+
+    # For Sanity: Travis won't complain if you accidentally
+    # cache the checkout, but this should:
+    git reset --hard $TRAVIS_COMMIT || {
+      ci_announce 'Git reset:'
+      env | grep -i Travis
+      git status
+      $LOG error ci:build "Unexpected checkout $GIT_COMMIT" "" 1
+      return 1
+    }
   }
 }

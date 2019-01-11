@@ -11,7 +11,8 @@ set -euo pipefail
 ci_cleanup()
 {
   echo '------ Exited' >&2
-  sleep 2
+  test "$USER" = "travis" &&
+    sleep 2 # Allow for buffers to clear
   sync
 }
 
@@ -22,10 +23,12 @@ trap ci_cleanup EXIT
 init_sh_boot=null
 
 # Get checkouts, tool installs and rebuild env (PATH etc.)
-$script_util/parts/init.sh init-dependencies dependencies.txt
+$script_util/parts/init.sh init-deps dependencies.txt
 
 echo "Sourcing env (I)... <${BASH_ENV:-} $CWD $PWD>" >&2
 . "${ci_util}/env.sh" || echo "Ignored: ERR:$?" >&2
+ci_stages="$ci_stages ci_env_1 sh_env_1"
+ci_env_1_ts=$ci_env_ts sh_env_1_ts=$sh_env_ts sh_env_1_end_ts=$sh_env_end_ts
 
 export_stage before-install before_install && announce_stage
 
@@ -45,6 +48,6 @@ scriptname=sh-main:baseline ./sh-main spec sh-baseline.tab '*' &&
 # End with some settings and listings for current env.
 . "$ci_util/parts/init-information.sh"
 
-close_stage
+stage_id=before_install close_stage
 set +u
 # Id: script-mpe/0.0.4-dev tools/ci/before-install.sh

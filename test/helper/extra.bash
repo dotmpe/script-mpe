@@ -15,7 +15,8 @@ get_key()
 
 trueish()
 {
-  test -n "$1" || return 1
+  test $# -eq 1 || return
+  test -n "$1" || return
   case "$1" in
     [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1 )
       return 0;;
@@ -23,11 +24,17 @@ trueish()
       return 1;;
   esac
 }
+# Sh-Copy: HT:tools/u-s/parts/trueish.inc.sh
 
 fnmatch()
 {
-  case "$2" in $1 ) return 0 ;; *) return 1 ;; esac
+  test $# -eq 2 || return
+  case "$2" in
+    $1 ) return 0 ;;
+    *) return 1 ;;
+  esac
 }
+# Sh-Copy: HT:tools/u-s/parts/trueish.inc.sh
 
 next_temp_file()
 {

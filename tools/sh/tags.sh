@@ -5,16 +5,18 @@ set -e
 
 scriptname=tools/sh/tags
 # npm bash-parser cannot handle expr with nested subshells
-test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname "$0")")")"
 #test -n "$scriptpath" || scriptpath="$(dirname_ 3 "$0")"
 test -n "$verbose" || verbose=true
 test -n "$exit" || exit=true
 
 lname=script-mpe
+test -n "$scriptpath" || scriptpath=$(dirname "$(dirname "$(dirname "$0")")")
 
-type lib_load 2> /dev/null 1> /dev/null || util_mode=ext . $scriptpath/util.sh
+type lib_load 2> /dev/null 1> /dev/null ||
+    util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh
 
-lib_load sys os std str
+lib_load sys os std str shell log os-htd sys-htd str-htd
+INIT_LOG=$LOG lib_init sys os std str shell log os-htd sys-htd str-htd
 out=$(setup_tmpf .out)
 
 note "Embedded issues check.. ($(var2tags verbose exit))"
@@ -38,6 +40,7 @@ test -z "$1" && {
 } || {
   check_files="$@"
 }
+
 
 # TODO: compile this regex
 trueish "$Check_All_Tags" && {
@@ -67,7 +70,7 @@ test -e .git &&
 $src_grep \
     $tasks_grep_expr \
     $check_files \
-  | . ./tools/sh/tags-filter.sh \
+  | . $scriptpath/tools/sh/tags-filter.sh \
   | {
     trueish "$verbose" && { tee $out; } || { cat - > $out; }
   }

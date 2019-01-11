@@ -1,5 +1,7 @@
 #!/bin/sh
 
+test -n "$U_S" || U_S=/srv/project-local/user-scripts
+
 # Dev-Module for lib_loadXXX: cli wrapper, see init.sh
 . $U_S/src/sh/lib/lib.lib.sh
 

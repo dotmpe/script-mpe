@@ -4,6 +4,12 @@
 
 test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 
+test -x "$(which gdate)" && export gdate=gdate || export gdate=date
+
+ci_env_ts=$($gdate +"%s.%N")
+: "${ci_stages:=""}"
+ci_stages="$ci_stages ci_env"
+
 : "${CWD:="$PWD"}"
 
 : "${script_util:="$CWD/tools/sh"}"
@@ -183,26 +189,17 @@ if not hasattr(sys, "real_prefix"): sys.exit(1)'
 #}
 
 
-test -x "$(which gdate)" && export gdate=gdate || export gdate=date
-
-ci_env_ts=$($gdate +"%s.%N")
-ci_stages="$ci_stages ci_env"
-
+sh_env_ts=$($gdate +"%s.%N")
+ci_stages="$ci_stages sh_env"
 
 . "${script_util}/env.sh"
 
-
-#$LOG info tools/ci/env "Loading shell util"
-
-#test -n "${shell_lib_loaded:-}" || {
-#    lib_load shell && lib_init shell
-#}
+sh_env_end_ts=$($gdate +"%s.%N")
 test -n "${IS_BASH:-}" || $LOG error "Not OK" "Need to know shell dist" "" 1
 lib_load build-htd env-deps web
 
-ci_env_end_ts=$($gdate +"%s.%N")
 $LOG note "" "CI Env pre-load time: $(echo "$sh_env_ts - $ci_env_ts"|bc) seconds"
+ci_env_end_ts=$($gdate +"%s.%N")
 $LOG note "" "Sh Env load time: $(echo "$ci_env_end_ts - $ci_env_ts"|bc) seconds"
-
 print_yellow "ci:env" "Starting: $0 '$*'" >&2
 # Id: script-mpe/0.0.4-dev tools/ci/env.sh
