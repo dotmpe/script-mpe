@@ -1,10 +1,10 @@
-# git-versioning main: script-mpe
-
+# package.y*ml project metadata
 
 - type: application/vnd.org.wtwta.project
-  main: script-mpe
-  id: script-mpe
-  tag-id: htdocs_mpe
+  main: script-2008b-mpe
+  id: script-2008b-mpe
+  name: Script.mpe
+  slug-id: BIN
   version: 0.0.4-dev # script-mpe
   vendor: bvberkum
   distribution: public
@@ -256,6 +256,9 @@
 
   default: dev
 
+# End of main
+
+
 - type: application/vnd.org.wtwta.symlinks
   id: script-mpe-symlinks
   file: .symlinks.tab
@@ -291,3 +294,5 @@
   env: '. ./env.sh'
   scripts:
     <<: *vagrant_scripts
+
+# End of package.y*ml project metadata

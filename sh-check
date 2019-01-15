@@ -4,6 +4,8 @@
 
 BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)"
 
-echo $SCRIPTPATH
+echo sh-check:SCRIPTPATH: $SCRIPTPATH
 
 SCRIPTPATH=$PWD/scripts/lib:$SCRIPTPATH .git/hooks/pre-commit
+
+# Copy: script-mpe/0.0.4-dev BIN:sh-check vim:ft=bash:

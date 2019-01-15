@@ -71,7 +71,7 @@ req_usage_fail()
 main_() # [Base] [Cmd-Args...]
 {
   local main_ret= base="$1" ; shift 1
-  test -n "$base" || base="$(basename "$0" .sh)"
+  test -n "$base" || base="$(basename -- "$0" .sh)"
 
   test $# -gt 0 || set -- default
   req_usage_fail || return

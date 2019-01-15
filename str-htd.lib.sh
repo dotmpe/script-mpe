@@ -265,6 +265,18 @@ var2tags()
   done)
 }
 
+# Read meta file and re-format (like mkvid) for shell use
+meta2sh()
+{
+  # NOTE: AWK oneliner to transforms keys for ':' as-is MIME header style
+  # file. (no continuations). Quotes values.
+  awk '{ st = index($0,":") ;
+      key = substr($0,0,st-1) ;
+      gsub(/[^A-Za-z0-9]/,"_",key) ;
+      print key "=\"" substr($0,st+1) "\"" }' "$@"
+}
+# Sh-Copy: HT:tools/u-s/parts/ht-meta-to-sh.inc.sh vim:ft=bash:
+
 # Read properties file and re-format (like mkvid) for shell use
 properties2sh()
 {

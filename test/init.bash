@@ -51,7 +51,18 @@ assert_equal()
     $LOG "warn" "Not OK" "Failed:" "'$actual' != '$expected'" 1
 }
 
+assert_equals()
+{
+  test $# -ge 2 || return
+  while test $# -ge 2
+  do
+    assert_equal "$1" "$2" || return
+    shift 2
+  done
+}
+
 diag() { echo "$@"; }
+
 
 # Simple init-log shell function that behaves well in unintialzed env,
 # but does not add (vars) to env.
@@ -78,7 +89,6 @@ err_() # [type] [cat] [msg] [tags] [status]
   test -z "$5" || exit $5 # NOTE: also exit on '0'
 }
 
-
 # Set env and other per-specfile init
 test_env_load()
 {
@@ -86,7 +96,7 @@ test_env_load()
   test -n "$INIT_LOG" || INIT_LOG=err_
 
   # FIXME: hardcoded sequence for env-d like for lib. Using lib-util-env-d-default
-  for env_d in 0 log ucache scriptpath dev test
+  for env_d in 0 0-u_s dev test test-bats log ucache scriptpath
   do
      $INIT_LOG "debug" "" "Loading env-part" "$env_d"
     . $script_util/parts/env-$env_d.sh ||
@@ -140,29 +150,42 @@ init() # ( 0 | 1 [~ [~ [~]]] )
     test -n "$3" || set -- "$1" "$2" "$2" "$4"
     test -n "$4" || set -- "$1" "$2" "$3" "$3"
 
-    test -n "$2" && init_sh_boot="$2"
-    test "$1" = "0" || { test -n "$init_sh_boot" || init_sh_boot="null"; }
-    init_sh_libs="$1" . $script_util/init.sh || return
+    init_sh_libs="$2"
+    init_sh_boot="$3"
 
-    test "$1" = "0" || {
-      lib_load $default_lib || return
+    test "$2" != "1" -o \( -n "$3" -a "$3" != "0" \) || init_sh_boot="null"
+    test "$init_sh_boot" = "1" && {
+      test "$3" = "0" || init_sh_boot='test'
+      #test "$4" = "0" || init_sh_boot=$init_sh_boot' script'
     }
 
-    test "$2" = "0" || {
-      { load extra && load stdtest; } || return
-      #load assert # FIXME: test-helper conflicts, load overrides 'fail'
-    }
+# XXX: cleanup
+    #test -n "$2" && init_sh_boot="$2"
+    #test "$1" = "0" || { test -n "$init_sh_boot" || init_sh_boot="null"; }
+    #init_sh_libs="$1" . $script_util/init.sh || return
 
-    test "$3" = "0" || {
-      lib_load shell || return
-    }
+    #test "$1" = "0" || {
+    #  lib_load $default_lib || return
+    #}
 
-    test -z "$lib_loaded" || {
-      lib_init $lib_loaded || return
-    }
+    #test "$2" = "0" || {
+    #  { load extra && load stdtest; } || return
+    #  #load assert # FIXME: test-helper conflicts, load overrides 'fail'
+    #}
+
+    #test "$3" = "0" || {
+    #  lib_load shell || return
+    #}
   }
 
   load_init_bats
+
+# FIXME: deal with sub-envs wanting to know about lib-envs exported by parent
+# ie. something around ENV_NAME, ENV_STACK. Renamed ENV_SRC to LIB_SRC for now
+# and dealing only with current env, testing lib-load and tools, user-scripts.
+  LIB_SRC=
+  . $U_S/tools/sh/init.sh
+  #. $u_s_util/init.sh
 }
 
 
@@ -179,47 +202,6 @@ load_init() # [ 0 ]
 #  test "$PWD" = "$scriptpath"
 }
 
-
-### Helpers for conditional tests
-
-# TODO: SCRIPT-MPE-2 deprecate in favor of require-env from projectenv.lib
-# Returns successful if given key is not marked as skipped in the env
-# Specifically return 1 for not-skipped, unless $1_SKIP evaluates to non-empty.
-is_skipped()
-{
-  local skipped="$(echo $(eval echo \$$(get_key "$1")_SKIP))"
-  test -n "$skipped" && return
-  return 1
-}
-
-# XXX: SCRIPT-MPE-2 Hardcorded list of test envs, for use as is-skipped key
-current_test_env()
-{
-  test -n "$TEST_ENV" \
-    && echo $TEST_ENV \
-    || case $hostnameid in
-      simza | boreas | vs1 | dandy | precise64 ) hostname -s | tr 'A-Z' 'a-z';;
-      * ) whoami ;;
-    esac
-}
-
-# Check if test is skipped. Currently works based on hostname and above values.
-check_skipped_envs()
-{
-  test -n "$1" || return 1
-  local skipped=0
-  test -n "$1" || set -- "$(hostname -s | tr 'A-Z_.-' 'a-z___')" "$(whoami)"
-  cur_env=$(current_test_env)
-  for env in $@
-  do
-    is_skipped $env && {
-        test "$cur_env" = "$env" && {
-            skipped=1
-        }
-    } || continue
-  done
-  return $skipped
-}
 
 # XXX: temporary override for Bats load
 load_old() {

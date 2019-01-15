@@ -5,7 +5,7 @@ load init
 
 setup()
 {
-  init 0 && lib_load sys &&
+  init 0 && lib_load sys && load stdtest &&
   main_inc=$SHT_PWD/var/sh-src-main-mytest-funcs.sh
 }
 
@@ -75,7 +75,7 @@ setup()
   run falseish No ; test_ok_empty || stdfail 4.B.
 
   run falseish - ; test_nok_empty || stdfail 5.A.
-  run falseish "" ; test_nok_empty || stdfail 5.B.
+  run falseish "" ; test_ok_empty || stdfail 5.B.
 
 }
 
@@ -173,7 +173,7 @@ EOM
   lib_load sys
 
   run bash -c "$( cat <<EOM
-# source '$scriptpath'/util.sh && try_exec_func no_such_function
+# source '$scriptpath'/tools/sh/init-wrapper.sh && try_exec_func no_such_function
 source '$scriptpath'/tools/sh/init.sh && lib_load && try_exec_func no_such_function
 EOM
     )"
@@ -184,7 +184,7 @@ EOM
   export verbosity=7
   run bash -c "$( cat <<EOM
 export scriptpath='$scriptpath'
-util_mode=boot source '$scriptpath'/util.sh && try_exec_func no_such_function
+util_mode=boot source '$scriptpath'/tools/sh/init-wrapper.sh && try_exec_func no_such_function
 EOM
 )"
   {
@@ -204,7 +204,7 @@ EOM
 
   lib_load sys
   export verbosity=5
-  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && util_mode=boot . '$scriptpath'/util.sh && \
+  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && util_mode=boot . '$scriptpath'/tools/sh/init-wrapper.sh && \
     . '$main_inc' && try_exec_func mytest_function'
   {
     test -n "${lines[*]}" &&
@@ -218,7 +218,7 @@ EOM
   lib_load sys
   export verbosity=5
 
-  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && util_mode=boot . '$scriptpath'/util.sh && try_exec_func no_such_function'
+  run sh -c 'TERM=dumb && scriptpath='$scriptpath' && util_mode=boot . '$scriptpath'/tools/sh/init-wrapper.sh && try_exec_func no_such_function'
   test "" = "${lines[*]}" || stdfail 1
 
   case "$(uname)" in
@@ -252,6 +252,7 @@ EOM
   run capture false '' '' '' "bar" "baz"
   test_ok_empty || stdfail 1.2.
 
+  load extra
   tmpf ; out_file=$tmpf ; __test__() {
      ret_var=
      capture ls '' 'out_file' ''  -la
@@ -268,7 +269,8 @@ EOM
 
 @test "${base}: capture CMD handles command pipeline input as well" {
 
-  lib_load sys os
+  load extra
+  lib_load os
   tmpf ; input=$tmpf
   tmpf ; out_file=$tmpf
   __test__() {
@@ -313,4 +315,5 @@ EOM
 }
 
 
+# Sync: U-S:test/unit/sys-lib.bats
 # Id: script-mpe/0.0.4-dev test/sys-lib-spec.bats

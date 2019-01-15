@@ -11,8 +11,8 @@ htd_package_list_ids()
 
 htd_package_update()
 {
-  test -n "$1" || set -- "$(pwd)"
-  package_lib_set_local "$1" && update_package $1
+  test $# -eq 1 || return
+  update_package $1
 }
 
 

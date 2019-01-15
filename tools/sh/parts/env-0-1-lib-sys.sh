@@ -2,6 +2,8 @@
 : "${sys_lib_loaded:=""}"
 
 : "${base:=}"
+: "${lookup_test:=}"
+
 : ${HOST:="`hostname -s | tr 'A-Z' 'a-z'`"}
 : ${uname:-"`uname -s | tr 'A-Z' 'a-z'`"}
 

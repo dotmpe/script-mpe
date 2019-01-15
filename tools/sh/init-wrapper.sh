@@ -1,6 +1,7 @@
 #!/bin/sh
 
-test -n "$U_S" || U_S=/srv/project-local/user-scripts
+test -n "$U_S" -a -d "$U_S" || source "$(dirname "$0")/parts/env-0-u_s.sh"
+test -n "$U_S" -a -d "$U_S" || return
 
 # Dev-Module for lib_loadXXX: cli wrapper, see init.sh
 . $U_S/src/sh/lib/lib.lib.sh
@@ -73,4 +74,5 @@ case "$0" in
     ;;
 esac
 
-# Id: script-mpe/0.0.4-dev util.sh
+# Sync: U-S:tools/sh/init-wrapper.sh
+# Id: script-mpe/0.0.4-dev tools/sh/init-wrapper.sh

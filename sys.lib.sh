@@ -124,7 +124,7 @@ setup_tmpd()
   test -n "$2" -o -z "$RAM_TMPDIR" || set -- "$1" "$RAM_TMPDIR"
   test -n "$2" -o -z "$TMPDIR" || set -- "$1" "$TMPDIR"
   test -n "$2" || {
-        $LOG warn sys "No RAM tmpdir/No tmpdir settings found"
+        $LOG warn sys "No RAM tmpdir/tmpdir settings found"
         test -w "/dev/shm" && RAM_TMPDIR=/dev/shm/tmp
       }
   test -d $2/$1 || mkdir -p $2/$1

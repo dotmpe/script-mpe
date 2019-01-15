@@ -4123,7 +4123,7 @@ Plumbing commands dealing with the local project package file. See package.rst.
 These do not auto-update intermediate artefacts, or load a specific package-id
 into env.
 '
-htd_run__package=iAOpq
+htd_run__package=iAOp
 htd__package()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args

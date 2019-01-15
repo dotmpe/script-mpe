@@ -3,7 +3,7 @@
 # Env without any pre-requisites.
 
 
-: "${INIT_LOG:="$CWD/tools/sh/log.sh"}"
+: "${INIT_LOG:="$U_S/tools/sh/log.sh"}"
 
 
 # Env pre-checks
@@ -32,7 +32,7 @@ test -z "${CWD:-}" || {
 #: "${NL_C:="`printf '\r\n'`"}"
 
 
-export scriptname=${scriptname:-"`basename "$0"`"}
+export scriptname=${scriptname:-"`basename -- "$0"`"}
 export uname=${uname:-"`uname -s | tr '[:upper:]' '[:lower:]'`"}
 
 

@@ -76,6 +76,7 @@ sh_spec_outline()
 
     } || {
 
+# XXX: cleanup sh-spec-outline
       #test $indent -lt $last_indent && {
       $OUT "$last_line"
       $OUT "# end $last_indent"
@@ -269,3 +270,5 @@ sh_spec() # File-Path
     grep -Ev '^\s*(#.*|\s*)$' "$specfile" | sh_spec_table "$@"
   }
 }
+
+# Copy: user-scripts/0.0.0-dev tools/ci/parts/std-runner.sh

@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
-export U_S="${U_S:="$CWD"}"
+# XXX: sync...
+test -n "$U_S" -a -d "$U_S" || source ./tools/sh/parts/env-0-u_s.sh
 
-test -n "${LOG:-}" -a -x "${LOG:-}" || export LOG=$U_S/tools/sh/log.sh
+#test -n "${LOG:-}" -a -x "${LOG:-}" || export LOG=$U_S/tools/sh/log.sh
 
 : "${hostname:="`hostname -s`"}"
 
 : "${sh_src_base:="/src/sh/lib"}"
 : "${sh_util_base:="/tools/sh"}"
+: "${ci_util_base:="/tools/ci"}"
 
-: "${scriptpath:="$U_S$sh_src_base"}"
+: "${scriptpath:="$CWD"}"
 : "${userscript:="$U_S"}"
 
 # Define now, Set/use later
@@ -19,11 +21,15 @@ test -n "${LOG:-}" -a -x "${LOG:-}" || export LOG=$U_S/tools/sh/log.sh
 : "${LIB_SRC:=""}"
 
 : "${CWD:="$PWD"}"
-: "${script_util:="$CWD/tools/sh"}"
-: "${ci_util:="$CWD/tools/ci"}"
+: "${script_util:="$CWD$sh_util_base"}"
+: "${ci_util:="$CWD$ci_util_base"}"
 #: "${script_util:="$userscript/tools/sh"}"
 #: "${ci_util:="$userscript/tools/ci"}"
 export script_util ci_util
+
+#: "${userscript:="$U_S"}"
+#: "${u_s_lib:="$U_S$sh_src_base"}"
+#: "${u_s_util:="$U_S$sh_util_base"}"
 
 #. "$script_util/parts/env-init-log.sh"
 
@@ -46,7 +52,8 @@ export script_util ci_util
 : "${init_sh_boot:=""}"
 
 . "$script_util/parts/env-0-5-lib-log.sh"
-
+#. "$script_util/parts/env-0-6-lib-git.sh"
+#. "$script_util/parts/env-0-7-lib-vc.sh"
 . "$script_util/parts/env-0-1-lib-shell.sh"
 
 : "${TMPDIR:=/tmp}"

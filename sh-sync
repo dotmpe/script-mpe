@@ -1,49 +1,17 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # Keep build tooling copies in sync
 
-remove_dupes() # ~
-{
-  awk '!a[$0]++'
-}
-# Sh-Copy: HT:tools/u-s/parts/remove-dupes.inc.sh
+set -- $(unique-files "$PWD/.git/hooks/pre-commit" $HOME/.git-pre-commit* | \
+    tr '\n' ' ' )
+files-sync "$@" && c-passed || c-failed
 
-unique_files() # PATHNAME...
-{
-  for path in "$@"
-  do
-    test -e "$path" && realpath "$path" || echo "$path"
-  done | remove_dupes
-}
-# Sh-Copy: HT:tools/u-s/parts/unique-files.inc.sh
-
-diff_files() # FILEPATH PATHNAME...
-{
-  local from="$1"
-  shift
-  for path in "$@"
-  do
-    test -f "$path" || path="$path/$1"
-    diff -bqr "$1" "$path" && continue
-  done
-}
-# Sh-Copy: HT:tools/u-s/parts/diff-files.inc.sh
-
-set -e
-
-local gitdir="$(git rev-parse --show-toplevel)"
-
-set -- $(unique_files "$PWD/.git/hooks/pre-commit" $HOME/.git-pre-commit* | \
-    tr '\n' ' ')
-diff_files "$@" || vimdiff "$@" || true
-
-set -- $(unique_files \
+set -- $(unique-files \
     ~/bin/.travis.y*ml \
     ~/project/*script*/.travis.y*ml \
     ~/project/x-ci*/.travis.y*ml \
-  | \
-    tr '\n' ' ')
-diff_files "$@" || vimdiff "$@" || true
+  | tr '\n' ' ')
+files-sync "$@" && c-passed || c-failed
 
 
 # TODO: cleanup, diff these too, later.
@@ -61,8 +29,9 @@ diff_files "$@" || vimdiff "$@" || true
 #tools/sh/boot/stderr-console-logger.sh
 #tools/sh/boot/test.sh
 
+
 # For each given path (remove glob duplicates but don't re-sort)
-for x in ` remove_dupes <<EOM
+for x in ` remove-dupes <<EOM
 
 sh-main
 sh-treebox-ci
@@ -97,7 +66,7 @@ EOM
     echo "# No such file '$x'" >&2
     exit 100
   }
-  echo "# x:'$x'" >&2
+  #echo "# x:'$x'" >&2
 
   #test -e ~/bin/$x -o -e ~/htdocs/$x  \
   #    -o -e ~/user-scripts/$x || touch ~/bin/$x
@@ -106,7 +75,11 @@ EOM
 
   diff -bqr ~/bin/"$x" ~/project/user-scripts/"$x" && continue
 
-  vimdiff $( unique_files \
+  vimdiff $( unique-files \
       ~/"bin/$x" ~/"project/user-scripts/$x" ~/"htdocs/$x" ~/.conf/"$x" || \
       return )
 done
+
+# Id: user-script/ sh-sync
+# From: BIN:
+# To: HT:

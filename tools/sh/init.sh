@@ -2,20 +2,27 @@
 
 # This is for sourcing into a standalone or other env boot/init script (ie. CI)
 
+# NOTE: /bin/sh =/= Sh b/c BASH_ENV... sigh. Oh well, *that* works. Now this:
+case "$-" in
+  *u* ) # XXX: test -n "$BASHOPTS" || ... $BASH_ENV
+      set +o nounset
+    ;;
+esac
+
 
 test -n "$LOG" && LOG_ENV=1 || LOG_ENV=
-test -n "$LOG" -a -x "$LOG" && INIT_LOG=$LOG || INIT_LOG=$PWD/tools/sh/log.sh
+test -n "$LOG" -a -x "$LOG" -o "$(type -f "$LOG" 2>/dev/null )" = "function" &&
+  INIT_LOG=$LOG || INIT_LOG=$CWD/tools/sh/log.sh
 
 test -n "$sh_src_base" || sh_src_base=/src/sh/lib
 test -n "$sh_util_base" || sh_util_base=/tools/sh
 
-test -e "$U_S" || U_S=$HOME/project/user-scripts
-test -e "$U_S" || U_S=$HOME/build/user-tools/user-scripts
-test -e "$U_S" || unset U_S
+test -n "$U_S" -a -d "$U_S" || . $PWD$sh_util_base/parts/env-0-u_s.sh
+test -n "$U_S" -a -d "$U_S" || return
 
 # Must be started from u-s project root or set before, or provide SCRIPTPATH
-test -n "$scriptpath" || scriptpath="$PWD"
-test -n "$scriptname" || scriptname="`basename "$0"`"
+test -n "$u_s_lib" || u_s_lib="$U_S$sh_src_base"
+test -n "$scriptname" || scriptname="`basename -- "$0"`"
 test -n "$script_util" || script_util="$U_S$sh_util_base"
 
 # XXX: cleanup
@@ -29,13 +36,10 @@ test -n "$script_util" || script_util="$U_S$sh_util_base"
 #. "$script_env"
 
 # Now include module with `lib_load`
-test -z "$DEBUG" ||
-  echo . $U_S$sh_src_base/lib.lib.sh >&2
+test -z "$DEBUG" || echo . $u_s_lib/lib.lib.sh >&2
 {
-#util_mode=ext . ./util.sh
-#unset util_mode
-. $U_S$sh_src_base/lib.lib.sh &&
-  lib_lib_load && lib_lib_loaded=1 &&
+  . $u_s_lib/lib.lib.sh || return
+  lib_lib_load && lib_lib_loaded=1 || return
   lib_lib_init
 } ||
   $INIT_LOG "error" "$scriptname:init.sh" "Failed at lib.lib $?" "" 1
@@ -65,10 +69,10 @@ test "$init_sh_libs" = "0" || {
   test -z "$DEBUG" ||
     echo script_util=$U_S$sh_util_base scripts_init $init_sh_boot >&2
   script_util=$U_S$sh_util_base scripts_init $init_sh_boot ||
-    $INIT_LOG "error" "$scriptname:init.sh" "Failed at bootstrap '$init_sh_boot' $?" "" 1
-
+    $INIT_LOG "error" "$scriptname:init.sh" "Failed at bootstrap '$init_sh_boot'" $? 1
 }
 
 test -n "$LOG_ENV" && unset LOG_ENV INIT_LOG || unset LOG_ENV INIT_LOG LOG
 
+# Id: U-S:tools/sh/init.sh
 # Id: script-mpe/0.0.4-dev tools/sh/init.sh

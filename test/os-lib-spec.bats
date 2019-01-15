@@ -5,14 +5,8 @@ load init
 
 setup()
 {
-  init 0 &&
-  lib_load sys os &&
-
-  # var/table-1.tab: File with 5 comment lines, 3 rows, 1 empty and 1 blank (ws)
-  testf1="test/var/table-1.tab" &&
-
-  # Several blocks of comments and two content lines, 4 empty lines (no ws.)
-  testf2=test/var/nix_comments.txt
+  init 0 && load stdtest &&
+  lib_load sys os
 }
 
 
@@ -134,6 +128,7 @@ setup()
 
 
 @test "$base: line_count" {
+  load extra
   tmpd
   out=$tmpd/line_count
 
@@ -151,6 +146,7 @@ setup()
 
 
 @test "$base: filesize" {
+  load extra
   tmpd
   out=$tmpd/filesize
   printf "1\n2\n3\n4" >$out
@@ -191,7 +187,7 @@ setup()
 
 @test "$base: short" {
 
-  TODO "FIXME: short is far to slow"
+  # TODO "FIXME: short is far to slow"
 
   func_exists short
   run short
@@ -214,4 +210,5 @@ setup()
   } || stdfail
 }
 
+# Sync: U-S:test/unit/os-lib.bats
 # Id: script-mpe/0.0.4-dev test/os-lib-spec.bats

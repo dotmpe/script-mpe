@@ -11,10 +11,11 @@
 test -n "$LOG" && LOG_ENV=1 || LOG_ENV=
 test -n "$LOG" -a -x "$LOG" && INIT_LOG=$LOG || INIT_LOG=$PWD/tools/sh/log.sh
 
-test -n "$U_S" || U_S=/srv/project-local/user-scripts
-
 test -n "$sh_src_base" || sh_src_base=/src/sh/lib
 test -n "$sh_util_base" || sh_util_base=/tools/sh
+
+test -n "$U_S" -a -d "$U_S" || . $PWD$sh_util/parts/env-0-u_s.sh
+test -n "$U_S" -a -d "$U_S" || return
 
 test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname "$0")" )" )"
 test -n "$scriptname" || scriptname="$(basename "$0")"
@@ -52,4 +53,5 @@ shift 3
 
 eval "$@"
 
+# Sync: U-S:tools/sh/init-here.sh
 # Id: script-mpe/0.0.4-dev tools/sh/init-here.sh

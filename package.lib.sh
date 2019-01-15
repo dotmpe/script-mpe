@@ -102,6 +102,7 @@ package_lib_set_local()
   } || {
     PACKMETA_BN="$(package_basename)-${package_id}"
   }
+  $LOG info "" "Set PackMeta-Bn to" "$PACKMETA_BN"
   PACKMETA_JSON=$1/$PACK_DIR/$PACKMETA_BN.json
   PACKMETA_JS_MAIN=$1/$PACK_DIR/$PACKMETA_BN.main.json
   PACKMETA_SH=$1/$PACK_DIR/$PACKMETA_BN.sh
@@ -114,7 +115,6 @@ package_lib_set_local()
 package_defaults()
 {
   test -n "$package_main" || package_main="$package_id"
-  test -n "$package_name" || package_name="$package_id"
   test -n "$package_env_file" || package_env_file=$PACK_TOOLS/env.sh
   test -n "$package_log_dir" -o -n "$package_log" || package_log="$package_log_dir"
 
@@ -212,12 +212,13 @@ package_req_env()
 {
   test -n "$PACKMETA_SH" || return
   note "Loading package lib env"
+  test -e "$PACKMETA_SH" || return
   . "$PACKMETA_SH" || return
   package_defaults
 }
 
 # Easy access for shell to package.yml/json: convert to Sh vars.
-update_package_sh()
+update_package_sh() # CWD
 {
   test -n "$1" -a -d "$1" || error "update-package-sh dir '$1'" 21
   test -n "$metash" || metash=$PACKMETA_SH

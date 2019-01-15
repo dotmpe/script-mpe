@@ -973,3 +973,23 @@ remove_dupes()
 {
   awk '!a[$0]++' "$@"
 }
+
+ # Go over pathnames, and compare with file. Return non-zero on first file with differences.
+diff_files() # File-Path Path-Name...
+{
+  #param 'FILE OTHER...'
+  # TODO: group 'OS:Diff'
+  #group 'OS-Htd:Diff'
+  test $# -gt 1 -a -f "$1" || return 98
+
+  local from="$1"
+  shift
+  for path in "$@"
+  do
+    test -f "$path" || path="$path/$1"
+    diff -bqr "$1" "$path" && continue
+  done
+}
+# Sh-Copy: HT:tools/u-s/parts/diff-files.inc.sh vim:ft=bash:
+
+# Sync: U-C:src/sh/lib/os.lib.sh
