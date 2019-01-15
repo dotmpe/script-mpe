@@ -117,6 +117,7 @@ init-deps()
     $LOG "info" "" "Checking $intaller $supportlib..." "$version"
 
     : "${version:="master"}"
+    #test -n "$version" || version=master
 
     ns_name="$(dirname "$supportlib")"
     test -d "$VND_GH_SRC/$ns_name" || mkdir -p "$VND_GH_SRC/$ns_name"

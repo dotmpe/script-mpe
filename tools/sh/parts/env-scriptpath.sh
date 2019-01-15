@@ -22,9 +22,7 @@ test -n "$sh_src_base" || sh_src_base=/src/sh/lib
     done
   done
 
-  # FIXME: script-path legacy, soem for cleanup
-  #test -d $HOME/build/bvberkum/script-mpe &&
-
+  # FIXME: script-path legacy, some for cleanup
   test -d $HOME/bin && echo $HOME/bin
   test -d $HOME/lib/sh && echo $HOME/lib/sh
   test -d $HOME/.conf && echo $HOME/.conf/script
