@@ -56,4 +56,4 @@ exec $U_S/tools/sh/init-here.sh "$SCRIPTPATH" "" "" "$(cat <<EOM
 EOM
 )"
 
-# vim:ft=bash:
+# Sync: U-S: vim:ft=bash:

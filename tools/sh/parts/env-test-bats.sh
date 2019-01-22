@@ -19,4 +19,6 @@ export BATS_VERSION BATS_REPO
 test -z "${BATS_TEST_DIRNAME:-}" ||
     SHT_PWD="$( cd $BATS_CWD && realpath $BATS_TEST_DIRNAME )"
 #SHT_PWD="$(grealpath --relative-to=$BATS_CWD $BATS_TEST_DIRNAME )"
-#
+
+
+# Sync: U-S:

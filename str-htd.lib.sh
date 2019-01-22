@@ -394,6 +394,7 @@ resolve_prefix_element()
 }
 
 # XXX: wouldn't `pr` suffice?
+# Divide output into X columns of colw=32 wide, filling terminal width
 column_layout()
 {
   test -n "$colw" || local colw=22

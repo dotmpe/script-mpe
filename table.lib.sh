@@ -18,7 +18,7 @@ fixed_table_hd_offset()
   test "$1" = "$2" \
     && echo 0 \
     || echo $($ggrep -m 1 -E '^# ?'$2' [^\!\/\.,]+$' $3 |
-    $gsed -E 's/^(.*)\ \<'$1'\>( .*|$)/\1/g' | wc -c)
+        $gsed -E 's/^(.*)\ \<'$1'\>( .*|$)/\1/g' | wc -c)
 }
 
 # fixed_table_hd_offsets TAB HD...
@@ -121,7 +121,7 @@ fixed_table()
   trueish "$expand" && _q='\\"' || _q='\'\'
   # Walk over rows, columns and assemble Sh vars, include raw-src in $line
   local row_nr=0
-  cat "$tab" | grep -v '^\s*\(#.*\)\?$' | while read line
+  grep -v '^\s*\(#.*\)\?$' "$tab" | while read line
   do
     row_nr=$(( $row_nr + 1 ))
     cat "$cutf" | grep -v '^\s*\(#.*\)\?$' | while read col args

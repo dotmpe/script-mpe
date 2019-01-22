@@ -25,3 +25,5 @@ exec ./tools/sh/init-here.sh $HOME/bin "" "" "$(cat <<EOM
   echo OK
 EOM
 )"
+
+# Sync: U-S: vim:ft=bash:

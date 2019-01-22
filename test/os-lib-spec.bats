@@ -5,12 +5,13 @@ load init
 
 setup()
 {
-  init 0 && load stdtest &&
+  init 0 && load stdtest extra &&
   lib_load sys os
 }
 
 
 @test "$base: read-nix-style-file strips blank and octothorp comment lines" {
+  test "$(whoami)" = "travis" && skip
   run read_nix_style_file "$testf1"
   { test_ok_nonempty 3
   } || stdfail
@@ -27,7 +28,7 @@ setup()
     test_lines \
         '789.1      -XYZ           x y z' \
         '   ' \
-        '#:vim:ft=todo.txt:'
+        '# vim:ft=todo.txt:'
 
   } || stdfail 1.2.
   run lines_slice "" 9 "$testf1"
@@ -50,7 +51,7 @@ setup()
     test_lines \
         '789.1      -XYZ           x y z' \
         '   ' \
-        '#:vim:ft=todo.txt:'
+        '# vim:ft=todo.txt:'
 
   } || stdfail 1.2.
   run __test__ "" 9 "$testf1"
@@ -187,7 +188,7 @@ setup()
 
 @test "$base: short" {
 
-  # TODO "FIXME: short is far to slow"
+  TODO "FIXME: short is far to slow"
 
   func_exists short
   run short
@@ -210,5 +211,5 @@ setup()
   } || stdfail
 }
 
-# Sync: U-S:test/unit/os-lib.bats
+# Sync: U-S:test/unit/os-lib.bats 0.0.1-35-g023b832
 # Id: script-mpe/0.0.4-dev test/os-lib-spec.bats

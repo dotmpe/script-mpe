@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# See .travis.yml
-
+# CI suite stage 5. See .travis.yml
 set -u
 export_stage before-cache before_cache && announce_stage
-. "./tools/ci/parts/before-cache.sh"
+
+sh_include before-cache
 
 close_stage
 set +u
+# Sync: U-S:

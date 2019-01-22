@@ -1,4 +1,0 @@
-unset LOG CDW LOG scriptpath name
-    unset SCRIPTPATH
-
-# vim:ft=bash:

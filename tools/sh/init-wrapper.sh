@@ -1,6 +1,6 @@
 #!/bin/sh
 
-test -n "$U_S" -a -d "$U_S" || source "$(dirname "$0")/parts/env-0-u_s.sh"
+test -n "$U_S" -a -d "$U_S" || source "$(dirname -- "$0")/parts/env-0-u_s.sh"
 test -n "$U_S" -a -d "$U_S" || return
 
 # Dev-Module for lib_loadXXX: cli wrapper, see init.sh
@@ -75,4 +75,4 @@ case "$0" in
 esac
 
 # Sync: U-S:tools/sh/init-wrapper.sh
-# Id: script-mpe/0.0.4-dev tools/sh/init-wrapper.sh
+# Id: Script.mpe/0.0.4-dev tools/sh/init-wrapper.sh

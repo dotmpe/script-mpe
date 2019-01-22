@@ -1,36 +1,18 @@
 #!/bin/sh
 
-export ci_check_ts=$($gdate +"%s.%N")
-
 # entry-point for CI pre-test phase, to do preflight checks, some verbose debugging
-$LOG note "" "Entry for CI pre-test / check phase"
 
+sh_include init
 
-$LOG note "" "User: $( whoami )"
-$LOG note "" "Host: $( hostname )"
-
-$LOG note "" "*PATH* env:"
-env | grep PATH
-
-$LOG note "" "TERM=$TERM"
-$LOG note "" "TRAVIS_SKIP=$TRAVIS_SKIP"
-$LOG note "" "ENV=$ENV"
-$LOG note "" "Build dir: $(pwd)"
-
-
-$LOG note "" "Pre-flight check.."
-
-# Basicly if these don't run dont bother testing/building/publishing/...:
-
-bash --version
-test -x "$(which dash)" || $LOG error "" "No dash" 12
-#test -x "$(which posh)" || $LOG error "" "No posh" 12
+check-all()
+{
+  true
+}
 
 not_trueish "$SHIPPABLE" || {
   perl --version
 }
 
-composer --version
 test -z "$TEST_FEATURE_BIN" || "$TEST_FEATURE_BIN" --version
 bats --version
 realpath --version
@@ -85,4 +67,5 @@ $LOG note "" "box-instance:"
 
 
 $LOG note "$scriptname:$stage:check" "Done"
+# Sync: U-S:
 # Id: script-mpe/0.0.4-dev tools/ci/parts/check.sh

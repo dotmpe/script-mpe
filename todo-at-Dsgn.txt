@@ -1,15 +1,26 @@
+# Id: <HT:to/do-at-Dsgn.list>       vim:ft=todo:nowrap:cc=2,8,19,30:
+# ----- -- ---- -- -- -- -- -
+# Derive-Modeline:
+
 # Tasks lists tracking test specs
 
-2018-11-30 @Htd vt
-2018-12-01 @Htd doc new
+2018-11-28 bats load @Dev @Htd @Work
 
 2018-11-30 @Htd git get
+2018-11-30 @Htd vt
+2018-11-30 @Htd meta
+
+2018-12-01 @Htd doc new
+2018-12-01 @Htd file drop: TODO: specs
 2018-12-01 @Htd vc
 2018-12-01 @Htd vcflow
-
 2018-12-01 @Htd tasks sync
+2018-12-01 @Htd srv lists named volumes and instances (disks)
+2018-12-01 @Htd project(s) lists @Spec
 
-2018-11-30 @Htd meta
-2018-12-01 @Htd emby->meta
+2018-12-02 @Htd txt unfold: #m-Cu
+2018-12-02 @Htd txt fold: #lSKp
+2018-12-02 TODO: @Htd @Tasks specs: #PcDK
+2018-12-02 @Htd tasks sync: #GdwA
 
-# vim:ft=todo.txt:nowrap:
+# ----- -- ----

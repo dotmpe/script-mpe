@@ -1,3 +1,5 @@
 #!/bin/sh
 
-BASH_ENV=tools/ci/env.sh bash tools/ci/script.sh
+./sh-main run-script
+
+# Sync: U-S: vim:ft=bash:

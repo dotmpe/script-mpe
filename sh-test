@@ -32,3 +32,5 @@ vc_git_submodules
 
 rm -rf "$gitdir" "$sm1" "$sm2" "$BATS_TMPDIR"
 echo Done
+
+# Sync: U-S: vim:ft=bash:

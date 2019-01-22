@@ -16,3 +16,5 @@ build/dev.sh minimal
 $LOG notice $(basename $0) "Success!"
 #lib_load std
 #std_note "Success!"
+
+# Sync: U-S: vim:ft=bash:

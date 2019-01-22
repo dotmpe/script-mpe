@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# See .travis.yml
-
-set -u
+# CI suite stage 7. See .travis.yml
+set -eu
 export_stage after && announce_stage
 
-echo 'Travis test-result: '"$TRAVIS_TEST_RESULT"
-
-. "./tools/ci/parts/publish.sh"
+sh_include publish
 
 stage_id=after close_stage
-set +u
+set +eu
+# Sync: U-S:

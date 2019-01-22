@@ -2,153 +2,218 @@
 
 # Shell script wrapper for $PWD/sh-* scripts and other project/CI tooling
 
-
-run()
+usage() # [Command]
 {
-  "$@"
+  test $# -le 1 || return 98
+  test $# -eq 0 && {
+    echo 'Usage:'
+    echo '  ./sh-main <function name>'
+    echo '  ./sh-main ( usage [command] | commands )'
+  } ||  {
+    grep '^'"$1"'[a-z-]*()' "sh-main" | sed 's/()\ # /: /'
+  }
 }
+abort() { usage >&2 && exit 2; } # XXX: see CI/c-bail also
+commands() { usage "" ; }
 
-run-cmd()
-{
-  print_yellow "" "Running $SCRIPT_SHELL -c '$*'..."
-  $SCRIPT_SHELL -c "$@" &&
-    print_green "OK" "Command $SCRIPT_SHELL -c '$*'" ||
-    print_red "Not OK: $?" "Command $SCRIPT_SHELL -c '$*'"
-}
 
+# Combine and execute var/cmd specs with test-shell
 spec()
 {
-  test $# -gt 0 || set -- sh-baseline.tab "*/bin/u-s *"
+  test $# -gt 0 || set -- sh-baseline.tab
+  test $# -gt 1 || set -- "$1" "*"
+  test $# -le 2 -a -f "$1" || return 98
 
-  . "$U_S/tools/ci/parts/std-stack.sh"
-  . "$U_S/tools/ci/parts/std-runner.sh"
+  sh_include std-stack std-runner
 
-  sh_spec "$1" | grep -v '^\s*\(#.*\|\s*\)$' | while read scriptline
-  do
-    fnmatch "$2" "$scriptline" || continue
-    run-cmd "$scriptline" </dev/tty
+  : "${c_run:="$(basename "$SCRIPT_SHELL")-c"}"
+
+  sh_spec "$1"|grep -v '^\s*\(#.*\|\s*\)$'|while read scriptline; do
+
+    case "$scriptline" in $2 ) ;; * ) continue ;; esac
+
+    c-run "$scriptline" || return
+
   done
 }
 
+# Print specs that would have been run
+lines()
+{
+  test $# -eq 1 -a -f "$1" || return 98
+  sh_include std-stack std-runner
+  sh_spec "$1"|grep -v '^\s*\(#.*\|\s*\)$'
+}
+
+# Run parts or spec-lines in docker container. u-s dckr runs at U-S checkout
+# inside container (ie. install and/or CI build path), but this runs local code
+# mounted at the U-S dut path.
 treebox()
 {
-  test $# -gt 0 || set -- sh-treebox-us.tab "*/sh-treebox-inner"
-  
-  test -n "$1" || {
-    test $# -eq 2 -a "$2" = "*" && set -- "$scriptname.tab" "$2"
+  falseish "${refresh:=}" || {
+    print_yellow "" "Refreshing ${sh_treebox_img:-image}..."
+    docker pull ${sh_treebox_img:="bvberkum/sandbox:dev"} || return
+    print_green "OK"
   }
-    
-  . "./tools/sh/parts/print-color.sh"
-  CWD=$PWD U_S=$PWD . "./tools/sh/parts/env-0.sh"
 
-  docker pull ${sh_treebox_img:="bvberkum/sandbox:dev"}
-
-  . "./commands/u_s-dckr.lib.sh"
+  sh_include env-scriptpath-deps lib-load || return
+  . "./commands/u_s-dckr.lib.sh" || return
   docker_image=$sh_treebox_img dckr_load || return
-   
-  test ! -e "$PWD"/"$1" && {
-    run "$@" </dev/tty
-    return $?
-  
-  } || {
-    test $# -eq 2 || set -- "$1" "*"
-  
-    . "$U_S/tools/ci/parts/std-stack.sh"
-    . "$U_S/tools/ci/parts/std-runner.sh"
-  
-    sh_spec "$1" | grep -v '^\s*\(#.*\|\s*\)$' | while read scriptline
-    do
-      fnmatch "$2" "$scriptline" || continue
 
-      print_yellow "" "Running Treebox '$scriptline'..."
-      dckr_cmd "$scriptline" </dev/tty &&
-        print_green "OK" "Treebox '$scriptline" ||
-        print_red "Not OK: $?" "Treebox '$scriptline'"
+  test $# -gt 0 || set -- run-parts build.txt "$SUITE"
+  test ! -e "$1" -o -x "$1" -o -e "${2:-}" || {
+    specfile="$1"; shift
+    set -- "$(ci_file_exec "$specfile")" "$specfile" "$@"
+    unset specfile
+  }
+
+  local c_run="$1" ; shift ;
+  c-run "$@"
+}
+
+# Same as run-suite, but test each step (like spec with c-run and passed/failed log session)
+run-parts() # Tab Suite Phases...
+{
+  test $# -ge 2 || return 98
+  local parts= tab="$1" suite="$2" ; shift 2
+  test $# -gt 0 || set -- 0
+
+  test -n "$tab" || tab=build.txt
+  test -n "$suite" || suite="${SUITE:-}"
+  head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
+
+  local stage c_lbl
+
+  for phase in $@
+  do
+    stage=$suite.$phase
+    c_lbl="$stage"
+    parts=$( suite_from_table "$tab" Parts "$suite" "$phase" ) || return
+    for part in $parts
+    do
+      c_run=sh_include c-run "$part"
     done
+    unset stage parts
+  done
+}
+
+show-parts() # Table Suite Prefix
+{
+  test $# -ge 2 || return 98
+  local parts= tab="$1" suite="$2" ; shift 2
+  test -n "$tab" || tab=build.txt
+  head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
+
+  test $# -gt 0 && for phase in $@
+  do
+    suite_from_table "$tab" "Parts" "$suite" "$phase" ||
+      return
+  done ||
+    suite_from_table "$tab" "Parts" "$suite"
+}
+
+# Run init, check, baselines or other part
+run-suite() # Table Suite Prefix
+{
+  test $# -ge 2 || return 98
+  local parts= tab="$1" suite="$2" ; shift 2
+  test -n "$tab" || tab=build.txt
+  head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
+
+  test $# -gt 0 && for phase in $@
+  do
+    stage=$suite.$phase
+    suite_run "$tab" "$suite" $phase || return
+
+  done ||
+    suite_run "$tab" "$suite" $phase
+}
+
+# Run baselines from var/cmd-spec table
+run-baseline()
+{
+  local r=
+  c_lbl=Baseline spec sh-baseline.tab "$@" &&
+     print_green "OK" "Baselines '$*'" || { r=$?
+       print_red "Not OK: $?" "Baselines '$*'"
+       return $r
+  }
+}
+
+# Run test cmd-lines from var/cmd-spec table
+run-test()
+{
+  local r=
+  c_lbl="Project test" spec sh-project.tab "$@" &&
+     print_green "OK" "Project tests '$*'" || { r=$?
+       print_red "Not OK: $?" "Project tests '$*'"
+       return $r
+  }
+}
+
+# Run entire CI suite build scripts
+run-ci()
+{
+  test $# -gt 0 || set -- sh-ci.tab
+  local r=
+  c_lbl="CI suite" spec "$@" &&
+     print_green "OK" "CI suite '$*'" || { r=$?
+       print_red "Not OK: $?" "CI suite '$*'"
+       return $r
   }
 }
 
 
-# Establish tooling baseline
-tooling-baseline() {
+# Main: wrap/exec cmd or func matching first argument
 
-  local scriptline= verbosity=4
-
-  print_yellow "" "Starting Bats-negative baseline..."
-  #bats "test/baseline/bats-negative.bats" && return 1 || true
-  bats "test/baseline/bats-negative.bats" &&
-      print_red "bats-negative" "Not OK, expected failure." ||
-      print_green "bats-negative" "OK, fails as expected."
-
-  print_yellow "" "Starting Bats baseline..."
-  bats "test/baseline/bats.bats" || return
-
-
-  bats "test/unit/std-stack.bats" || return
-  bats "test/baseline/std-runner.bats" || return
-
-  . "./tools/sh/parts/env-0.sh"
-
-  . "./tools/ci/parts/std-stack.sh"
-  . "./tools/ci/parts/std-runner.sh"
-
-  sh_spec "sh-baseline.tab" 55 |
-  grep -Ev '^\s*(#.*|\s*)$' |
-  while read scriptline
-  do
-    ( eval "$scriptline" ) &&
-      print_green "OK" "Baseline '$scriptline'" ||
-      print_red "Not OK" "Baseline '$scriptline'"
-  done
-}
-
-
-# Run baseline part of CI suite
-
-project-baseline()
+BASH_BIN=$(which bash)
+bash-c()
 {
-  . "./tools/sh/parts/env-0.sh"
-
-  #. "./tools/ci/parts/baseline.sh"
-
-  . "./tools/ci/parts/std-stack.sh"
-  . "./tools/ci/parts/std-runner.sh"
-
-  sh_spec "sh-project.tab" 20 |
-  grep -Ev '^\s*(#.*|\s*)$' |
-  while read scriptline
-  do
-      ( eval "$scriptline" ) &&
-      print_green "OK" "Baseline '$scriptline'" ||
-      print_red "Not OK" "Baseline '$scriptline'"
-  done
+  $BASH_BIN -c "$@"
 }
 
+case "$(basename -- "$0" .sh)" in
+  -bash ) ;;
 
-# Run CI suite
-run-test() { {
+  sh-* ) test -z "${sh_main:-}" || return 0 ; sh_main=1
 
-  BASH_ENV="tools/ci/env.sh" bash -c '. tools/ci/script.sh'
+      # Get minimal env using Main suite.
+      : "${SUITE:="Main"}"
+      : "${keep_going:=1}" # No-Sync
+      : "${stage:=}"
+      . "${sh_tools:="$PWD/tools/sh"}/env.sh"
 
-} && print_green "OK" "CI Suite" || print_red "Not OK" "CI Suite"; }
+      test $# -gt 0 || set -- $sh_main_cmdl
 
+      ci_file_exec()
+      {
+        case "$1" in
+          *.txt ) echo run-parts ;;
+          *.tab|*.list ) echo spec ;;
+        esac
+      }
 
+      # XXX: test ! -e "$PWD"/"$1" test local only?
+      test ! -e "$1" -o -x "$1" || {
+        specfile="$1"; shift
+        set -- "$(ci_file_exec "$specfile")" "$specfile" "$@"
+        unset specfile
+      }
 
-set -euo pipefail
-
-. "${script_util:="$PWD/tools/sh"}/env.sh"
-
-test $# -gt 0 || set -- tooling-baseline
-
-print_yellow "" "Starting '$*'"
-test -e "$1" && {
-
-  $SCRIPT_SHELL \
-    "$@" && print_green "" "Completed '$*'" || print_red "" "Failed '$*'"
-
-} || {
-
-  "$@" && print_green "" "Completed '$*'" || print_red "" "Failed '$*'"
+      eval "$(cat <<EOM
+$(basename "$SCRIPT_SHELL")-c()
+{
+  $SCRIPT_SHELL -c "\$@"
 }
+EOM
+)"
 
-# vim:ft=bash:
+      # Execute/wrap unknown first-argv as shell command
+      test -x "$1" -o "$(type -t "$1")" = "function" ||
+        set -- bash-c "$@"
+
+      ci_exec "$@"
+    ;;
+esac
+
+# Sync: U-S: vim:ft=bash:

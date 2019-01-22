@@ -22,3 +22,5 @@ build_init
 #list_sh_files
 #expand_spec_src script_libs
 build_package_script_lib_list
+
+# Sync: U-S: vim:ft=bash:

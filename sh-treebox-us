@@ -70,3 +70,5 @@ test ! -e "$PWD"/"$1" && {
       print_red "Not OK: $?" "Treebox U-s '$scriptline'"
   done
 }
+
+# Sync: U-S: vim:ft=bash:

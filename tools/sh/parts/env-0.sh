@@ -20,45 +20,30 @@ test -z "${CWD:-}" || {
   }
 }
 
-
 # Start 0. env
 
+: "${SCRIPTPATH:=}"
 : "${CWD:="$PWD"}"
 : "${DEBUG:=}"
-: "${BASHOPTS:=}"
 : "${OUT:="echo"}"
+: "${PS1:=}"
+: "${BASHOPTS:=}" || true
+: "${BASH_ENV:=}"
+: "${shopts:="$-"}"
+: "${SCRIPT_SHELL:="$SHELL"}"
 : "${TAB_C:="	"}"
+TAB_C="	"
 #: "${TAB_C:="`printf '\t'`"}"
 #: "${NL_C:="`printf '\r\n'`"}"
 
+test -n "${DEBUG:-}" && : "${keep_going:=false}" || : "${keep_going:=true}"
 
-export scriptname=${scriptname:-"`basename -- "$0"`"}
-export uname=${uname:-"`uname -s | tr '[:upper:]' '[:lower:]'`"}
+: "${USER:="$(whoami)"}"
+test "$USER" = "treebox" && : "${dckr_pref:="sudo "}"
 
+: "${NS_NAME:="bvberkum"}"
+: "${DOCKER_NS:="$NS_NAME"}"
+: "${scriptname:="`basename -- "$0"`"}"
+: "${LOG:="$CWD/tools/sh/log.sh"}"
 
-# Set GNU 'aliases' to try to build on Darwin/BSD
-
-case "$uname" in
-  darwin )
-      export gdate=${gdate:-"gdate"}
-      export ggrep=${ggrep:-"ggrep"}
-      export gsed=${gsed:-"gsed"}
-      export gawk=${gawk:-"gawk"}
-      export gstat=${gstat:-"gstat"}
-      export guniq=${guniq:-"guniq"}
-    ;;
-  linux )
-      export gdate=${gdate:-"date"}
-      export ggrep=${ggrep:-"grep"}
-      export gsed=${gsed:-"sed"}
-      export gawk=${gawk:-"awk"}
-      export gstat=${gstat:-"stat"}
-      export guniq=${guniq:-"uniq"}
-    ;;
-  * ) $LOG "warn" "" "uname" "$uname" ;;
-esac
-
-
-: "${script_util:="$CWD/tools/sh"}"
-: "${ci_util:="$CWD/tools/ci"}"
-export script_util ci_util
+# Sync: U-S:

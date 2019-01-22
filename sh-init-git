@@ -11,3 +11,5 @@ git status
 
 # Return for lib smoketesting
 cd $HOME/build/bvberkum/user-scripts
+
+# Sync: U-S: vim:ft=bash:

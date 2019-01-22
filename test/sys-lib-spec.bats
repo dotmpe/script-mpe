@@ -5,12 +5,14 @@ load init
 
 setup()
 {
-  init 0 && lib_load sys && load stdtest &&
+  init "" 0 && lib_load sys &&
   main_inc=$SHT_PWD/var/sh-src-main-mytest-funcs.sh
 }
 
 
 @test "$base: incr VAR [AMOUNT]" {
+
+  load stdtest
 
   COUNT=2
   run incr COUNT 5
@@ -24,6 +26,7 @@ setup()
 
 @test "$base: trueish VALUE" {
 
+  load extra stdtest
   run trueish 1 ; test_ok_empty || stdfail 1.A.
   run trueish 0 ; test_nok_empty || stdfail 1.B.
 
@@ -43,6 +46,7 @@ setup()
 
 @test "$base: not-trueish VALUE" {
 
+  load extra stdtest
   run not_trueish 1 ; test_nok_empty || stdfail 1.A.
   run not_trueish 0 ; test_ok_empty || stdfail 1.B.
 
@@ -62,6 +66,7 @@ setup()
 
 @test "$base: falseish VALUE" {
 
+  load stdtest
   run falseish 1 ; test_nok_empty || stdfail 1.A.
   run falseish 0 ; test_ok_empty || stdfail 1.B.
 
@@ -75,12 +80,13 @@ setup()
   run falseish No ; test_ok_empty || stdfail 4.B.
 
   run falseish - ; test_nok_empty || stdfail 5.A.
-  run falseish "" ; test_ok_empty || stdfail 5.B.
+  run falseish "" ; test_nok_empty || stdfail 5.B.
 
 }
 
 @test "$base: not-falseish VALUE" {
 
+  load stdtest
   run not_falseish 1 ; test_ok_empty || stdfail 1.A.
   run not_falseish 0 ; test_nok_empty || stdfail 1.B.
 
@@ -93,20 +99,23 @@ setup()
   run not_falseish Yes ; test_ok_empty || stdfail 4.A.
   run not_falseish No ; test_nok_empty || stdfail 4.B.
 
-  run not_falseish "" ; test_ok_empty || stdfail 5.A.
-  run not_falseish - ; test_ok_empty || stdfail 5.B.
+  run not_falseish - ; test_ok_empty || stdfail 5.A.
+  run not_falseish "" ; test_ok_empty || stdfail 5.B.
 
 }
 
 
 @test "$base: cmd-exists NAME" {
 
+  load stdtest
   run cmd_exists "ls"
   test_ok_empty || stdfail "A."
 
   run cmd_exists ""
   test_nok_empty || stdfail "B.1."
   
+  lib_load os
+
   run which "$(get_uuid)"
   test_nok_empty || stdfail "B.2."
 
@@ -118,12 +127,13 @@ setup()
 
 @test "$base: func-exists NAME" {
 
+  load stdtest extra
   myfunc() { false; }
-
-  lib_load os
 
   run func_exists myfunc
   test_ok_empty || stdfail A.
+
+  lib_load os
 
   run func_exists $(get_uuid)
   test_nok_empty || stdfail B.
@@ -134,10 +144,14 @@ setup()
 
 @test "$base: try-exec-func on existing function" {
 
+  load stdtest extra
   . $main_inc
+
+  export verbosity=4
+
   run try_exec_func mytest_function
-  { test $status -eq 0 &&
-    fnmatch "mytest" "${lines[*]}"
+  test "$USER" = "travis" && skip "FIXME log"
+  { test $status -eq 0 && fnmatch "mytest" "${lines[*]}"
   } || stdfail
 
 }
@@ -261,7 +275,7 @@ EOM
   }
   run __test__
   { test_ok_nonempty 2 && test_lines "ret_var=0" "out_file=$tmpf" &&
-	grep '\<ReadMe\.rst\>' "$tmpf" && 
+    grep '\<ReadMe\.rst\>' "$tmpf" && 
     rm "$out_file" &&  unset tmpf out_file
   } || stdfail 2.
 }
@@ -282,7 +296,7 @@ EOM
   }
   run __test__
   { test_ok_nonempty 2 && test_lines "ret_var=0" "out_file=$tmpf" &&
-	grep '^some input$' "$tmpf" && rm "$input" "$out_file" &&
+    grep '^some input$' "$tmpf" && rm "$input" "$out_file" &&
      unset input out_file tmpf
   } || stdfail 'A'
 }

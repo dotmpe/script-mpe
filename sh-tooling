@@ -85,3 +85,4 @@ default()
 . "${TEST_ENV:=tools/ci/env.sh}"
 # Fallback func-name to init namespace to avoid overlap with builtin names
 main_ "sh-tooling" "$@"
+# Sync: U-S: vim:ft=bash:

@@ -30,7 +30,14 @@
     dandy.9-1: /srv/scm-git-9-1-dandy-mpe/dotmpe/script-mpe.git
     dandy.21-1: /srv/scm-git-21-1-dandy-mpe/dotmpe/script-mpe.git
 
-  lists:
+  lists: # XXX: or name key copies/directives iso 'lists'
+    specs:
+      Sync: <Copy> <Derive> <Via> <Src> <Source> <Sync-{To,From}>
+      Copy: <To> <From>
+      Derive: <Derive-{To,From}>
+      Sh: <Sh-Derive-{To,From}> <Sh-Copy-{To,From}> <Sh-Sync-{To,From}> <Sh-{To,From}>
+      Task: <Task-Derive-{To,From}> <Task-Copy-{To,From}> <Task-Sync-{To,From}> <Task-{To,From}>
+      Modeline-Derive-From: <Modeline-Derive> <Ml-Derive> <Ml-From>
     contexts:
       default: "@Std @Task @Dev +script-mpe +htdocs-mpe"
       std: '@Doc'

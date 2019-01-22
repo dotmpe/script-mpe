@@ -5,13 +5,14 @@
 
 os_htd_lib_load()
 {
-  test -n "$uname" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "$uname" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   test -n "$os" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 }
 
 os_lib_init()
 {
-  test -n "$LOG" && os_htd_lib_log="$LOG" || os_htd_lib_log="$INIT_LOG"
+  test -n "$LOG" -a \( -x "$LOG" -o "$(type -t "$LOG")" = "function" \) \
+    && os_htd_lib_log="$LOG" || os_htd_lib_log="$INIT_LOG"
   test -n "$os_htd_lib_log" || return 102
   $os_htd_lib_log info "" "Loaded os-htd.lib" "$0"
 }
@@ -42,7 +43,7 @@ pathname() # PATH EXT...
   shift 1
   for ext in $@
   do
-    name="$(basename "$name" "$ext")"
+    name="$(basename -- "$name" "$ext")"
   done
   test -n "$dirname" -a "$dirname" != "." && {
     printf -- "$dirname/$name\\n"
@@ -89,7 +90,7 @@ basedir()
 
 dotname() # Path [Ext-to-Strip]
 {
-  echo $(dirname "$1")/.$(basename "$1" "$2")
+  echo $(dirname -- "$1")/.$(basename -- "$1" "$2")
 }
 
 short()
@@ -114,7 +115,7 @@ basenames()
     shift
     for ext in $exts
     do
-      name="$(basename "$name" "$ext")"
+      name="$(basename -- "$name" "$ext")"
     done
     echo "$name"
   done
@@ -124,7 +125,7 @@ basenames()
 filenamext() # Name..
 {
   while test -n "$1"; do
-    basename "$1"
+    basename -- "$1"
   shift; done | grep '\.' | sed 's/^.*\.\([^\.]*\)$/\1/'
 }
 
@@ -134,7 +135,7 @@ filenamext() # Name..
 filestripext() # Name
 {
   ext="$(filenamext "$1")"
-  basename "$1" ".$ext"
+  basename -- "$1" ".$ext"
 }
 
 # Check wether name has extension, return 0 or 1
@@ -160,10 +161,10 @@ filemtype() # File..
 {
   local flags= ; file_tool_flags
   case "$uname" in
-    Darwin )
+    darwin )
         file -${flags}I "$1" || return 1
       ;;
-    Linux )
+    linux )
         file -${flags}i "$1" || return 1
       ;;
     * ) error "filemtype: $uname?" 1 ;;
@@ -175,7 +176,7 @@ fileformat()
 {
   local flags= ; file_tool_flags
   case "$uname" in
-    Darwin | Linux )
+    darwin | linux )
         file -${flags} "$1" || return 1
       ;;
     * ) error "fileformat: $uname?" 1 ;;
@@ -187,10 +188,10 @@ filesize() # File
 {
   local flags=- ; file_stat_flags
   case "$uname" in
-    Darwin )
+    darwin )
         stat -f '%z' $flags "$1" || return 1
       ;;
-    Linux )
+    linux )
         stat -c '%s' $flags "$1" || return 1
       ;;
     * ) error "filesize: $1?" 1 ;;
@@ -202,11 +203,11 @@ filemtime() # File
 {
   local flags=- ; file_stat_flags
   case "$uname" in
-    Darwin )
+    darwin )
         trueish "$file_names" && pat='%N %m' || pat='%m'
         stat -f "$pat" $flags "$1" || return 1
       ;;
-    Linux )
+    linux )
         trueish "$file_names" && pat='%N %Y' || pat='%Y'
         stat -c "$pat" $flags "$1" || return 1
       ;;
@@ -219,11 +220,11 @@ filebtime() # File
 {
   local flags=- ; file_stat_flags
   case "$uname" in
-    Darwin )
+    darwin )
         trueish "$file_names" && pat='%N %B' || pat='%B'
         stat -f "$pat" $flags "$1" || return 1
       ;;
-    Linux )
+    linux )
         # XXX: %N is deref-file
         trueish "$file_names" && pat='%N %W' || pat='%W'
         stat -c "$pat" $flags "$1" || return 1
@@ -633,8 +634,8 @@ count_cols()
 xsed_rewrite()
 {
   case "$uname" in
-    Darwin ) sed -i.applyBack "$@";;
-    Linux ) sed -i "$@";;
+    darwin ) sed -i.applyBack "$@";;
+    linux ) sed -i "$@";;
   esac
 }
 
@@ -834,7 +835,7 @@ find_num()
 find_broken_symlinks()
 {
   test -n "$1" || set -- .
-  #test "$uname" = "Darwin" && find=gfind
+  #test "$uname" = "darwin" && find=gfind
   #$find "$1" -type l -xtype l || return $?
   find "$1" -type l ! -exec test -e {} \; -print
 }
@@ -992,4 +993,4 @@ diff_files() # File-Path Path-Name...
 }
 # Sh-Copy: HT:tools/u-s/parts/diff-files.inc.sh vim:ft=bash:
 
-# Sync: U-C:src/sh/lib/os.lib.sh
+# Sync: U-S:src/sh/lib/os.lib.sh

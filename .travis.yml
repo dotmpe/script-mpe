@@ -9,21 +9,21 @@ dist:
 addons:
   apt:
     packages:
-      - realpath
-      - tree
-      - uuid-runtime
-      - moreutils
-      - curl
-      - php-cli
-      - posh
-      - dash
-      - ruby-bundler
+    - realpath
+    - tree
+    - uuid-runtime
+    - moreutils
+    - curl
+    - php-cli
+    - posh
+    - dash
+    - ruby-bundler
 #- php5-dom
 # not allowed:
 # - rhash
 # - pytz
 
-sudo: false
+#sudo: false
 
 services:
 - redis-server
@@ -61,9 +61,7 @@ env:
     - COUCH_DB=test
     - TMPDIR=/tmp
     - U_S=$HOME/build/bvberkum/user-scripts
-    # GITHUB_TOKEN
-    - secure: "KcpgIZINqays/BZkCYcQTiI3/ACWhRJbLWYD2tHE7GLSTyyBc1nQQWFx3oEZMJcfwUWtHioLx7c7gzO7+UYoOtc3+XfnuTt1g7Fid3xnXE9F5qCTVrIYSuFFT50iDYj2Gp12mRoMwauhvFFRDS3bM/KT/6GOYq9dPdoviDgPtzg="
-
+    - secure: "nP5Xbt0z29UCAb9uEFcZl9dQN9XRxIbFv4VLjV5jtw0xIqBE5EzxU82E7fXihcWRZZ+Fs0Ah79CMQ8odCxotDIcNnMp02qdXGq6OD/vlB7cqcCpxPQD6lTTURGTqud8h+LWa6RVL4jXevy1mCUryx0rIM5xnwI2Uat6vCMY1Vng="
 
 before_install:
   - . ./tools/ci/before-install.sh
@@ -141,4 +139,5 @@ branches:
 #    tags: true
 #    condition: $ENV = production
 
+# Sync: X-CI-0.1:
 # Id: script-mpe/0.0.4-dev .travis.yml

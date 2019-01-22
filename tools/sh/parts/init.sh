@@ -7,7 +7,7 @@ usage()
   echo 'Usage:'
   echo '  ./tools/sh/parts/init.sh <function name>'
 }
-usage-fail() { usage && exit 2; }
+abort() { usage && exit 2; } # XXX: see CI/c-bail also
 
 
 init-git()
@@ -68,11 +68,11 @@ check-redo()
 
 init-bats()
 {
-  $LOG info "" "Installing bats..."
+  $INIT_LOG info "" "Installing bats..."
 
   : "${BATS_VERSION:=master}"
   : "${BATS_REPO:="https://github.com/bats-core/bats-core.git"}"
-  : "${BATS_PREFIX:=$VND_GH_SRC/bats-core/bats-core}"
+  : "${BATS_PREFIX:=$VND_SRC_PREFIX/bats-core/bats-core}"
 
   test -d $BATS_PREFIX/.git || {
 
@@ -92,7 +92,12 @@ init-bats()
 
 check-bats()
 {
-  bats --version >/dev/null
+  local bats_version="$(bats --version)" || return
+  { test -x "$(which bats)" && fnmatch "Bats 1.1.*" "$bats_version"
+  } || {
+    $INIT_LOG warn "" "Found $bats_version, getting 1.1..."
+    PREFIX=$HOME/.local init-bats || return
+  }
 }
 
 check-github-release()
@@ -105,49 +110,75 @@ init-github-release()
   go get github.com/aktau/github-release
 }
 
+init-git-dep()
+{
+  test $# -eq 2 || return 98
+  test -d "$VND_SRC_PREFIX" -a -w "$VND_SRC_PREFIX" || return 90
+
+  ns_name="$(dirname "$1")"
+  test -d "$VND_SRC_PREFIX/$ns_name" || mkdir -p "$VND_SRC_PREFIX/$ns_name"
+
+  # Create clone at path, check for Git dir to not be fooled by any cache/mount
+  test -e "$VND_SRC_PREFIX/$1/.git" || {
+
+    test ! -e "$VND_SRC_PREFIX/$1" || rm -rf "$VND_SRC_PREFIX/$1"
+    git clone --quiet https://github.com/$1 "$VND_SRC_PREFIX/$1" || return
+  }
+
+  cd "$VND_SRC_PREFIX/$1" && {
+    test -x "${DEBUG:-}" || pwd
+    {
+      git fetch --quiet "origin" &&
+      git fetch --tags --quiet "origin"
+    } || {
+      $INIT_LOG "error" "$?" "Error retrieving from origin" "$1"
+    }
+    test -x "${DEBUG:-}" || git show-ref
+    git reset --quiet --hard origin/$2 || {
+      $INIT_LOG "error" "$?" "Error resetting to $2" "$1"
+    }
+  }
+}
+
+init-basher-dep()
+{
+  test $# -ge 1 -a $# -le 2 || return 98
+  test -z "${2:-}" && {
+
+    basher install "$1" || return
+  } || {
+
+    BASHER_FULL_CLONE=true basher install "$1" || return
+    (
+      cd $(basher package-path "$1") && git reset --quiet --hard origin/$2
+    )
+  }
+}
+
 init-deps()
 {
-  test -d "$VND_GH_SRC" -a -w "$VND_GH_SRC" || return
+  test -d "$VND_SRC_PREFIX" -a -w "$VND_SRC_PREFIX" || return 90
 
   test $# -eq 1 || set -- dependencies.txt
 
   grep -v '^\s*\(#.*\|\s*\)$' "$1" |
+      sed 's/\s*\(#.*\)$//g' |
   while read installer supportlib version
   do
-    $LOG "info" "" "Checking $intaller $supportlib..." "$version"
+    $INIT_LOG "info" "" "Checking $installer $supportlib..." "$version"
 
     : "${version:="master"}"
-    #test -n "$version" || version=master
+    init-$installer-dep $supportlib $version
 
-    ns_name="$(dirname "$supportlib")"
-    test -d "$VND_GH_SRC/$ns_name" || mkdir -p "$VND_GH_SRC/$ns_name"
-
-    # Create clone at path, check for Git dir to not be fooled by any cache/mount
-    test -e "$VND_GH_SRC/$supportlib/.git" || {
-
-      test ! -e "$VND_GH_SRC/$supportlib" || rm -rf "$VND_GH_SRC/$supportlib"
-      git clone --quiet https://github.com/$supportlib "$VND_GH_SRC/$supportlib" || return
-    }
-
-    cd "$VND_GH_SRC/$supportlib" && { {
-        git fetch --quiet "origin" &&
-        git fetch --tags --quiet "origin"
-      } || {
-        $LOG "error" "$?" "Error retrieving from origin" "$supportlib"
-      }
-      git reset --quiet --hard origin/$version || {
-        $LOG "error" "$?" "Error resetting to $version" "$supportlib"
-      }
-    }
-    $LOG "note" "" "Checked $intaller $supportlib..." "$version"
+    $INIT_LOG "note" "" "Checked $installer $supportlib..." "$version"
   done
 }
 
 init-symlinks()
 {
-  test -d "$VND_GH_SRC" -a -w "$VND_GH_SRC" &&
-    $LOG note ci:install "Using Github vendor dir" "$VND_GH_SRC" ||
-    $LOG error ci:install "Writable Github vendor dir expected" "$VND_GH_SRC" 1
+  test -d "$VND_SRC_PREFIX" -a -w "$VND_SRC_PREFIX" &&
+    $INIT_LOG note ci:install "Using Github vendor dir" "$VND_SRC_PREFIX" ||
+    $INIT_LOG error ci:install "Writable Github vendor dir expected" "$VND_SRC_PREFIX" 1
 
   # Give private user-script repoo its place
   # TODO: test user-scripts instead/also +U_s +script_mpe
@@ -162,7 +193,7 @@ init-symlinks()
 
 init-err()
 {
-  $LOG error "" "failed during init" "$*"
+  $INIT_LOG error "" "failed during init" "$*"
   print_red "sh:init" "failed at '$*'" >&2
   exit 1
 }
@@ -170,15 +201,67 @@ init-err()
 
 # Groups
 
+check()
+{
+  default >/dev/null || init-err default
+
+  git describe >/dev/null ||
+    init-err "git describe: CWD should be GIT checkout and have tags in repo"
+}
+
 default()
 {
-  # TODO: see +U_s
-  true
+  check-git || init-err default:$_
+  check-basher || init-err default:$_
+  check-bats || init-err default:$_
+  # XXX: check-redo || init-err redo
+  check-github-release || init-err $_
+  test -n "$VND_SRC_PREFIX" || init-err $_
+  for helper in bats-assert bats-file bats-support
+  do
+    test -d $VND_SRC_PREFIX/ztombol/$helper || init-err $helper
+  done
+}
+
+all()
+{
+  init-git || init-err $_ $?
+
+  # XXX which github-release >/dev/null || {
+  test -x "$(which github-release)" || {
+    init-github-release || init-err init:all:$_ $?
+  }
+  test -x "$(which basher)" || {
+    init-basher || init-err init:all:$_ $?
+  }
+  test -x "$(which redo)" || {
+    init-redo || init-err init:all:$_ $?
+  }
+
+  check-bats || {
+    init-bats || init-err init:all:$_ $?
+  }
 }
 
 
 # Main
 
-type req_subcmd >/dev/null 2>&1 || . "${ci_util:="tools/ci"}/env.sh"
-# Fallback func-name to init namespace to avoid overlap with builtin names
-main_ "init" "$@"
+case "$(basename -- "$0" .sh)" in
+  -* ) ;; # No main regardless
+
+  init )
+      test "$(basename "$(dirname "$0")")/$(basename "$0")" = parts/init.sh ||
+        exit 105 # Sanity
+
+      set -euo pipefail
+      : "${CWD:="$PWD"}"
+      . "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
+      . "$CWD/tools/sh/parts/env-0-src.sh"
+      . "$CWD/tools/sh/parts/env-0.sh"
+      # XXX: . "${ci_tools:="$CWD/tools/ci"}/env.sh"
+
+      "$@"
+    ;;
+esac
+
+# Sync: U-S:

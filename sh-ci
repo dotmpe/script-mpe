@@ -1,27 +1,26 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+. "tools/ci/before-install.sh"
+. "tools/ci/install.sh"
 
-scriptname=sh-treebox-ci
-unset LOG INIT_LOG CWD U_S
+. "tools/ci/before.sh"
 
-: "${CWD:="$PWD"}"
+if . "tools/ci/script.sh"
+then sh_ci_script_status=0; fi
 
-: "${ci_util:="$CWD/tools/ci"}"
+. "tools/ci/before-cache.sh"
 
-: "${U_S:="$HOME/.basher/cellar/packages/bvberkum/user-scripts"}"
-: "${script_util:="$U_S/tools/sh"}"
-: "${LOG:="$script_util/log.sh"}"
-: "${INIT_LOG:="$LOG"}"
+if test $sh_ci_script_status -eq 0
+then
+  TRAVIS_TEST_RESULT=1
+  . "tools/ci/after-success.sh"
+else
+  TRAVIS_TEST_RESULT=0
+  . "tools/ci/after-failure.sh"
+fi
 
-. "$ci_util/before-install.sh"
-. "$ci_util/install.sh"
-
-. "$ci_util/before.sh"
-. "$ci_util/script.sh"
-
-#. "$ci_util/before-cache.sh"
-#  . "$ci_util/after-success.sh"
+. "tools/ci/after.sh"
 
 ci_announce "$scriptname OK"
-# Id: script-mpe/0.0 sh-ci
+# Sync: U-S:
+# Id: script-mpe/ sh-ci vim:ft=bash:nowrap:

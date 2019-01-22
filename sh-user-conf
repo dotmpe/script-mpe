@@ -22,3 +22,5 @@ exec $U_S/tools/sh/init-here.sh "$SCRIPTPATH" "" "" "$(cat <<EOM
   note "Done"
 EOM
 )"
+
+# Sync: U-S: vim:ft=bash:

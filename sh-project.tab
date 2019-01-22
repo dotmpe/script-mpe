@@ -1,0 +1,19 @@
+# varspec              cmdspec                                                 #
+
+/LOG                   true
+ /SCRIPTPATH           ./bin/u-s help
+#. ./tools/sh/env.sh    . ./tools/sh/init.sh
+#                       ./tools/sh/init-here.sh
+
+#true                   sh ./sh-init-here
+#true                   sh ./sh-test
+#true                   sh ./sh-package
+#true                   sh ./sh-composure
+
+set -euo pipefail
+ . tools/sh/env.sh
+  . tools/ci/util.sh
+   export CWD=$PWD
+    verbosity=4        ci_test test/os-lib-spec.bats # No-Sync
+
+# Sync: U-S:                                               vim:ft=bash:nowrap:

@@ -7,10 +7,6 @@ current()
 }
 
 
-# test $# -gt 0 -a "${1:-}" = "tasks
-
-#|| set -- tooling-baseline
-
 test $# -gt 0 || set -- current
 
 echo tasks
@@ -32,4 +28,4 @@ whishlist-grep \
 
 echo '--------'
 
-# vim:ft=bash:
+# Sync: U-S: vim:ft=bash:

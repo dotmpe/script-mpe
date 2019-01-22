@@ -1,12 +1,17 @@
-#basher user-tools/user-scripts
-#basher user-tools/user-scripts-incubator
-#basher user-tools/user-conf
+# basher user-tools/user-scripts
+# basher user-tools/user-scripts-incubator
+# basher user-tools/user-conf
 
-basher bvberkum/script-mpe features/docker-ci
-basher bvberkum/user-scripts r0.0
-#basher bvberkum/user-scripts-incubator test
-basher bvberkum/user-conf
+basher bvberkum/git-versioning
 
-basher ztombol/bats-file
-basher ztombol/bats-support
-basher ztombol/bats-assert
+git bvberkum/user-scripts feature/docker-ci # No-Sync
+#git bvberkum/user-scripts r0.0 # No-Sync
+# git bvberkum/user-scripts-incubator test
+# git bvberkum/user-conf
+
+git ztombol/bats-file
+git ztombol/bats-support
+git ztombol/bats-assert
+
+# Sync: U-S:
+# Id: dependencies.txt vim:ft=sh:

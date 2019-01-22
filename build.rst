@@ -84,3 +84,34 @@ build.lib.sh
 Dependency based build system
 -----------------------------
 
+
+Travis
+-----------
+Sequence
+
+- [Apt, Services, Clone+Submodules, Env, Cache setup]
+- (Before) Install
+- (Before) Script
+- After Success, Failure
+- After Script
+- Before Cache
+
+# Travis env:
+# TRAVIS_TIMER_ID=(hex)
+# TRAVIS_TIMER_START_TIME=1544134348250991906
+#                         1544136294. ie. split at end-9
+# TRAVIS_TEST_RESULT=(0|...)
+# TRAVIS_COMMIT
+# TRAVIS_LANGUAGE=(python|...)
+# TRAVIS_INFRA=(gce|...)
+# TRAVIS_DIST=(trusty|...)
+# TRAVIS_BUILD_STAGE_NAME=?
+# TRAVIS_PULL_REQUEST=(true|false)
+# TRAVIS_STACK_TIMESTAMP=(ISO DATETIME)
+# TRAVIS_JOB_WEB_URL=https://travis-ci.org/bvberkum/script-mpe/jobs/$TRAVIS_JOB_ID
+# TRAVIS_BUILD_WEB_URL=https://travis-ci.org/bvberkum/script-mpe/builds/$TRAVIS_BUILD_ID
+# TRAVIS_BUILD_NUMBER=[1-9][0-9]*
+# TRAVIS_JOB_NUMBER=$BUILD_NUMBER.[1-9][0-9]*
+# TRAVIS_BUILD_ID=[1-0][0-9]*
+# TRAVIS_JOB_ID=[1-0][0-9]*
+

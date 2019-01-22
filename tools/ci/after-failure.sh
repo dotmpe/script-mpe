@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# See .travis.yml
-
-set -u
+# CI suite stage 6b. See .travis.yml
+set -eu
 export_stage failure && announce_stage
 
 close_stage
-set +u
+set +eu
+# Sync: U-S:

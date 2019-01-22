@@ -9,37 +9,27 @@ case "$-" in
     ;;
 esac
 
-
-test -n "$LOG" && LOG_ENV=1 || LOG_ENV=
-test -n "$LOG" -a -x "$LOG" -o "$(type -f "$LOG" 2>/dev/null )" = "function" &&
-  INIT_LOG=$LOG || INIT_LOG=$CWD/tools/sh/log.sh
+test -n "$CWD" || CWD="$PWD"
+test -n "${LOG:-}" -a -x "${LOG:-}" -o \
+  "$(type -t "${LOG:-}" 2>/dev/null )" = "function" &&
+  LOG_ENV=1 INIT_LOG=$LOG || LOG_ENV=0 INIT_LOG=$CWD/tools/sh/log.sh
+# Sh-Sync: tools/sh/parts/env-init-log.sh
 
 test -n "$sh_src_base" || sh_src_base=/src/sh/lib
-test -n "$sh_util_base" || sh_util_base=/tools/sh
 
-test -n "$U_S" -a -d "$U_S" || . $PWD$sh_util_base/parts/env-0-u_s.sh
+test -n "$U_S" -a -d "$U_S" || . $CWD/tools/sh/parts/env-0-u_s.sh
 test -n "$U_S" -a -d "$U_S" || return
 
 # Must be started from u-s project root or set before, or provide SCRIPTPATH
 test -n "$u_s_lib" || u_s_lib="$U_S$sh_src_base"
 test -n "$scriptname" || scriptname="`basename -- "$0"`"
-test -n "$script_util" || script_util="$U_S$sh_util_base"
-
-# XXX: cleanup
-#test -n "$script_env" || {
-#  test -e "$PWD$sh_util_base/user-env.sh" &&
-#    script_env=$PWD$sh_util_base/user-env.sh ||
-#    script_env=$U_S$sh_util_base/user-env.sh
-#}
-#
-#$INIT_LOG "info" "" "Loading user-script env..." "$script_env"
-#. "$script_env"
+test -n "$sh_tools" || sh_tools="$U_S/tools/sh"
 
 # Now include module with `lib_load`
 test -z "$DEBUG" || echo . $u_s_lib/lib.lib.sh >&2
 {
-  . $u_s_lib/lib.lib.sh || return
-  lib_lib_load && lib_lib_loaded=1 || return
+  . $u_s_lib/lib.lib.sh || return $?
+  lib_lib_load && lib_lib_loaded=1 || return $?
   lib_lib_init
 } ||
   $INIT_LOG "error" "$scriptname:init.sh" "Failed at lib.lib $?" "" 1
@@ -67,12 +57,12 @@ test "$init_sh_libs" = "0" || {
   }
 
   test -z "$DEBUG" ||
-    echo script_util=$U_S$sh_util_base scripts_init $init_sh_boot >&2
-  script_util=$U_S$sh_util_base scripts_init $init_sh_boot ||
+    echo sh_tools=$sh_tools scripts_init $init_sh_boot >&2
+  scripts_init $init_sh_boot ||
     $INIT_LOG "error" "$scriptname:init.sh" "Failed at bootstrap '$init_sh_boot'" $? 1
 }
 
-test -n "$LOG_ENV" && unset LOG_ENV INIT_LOG || unset LOG_ENV INIT_LOG LOG
+# XXX: test -n "$LOG_ENV" && unset LOG_ENV INIT_LOG || unset LOG_ENV INIT_LOG LOG
 
-# Id: U-S:tools/sh/init.sh
+# Sync: U-S:
 # Id: script-mpe/0.0.4-dev tools/sh/init.sh

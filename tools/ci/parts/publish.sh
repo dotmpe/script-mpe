@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Pub/dist
 
 # XXX: export publish_ts=$(epoch_microtime)
@@ -7,10 +7,10 @@ ci_stages="$ci_stages publish"
 
 ci_announce "Starting ci:publish"
 
-
-. "./tools/ci/parts/report-times.sh"
-
 # FIXME: pubish
+lib_load git vc #os-htd git-htd vc-htd
+
+sh_include "report-times"
 
 #echo "WAN IP: $(wanip)" || true
 #
@@ -38,4 +38,5 @@ ci_announce "Starting ci:publish"
 #      return 0
 #    }
 
+# Sync: U-S:
 # Id: script-mpe/0.0.4-dev tools/ci/parts/publish.sh

@@ -7,25 +7,26 @@
 
 # <script_util>/init-here.sh [SCRIPTPATH] [boot-script] [boot-libs] "$@"
 
+test -n "$CWD" || CWD="$PWD"
+
 # provisionary logger setup
 test -n "$LOG" && LOG_ENV=1 || LOG_ENV=
-test -n "$LOG" -a -x "$LOG" && INIT_LOG=$LOG || INIT_LOG=$PWD/tools/sh/log.sh
+test -n "${LOG:-}" -a -x "${LOG:-}" -o \
+  "$(type -t "${LOG:-}" 2>/dev/null )" = "function" &&
+  INIT_LOG=$LOG || INIT_LOG=$CWD/tools/sh/log.sh
+# Sh-Sync: tools/sh/parts/env-init-log.sh
 
 test -n "$sh_src_base" || sh_src_base=/src/sh/lib
-test -n "$sh_util_base" || sh_util_base=/tools/sh
 
-test -n "$U_S" -a -d "$U_S" || . $PWD$sh_util/parts/env-0-u_s.sh
+case "$0" in -* ) ;; * )
+  U_S="$(dirname "$(dirname "$(dirname "$0")" )" )"
+;; esac
+test -n "$U_S" -a -d "$U_S" || . $PWD$sh_util_base/parts/env-0-u_s.sh
 test -n "$U_S" -a -d "$U_S" || return
 
-test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname "$0")" )" )"
-test -n "$scriptname" || scriptname="$(basename "$0")"
-test -n "$script_util" || script_util="$U_S$sh_util_base"
-
-#test -n "$1" && {
-#  SCRIPTPATH=$1:$scriptpath
-#} || {
-#  SCRIPTPATH=$(pwd -P):$scriptpath
-#}
+test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname -- "$0")")" )" # No-Sync
+test -n "$scriptname" || scriptname="$(basename -- "$0")" # No-Sync
+test -n "$sh_tools" || sh_tools="$U_S/tools/sh"
 
 # Now include module with `lib_load`
 test -z "$DEBUG" || echo . $U_S$sh_src_base/lib.lib.sh >&2
@@ -47,7 +48,7 @@ test "$init_sh_libs" = "0" || {
   script_init "$init_sh_boot"
 }
 
-test -n "$LOG_ENV" && unset LOG_ENV INIT_LOG || unset LOG_ENV INIT_LOG LOG
+# XXX: test -n "$LOG_ENV" && unset LOG_ENV INIT_LOG || unset LOG_ENV INIT_LOG LOG
 
 shift 3
 

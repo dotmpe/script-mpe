@@ -5,6 +5,11 @@ docker_sh_htd_lib_load()
   test -n "$docker_shell" || docker_shell=bash
   test -n "$docker_cmd" || docker_cmd=bash
   lib_load docker-sh
+
+  test -n "${repo_slug:-}" || {
+    test -n "$APP_ID" || return 100
+    : "${repo_slug:="$NS_NAME/$APP_ID"}"
+  }
 }
 
 docker_sh_c_update() # Container [Image]
@@ -72,17 +77,19 @@ docker_sh_c_create() # [Container] [Docker-Image]
   test -n "$2" || set -- "$1" "$docker_image" "$3"
   test -n "$3" || set -- "$1" "$2" "$docker_cmd"
 
-  # FIXME: treebox superuser setup on Darwin
+  # FIXME: normal treebox superuser setup on Darwin has owner id probs?
   #echo "%supergroup  ALL=NOPASSWD:ALL" >.etc-sudoers.d-treebox-supergroup
   #  -v $PPWD/.etc-sudoers.d-treebox:/etc/sudoers.d/treebox-supergroup \
-  #dckr_u_s=/home/treebox/build/bvberkum/user-scripts
-  #dckr_u_s=/src/github.com/bvberkum/user-scripts
+
+  local user=treebox home=/home/treebox dut=
 
   # FIXME: Hardcoded Notus volumes
   #    -v ~/bin:/home/treebox/bin \
-  #    -v $PPWD:$dckr_u_s
+  dut=$home/test/$repo_slug
   ${dckr_pref} docker run \
-      -v ~/.ssh:/home/treebox/.ssh:ro \
+      -v $PPWD:$dut \
+      -v ~/.ssh:$home/.ssh:ro \
+      -v $(realpath ~/.local/etc/tokens.d):$home/.local/etc/tokens.d \
       -v $(realpath /etc/localtime):/etc/localtime \
       -v $(realpath /srv/scm-git-24-2-notus-brix/):/srv/scm-git-24-2-notus-brix \
       -v /var/run/docker.sock:/var/run/docker.sock \
