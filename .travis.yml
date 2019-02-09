@@ -9,15 +9,15 @@ dist:
 addons:
   apt:
     packages:
-    - realpath
-    - tree
-    - uuid-runtime
-    - moreutils
-    - curl
-    - php-cli
-    - posh
-    - dash
-    - ruby-bundler
+      - realpath
+      - tree
+      - uuid-runtime
+      - moreutils
+      - curl
+      - php-cli
+      - posh
+      - dash
+      - ruby-bundler
 #- php5-dom
 # not allowed:
 # - rhash
@@ -26,10 +26,10 @@ addons:
 #sudo: false
 
 services:
-- redis-server
-- memcached
-- couchdb
-- docker
+  - redis-server
+  - memcached
+  - couchdb
+  - docker
 
 #language: shell
 language: python

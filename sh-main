@@ -7,15 +7,13 @@ usage() # [Command]
   test $# -le 1 || return 98
   test $# -eq 0 && {
     echo 'Usage:'
-    echo '  ./sh-main <function name>'
+    echo '  ./sh-main <function name> <func args>'
     echo '  ./sh-main ( usage [command] | commands )'
+    echo 'Allowing for any profile and functions to be loaded to particular or generic scripts'
   } ||  {
-    grep '^'"$1"'[a-z-]*()' "sh-main" | sed 's/()\ # /: /'
+    src= sh_cmd_funcs "$1"
   }
 }
-abort() { usage >&2 && exit 2; } # XXX: see CI/c-bail also
-commands() { usage "" ; }
-
 
 # Combine and execute var/cmd specs with test-shell
 spec()
@@ -167,7 +165,7 @@ run-ci()
 # Main: wrap/exec cmd or func matching first argument
 
 BASH_BIN=$(which bash)
-bash-c()
+bash-c() # Command-Line...
 {
   $BASH_BIN -c "$@"
 }
@@ -180,7 +178,8 @@ case "$(basename -- "$0" .sh)" in
       # Get minimal env using Main suite.
       : "${SUITE:="Main"}"
       : "${keep_going:=1}" # No-Sync
-      : "${stage:=}"
+      #: "${stage:=}"
+      : "${dry_run:=1}"
       . "${sh_tools:="$PWD/tools/sh"}/env.sh"
 
       test $# -gt 0 || set -- $sh_main_cmdl
@@ -200,8 +199,11 @@ case "$(basename -- "$0" .sh)" in
         unset specfile
       }
 
+      : "${SCRIPT_NAME:=$(basename "$SCRIPT_SHELL")}"
+
+      echo "shell-cmd handler: $SCRIPT_NAME-c()" >&2
       eval "$(cat <<EOM
-$(basename "$SCRIPT_SHELL")-c()
+$SCRIPT_NAME-c() # Command-Line...
 {
   $SCRIPT_SHELL -c "\$@"
 }
@@ -209,8 +211,7 @@ EOM
 )"
 
       # Execute/wrap unknown first-argv as shell command
-      test -x "$1" -o "$(type -t "$1")" = "function" ||
-        set -- bash-c "$@"
+      test -x "$1" -o "$(type -t "$1")" = "function" || set -- $SCRIPT_NAME-c "$@"
 
       ci_exec "$@"
     ;;

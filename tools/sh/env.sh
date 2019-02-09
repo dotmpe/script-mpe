@@ -29,6 +29,7 @@ sh_include \
   print-color remove-dupes unique-paths \
   env-0-src
 SCRIPTPATH=
+# XXXX:
 SCRIPTPATH=$CWD/contexts:$CWD/commands:$CWD:/home/travis/build/bvberkum/user-scripts/src/sh/lib:/home/travis/build/bvberkum/user-scripts/src/sh/lib:/home/travis/build/bvberkum/user-scripts/commands
 
 test -z "${DEBUG:-}" -a -z "${CI:-}" ||

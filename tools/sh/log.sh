@@ -141,7 +141,7 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
     }
   }
 
-  linetype=$(echo $1|tr 'A-Z' 'a-z')
+  linetype=$(echo $1 | tr '[:upper:]' '[:lower:]')
   targets=$(echo "$2")
   trgt_len=${#targets}
   msg=$3

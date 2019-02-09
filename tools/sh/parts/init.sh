@@ -254,11 +254,14 @@ case "$(basename -- "$0" .sh)" in
         exit 105 # Sanity
 
       set -euo pipefail
+      set -x
       : "${CWD:="$PWD"}"
       . "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
       . "$CWD/tools/sh/parts/env-0-src.sh"
       . "$CWD/tools/sh/parts/env-0.sh"
       # XXX: . "${ci_tools:="$CWD/tools/ci"}/env.sh"
+
+      set +x
 
       "$@"
     ;;
