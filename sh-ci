@@ -5,8 +5,7 @@
 
 . "tools/ci/before.sh"
 
-if . "tools/ci/script.sh"
-then sh_ci_script_status=0; fi
+. "tools/ci/script.sh" || sh_ci_script_status=$?
 
 . "tools/ci/before-cache.sh"
 
@@ -23,4 +22,4 @@ fi
 
 ci_announce "$scriptname OK"
 # Sync: U-S:
-# Id: script-mpe/ sh-ci vim:ft=bash:nowrap:
+# Id: Script.mpe/ sh-ci                                     ex:ft=bash:nowrap:

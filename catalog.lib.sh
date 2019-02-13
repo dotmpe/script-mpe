@@ -539,9 +539,11 @@ htd_catalog_move() # [CATALOG] NAME [ DIR | CATALOG ]
 
 
 # Echo src/via URL YAML key-values to append to catalog in raw mode
-htd_catalog_file_wherefrom() # Src-File
+htd_catalog_file_wherefrom() # ~ Src-File
 {
-  wherefrom_sh="$(wherefrom "$1" 2>/dev/null)"
+  wherefrom_sh="$(wherefrom "$1" 2>/dev/null )" || {
+    $LOG "error" "$scriptname $subcmd Error" "Retrieving wherefrom" "$1" 1
+  }
   test -z "$wherefrom_sh" || {
     eval $wherefrom_sh
     echo "  source-url: '$url'"
@@ -549,8 +551,9 @@ htd_catalog_file_wherefrom() # Src-File
   }
 }
 
+
 # Echo first-seen YAML key-values to append to catalog in raw mode
-htd_catalog_file_birth_date() # Src-File
+htd_catalog_file_birth_date() # ~ Src-File
 {
   dob_ts=$(filebtime "$1")
   test $dob_ts -ne 0 || dob_ts=$(filemtime "$1")

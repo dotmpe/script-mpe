@@ -884,6 +884,7 @@ rotate_file() # [action=mv] Name [Ext]
 
 wherefrom()
 {
+  lib_load ${os} || return
   ${os}_wherefrom "$@"
 }
 

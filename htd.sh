@@ -5446,21 +5446,23 @@ htd__getx() # Document XPath-Expr Document-XML
 }
 
 
-htd_man_1__tpaths='List topic paths (nested dl terms) in document paths'
+htd_man_1__tpaths='List topic paths (nested dl terms) in document paths.
+
+See du:dl-term-paths and also htd:tpath-raw
+'
 htd_load__tpaths="xsl"
 htd__tpaths()
 {
-  test -n "$1" || error "At least one document expected" 1
-  test -n "$print_src" || local print_src=0
-  test -n "$print_baseid" || local print_baseid=0
+  test $# -gt 0 || error "At least one document expected" 1
+  test -n "${print_src:-}" || local print_src=0
+  test -n "${print_baseid:-}" || local print_baseid=0
 
-  test $# -gt 1 && {
-      act=du_dl_term_paths foreach_do "$@"
-      return $?
-    } || {
-      du_dl_term_paths "$@"
-      return $?
-    }
+  test $# -gt 1 || {
+    du_dl_term_paths "$1"
+    return $?
+  }
+
+  act=du_dl_term_paths foreach_do "$@"
 }
 htd_vars__tpaths="path rel_leaf root xml"
 
@@ -5468,8 +5470,13 @@ htd_vars__tpaths="path rel_leaf root xml"
 htd_load__tpath_raw="xsl"
 htd__tpath_raw()
 {
-  test -n "$1" || error "document expected" 1
+  test $# -gt 0 -a -n "$1" || error "document expected" 1
   test -e "$1" || error "no such document '$1'" 1
+
+  test $# -gt 1 || {
+    du_dl_term_paths_raw "$1"
+    return $?
+  }
 
   act=du_dl_term_paths_raw foreach_do "$@"
 }

@@ -2,7 +2,7 @@
 
 # Shell script wrapper for $PWD/sh-* scripts and other project/CI tooling
 
-usage() # [Command]
+usage() # Short usage help or spec list for (partial) command name ~ [Command]
 {
   test $# -le 1 || return 98
   test $# -eq 0 && {
@@ -15,8 +15,7 @@ usage() # [Command]
   }
 }
 
-# Combine and execute var/cmd specs with test-shell
-spec()
+spec() # Combine and execute var/cmd specs with test-shell ~ ...
 {
   test $# -gt 0 || set -- sh-baseline.tab
   test $# -gt 1 || set -- "$1" "*"
@@ -35,8 +34,7 @@ spec()
   done
 }
 
-# Print specs that would have been run
-lines()
+lines() # Print specs that would have been run ~ [build.tab] [Suite] [Prefix]
 {
   test $# -eq 1 -a -f "$1" || return 98
   sh_include std-stack std-runner
@@ -58,7 +56,7 @@ treebox()
   . "./commands/u_s-dckr.lib.sh" || return
   docker_image=$sh_treebox_img dckr_load || return
 
-  test $# -gt 0 || set -- run-parts build.txt "$SUITE"
+  test $# -gt 0 || set -- run-parts $build_tab "$SUITE"
   test ! -e "$1" -o -x "$1" -o -e "${2:-}" || {
     specfile="$1"; shift
     set -- "$(ci_file_exec "$specfile")" "$specfile" "$@"
@@ -70,13 +68,13 @@ treebox()
 }
 
 # Same as run-suite, but test each step (like spec with c-run and passed/failed log session)
-run-parts() # Tab Suite Phases...
+run-parts() # only show suite ~ Tab Suite Phases...
 {
   test $# -ge 2 || return 98
   local parts= tab="$1" suite="$2" ; shift 2
   test $# -gt 0 || set -- 0
 
-  test -n "$tab" || tab=build.txt
+  test -n "$tab" -a -e "$tab" || return 96
   test -n "$suite" || suite="${SUITE:-}"
   head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
 
@@ -99,7 +97,7 @@ show-parts() # Table Suite Prefix
 {
   test $# -ge 2 || return 98
   local parts= tab="$1" suite="$2" ; shift 2
-  test -n "$tab" || tab=build.txt
+  test -n "$tab" -a -e "$tab" || return 96
   head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
 
   test $# -gt 0 && for phase in $@
@@ -113,18 +111,7 @@ show-parts() # Table Suite Prefix
 # Run init, check, baselines or other part
 run-suite() # Table Suite Prefix
 {
-  test $# -ge 2 || return 98
-  local parts= tab="$1" suite="$2" ; shift 2
-  test -n "$tab" || tab=build.txt
-  head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
-
-  test $# -gt 0 && for phase in $@
-  do
-    stage=$suite.$phase
-    suite_run "$tab" "$suite" $phase || return
-
-  done ||
-    suite_run "$tab" "$suite" $phase
+  run_suite "$@"
 }
 
 # Run baselines from var/cmd-spec table
@@ -165,7 +152,7 @@ run-ci()
 # Main: wrap/exec cmd or func matching first argument
 
 BASH_BIN=$(which bash)
-bash-c() # Command-Line...
+bash-c() # Bash -c helper ~ Command-Line...
 {
   $BASH_BIN -c "$@"
 }

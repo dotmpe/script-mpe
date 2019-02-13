@@ -37,7 +37,7 @@ test -z "${DEBUG:-}" -a -z "${CI:-}" ||
 
 suite_source "${build_tab}" "${SUITE}" 0
 
-test -z "$DEBUG" || print_green "" "Finished sh:env ${SUITE} <$0>"
+test -z "${DEBUG:-}" || print_green "" "Finished sh:env ${SUITE} <$0>"
 
 # Sync: U-S:
 # Id: Script.mpe/0.0.4-dev tools/sh/env.sh

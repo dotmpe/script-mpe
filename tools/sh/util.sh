@@ -137,7 +137,7 @@ test -d $U_S/.git || {
 . "$U_S/tools/ci/parts/print-err.sh" # No-Sync
 . "$U_S/tools/sh/parts/include.sh" # No-Sync
 
-sh_include offsets suite-from-table suite-source suite-run
+sh_include hd-offsets suite-from-table suite-source suite-run
 
 # Sync: X-CI-0.1:
 # Sync: U-S:

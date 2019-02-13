@@ -473,8 +473,11 @@ htd_edit_today()
   test "$EDITOR" = 'vim' && {
     test -d .cllct/tmp || mkdir -p .cllct/tmp/
     # Two columns, two h-splits each
+    #{ printf -- \
+    #  "+vs\n:sp\nwincmd j\n:bn\nwincmd l\n:bn\n:sp\n:bn\nwincmd j\n:bn\n:bn\n"
+    # Two columns, one h-split
     { printf -- \
-      "+vs\n:sp\nwincmd j\n:bn\nwincmd l\n:bn\n:sp\n:bn\nwincmd j\n:bn\n:bn\n"
+      "+vs\nwincmd l\n:bn\n:sp\nwincmd j\n:bn\n"
       printf -- "wincmd h\nwincmd k\nwincmd =\n"
     } > .cllct/tmp/edit-today.vimcmd
     evoke="-c 'source .cllct/tmp/edit-today.vimcmd'"

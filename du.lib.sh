@@ -19,7 +19,7 @@ du_proc()
       --warnings="$warnings" "$1"
 }
 
-du_getxml()
+du_getxml() # Process Du/rSt doc to XML ~ Du-Doc Xml-Doc
 {
   test -n "$warnings" || warnings=-
   test -n "$warning_level" || warning_level=3
@@ -39,7 +39,7 @@ du_getxml()
   test -e "$2" || error "Need XML repr. for doc '$1'" 1
 }
 
-du_dl_terms_paths()
+du_dl_terms_paths() # Wrapper to adapt to every found instance for htdocs
 {
   # FIXME: move to functions, output needs a bit cleaning up
   htd tpaths "$1" | sed \
@@ -50,16 +50,19 @@ du_dl_terms_paths()
       -e 's/"//g'
 }
 
-du_dl_term_paths_raw()
+du_dl_term_paths_raw() # Retrieve Du definition outline as a relative path ~ Du-Doc Xml-Doc
 {
-  du_getxml "$1" "$2"
+  du_getxml "$1" "$2" || return
   test -n "$2" || set -- "$1" "$xml"
 
   # Read multi-leaf relative path for each file
   {
     case "$xsl_ver" in
+
       1 ) htd__xproc "$2" $scriptpath/rst-terms2path.xsl ;;
+
       2 ) htd__xproc2 "$2" $scriptpath/rst-terms2path-2.xsl ;;
+
       * ) error "xsl-ver '$xsl_ver'" 1 ;;
     esac
 
@@ -70,7 +73,7 @@ du_dl_term_paths_raw()
     | grep -v '^\.[\.\/]*$'
 }
 
-du_dl_term_paths()
+du_dl_term_paths() # Normalize relative path from dl-terms-paths-raw ~ Du-Doc Xml-Doc
 {
   du_dl_term_paths_raw "$1" "$2" | while read -r rel_leaf
   do

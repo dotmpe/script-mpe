@@ -998,8 +998,8 @@ vc_revision()
 }
 
 
-# List linenumber, commit-ID, and linecount.
-vc_blame_git() # File [Start- End-Line]
+# List linenumber, SHA1 commit-ID, and linecount.
+vc_blame_git() # List line-nr, sha1 and line-cnt ~ File [Start- End-Line]
 {
   {
     test -n "$2" && {
