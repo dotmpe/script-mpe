@@ -18,13 +18,34 @@ trait ContextPropertyTrait {
     /**
      * @Given `:ctx` key `:key` :value
      */
-    public function ctxArrProp($ctx, $key, $value)
+    public function ctxArrPropSet($ctx, $key, $value)
     {
         if (!isset($this->$ctx)) {
-          $this->$ctx = [];
+            $this->$ctx = [];
         }
         $this->{$ctx}[$key] = $value;
     }
+
+    /**
+     * @Then `:ctx` key `:key` equals :value
+     */
+    public function ctxArrPropEq($ctx, $key, $value)
+    {
+        if ( $this->{$ctx}[$key] != $value ) {
+            $actual = $this->{$ctx}[$key];
+            throw new Exception("`${ctx}` key `${key}` should equal `${value}`, but was `${actual}`");
+        }
+    }
+
+    /**
+     * @Then assert `:ctx` key `:key` :value
+     */
+    public function ctxArrPropAssert($ctx, $key, $value)
+    {
+        $this->ctxArrPropSet($ctx, $key, $value);
+        $this->ctxArrPropEq($ctx, $key, $value);
+    }
+
 
     /**
      * Store value on context for later use by name reference.

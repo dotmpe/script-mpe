@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-test -z "${sh_util_:-}" && sh_util_=1 || return 98 # Recursion
+test -z "${sh_util_:-}" && sh_util_=1 || return 198 # Recursion
 
 info() { exit 123; }
 
@@ -114,7 +114,7 @@ not_falseish()
 # Read file filtering octothorp comments and empty lines
 sh-read () # ( FILE | - )
 {
-  test $# -gt 0 -a $# -le 2 || return 98
+  test $# -gt 0 -a $# -le 2 || return 38
   test -n "$1" || return 1
   test -n "${2:-}" || set -- "$1" '^\s*(#.*|\s*)$'
   {

@@ -2,7 +2,9 @@
 
 use Behat\Gherkin\Node\PyStringNode;
 
-
+/**
+ * Partial class for FeatureContext adding user-command handling steps.
+ */
 trait UserExecContextTrait {
 
     var $booleanOptions = array(
@@ -44,17 +46,17 @@ trait UserExecContextTrait {
     public function theUserRuns($command_line, $withErrror='')
     {
         $stderr = ".behat-userexec-{$this->session_id}.stderr";
-        $env = $this->_getenv();
+        $local_prefix = $this->_getenv();
         $command = trim($command_line);
         if (substr($command, -1, 1) != ';') {
             $command .= ';';
         }
 
         if ($this->stdin) {
-            $exec = "{ {$this->stdin} | { $env $command }; } 2> $stderr";
+            $exec = "{ {$this->stdin} | { $local_prefix $command }; } 2> $stderr";
             $this->stdin = '';
         } else {
-            $exec = "{ $env $command } 2> $stderr";
+            $exec = "{ $local_prefix $command } 2> $stderr";
         }
         exec("\$SHELL -c '$exec'", $output, $return_var);
         $this->status = $return_var;

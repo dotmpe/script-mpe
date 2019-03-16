@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Annex: GIT annex wrappers (consolidate and lock media-file versions)
+
 
 annex_lib_load()
 {

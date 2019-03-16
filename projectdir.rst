@@ -3,7 +3,6 @@ Pd Specs
 :Created: 2016-01-24
 :Updated: 2018-01-20
 
-
 Pd - unified project tracking and handling.
 
 

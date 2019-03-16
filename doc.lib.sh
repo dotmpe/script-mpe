@@ -1,9 +1,10 @@
 #!/bin/sh
 
+# Deal with (rich-text/plain format) document files.
 
 doc_lib_load()
 {
-  lib_load match
+  lib_load match || return
   test -n "$DOC_EXT" || DOC_EXT=.rst
   test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt .feature .html .htm"
   test -n "$DOC_MAIN" || DOC_MAIN="ReadMe main ChangeLog index doc/main docs/main"

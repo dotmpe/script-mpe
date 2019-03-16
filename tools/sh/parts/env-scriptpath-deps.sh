@@ -2,7 +2,7 @@
 
 # Add user-scripts and dependencies to SCRIPTPATH
 
-type unique-paths >/dev/null 2>&1 || return
+type unique-paths >/dev/null 2>&1 || return 101
 test -n "${INIT_LOG:-}" || return 102
 
 : "${SCRIPTPATH:="$U_S/src/sh/lib"}"

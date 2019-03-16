@@ -1,19 +1,19 @@
 #!/bin/sh
 
+# Statusfile for documents: record document status and other bits
 
 docstat_lib_load()
 {
+  lib_assert statusdir
   # index id names and pathnames, ie. see htd-components
 
-  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
-  test -n "$DOCSTAT_TAB" || DOCSTAT_TAB=${STATUSDIR_ROOT}/index/docstat.list
-  test -n "$DOCSTAT" || DOCSTAT=${STATUSDIR_ROOT}/tree/docstat
+  test -n "$DOCSTAT_TAB" || DOCSTAT_TAB=${STATUSDIR_ROOT}index/docstat.list
+  test -n "$DOCSTAT" || DOCSTAT=${STATUSDIR_ROOT}tree/docstat
   test -d "$DOCSTAT" || mkdir "$DOCSTAT"
   test -n "$DOCSTAT_PREF" || DOCSTAT_PREF=$DOCSTAT/
-  test -n "$DOC_EXT" || export DOC_EXT=.rst
 }
 
-docstat_init()
+docstat_lib_init()
 {
   test -e "$DOCSTAT_TAB" || {
     mkdir -p "$(dirname "$DOCSTAT_TAB")" || return

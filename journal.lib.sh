@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Per day/week/month/year paths/files
+
 
 journal_lib_load()
 {

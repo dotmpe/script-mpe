@@ -25,6 +25,10 @@ Design
 * TODO: https://github.com/ok-borg/borg
   see also u-s/user-scripts
 
+Spec
+----
+See index.rst for spec listing wip
+
 Issues
 ------
 v0.0.3-3-g39b5e59 1143 lines of todo.txt

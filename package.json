@@ -8,6 +8,7 @@
     "test": "test"
   },
   "dependencies": {
+    "ajv-cli": "^3.0.0",
     "bash-parser": "^0.5.0",
     "glob-to-regexp": "^0.4.0",
     "indexeddb-js": "0.0.14",

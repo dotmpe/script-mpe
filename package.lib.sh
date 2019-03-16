@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 # Deal with package metadata files
 
 

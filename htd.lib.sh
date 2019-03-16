@@ -1,13 +1,57 @@
 #!/bin/sh
 
+# Htd support lib, see also htd-* libs
+
 
 htd_lib_load()
 {
   test -n "$NS_NAME" || NS_NAME=bvberkum
-  lib_load sys-htd htd-project
-  #htd-project-stats
+  lib_load sys-htd htd-project #htd-project-stats
 }
 
+
+# Set XSL-Ver if empty. See htd tpaths
+htd_load_xsl()
+{
+  test -z "$xsl_ver" && {
+    test -x "$(which saxon)" && xsl_ver=2 || xsl_ver=1
+  }
+  test xsl_ver != 2 -o -x "$(which saxon)" ||
+      $LOG error "" "Saxon required for XSLT 2.0" "" 1
+  $LOG info "" "Set XSL proc version=$xsl_ver.0"
+}
+
+htd_xproc()
+{
+  {
+    fnmatch '<* *>' "$2" && {
+
+      xsltproc --novalid - $1 <<EOM
+$2
+EOM
+    } || {
+      xsltproc --novalid $2 $1
+    }
+  # remove XML prolog:
+  } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
+}
+
+htd_xproc2()
+{
+  {
+    fnmatch '<* *>' "$2" && {
+      # TODO: hack saxon to ignore offline DTD's
+      # https://www.scriptorium.com/2009/09/ignoring-doctype-in-xsl-transforms-using-saxon-9b/
+      saxon - $1 <<EOM
+$2
+EOM
+    } || {
+      test -e "$1" || error "no file for saxon: '$1'" 1
+      saxon -dtd "$1" "$2" || return $?
+    }
+  # remove XML prolog:
+  } | cut -c39-
+}
 
 htd_relative_path()
 {

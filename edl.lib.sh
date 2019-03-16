@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Edit Decision Lists
+
 
 # Resolve line span (start line - line count)
 edl_resolve_lines()

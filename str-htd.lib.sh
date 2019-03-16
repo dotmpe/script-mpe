@@ -6,8 +6,8 @@ str_htd_lib_load()
 {
   test -n "$uname" || uname="$(uname -s)"
   case "$uname" in
-      Darwin ) expr=bash-substr ;;
-      Linux ) expr=sh-substr ;;
+      darwin ) expr=bash-substr ;;
+      linux ) expr=sh-substr ;;
       * ) error "Unable to init expr for '$uname'" 1;;
   esac
 

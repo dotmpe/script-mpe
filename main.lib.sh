@@ -662,7 +662,6 @@ main_init()
       stdio_type 2 $$
   } || return
 
-  #std_info "Verbosity $verbosity"
   sh_isset verbosity || verbosity=6
 
   #test -n "$scsep" || scsep=__
@@ -786,11 +785,12 @@ main_run_subcmd()
   test -z "$subcmd_args_pre" || set -- "$subcmd_args_pre" "$@"
 
   load_subcmd $box_prefix "$@" || return $?
-  debug "$base loaded"
+  test -z "$DEBUG" || debug "$base loaded"
 
   test -z "$dry_run" \
-    && debug "executing $scriptname $subcmd" \
-    || std_info "** starting DRY RUN $scriptname $subcmd **"
+    && {
+      test -z "$DEBUG" || debug "executing $scriptname $subcmd"
+    } || std_info "** starting DRY RUN $scriptname $subcmd **"
 
   # Execute and exit
   $subcmd_func "$@" && {

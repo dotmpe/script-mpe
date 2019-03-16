@@ -67,7 +67,7 @@ gsed_globs2regex()
 # extended glob to regex
 node_globs2regex()
 {
-  node -e '
+  ( cd ~/bin; node -e '
 var globToRegExp = require("glob-to-regexp");
 var readline = require("readline");
 var rl = readline.createInterface({
@@ -78,7 +78,7 @@ var rl = readline.createInterface({
 rl.on("line", function(line){
   console.log(globToRegExp(line, { extended: true }).toString().slice(1,-1));
 })
-    '
+    ' )
 }
 
 perl_globs2regex()

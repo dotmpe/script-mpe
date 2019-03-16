@@ -1,7 +1,7 @@
 #!/bin/sh
 
+# Htd ctx cleanup for OS wip: files, paths
 
-# OS: files, paths
 
 os_htd_lib_load()
 {

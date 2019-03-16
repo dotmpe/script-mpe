@@ -436,18 +436,6 @@ htd_load_ignores()
   #match_load_table vars
 }
 
-# Set XSL-Ver if empty. See htd tpaths
-htd_load_xsl()
-{
-  test -z "$xsl_ver" && {
-    test -x "$(which saxon)" && xsl_ver=2 || xsl_ver=1
-  }
-  test xsl_ver != 2 -o -x "$(which saxon)" ||
-      stderr error "Saxon required for XSLT 2.0" 1
-  stderr info "Set XSL proc version=$xsl_ver.0"
-}
-
-
 
 # Static help echo's
 
@@ -5483,39 +5471,11 @@ htd__tpath_raw()
 
 
 htd_man_1__xproc='Process XML using xsltproc - XSLT 1.0'
-htd__xproc()
-{
-  {
-    fnmatch '<* *>' "$2" && {
-
-      xsltproc --novalid - $1 <<EOM
-$2
-EOM
-    } || {
-      xsltproc --novalid $2 $1
-    }
-  # remove XML prolog:
-  } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
-}
+htd__xproc() { htd_xproc "$@" ; }
 
 
 htd_man_1__xproc2='Process XML using Saxon - XSLT 2.0'
-htd__xproc2()
-{
-  {
-    fnmatch '<* *>' "$2" && {
-      # TODO: hack saxon to ignore offline DTD's
-      # https://www.scriptorium.com/2009/09/ignoring-doctype-in-xsl-transforms-using-saxon-9b/
-      saxon - $1 <<EOM
-$2
-EOM
-    } || {
-      test -e "$1" || error "no file for saxon: '$1'" 1
-      saxon -dtd "$1" "$2" || return $?
-    }
-  # remove XML prolog:
-  } | cut -c39-
-}
+htd__xproc2() { htd_xproc2 "$@" ; }
 
 
 # TODO: Append definition term to doc
@@ -8437,17 +8397,35 @@ Sets of catalogs
     find catalog documents, cache full paths at CATALOG and list pathnames
   [CATALOG_DEFAULT=] name [DIR]
     select and set CATALOG filename from existing catalog.y*ml
-  find
+  find STR
     for every catalog from "htd catalog list-local", look for literal string in it
+  list-files
+    List local catalog names
+  ignores
+    List ignore patterns to apply to local file listings (global, ignore and scm
+    groups)
+  update-ignores
+    Update CATALOG_IGNORES file from ignores
+  listdir DIR
+    List local files for cataloging, excluding dirs but including symlinked
+  listtree PATH
+    List untracked files for SCM dir, else find everything with ignores.
+  index PATH
+    List tree, check entries exists
+  organize PATH
 
 Single catalogs
 
-  [CATALOG=] list-files
-    List file names or paths from catalog
   [CATALOG=] check
     Update cached status bits (see validate and fsck)
   [CATALOG=] status
     Run "check" and set return code according to status
+  [CATALOG=] add [DIR|FILE]
+    Add file, recording name, basic keys, and other file metadata.
+    See also add-file, add-from-folder, add-all-larger,
+  annex-import [Annex-Dir] [Annexed-Paths...]
+    Update entries from Annex (backend key and/or metadata)
+
   ck [CATALOG}
     print file checksums
   fsck [CATALOG]
@@ -8463,9 +8441,6 @@ Single catalogs
 
 Single catalog entry
 
-  [CATALOG=] add [DIR|FILE]
-    Add file, recording name, basic keys, and other file metadata.
-    See also add-file, add-from-folder, add-all-larger,
   [CATALOG=] get-path NAME
     Get src-file (full path) for record
   [CATALOG=] drop NAME
@@ -8482,8 +8457,6 @@ Single catalog entry
     Add/set any string value for record.
   update [CATALOG] Entry-Id Value [Entry-Key]
     Update single key of signle entry in catalog JSON and write back.
-  annex-import [Annex-Dir] [Annexed-Paths...]
-    Update entries from Annex (backend key and/or metadata)
 
 Functions without CATALOG argument will use the likenamed env. See
 catalog-lib-load. Std. format is YAML.

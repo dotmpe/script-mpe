@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# BSD/Darwin specific
 
 darwin_lib_load()
 {

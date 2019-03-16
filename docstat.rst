@@ -1,5 +1,9 @@
 Docstat
 =======
+Track document ID and status records.
+
+Design
+------
 Statusfile for documents. Each entry records descriptor attributes and simple
 document outline in semi-TODO.txt line format.
 

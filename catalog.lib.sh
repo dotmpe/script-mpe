@@ -103,9 +103,11 @@ htd_catalog_listdir()
   done | grep -vf "$Catalog_Ignores.regex"
 }
 
-# List untracked files, from SCM if present, or uses find with ignores.
-# Set use_find=1 to override for present SCM, or scm_all/scm_x
-htd_catalog_listtree()
+# List untracked files for SCM dir, else find everything with ignores. Assuming
+# SCM can handle its own status.
+# Set use_find=1 to override for present SCM; scm_all to list SCM excluded as
+# well.
+htd_catalog_listtree() # List untracked or find all unignored ~ Path
 {
   test -n "$1" || set -- "."
   local scm='' ; trueish "$use_find" || vc_getscm "$1"
@@ -132,49 +134,71 @@ htd_catalog_listtree()
 }
 
 # List tree, and check entries exists for each file-name
-htd_catalog_index()
+htd_catalog_index() # Check each listtree fname ~ Path
 {
-  htd_catalog_listtree "$1" |
-      while read fname
-      do
-          test -f "$fname" || {
-            test -d "$fname" && {
-              trueish "$recursive" || {
-                warn "Skipping dir '$fname'" ; continue ; }
-              htd_catalog_index "$fname"
-            }
-            warn "File expected '$fname'" ; continue ; }
+  htd_catalog_listtree "$1" | while read fname
+    do
+      test -f "$fname" || {
+        test -d "$fname" && {
+          trueish "$recursive" || {
+            warn "Skipping dir '$fname'" ; continue ; }
+          htd_catalog_index "$fname"
+        }
+        warn "File expected '$fname'" ; continue ; }
 
-          htd_catalog_has_file "$fname" || {
-            warn "Missing '$fname'"
-            echo "$fname" >>"$failed"
-          }
-      done
+      htd_catalog_has_file "$fname" || {
+        $LOG warn "$PWD" "Missing" "$fname"
+        echo "$fname" >>"$failed"
+      }
+    done
 }
 
+# List dir, check file extension-mime map and ...
 # TODO: wrap catalog add with some pre/post processing?
-htd_catalog_organize()
+htd_catalog_organize() # ~ Path
 {
+  local r=
+
+  test -n "$dry_run" || {
+      test -z "$noact" && dry_run=0 || dry_run=$noact
+    }
+  test -n "$keep_going" || keep_going=1
+
   htd_catalog_listdir "$1" |
-      while read fname
-      do
-          test -f "$fname" || { test -d "$fname" || warn "Not a file '$fname'"
-            continue
-          }
+    while read fname
+    do
+      test -f "$fname" || {
+        test -d "$fname" || warn "Not a file '$fname'"
+        continue
+      }
 
-          matchbox.py check-name "$fname" std-ascii 2>&1 1>/dev/null && {
-              true # note "File ok $fname"
-              #basename-reg -qq --no-mime-check --num-exts 1 -c "$fname"
-          } || {
-              ext="$(filenamext "$fname")"
-              title="$(basename "$fname" .$ext)"
-              newname="$(mkid "$title" "" "").$ext"
-              note "Title '$title' $newname ($ext)"
+      # TODO: matchbox.py check-name "$fname" std-ascii  && {
 
-          }
-      done
+      mime=$(basename-reg -o mime --no-mime-check --num-exts 1 -c "$fname") || {
+
+        $LOG error "mime" "No mime for extension" "$fname" 1
+        trueish "$keep_going" && { r=1; continue; }
+        return $?
+      }
+      ext="$(filenamext "$fname")"
+      title="$(basename "$fname" .$ext)"
+      newname="$(mkid "$title" "" "").$ext"
+
+      htd_catalog_has_file "$fname" && {
+        continue
+
+      } || {
+
+        # Look for local sync rules, reprocess if required
+        note "New file Title '$title' $mime $newname ($ext)"
+
+        # TODO: find nearest package, look for sync-directives
+        # TODO: ht-copy-* :!
+
+      }
+    done
+  return $r
 }
-
 
 # Read (echo) checksums from catalog
 htd_catalog_ck() # CATALOG
@@ -182,7 +206,6 @@ htd_catalog_ck() # CATALOG
   test -n "$1" -a -e "$1" || error "catalog filename arguments expected" 1
   ck_read_catalog "$1"
 }
-
 
 # Run all checksums from catalogs
 htd_catalog_fsck()
@@ -215,16 +238,21 @@ htd_catalog_check()
         ) && echo fsck=0 || echo fsck=$?
 
     } > $Catalog_Status
-    note "Updated status"
+    $LOG note "" "Updated status"
   }
 }
 
 # Process htd-catalog-check results
 req_catalog_status()
 {
-  eval $(cat $Catalog_Status)
-  status=$(echo "$schema + $fsck" | bc) || return -1
-  test $status -eq 0 || cat $Catalog_Status
+  status=$(echo $(cut -d'=' -f2 $Catalog_Status|tr '\n' ' ')|tr ' ' '+'|bc ) ||
+      return
+  test -n "$status" || return 51
+  test $status -eq 0 && {
+    $LOG note "Pass" "status:" "$(lines_to_words $Catalog_Status)"
+  } || {
+    $LOG warn "Failed" "status:" "$(lines_to_words $Catalog_Status)"
+  }
   return $status
 }
 
@@ -233,8 +261,7 @@ req_catalog_status()
 # Set full to fsck subsequently.
 htd_catalog_status()
 {
-  htd_catalog_check
-  req_catalog_status
+  htd_catalog_check && req_catalog_status
 }
 
 
@@ -332,7 +359,8 @@ htd_catalog_add_file() # File
 {
   # TODO: check other catalogs, dropped entries too before adding.
   htd_catalog_has_file "$1" && {
-    std_info "File '$(basename "$1")' already in catalog"
+    # std_info "File '$(basename "$1")' already in catalog"
+    $LOG note "" "already in catalog" "$1"
     return 2
   }
 
@@ -394,6 +422,9 @@ EOM
   htd_catalog_file_birth_date "$1" >> $CATALOG
 }
 
+# Add entries for given paths
+# Attn: records only the basename so duplicate basenames (from any directory)
+# will not be added, only the first occurence.
 htd_catalog_add() # File..
 {
   while test $# -gt 0
@@ -556,15 +587,10 @@ htd_catalog_file_wherefrom() # ~ Src-File
 htd_catalog_file_birth_date() # ~ Src-File
 {
   dob_ts=$(filebtime "$1")
-  test $dob_ts -ne 0 || dob_ts=$(filemtime "$1")
-  # Darwin/BSD
-  test "$uname" = "Darwin" && {
-    dob=$(date -r $dob_ts +"%Y-%m-%dT%H:%M:%S%z" | sed 's/^\(.*\)\(..\)$/\1:\2/')
-    dob_utc=$(TZ=GMT date -r $dob_ts +"%Y-%m-%dT%H:%M:%SZ")
-  } || {
-    dob=$(date --date="@$dob_ts" +"%Y-%m-%dT%H:%M:%S%z" | sed 's/^\(.*\)\(..\)$/\1:\2/')
-    dob_utc=$(TZ=GMT date --date="@$dob_ts" +"%Y-%m-%dT%H:%M:%SZ")
-  }
+  test $dob_ts -ne 0 || dob_ts=$(filemtime "$1") || return
+
+  dob=$($gdate --date="@$dob_ts" +"%Y-%m-%dT%H:%M:%S%z" | sed 's/^\(.*\)\(..\)$/\1:\2/')
+  dob_utc=$(TZ=GMT $gdate --date="@$dob_ts" +"%Y-%m-%dT%H:%M:%SZ")
   echo "  first-seen-local: '$dob'"
   echo "  first-seen: '$dob_utc'"
 }
@@ -601,7 +627,7 @@ htd_catalog_set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
 
 # Like htd-catalog-set-key, except allow for JSON values to update a single
 # entry key value, or a JQ script-file to do any JSON update
-htd_catalog_update() # [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key] )
+htd_catalog_update() # ~ [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key] )
 {
   local jq_scr=
   test -n "$1" || set -- "$CATALOG" "$2" "$3" "$4"
@@ -635,7 +661,7 @@ htd_catalog_update() # [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key] )
 # Add/update entries from Annex. Even if a file does not exist, this can take
 # keys, tags and other metadata from GIT annex. See annex-metadata. The
 # standard SHA256E backend provides with bytesize and SHA256 cksum metadata.
-htd_catalog_from_annex() # [Annex-Dir] [Annexed-Paths]
+htd_catalog_from_annex() # ~ [Annex-Dir] [Annexed-Paths]
 {
   test -n "$1" || { shift ; set -- "." "$@" ; }
   local jq_scr="$(pwd)/.cllct/annex-update.jq" r='' cwd="$(pwd)"

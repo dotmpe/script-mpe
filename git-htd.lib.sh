@@ -64,6 +64,7 @@ git_require() # <user>/<repo> [Check-Branch]
   echo "$VND_GH_SRC/$1"
 }
 
+# XXX: fix naming. Get a path to required branch environment_version
 git_get_branch() # [ENV] <user>/<repo>
 {
   eval "$1" || return
@@ -74,4 +75,25 @@ git_get_branch() # [ENV] <user>/<repo>
       --origin "local-ref" \
        "https://$SCM_VND/$2.git" \
       "$LOCAL_SRC/$environment_name/$SCM_VND/$2"
+}
+
+git_describe_parse()
+{
+  test $# -le 1 || return 98
+  local tag="${1-:}"
+  test -n "$tag" || tag=$(git describe --always)
+
+  fnmatch "*-g[0-9a-f][0-9a-f][0-9a-f]*" "$tag" && {
+
+    last_tag=$(printf %s "$tag"|sed 's/^\(.*\)-[0-9][0-9]*-g[0-9a-f]*$/\1/')
+    commits_since=$(printf %s "$tag"|sed 's/^.*-\([0-9][0-9]*\)-g[0-9a-f]*$/\1/')
+    abbrev_sha1=$(printf %s "$tag"|sed 's/^.*-[0-9][0-9]*-g\([0-9a-f][0-9a-f]*\)$/\1/')
+    return
+  } || {
+    last_tag=
+    commits_since=
+    abbrev_sha1=
+    sha1=$tag
+    return 1
+  }
 }

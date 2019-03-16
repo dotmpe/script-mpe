@@ -1,5 +1,7 @@
 Sh Src-Stat
 ===========
+:created: 2018-11-11
+
 * `build </doc/src/sh/build.rst>`__
 
 - `docstat.lib.sh </doc/src/sh/docstat-lib.rst>`__

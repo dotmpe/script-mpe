@@ -5,7 +5,7 @@
 
   Background: the `stattab.lib` is tested with `htd` frontend, using `package.y*ml` for project settings
 
-       Given  the current project
+       Given  the current script dir
        Given  package env
        Given  deps os, sys, str, match, table, date and build
 

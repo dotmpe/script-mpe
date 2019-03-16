@@ -13,49 +13,16 @@ version=0.0.4-dev # script-mpe
 
 statusdir_load()
 {
-  test -z "$STATUSDIR_ROOT" && {
-      STATUSDIR_ROOT="$HOME/.statusdir/"
-  } || {
-      fnmatch "*/" "$STATUSDIR_ROOT" || STATUSDIR_ROOT="$STATUSDIR_ROOT/"
-  }
-  export STATUSDIR_ROOT
-
-  # Get temporary dir
-  test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
-  test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
-
-  # Detect backend
-
-  test -n "$sd_be" || {
-    which redis-cli >/dev/null 2>&1 &&
-      redis-cli ping >/dev/null 2>&1 &&
-        sd_be=redis
-  }
-
-  test -n "$sd_be" || {
-    which membash >/dev/null 2>&1 && sd_be=membash
-  }
-
-  # Set default be
-  test -n "$sd_be" || sd_be=fsdir
-
-  # Load backend
-  lib_load statusdir-$sd_be
-  test -n "$sd_be_name" && sd_be=$sd_be_name
+  statusdir_lib_start
 }
 
 statusdir_unload()
 {
-  test -n "$sd_tmp_dir" || error "sd_tmp_dir unload" 1
-  # XXX: quick check for cruft. Is triggering on empty directories.
-  #test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
-  #  || warn "Leaving temp files in $sd_tmp_dir: $(echo $sd_tmp_dir/*)"
-  unset sd_be sd_tmp_dir
+  statusdir_lib_finish
 }
 
 
 # Subcommands
-
 
 statusdir__info()
 {
@@ -109,10 +76,10 @@ statusdir__assert()
   test -n "$1" || set -- status.json "$2"
   test -n "$2" || set -- "$1" default
   case "$2" in default )
-      path=$STATUSDIR_ROOT/$1
+      path=$STATUSDIR_ROOT$1
     ;;
     * )
-      path=$STATUSDIR_ROOT/$2/$1
+      path=$STATUSDIR_ROOT$2/$1
     ;;
   esac
   path=$(normalize_relative $path)
@@ -144,17 +111,24 @@ statusdir__assert_dir()
   echo $path
 }
 
-# Specific statusdir__dir assert for .list file
-statusdir__index_file()
+statusdir__record()
 {
-  test -n "$STATUSDIR_ROOT" || return 65
-  tree="$(echo "$@" | tr ' ' '/')"
-  echo $STATUSDIR_ROOT"index/$tree.list"
+  statusdir_record "$@"
+}
+
+statusdir__status()
+{
+  statusdir_status "$@"
 }
 
 statusdir__index()
 {
-  cat $(statusdir__index_file "$@")
+  statusdir_index "$@"
+}
+
+statusdir__index_file()
+{
+  statusdir_index_file "$@"
 }
 
 # XXX: deprecate for index/index-file
@@ -162,9 +136,9 @@ statusdir__file()
 {
   test -n "$STATUSDIR_ROOT" || return 66
   tree="$(echo "$@" | tr ' ' '/')"
-  case "$tree" in *\* ) ;; * )
-    statusdir__assert_dir "$@" >/dev/null
-  esac
+  trueish "$assert_dir" && case "$tree" in */* ) ;;
+        * ) statusdir__assert_dir "$@" >/dev/null ;;
+      esac
   echo $STATUSDIR_ROOT"index/$tree"
 }
 
@@ -191,8 +165,6 @@ statusdir__properties()
 
 
 # XXX
-
-
 
 # XXX: get some plumping commands to deal with embedded structures
 # at paths.
@@ -372,13 +344,18 @@ statusdir_main()
   test -n "$verbosity" || verbosity=5
   local scriptname=$(basename $0 .sh) base=statusdir \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd= \
-    sd_tmpdir=
+    sd_tmp_dir=
 
+  INIT_LOG=$LOG
+  : "${script_util:="$scriptpath/tools/sh"}"
   statusdir_init || exit $?
+  shell_lib_init || return
+  unset INIT_LOG
 
   case "$scriptname" in $base | sd )
 
         statusdir_lib || exit $?
+        statusdir_load || exit $?
         main_run_subcmd "$@" || exit $?
       ;;
 
@@ -404,10 +381,14 @@ statusdir_init()
   test -n "$script_util" || return 103 # NOTE: sanity
   test -n "$scriptpath" || return
   unset CWD
+
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
   test -n "$htd_env_d_default" ||
       htd_env_d_default=init-log\ ucache\ scriptpath\ std
-  test -n "$U_S" || export U_S=/srv/project-local/user-scripts
+
+  true "${U_S:="/srv/project-local/user-scripts"}"
+  export U_S
+
   test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
   INIT_LOG=$LOG
 
@@ -415,12 +396,14 @@ statusdir_init()
   do
     . $script_util/parts/env-$env_d.sh
   done
+  test -n "$htd_log" || htd_log=$LOG
+  test -n "$lib_lib_log" || lib_lib_log=$LOG
   $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
 
   util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
   . $scriptpath/tools/sh/box.env.sh &&
   box_run_sh_test &&
-  lib_load box date
+  lib_load os sys str std logger-std logger-theme log shell main
   # -- statusdir box init sentinel --
 }
 
@@ -428,6 +411,7 @@ statusdir_lib()
 {
   test -z "$__load_lib" || return 14
   local __load_lib=1
+  lib_load box date statusdir notify
   # -- statusdir box lib sentinel --
   set --
 }

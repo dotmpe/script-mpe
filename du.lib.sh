@@ -55,13 +55,14 @@ du_dl_term_paths_raw() # Retrieve Du definition outline as a relative path ~ Du-
   du_getxml "$1" "$2" || return
   test -n "$2" || set -- "$1" "$xml"
 
+    # std_info "File '$(basename "$1")' already in catalog"
   # Read multi-leaf relative path for each file
   {
     case "$xsl_ver" in
 
-      1 ) htd__xproc "$2" $scriptpath/rst-terms2path.xsl ;;
+      1 ) htd_xproc "$2" $scriptpath/rst-terms2path.xsl ;;
 
-      2 ) htd__xproc2 "$2" $scriptpath/rst-terms2path-2.xsl ;;
+      2 ) htd_xproc2 "$2" $scriptpath/rst-terms2path-2.xsl ;;
 
       * ) error "xsl-ver '$xsl_ver'" 1 ;;
     esac

@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# File and path ignore rules
+
+
 ignores_lib_load()
 {
   test -n "$1" || set -- $base

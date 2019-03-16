@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# disk device query routines
+
 
 disk_lib_load()
 {

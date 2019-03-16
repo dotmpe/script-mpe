@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Htd ctx cleanup for vc wip
+
+
 vc_htd_lib_load()
 {
   test -n "$vc_rt_def" || vc_rt_def=origin
@@ -1049,12 +1052,12 @@ vc_commit_for_line() # File Line-Nr
 
 vc_commit_date() # Commit
 {
-  git show -s --format=%ci "$1"
+  git show -s --format=%cI "$1"
 }
 
 vc_author_date() # Commit
 {
-  git show -s --format=%ai "$1"
+  git show -s --format=%aI "$1"
 }
 
 

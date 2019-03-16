@@ -7,7 +7,7 @@ setup()
 {
   init &&
   tmpd && STATUSDIR_ROOT=$tmpd &&
-  lib_load stattab date build-htd setup-sh-tpl && build_init
+  lib_load statusdir match stattab date str-htd os-htd date-htd build-htd setup-sh-tpl && build_init
 }
 
 @test "$base: descr" {

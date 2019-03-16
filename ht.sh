@@ -1,7 +1,7 @@
 #!/bin/sh
 ht__source=$_
 
-# Ht - trying to optimize htd.sh a bit
+# Ht - trying to optimize htd.sh a bit. See `HT:dev/main` docs.
 
 #set -o posix
 set -e

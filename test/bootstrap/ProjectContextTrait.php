@@ -7,13 +7,19 @@ use Behat\Behat\Tester\Exception\PendingException,
 
 trait ProjectContextTrait {
 
+    /**
+     * NOTE: there are other ways to get at the project root, this works for
+     * a static file while it does not move and is not used in submodule.
+     */
     public function getProjectDir()
     {
         return dirname(dirname(dirname(__FILE__)));
     }
 
     /**
-     * XXX: this does not do anything, but is symbolic should set context/env property.
+     * This step does very little, checks the PWD equals the ProjectDir. It is
+     * the basis though for mover specific `GIVEN <project>` steps, eg. those
+     * needing relative paths, and other argument or environment values.
      *
      * @Given /^the current project dir,?$/
      * @Given /^the current project,?$/
@@ -37,10 +43,11 @@ trait ProjectContextTrait {
     public function project_settings()
     {
         $this->theUserRuns("htd package update");
-        $this->theCurrentScriptDir();
 
-        $default_env = '. $scriptpath/util.sh ; lib_load';#; set|grep lib_load';
+        $this->theCurrentScriptDir();
+        $default_env = '. $scriptpath/util.sh ; lib_load';
         $package_env = $default_env .' ; lib_load package && package_lib_set_local .';
+
         $this->env = $package_env .' && . "$PACKMETA_SH"';
     }
 

@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# Named basedirs
 
 prefix_lib_load()
 {

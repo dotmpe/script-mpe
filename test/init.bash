@@ -61,7 +61,7 @@ err_() # [type] [cat] [msg] [tags] [status]
   test $# -gt 0 || return
   test $# -gt 1 || set -- "$@" "" "" "" ""
   test -z "$verbosity" -a -z "$DEBUG" && return
-  test -n "$2" || set -- "$1" "$base" "$3" "$4" "${5:-}"
+  test -n "$2" || set -- "$1" "$base" "$3" "${4:-}" "${5:-}"
   test -z "$verbosity" -a -n "$DEBUG" || {
 
     case "$1" in [0-9]* ) true ;; * ) false ;; esac && {
@@ -88,16 +88,41 @@ test_env_load()
   test -n "$DEBUG" || DEBUG=
   test -n "$INIT_LOG" || INIT_LOG=err_
 
+  true "${U_S:="/srv/project-local/user-scripts"}"
+  . $U_S/tools/sh/parts/include.sh
+
   SCRIPTPATH=
+  sh_include \
+      print-err unique-paths remove-dupes \
+      env-scriptpath-deps
+  export SCRIPTPATH=$HOME/bin:$SCRIPTPATH
+
+  sh_include env-strict
+  #sh_include debug-exit
+  sh_include env-log-reinit
+  sh_include env-0
+  #sh_include env-ci
+  sh_include env-dev
+  sh_include env-ucache
+  #sh_include std-ci-helper
+  sh_include env-0-u_s
+  sh_include env-docker-hub
+  sh_include env-test
+  sh_include env-test-bats
+  #sh_include env-scriptpath-deps
+  sh_include env-info
+
   # XXX: need to adjust if build.txt column order changes
   # Get env init ('0' prefixed) Test suite steps from build.txt
   for env_d in $( grep -vE '^\s*(#.*|\s*)$' build.txt|awk '{print $6" "$1}'|grep '^0'|sort -u|cut -f2 -d' ')
   do
     $INIT_LOG "debug" "" "Loading env-part" "$env_d"
-    part=$ci_tools/parts/$env_d.sh
-    test -e "$part" || part=$sh_tools/parts/$env_d.sh
-    . "$part" ||
-        $INIT_LOG "warn" "" "Failed env-part"  "$? $env_d"
+    #echo sh_include $env_d >&2
+    #sh_include $env_d
+    #part=$ci_tools/parts/$env_d.sh
+    #test -e "$part" || part=$sh_tools/parts/$env_d.sh
+    #. "$part" ||
+    #    $INIT_LOG "warn" "" "Failed env-part"  "$? $env_d"
   done
   unset part env_d
 
@@ -167,12 +192,14 @@ init() # ( 0 | 1 [~ [~ [~]]] )
 
   load_init_bats
 
+  test "$1" = "0" || {
 # FIXME: deal with sub-envs wanting to know about lib-envs exported by parent
 # ie. something around ENV_NAME, ENV_STACK. Renamed ENV_SRC to LIB_SRC for now
 # and dealing only with current env, testing lib-load and tools, user-scripts.
-  LIB_SRC=
-  . $U_S/tools/sh/init.sh
-  #. $u_s_util/init.sh
+    LIB_SRC=
+    . $U_S/tools/sh/init.sh
+    #. $u_s_util/init.sh
+  }
 }
 
 
@@ -220,7 +247,7 @@ bats_autosetup_common_includes()
     BATS_LIB_PATH_DEFAULTS="$BATS_LIB_PATH_DEFAULTS $BASHER_PACKAGES"
 
   test -e /src/ &&
-    : "${VND_SRC_PREFIX:="/src"}" ||
+    : "${VND_SRC_PREFIX:="/src/github.com"}" ||
     : "${VND_SRC_PREFIX:="$HOME/build"}"
 
   : "${VENDORS:="google.com github.com bitbucket.org"}"

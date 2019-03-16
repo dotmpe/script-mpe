@@ -1,8 +1,7 @@
 .. include:: .default.rst
 
-Statusdir - lightweight wrapper for key-value storage
+Statusdir - key-value storage service wrappers wip
 =====================================================
-
 
 Design
 -------
@@ -11,7 +10,6 @@ Design
 - TODO: manage volatility. Insist on clean indices.
 - Some JSOTK (json/yaml) support maybe, for fallback where above fails with a
   backend. Or for layering more complex indices.
-
 
 ::
 
@@ -73,6 +71,12 @@ statusdir__assert [status.json] [default]
 
 format=[properties|sh]
     Formatter for properties (output)
+
+- status
+- index - see statusdir-index-spec unittest.
+
+- logs TODO
+- tree TODO
 
 Sh Main
     Sort of standard <base>_main, ~_init, ~_lib seq.

@@ -3,19 +3,33 @@
 
 urlstat_lib_load()
 {
-  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
-  test -n "$URLSTAT_TAB" || URLSTAT_TAB=${STATUSDIR_ROOT}/index/urlstat.list
+  lib_assert statusdir
+  test -n "$URLSTAT_TAB" || URLSTAT_TAB=${STATUSDIR_ROOT}index/urlstat.list
+}
+
+urlstat_lib_init()
+{
   test -e "$URLSTAT_TAB" || {
     touch "$URLSTAT_TAB" || return
   }
 }
 
-urlstat_url_init() # URL
+urlstat_load() # URL
 {
-  urlstat_env
+  false
+}
+
+urlstat_entry_init() # URL
+{
+  urlstat_entry_env
   sha1ref=$(printf -- "%s" "$1" | sha1sum - | cut -d ' ' -f 1)
   md5ref=$(printf -- "%s" "$1" | md5sum - | cut -d ' ' -f 1)
   urlstat_src="$1"
+}
+
+stattab_entry_update()
+{
+  false
 }
 
 # List entries; first argument is glob, converted to (grep) line-regex
@@ -42,7 +56,7 @@ urlstat_urllist() # ? LIST
 urlstat_init() # URI-Ref [Init-Tags]
 {
   note "Initializing $1"
-  test -n "$urlstat_src" || urlstat_url_init "$1"
+  test -n "$urlstat_src" || urlstat_entry_init "$1"
   test -z "$new_status" || status="$new_status"
   test -z "$new_ctime" || ctime="$new_ctime"
   test -z "$new_btime" || btime="$new_btime"
@@ -56,7 +70,7 @@ urlstat_init_fields() # URI-Ref [Init-Tags]
 {
   note "Init fields '$*'"
 
-  test -n "$urlstat_src" || urlstat_url_init "$1"
+  test -n "$urlstat_src" || urlstat_entry_init "$1"
   test -z "$1" || shift
   tags=$(urlstat_tags "$@") || status=1
   urlstat_descr
@@ -127,7 +141,7 @@ urlstat_tags() #
 
 urlstat_process()
 {
-  test -n "$urlstat_src" || urlstat_url_init "$1"
+  test -n "$urlstat_src" || urlstat_entry_init "$1"
   test -n "$1" -a -n "$urlstat_src" || error "urlstat-process: URL required: $1" 1
   test -n "$urlstat_entry" || urlstat_entry_fetch "$1"
   debug "entry '$entry'"
@@ -149,7 +163,7 @@ urlstat_process()
 # urlstat-entry env
 urlstat_update() # URI-Ref [Tags]
 {
-  test -n "$urlstat_src" || urlstat_url_init "$1"
+  test -n "$urlstat_src" || urlstat_entry_init "$1"
   test -n "$1" -a -n "$urlstat_src" || error "urlstat-update: URL required: $1" 1
   test -n "$urlstat_entry" || urlstat_entry_fetch "$1"
   debug "entry '$entry'"
@@ -194,7 +208,7 @@ urlstat_update() # URI-Ref [Tags]
 
 urlstat_entry_exists() # URI-Ref [LIST]
 {
-  test -n "$urlstat_src" || urlstat_url_init "$1"
+  test -n "$urlstat_src" || urlstat_entry_init "$1"
   test -n "$2" || set -- "$1" "$URLSTAT_TAB"
   p_="$(match_grep "$1")"
   $ggrep -q "^[0-9 +-]*\b$p_\\ " "$2"
@@ -204,16 +218,16 @@ urlstat_entry_exists() # URI-Ref [LIST]
 # Provide ctx arg to parse descriptor iso. primary context (if func exists)
 urlstat_entry() # URI-Ref
 {
-  test -n "$urlstat_src" || urlstat_url_init "$1"
+  test -n "$urlstat_src" || urlstat_entry_init "$1"
   test -n "$2" || set -- "$1" "$URLSTAT_TAB"
   url_re="$(match_grep "$1")"
   urlstat_line="$( $ggrep -m 1 -n "^[0-9 +-]*\b$url_re\\ " "$2" )"
-  urlstat_parse "$urlstat_line"
+  urlstat_entry_parse "$urlstat_line"
   urlstat_parse_std_descr $stat
 }
 
-# Parse statusdir index file line
-urlstat_parse() # Tab-Entry
+# Parse urlstat index file line
+urlstat_entry_parse() # Tab-Entry
 {
   # Split grep-line number from rest
   lineno="$(echo "$1" | cut -d ':' -f 1)"
@@ -251,7 +265,7 @@ urlstat_entry_fetch() # URI-Ref
   } || error "Error parsing" 1
 }
 
-urlstat_env()
+urlstat_entry_env()
 {
   urlstat_src=
   urlstat_entry=
@@ -266,9 +280,15 @@ urlstat_env()
   title=
   tags=
 }
+
+urlstat_entry_defaults()
+{
+  false
+}
+
 urlstat_check() # URI-Ref [Tags]
 {
-  test -n "$urlstat_src" || urlstat_url_init "$1"
+  test -n "$urlstat_src" || urlstat_entry_init "$1"
   test -n "$1" || set -- "$urlstat_src"
   urlstat_entry_exists "$1" && {
 

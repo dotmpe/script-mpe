@@ -1,7 +1,6 @@
-Documents
-=========
-Commands and functions dealing with documents.
-
+doc - Documents
+===============
+Commands and functions dealing with text documents.
 
 Objectives
 ----------

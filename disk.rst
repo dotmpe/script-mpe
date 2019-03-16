@@ -1,12 +1,9 @@
-
-Current inventaris docs are in ~/htdocs.
-But want something more managable. See 2016-06-15 jrnl.
-
+Disk device query routines
+==========================
 disk cmd is free so use that. See also ``diskdoc.*``.
 Also have some disk handling in htd, consolidated parted parts.
 
-
-.volumes.yaml::
+``.volumes.yaml``::
 
   disk:
     id:
@@ -16,7 +13,7 @@ Also have some disk handling in htd, consolidated parted parts.
 
   prefixes:
 
-.volumes.sh::
+``.volumes.sh``::
 
   volumes_disk_id=
   volumes_disk_alias=
@@ -62,4 +59,5 @@ disk
     Dry-run variant of update.
 
 
-
+ChangeLog
+  - Current inventaris in HT, but want something more managable [2016-06-15]

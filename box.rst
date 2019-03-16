@@ -1,10 +1,31 @@
-Component:
-   Box
+box - Shell-function script-command framwork wip
+
+Design
+------
+Evocation pattern::
+
+  $ <exec-cmd-name> <sub-cmd-name> <args...>
+
+Translates to::
+
+  <base>__<cmdid> <subcmdid> <args...>
+
+Spec
+----
+- ``$ <box> <handler-name> ...``
+- ``$ <box> <lib-name> <func-name>``
+
+
+------
+
+Older 2015-10-21 doc version for box framework.
 
 Background:
    Box is a little shell framework, with one example ``box-instance`` as demo,
    and an utility command ``box`` for inspection and updates to script/lib-files
-   (even itself). TODO: Move specific code from ``htd*sh`` and ``script*sh`` into here.
+   (even itself).
+
+   TODO: Move specific code from ``htd*sh`` and ``script*sh`` into here.
    Main code still is found in ``main.lib``.
    See sh-libs: main, box, src, script-sh.
 

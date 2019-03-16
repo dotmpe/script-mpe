@@ -1,9 +1,16 @@
 #!/bin/sh
 
+# Status-Table-Id: stattab
+# -Var: sttab/STTAB
+
 stattab_lib_load()
 {
-  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
-  test -n "$STTAB" || STTAB=${STATUSDIR_ROOT}/index/stattab.list
+  lib_assert statusdir
+  test -n "$STTAB" || STTAB=${STATUSDIR_ROOT}index/stattab.list
+}
+
+stattab_lib_init()
+{
   test -e "$STTAB" || {
     mkdir -p "$(dirname "$STTAB")" && touch "$STTAB"
   }
@@ -18,14 +25,14 @@ stattab_load()
 
 stattab_init()
 {
-  true
+  false
 }
 
-stattab_entry_init() # SCR
+stattab_entry_init() # ST
 {
   sttab_id="$1"
   echo "$sttab_id" | grep -q '^[A-Za-z_][A-Za-z0-9_-]*$' ||
-      error "Illegal SCR name '$sttab_id'" 1
+      error "Illegal ST name '$sttab_id'" 1
 }
 
 stattab_entry_update()
@@ -39,7 +46,7 @@ stattab_entry_update()
 # List entries; first argument is glob, converted to (grep) line-regex
 stattab_list() # Match-Line
 {
-  test -n "$2" || set -- "$1" "$SCRTAB"
+  test -n "$2" || set -- "$1" "$STTAB"
   test -n "$1" && {
     grep_f=
     re=$(compile_glob "$1")
@@ -49,15 +56,15 @@ stattab_list() # Match-Line
   }
 }
 
-# List STAT-Id's
+# List ST-Id's
 stattab_statlist() # ? LIST
 {
-  test -n "$2" || set -- "$1" "$SCRTAB"
+  test -n "$2" || set -- "$1" "$STTAB"
   read_nix_style_file "$2" | $gsed -E 's/^[0-9 +-]*([^ ]*).*$/\1/'
 }
 
 # Generate line and append entry to statusdir index file
-stattab_init() # SCR-Id [Init-Tags]
+stattab_init() # ST-Id [Init-Tags]
 {
   note "Initializing $1"
   test -n "$sttab_id" || stattab_load "$1"
@@ -65,12 +72,12 @@ stattab_init() # SCR-Id [Init-Tags]
 
   pref=eval set_always=1 \
     capture_var 'stattab_entry_fields "$@" | normalize_ws' sttab_r new_entry "$@"
-  echo "$new_entry" >>"$SCRTAB"
+  echo "$new_entry" >>"$STTAB"
   return $sttab_r
 }
 
 # Output entry from current sttab_* values
-stattab_entry_fields() # SCR-Id [Init-Tags]
+stattab_entry_fields() # ST-Id [Init-Tags]
 {
   note "Init fields '$*'"
   test -n "$sttab_id" || stattab_load "$1"
@@ -100,6 +107,16 @@ stattab_new() # [NAME]
   stattab_init "$1"
 }
 
+stattab_process()
+{
+  false
+}
+
+stattab_update()
+{
+  false
+}
+
 stattab_entry_exists() # Entry-Id [Tab]
 {
   test -n "$sttab_id" || stattab_load "$1"
@@ -116,6 +133,7 @@ stattab_entry() # Entry-Id [Tab]
   stattab_entry_parse "$stattab_entry"
 }
 
+# Parse statusdir index file line
 stattab_entry_parse() # Tab-Entry
 {
   # Split grep-line number from rest
@@ -151,6 +169,11 @@ stattab_parse_std_descr()
   test -z "$3" || scr_mtime=$(date_pstat "$3")
 }
 
+stattab_entry_fetch() # ST-Ref
+{
+  false
+}
+
 stattab_entry_env()
 {
   sttab_id=
@@ -176,5 +199,20 @@ stattab_entry_defaults() # Tags
   #    #stattab_entry_ctx "$@"
   #}
 
+  true
+}
+
+stattab_checkall()
+{
+  true
+}
+
+stattab_updateall()
+{
+  true
+}
+
+stattab_processall()
+{
   true
 }

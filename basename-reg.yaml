@@ -3,9 +3,15 @@ multi:
 ext_map:
     htm: html
     jpg: jpeg
+    tgz: tar.gz
+    mpg: mpeg
 ftype: [aRchive, Compressed, Application, Script, Video, aUdio, Document, dIsk, Picture]
 mime_ext_reg:
     bz2: application/x-bzip2
+    c: text/x-c
+    rar: application/x-rar
+    gz: application/x-gzip
+    zip: application/zip
     #doc: application/vnd.ms-office
     #doc: application/msword
     dtd: application/xml-dtd
@@ -13,10 +19,14 @@ mime_ext_reg:
     flv: video/x-flv
     html: text/html
     ini: text/x-ini
+    ipynb: application/x-ipynb+json
     jpeg: image/jpeg
-    log: text/plain
+    json: application/json
+    log: text/x-log
     list: text/x-list
     mk: text/x-make
+    mpeg: video/mpeg
+    mq4: text/x-c
     mysql: text/x-mysql
     mp4: video/mp4
     pdf: application/pdf
@@ -34,11 +44,25 @@ mime_ext_reg:
     torrent: application/x-bittorrent
     vcf: text/x-vcard
     xml: text/xml
+    xls: application/vnd.ms-office
+    xz: application/x-xz
 mime_xref:
   application/octet-stream:
-  - [pyc]
+  - [bin]
   - Application
   - Unspecified binary data
+  application/x-rar:
+  - [rar]
+  - Compressed
+  - compressed data
+  application/x-xz:
+  - [xz]
+  - Compressed
+  - compressed data
+  application/x-gzip:
+  - [gz]
+  - Compressed
+  - gzip compressed data
   application/x-bzip2:
   - [bz2]
   - Compressed
@@ -51,10 +75,18 @@ mime_xref:
   - [pyc]
   - Application
   - Python script compiled
+  application/zip:
+  - [zip]
+  - Archive
+  - ZIP archive
   application/x-tar:
   - [tar]
   - Archive
   - POSIX tar archive (GNU)
+  text/x-pascal:
+  - []
+  - Source
+  - Pascal code
   application/xml-dtd:
   - [dtd]
   - Document
@@ -87,6 +119,10 @@ mime_xref:
   - [mk,make]
   - Script
   - Make script text
+  text/x-c:
+  - [c]
+  - Source
+  - C Source code
   application/x-sql:
   - [sql]
   - Script
@@ -136,7 +172,7 @@ mime_xref:
   - Document
   - MS Word document
   application/vnd.ms-office:
-  - [doc]
+  - [doc,xls]
   - Document
   - MS Office file
   application/pdf:
@@ -159,4 +195,11 @@ mime_xref:
   - [textile]
   - Document
   - Textile (markup language)
+  application/json:
+  - [json]
+  - Application
+  - Javascript Object Notation file
+  application/x-ipynb+json:
+  - [ipynb]
+  - IPython code nodebook
 mimereg:

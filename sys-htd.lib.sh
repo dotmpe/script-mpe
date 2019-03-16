@@ -99,7 +99,7 @@ create_ram_disk()
 
   case "$uname" in
 
-    Darwin )
+    darwin )
         local size=$(( $2 * 2048 ))
         diskutil erasevolume 'Case-sensitive HFS+' \
           "$1" `hdiutil attach -nomount ram://$size`

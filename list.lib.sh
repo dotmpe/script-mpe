@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Plain list/items helper tooling wip
+
 
 # see pd-sketch.rst, and stdio.lib.sh
 lst__inputs="arguments options paths files"
