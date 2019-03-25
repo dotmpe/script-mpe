@@ -6,7 +6,7 @@
 htd_lib_load()
 {
   test -n "$NS_NAME" || NS_NAME=bvberkum
-  lib_load sys-htd htd-project #htd-project-stats
+  lib_load statusdir sys-htd htd-project package project-stats htd-project-stats
 }
 
 

@@ -214,7 +214,9 @@ statusdir() # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>] ] [<Id>]
       index ) # XXX: fix sd-file-update track lines, new/del/update
         ;;
 
-      * ) return 96 ;;
+      * ) $LOG "error" "Unknown action" "$action"
+          return 96
+        ;;
 
   esac
 }

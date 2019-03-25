@@ -1,13 +1,16 @@
 #!/bin/sh
 
+
 project_stats_lib_load()
 {
   test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
 }
+
 project_stats_lib_init()
 {
   project_stats_init && project_stats_req
 }
+
 
 project_stats_req()
 {

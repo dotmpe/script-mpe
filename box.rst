@@ -15,6 +15,7 @@ Spec
 - ``$ <box> <handler-name> ...``
 - ``$ <box> <lib-name> <func-name>``
 
+See Composure/main and `main <main.rst>`__
 
 ------
 

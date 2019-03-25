@@ -1876,11 +1876,14 @@ vc_env_load()
 {
   test -n "$script_util" || return 103 # NOTE: sanity
 
+  . $U_S/tools/sh/parts/include.sh
+
   # FIXME: hardcoded sequence for env-d like for lib. Using lib-util-env-d-default
-  for env_d in 0 log ucache scriptpath dev test
+  for env_d in 0 log-reinit init-log ucache scriptpath dev test
   do
-     $INIT_LOG "debug" "" "Loading env-part" "$env_d"
-    . $script_util/parts/env-$env_d.sh ||
+    $INIT_LOG "debug" "" "Loading env-part" "$env_d"
+    sh_include env-$env_d ||
+    #. $script_util/parts/env-$env_d.sh ||
         $INIT_LOG "warn" "" "Failed env-part"  "$? $env_d"
   done
 

@@ -6,6 +6,7 @@ htd_functions_lib_load()
   lib_load functions
 }
 
+ht_functions() { htd__functions "$@"; }
 
 htd__functions()
 {
@@ -15,7 +16,7 @@ htd__functions()
     list|list-functions|list-func|ls-functions|ls-func ) shift ;
         functions_list "$@"
       ;;
-    find|find-functions ) shift ; find_functions "$@" ;;
+    find|grep-name|find-functions ) shift ; functions_grep "$@" ;;
     attrs|list-attr ) shift ; test -n "$1" || warn "Scanning htd script itself"
         box_list_functions_attrs "$@" ;;
     groups|list-groups ) shift ; test -n "$1" || warn "Scanning htd script itself"
@@ -30,7 +31,6 @@ htd__functions()
         htd__list_functions_removed "$@"
       ;;
 
-    ranges ) shift ; functions_ranges "$@" ;;
     ranges ) shift ; functions_ranges "$@" ;;
     filter-ranges ) shift ; functions_filter_ranges "$@" ;;
 

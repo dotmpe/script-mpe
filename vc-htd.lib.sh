@@ -51,8 +51,8 @@ vc_gitrepo()
   test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
 
   local pwd="$(pwd)"
-  cd "$1"
-  git rev-parse --git-dir
+  cd "$1" || return
+  git rev-parse --git-dir || return
   cd "$pwd"
 }
 
@@ -351,9 +351,11 @@ vc_untracked()
 
     vc_git_submodules | while read prefix
     do
-      smpath="$PCWD/$prefix"
+        echo "pref='$prefix'"
+      continue
+      echo 0.smpath="$PCWD/$prefix"
       cd "$smpath"
-      ppwd=$smpath spwd=$RCWD/$prefix \
+      echo 1.ppwd=$smpath spwd=$RCWD/$prefix \
         vc_untracked "$@" \
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'

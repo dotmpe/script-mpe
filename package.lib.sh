@@ -23,6 +23,10 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
     PACKMETA_SRC=$PACKMETA
     PACKMETA="$1"/$PACK_DIR/package.yaml
   } || PACKMETA_SRC=''
+
+  # XXX: Python path for local lib, & pyvenv
+  export PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/usr-py
+  #. ~/.pyvenv/htd/bin/activate
   preprocess_package || true
 }
 
