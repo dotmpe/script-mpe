@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+
+
+tb_dckr_load()
+{
+  ANNEX_LOCAL=$(realpath /srv/annex-local/)
+  DCKR_V_LOCAL=$(realpath /srv/docker-volumes-local/)
+  DCKR_V_SRC_24_2=$(realpath /srv/src-24-2-notus/)
+  DCKR_V_PROJECT_24_2=$(realpath /srv/project-24-2-notus/)
+  DCKR_V_SCM_GIT_24_2=$(realpath /srv/scm-git-24-2-notus/)
+
+  TB_DATA=$(realpath $DCKR_V_LOCAL/treebox/)
+  TB_HOME=$TB_DATA/home
+
+  true "${DOCKER_IMAGE:=bvberkum/treebox}"
+  true "${DOCKER_TAG:=dev}"
+  true "${IMAGE:="$DOCKER_IMAGE:$DOCKER_TAG"}"
+}
+
+tb_dckr_edit()
+{
+  $EDITOR $0
+}
+
+tb_dckr_update()
+{
+  docker pull $IMAGE    
+}
+
+tb_dckr_bash() { tb_dckr_run "$@" ; }
+tb_dckr_run()
+{
+  test $# -gt 0 || set -- bash -li
+
+  docker run \
+    -ti --rm \
+    --env EDITOR=vim \
+    -w /home/treebox \
+    --volume $HOME/.alias:/home/treebox/.alias \
+    --volume $TB_HOME/.bash_history:/home/treebox/.bash_history \
+    --volume $TB_HOME/.bash_profile:/home/treebox/.bash_profile \
+    --volume $TB_HOME/.bash_logout:/home/treebox/.bash_logout \
+    --volume $TB_HOME/.gitconfig:/home/treebox/.gitconfig \
+    --volume $TB_HOME/bin:/home/treebox/bin \
+    --volume $ANNEX_LOCAL:/srv/annex-local \
+    --volume $DCKR_V_LOCAL:/srv/docker-volumes-local \
+    --volume $DCKR_V_SRC_24_2:/srv/src-24-2-notus \
+    --volume $DCKR_V_PROJECT_24_2:/srv/project-24-2-notus \
+    --volume $DCKR_V_SCM_GIT_24_2:/srv/scm-git-24-2-notus \
+                                      $IMAGE "$@"
+}
+
+tb_dckr_help()
+{
+  cat <<EOM
+Treebox single-use container
+
+  run [<cmd=bash -li>] - run command
+  bash - see run
+  update - pull image
+EOM
+}
+
+
+# Use hyphen to ignore source-exec in login shell
+case "${SCRIPT_NAME="`basename -- "$0" .sh`"}" in
+
+    -* ) ;; # Ignore when sourced into shell, cannot trigger
+
+    # Do something for specific exec-names
+    treebox ) test -z "${script_alias:-}" || return 93 # Recursion
+        script_alias=treebox
+
+        test $# -gt 0 || set -- run
+        tb_dckr_load
+        subcmd=$1 && shift 1 &&
+        tb_dckr_$subcmd "$@"
+      ;;
+
+    ${script_alias:-} )
+        true
+      ;;
+
+    * )
+        false # log "No frontend for $base"
+      ;;
+
+esac
+
+# BIN:treebox (external)
