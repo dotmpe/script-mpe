@@ -347,7 +347,7 @@ statusdir_main()
     sd_tmp_dir=
 
   INIT_LOG=$LOG
-  : "${script_util:="$scriptpath/tools/sh"}"
+  true "${script_util:="$scriptpath/tools/sh"}"
   statusdir_init || exit $?
   shell_lib_init || return
   unset INIT_LOG
