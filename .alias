@@ -8,6 +8,7 @@ alias topic=topic.py
 alias dckr=docker-sh.sh
 alias tm=treemap.py
 alias lst=list.sh
+alias tb=treebox
 
 alias rabo2myLedger=rabo2myLedger.py
 
