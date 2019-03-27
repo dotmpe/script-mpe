@@ -185,6 +185,7 @@ htd_catalog_organize() # ~ Path
       newname="$(mkid "$title" "" "").$ext"
 
       htd_catalog_has_file "$fname" && {
+        note "File OK '$title' $mime $newname ($ext)"
         continue
 
       } || {
