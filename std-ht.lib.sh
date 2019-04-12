@@ -17,8 +17,8 @@ std_ht_lib_init()
 io_dev_path()
 {
   case "$uname" in
-    Linux ) echo /proc/$pid/fd ;;
-    Darwin ) echo /dev/fd ;;
+    linux ) echo /proc/$pid/fd ;;
+    darwin ) echo /dev/fd ;;
     * ) error "io_dev_path $uname" 1
   esac
 }
@@ -32,11 +32,11 @@ list_io_nums()
   # XXX: other IO's may be presetn, like 255? pipe-sort removes it.
   case "$uname" in
 
-    Linux )
+    linux )
         basenames /proc/$1/fd/*
       ;;
 
-    Darwin )
+    darwin )
         basenames /dev/fd/*
       ;;
 

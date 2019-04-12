@@ -156,8 +156,9 @@ try_func()
 
 try_local_func()
 {
-  test -n "$DEBUG" ||
-    debug "try-local-func '$*' ($(echo_local "$@"))"
+  test -z "$DEBUG" || {
+    $LOG debug "" "try-local-func '$*' ($(echo_local "$@"))"
+  }
   try_func $(echo_local "$@") || return $?
 }
 
@@ -676,10 +677,10 @@ load_subcmd() #  Box-Prefix [Argv]
   test -n "$1" || error "main-load argument expected" 1
   local box_prefix="$1" r= ; shift
   try_exec_func std_load && {
-    debug "Standard load OK"
+    $LOG debug "" "Standard load OK"
   } || true # { r=$? error "std load failed"; return $r; }
   try_exec_func ${box_prefix}_load "$@" && {
-    debug "Load $box_prefix OK"
+    $LOG debug "" "Load $box_prefix OK"
   } || {
     test -z "$r" || {
       test $r -eq 0 || error "std and ${box_prefix} load failed" 1

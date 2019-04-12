@@ -4,44 +4,77 @@
 
 catalog_lib_load()
 {
-  lib_load ck-htd ck
-  trueish "$usercat" && {
-    test -n "$CATALOGS" || CATALOGS=$HOME/.cllct/catalogs.list
-  } || {
-    # Catalog files currently found at CWD
-    test -n "$CATALOGS" || CATALOGS=$PWD/.cllct/catalogs.list
-  }
-  # Default catalog file (or relative path) for PWD
+  lib_load ck-htd ck || return
+
+  # Existing or default catalog file (relative path) for PWD
   test -n "$CATALOG_DEFAULT" || {
     CATALOG_DEFAULT=$(htd_catalog_name) || CATALOG_DEFAULT=catalog.yaml
   }
   test -n "$CATALOG_IGNORE_DIR" || CATALOG_IGNORE_DIR=.catalog-ignore
-  # FIXME linux default_env CATALOG "$CATALOG_DEFAULT"
   test -n "$CATALOG" || CATALOG="$CATALOG_DEFAULT"
+
+  # List for all catalogs (global) or below PWD (default)
+  test -n "$CATALOGS" || CATALOGS=.cllct/catalogs.list
+  test -n "$GLOBAL_CATALOGS" ||
+      GLOBAL_CATALOGS=$HOME/$(pathname $CATALOGS .list)-global.list
+
   test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
   test -n "$Catalog_Duplicates" || Catalog_Duplicates=.cllct/duplicates
+
   test -n "$ANNEX_DIR" || {
     ANNEX_DIR="/srv/annex-local"
     test ! -h "$ANNEX_DIR" || ANNEX_DIR="/srv/$(readlink /srv/annex-local)"
   }
 }
 
-catalog_init()
+catalog_lib_init()
 {
   test -d .cllct || mkdir .cllct
+  true "${define_all:=1}" # XXX: override htd-load to set any argv opts to vars
 }
 
-htd_catalog_name() # [Dir]
+htd_catalog_info() # Some catalog info ~
 {
-  test -z "$1" && dest_dir=. || {
-    test -d "$1" || return 2
-    fnmatch "*/" "$1" || set -- "$1/"
-    dest_dir="$1"
+  $LOG header $scriptname:catalog:info
+
+  $LOG header2 "Catalog-Default" "$CATALOG_DEFAULT"
+  $LOG header2 "Catalog" "$CATALOG" "$(echo $( filesize "$CATALOG" && {
+      count_lines "$CATALOG"; echo bytes/lines
+    } || echo missing ))"
+  $LOG header2 "Catalogs" "$CATALOGS" "$(echo $( filesize "$CATALOGS" && {
+      count_lines "$CATALOGS"; echo bytes/lines
+    } || echo missing ))"
+  $LOG header2 "Global-Catalogs" "$GLOBAL_CATALOGS" "$(echo $(
+    filesize "$GLOBAL_CATALOGS" && {
+        count_lines "$GLOBAL_CATALOGS"; echo bytes/lines
+    } || echo missing ))"
+  $LOG header2 "global" "$global"
+}
+
+htd_catalog_paths() # List catalog path-names ~
+{
+  trueish "$global" && {
+    htd_catalog_req_global
+    return $?
+  } || {
+    htd_catalog_req_local
   }
-  test -f "$1catalog.yml" &&
-    echo "$1catalog.yml" || {
-      test -f "$1catalog.yaml" && echo "$1catalog.yaml" || return
+}
+
+htd_catalog_name() # Look for Catalog-Default ~ [Dir]
+{
+  test $# -gt 0 || set -- ./
+  test $# -eq 1 -a -d "$1" || return 97
+
+  fnmatch "*/" "$1" || set -- "$1/"
+
+  true "${CATALOG_DEFAULT:="catalog.yml"}"
+  test -f "$1$CATALOG_DEFAULT" &&
+    echo "$1$CATALOG_DEFAULT" || {
+
+      test -f "$1$(pathname $CATALOG_DEFAULT .yml).yaml" &&
+        echo "$1$(pathname $CATALOG_DEFAULT .yml).yaml" || return
     }
 }
 
@@ -72,8 +105,7 @@ htd_catalog_from_json()
 # Look for exact string match in catalog files
 htd_catalog_find() # Str
 {
-  htd_catalog_list_files | while read catalog
-  do
+  htd_catalog_req_local | while read catalog; do
     grep -qF "$1" "$catalog" || continue
     note "Found '$1' in $catalog"
   done
@@ -208,7 +240,7 @@ htd_catalog_ck() # CATALOG
   ck_read_catalog "$1"
 }
 
-# Run all checksums from catalogs
+# Run all checksums from catalog
 htd_catalog_fsck()
 {
   test -n "$1" || set -- $CATALOG
@@ -227,6 +259,7 @@ htd_catalog_check()
 {
   test ! -e $Catalog_Status -o "$(filesize $Catalog_Status)" != "0" ||
     rm "$Catalog_Status"
+
   test -e $Catalog_Status -a $CATALOG -ot $Catalog_Status || {
     {
         ( htd_catalog_validate "$CATALOG" >/dev/null
@@ -235,13 +268,15 @@ htd_catalog_check()
         ( htd_catalog_index "$CATALOG" >/dev/null
         ) && echo index=0 || echo index=$?
 
-        trueish "$full" || return 0
+        trueish "$full" && {
 
-        ( htd_catalog_fsck "$CATALOG" >/dev/null
-        ) && echo fsck=0 || echo fsck=$?
+          ( htd_catalog_fsck "$CATALOG" >/dev/null
+          ) && echo fsck=0 || echo fsck=$?
+        } || true
 
     } > $Catalog_Status
-    $LOG note "" "Updated status"
+
+    $LOG note "$scriptname:catalog:check" "Updated status"
   }
 }
 
@@ -250,8 +285,8 @@ req_catalog_status()
 {
   status=$(echo $(cut -d'=' -f2 $Catalog_Status|tr '\n' ' ')|tr ' ' '+'|bc ) ||
       return
-  test -n "$status" ||{
-    $LOG error "catalog:status" "No status bits" "$(ls -la $Catalog_Status)"
+  test -n "$status" || {
+    $LOG error ":catalog:status" "No status bits" "$(ls -la $Catalog_Status)"
     return 51 # No status found for catalog
   }
   test $status -eq 0 && {
@@ -263,11 +298,32 @@ req_catalog_status()
 }
 
 
-# Get status for catalog and directory, normally validate + check index
+# Get status for catalog and directory, normally validate + check index.
 # Set full to fsck subsequently.
 htd_catalog_status()
 {
-  htd_catalog_check && req_catalog_status
+  trueish "$global" && {
+
+    htd_catalog_req_global | sed 's/\.ya\?ml$//' | while read catalog; do
+        #htd_catalog_check || return
+        #req_catalog_status
+
+      (
+        cd $(dirname $catalog) || continue
+        CATALOG="$(basename $catalog)"
+
+        ( htd_catalog_validate "$CATALOG" )
+
+      )
+        #( htd_catalog_index "$CATALOG" )
+    done
+    return $?
+
+  } || {
+
+    htd_catalog_check || return
+    req_catalog_status
+  }
 }
 
 
@@ -303,22 +359,51 @@ set_cataloged_file()
 }
 
 
-# Cache catalog pathnames, list basepaths. Error if none found.
+# Cache catalogs, list basepaths. Error if none found.
 htd_catalog_list_local()
 {
-  htd_catalog_list_files | tee .cllct/catalogs
-  # | exts=".yml .yaml" pathnames
-  test -s ".cllct/catalogs" || { error "No catalog files found" ; return 1 ; }
+  { htd_catalog_list_files || return
+  } | tee "$CATALOGS" || return
+  test -s "$CATALOGS" || { error "No catalog files found" ; return 1 ; }
+}
+
+htd_catalog_req_local()
+{
+  test -e $CATALOGS && {
+    cat $CATALOGS
+    $LOG "info" "$scriptname:catalog:req-local" "To update list run:" 'catalog list-local'
+  } || {
+    htd_catalog_list_local || return
+  }
 }
 
 # Update user catalog list (from locatedb)
 htd_catalog_list_global()
 {
-  # XXX: no brace-expansion for locate '*/catalog{,-*}.y{,a}ml'
-  locate '*/catalog.yaml' '*/catalog.yml' \
-    '*/catalog-*.yml' '*/catalog-*.yaml' | tee ~/.cllct/catalogs
-  #| exts=".yml .yaml" pathnames
-  test -s ~/.cllct/catalogs || { error "No catalog files found" ; return 1 ; }
+  # NOTE: no brace-expansion here (locate '*/catalog{,-*}.y{,a}ml')
+  { locate '*/catalog.yaml' '*/catalog.yml' \
+    '*/catalog-*.yml' '*/catalog-*.yaml' || return
+  } | tee ~/$CATALOGS || return
+  test -s ~/$CATALOGS || { error "No catalog files found" ; return 1 ; }
+}
+
+htd_catalog_req_global()
+{
+  test -e $GLOBAL_CATALOGS && {
+    cat $GLOBAL_CATALOGS
+    $LOG "info" "$scriptname:catalog:req-global" "To update list run:" 'catalog list-global'
+  } || {
+    htd_catalog_list_global || return
+  }
+}
+
+htd_catalog_list() # List catalog names
+{
+  { trueish "$global" && {
+      htd_catalog_req_global || return
+    } || {
+      htd_catalog_req_local || return
+    } | sed 's/\.ya\?ml$//'; }
 }
 
 htd_catalog_has_file() # File
@@ -776,8 +861,7 @@ htd_catalog_consolidate_metafiles()
 # TODO: merge all local catalogs (from subtrees to PWD)
 htd_catalog_consolidate_catalogs()
 {
-  htd_catalog_list_files | while read -r catalog
-  do
+  htd_catalog_req_local | while read catalog; do
     sameas "$CATALOG" "$catalog" && continue
     note "TODO: $catalog"
   done

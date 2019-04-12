@@ -236,7 +236,7 @@ htd_load()
         stderr info "1. Env: $(var2tags $(echo $htd_subcmd_env | sed 's/=[^\ ]*//g' ))"
       ;;
 
-    f ) # failed: set/cleanup failed varname
+    f ) # failed: set/cleanup failed varname. See 'I' for other I/O files
         export failed=$(setup_tmpf .failed)
       ;;
     H )
@@ -258,7 +258,7 @@ htd_load()
       ;;
 
     i ) # io-setup: set all requested io varnames with temp.paths
-        debug "Exporting inputs '$(try_value inputs)' and outputs '$(try_value outputs)'"
+        $LOG debug "" "Exporting inputs '$(try_value inputs "" htd)' and outputs '$(try_value outputs "" htd)'"
         setup_io_paths -$subcmd-${htd_session_id}
         export ${htd__inputs?} ${htd__outputs?}
       ;;
@@ -318,7 +318,7 @@ htd_load()
         test "$package_type" = "application/vnd.org.wtwta.project" ||
                 stderr error "Project package expected (not $package_type)" 4
         test -n "$package_env" || export package_env=". $PACKMETA_SH"
-        debug "Found package '$package_id'"
+        $LOG debug "" "Found package '$package_id'"
       ;;
 
     r ) # register package - requires 'p' first. Sets PROJECT Id and manages
@@ -3154,7 +3154,7 @@ htd__git_import()
   done
 }
 
-htd_libs__git=git\ htd-git
+htd_libs__git=git\ htd-git\ git-htd
 htd_run__git=l
 htd__git()
 {
@@ -8466,7 +8466,7 @@ htd__catalog()
   test -n "$1" || set -- status
   subcmd_prefs=${base}_catalog_ try_subcmd_prefixes "$@"
 }
-htd_run__catalog=f
+htd_run__catalog=iIAO
 
 htd_als__catalogs='catalog list'
 htd_als__fsck_catalog='catalog fsck'
