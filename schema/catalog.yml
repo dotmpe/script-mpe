@@ -37,6 +37,10 @@ items:
     file-size:
       type: number
       description: The file size in bytes
+    include:
+      description: Name is path to include for scan/sort
+    exclude:
+      description: Name is path to exclude for scan/sort
     tags:
       oneOf:
       - type: "null"
