@@ -171,7 +171,7 @@ import types
 
 try:
     from objectpath import Tree
-except ModuleNotFoundError:
+except: # XXX py3? ModuleNotFoundError:
     pass
 
 import libcmd_docopt, confparse

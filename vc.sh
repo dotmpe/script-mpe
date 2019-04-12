@@ -1810,6 +1810,7 @@ vc_main()
   local scriptname=vc base="$(basename "$0" .sh)" subcmd=$1
 
   case "$base" in $scriptname )
+
         test -n "$scriptpath" || scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
         test -n "$script_util" || script_util=$scriptpath/tools/sh
         test -n "$htd_log" || htd_log=$script_util/log.sh
@@ -1820,7 +1821,9 @@ vc_main()
         # PWD, real PWD and relative 'short/symbolic' path
         ppwd="$(pwd -P)" ppwd="$PWD" spwd=.
 
-        test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
+        test -n "$LOG" -a \( -x "$LOG" -o "$(type -t $LOG)" = "function" \) \
+            || export LOG=$scriptpath/tools/sh/log.sh
+
         INIT_LOG=$LOG \
         U_S=/srv/project-local/user-scripts \
         script_util=$scriptpath/tools/sh \
@@ -1875,16 +1878,21 @@ vc_main()
 vc_env_load()
 {
   test -n "$script_util" || return 103 # NOTE: sanity
+  test -n "$scriptpath" || return
+  unset CWD
+
+  # FIXME: instead going with hardcoded sequence for env-d like for lib.
+  test -n "$htd_env_d_default" ||
+      htd_env_d_default=init-log\ ucache\ scriptpath\ std
+  #for env_d in 0 log-reinit init-log ucache scriptpath dev test
 
   . $U_S/tools/sh/parts/include.sh
 
   # FIXME: hardcoded sequence for env-d like for lib. Using lib-util-env-d-default
-  for env_d in 0 log-reinit init-log ucache scriptpath dev test
+  for env_d in $htd_env_d_default
   do
-    $INIT_LOG "debug" "" "Loading env-part" "$env_d"
-    sh_include env-$env_d ||
-    #. $script_util/parts/env-$env_d.sh ||
-        $INIT_LOG "warn" "" "Failed env-part"  "$? $env_d"
+    #sh_include env-$env_d ||
+    . $script_util/parts/env-$env_d.sh
   done
 
   test -n "$base" || return 12 # NOTE: sanity
