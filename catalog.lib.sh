@@ -467,7 +467,7 @@ htd_catalog_add_all_larger() # DIR SIZE
   do
     test -e "$fn" -a \( -h "$fn" -o -f "$fn" \) || {
       warn "File expected '$fn'" ; continue ; }
-    test $2 -lt $(ht filesize "$fn") || continue
+    test $2 -lt $(filesize "$fn") || return
     htd_catalog_add_file "$fn" || { r=$?
       test $r -eq 2 && continue
       error "Adding '$fn' ($r)"
