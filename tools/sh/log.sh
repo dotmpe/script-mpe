@@ -230,6 +230,7 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
   done;
   printf " %s%s %s%s\n" "$padding" "$targets" "$msg" "$c0$normal" >&2
 
+  unset lvl linetype targets trgt_len msg souces padd padding
   test -z "$5" || exit $5
 }
 
