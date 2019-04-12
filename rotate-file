@@ -7,7 +7,9 @@ set -e
 main_entry()
 {
   local scriptpath=$HOME/bin
-  . $scriptpath/os.lib.sh
+  true "${U_S:=/srv/project-local/user-scripts/src/sh/lib}"
+  . $U_S/os.lib.sh
+  . $scriptpath/os-htd.lib.sh
   rotate_file "$@" || return
 }
 

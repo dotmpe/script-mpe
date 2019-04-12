@@ -225,6 +225,8 @@ htd_catalog_fsck_all()
 # Update status (validate doc, set full=1 to check filetree index and checksums)
 htd_catalog_check()
 {
+  test ! -e $Catalog_Status -o "$(filesize $Catalog_Status)" != "0" ||
+    rm "$Catalog_Status"
   test -e $Catalog_Status -a $CATALOG -ot $Catalog_Status || {
     {
         ( htd_catalog_validate "$CATALOG" >/dev/null
@@ -248,7 +250,10 @@ req_catalog_status()
 {
   status=$(echo $(cut -d'=' -f2 $Catalog_Status|tr '\n' ' ')|tr ' ' '+'|bc ) ||
       return
-  test -n "$status" || return 51
+  test -n "$status" ||{
+    $LOG error "catalog:status" "No status bits" "$(ls -la $Catalog_Status)"
+    return 51 # No status found for catalog
+  }
   test $status -eq 0 && {
     $LOG note "Pass" "status:" "$(lines_to_words $Catalog_Status)"
   } || {
