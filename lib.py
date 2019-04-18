@@ -182,30 +182,51 @@ def remote_proc(host, cmd):
     else:
         return proc.stdout.read().strip()
 
-def human_readable_bytesize(length, suffix=True, suffix_as_separator=False,
+def human_readable_float(value, suffix=True, suffix_as_separator=False,
         sub=2):
     if suffix_as_separator:
         assert suffix
     fmt = "%%.%if" % sub
-    if length > 1024**4:
-        div = 1024 ** 4
-        if suffix:
-            fmt += 'T'
-    elif length > 1024**3:
-        div = 1024 ** 3
-        if suffix:
-            fmt += 'G'
-    elif length > 1024**2:
-        div = 1024 ** 2
-        if suffix:
-            fmt += 'M'
-    elif length > 1024:
-        div = 1024
-        if suffix:
-            fmt += 'k'
+
+    order = 1024
+    if value < order:
+        return str(value)
     else:
-        div = 1
-    s = fmt % (float(length)/div)
+        order *= 1024
+        if value < order:
+            fmt += 'K'
+        else:
+            order *= 1024
+            if value < order:
+                fmt += 'M'
+            else:
+                order *= 1024
+                if value < order:
+                    fmt += 'G'
+                else:
+                    order *= 1024
+                    if value < order:
+                        fmt += 'T'
+                    else:
+                        order *= 1024
+                        if value < order:
+                            fmt += 'P'
+                        else:
+                            order *= 1024
+                            if value < order:
+                                fmt += 'E'
+                            else:
+                                order *= 1024
+                                if value < order:
+                                    fmt += 'Z'
+                                else:
+                                    order *= 1024
+                                    if value < order:
+                                        fmt += 'Y'
+                                    else:
+                                        raise Exception('unit overflow')
+
+    s = fmt % (float(value)/(order/1024))
     if suffix_as_separator and not s[-1].isdigit():
         s = s[:-1].replace('.', s[-1])
     return s

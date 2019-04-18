@@ -26,3 +26,15 @@ Borrowed from <http://bl.ocks.org/mbostock/1005873>.
 
 - See also `other D3 scripts <d3.rst>`_
 
+-----
+
+Design
+------
+See ``treemap.py`` and ``treemap2.py``.
+Testing setup in ``treemap3``
+
+- Relational DB hacking in treemap2
+
+Plan
+----
+

@@ -24,7 +24,8 @@ git_htd_lib_load()
 # Compile table of remote-name, remote-URL, repository-name, group and vendor
 git_src_info()
 {
-  git_list | vc_dirtab
+  { git_list || return
+  } | vc_dirtab
 }
 
 git_scm_list() # [PROJECTS_SCM] ~ [*.git]

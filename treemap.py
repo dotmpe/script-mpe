@@ -34,7 +34,7 @@ class Node(res.primitive.TreeNodeDict):
 
 
 def fs_tree( path, fs_encoding ):
-    """Create a tree of the filesystem using dicts and lists.
+    """Create a tree of the filesystem using res.primitive nodes.
 
     All filesystem nodes are dicts so its easy to add attributes
     for other purposes
@@ -171,7 +171,11 @@ def main():
 
     # Add size attributes
     fs_treesize(path, tree)
-    print(tree)
+    print(dir(tree))
+    print(str(tree))
+    print(repr(tree))
+    #print(tree.deepcopy())
+    return
 
     ### Update storage
 
@@ -182,7 +186,7 @@ def main():
 
     ### Output
     if res.js.dumps and ( opts.json and not opts.debug ):
-        print(res.js.dumps(tree))
+        print(res.js.dumps(tree.todict()))
 
     elif res.js.dumps and ( opts.jsonxml and not opts.debug ):
         tree = res.primitive.translate_xml_nesting(tree)
@@ -205,7 +209,7 @@ def main():
 if __name__ == '__main__':
     import sys
     args = sys.argv[1:]
-    if '-h' in args:
+    if '-?' in args or '-h' in args or '--help' in args:
         print(__doc__)
         sys.exit(0)
 

@@ -163,6 +163,7 @@ class TreeNodeDict(dict):
                 d[k] = None
         return d
 
+
 class TreeTraveler(object):
     zope.interface.implements(res_iface.ITraveler)
     def travel(self, root, visitor):
