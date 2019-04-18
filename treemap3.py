@@ -14,11 +14,13 @@ __usage__ = """
 
 Usage:
   treemap3.py [options] tree DIR
-  treemap3.py [options] size PATH
+  treemap3.py [options] size [--tree] PATH
   treemap3.py -h|--help|help
   treemap3.py --version
 
 Options:
+    -O FMT, --output-format FMT
+                  [pretty, none, repr, json] [default: pretty]
     -H, --human-readable
                   Print bytes as float for largest ISO unit prefix starting at
                   kilo and up all to yotta [KMGTPEZY].
@@ -35,7 +37,7 @@ from script_mpe.lib import human_readable_float
 
 cmd_default_settings = dict(
         quiet=False,
-        default_output_format=False
+        default_output_format='pretty'
     )
 
 
@@ -91,8 +93,8 @@ def fs_tree( path, fs_encoding ):
                 continue
         # normal ops
         _path = join( path, fn )
-        #if islink(_path):
-        #    pass
+        if islink(_path):
+            pass
         if isdir(_path):
             # Recurse
             tree['entries'].append(fs_tree(_path, fs_encoding))
@@ -155,12 +157,23 @@ def fs_treesize( tree, resolve_symlinks=False, path=None ):
         tree['content-size'] = size
 
 
+def print_tree(tree, g):
+    of = g.output_format.lower()
+    if of == 'json':
+        print(res.js.dumps(tree))
+    elif of == 'repr':
+        print(repr(tree))
+    elif of == 'pretty':
+        pprint(tree)
+    else: return 1
+
+
 
 ### CLI Subcommands
 
 def cmd_tree(DIR, g, opts):
-    pprint(fs_tree(DIR, 'ascii'))
-
+    tree = fs_tree(DIR, 'ascii')
+    print_tree(tree, g)
 
 def cmd_size(PATH, g, opts):
     """
@@ -175,6 +188,9 @@ def cmd_size(PATH, g, opts):
 
     else:
         size = getsize(PATH)
+
+    if g.tree:
+        print_tree(tree, g)
 
     if g.human_readable:
         print(human_readable_float(size))
