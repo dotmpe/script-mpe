@@ -280,7 +280,7 @@ htd_tasks_local() # tasks-local [ --Check-All-Tags ] [ --Check-All-Files ]
 
 # Htd's built-in todo grep list command for local tasks
 # Output is like 'grep -nH': '<filename>:<linenumber>: <line-match>'
-htd_tasks_grep() # tasks-grep [ --tasks-grep-expr | --Check-All-Tags] [ --Check-All-Files]
+htd_tasks_grep() # ~ [ --tasks-grep-expr | --Check-All-Tags] [ --Check-All-Files]
 {
   local out=$(setup_tmpf .out)
   # NOTE: not using tags from metadata yet, need to build expression for tags
@@ -335,7 +335,7 @@ htd_tasks_edit()
   htd__tasks_session_end "$todo_document" "$todo_done"
 }
 
-htd_tasks_hub()
+htd_tasks_hub() # ~ [group]
 {
   test -n "$1" || set -- be
   htd_tasks_load init $subcmd
@@ -402,7 +402,8 @@ htd_tasks_hub()
   esac
 }
 
-htd_tasks_tags()
+# List tags from task files (default to those from todo/done docs).
+htd_tasks_tags() # List tags from task files ~ [Task-Docs...]
 {
   test -n "$1" || {
     htd_tasks_load

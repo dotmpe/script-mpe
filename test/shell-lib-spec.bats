@@ -27,14 +27,14 @@ setup()
 @test "$base: shell-init (calls shell-check, shell-test-sh and sh-env-init)" {
 
 # run in proper test-harnass first, then look at function/local-env
-  run shell_init
+  run shell_lib_init
   test_ok_empty || stdfail 1.
 
-  _r() { shell_init && test -n "$BA_SHELL" -a -n "$IS_BASH_SH"; }
+  _r() { shell_lib_init && test -n "$BA_SHELL" -a -n "$IS_BASH_SH"; }
   run _r
   test_ok_empty || stdfail 2.a.
 
-  _r() { shell_init && test -n "$HEIR_SH" -a -n "$IS_HEIR_SH"; }
+  _r() { shell_lib_init && test -n "$HEIR_SH" -a -n "$IS_HEIR_SH"; }
   run _r
   test_ok_empty || stdfail 2.b.
 }
@@ -44,14 +44,14 @@ setup()
   load assert
 
 # Quickly go through the env
-  assert func_exists shell_init
+  assert func_exists shell_lib_init
   assert func_exists sh_init_mode
   assert func_exists sh_env_init
   assert func_exists shell_test_sh
   assert func_exists sh_aliasinfo
   assert func_exists sh_execinfo
 
-  shell_init
+  shell_lib_init
   assert func_exists sh_env
   assert func_exists sh_isset
   assert test -n "$SHELL_NAME"
@@ -83,7 +83,7 @@ setup()
 
 @test "$base: env (after shell-init)" {
 
-  shell_init
+  shell_lib_init
 # NOTE: built tests with Bats for Bourne-Again shells, so fail otherwise every
 # time
   test $IS_BASH -eq 1
@@ -91,7 +91,7 @@ setup()
 
 
 @test "$base: sh-is-type-a (Bash can expand aliases in scripts)" {
-  shell_init
+  shell_lib_init
 
   _r() {
     shopt -s expand_aliases
@@ -108,7 +108,7 @@ setup()
 
 @test "$base: sh-aliasinfo tells the aliased cmd-line (Bash)" {
 
-  shell_init
+  shell_lib_init
   shopt -s expand_aliases
   alias foo='baz $EDITOR xxx "$@"'
   alias bar='foo bar'
@@ -130,7 +130,7 @@ setup()
 
 @test "$base: sh-execinfo tells the CMD type (Bash)" {
 
-  shell_init
+  shell_lib_init
 
 # Bash has no aliases or special built-ins reported for sh-mode
 
@@ -162,7 +162,7 @@ setup()
 
 
 @test "$base: sh-env is defined after sh-env-init and includes local 'env' util" {
-  shell_init
+  shell_lib_init
 
   run sh_env
   { test_ok_nonempty && test_lines 'PATH=*' 'BATS*'
@@ -172,7 +172,7 @@ setup()
 
 @test "$base: sh-isset detects local var name" {
   load assert
-  shell_init
+  shell_lib_init
 
   # Normal env in two different test harnasses:
 
@@ -206,7 +206,7 @@ setup()
 
 @test "$base: sh-isenv detects exported vars like sh-isset" {
   load assert
-  shell_init
+  shell_lib_init
 
   assert sh_isenv PATH
   refute sh_isenv abcdefxyz
