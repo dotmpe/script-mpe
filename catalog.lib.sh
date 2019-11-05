@@ -21,7 +21,10 @@ catalog_lib_load()
   test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
   test -n "$Catalog_Duplicates" || Catalog_Duplicates=.cllct/duplicates
   test -d .cllct || mkdir .cllct
-  test -n "$ANNEX_DIR" || ANNEX_DIR="/srv/$(readlink /srv/annex-local)"
+  test -n "$ANNEX_DIR" || {
+    test -h /srv/annex-local || return 65
+    ANNEX_DIR="/srv/$(readlink /srv/annex-local)"
+  }
 }
 
 
