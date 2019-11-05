@@ -5,6 +5,10 @@ import shlex
 from fnmatch import fnmatch
 from pydoc import locate
 
+try:
+    import script_mpe
+except ImportError:
+    sys.path.append(os.path.expanduser('~/lib/py'))
 from script_mpe.res import js
 from script_mpe.confparse import yaml_dumps
 from script_mpe.res.dt import obj_serialize_datetime
