@@ -14,7 +14,7 @@ test -z "$Build_Deps_Default_Paths" || {
 
   test -n "$SRC_PREFIX" || {
     test -w /src/ \
-      && SRC_PREFIX=/src/ \
+      && SRC_PREFIX=/src \
       || SRC_PREFIX=$HOME/build
   }
 
@@ -54,7 +54,6 @@ test -d $SRC_PREFIX || ${pref} mkdir -vp $SRC_PREFIX
 test -d $PREFIX || ${pref} mkdir -vp $PREFIX
 
 
-
 uninstall_bats()
 {
   stderr "Uninstalling bats"
@@ -63,7 +62,6 @@ uninstall_bats()
       $PREFIX/share/man/man1/bats* \
       $PREFIX/share/man/man7/bats*
 }
-
 
 install_bats()
 {
