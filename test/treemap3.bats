@@ -44,7 +44,6 @@ setup()
 
     for DIR in test/var/build-lib test/var/esop test/var/jsotk test/var/treemap doc
     do
-      #bytes=$(find $DIR -not -type d -exec stat -c '%s' {} \; | paste -sd+ - | bc)
       bytes=$(find $DIR -type f -exec stat -c '%s' {} \; | paste -sd+ - | bc)
 
       run ./treemap3.py size $DIR
