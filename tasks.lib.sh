@@ -17,7 +17,7 @@ tasks_package_defaults()
 }
 
 # Return TODO.txt tags (contexts and projects) from file(s) or stdin
-tasks_todotxt_tags()
+tasks_todotxt_tags() # Grep for tags in file
 {
   test -n "$*" || set -- -
 

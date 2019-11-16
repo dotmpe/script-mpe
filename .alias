@@ -23,3 +23,7 @@ alias pd=projectdir.sh
 alias projectdir-meta=pd_meta.py
 alias topics=topics.sh
 alias vagrant-sh=vagrant-sh.sh
+
+alias yaml2yaml='jsotk dump -Oyaml --ignore-aliases --pretty'
+
+alias yaml2js="python -c 'import sys, yaml, json; json.dump(yaml.load(sys.stdin), sys.stdout, indent=4)'"

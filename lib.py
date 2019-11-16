@@ -78,7 +78,13 @@ _non_id_translate_digraphs = {
     0x0239: u'qp',      # qp digraph
 }
 
+
+try:
+    import script_mpe
+except ImportError:
+    sys.path.append(os.path.expanduser('~/lib/py'))
 from script_mpe import log
+
 #import confparse
 #
 #

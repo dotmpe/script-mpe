@@ -329,7 +329,7 @@ htd_load()
 
     t ) # more terminal tooling: load shell and init
         lib_load shell
-        shell_init
+        shell_lib_init
       ;;
 
     S )
