@@ -28,7 +28,7 @@ case "$0" in "" ) ;; "-*" ) ;; * )
 
       set -e
 
-      . ~/bin/std.sh
+      . ~/bin/std.lib.sh
 
       scriptname=prompt
       # Do something if script invoked as '$scriptname.sh'
