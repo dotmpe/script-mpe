@@ -7,9 +7,9 @@ ENV_D_SCRIPTPATH=$UCACHE/user-env/$$-SCRIPTPATH.txt
 
 support_libs="user-scripts user-scripts-support user-scripts-incubator user-conf script-mpe"
 
-#base_dirs="$HOME/.basher/cellar/packages/user-tools $HOME/.basher/cellar/packages/bvberkum $HOME/project $VND_GH_SRC/bvberkum $HOME/build/bvberkum $HOME/build/user-tools $HOME/lib/sh"
+#base_dirs="$HOME/.basher/cellar/packages/user-tools $HOME/.basher/cellar/packages/dotmpe $HOME/project $VND_GH_SRC/dotmpe $HOME/build/dotmpe $HOME/build/user-tools $HOME/lib/sh"
 # XXX: Prefer dev/build/src location for CI
-base_dirs="$HOME/project /srv/project-local $VND_GH_SRC/user-tools $VND_GH_SRC/bvberkum $HOME/lib/sh $HOME/.basher/cellar/packages/user-tools $HOME/.basher/cellar/packages/bvberkum"
+base_dirs="$HOME/project /srv/project-local $VND_GH_SRC/user-tools $VND_GH_SRC/dotmpe $HOME/lib/sh $HOME/.basher/cellar/packages/user-tools $HOME/.basher/cellar/packages/dotmpe"
 
 test -n "$sh_src_base" || sh_src_base=/src/sh/lib
 
@@ -46,7 +46,7 @@ done | awk '!a[$0]++' | tr '\n' ':' | sed 's/:$/\
 
   # FIXME: script-path legacy, soem for cleanup
   #test -d $HOME/bin && SCRIPTPATH=$SCRIPTPATH:$HOME/bin
-  #test -d $HOME/build/bvberkum/script-mpe && SCRIPTPATH=$SCRIPTPATH:$HOME/build/bvberkum/script-mpe
+  #test -d $HOME/build/dotmpe/script-mpe && SCRIPTPATH=$SCRIPTPATH:$HOME/build/dotmpe/script-mpe
 
   test -d $HOME/lib/sh && SCRIPTPATH=$SCRIPTPATH:$HOME/lib/sh
   test -d $HOME/.conf && SCRIPTPATH=$SCRIPTPATH:$HOME/.conf/script

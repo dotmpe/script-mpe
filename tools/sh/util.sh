@@ -129,7 +129,7 @@ sh-read () # ( FILE | - )
 
 test -d $U_S/.git || {
   rm -rf $U_S || true
-  git clone https://github.com/bvberkum/user-scripts $U_S
+  git clone https://github.com/dotmpe/user-scripts $U_S
 }
 ( cd $U_S && git status && git remote -v )
 ( cd $U_S && git fetch --all && git reset --hard origin/feature/docker-ci )

@@ -48,7 +48,7 @@ treebox()
 {
   falseish "${refresh:=}" || {
     print_yellow "" "Refreshing ${sh_treebox_img:-image}..."
-    docker pull ${sh_treebox_img:="bvberkum/sandbox:dev"} || return
+    docker pull ${sh_treebox_img:="dotmpe/sandbox:dev"} || return
     print_green "OK"
   }
 

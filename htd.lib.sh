@@ -5,7 +5,7 @@
 
 htd_lib_load()
 {
-  test -n "$NS_NAME" || NS_NAME=bvberkum
+  test -n "$NS_NAME" || NS_NAME=dotmpe
   lib_load statusdir sys-htd htd-project package project-stats htd-project-stats
 }
 

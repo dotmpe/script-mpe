@@ -565,7 +565,7 @@ build_coverage()
     } || {
 
       docker run --security-opt seccomp=unconfined \
-          --workdir /dut -v $(pwd):/dut bvberkum/treebox:dev kcov "$@" || return
+          --workdir /dut -v $(pwd):/dut dotmpe/treebox:dev kcov "$@" || return
     }
   }
 

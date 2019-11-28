@@ -67,7 +67,7 @@ tools:
     bin: membash
     src: membash.sh
     installer: git
-    url: 'https://gist.github.com/bvberkum/045284c6522b1c24a3b5a56352d273e5'
+    url: 'https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5'
     
   jolt:
     id: jolt

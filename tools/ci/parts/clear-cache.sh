@@ -25,10 +25,10 @@ test "$BUILD_PRE_INIT_CACHE_CLEAR" = "0" || {
          $HOME/build/apenwarr \
          $HOME/build/ztombol \
          $deps \
-         $HOME/build/bvberkum/user-conf \
-         $HOME/build/bvberkum/docopt-mpe \
-         $HOME/build/bvberkum/git-versioning \
-         $HOME/build/bvberkum/bats-core || true
+         $HOME/build/dotmpe/user-conf \
+         $HOME/build/dotmpe/docopt-mpe \
+         $HOME/build/dotmpe/git-versioning \
+         $HOME/build/dotmpe/bats-core || true
     unset deps
     $INIT_LOG "warn" "" "Tried to drop cached dirs"
   }

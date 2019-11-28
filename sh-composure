@@ -11,8 +11,8 @@ unset  U_S  LOG  INIT_LOG  SCRIPTPATH
 #    PROJECT_DIR=/srv/project-local || PROJECT_DIR=$HOME/project
 #}
 
-#U_S=/src/github.com/bvberkum/user-scripts
-#: "${U_S:="$HOME/build/bvberkum/user-scripts"}"
+#U_S=/src/github.com/dotmpe/user-scripts
+#: "${U_S:="$HOME/build/dotmpe/user-scripts"}"
 #: "${U_S:="$HOME/project/user-scripts"}"
 #: "${LOG:="$PPWD/tools/sh/log.sh"}"
 #: "${LOG:="$U_S/tools/sh/log.sh"}"

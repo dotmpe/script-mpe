@@ -56,11 +56,11 @@ env:
     - PATH=$PATH:$PWD:$PWD/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/:/usr/local/bin
     - TEST_RESULTS=shippable/testresults/test
     - Build_Deps_Default_Paths=1
-    - BATS_REPO=https://github.com/bvberkum/bats-core.git
+    - BATS_REPO=https://github.com/dotmpe/bats-core.git
     - PYTHONPATH=$PYTHONPATH:/home/travis/.local/lib/python2.7/site-packages:$HOME/bin:$HOME/lib/py
     - COUCH_DB=test
     - TMPDIR=/tmp
-    - U_S=$HOME/build/bvberkum/user-scripts
+    - U_S=$HOME/build/dotmpe/user-scripts
     - secure: "nP5Xbt0z29UCAb9uEFcZl9dQN9XRxIbFv4VLjV5jtw0xIqBE5EzxU82E7fXihcWRZZ+Fs0Ah79CMQ8odCxotDIcNnMp02qdXGq6OD/vlB7cqcCpxPQD6lTTURGTqud8h+LWa6RVL4jXevy1mCUryx0rIM5xnwI2Uat6vCMY1Vng="
 
 before_install:
@@ -96,15 +96,15 @@ cache:
      - $HOME/build/apenwarr
      - $HOME/build/ztombol
     # NOTE: careful not to include repo-under-test
-     - $HOME/build/bvberkum/user-scripts-incubator
-     - $HOME/build/bvberkum/user-scripts
+     - $HOME/build/dotmpe/user-scripts-incubator
+     - $HOME/build/dotmpe/user-scripts
      - $HOME/build/user-tools/user-scripts
      - $HOME/build/user-tools/user-conf
-     - $HOME/build/bvberkum/user-conf
-     - $HOME/build/bvberkum/docopt-mpe
-     - $HOME/build/bvberkum/git-versioning
+     - $HOME/build/dotmpe/user-conf
+     - $HOME/build/dotmpe/docopt-mpe
+     - $HOME/build/dotmpe/git-versioning
      - $HOME/build/bats-core/bats-core
-     #- $HOME/build/bvberkum/bats-...
+     #- $HOME/build/dotmpe/bats-...
 
 
 after_failure:

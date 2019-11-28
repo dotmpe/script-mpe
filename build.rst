@@ -108,8 +108,8 @@ Sequence
 # TRAVIS_BUILD_STAGE_NAME=?
 # TRAVIS_PULL_REQUEST=(true|false)
 # TRAVIS_STACK_TIMESTAMP=(ISO DATETIME)
-# TRAVIS_JOB_WEB_URL=https://travis-ci.org/bvberkum/script-mpe/jobs/$TRAVIS_JOB_ID
-# TRAVIS_BUILD_WEB_URL=https://travis-ci.org/bvberkum/script-mpe/builds/$TRAVIS_BUILD_ID
+# TRAVIS_JOB_WEB_URL=https://travis-ci.org/dotmpe/script-mpe/jobs/$TRAVIS_JOB_ID
+# TRAVIS_BUILD_WEB_URL=https://travis-ci.org/dotmpe/script-mpe/builds/$TRAVIS_BUILD_ID
 # TRAVIS_BUILD_NUMBER=[1-9][0-9]*
 # TRAVIS_JOB_NUMBER=$BUILD_NUMBER.[1-9][0-9]*
 # TRAVIS_BUILD_ID=[1-0][0-9]*

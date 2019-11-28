@@ -86,9 +86,9 @@ setup()
   #test_ok_empty || stdfail 1
   
   TODO  cleanup
-  git remote add origin git@github.com:bvberkum/script-mpe.git
+  git remote add origin git@github.com:dotmpe/script-mpe.git
   run __vc_gitrepo
-  test_ok_nonempty "bvberkum/script-mpe" || stdfail 2
+  test_ok_nonempty "dotmpe/script-mpe" || stdfail 2
 }
 
 # vim:ft=sh:

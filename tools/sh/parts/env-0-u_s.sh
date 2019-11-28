@@ -16,8 +16,8 @@ test -e "$U_S" || {
     U_S=$HOME/build/user-tools/user-scripts
 }
 test -e "$U_S" || {
-  test -d "$HOME/build/bvberkum/user-scripts/.git" &&
-    U_S=$HOME/build/bvberkum/user-scripts
+  test -d "$HOME/build/dotmpe/user-scripts/.git" &&
+    U_S=$HOME/build/dotmpe/user-scripts
 }
 test -e "$U_S" || U_S=$u_s
 unset u_s

@@ -617,7 +617,6 @@ def H_x_conv(pdhdata, ctx):
                 assert sk != 'enable', 'FIXME'
                 assert sk != 'disable', 'FIXME'
                 r[sk] = sv
-            #if sk in ('origin', 'original', 'brix', 'bvberkum')
         sd['remotes'] = r
         newd['repositories'][k] = sd
     yaml_commit(newd, ctx)

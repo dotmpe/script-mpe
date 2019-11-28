@@ -47,18 +47,18 @@ sh_tooling_neighbours()
   case "$(basename "$PWD")" in
 
     script-mpe )
-        echo $HOME/build/bvberkum/user-scripts
-        echo $HOME/build/bvberkum/user-scripts-incubator
+        echo $HOME/build/dotmpe/user-scripts
+        echo $HOME/build/dotmpe/user-scripts-incubator
       ;;
 
     user-scripts )
-        echo $HOME/build/bvberkum/script-mpe
-        echo $HOME/build/bvberkum/user-scripts-incubator
+        echo $HOME/build/dotmpe/script-mpe
+        echo $HOME/build/dotmpe/user-scripts-incubator
       ;;
 
     user-scripts-incubator )
-        echo $HOME/build/bvberkum/script-mpe
-        echo $HOME/build/bvberkum/user-scripts
+        echo $HOME/build/dotmpe/script-mpe
+        echo $HOME/build/dotmpe/user-scripts
       ;;
   esac
 }

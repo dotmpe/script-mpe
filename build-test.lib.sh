@@ -154,7 +154,7 @@ test_shells()
     test -x "$(which $sh)" && {
       $sh -c "$@" || return
     } || {
-      docker run --workdir /dut -v $(pwd):/dut bvberkum/treebox:dev \
+      docker run --workdir /dut -v $(pwd):/dut dotmpe/treebox:dev \
         $sh -c "$@" || return
     }
   done

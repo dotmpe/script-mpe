@@ -10,6 +10,6 @@ find ./ -not -path '*.git*'
 git status
 
 # Return for lib smoketesting
-cd $HOME/build/bvberkum/user-scripts
+cd $HOME/build/dotmpe/user-scripts
 
 # Sync: U-S: vim:ft=bash:

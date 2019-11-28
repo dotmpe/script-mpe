@@ -48,13 +48,13 @@ treebox-update()
 {
   : "${repo_rev:="features/docker-ci"}"
   : "${repo_id:="24-2"}"
-  : "${repo_url:="/srv/scm-git-24-2-notus-brix/bvberkum/script-mpe"}"
-  : "${repo_base:="/src/github.com/bvberkum/script-mpe"}"
+  : "${repo_url:="/srv/scm-git-24-2-notus-brix/dotmpe/script-mpe"}"
+  : "${repo_base:="/src/github.com/dotmpe/script-mpe"}"
 
   : "${docker_pref:=""}"
   : "${docker_shell:="/bin/bash"}"
   : "${docker_name:="u-s-dckr"}"
-  : "${docker_image:="bvberkum/sandbox:dev"}"
+  : "${docker_image:="dotmpe/sandbox:dev"}"
 
   trueish "$( docker_sh_c_inspect '{{.State.Running}}' "$@" )"
 

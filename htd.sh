@@ -1347,7 +1347,7 @@ htd__go()
 
     dockerize ) shift
         test -z "$1" || img_tag=$1
-        test -n "$img_tag" || img_tag=bvberkum/$APP_ID
+        test -n "$img_tag" || img_tag=dotmpe/$APP_ID
     test -e Dockerfile || { { cat <<EOM
 FROM scratch
 COPY $APP_ID /
