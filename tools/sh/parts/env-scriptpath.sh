@@ -63,7 +63,7 @@ test -n "$SCRIPTPATH" && {
   SCRIPTPATH=$SCRIPTPATH_:$SCRIPTPATH
 } || {
 
-  $LOG "info" "" "New SCRIPTPATH" "$SCRIPTPATH"
+  $LOG "info" "" "New SCRIPTPATH" "$SCRIPTPATH_"
   SCRIPTPATH=$SCRIPTPATH_
 }
 unset SCRIPTPATH_ support_libs base_dirs

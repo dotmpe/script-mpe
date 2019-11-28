@@ -56,7 +56,7 @@ test -n "$FIRSTTAB" || FIRSTTAB=24
 
 if [ -z "$CS" ]
 then
-  echo "make: warning, using dark colorscheme (set CS to override)" 1>&2
+  echo "$0: warning, using dark colorscheme (set CS to override)" 1>&2
   CS=dark
 fi
 COLOURIZE=yes
