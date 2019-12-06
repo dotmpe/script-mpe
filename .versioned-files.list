@@ -51,13 +51,11 @@ tools/sh/tags-filter.sh
 tools/sh/init-here.sh
 tools/sh/init.sh
 tools/sh/env.sh
-tools/ci/parts/init.sh
-tools/ci/parts/announce.sh
-tools/ci/parts/install.sh
-tools/ci/parts/check.sh
 tools/ci/parts/build.sh
+tools/ci/parts/check-all.sh
+tools/ci/parts/db-log-announce.sh
+tools/ci/parts/init-information.sh
 tools/ci/parts/publish.sh
-util.sh
 box-instance.sh
 script-bats.sh
 vagrant-sh.sh
@@ -87,5 +85,4 @@ wordnet.py
 statusdir.sh
 cksum.py
 tools/ci/env.sh
-tools/sh/build/test.sh
-tools/git-hooks/pre-commit.sh
+tools/sh/build/dev.sh

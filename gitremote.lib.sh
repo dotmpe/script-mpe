@@ -22,7 +22,7 @@ gitremote_init_uconf()
   note "GIT remote '$1' loaded"
 }
 
-# List remote-dirs XXX: for user/domain
+# List UCONF:git:remote dirs XXX: for user/domain
 gitremote_list_for_ns()
 {
   grep -l NS_NAME=$1 $GIT_REMOTE_CONF/*.sh

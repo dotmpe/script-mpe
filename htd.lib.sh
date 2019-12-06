@@ -224,7 +224,7 @@ htd_repository_url() # Remote Url
     #url="$domain:$2"
 
     # No namespacing in remote name,
-    # prefix remote-dirs if not local
+    # prefix remote Id if not local
     test -n "$remote_id" && {
       { fnmatch "*:*" "$2" || test "$remote" = "$hostname"
       } || {
