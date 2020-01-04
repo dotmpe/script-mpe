@@ -104,7 +104,7 @@ topics_init()
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
   test -n "$scriptpath"
   export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh
+  util_mode=ext . $scriptpath/tools/sh/util.sh
   util_init
   . $scriptpath/match.lib.sh
   . $scriptpath/tools/sh/box.env.sh
@@ -154,7 +154,6 @@ topics_unload()
 }
 
 
-
 # Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
@@ -162,6 +161,11 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
   test -n "$__load_lib" || {
+    case "$SHELL" in
+        */bin/bash ) set -o nounset ;;
+        */bin/dash ) set -o nounset -o pipefail ;;
+    esac
+    test -z "${DEBUG-}" || set -x
     topics_main "$@" || exit $?
   }
 ;; esac

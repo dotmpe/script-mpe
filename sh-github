@@ -3,7 +3,7 @@
 # Build project{,-repo}-stats for github repositories
 
 
-set -e
+set -e -o nounset -o pipefail
 
 export verbosity=7
 
@@ -33,7 +33,7 @@ export U_S LOG
 #export GITHUB_TOKEN=
 
 set -e
-scriptpath=$PWD util_mode=boot . $PWD/util.sh || return
+scriptpath=$PWD util_mode=boot . $PWD/tools/sh/util.sh || false
 # XXX: test both . $U_S/tools/sh/init.sh
 
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 test_src="$_"
 
 set -e
@@ -76,9 +76,9 @@ test_main()
 # Ignore login console interpreter
 case "$0" in "" ) ;; "-"* ) ;; * )
   test -n "$f_lib_load" || {
-    util_mode=main . $(dirname "$0")/util.sh
-    test "$1" = "$util_mode" ||
-      set -- "$util_mode" "$@"
+
+    util_mode=main && . $(dirname "$0")/tools/sh/util.sh
+    test "$1" = "$util_mode" || set -- "$util_mode" "$@"
 
     case "$1" in
       main ) shift ; test_main "$@" ;;

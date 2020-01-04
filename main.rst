@@ -1,3 +1,8 @@
+Intro
+-----
+
+Background
+----------
 Main is a number of things. But most importantly it is a concept with with many
 diffent evaluation contexts:
 
@@ -14,7 +19,7 @@ For these scripts (htd, sh) and our c(omposure) context it we have some options:
 
 - exec-name (an executable on PATH)
 - func-name (an function loaded for this shell)
-- alias-name (if allowed an alias for a command-line prefix-part)
+- alias-name (an interactive-shell alias, for a command-line prefix-part)
 
 Design
 ------

@@ -1,4 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/sh
+#  /usr/bin/env bash
 test -z "${sh_util_:-}" && sh_util_=1 || return 198 # Recursion
 
 info() { exit 123; }
@@ -112,7 +113,7 @@ not_falseish()
 }
 
 # Read file filtering octothorp comments and empty lines
-sh-read () # ( FILE | - )
+sh_read () # ( FILE | - )
 {
   test $# -gt 0 -a $# -le 2 || return 38
   test -n "$1" || return 1
@@ -127,12 +128,7 @@ sh-read () # ( FILE | - )
 }
 # Sh-Copy: read_nix_style_file
 
-test -d $U_S/.git || {
-  rm -rf $U_S || true
-  git clone https://github.com/dotmpe/user-scripts $U_S
-}
-( cd $U_S && git status && git remote -v )
-( cd $U_S && git fetch --all && git reset --hard origin/feature/docker-ci )
+test -d $U_S/.git -a -n "$U_S"
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
 . "$U_S/tools/ci/parts/print-err.sh" # No-Sync
 . "$U_S/tools/sh/parts/include.sh" # No-Sync

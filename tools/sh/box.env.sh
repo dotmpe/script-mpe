@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-set -e
+set -e -o nounset -o pipefail
 
 # Something to manage messages
 test -n "$INIT_LOG" -a -x "$INIT_LOG" || exit 102 # NOTE: sanity
 
 # Place to store Box files
-test -n "$BOX_DIR" || export BOX_DIR=$HOME/.box
+true -n "$BOX_DIR" || export BOX_DIR=$HOME/.box
 
 # Place for all Box frontends
 test -n "$BOX_BIN_DIR" || export BOX_BIN_DIR=$BOX_DIR/bin
