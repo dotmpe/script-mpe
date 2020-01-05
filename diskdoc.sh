@@ -1,8 +1,9 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# /bin/sh
 # Created: 2016-02-22
 diskdoc__source=$_
 
-set -e
+set -e -o posix
 
 
 
@@ -14,7 +15,7 @@ version=0.0.4-dev # script-mpe
 # See $scriptname help to get started
 
 diskdoc_load__meta=y
-# Defer to python script for YAML parsing
+diskdoc_man_1__meta='Defer to python script for YAML parsing'
 diskdoc__meta()
 {
   test -n "$1" || set -- --background
@@ -55,7 +56,7 @@ diskdoc__meta_sq()
 
 
 diskdoc_load__status=ybf
-# Run over known prefixes and present status indicators
+diskdoc_man_1__help='Run over known prefixes and present status indicators'
 diskdoc__status()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -72,7 +73,7 @@ diskdoc__status()
 
 
 diskdoc_load__check=ybf
-# Check with remote refs
+diskdoc_man_1__check='Check with remote refs'
 diskdoc__check()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -100,8 +101,9 @@ diskdoc__update()
 diskdoc_load__init=y
 diskdoc__init()
 {
-    false
+  false
 }
+
 
 diskdoc_load__ids=y
 diskdoc__ids()

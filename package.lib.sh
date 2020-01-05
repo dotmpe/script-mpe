@@ -306,7 +306,7 @@ update_temp_package()
 
 # Given package.yaml metafile, extract and fromat as SH, JSON. If no local
 # package.yaml exists, try to extract one temp package YAML from Pdoc.
-update_package()
+update_package() # Dir
 {
   test -n "$1" -a -d "$1" || error "update-package dir '$1'" 21
   test -z "$2" || error "update-package surplus args '$2'" 22

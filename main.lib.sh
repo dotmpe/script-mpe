@@ -770,46 +770,46 @@ main_run_subcmd()
   }
   test $c -gt 0 && shift $c ; c=0
 
-  #main_debug $*
+  #test -z "$DEBUG" || main_debug "c:$c *:$*"
 
-  #box_lib="$(box_list_libs "$0")"
+  # XXX: box_lib="$(box_list_libs "$0")"
 
   get_subcmd_func || {
-    debug "no such subcmd-func $subcmd_func"
+    debug "No such subcmd-func '$scriptname:$subcmd' <$subcmd_func> ($base)"
     try_exec_func ${base}_usage || std__usage
     test -z "$subcmd" && {
       error 'No command given' 1
     } || {
-      error "No such command: $subcmd ($base)" 2
+      error "No such command: '$scriptname:$subcmd'" 2
     }
   }
   test -z "$subcmd_args_pre" || set -- "$subcmd_args_pre" "$@"
 
   load_subcmd $box_prefix "$@" || return $?
-  test -z "$DEBUG" || debug "$base loaded"
+  test -z "$DEBUG" || debug "Base '$base' loaded"
 
   test -z "$dry_run" \
     && {
-      test -z "$DEBUG" || debug "executing $scriptname $subcmd"
-    } || std_info "** starting DRY RUN $scriptname $subcmd **"
+      test -z "$DEBUG" || debug "Executing '$scriptname:$subcmd'"
+    } || std_info "** starting DRY RUN '$scriptname:$subcmd' **"
 
   # Execute and exit
   $subcmd_func "$@" && {
     prev_subcmd=$subcmd
     main_unload "$box_prefix" && true || {
-      error "Command $prev_subcmd failed ($?)" 4
+      error "Command '$scriptname:$prev_subcmd' failed ($?)" 4
     }
 
   } || {
     e=$?
     prev_subcmd=$subcmd
     main_unload $box_prefix
-    error "Command $prev_subcmd returned $e" 3
+    error "Command '$scriptname:$prev_subcmd' returned $e" 3
   }
 
   test -z "$dry_run" \
-    && std_info "$subcmd completed normally" 0 \
-    || std_info "$subcmd dry-drun completed" 0
+    && std_info "'$base-$subcmd' completed normally" 0 \
+    || std_info "'$base-$subcmd' dry-drun completed" 0
 }
 
 

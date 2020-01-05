@@ -11,7 +11,8 @@ htd_package_list_ids()
 
 htd_package_update()
 {
-  test $# -eq 1 || return
+  test $# -le 1 || return
+  test $# -eq 1 || set -- .
   update_package $1
 }
 

@@ -91,7 +91,7 @@ rm_failed()
 clean_io_lists()
 {
   local count= path=
-  test -z "$DEBUG" || $LOG debug "" "clean-io-list '$*'"
+  test -z "$DEBUG" || $LOG debug "" "clean-io-lists" "$*"
   while test -n "$1"
   do
     count=0 path="$(eval echo \$$1)"
@@ -118,6 +118,7 @@ clean_io_lists()
     eval ${1}_count="$count"
     shift
   done
+  test -z "$DEBUG" || $LOG info "$0" "clean-io-lists OK" "$*"
 }
 
 

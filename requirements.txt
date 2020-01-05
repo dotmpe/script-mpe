@@ -12,7 +12,7 @@ icalendar
 json-spec
 keyring
 #mysqlclient
-mysql-connector==2.1.6
+mysql-connector==2.1.7
 nltk
 #objectpath
 pbPlist

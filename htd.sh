@@ -4111,7 +4111,7 @@ Plumbing commands dealing with the local project package file. See package.rst.
 These do not auto-update intermediate artefacts, or load a specific package-id
 into env.
 '
-htd_run__package=iAOp
+htd_run__package=iAOpl
 htd__package()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
@@ -4122,6 +4122,7 @@ htd__package()
     } || set -- debug
   subcmd_prefs=${base}_package_\ package_ try_subcmd_prefixes "$@"
 }
+htd_libs__package='package htd-package'
 
 htd_man_1__ls="List local package names"
 htd_als__ls=package\ list-ids
@@ -9010,7 +9011,9 @@ htd_main()
 
         export stdio_0_type stdio_1_type stdio_2_type
 
-        htd_lib "$@" || $htd_log error htd-main "During htd-lib" "" $? || return
+        htd_lib "$@" || {
+          $htd_log error htd-main "During htd-lib" "" $? || return
+        }
         main_run_subcmd "$@" || r=$?
         htd_unload || r=$?
 
