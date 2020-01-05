@@ -13,12 +13,12 @@ test -e "$(realpath "/srv/project-local/")" && {
   : "${U_S:="/srv/project-local/user-scripts"}"
 } || {
 
-  test -d "/src/github.com/bvberkum" && {
+  test -d "/src/github.com/dotmpe" && {
 
-    : "${U_S:="/src/github.com/bvberkum/user-scripts"}"
+    : "${U_S:="/src/github.com/dotmpe/user-scripts"}"
   } || {
 
-    : "${U_S:="$HOME/build/bvberkum/user-scripts"}"
+    : "${U_S:="$HOME/build/dotmpe/user-scripts"}"
   }
 }
 

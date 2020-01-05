@@ -5,7 +5,7 @@ set -euo pipefail
 : "${dckr_user:="treebox"}"
 : "${repo_id:="origin"}"
 : "${repo_rev:="features/docker-ci"}" # No-Sync
-: "${repo_slug:="bvberkum/script-mpe"}" # No-Sync
+: "${repo_slug:="dotmpe/script-mpe"}" # No-Sync
 
 w=/src/github.com/${repo_slug}
 u=${dckr_user}
@@ -15,7 +15,7 @@ docker exec -u $u -ti ${c} \
   sh -c "test -e '$w' || { mkdir -p $(dirname $w) && git clone http://github.com/$repo_slug $w; } "
 
 : "${repo_id:="24-2-bare"}"
-: "${repo_url:="/srv/scm-git-24-2-notus-brix/bvberkum/x-ci.git"}"
+: "${repo_url:="/srv/scm-git-24-2-notus-brix/dotmpe/x-ci.git"}"
 
 docker exec -w $w -u $u -ti ${c} git describe
 test "$repo_id" = "origin" || {

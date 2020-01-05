@@ -491,7 +491,7 @@ htd__help_commands()
   echo 'File Versioning'
   echo '  git-remote [repo]                List all names remotely, or give the SSH url for given repo. '
   echo '  git-init-remote [repo]           Initialze remote bare repo if local path is GIT project'
-  echo '  git-remote-info                  Show current ~/.conf/git/remote-dir/* vars.'
+  echo '  git-remote-info                  Show current ~/.conf/git/remotes/* vars.'
   echo '  git-files [REPO...] GLOB...      Look for file (pattern) in repositories'
   echo '  git-grep                         See htd help git-grep'
   echo ''
@@ -1347,7 +1347,7 @@ htd__go()
 
     dockerize ) shift
         test -z "$1" || img_tag=$1
-        test -n "$img_tag" || img_tag=bvberkum/$APP_ID
+        test -n "$img_tag" || img_tag=dotmpe/$APP_ID
     test -e Dockerfile || { { cat <<EOM
 FROM scratch
 COPY $APP_ID /
@@ -2845,7 +2845,7 @@ htd_man_1__gitremote='List repos at remote (for SSH), or echo remote URL.
     list-for-ns Ns-Name
 
     TODO: hostinfo [ Remote-Name | Remote-ID ]
-        Get host for given remote name or remote-dir Id.
+        Get host for given remote name or UCONF:git:remote Id.
 
 
 TODO: match repositories for user/host with remote providers (SSH dirs, GIT
@@ -2858,7 +2858,7 @@ htd__gitremote()
 
   test -n "$*" || set -- "$HTD_GIT_REMOTE"
 
-  # Insert empty arg if first represents remote-dir sh-props file
+  # Insert empty arg if first represents UCONF:git:remotes sh-props file
   test -e $UCONFDIR/etc/git/remotes/$1.sh -a $# -le 2 && {
     # Default command to 'list' when remote-id exists and no further args given
     test $# -eq 1 && set -- "list" "$@" || set -- url "$@"

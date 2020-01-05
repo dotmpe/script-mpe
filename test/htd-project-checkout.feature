@@ -18,10 +18,10 @@ Feature: manage checkouts
 
   Examples:
       | url | dir | ns | env |
-      | https://github.com/bvberkum/x-gh-travis | x-gh-travis | bvberkum | |
+      | https://github.com/dotmpe/x-gh-travis | x-gh-travis | dotmpe | |
       | dotmpe:~/domains/dotmpe.com/htdocs/git/x-go.git | x-go | | |
-      | git@github.com:bvberkum/x-ci.git | x-ci | | |
-      #| /srv/scm-git-local/bvberkum/script-mpe | script-mpe | | |
+      | git@github.com:dotmpe/x-ci.git | x-ci | | |
+      #| /srv/scm-git-local/dotmpe/script-mpe | script-mpe | | |
 
 
   Scenario Outline: init and cleanup backup repo

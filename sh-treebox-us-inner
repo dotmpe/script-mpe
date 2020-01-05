@@ -2,12 +2,12 @@
 
 . ~/.bash_profile || { echo "No bash-profile" >&2; exit 100; }
 
-BASHER_FULL_CLONE=true basher install bvberkum/user-scripts 
-export U_S="$(basher package-path bvberkum/user-scripts)/"
+BASHER_FULL_CLONE=true basher install dotmpe/user-scripts 
+export U_S="$(basher package-path dotmpe/user-scripts)/"
 cd "$U_S"
 git checkout r0.0
 
-cd /src/github.com/bvberkum/oil && \
+cd /src/github.com/dotmpe/oil && \
 make configure &&
 build/dev.sh minimal
 

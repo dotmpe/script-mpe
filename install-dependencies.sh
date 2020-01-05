@@ -116,7 +116,7 @@ install_docopt_mpe()
 install_docopt_src_mpe()
 {
   test -n "$install_f" || install_f="$py_setup_f"
-  local src=github.com/bvberkum/docopt-mpe
+  local src=github.com/dotmpe/docopt-mpe
 
   test -d $src || {
     mkdir -p "$(dirname "$src")"
@@ -130,7 +130,7 @@ install_docopt_src_mpe()
 
 install_git_versioning()
 {
-  git clone https://github.com/bvberkum/git-versioning.git $SRC_PREFIX/git-versioning
+  git clone https://github.com/dotmpe/git-versioning.git $SRC_PREFIX/git-versioning
   ( cd $SRC_PREFIX/git-versioning && ./configure.sh $PREFIX && ENV=production ./install.sh )
 }
 
@@ -158,7 +158,7 @@ install_mkdoc()
       git fetch --all && git reset --hard origin/$MKDOC_BRANCH || return
     } || {
     test ! -d $SRC_PREFIX/mkdoc || rm -rf $SRC_PREFIX/mkdoc
-      git clone https://github.com/bvberkum/mkdoc.git $SRC_PREFIX/mkdoc ||
+      git clone https://github.com/dotmpe/mkdoc.git $SRC_PREFIX/mkdoc ||
         return
       cd $SRC_PREFIX/mkdoc && { git checkout $MKDOC_BRANCH || return ; }
     }

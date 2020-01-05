@@ -41,7 +41,7 @@ test -n "${DEBUG:-}" && : "${keep_going:=false}" || : "${keep_going:=true}"
 : "${USER:="$(whoami)"}"
 test "$USER" = "treebox" && : "${dckr_pref:="sudo "}"
 
-: "${NS_NAME:="bvberkum"}"
+: "${NS_NAME:="dotmpe"}"
 : "${DOCKER_NS:="$NS_NAME"}"
 : "${scriptname:="`basename -- "$0"`"}"
 : "${LOG:="$CWD/tools/sh/log.sh"}"

@@ -15,11 +15,11 @@ PROJ_LBL=$(basename "$TRAVIS_REPO_SLUG")
 builds_log="$HOME/.statusdir/logs/travis-$PROJ_LBL.list"
 ledge_tag="$(printf %s "$PROJ_LBL-$TRAVIS_BRANCH" | tr -c 'A-Za-z0-9_-' '-')"
 
-${dckr_pref}docker pull bvberkum/ledge:$ledge_tag && {
+${dckr_pref}docker pull dotmpe/ledge:$ledge_tag && {
 
   ${dckr_pref}docker create --name ledge \
     -v ledge-statusdir:/statusdir \
-    bvberkum/ledge:$ledge_tag
+    dotmpe/ledge:$ledge_tag
 
   test ! -e /tmp/builds.log || rm /tmp/builds.log
   test ! -e "$builds_log" || cp $builds_log /tmp/builds.log
@@ -53,11 +53,11 @@ ci_announce 'New log'
 tail -n 1 "$builds_log"
 wc -l "$builds_log" || true
 
-${dckr_pref}docker rmi -f bvberkum/ledge:$ledge_tag
+${dckr_pref}docker rmi -f dotmpe/ledge:$ledge_tag
 
 cp test/docker/ledge/Dockerfile ~/.statusdir
 
-${dckr_pref}docker build -qt bvberkum/ledge:$ledge_tag ~/.statusdir &&
-  ${dckr_pref}docker push bvberkum/ledge:$ledge_tag
+${dckr_pref}docker build -qt dotmpe/ledge:$ledge_tag ~/.statusdir &&
+  ${dckr_pref}docker push dotmpe/ledge:$ledge_tag
 
 # Sync: U-S:

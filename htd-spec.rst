@@ -73,16 +73,16 @@ htd
     Examples::
 
         verbosity=6 \
-        grep_eval='$(git rev-list --all)' htd git-grep golang-builder --dir=/src/github.com/bvberkum/*
+        grep_eval='$(git rev-list --all)' htd git-grep golang-builder --dir=/src/github.com/dotmpe/*
 
     FIXME: cannot simply pass git-grep args. Dir is also not working::
 
-        htd git-grep golang-builder "dev test master" --dir=/src/github.com/bvberkum/*
+        htd git-grep golang-builder "dev test master" --dir=/src/github.com/dotmpe/*
 
     1. argument processing is broken, and 2. what if branches don't exist.
     Eval is more practical. But grepping every revision is not::
 
-        repos='/src/github.com/bvberkum/*/.git' \
+        repos='/src/github.com/dotmpe/*/.git' \
         grep_eval='$(git br | tr -s "*\n " " ") --' htd git-grep GREP
 
   archive

@@ -186,7 +186,7 @@ init-symlinks()
     test "$USER" = "travis" || return 100
 
     rm -rf $HOME/bin || true
-    ln -s $HOME/build/bvberkum/script-mpe $HOME/bin
+    ln -s $HOME/build/dotmpe/script-mpe $HOME/bin
   }
 }
 

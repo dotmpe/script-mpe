@@ -19,8 +19,8 @@ run()
 {
   #echo "%supergroup  ALL=NOPASSWD:ALL" >.etc-sudoers.d-treebox-supergroup
   #  -v $PPWD/.etc-sudoers.d-treebox:/etc/sudoers.d/treebox-supergroup \
-  dckr_u_s=/home/treebox/build/bvberkum/user-scripts
-  dckr_u_s=/src/github.com/bvberkum/user-scripts
+  dckr_u_s=/home/treebox/build/dotmpe/user-scripts
+  dckr_u_s=/src/github.com/dotmpe/user-scripts
 
   docker run \
     -ti --rm \
@@ -45,7 +45,7 @@ test -n "$1" || {
 . "./tools/sh/parts/print-color.sh"
 CWD=$PWD U_S=$PWD . "./tools/sh/parts/env-0.sh"
 
-docker pull ${sh_treebox_img:="bvberkum/sandbox:dev"}
+docker pull ${sh_treebox_img:="dotmpe/sandbox:dev"}
 
 test ! -e "$PWD"/"$1" && {
   print_yellow "" "Running '$*'..."

@@ -1,5 +1,5 @@
 #!/bin/sh
 
-. ~/.local/composure/c-reload.inc && c-reload && ht-include
+. ~/.local/composure/Composure/load.inc && c-load && ht-include
 
 # Sync: U-S:

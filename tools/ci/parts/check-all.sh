@@ -25,7 +25,7 @@ git-versioning check
 travis version && {
   test -n "GITHUB_TOKEN" || $LOG error "" "Empty GITHUB_TOKEN" 1
   travis login --github-token "$GITHUB_TOKEN" &&
-    travis history -r bvberkum/script-mpe
+    travis history -r dotmpe/script-mpe
 }
 
 

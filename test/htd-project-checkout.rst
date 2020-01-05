@@ -11,11 +11,11 @@ Feature: manage checkouts
 
   Examples:
     | url | dir | env |
-    | https://github.com/bvberkum/x-gh-travis | x-gh-travis | |
+    | https://github.com/dotmpe/x-gh-travis | x-gh-travis | |
     | dotmpe:~/domains/dotmpe.com/htdocs/git/x-go.git | x-go | |
-    | git@github.com:bvberkum/x-ci.git | x-ci | |
+    | git@github.com:dotmpe/x-ci.git | x-ci | |
 
-    .. /srv/scm-git-local/bvberkum/script-mpe
+    .. /srv/scm-git-local/dotmpe/script-mpe
 
   Scenario Outline: init and cleanup backup repo
     Create local backup annex repo (/srv/backup-local in /srv/annex-local).

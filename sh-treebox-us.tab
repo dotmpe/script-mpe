@@ -62,11 +62,11 @@ ENV_NAME=testing              . ./sh-treebox-ci
 #
 #  #shells=bash test_shells ./build.sh required_tests
 #
-#  docker pull bvberkum/treebox:dev &&
+#  docker pull dotmpe/treebox:dev &&
 #  docker run --rm \
 #      -w /dut \
 #      -v $(pwd -P)/tools/ci/docker.sh:/dut/run.sh \
-#      bvberkum/treebox:dev sh ./run.sh
+#      dotmpe/treebox:dev sh ./run.sh
 #  exit $?
 #
 #  . ./tools/sh/env.sh

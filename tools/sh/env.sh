@@ -30,7 +30,7 @@ sh_include \
   env-0-src
 SCRIPTPATH=
 # XXXX:
-SCRIPTPATH=$CWD/contexts:$CWD/commands:$CWD:/home/travis/build/bvberkum/user-scripts/src/sh/lib:/home/travis/build/bvberkum/user-scripts/src/sh/lib:/home/travis/build/bvberkum/user-scripts/commands
+SCRIPTPATH=$CWD/contexts:$CWD/commands:$CWD:/home/travis/build/dotmpe/user-scripts/src/sh/lib:/home/travis/build/dotmpe/user-scripts/src/sh/lib:/home/travis/build/dotmpe/user-scripts/commands
 
 test -z "${DEBUG:-}" -a -z "${CI:-}" ||
   print_yellow "${SUITE} Env parts" "$(suite_from_table "${build_tab}" "Parts" "${SUITE}" 0|tr '\n' ' ')" >&2

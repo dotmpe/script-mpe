@@ -26,7 +26,7 @@ test -n "${TRAVIS_TIMER_START_TIME:-}" &&
 : "${USER:="`whoami`"}"
 test  "$USER" = "treebox" && : "${dckr_pref:="sudo "}"
 
-: "${U_S:="$HOME/.basher/cellar/packages/bvberkum/user-scripts"}"
+: "${U_S:="$HOME/.basher/cellar/packages/dotmpe/user-scripts"}"
 : "${u_s_version:="feature/docker-ci"}"
 : "${package_build_tool:="redo"}"
 : "${sh_tools:="$CWD/tools/sh"}"

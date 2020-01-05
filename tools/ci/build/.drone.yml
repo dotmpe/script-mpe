@@ -5,7 +5,7 @@ workspace:
 pipeline:
 
   build:
-    image: bvberkum/treebox:latest
+    image: dotmpe/treebox:latest
     volumes:
      - ${HOME}/bin:/srv/docker-volumes-local/user-script/
     commands:
@@ -37,7 +37,7 @@ pipeline:
 #       . ./tools/ci/parts/install.sh
 
 #  hackyhack:
-#    image: bvberkum/alpine-docker:edge
+#    image: dotmpe/alpine-docker:edge
 #    volumes:
 #     - /var/run/docker.sock:/var/run/docker.sock
 #    commands:
