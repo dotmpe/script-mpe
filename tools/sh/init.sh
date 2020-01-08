@@ -44,6 +44,8 @@ test "$init_sh_libs" = "0" || {
   $INIT_LOG "info" "$scriptname:sh:init" "Loading" "$init_sh_libs"
   test -n "$LOG" || LOG=$INIT_LOG
 
+  . "$U_S/tools/sh/parts/include.sh"
+
   lib_load $init_sh_libs ||
     $INIT_LOG "error" "$scriptname:init.sh" "Failed loading libs: $?" "$init_sh_libs" 1
 

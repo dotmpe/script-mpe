@@ -5,8 +5,8 @@
 
 box_lib_load()
 {
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -n "$box_name" || box_name=$hostname
+  test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "${box_name-}" || box_name=$hostname
 }
 
 box_lib_init()

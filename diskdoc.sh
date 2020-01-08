@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # /bin/sh
-# Created: 2016-02-22
+#((dirname "$0")dirname "$0") Created: 2016-02-22
 diskdoc__source=$_
 
 set -e -o posix
@@ -170,7 +170,7 @@ diskdoc_main()
         # invoke with function name first argument,
         local scsep=__ bgd= \
           diskdoc_session_id= \
-          subcmd_pref=${scriptalias} \
+          subcmd_pref=${scriptname} \
           diskdoc_default=status \
           func_exists= \
           func= \
@@ -178,9 +178,7 @@ diskdoc_main()
           main_sock= \
           c=0
 
-				export SCRIPTPATH=$scriptpath
-        util_mode=ext . $scriptpath/util.sh
-        util_init
+		#export SCRIPTPATH=$scriptpath
         diskdoc_init "$@" || error "init failed" $?
         shift $c
 
@@ -201,8 +199,13 @@ diskdoc_main()
 diskdoc_init()
 {
   local __load_lib=1
+  #util_mode=ext . $sh_tools/util.sh || return
+  #util_init
+
+  . $scriptpath/tools/sh/init.sh
+
   . $scriptpath/tools/sh/box.env.sh
-  lib_load box main src
+  lib_load box main src std
   box_run_sh_test
   #while test $# -gt 0
   #do
@@ -213,8 +216,6 @@ diskdoc_init()
   #        shift;;
   #  esac
   #done
-  #. $scriptpath/diskdoc.inc.sh "$@"
-  test -n "$verbosity" || verbosity=6
   # -- diskdoc box init sentinel --
 }
 
@@ -222,7 +223,7 @@ diskdoc_init()
 diskdoc_lib()
 {
   local __load_lib=1
-  lib_load date match
+  lib_load date match str-htd
   . $scriptpath/vc.sh load-ext
   # -- diskdoc box lib sentinel --
   set --
@@ -331,6 +332,11 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
   # fix using another mechanism:
   test -z "$__load_lib" || set -- "load-ext"
+  #case "$SHELL" in
+  #    */bin/bash ) set -o nounset ;;
+  #    */bin/dash ) set -o nounset -o pipefail ;;
+  #esac
+  test -z "${DEBUG-}" || set -x
   case "$1" in
     load-ext ) ;;
     * )

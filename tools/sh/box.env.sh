@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 
-set -e -o nounset -o pipefail
+#set -e -o nounset -o pipefail
 
 # Something to manage messages
 test -n "$INIT_LOG" -a -x "$INIT_LOG" || exit 102 # NOTE: sanity
 
 # Place to store Box files
-true -n "$BOX_DIR" || export BOX_DIR=$HOME/.box
+test -n "${BOX_DIR:-}" || export BOX_DIR=$HOME/.box
 
 # Place for all Box frontends
-test -n "$BOX_BIN_DIR" || export BOX_BIN_DIR=$BOX_DIR/bin
+test -n "${BOX_BIN_DIR:-}" || export BOX_BIN_DIR=$BOX_DIR/bin
 
 # Mark env or fail on reload
-test -z "$BOX_INIT" && BOX_INIT=1 || {
+test -z "${BOX_INIT:-}" && BOX_INIT=1 || {
   $INIT_LOG error "box.env" "unexpected re-init" "" 1
 }
 

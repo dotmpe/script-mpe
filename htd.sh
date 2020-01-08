@@ -1966,7 +1966,7 @@ htd_grp__vbox_gp=vm
 
 
 # Wake a remote host using its ethernet address
-wol_hwaddr=~/.conf/wol/hosts-hwaddr.sh
+wol_hwaddr=~/.conf/etc/wol/hosts-hwaddr.sh
 htd__wol_list_hosts()
 {
   cat $wol_hwaddr

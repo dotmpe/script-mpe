@@ -5,7 +5,7 @@
 
 main_lib_load()
 {
-  test -n "$subcmd_default" || subcmd_default=default
+  test -n "${subcmd_default-}" || subcmd_default=default
 }
 
 main_lib_init()
@@ -114,10 +114,10 @@ std_help()
 # <base>_<property>__<field>=.../()
 echo_local() # Subcmd [ Property [ Base ] ]
 {
-  test -n "$2" -o -n "$1" || return
+  test -n "${2-}" -o -n "${1-}" || return
   # XXX: box-*
-  test -n "$box_prefix" || box_prefix=$(upper=0 mkvid $base  && echo $vid)
-  test -n "$3" || set -- "$1" "$2" "$box_prefix"
+  test -n "${box_prefix:-}" || box_prefix=$(upper=0 mkvid $base  && echo $vid)
+  test -n "${3-}" || set -- "${1-}" "${2-}" "$box_prefix"
   test -z "$1" || set -- " :$1" "$2" "$3"
   test -z "$2" || set -- "$1" "$2" "$3:"
   echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
@@ -156,7 +156,7 @@ try_func()
 
 try_local_func()
 {
-  test -z "$DEBUG" || {
+  test -z "${DEBUG-}" || {
     $LOG debug "" "try-local-func '$*' ($(echo_local "$@"))"
   }
   try_func $(echo_local "$@") || return $?
@@ -165,7 +165,7 @@ try_local_func()
 get_subcmd_func()
 {
   # Get default sub for base script
-  test -n "$1" || {
+  test -n "${1-}" || {
     test -n "$subcmd" || {
       try_local_var subcmd "" default || return 12
     }
@@ -194,7 +194,7 @@ get_subcmd_func()
         fnmatch "* *" "$subcmd_alias" &&
             subcmd_args_pre="$(echo "$subcmd_alias" | cut -d ' ' -f 2-)" ||
             subcmd_args_pre=""
-        test -z "$DEBUG" || warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
+        test -z "${DEBUG-}" || warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
         set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
       }
     }
@@ -655,7 +655,7 @@ get_cmd_func()
 # Setup some initial vars and load lib files for main script
 main_init()
 {
-  test -n "$1" || set -- "$base"
+  test -n "${1-}" || set -- "$base"
 
   {
       stdio_type 0 $$ &&
@@ -763,14 +763,14 @@ main_run_subcmd()
 
   #func_exists ${base}_parse_subcmd_args
 
-  test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
+  true "${box_prefix:=$(mkvid $base; echo $vid)}"
 
   main_subcmd_args "$@" || {
     error "parsing args" $?
   }
   test $c -gt 0 && shift $c ; c=0
 
-  #test -z "$DEBUG" || main_debug "c:$c *:$*"
+  #test -z "${DEBUG-}" || main_debug "c:$c *:$*"
 
   # XXX: box_lib="$(box_list_libs "$0")"
 
@@ -786,11 +786,11 @@ main_run_subcmd()
   test -z "$subcmd_args_pre" || set -- "$subcmd_args_pre" "$@"
 
   load_subcmd $box_prefix "$@" || return $?
-  test -z "$DEBUG" || debug "Base '$base' loaded"
+  test -z "${DEBUG-}" || debug "Base '$base' loaded"
 
   test -z "$dry_run" \
     && {
-      test -z "$DEBUG" || debug "Executing '$scriptname:$subcmd'"
+      test -z "${DEBUG-}" || debug "Executing '$scriptname:$subcmd'"
     } || std_info "** starting DRY RUN '$scriptname:$subcmd' **"
 
   # Execute and exit

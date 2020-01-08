@@ -103,10 +103,15 @@ topics_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
   test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/tools/sh/util.sh
-  util_init
-  . $scriptpath/match.lib.sh
+  . $scriptpath/tools/sh/init.sh
+  #export SCRIPTPATH=$scriptpath
+  #: "${sh_tools:="$scriptpath/tools/sh"}"
+  #: "${ci_tools:="$scriptpath/tools/ci"}"
+  #INIT_LOG=$sh_tools/log.sh
+  #util_mode=ext . $scriptpath/tools/sh/util.sh
+  #util_init
+  lib_load match
+  #. $scriptpath/match.lib.sh
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   #. $scriptpath/htd.lib.sh
@@ -161,10 +166,10 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
   test -n "$__load_lib" || {
-    case "$SHELL" in
-        */bin/bash ) set -o nounset ;;
-        */bin/dash ) set -o nounset -o pipefail ;;
-    esac
+    #case "$SHELL" in
+    #    */bin/bash ) set -o nounset ;;
+    #    */bin/dash ) set -o nounset -o pipefail ;;
+    #esac
     test -z "${DEBUG-}" || set -x
     topics_main "$@" || exit $?
   }
