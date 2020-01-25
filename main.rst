@@ -1,25 +1,43 @@
 Intro
 -----
+This is a heavy work in progress.
 
 Background
 ----------
-Main is a number of things. But most importantly it is a concept with with many
-diffent evaluation contexts:
+Main is a number of things, here we want to consider the steps leading up to
+the "main task" and what happens after.
+
+Most importantly it is a concept dealing with diffent evaluation contexts,
+or getting into and out of one after having performed a particular task.
 
 - map a user command, alias, or other evocation (command-line) into an actual
   executable and argument sequence.
 
-For `c` language its entrypoint is ``int main(int argc, char *argv[])`` or even
-``void main(void)``, for Python it is a global variable ``__main__``, and for
-other languages it may be even more obscure or depend on context. Ie. PHP,
-Groovy, NodeJS all have facilities for getting the originally evocation line,
+For `c` language its executable entrypoint is
+``int main(int argc, char *argv[])`` or even ``void main(void)``, for Python it
+is a global variable state ``__name__ == __main__`` in a module, and for
+other languages/environments it may be even more obscure. Ie. PHP, Groovy, NodeJS
+just like shells all have facilities for getting the originally evocation line,
 and to get and parse arguments.
 
-For these scripts (htd, sh) and our c(omposure) context it we have some options:
+Using the shell, we first have several options in executable names:
 
-- exec-name (an executable on PATH)
+- exec-name (an executable on PATH, or ./exec-name)
 - func-name (an function loaded for this shell)
 - alias-name (an interactive-shell alias, for a command-line prefix-part)
+
+Initializing the shell usually goes in two phases: `profile` and `rc` for all
+login (console or SSH sessions), while non-login shells skip the profile and go
+directly for the `rc` files. Profiles should be written to run in non-user
+shells, and ``export`` variables to be used in other env. `rc` should customize
+the user shell env.
+
+Based on this, we can use functions and aliases to get access to any kind of new
+env: source files; get new vars or functions, update lookup-paths, etc. But
+between our scripts we need to ensure our env stays consistent.
+
+See HT:draft/2019-02-19,env-d.rst for even more background on shell scripting,
+and using shells as execution environments for users or agents.
 
 Design
 ------

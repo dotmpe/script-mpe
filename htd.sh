@@ -1980,7 +1980,7 @@ htd__wake()
   [ -z "$host" ] && {
     htd__wol_list_hosts
   } || {
-    local $(echo $(cat $wol_hwaddr))
+    local $(echo $(read_nix_style_file $wol_hwaddr))
     hwaddr=$(eval echo \$$host)
     [ -n "$hwaddr" ] || exit 4
     wakeonlan $hwaddr
@@ -8980,7 +8980,7 @@ htd_main()
 {
   local scriptname=htd base=$(basename "$0" .sh) \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    upper= \
+    upper= r= \
     package_id= package_cwd= package_env= \
     subcmd= subcmd_alias= subcmd_args_pre= \
     arguments= subcmd_prefs= options= \
