@@ -1821,8 +1821,9 @@ vc_main()
         test -n "$LOG" -a \( -x "$LOG" -o "$(type -t $LOG)" = "function" \) \
             || export LOG=$scriptpath/tools/sh/log.sh
 
+        U_S=/srv/project-local/user-scripts
+
         INIT_LOG=$LOG \
-        U_S=/srv/project-local/user-scripts \
         script_util=$scriptpath/tools/sh \
             vc_env_load || return
 
