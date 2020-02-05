@@ -104,21 +104,17 @@ statusdir__assert_elems()
 # (does not touch file, but echos it)
 statusdir__assert_dir()
 {
-  test -n "$STATUSDIR_ROOT" || return 64
+  test -n "${STATUSDIR_ROOT-}" || return 64
+  local tree path
   tree="$(echo "$@" | tr ' ' '/')"
   path=$STATUSDIR_ROOT$tree
-  mkdir -vp $(dirname $path)
+  test -d $path || mkdir -vp $(dirname $path)
   echo $path
 }
 
 statusdir__record()
 {
   statusdir_record "$@"
-}
-
-statusdir__status()
-{
-  statusdir_status "$@"
 }
 
 statusdir__index()
@@ -145,6 +141,7 @@ statusdir__file()
 # Create and cat properties file ($format $1)
 statusdir__properties()
 {
+    echo statusdir__properties
   (
     props=$(statusdir__file "$1.properties")
     # XXX: initialize file sd_be=properties
@@ -204,12 +201,25 @@ statusdir__cons_json()
 statusdir__ping()
 {
   test -z "$*" || error "unexpected arguments '$*'" 1
-  $sd_be ping $1 || return $?
+  $sd_be ping || return $?
+}
+
+statusdir__load()
+{
+  test -z "$*" || error "unexpected arguments '$*'" 1
+  $sd_be load || return $?
+}
+
+statusdir__unload()
+{
+  test -z "$*" || error "unexpected arguments '$*'" 1
+  $sd_be unload || return $?
 }
 
 statusdir__list()
 {
-  $sd_be list "$@"
+  test -z "${2-}" || error "surplus arguments '$2'" 1
+  $sd_be list $1 || return $?
 }
 
 statusdir__get()
@@ -354,9 +364,9 @@ statusdir_main()
 
   case "$scriptname" in $base | sd )
 
-        statusdir_lib || exit $?
-        statusdir_load || exit $?
-        main_run_subcmd "$@" || exit $?
+        statusdir_lib || exit 2$?
+        statusdir_load || exit 1$?
+        main_run_subcmd "$@" || exit 0$?
       ;;
 
     * )
@@ -382,6 +392,8 @@ statusdir_init()
   test -n "$scriptpath" || return
   unset CWD
 
+  true "${sd_be:="fsdir"}"
+
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
   test -n "$htd_env_d_default" ||
       htd_env_d_default=init-log\ ucache\ scriptpath\ std
@@ -403,7 +415,7 @@ statusdir_init()
   util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
   . $scriptpath/tools/sh/box.env.sh &&
   box_run_sh_test &&
-  lib_load os sys str std logger-std logger-theme log shell main
+  lib_load os sys str std logger-std logger-theme log shell main str-htd
   # -- statusdir box init sentinel --
 }
 

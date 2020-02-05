@@ -7,31 +7,44 @@ sd_be_name=fsdir
 
 fsdir()
 {
-  local p=$sd_tmp_dir/fsdir k="$2" tlt="$3" v="$4"
+  true "${rtype:="tree"}"
+  local p=$sd_tmp_dir/$rtype k="${2-}" tlt="${3-}" v="${4-}"
   test -d $p || mkdir $p
   case "$1" in
 
+    load )
+        rsync -au ${STATUSDIR_ROOT} $sd_tmp_dir
+      ;;
+    unload )
+        rsync -au --delete $sd_tmp_dir/* ${STATUSDIR_ROOT}
+      ;;
     get )
-        test -e "$p/$2" && echo "$(cat "$p/$2")" || return
+        test -e "$p/$k" && echo "$(cat "$p/$k")" || return
       ;;
     set )
         test -z "$3" -o "$3" = "0" || error "todo: tlt '$3'" 1
-        echo "$4" > "$p/$2"
+        echo "$v" > "$p/$k"
       ;;
     incr )
-        v=$(fsdir get "$2" || return)
+        v=$(fsdir get "$k" || return)
         v=$(( $v + 1 ))
-        fsdir set "$2" "" "$v" || return
+        fsdir set "$k" "" "$v" || return
         echo "$v"
       ;;
     decr )
-        v=$(fsdir get "$2" || return)
+        v=$(fsdir get "$k" || return)
         v=$(( $v - 1 ))
-        fsdir set "$2" "" "$v" || return
+        fsdir set "$k" "" "$v" || return
         echo "$v"
       ;;
     del )
-        rm "$p/$2"
+        rm $p/$k
+      ;;
+    list )
+        echo $p/$k* | xargs -n1 basename
+      ;;
+    file )
+        cat - > $p/$k
       ;;
     ping )
         test -e $p

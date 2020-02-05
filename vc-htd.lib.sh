@@ -666,9 +666,9 @@ vc_clean()
 }
 
 
-vc_git_initialized()
+vc_check_git()
 {
-  test -n "$1" || set -- .git
+  test -n "${1-}" || set -- .git
   # There should be a head
   # other checks on .git/refs seem to fail after garbage collect
   git rev-parse HEAD >/dev/null ||
@@ -684,7 +684,7 @@ vc_flags_git()
   g="$(vc_gitdir "$1")"
   test -e "$g" || return
 
-  vc_git_initialized "$g" || {
+  vc_check_git "$g" || {
     echo "(git:unborn)"
     return
   }

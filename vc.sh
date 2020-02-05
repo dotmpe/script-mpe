@@ -214,12 +214,10 @@ vc__type()
 # ? : untracked "
 __vc_status()
 {
-  test -n "$1" || set -- "$(pwd)"
+  test -n "$1" || set -- "$PWD"
   test -d "$1" || err "No such directory $1" 3
 
-  local w short repo sub
-
-  local pwd="$(pwd)"
+  local w short repo sub realcwd
 
   realcwd="$(cd "$1"; pwd -P)"
   short="$(realpath "$1")"
@@ -230,7 +228,7 @@ __vc_status()
 
   if [ -n "$git" ]; then
 
-    vc_git_initialized "$git" || {
+    vc_check_git "$git" || {
       echo "$realcwd (git:unborn)"
       return
     }
@@ -284,16 +282,15 @@ __vc_status()
 
 __vc_screen ()
 {
-  test -n "$1" || set -- "$(pwd)"
-  local w short repo sub
+  test -n "$1" || set -- "$(pwd -P)"
+  local w=$1 short repo sub
 
-  w="$(cd "$1" && pwd -P)"
   short=$(short "$1")
 
   local gitdir=$(vc_gitdir "$1")
   test -z "$gitdir" || {
 
-    vc_git_initialized "$gitdir" || {
+    vc_check_git "$gitdir" || {
       echo "$w (git:unborn)"
       return
     }
@@ -551,7 +548,7 @@ vc_run__ps1=x
 vc_spc__ps1="ps1"
 vc__ps1()
 {
-  c="$(__vc_status "$(pwd)" || return $?)"
+  c="$(__vc_status "$PWD" || return $?)"
   echo "$c"
 }
 vc_C_exptime__ps1=0
