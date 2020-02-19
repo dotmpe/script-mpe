@@ -32,7 +32,7 @@ docstat_file_env() # Doc-Path [New]
 docstat_file_init()
 {
   # Prefix trails with ':', replace path dir seps with double-colon too.
-  test -n "$PREFNAME" || PREFNAME="$(htd_prefix "$(pwd)" | tr -s '/:' ':')"
+  test -n "$PREFNAME" || PREFNAME="$(prefix_resolve "$(pwd)" | tr -s '/:' ':')"
   ext="$(filenamext "$1")"
   filename_baseid "$1"
   docstat_id="$id"

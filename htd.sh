@@ -765,7 +765,7 @@ htd__doctor()
   #  done
   #} || warn "No namespace table for $hostname"
 
-  htd_prefix_names | while read -r prefix_name
+  prefix_names | while read -r prefix_name
   do
     base_path="$(eval echo \"\$$prefix_name\")"
     note "$prefix_name: $base_path"
@@ -4346,7 +4346,7 @@ htd__rules()
         do test -e "$buffer" || continue; echo "$buffer"; done
 
         target_files= targets= max_age=
-        #targets="$(htd_prefix_expand $TARGETS "$@")"
+        #targets="$(prefix_expand $TARGETS "$@")"
         #are_newer_than "$targets" $max_age && continue
         #sets_overlap "$TARGETS" "$target_files" || continue
         #for target in $targets ; do case "$target" in
@@ -5995,28 +5995,28 @@ TODO: update registry atime/utime once cache elapses?
 htd__prefixes()
 {
   test -n "$index" || local index=
-  test -s "$index" || req_prefix_names_index
+  test -s "$index" || prefix_require_names_index
 
   test -n "$1" || set -- op
   case "$1" in
 
     # Read from table
-    table-id ) shift ;       echo $UCONFDIR/$pathnames ; test -e "$pathnames" || return $? ;;
+    info|table-id ) shift ;       echo $UCONFDIR/$pathnames ; test -e "$pathnames" || return $? ;;
     raw-table ) shift ;      cat $UCONFDIR/$pathnames || return $? ;;
-    table )                  htd_path_prefix_names || return $? ;;
-    list )                   htd_prefix_names || return $? ;;
+    tab|table )              prefix_tab || return $? ;;
+    list )                   prefix_names || return $? ;;
 
     # Lookup with table
-    name ) shift ;           htd_prefix "$1" || return $? ;;
-    names ) shift ;          htd_prefixes "$@" || return $? ;;
-    pairs ) shift ;          htd_path_prefixes "$@" || return $? ;;
-    expand ) shift ;         htd_prefix_expand "$@" || return $? ;;
+    name ) shift ;           prefix_resolve "$1" || return $? ;;
+    names ) shift ;          prefix_resolve_all "$@" || return $? ;;
+    pairs ) shift ;          prefix_resolve_all_pairs "$@" || return $? ;;
+    expand ) shift ;         prefix_expand "$@" || return $? ;;
 
     # Update/fetch from cache
     cache )                  htd_list_prefixes || return $? ;;
     update )                 htd_update_prefixes || return $? ;;
     current )
-        htd__current_paths | htd_path_prefixes - |
+        htd__current_paths | prefix_resolve_all_pairs - |
           while IFS=' :' read path prefix localpath
         do
           trueish "$htd_act" && {
@@ -6029,18 +6029,20 @@ htd__prefixes()
       ;;
 
     op | open-files ) shift
-        htd__current_paths | htd_prefixes -
+        htd__current_paths | prefix_resolve_all -
       ;;
 
     check )
         # Read index and look for env vars
-        htd_prefix_names | while read name
+        prefix_names | while read name
         do mkvid "$name"
             #val="${!vid}"
             val="$( eval echo \"\$$vid\" )"
             test -n "$val" || warn "No env for $name"
         done
       ;;
+
+    * ) error "No subcmd $1" ; return 1 ;;
   esac
 } # End prefixes
 
@@ -6273,7 +6275,7 @@ htd__colorize()
 
     * )
         test -e "$1" || error "no file '$1'" 1
-        local output="$B/$(htd_prefix "$1").xhtml"
+        local output="$B/$(prefix_resolve "$1").xhtml"
         {
           trueish "$keep_build" && test -e "$output" -a "$output" -nt "$1"
         } && note "Existing build is up-to-date <$output>" || {
@@ -7405,7 +7407,7 @@ htd__src_info()
   local functions=0 lines=0
   for src in $@
   do
-    src_id=$(htd_prefix $src)
+    src_id=$(prefix_resolve $src)
     $htd_log file_warn $src_id "Listing info.." >&2
     $htd_log header "Box Source" >&2
     functions_=$(functions_list "$src" | count_lines)

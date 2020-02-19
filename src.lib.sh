@@ -580,7 +580,7 @@ copy_paste() # Where/Line Where/Span Src-File
 {
   test -n "$1" -a -e "$3" || return $?
   debug "copy_paste '$1' '$2' "
-  var_isset copy_only || copy_only=1
+  sh_isset copy_only || copy_only=1
   test -n "$cp" || {
     test -n "$cp_board" || cp_board="$(get_uuid)"
     test -n "$ext" || ext=$(filenamext "$3")
@@ -624,3 +624,5 @@ expand_preproc()
       "$(eval echo $include)"
   done | $gsed -f - "$2"
 }
+
+# Sync-From: src-htd.lib.sh

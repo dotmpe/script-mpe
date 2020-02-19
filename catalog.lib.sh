@@ -124,7 +124,7 @@ htd_catalog_update_ignores()
 }
 
 # List local files for cataloging, excluding dirs but including symlinked
-htd_catalog_listdir()
+catalog_listdir()
 {
   test -n "$1" || set -- "."
   { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Alternative to init.sh (for project root dir), XXX: setup for new script subenv
 # for this project. To get around the Sh no-source-arg limitation, instead of

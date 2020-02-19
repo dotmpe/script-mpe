@@ -677,18 +677,19 @@ htd_wf_ctx_sub()
   htd_ctx__${primctx_id}__${flow} "$@"
 }
 
-
+# Prep/parse context given or default
 htd_context()
 {
   test -n "$package_lists_contexts_default" || package_lists_contexts_default=@Std
-  test -n "$1" || set $package_lists_contexts_default
+  test -n "$1" || set -- $package_lists_contexts_default
   ctx="$1"
-  # Remove '@'
   primctx="$(echo "$1" | cut -f 1 -d ' ')"
+  # Remove '@'
   upper=0 mkvid "$(echo "$primctx" | cut -c2-)"
   primctx_id="$vid"
 }
 
+#
 htd_current_context()
 {
   test -n "$1" && {

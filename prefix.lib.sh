@@ -19,7 +19,7 @@ prefix_init()
 }
 
 # Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
-get_pathnames_tab()
+prefix_pathnames_tab()
 {
   test -n "$1" || set -- "$UCONFDIR/$pathnames" "$2"
 
@@ -43,7 +43,7 @@ EOM
 }
 
 # Setup temp-file index for shell env profile, created from pathnames-table
-req_prefix_names_index() # Pathnames-Table
+prefix_require_names_index() # Pathnames-Table
 {
   test -n "$1" || set -- "$UCONFDIR/$pathnames" "$2"
   test -n "$2" || set -- "$1" "$BASEDIR_TAB"
@@ -51,27 +51,27 @@ req_prefix_names_index() # Pathnames-Table
   test -n "$index" || export index=$2
   test -s "$index" -a "$index" -nt "$1" || {
     std_info "Building $index from '$1'"
-    #{ get_pathnames_tab "$1" || return $? ; }> "$index"
-    get_pathnames_tab "$1" > "$index"
+    #{ prefix_pathnames_tab "$1" || return $? ; }> "$index"
+    prefix_pathnames_tab "$1" > "$index"
   }
 }
 
 
 # List prefix varnames
-htd_prefix_names()
+prefix_names()
 {
   # Build from tpl and cat file
   test -n "$index" || local index=
-  test -s "$index" || req_prefix_names_index
+  test -s "$index" || prefix_require_names_index
   read_nix_style_file $index | awk '{print $2}' | uniq
 }
 
 
 # Return prefix:<localpath>
-htd_prefix() # Local-Path
+prefix_resolve() # Local-Path
 {
   test -n "$index" || local index=
-  test -s "$index" || req_prefix_names_index
+  test -s "$index" || prefix_require_names_index
 
   # Set abs-path
   fnmatch "/*" "$1" || set -- "$(pwd -P)/$1"
@@ -97,33 +97,33 @@ htd_prefix() # Local-Path
   test -n "$v" || {
     test "$prefix_name" == ROOT && v=/
   }
-  trueish "$htd_path" &&
+  # Prefix with input path or output only result
+  trueish "$prefix_paths" &&
       echo "$path $prefix_name:$v" ||
       echo "$prefix_name:$v"
 }
 
-
-# Return prefix:<localpath> after scanning paths-topic-names
-htd_prefixes() # (Local-Path..|-)
+# Echo each prefix:<localpath> after scanning paths-topic-names
+prefix_resolve_all() # (Local-Path..|-)
 {
   test -n "$index" || local index=
-  test -s "$index" || req_prefix_names_index
+  test -s "$index" || prefix_require_names_index
 
   test "$1" = "-" && {
-    while read p ; do htd_prefix "$p" ; done
+    while read p ; do prefix_resolve "$p" ; done
   } || {
-    for p in "$@"; do htd_prefix "$p" ; done
+    for p in "$@"; do prefix_resolve "$p" ; done
   }
 }
 
-# Same as htd-prefixes but prefix with original apth
-htd_path_prefixes()
+# Same as htd-prefixes but prefix with original path
+prefix_resolve_all_pairs()
 {
-  htd_path=1 htd_prefixes "$@"
+  prefix_paths=1 prefix_resolve_all "$@"
 }
 
 # Expand <prefix>:<local-path> to abs
-htd_prefix_expand() # Prefix
+prefix_expand() # Prefix
 {
   test -n "$1" || error "Prefix-Path-Arg expected" 1
   {
@@ -137,10 +137,10 @@ htd_prefix_expand() # Prefix
 
 
 # Print user or default prefix-name lookup table
-htd_path_prefix_names()
+prefix_tab()
 {
   test -n "$index" || local index=
-  req_prefix_names_index
+  prefix_require_names_index
   test -s "$index"
   cat $index | sed 's/^[^\#]/'$(hostname -s)':&/g'
   note "OK, $(count_lines "$index") rules"
@@ -232,7 +232,7 @@ htd_update_prefixes()
 }
 
 
-
+# XXX: List formatted prefixes from statusdir backend?
 htd_list_prefixes()
 {
   case "$out_fmt" in plain|text|txt|rst|restructuredtext|yaml|yml|json) ;;

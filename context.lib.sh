@@ -9,6 +9,7 @@ context_lib_load()
   lib_assert statusdir
 }
 
+# TODO: add dry-run, and add to install/provisioning script +U-c
 context_lib_init()
 {
   test -e "$CTX_TAB" || {
@@ -17,15 +18,21 @@ context_lib_init()
 }
 
 # Echo table after preproc
+context_tab()
+{
+  test -n "${context_tab-}" || context_tab="$CTX_TAB"
+
+  grep -q '^#include\ ' "$context_tab" && {
+    expand_preproc include "$context_tab" | grep -Ev '^\s*(#.*|\s*)$'
+  } || {
+    read_nix_style_file "$context_tab"
+  }
+}
+
+# List tags
 context_list()
 {
-  test -n "$context_list" || context_list="$CTX_TAB"
-
-  grep -q '^#include\ ' "$context_list" && {
-    expand_preproc include "$context_list" | grep -Ev '^\s*(#.*|\s*)$'
-  } || {
-    read_nix_style_file "$context_list"
-  }
+  context_tab | cut -d' ' -f3 | cut -d':' -f2
 }
 
 # Check that given tag exists. Return 0 for an exact match,
@@ -49,7 +56,7 @@ context_check() # [case_match=1] [match_sub=0] ~ Tag
 context_exists() # Tag
 {
   p_="$(match_grep "$1")" ; grep_fl=-q
-  context_list |
+  context_tab |
       $ggrep $grep_fl "^[0-9 -]*\b$p_\\ "
 }
 
@@ -57,7 +64,7 @@ context_exists() # Tag
 context_existsi() # Tag
 {
   p_="$(match_grep "$1")" ; grep_fl=-qi
-  context_list |
+  context_tab |
       $ggrep $grep_fl "^[0-9a-z -]*\b$p_\\ "
 }
 
@@ -65,15 +72,15 @@ context_existsi() # Tag
 context_existsub()
 {
   p_="$(match_grep "$1")" ; grep_fl=-qi
-  context_list |
+  context_tab |
       $ggrep $grep_fl "^[0-9a-z -]*\b[^ ]*\/$p_\\ "
 }
 
 # TODO: retrieve tag from default, or all NS
 context_tag()
 {
-  test -n "$NS" -a -n "$1" || error "tag: NS and arg:1 expected" 1
-  context_list |
+  test -n "$NS" -a -n "$1" || error "tag: NS and arg:1 expected" 1 || return
+  context_tab |
       $ggrep -n -m 1 "^[0-9a-z -]*\b$NS$1\\ "
 }
 
@@ -82,7 +89,7 @@ context_tag_entry()
 {
   #test -n "$NS" -a -n "$1" || error "tag-entry: NS and arg:1 expected" 1
   p_="$(match_grep "$1")"
-  context_list |
+  context_tab |
       $ggrep -n -m 1 "^[0-9a-z -]*\b$p_\\ "
 }
 
@@ -91,7 +98,7 @@ context_subtag_entries()
 {
   #test -n "$NS" -a -n "$1" || error "tag-entry: NS and arg:1 expected" 1
   p_="$(match_grep "$1")"
-  context_list |
+  context_tab |
       $ggrep -n -m 1 "^[0-9a-z -]*\b[^ ]*\/$p_\\ "
 }
 
@@ -99,7 +106,7 @@ context_subtag_entries()
 context_tagged()
 {
   p_="$(match_grep "$1")"
-  context_list |
+  context_tab |
     $ggrep -n "^[0-9a-z -]*\b[^ ]*.*\\ \\(@\\|+\\)$p_\\(\\ \\|$\\)"
 }
 

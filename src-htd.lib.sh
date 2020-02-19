@@ -181,3 +181,5 @@ expand_preproc()
       "$(eval echo $include)"
   done | $gsed -f - "$2"
 }
+
+# Sync: src.lib.sh

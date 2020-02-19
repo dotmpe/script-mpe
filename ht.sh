@@ -58,11 +58,12 @@ ht__prefixes()
   case "$1" in
 
     # Lookup with table
-    name ) shift ;           htd_prefix "$1" || return $? ;;
-    names ) shift ;          htd_prefixes "$@" || return $? ;;
-    pairs ) shift ;          htd_path_prefixes "$@" || return $? ;;
-    expand ) shift ;         htd_prefix_expand "$@" || return $? ;;
+    name ) shift ;           prefix_resolve "$1" || return $? ;;
+    names ) shift ;          prefix_resolve_all "$@" || return $? ;;
+    pairs ) shift ;          prefix_resolve_all_pairs "$@" || return $? ;;
+    expand ) shift ;         prefix_expand "$@" || return $? ;;
 
+    * ) error "No subcmd $1" ; return 1 ;;
   esac
   test ! -e "$index" || rm $index
 } # End prefixes

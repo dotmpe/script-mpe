@@ -1,7 +1,11 @@
-#!/bin/sh
-set -e
+#!/bin/bash
 
 # Scan for emmbedded tags and comments
+
+# Inherit script-shell or init new
+test $SHLVL -gt ${lib_lvl:-0} && status=return || {
+  lib_lvl=$SHLVL && set -eu -o posix && status=exit
+}
 
 scriptname=tools/sh/tags
 # npm bash-parser cannot handle expr with nested subshells
@@ -13,10 +17,11 @@ lname=script-mpe
 test -n "$scriptpath" || scriptpath=$(dirname "$(dirname "$(dirname "$0")")")
 
 type lib_load 2> /dev/null 1> /dev/null ||
-    util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh
+    util_mode=lib . $scriptpath/tools/sh/init-wrapper.sh
 
 lib_load sys os std str shell log os-htd sys-htd str-htd
-INIT_LOG=$LOG lib_init sys os std str shell log os-htd sys-htd str-htd
+INIT_LOG=$LOG lib_init
+
 out=$(setup_tmpf .out)
 
 note "Embedded issues check.. ($(var2tags verbose exit))"
@@ -29,7 +34,7 @@ test -z "$1" && {
     check_files="*"
   } || {
     # Only go over staged changes
-    check_files="$(git diff --name-only --cached --diff-filter=ACMR)"
+    check_files="$(git diff --name-only --cached --diff-filter=ACMR HEAD)"
     test -n "$check_files" && {
       note "Set check-files to GIT modified files.."
     } || {
@@ -67,10 +72,12 @@ test -e .git &&
     --exclude '.package.json' \
   "
 
+sh-parts print-err
+
 $src_grep \
     $tasks_grep_expr \
     $check_files \
-  | . $scriptpath/tools/sh/tags-filter.sh \
+  | sh-parts tags-filter \
   | {
     trueish "$verbose" && { tee $out; } || { cat - > $out; }
   }
@@ -90,7 +97,7 @@ test $max -ge $cruft && {
   ret=1
 }
 
-trueish "$exit" && exit $ret || exit 0
+trueish "$exit" && $status $ret || $status 0
 
 # Sync:
 # Id: script-mpe/0.0.4-dev tools/sh/tags.sh

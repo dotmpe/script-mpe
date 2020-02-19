@@ -66,7 +66,7 @@ htd_tools_outline()
   rm $B/tools.json
   out_fmt=yml htd_tools_installed | jsotk update --pretty -Iyaml $B/tools.json -
   { cat <<EOM
-{ "id": "$(htd_prefix "$(pwd -P)")/tools.yml",
+{ "id": "$(prefix_resolve "$(pwd -P)")/tools.yml",
   "hostname": "$hostname", "updated": ""
 }
 EOM

@@ -1,20 +1,36 @@
 #!/usr/bin/env bash
 
-#functions_htd_lib_load() {}
+functions_htd_lib_load()
+{
+  true "${lib_functions_grep:="[[:alnum:]_-]*"}"
+}
 #functions_htd_lib_init() {}
+
+
+functions_find_names() # ~ <Func-Name-Grep> [<SCRIPTSVAR>]
+{
+  test $# -le 2 || return 98
+  test $# -gt 0 -a -n "${1-}" || set -- "$lib_functions_grep" "${2-}"
+  test $# -gt 1 -a -n "${2-}" || set -- "$1" "ENV_SRC"
+
+  for sp in $(eval echo \$$2 | tr ':' ' ')
+  do
+    functions_grep "$1" "$sp"
+  done
+}
 
 
 functions_find_names_on_path() # [find_ext] ~ <Func-Name-Grep> [<SCRIPTPATH>]
 {
-  test $# -gt 0 || set -- "^ *[^#].*"
-  test $# -gt 1 || set -- "1" "SCRIPTPATH"
-  test $# -eq 2 || return 98
+  test $# -le 2 || return 98
+  test $# -gt 0 -a -n "${1-}" || set -- "$lib_functions_grep" "${2-}"
+  test $# -gt 1 -a -n "${2-}" || set -- "$1" "ENV_SRC"
 
   true "${find_ext:=".lib.sh"}"
 
   for sp in $(eval echo \$$2 | tr ':' ' ')
   do
-    functions_grep $1 $sp/*$find_ext
+    functions_grep "$1" "$sp"/*"$find_ext"
   done
 
   unset find_ext
@@ -23,15 +39,15 @@ functions_find_names_on_path() # [find_ext] ~ <Func-Name-Grep> [<SCRIPTPATH>]
 
 functions_list_counts()
 {
-  test $# -gt 0 || set -- "^ *[^#].*"
-  test $# -gt 1 || set -- "1" "SCRIPTPATH"
-  test $# -eq 2 || return 98
+  test $# -le 2 || return 98
+  test $# -gt 0 -a -n "${1-}" || set -- "$lib_functions_grep" "${2-}"
+  test $# -gt 1 -a -n "${2-}" || set -- "$1" "ENV_SRC"
 
   true "${find_ext:=".lib.sh"}"
 
   for sp in $(eval echo \$$2 | tr ':' ' ')
   do
-    functions_grep $1 $sp/*$find_ext | wc -l | awk '{print $1}'
+    functions_grep "$1" "$sp"/*"$find_ext" | wc -l | awk '{print $1}'
   done
 
   #dn=$(dirname "$x")

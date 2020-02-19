@@ -16,3 +16,5 @@ metadata (config, settings) into user-scripts.
 
 ### Package metadata
 ### Project workflows
+
+See projectdir, and user-tools repos.
