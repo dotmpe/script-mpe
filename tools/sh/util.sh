@@ -128,14 +128,17 @@ sh_read () # ( FILE | - )
 }
 # Sh-Copy: read_nix_style_file
 
-test -d $U_S/.git -a -n "$U_S" || {
+test -n "$U_S" ||
+  $LOG "error" "" "Expected U-S env" "" 1
 
-  type init-git-dep || true
-  sleep 60
-  $LOG "error" "" "Expected U-S checkout" ""
-  sleep 30
-  exit 1
+test -d $U_S/.git || {
+  test ! -d "$U_S" || rm -rf $U_S
+  git clone https://github.com/dotmpe/user-scripts.git $U_S
 }
+( cd $U_S/.git && git fetch --all &&
+    git checkout feature/docker-ci &&
+    git pull origin feature/docker-ci )
+
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
 . "$U_S/tools/ci/parts/print-err.sh" # No-Sync
 . "$U_S/tools/sh/parts/include.sh" # No-Sync
