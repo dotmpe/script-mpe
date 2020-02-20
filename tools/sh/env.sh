@@ -10,7 +10,9 @@ test -z "${sh_env_:-}" && sh_env_=1 || return 98 # Recursion
 
 : "${build_tab:="build.txt"}"
 
-. "$sh_tools/parts/env-strict.sh"
+set -o | grep -q pipefail || {
+  . "$sh_tools/parts/env-strict.sh"
+}
 
 : "${APP_LBL:="Script.mpe"}" # No-Sync
 : "${APP_ID:="script-mpe"}" # No-Sync
