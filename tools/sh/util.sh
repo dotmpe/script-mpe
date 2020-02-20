@@ -129,10 +129,12 @@ sh_read () # ( FILE | - )
 # Sh-Copy: read_nix_style_file
 
 test -d $U_S/.git -a -n "$U_S" || {
-  type init-git-dep
-  sync
-  sleep 15
-  $LOG "error" "" "Expected U-S checkout" "" 1
+
+  type init-git-dep || true
+  sleep 60
+  $LOG "error" "" "Expected U-S checkout" ""
+  sleep 30
+  exit 1
 }
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
 . "$U_S/tools/ci/parts/print-err.sh" # No-Sync
