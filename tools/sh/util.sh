@@ -128,19 +128,12 @@ sh_read () # ( FILE | - )
 }
 # Sh-Copy: read_nix_style_file
 
-sleep 4
-
 test -d $U_S/.git -a -n "$U_S" || {
-  ls -la "$U_S"
-  tree -ifgupd -L 2 ~/build
-  tree -ifgupd -L 1 ~/project
-  $LOG "error" "" "Expected U-S checkout" 1
+  $LOG "error" "" "Expected U-S checkout" "" 1
 }
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
 . "$U_S/tools/ci/parts/print-err.sh" # No-Sync
 . "$U_S/tools/sh/parts/include.sh" # No-Sync
-
-sleep 5
 
 sh_include hd-offsets suite-from-table suite-source suite-run
 

@@ -2,8 +2,6 @@
 
 # Boilerplate env for CI scripts
 
-set -x
-
 test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 
 : "${CWD:="$PWD"}"
