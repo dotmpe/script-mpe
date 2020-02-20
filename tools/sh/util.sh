@@ -135,7 +135,7 @@ test -d $U_S/.git || {
   test ! -d "$U_S" || rm -rf $U_S
   git clone https://github.com/dotmpe/user-scripts.git $U_S
 }
-( cd $U_S/.git && git fetch --all &&
+( cd $U_S/ && git fetch --all &&
     git checkout feature/docker-ci &&
     git pull origin feature/docker-ci )
 
