@@ -130,7 +130,8 @@ sh_read () # ( FILE | - )
 
 test -d $U_S/.git -a -n "$U_S" || {
   type init-git-dep
-    sleep 5
+  sync
+  sleep 15
   $LOG "error" "" "Expected U-S checkout" "" 1
 }
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
