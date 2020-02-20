@@ -21,6 +21,7 @@ python-virtualenv           050 -   050 -    -
 env-scriptpath-deps         060 -   060 -    060
 lib-load                    070 -   070 -    -
 env-info                    -   090 090 090  090
+init-information            -   -   090 090  090
 
 # 1. Init:
 check-git                   -   -   10  11   -
