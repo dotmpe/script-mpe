@@ -131,6 +131,8 @@ sh_read () # ( FILE | - )
 sleep 4
 
 test -d $U_S/.git -a -n "$U_S" || {
+  tree -ifgupd -L 2 ~/build
+  tree -ifgupd -L 1 ~/project
   $LOG "error" "" "Expected U-S checkout" 1
 }
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
