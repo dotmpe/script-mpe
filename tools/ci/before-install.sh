@@ -8,7 +8,6 @@ set -ueo pipefail
 echo "Sourcing $SUITE env (I) <$CWD, $ci_tools>" >&2
 
 . "${ci_tools}/env.sh"
-echo 1
 ci_stages="$ci_stages sh_env_1 ci_env_1"
 ci_env_1_ts=$ci_env_ts
 sh_env_1_ts=$sh_env_ts
