@@ -128,10 +128,14 @@ sh_read () # ( FILE | - )
 }
 # Sh-Copy: read_nix_style_file
 
+sleep 5
+
 test -d $U_S/.git -a -n "$U_S"
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
 . "$U_S/tools/ci/parts/print-err.sh" # No-Sync
 . "$U_S/tools/sh/parts/include.sh" # No-Sync
+
+sleep 5
 
 sh_include hd-offsets suite-from-table suite-source suite-run
 
