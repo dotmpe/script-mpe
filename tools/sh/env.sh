@@ -26,7 +26,7 @@ test -n "${sh_util_:-}" || {
   . "$sh_tools/util.sh"
 }
 
-sleep 5
+sleep 6
 
 sh_include \
   env-0-1-lib-sys \
