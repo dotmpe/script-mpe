@@ -62,6 +62,7 @@ env:
     - TMPDIR=/tmp
     - U_S=$HOME/build/dotmpe/user-scripts
     - secure: "nP5Xbt0z29UCAb9uEFcZl9dQN9XRxIbFv4VLjV5jtw0xIqBE5EzxU82E7fXihcWRZZ+Fs0Ah79CMQ8odCxotDIcNnMp02qdXGq6OD/vlB7cqcCpxPQD6lTTURGTqud8h+LWa6RVL4jXevy1mCUryx0rIM5xnwI2Uat6vCMY1Vng="
+    - DEBUG=1
 
 before_install:
   - . ./tools/ci/before-install.sh
