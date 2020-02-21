@@ -1150,11 +1150,11 @@ docker_sh_main()
 # FIXME: Pre-bootstrap init
 docker_sh_init()
 {
-  test -n "$LOG" ||
-    export LOG=/usr/local/share/mkdoc/Core/log.sh
+  test -n "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
+  # XXX: /usr/local/share/mkdoc/Core/log.sh
   test -z "$BOX_INIT" || return 1
   test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
+  test -n "${SCRIPTPATH:-}" || export SCRIPTPATH=$scriptpath
   test -e /var/run/docker.sock -a -x "$(which docker)" && {
     test -w /var/run/docker.sock || sudo="sudo "
     dckr=${sudo}docker
