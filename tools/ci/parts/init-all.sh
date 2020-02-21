@@ -24,8 +24,8 @@ test -z "${BUILD_ID:-}" || {
   mkdir -vp build
 }
 
-( mkdir -vp ~/.local && cd ~/.local/ && mkdir -vp  bin lib share )
-mkdir ~/build/local
+mkdir -vp ~/.local/{bin,lib,share}
+mkdir -vp ~/build/local
 
 not_trueish "$SHIPPABLE" || {
   mkdir -vp shippable/{testresults,codecoverage}
