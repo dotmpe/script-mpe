@@ -1159,7 +1159,10 @@ docker_sh_init()
     test -w /var/run/docker.sock || sudo="sudo "
     dckr=${sudo}docker
   }
-  util_mode=ext . $scriptpath/util.sh load-ext
+  # util_mode=ext . $scriptpath/util.sh load-ext
+  CWD=$scriptpath
+  . $scriptpath/tools/sh/init.sh
+
   lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   lib_load main box docker-sh
