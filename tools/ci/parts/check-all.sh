@@ -13,7 +13,7 @@ not_trueish "$SHIPPABLE" || {
   perl --version
 }
 
-test -z "$TEST_FEATURE_BIN" || "$TEST_FEATURE_BIN" --version
+test -z "${TEST_FEATURE_BIN:-}" || "$TEST_FEATURE_BIN" --version
 bats --version
 realpath --version
 
