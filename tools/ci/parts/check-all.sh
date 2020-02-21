@@ -38,6 +38,7 @@ travis version && {
 
 # Local commands should be on PATH and working OK
 
+LOG=$CWD/tools/sh/log.sh
 
 $LOG note "" "docker-sh"
 { { docker-sh.sh -V && docker-sh.sh --help
