@@ -3,10 +3,12 @@
 # Add user-scripts and dependencies to SCRIPTPATH
 
 type unique-paths >/dev/null 2>&1 || return 101
-test -n "${INIT_LOG:-}" || return 102
+test -n "${INIT_LOG:-}" || return 109
 
-: "${SCRIPTPATH:="$U_S/src/sh/lib"}"
-: "${VND_PATHS:="$(unique-paths $HOME/build ~/.basher/cellar/packages $VND_GH_SRC $VND_SRC_PREFIX)"}" # /src/*/ )"}"
+$INIT_LOG note "env-scriptpath-deps" "Current SCRIPTPATH" "$SCRIPTPATH"
+
+: "${SCRIPTPATH:="$PWD:$PWD/commands:$PWD/contexts"}" # $U_S/src/sh/lib:$U_S/commands"}"
+: "${VND_PATHS:="$(unique-paths ~/build $VND_GH_SRC $VND_SRC_PREFIX ~/.basher/cellar/packages)"}" # /src/*/ )"}"
 
 for supportlib in $(grep '^git ' $CWD/dependencies.txt|cut -d' ' -f2);
 do
