@@ -1150,7 +1150,8 @@ docker_sh_main()
 # FIXME: Pre-bootstrap init
 docker_sh_init()
 {
-  test -n "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
+  # XXX logger_stderr not loaded yet: test -n "$LOG" || export
+  LOG=$scriptpath/tools/sh/log.sh
   # XXX: /usr/local/share/mkdoc/Core/log.sh
   test -z "$BOX_INIT" || return 1
   test -n "$scriptpath"
@@ -1162,10 +1163,10 @@ docker_sh_init()
   # util_mode=ext . $scriptpath/util.sh load-ext
   CWD=$scriptpath
   . $scriptpath/tools/sh/init.sh
-
+  $CWD/tools/sh/log.sh "note" "" default_lib "$default_lib"
   lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
-  lib_load main box docker-sh
+  lib_load main box docker-sh logger std
   #lib_load projectdir
   box_run_sh_test
   # -- dckr-sh box init sentinel --
