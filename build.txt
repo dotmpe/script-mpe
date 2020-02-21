@@ -20,10 +20,9 @@ init-user-script            -   -   040 -    -   # Checkout U-S. No-Sync
 python-virtualenv           050 -   050 -    -
 env-scriptpath-deps         060 -   060 -    060
 lib-load                    070 -   070 -    -
-env-info                    -   090 090 090  090
-init-information            -   -   090 090  090
 
 # 1. Init:
+env-info                    -   -   10  10   -  
 check-git                   -   -   10  11   -
 parse-commit                -   -   12  12   102
 db-log-announce             -   -   -   -    -
