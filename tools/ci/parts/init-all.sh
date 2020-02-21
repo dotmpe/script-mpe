@@ -40,6 +40,7 @@ fnmatch "* basename-reg *" " $TEST_SPECS " && {
 #$scriptpath/tools/sh/parts/init.sh all
 
 #pip install -q docopt-mpe
+echo SRC_PREFIX=$SRC_PREFIX
 Build_Deps_Default_Paths=1 ./install-dependencies.sh all
 
 # Sync: U-S:
