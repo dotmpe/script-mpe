@@ -27,13 +27,13 @@ test -z "${BUILD_ID:-}" || {
 mkdir -vp ~/.local/{bin,lib,share}
 mkdir -vp ~/build/local
 
-type not_trueish
 not_trueish "$SHIPPABLE" || {
   mkdir -vp shippable/{testresults,codecoverage}
   test -d shippable/codecoverage
 }
 
-type fnmatch
+set -x
+
 fnmatch "* basename-reg *" " $TEST_SPECS " && {
   test -e ~/.basename-reg.yaml ||
     cp basename-reg.yaml ~/.basename-reg.yaml
