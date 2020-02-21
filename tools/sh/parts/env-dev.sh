@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-test -n "$U_S" -a -d "$U_S" || source ./tools/sh/parts/env-0-u_s.sh # No-Sync
+test -n "$U_S" -a -d "$U_S" || source $scriptpath/tools/sh/parts/env-0-u_s.sh # No-Sync
 #test -n "${LOG:-}" -a -x "${LOG:-}" || export LOG=$U_S/tools/sh/log.sh
 
 : "${hostname:="`hostname -s`"}"
