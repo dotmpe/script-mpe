@@ -39,9 +39,10 @@ fnmatch "* basename-reg *" " $TEST_SPECS " && {
 
 #$scriptpath/tools/sh/parts/init.sh all
 
-pip install docopt-mpe
-
+# XXX: no use with -r below... pip install docopt-mpe
 pip install -r requirements.txt
+pip uninstall docopt
+pip install docopt-mpe
 
 # XXX: why is SRC_PREFIX=/src/
 SRC_PREFIX=$HOME/build \
