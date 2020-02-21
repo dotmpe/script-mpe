@@ -37,7 +37,9 @@ fnmatch "* basename-reg *" " $TEST_SPECS " && {
     cp basename-reg.yaml ~/.basename-reg.yaml
 } || true
 
-pip install -q docopt-mpe
 #$scriptpath/tools/sh/parts/init.sh all
+
+#pip install -q docopt-mpe
+Build_Deps_Default_Paths=1 ./install-dependencies.sh all
 
 # Sync: U-S:
