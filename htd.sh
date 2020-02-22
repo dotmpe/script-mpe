@@ -5995,13 +5995,13 @@ TODO: update registry atime/utime once cache elapses?
 htd__prefixes()
 {
   test -n "$index" || local index=
-  test -s "$index" || prefix_require_names_index
+  test -s "$index" || prefix_require_names_index || return
 
   test -n "$1" || set -- op
   case "$1" in
 
     # Read from table
-    info|table-id ) shift ;       echo $UCONFDIR/$pathnames ; test -e "$pathnames" || return $? ;;
+    info|table-id ) shift ;  echo $UCONFDIR/$pathnames ; test -e "$pathnames" || return $? ;;
     raw-table ) shift ;      cat $UCONFDIR/$pathnames || return $? ;;
     tab|table )              prefix_tab || return $? ;;
     list )                   prefix_names || return $? ;;

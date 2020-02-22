@@ -45,8 +45,9 @@ EOM
 # Setup temp-file index for shell env profile, created from pathnames-table
 prefix_require_names_index() # Pathnames-Table
 {
-  test -n "$1" || set -- "$UCONFDIR/$pathnames" "$2"
-  test -n "$2" || set -- "$1" "$BASEDIR_TAB"
+  test -n "${1:-}" || set -- "$UCONFDIR/$pathnames" "${2:-}"
+  test -n "${2:-}" || set -- "$1" "$BASEDIR_TAB"
+  test $# -eq 2 || return
 
   test -n "$index" || export index=$2
   test -s "$index" -a "$index" -nt "$1" || {
@@ -56,13 +57,12 @@ prefix_require_names_index() # Pathnames-Table
   }
 }
 
-
 # List prefix varnames
 prefix_names()
 {
   # Build from tpl and cat file
   test -n "$index" || local index=
-  test -s "$index" || prefix_require_names_index
+  test -s "$index" || prefix_require_names_index || return
   read_nix_style_file $index | awk '{print $2}' | uniq
 }
 
@@ -71,7 +71,7 @@ prefix_names()
 prefix_resolve() # Local-Path
 {
   test -n "$index" || local index=
-  test -s "$index" || prefix_require_names_index
+  test -s "$index" || prefix_require_names_index || return
 
   # Set abs-path
   fnmatch "/*" "$1" || set -- "$(pwd -P)/$1"
@@ -107,7 +107,7 @@ prefix_resolve() # Local-Path
 prefix_resolve_all() # (Local-Path..|-)
 {
   test -n "$index" || local index=
-  test -s "$index" || prefix_require_names_index
+  test -s "$index" || prefix_require_names_index || return
 
   test "$1" = "-" && {
     while read p ; do prefix_resolve "$p" ; done
@@ -135,13 +135,12 @@ prefix_expand() # Prefix
   done
 }
 
-
 # Print user or default prefix-name lookup table
 prefix_tab()
 {
   test -n "$index" || local index=
-  prefix_require_names_index
-  test -s "$index"
+  prefix_require_names_index || return
+  test -s "$index" || return
   cat $index | sed 's/^[^\#]/'$(hostname -s)':&/g'
   note "OK, $(count_lines "$index") rules"
 }
@@ -205,7 +204,6 @@ htd_update_prefixes_couch()
   export COUCH_DB=htd sd_be=couchdb_sh
 
   # FIXME: create a global doc with hostname info at couchdb
-
   statusdir.sh del htd:$hostname:prefixes || true
 
   {
@@ -230,7 +228,6 @@ htd_update_prefixes()
   htd_update_prefixes_redis
   #htd_update_prefixes_couch
 }
-
 
 # XXX: List formatted prefixes from statusdir backend?
 htd_list_prefixes()

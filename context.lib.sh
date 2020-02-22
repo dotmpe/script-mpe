@@ -5,8 +5,9 @@
 
 context_lib_load()
 {
-  test -n "$CTX_TAB" || CTX_TAB=${STATUSDIR_ROOT}index/context.list
-  lib_assert statusdir
+  true "${CTX_DEF_NS:="HT"}" &&
+  true "${CTX_TAB:="${STATUSDIR_ROOT}index/context.list"}" &&
+  lib_assert prefix statusdir
 }
 
 # TODO: add dry-run, and add to install/provisioning script +U-c
@@ -72,34 +73,26 @@ context_existsi() # Tag
 context_existsub()
 {
   p_="$(match_grep "$1")" ; grep_fl=-qi
-  context_tab |
-      $ggrep $grep_fl "^[0-9a-z -]*\b[^ ]*\/$p_\\ "
-}
-
-# TODO: retrieve tag from default, or all NS
-context_tag()
-{
-  test -n "$NS" -a -n "$1" || error "tag: NS and arg:1 expected" 1 || return
-  context_tab |
-      $ggrep -n -m 1 "^[0-9a-z -]*\b$NS$1\\ "
+  context_tab | $ggrep $grep_fl "^[0-9a-z -]*\b[^ ]*\/$p_\\ "
 }
 
 # Return record for given ctx tag-id
 context_tag_entry()
 {
-  #test -n "$NS" -a -n "$1" || error "tag-entry: NS and arg:1 expected" 1
-  p_="$(match_grep "$1")"
-  context_tab |
-      $ggrep -n -m 1 "^[0-9a-z -]*\b$p_\\ "
+  test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
+  test -n "${NS:-}" || local NS=$CTX_DEF_NS
+  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b\\($NS:\\)\\?$1\\ "
+  #p_="$(match_grep "$1")"
+  #context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b\\($NS:\\)\\?$p_\\ "
 }
 
 # Return record for given ../subtag.
 context_subtag_entries()
 {
-  #test -n "$NS" -a -n "$1" || error "tag-entry: NS and arg:1 expected" 1
+  test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
+  #test -n "${NS:-}" || local NS=$CTX_DEF_NS
   p_="$(match_grep "$1")"
-  context_tab |
-      $ggrep -n -m 1 "^[0-9a-z -]*\b[^ ]*\/$p_\\ "
+  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b[^ ]*\/$p_\\ "
 }
 
 # Return tagged entries
@@ -107,22 +100,41 @@ context_tagged()
 {
   p_="$(match_grep "$1")"
   context_tab |
-    $ggrep -n "^[0-9a-z -]*\b[^ ]*.*\\ \\(@\\|+\\)$p_\\(\\ \\|$\\)"
+      $ggrep -n "^[0-9a-z -]*\b[^ ]*.*\\ \\(@\\|+\\)$p_\\(\\ \\|$\\)"
 }
 
 context_parse()
 {
+  test -n "$1" || return
+
   # Split grep-line number from rest
   line="$(echo "$1" | cut -d ':' -f 1)"
   rest="$(echo "$1" | cut -d ':' -f 2-)"
-  export line rest
 
   # Split rest into three parts (see docstat format), first stat descriptor part
   stat="$(echo "$rest" | grep -o '^[^_A-Za-z]*' )"
   rest="$(echo "$rest" | sed 's/[^_A-Za-z]*//' )"
 
+  # TODO: Use tags to find contexts with parse interface, and finish parsing
+  for ctx in ctx_${}
+  do
+    # TODO: context-parse contexts
+    ctx_iface__${ctx}
+    ctx__${ctx}__parse
+  done
+
+  # XXX:
   tagid="$(echo "$rest" | cut -d ' ' -f 1)"
-  export stat tagid rest
+  fnmatch "*:*" "$tagid" && {
+    prefix_require_names_index &&
+    local _tagns=$(echo "$tagid" | cut -d':' -f1) &&
+    prefix_pathnames_tab | grep -q "\\ $_tagns$" && {
+        tagid=$(echo "$tagid" | sed "s/^[^:]*://g") &&
+        tagns=$_tagns
+    }
+  }
+
+  true "${tagns:="$CTX_DEF_NS"}"
 }
 
 # XXX: docs
