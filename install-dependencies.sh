@@ -17,7 +17,7 @@ test -z "$Build_Debug" || set -x
 test -z "$Build_Deps_Default_Paths" || {
 
   test -n "$SRC_PREFIX" || {
-    test -w /src/ \
+    test -e /src/ -a -w /src/ \
       && SRC_PREFIX=/src/ \
       || SRC_PREFIX=$HOME/build
   }

@@ -66,10 +66,11 @@ ci_abort()
 
 ci_cleanup()
 {
-  exit=$? ; test $exite -gt 0 || return 0 ; sync
-  echo '------ Exited: '$exit  >&2
+  local exit=$? ; test $exit -gt 0 || return 0 ; sync
+  echo '------ ci-cleanup: Exited: '$exit  >&2
   # NOTE: BASH_LINENO is no use at travis, 'secure'
-  #echo "At $BASH_COMMAND:$LINENO"
+  echo "At $BASH_COMMAND:$LINENO"
+  echo "In 0:$0 scriptname:$scriptname"
   test "$USER" = "travis" || return $exit
   sleep 5 # Allow for buffers to clear?
   return $exit
