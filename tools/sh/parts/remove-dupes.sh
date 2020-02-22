@@ -3,5 +3,5 @@ remove-dupes() # ~
 {
   awk '!a[$0]++'
 }
-type remove_dupes || alias remove_dupes=remove-dupes
+type remove_dupes || alias remove_dupes=remove-dupes # FIXME: load proper file
 # Id: U-S:tools/sh/parts/remove-dupes.sh                          vim:ft=bash:
