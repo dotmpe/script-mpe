@@ -66,7 +66,7 @@ ci_abort()
 
 ci_cleanup()
 {
-  local exit=$? ; test $exit -gt 0 || return 0 ; sync
+  local exit=$? ; test ${exit:-0} -gt 0 || return 0 ; sync
   echo '------ ci-cleanup: Exited: '$exit  >&2
   # NOTE: BASH_LINENO is no use at travis, 'secure'
   echo "At $BASH_COMMAND:$LINENO"
