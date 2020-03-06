@@ -26,13 +26,13 @@ dckr_ledge_exists && {
 }
 
 test -s "$builds_log" && {
-  ci_announce "Last three logs (of $(wc -l "$builds_log"|awk '{print $1}')) where:"
+  ci_announce "Existing builds log found, last three logs (of $(wc -l "$builds_log"|awk '{print $1}')) where:"
   tail -n 3 "$builds_log" || true
 } ||
   ci_announce "No existing builds log found"
 
 test -s "$results_log" && {
-  ci_announce "Last three build results (of $(wc -l "$results_log"|awk '{print $1}')) where:"
+  ci_announce "Existing results log found; last three logs (of $(wc -l "$results_log"|awk '{print $1}')) where:"
   tail -n 3 "$results_log" || true
 } ||
   ci_announce "No existing results log found"
@@ -44,7 +44,7 @@ printf '%s %s %s %s %s %s\n' "$TRAVIS_TIMER_START_TIME" \
  "$TRAVIS_BRANCH" \
  "$TRAVIS_COMMIT_RANGE" \
  "$TRAVIS_BUILD_ID" >>"$builds_log"
-ci_announce 'New log:'
+ci_announce 'New builds log:'
 tail -n 1 "$builds_log"
 wc -l "$builds_log" || true
 
