@@ -61,7 +61,7 @@ env:
     - COUCH_DB=test
     - TMPDIR=/tmp
     - U_S=$HOME/build/dotmpe/user-scripts
-    - secure: "nP5Xbt0z29UCAb9uEFcZl9dQN9XRxIbFv4VLjV5jtw0xIqBE5EzxU82E7fXihcWRZZ+Fs0Ah79CMQ8odCxotDIcNnMp02qdXGq6OD/vlB7cqcCpxPQD6lTTURGTqud8h+LWa6RVL4jXevy1mCUryx0rIM5xnwI2Uat6vCMY1Vng="
+    - secure: bg+bWiCNW5rO2ncMQ9PaOw382X0VvTqnTxn4SiK68hN7Mq2W4o7YoxREzKc5ivWOOYRgfwYmaeBIazqYgsO5qyXOfr+HQE26LgwpLTvB+PKOwdK06Pg82iSU2j/oubtn9kij4iiQtd+CYf0gBcI1iOxaoqkTExJsHeyNda7fXBQ=
 
 before_install:
   - . ./tools/ci/before-install.sh
