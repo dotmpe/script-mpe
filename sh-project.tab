@@ -1,7 +1,7 @@
 # varspec              cmdspec                                                 #
 
-/LOG                   true
- /SCRIPTPATH           ./bin/u-s help
+#/LOG                   true
+# /SCRIPTPATH           ./bin/u-s help
 #. ./tools/sh/env.sh    . ./tools/sh/init.sh
 #                       ./tools/sh/init-here.sh
 
