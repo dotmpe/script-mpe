@@ -45,15 +45,16 @@ set -euo pipefail
 # FIXME: ./sh-main: line 203: ci_exec: command not found
 #true                                           ./sh-main lines sh-baseline.tab >/dev/null
 
-true                                           . ./tools/sh/parts/env-strict.sh
-DOCKER_NS=dotmpe                               . ./tools/sh/parts/env-docker-hub.sh
-# XXX: sh_include required:
-#true                                           . ./tools/sh/parts/env-dev.sh
-true                                           . ./tools/sh/parts/env-0.sh
-true                                           . ./tools/sh/parts/env-0-src.sh
-true                                           . ./tools/sh/parts/env-std.sh
-true                                           . ./tools/sh/parts/env-test.sh
-true                                           . ./tools/sh/parts/env-test-bats.sh
+set -euo pipefail
+  true                                         . ./tools/sh/parts/env-strict.sh
+  DOCKER_NS=dotmpe                             . ./tools/sh/parts/env-docker-hub.sh
+  # XXX: sh_include required:
+  #true                                         . ./tools/sh/parts/env-dev.sh
+  true                                         . ./tools/sh/parts/env-0.sh
+  true                                         . ./tools/sh/parts/env-0-src.sh
+  true                                         . ./tools/sh/parts/env-std.sh
+  true                                         . ./tools/sh/parts/env-test.sh
+  true                                         . ./tools/sh/parts/env-test-bats.sh
 
 # varspec                                      cmdspec                        #
 #true                                           ./sh-main run-parts build.txt Sh 0
