@@ -763,7 +763,7 @@ main_run_subcmd()
 
   #func_exists ${base}_parse_subcmd_args
 
-  true "${box_prefix:=$(mkvid $base; echo $vid)}"
+  true "${box_prefix:="$(mkvid $base; echo $vid)"}"
 
   main_subcmd_args "$@" || {
     error "parsing args" $?

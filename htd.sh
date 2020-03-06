@@ -303,7 +303,7 @@ htd_load()
         } || warn "No local package '$PACKMETA'"
       ;;
 
-    q ) # set if not set, don't update and eval package main env
+    q | Q ) # set if not set, don't update, eval package main env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
             test -n "$PACKMETA" -a -e "$PACKMETA" &&
                 stderr note "Using package '$PACKMETA'" ||
@@ -313,12 +313,14 @@ htd_load()
         }
 
         # Evaluate package env
-        . $PACKMETA_SH || stderr error "local package" 7
+        test ! -e "$PACKMETA_SH" -a "$x" = "q" || {
 
-        test "$package_type" = "application/vnd.org.wtwta.project" ||
-                stderr error "Project package expected (not $package_type)" 4
-        test -n "$package_env" || export package_env=". $PACKMETA_SH"
-        $LOG debug "" "Found package '$package_id'"
+          . $PACKMETA_SH || stderr error "local package" 7
+          test "$package_type" = "application/vnd.org.wtwta.project" ||
+                  stderr error "Project package expected (not $package_type)" 4
+          test -n "$package_env" || export package_env=". $PACKMETA_SH"
+          $LOG debug "" "Found package '$package_id'"
+        }
       ;;
 
     r ) # register package - requires 'p' first. Sets PROJECT Id and manages

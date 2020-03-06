@@ -76,14 +76,14 @@ set -euo pipefail
 
 # varspec                                      cmdspec                        #
 
-verbosity=5 VND_SRC_PREFIX=$HOME/build
- export CWD=$PWD verbosity VND_SRC_PREFIX
-  set -euo pipefail
-   true                                        bats test/baseline/bats.bats
-   . tools/sh/env.sh
-    . tools/ci/util.sh
-        v=4                                    ci_test test/baseline/bats.bats
-        v=4                                    ci_test_negative test/baseline/bats-negative.bats
+#verbosity=5 VND_SRC_PREFIX=$HOME/build
+# export CWD=$PWD verbosity VND_SRC_PREFIX
+#  set -euo pipefail
+#   true                                        bats test/baseline/bats.bats
+#   . tools/sh/env.sh
+#    . tools/ci/util.sh
+#        v=4                                    ci_test test/baseline/bats.bats
+#        v=4                                    ci_test_negative test/baseline/bats-negative.bats
 #      v=4                                      ci_test test/unit/std-stack.bats
 #      v=4                                      ci_test test/baseline/1-shell.bats
 #      v=4                                      ci_test test/baseline/2-bash.bats

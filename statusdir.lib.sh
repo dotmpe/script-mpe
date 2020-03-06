@@ -23,7 +23,7 @@ statusdir_lib_init()
   test -n "$INIT_LOG" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
 
   trueish "$choice_init" && {
-    statusdir_init
+    statusdir_init &&
     return $?
   }
   statusdir_check

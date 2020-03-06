@@ -3,6 +3,8 @@
 
 notify_desktop()
 {
+  # FIXME: notify
+  test "$uname" = "darwin" || return 0
   # NOTE: standalone osascript and macos user-preferences does not offer further
   # much usa notification toolkit
   # use,
