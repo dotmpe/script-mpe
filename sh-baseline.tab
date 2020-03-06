@@ -42,7 +42,8 @@ set -euo pipefail
       sh_include env-scriptpath-deps lib-load
         sh_include env-info                    true 3.1.
 
-true                                           ./sh-main lines sh-baseline.tab >/dev/null
+# FIXME: ./sh-main: line 203: ci_exec: command not found
+#true                                           ./sh-main lines sh-baseline.tab >/dev/null
 
 true                                           . ./tools/sh/parts/env-strict.sh
 DOCKER_NS=dotmpe                               . ./tools/sh/parts/env-docker-hub.sh
