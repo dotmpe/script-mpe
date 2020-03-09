@@ -115,3 +115,32 @@ Sequence
 # TRAVIS_BUILD_ID=[1-0][0-9]*
 # TRAVIS_JOB_ID=[1-0][0-9]*
 
+Logging
+-------
+::
+
+    $sd_logsdir/builds-$PROJ_LBL.list
+    $sd_logsdir/results-$PROJ_LBL.list
+
+Commands in ``u_s-dckr.lib.sh`` (`U-s:bin/u-s`):
+
+- ledge-showbuilds
+- ledge-exists
+- ledge-pull
+- ledge-listlogs
+- ledge-sumlogs
+- ledge-refreshlogs
+- ledge-pushlogs
+
+Logs are kept in a docker volume committed to an image. To avoid sync issues
+each projects' logs are kept in a separate container, but may be merged by a
+coordinated build.
+
+The above commands operate on that one image and pull or push logs from the
+local sd-logsdir spec.
+
+List all tags for image::
+
+  docker-hub tags dotmpe/ledge
+
+..

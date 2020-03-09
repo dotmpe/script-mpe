@@ -6,6 +6,9 @@ web_lib_load()
   # URL-Ref-or-Scheme-Path
   url_re='\(<[_a-zA-z][_a-zA-z0-9-]\+:[^> ]\+>\|[_a-zA-z][_a-zA-z0-9-]\+:\/[^ ]\+\)'
   url_bare_re='[_a-zA-z][_a-zA-z0-9-]\+:\/[^> ]\+'
+  test -x "$(which curl)" && bin_http=curl || {
+    test -x "$(which wget)" && bin_http=wget || return
+  }
 }
 
 wanip()
@@ -108,3 +111,16 @@ htd_urls_urlstat() # Text-File [Init-Tags]
   htd_urls_list "$urlstat_file" | Init_Tags="$*" urlstat_checkall
   rm "$failed"
 }
+
+web_fetch() # URL [Output=-]
+{
+  test $# -ge 1 -a $# -le 2 || return
+  test $# -eq 1 && set -- "$1" -
+
+  case "$bin_http" in
+    curl ) curl -sSf $1 -o $2 ;;
+    wget ) wget -q $1 -O $2 ;;
+  esac
+}
+
+#

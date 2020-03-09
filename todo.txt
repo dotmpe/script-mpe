@@ -73,4 +73,6 @@ http://github.com/BlueFlo0d/CSP/wiki/Implementation-details
 
 #include::HT:todo-mpe-7.txt: +Script.mpe
 
+2020-03-07 Log build results uid:Jn7E results-log see also builds-log <build.rst#logging>
+
 # vim:ft=todo.txt:nowrap:
