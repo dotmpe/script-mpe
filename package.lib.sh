@@ -3,17 +3,16 @@
 # Deal with package metadata files
 
 
-# Set
 package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
-  #lib_load sys os src
+  lib_assert sys os src || return
 
-  test -n "$1" || set -- .
+  test -n "${1-}" || set -- .
   #upper=0 default_env out-fmt py || true
-  test -n "$PACK_DIR" || PACK_DIR=.htd
+  test -n "${PACK_DIR-}" || PACK_DIR=.htd
   test -d "$1"/$PACK_DIR || mkdir "$1"/$PACK_DIR
-  test -n "$PACK_TOOLS" || PACK_TOOLS=$PACK_DIR/tools
-  test -n "$PACK_SCRIPTS" || PACK_SCRIPTS=$PACK_DIR/scripts
+  test -n "${PACK_TOOLS-}" || PACK_TOOLS=$PACK_DIR/tools
+  test -n "${PACK_SCRIPTS-}" || PACK_SCRIPTS=$PACK_DIR/scripts
   # Get first existing file
   PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
   # Detect wether Pre-process is needed
@@ -25,16 +24,18 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
   } || PACKMETA_SRC=''
 
   # XXX: Python path for local lib, & pyvenv
-  export PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/usr-py
+  export PYTHONPATH=${PYTHONPATH-"$PYTHONPATH:"}$HOME/.local/lib/usr-py
   #. ~/.pyvenv/htd/bin/activate
-  preprocess_package || true
+  #preprocess_package || true
 }
 
 package_lib_init()
 {
-  test -z "$package_id" -a  \
-      -z "$package_main" || warn "Already initialized ($package_id/$package_main)"
-  package_init_env && package_req_env || warn "Default package env"
+  test "${package_lib_init-}" = "0" && return
+#
+#  test -z "$package_id" -a  \
+#      -z "$package_main" || warn "Already initialized ($package_id/$package_main)"
+#  package_init_env && package_req_env || warn "Default package env"
 }
 
 # Preprocess YAML
@@ -117,19 +118,19 @@ package_lib_set_local()
 
 package_defaults()
 {
-  test -n "$package_main" || package_main="$package_id"
-  test -n "$package_env_file" || package_env_file=$PACK_TOOLS/env.sh
-  test -n "$package_log_dir" -o -n "$package_log" || package_log="$package_log_dir"
+  test -n "${package_main-}" || package_main="$package_id"
+  test -n "${package_env_file-}" || package_env_file=$PACK_TOOLS/env.sh
+  test -n "${package_log_dir-}" -o -n "$package_log" || package_log="$package_log_dir"
 
-  test -n "$package_components" || package_components=package_components
-  test -n "$package_component_name" || package_component_name=package_component_name
+  test -n "${package_components-}" || package_components=package_components
+  test -n "${package_component_name-}" || package_component_name=package_component_name
 
-  test -n "$package_permalog_path" || package_permalog_path=cabinet
-  test -n "$package_permalog_method" || package_permalog_method=archive
-  test -n "$package_pd_meta_checks" || package_pd_meta_checks=
-  test -n "$package_check_method" || package_check_method=
-  test -n "$package_pd_meta_tests" || package_pd_meta_tests=
-  test -n "$package_pd_meta_targets" || package_pd_meta_targets=
+  test -n "${package_permalog_path-}" || package_permalog_path=cabinet
+  test -n "${package_permalog_method-}" || package_permalog_method=archive
+  test -n "${package_pd_meta_checks-}" || package_pd_meta_checks=
+  test -n "${package_check_method-}" || package_check_method=
+  test -n "${package_pd_meta_tests-}" || package_pd_meta_tests=
+  test -n "${package_pd_meta_targets-}" || package_pd_meta_targets=
 }
 
 package_default_id()
@@ -141,7 +142,7 @@ package_default_id()
 
 package_file()
 {
-  test -n "$metaf" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
+  test -n "${metaf-}" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   test -e "$metaf" || error "No package-file at '$1' '$metaf'" 1
   metaf="$(normalize_relative "$metaf")"
 
@@ -199,7 +200,7 @@ jsotk_package_sh_defaults()
 # Setup eithr local or default package env.
 package_init_env()
 {
-  test -n "$PACKMETA_SH" || {
+  test -n "${PACKMETA_SH-}" || {
     note "Setting package lib env"
     package_lib_set_local . || {
 
@@ -213,7 +214,7 @@ package_init_env()
 # Require sh package env.
 package_req_env()
 {
-  test -n "$PACKMETA_SH" || return
+  test -n "${PACKMETA_SH-}" || return
   note "Loading package lib env"
   test -e "$PACKMETA_SH" || return
   . "$PACKMETA_SH" || return
@@ -362,7 +363,8 @@ package_sh()
   test -e "$PACKMETA" && {
     update_package $(pwd -P) || return $?
   }
-  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || error "package-sh '$PACKMETA_SH'" 1
+  test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" ||
+      error "package-sh '$PACKMETA_SH'" 1
   # Use util from str.lib to get the keys from the properties file
   property "$PACKMETA_SH" "$prefix" "$sub" "$@"
 }
@@ -424,7 +426,7 @@ package_sh_get() # PACKAGE-SH NAME-KEY
 # and other project tasks (sh routines, make, cron, CI/CD, etc.)
 package_sh_env()
 {
-  test -n "$PACKMETA_SH" || package_lib_set_local . || return
+  test -n "${PACKMETA_SH-}" || package_lib_set_local . || return
   test -n "$package_shell" || package_shell="$default_package_shell"
   echo "#!$package_shell"
   test -n "$package_env" && {
@@ -440,8 +442,8 @@ package_sh_env()
 package_sh_env_script() # [Path]
 {
   local script_out=
-  test -n "$1" && script_out="$1" || script_out="$package_env_file"
-  test -n "$PACKMETA_SH" || package_lib_set_local . || return
+  test -n "${1-}" && script_out="$1" || script_out="$package_env_file"
+  test -n "${PACKMETA_SH-}" || package_lib_set_local . || return
   test -s $script_out -a $script_out -nt $PACKMETA && {
     std_info "Newest version of Env-Script $script_out exists"
   } || {
@@ -457,7 +459,7 @@ package_sh_env_script() # [Path]
 # package-sh-script SCRIPTNAME [JSOTKFILE]
 package_js_script()
 {
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)" || return
+  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)" || return
   test -n "$2" || set -- "$1" $PACKMETA_JS_MAIN
   test -e "$2"
   jsotk.py path -O lines "$2" scripts/$1 || {
@@ -471,9 +473,13 @@ package_js_script()
 # Read from package.sh, no env required. But source env if using show-eval(on)
 package_sh_list() # show_index=0 show_item=1 show_eval=1 PACKAGE-SH LIST-KEY
 {
-  test -n "$1" || set -- $PACKMETA_SH "$2" "$3" "$4"
-  test -n "$2" || error package_sh_list:list-key 1
-  test -n "$4" || set -- "$1" "$2" "$3" "package_"
+
+  test -n "${1-}" || {
+    test -n "${PACKMETA_SH-}" || return
+    set -- $PACKMETA_SH "${2-}" "${3-}" "${4-}"
+  }
+  test -n "${2-}" || error package_sh_list:list-key 1
+  test -n "${4-}" || set -- "$1" "$2" "${3-}" "package_"
   test -n "$show_index" || show_index=0
   test -n "$show_item" || show_item=1
   test -n "$show_eval" || show_eval=1

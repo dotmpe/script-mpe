@@ -56,12 +56,12 @@ mksid()
 # mkvid STR
 mkvid()
 {
-  test -n "$1" || error "mkvid argument expected ($*)" 1
-  trueish "$upper" && {
+  test $# -eq 1 -a -n "${1-}" || error "mkvid argument expected ($*)" 1
+  trueish "${upper-}" && {
     vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
     return
   }
-  falseish "$upper" && {
+  falseish "${upper-}" && {
     vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'A-Z' 'a-z')
     return
   }

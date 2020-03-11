@@ -3,12 +3,13 @@
 
 basedir_lib_load()
 {
-  lib_assert statusdir
-  test -n "$BDIR_TAB" || BDIR_TAB=${STATUSDIR_ROOT}index/basedir.list
+  lib_assert statusdir || return
+  test -n "${BDIR_TAB-}" || BDIR_TAB=${STATUSDIR_ROOT}index/basedir.list
 }
 
 basedir_lib_init()
 {
+  test "${basedir_lib_init-}" = "0" && return
   test -e "$BDIR_TAB" || {
     mkdir -p "$(dirname "$BDIR_TAB")" && touch "$BDIR_TAB"
   }

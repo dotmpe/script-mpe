@@ -54,11 +54,11 @@ tasks__help ()
 
 htd_tasks_lib_load()
 {
-  test -n "$TODOTXT_EDITOR" || {
+  test -n "${TODOTXT_EDITOR-}" || {
     test -x "$(command -v todotxt-machine)" &&
       TODOTXT_EDITOR=todotxt-machine || TODOTXT_EDITOR=$EDITOR
   }
-  test -n "$tasks_hub" || {
+  test -n "${tasks_hub-}" || {
     eval $(map=package_pd_meta_ package_sh tasks_hub)
     test -z "$tasks_hub" -o -e "$tasks_hub" || mkdir -p "$tasks_hub"
   }
@@ -67,7 +67,7 @@ htd_tasks_lib_load()
 htd__tasks()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  test -z "$echo" || tasks_echo=$echo
+  test -z "${echo-}" || tasks_echo=$echo
 
   case "$1" in
 

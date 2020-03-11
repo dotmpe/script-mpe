@@ -5,7 +5,8 @@
 
 stdio_lib_init()
 {
-  lib_assert log
+  test "${stdio_lib_init-}" = "0" && return
+  lib_assert log || return
 
   local log=; req_init_log
   $log info "" "Loaded stdio.lib" "$0"

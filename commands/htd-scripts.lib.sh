@@ -1,10 +1,11 @@
 #!/bin/sh
 
 
-htd_scripts_lib_load()
-{
-  trueish "$package_lib_loaded"
-}
+# XXX:
+#htd_scripts_lib_load()
+#{
+#  test "${package_lib_loaded:-}"
+#}
 
 
 htd_scripts_names()

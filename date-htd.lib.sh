@@ -31,6 +31,8 @@ date_htd_lib_load()
 
 date_lib_init()
 {
+  test "${date_lib_init-}" = "0" && return
+
   lib_assert sys os str || return
   case "$uname" in
     darwin ) gdate="gdate" ;;

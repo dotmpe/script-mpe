@@ -5,20 +5,22 @@
 doc_lib_load()
 {
   lib_load match || return
-  test -n "$DOC_EXT" || DOC_EXT=.rst
-  test -n "$DOC_EXTS" || DOC_EXTS=".rst .md .txt .feature .html .htm"
-  test -n "$DOC_MAIN" || DOC_MAIN="ReadMe main ChangeLog index doc/main docs/main"
+  test -n "${DOC_EXT-}" || DOC_EXT=.rst
+  test -n "${DOC_EXTS-}" || DOC_EXTS=".rst .md .txt .feature .html .htm"
+  test -n "${DOC_MAIN-}" || DOC_MAIN="ReadMe main ChangeLog index doc/main docs/main"
 }
 
 doc_lib_init()
 {
-  test -n "$package_log_doctitle_fmt" ||
+  test "${doc_lib_init-}" = "0" && return
+
+  test -n "${package_log_doctitle_fmt-}" ||
       package_log_doctitle_fmt="%a, week %V. '%g"
-  test -z "$package_lists_documents_exts" ||
+  test -z "${package_lists_documents_exts-}" ||
       DOC_EXTS="$package_lists_documents_exts"
 
-  test -n "$package_docs_find" || package_docs_find=doc_find_name
-  test -n "$package_doc_find" || package_doc_find=doc_find_name
+  test -n "${package_docs_find-}" || package_docs_find=doc_find_name
+  test -n "${package_doc_find-}" || package_doc_find=doc_find_name
 
   spwd=.
 

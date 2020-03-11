@@ -845,8 +845,8 @@ EOM
 
 vc_info()
 {
-  test -n "$1" || set -- "." "  "
-  test -n "$PACKMETA_SH" -a -s "$PACKMETA_SH" && {
+  test -n "${1-}" || set -- "." "  "
+  test -n "${PACKMETA_SH-}" -a -s "${PACKMETA_SH-}" && {
 
     note "Sourcing '$PACKMETA_SH'..."
     . "$PACKMETA_SH"

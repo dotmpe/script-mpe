@@ -4,7 +4,7 @@
 
 htd_package_list_ids()
 {
-  test -e "$PACKMETA" || error "htd-package-list-ids no file '$PACKMETA'" 1
+  test -e "${PACKMETA-}" || error "htd-package-list-ids no file '$PACKMETA'" 1
   jsotk.py -I yaml -O py objectpath $PACKMETA '$.*[@.id is not None].id'
 }
 
@@ -48,15 +48,15 @@ htd_package_debug()
 # List strings at main package 'urls' key
 htd_package_urls()
 {
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
+  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
+  test -e "${PACKMETA_JS_MAIN-}" || error "No '$PACKMETA_JS_MAIN' file" 1
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" urls
 }
 
 htd_package_open_url()
 {
-  test -n "$1" || error "name expected" 1
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
+  test -n "${1-}" || error "name expected" 1
+  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
   . $PACKMETA_SH
   url=$( upper=0 mkvid "$1" && eval echo \$package_urls_$vid )
   test -n "$url" || error "no url for name '$1'" 1
@@ -68,8 +68,8 @@ htd_package_open_url()
 # remote repository or adding/updating each name/URL.
 htd_package_remotes_init()
 {
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
-  test -e "$PACKMETA_JS_MAIN" || error "No '$PACKMETA_JS_MAIN' file" 1
+  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
+  test -e "${PACKMETA_JS_MAIN-}" || error "No '$PACKMETA_JS_MAIN' file" 1
   vc_getscm
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
       tr '=' ' ' | while read -r remote url
@@ -91,7 +91,7 @@ htd_package_remotes_init()
 
 htd_package_remotes_reset()
 {
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
+  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
   git remote | while read -r remote
   do
       git remote remove $remote && std_info "Removed '$remote'"
@@ -102,9 +102,9 @@ htd_package_remotes_reset()
 
 htd_package_write_script() # [env script_out=.htd/scripts/NAME] : NAME
 {
-  test -n "$1" || set -- "init"
-  test -n "$script_out" || script_out=.htd/scripts/$1.sh
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
+  test -n "${1-}" || set -- "init"
+  test -n "${script_out-}" || script_out=.htd/scripts/$1.sh
+  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
 
   test -s $script_out -a $script_out -nt $PACKMETA && {
     note "Newest version of $script_out exists"
@@ -147,7 +147,7 @@ htd_package_write_script() # [env script_out=.htd/scripts/NAME] : NAME
 htd_package_write_scripts() # NAMES...
 {
   # Init env, update package if stale, if not set yet
-  test -n "$PACKMETA_SH" || package_lib_set_local "$(pwd -P)"
+  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
   # Handle options
   test -z "$no_eval" || eval=0
   test -z "$eval" || show_eval=$eval

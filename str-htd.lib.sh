@@ -4,14 +4,14 @@
 # Set env for str.lib.sh
 str_htd_lib_load()
 {
-  test -n "$uname" || uname="$(uname -s)"
+  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   case "$uname" in
       darwin ) expr=bash-substr ;;
       linux ) expr=sh-substr ;;
       * ) error "Unable to init expr for '$uname'" 1;;
   esac
 
-  test -n "$ext_groupglob" || {
+  test -n "${ext_groupglob-}" || {
     test "$(echo {foo,bar}-{el,baz})" != "{foo,bar}-{el,baz}" \
           && ext_groupglob=1 \
           || ext_groupglob=0
@@ -19,7 +19,7 @@ str_htd_lib_load()
     #debug "Initialized ext_groupglob=$ext_groupglob"
   }
 
-  test -n "$ext_sh_sub" || ext_sh_sub=0
+  test -n "${ext_sh_sub-}" || ext_sh_sub=0
 
   #      echo "${1/$2/$3}" ... =
   #        && ext_sh_sub=1 \
@@ -69,12 +69,12 @@ mksid()
 # mkvid STR
 mkvid()
 {
-  test -n "$1" || error "mkvid argument expected ($*)" 1
-  trueish "$upper" && {
+  test $# -eq 1 -a -n "${1-}" || error "mkvid argument expected ($*)" 1
+  trueish "${upper-}" && {
     vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
     return
   }
-  falseish "$upper" && {
+  falseish "${upper-}" && {
     vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'A-Z' 'a-z')
     return
   }

@@ -7,22 +7,22 @@ catalog_lib_load()
   lib_load ck-htd ck || return
 
   # Existing or default catalog file (relative path) for PWD
-  test -n "$CATALOG_DEFAULT" || {
+  test -n "${CATALOG_DEFAULT-}" || {
     CATALOG_DEFAULT=$(htd_catalog_name) || CATALOG_DEFAULT=catalog.yaml
   }
-  test -n "$CATALOG_IGNORE_DIR" || CATALOG_IGNORE_DIR=.catalog-ignore
-  test -n "$CATALOG" || CATALOG="$CATALOG_DEFAULT"
+  test -n "${CATALOG_IGNORE_DIR-}" || CATALOG_IGNORE_DIR=.catalog-ignore
+  test -n "${CATALOG-}" || CATALOG="$CATALOG_DEFAULT"
 
   # List for all catalogs (global) or below PWD (default)
-  test -n "$CATALOGS" || CATALOGS=.cllct/catalogs.list
-  test -n "$GLOBAL_CATALOGS" ||
+  test -n "${CATALOGS-}" || CATALOGS=.cllct/catalogs.list
+  test -n "${GLOBAL_CATALOGS-}" ||
       GLOBAL_CATALOGS=$HOME/$(pathname $CATALOGS .list)-global.list
 
-  test -n "$Catalog_Status" || Catalog_Status=.cllct/catalog-status.vars
-  test -n "$Catalog_Ignores" || Catalog_Ignores=.cllct/ignores
-  test -n "$Catalog_Duplicates" || Catalog_Duplicates=.cllct/duplicates
+  test -n "${Catalog_Status-}" || Catalog_Status=.cllct/catalog-status.vars
+  test -n "${Catalog_Ignores-}" || Catalog_Ignores=.cllct/ignores
+  test -n "${Catalog_Duplicates-}" || Catalog_Duplicates=.cllct/duplicates
 
-  test -n "$ANNEX_DIR" || {
+  test -n "${ANNEX_DIR-}" || {
     ANNEX_DIR="/srv/annex-local"
     test ! -h "$ANNEX_DIR" || ANNEX_DIR="/srv/$(readlink /srv/annex-local)"
   }
@@ -30,6 +30,7 @@ catalog_lib_load()
 
 catalog_lib_init()
 {
+  test "${catalog_lib_init-}" = "0" && return
   test -d .cllct || mkdir .cllct
   true "${define_all:=1}" # XXX: override htd-load to set any argv opts to vars
 }

@@ -24,11 +24,11 @@ build_main()
       *static )
           ;;
 
-      * )   test "1" = "$build_test_lib_loaded" && {
+      * )   test "0" = "$build_test_lib_loaded" && {
 
               build_test_init || return
             } || {
-              test "1" = "$build_lib_loaded" && {
+              test "0" = "$build_lib_loaded" && {
 
                 build_init || return
               } || {

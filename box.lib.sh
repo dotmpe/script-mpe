@@ -5,12 +5,14 @@
 
 box_lib_load()
 {
-  test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${box_name-}" || box_name=$hostname
 }
 
 box_lib_init()
 {
+  test "${box_lib_init-}" = "0" && return
+
   lib_assert src
 
   test -z "$DEBUG" || {

@@ -4,7 +4,9 @@ functions_htd_lib_load()
 {
   true "${lib_functions_grep:="[[:alnum:]_-]*"}"
 }
-#functions_htd_lib_init() {}
+#functions_htd_lib_init() {
+#  test "${functions_htd_lib_init-}" = "0" && return
+#}
 
 
 functions_find_names() # ~ <Func-Name-Grep> [<SCRIPTSVAR>]

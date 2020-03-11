@@ -5,15 +5,16 @@
 
 disk_lib_load()
 {
-  test -n "$uname" || uname=$(uname)
-  test -n "$whoami" || whoami=$(whoami)
-  test -n "$hostname" || hostname=$(hostname)
+  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${username-}" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
+  test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
 
-  test -n "$DISK_CATALOG" || DISK_CATALOG=$HOME/.diskdoc
+  test -n "${DISK_CATALOG-}" || DISK_CATALOG=$HOME/.diskdoc
 }
 
 disk_lib_init()
 {
+  test "${disk_lib_init-}" = "0" && return
   local log=; req_init_log
 
   test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG

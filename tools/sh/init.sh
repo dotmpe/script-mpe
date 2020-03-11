@@ -29,7 +29,7 @@ test -n "$sh_tools" || sh_tools="$U_S/tools/sh"
 test -z "$DEBUG" || echo . $u_s_lib/lib.lib.sh >&2
 {
   . $u_s_lib/lib.lib.sh || return $?
-  lib_lib_load && lib_lib_loaded=1 || return $?
+  lib_lib_load && lib_lib_loaded=0 || return $?
   lib_lib_init
 } ||
   $INIT_LOG "error" "$scriptname:init.sh" "Failed at lib.lib $?" "" 1
@@ -54,6 +54,7 @@ test "$init_sh_libs" = "0" || {
 
   test -n "$init_sh_boot" || init_sh_boot=1
   test -n "$init_sh_boot" && {
+
     test "$init_sh_boot" != "0" || init_sh_boot=null
     test "$init_sh_boot" != "1" || init_sh_boot=stderr-console-logger
   }

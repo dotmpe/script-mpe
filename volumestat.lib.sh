@@ -4,12 +4,14 @@
 
 volumestat_lib_load()
 {
-  lib_assert statusdir
-  test -n "$VOLSTAT_TAB" || VOLSTAT_TAB=${STATUSDIR_ROOT}index/volumestat.tab
+  lib_assert statusdir || return
+  test -n "${VOLSTAT_TAB-}" || VOLSTAT_TAB=${STATUSDIR_ROOT}index/volumestat.tab
 }
 
 volumestat_lib_init()
 {
+  test "${volumestat_lib_init-}" = "0" && return
+
   test -e "$VOLSTAT_TAB" || {
     touch "$VOLSTAT_TAB" || return
   }

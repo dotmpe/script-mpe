@@ -3,12 +3,13 @@
 
 urlstat_lib_load()
 {
-  lib_assert statusdir
+  lib_assert statusdir || return
   test -n "${URLSTAT_TAB-}" || URLSTAT_TAB=${STATUSDIR_ROOT}index/urlstat.list
 }
 
 urlstat_lib_init()
 {
+  test "${urlstat_lib_init-}" = "0" && return
   test -e "$URLSTAT_TAB" || {
     touch "$URLSTAT_TAB" || return
   }

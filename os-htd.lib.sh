@@ -5,12 +5,13 @@
 
 os_htd_lib_load()
 {
-  test -n "$uname" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  test -n "$os" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${os-}" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 }
 
-os_lib_init()
+os_htd_lib_init()
 {
+  test "${os_htd_lib_init-}" = "0" && return
   test -n "$LOG" -a \( -x "$LOG" -o "$(type -t "$LOG")" = "function" \) \
     && os_htd_lib_log="$LOG" || os_htd_lib_log="$INIT_LOG"
   test -n "$os_htd_lib_log" || return 102
@@ -97,7 +98,7 @@ short()
 {
   test -n "$1" || set -- "$(pwd)"
   # XXX maybe replace python script. Only replaces home
-  $scriptpath/short-pwd.py -1 "$1"
+  $HOME/bin/short-pwd.py -1 "$1"
 }
 
 # [exts=] basenames [ .EXTS ] PATH...

@@ -6,18 +6,18 @@
 # Set default vars
 vcflow_lib_load()
 {
-  test -n "$VCFLOW_DOC_EXTS" || VCFLOW_DOC_EXTS=".tab .txt"
-  test -n "$vcflow_feature_re" || vcflow_feature_re='^feature[s]?/.*'
-  test -n "$vcflow_devline_re" || vcflow_devline_re='^r([0-9])\.([0-9])'
+  test -n "${VCFLOW_DOC_EXTS-}" || VCFLOW_DOC_EXTS=".tab .txt"
+  test -n "${vcflow_feature_re-}" || vcflow_feature_re='^feature[s]?/.*'
+  test -n "${vcflow_devline_re-}" || vcflow_devline_re='^r([0-9])\.([0-9])'
   # Try to init lib
-  test -n "$scm" || { vc_getscm || return 0; }
+  test -n "${scm-}" || { vc_getscm || return 0; }
 }
 
 
 # Start env session for any gitflow file basename
 vcflow_file_default() # Basename
 {
-  test -n "$1" || { shift ; set -- ${scm}flow ; }
+  test -n "${1-}" || { shift ; set -- ${scm}flow ; }
   test -e "$1" || {
     for base in ./ ./. ./.local/ config/
     do

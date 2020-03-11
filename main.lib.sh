@@ -10,6 +10,7 @@ main_lib_load()
 
 main_lib_init()
 {
+  test "${main_lib_init-}" = "0" && return
   lib_assert log std std-ht || return
 
   local log=; req_init_log || return

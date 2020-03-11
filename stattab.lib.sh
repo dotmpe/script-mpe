@@ -5,12 +5,13 @@
 
 stattab_lib_load()
 {
-  lib_assert statusdir
-  test -n "$STTAB" || STTAB=${STATUSDIR_ROOT}index/stattab.list
+  lib_assert statusdir || return
+  test -n "${STTAB-}" || STTAB=${STATUSDIR_ROOT}index/stattab.list
 }
 
 stattab_lib_init()
 {
+  test "${stattab_lib_init-}" = "0" && return
   test -e "$STTAB" || {
     mkdir -p "$(dirname "$STTAB")" && touch "$STTAB"
   }

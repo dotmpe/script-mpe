@@ -34,7 +34,7 @@ init_tester__test_lib_load()
   init_tester__run_load $1
 
   lvid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
-  assert_equal "$(eval echo \$${lvid}_lib_loaded)" "1"
+  assert_equal "$(eval echo \$${lvid}_lib_loaded)" "0"
 
   init_tester__assert "$@"
 }

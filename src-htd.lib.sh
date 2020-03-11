@@ -3,8 +3,8 @@
 
 src_htd_lib_load()
 {
-  test -n "$sentinel_comment" || sentinel_comment="#"
-  lib_load src
+  lib_assert src || return
+  test -n "${sentinel_comment-}" || sentinel_comment="#"
 }
 
 

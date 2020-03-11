@@ -5,27 +5,30 @@
 tools_lib_load()
 {
   #upper=0 default_env out-fmt tty
-  test -n "$out_fmt" || export out_fmt=tty
+  test -n "${out_fmt-}" || export out_fmt=tty
 
   # default_env Htd-ToolsFile "$CWD/tools.yml"
-  test -n "$HTD_TOOLSFILE" || export HTD_TOOLSFILE="$CWD"/tools.yml
+  test -n "${HTD_TOOLSFILE-}" || export HTD_TOOLSFILE="$CWD"/tools.yml
 
   # default_env Htd-ToolsDir "$HOME/.htd-tools"
-  test -n "$HTD_TOOLSDIR" || export HTD_TOOLSDIR=$HOME/.htd-tools
+  test -n "${HTD_TOOLSDIR-}" || export HTD_TOOLSDIR=$HOME/.htd-tools
 
   # default_env Htd-BuildDir .build
-  test -n "$HTD_BUILDDIR" || export HTD_BUILDDIR=".build"
+  test -n "${HTD_BUILDDIR-}" || export HTD_BUILDDIR=".build"
 
   export B="$HTD_BUILDDIR"
 
-  tools_json
+  tools_json || true
 }
 
 tools_json()
 {
   test -e $HTD_TOOLSFILE || return $?
   test $HTD_TOOLSFILE -ot $B/tools.json \
-    || jsotk.py yaml2json $HTD_TOOLSFILE $B/tools.json
+    || {
+        $LOG info "" "Converting" "jsotk.py yaml2json $HTD_TOOLSFILE $B/tools.json"
+        jsotk.py yaml2json $HTD_TOOLSFILE $B/tools.json
+  }
 }
 
 tools_json_schema()

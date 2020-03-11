@@ -2,9 +2,10 @@
 
 tasks_lib_load()
 {
-  test -n "$TASK_EXT" || TASK_EXT="ttxtm"
-  test -n "$TASK_EXTS" || TASK_EXTS=".ttxtm .list .txt"
-  test -n "$tasks_hub" || {
+  test -n "${TASK_EXT-}" || TASK_EXT="ttxtm"
+  test -n "${TASK_EXTS-}" || TASK_EXTS=".ttxtm .list .txt"
+  test -n "${tasks_hub-}" || {
+      # XXX: static init only, move elsewhere or add $PWD
     test ! -e "to" || tasks_hub=to
   }
 }

@@ -3,12 +3,12 @@
 
 projectdir_lib_load()
 {
-  projectdir_lib_init || return
+  projectdir_lib_parts_load || return
   # Local pdoc name, used by most command to determine pdir
   test -n "$pdoc" || pdoc=.projects.yaml
 }
 
-projectdir_lib_init()
+projectdir_lib_parts_load()
 {
   . $scriptpath/projectdir-fs.inc.sh &&
   . $scriptpath/projectdir-git.inc.sh &&

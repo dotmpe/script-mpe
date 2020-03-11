@@ -313,17 +313,17 @@ ht_init_static()
   lib_lib_load && lib_lib_init || return
 
   { __load=ext
-    . $scriptpath/os-htd.lib.sh && os_htd_lib_loaded=1 && lib_loaded="$lib_loaded os_htd" &&
-    . $scriptpath/sys-htd.lib.sh && sys_htd_lib_loaded=1 && lib_loaded="$lib_loaded sys_htd" &&
-    . $scriptpath/std-ht.lib.sh && std_ht_lib_loaded=1 && lib_loaded="$lib_loaded std_ht" &&
-    . $scriptpath/str-htd.lib.sh && str_htd_lib_loaded=1 && lib_loaded="$lib_loaded str_htd" &&
-    . $scriptpath/main.lib.sh && main_lib_loaded=1 && lib_loaded="$lib_loaded main" &&
-    . $U_S/src/sh/lib/os.lib.sh && os_lib_loaded=1 && lib_loaded="$lib_loaded os" &&
-    . $U_S/src/sh/lib/sys.lib.sh && sys_lib_loaded=1 && lib_loaded="$lib_loaded sys" &&
-    . $U_S/src/sh/lib/std.lib.sh && std_lib_loaded=1 && lib_loaded="$lib_loaded std" &&
-    . $U_S/src/sh/lib/str.lib.sh && str_lib_loaded=1 && lib_loaded="$lib_loaded str" &&
-    . $U_S/src/sh/lib/log.lib.sh && log_lib_loaded=1 && lib_loaded="$lib_loaded log" &&
-    . $U_S/src/sh/lib/match.lib.sh && match_lib_loaded=1 && lib_loaded="$lib_loaded match" &&
+    . $scriptpath/os-htd.lib.sh && os_htd_lib_loaded=0 && lib_loaded="$lib_loaded os_htd" &&
+    . $scriptpath/sys-htd.lib.sh && sys_htd_lib_loaded=0 && lib_loaded="$lib_loaded sys_htd" &&
+    . $scriptpath/std-ht.lib.sh && std_ht_lib_loaded=0 && lib_loaded="$lib_loaded std_ht" &&
+    . $scriptpath/str-htd.lib.sh && str_htd_lib_loaded=0 && lib_loaded="$lib_loaded str_htd" &&
+    . $scriptpath/main.lib.sh && main_lib_loaded=0 && lib_loaded="$lib_loaded main" &&
+    . $U_S/src/sh/lib/os.lib.sh && os_lib_loaded=0 && lib_loaded="$lib_loaded os" &&
+    . $U_S/src/sh/lib/sys.lib.sh && sys_lib_loaded=0 && lib_loaded="$lib_loaded sys" &&
+    . $U_S/src/sh/lib/std.lib.sh && std_lib_loaded=0 && lib_loaded="$lib_loaded std" &&
+    . $U_S/src/sh/lib/str.lib.sh && str_lib_loaded=0 && lib_loaded="$lib_loaded str" &&
+    . $U_S/src/sh/lib/log.lib.sh && log_lib_loaded=0 && lib_loaded="$lib_loaded log" &&
+    . $U_S/src/sh/lib/match.lib.sh && match_lib_loaded=0 && lib_loaded="$lib_loaded match" &&
     true
   } || $LOG "error" "ERR:$?" "Libs load" "" 1
 

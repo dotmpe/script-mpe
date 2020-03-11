@@ -5,11 +5,11 @@
 sys_lib_load()
 {
   test -n "$LOG" || return 102
-  test -n "$uname" || uname="$(uname -s)"
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
 
-  test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
-  test -n "$base" || base=$scriptname:sys
+  test -n "${scriptname-}" || scriptname="$(basename "$0" .sh)"
+  test -n "${base-}" || base=$scriptname:sys
 }
 
 # Sh var-based increment

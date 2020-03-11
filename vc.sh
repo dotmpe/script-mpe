@@ -1906,7 +1906,7 @@ vc_load()
   #. ~/.conf/bash/git-completion.bash
 
   test -n "$hnid" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
-  test -n "$uname" || uname=$(uname)
+  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   test -n "$vc_dir" || vc_dir=$scriptpath
   test -n "$vc_br_def" || vc_br_def=master
   test -n "$vc_rt_def" || vc_rt_def=origin
@@ -1962,7 +1962,7 @@ vc_load()
       ;;
 
     q ) # set if not set, don't update and eval package main env
-        test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
+        test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" || {
             test -n "$PACKMETA" -a -e "$PACKMETA" &&
                 note "Using package '$PACKMETA'" ||
                 error "No local package" 5

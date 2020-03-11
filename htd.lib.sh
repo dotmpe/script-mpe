@@ -479,7 +479,7 @@ htd_edit_today()
   local pwd="$(normalize_relative "$go_to_before")" arg="$1"
 
   # Evaluate package env if local manifest is found
-  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
+  test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" && {
     #. $PACKMETA_SH || error "Sourcing package Sh" 1
     eval local $(map=package_pd_meta_: package_sh \
       log log_path log_title log_entry log_path_ysep log_path_msep log_path_dsep) >/dev/null

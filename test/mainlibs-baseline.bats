@@ -149,15 +149,15 @@ EOM
 @test "$base: test init.bash" {
 
   { func_exists basedir &&
-    test $os_lib_loaded -eq 1
+    test $os_lib_loaded -eq 0
   } || false "Error with os.lib"
 
   { func_exists mkid &&
-    test $str_lib_loaded -eq 1
+    test $str_lib_loaded -eq 0
   } || false "Error with str.lib"
 
   { func_exists fnmatch &&
-    test $sys_lib_loaded -eq 1
+    test $sys_lib_loaded -eq 0
   } || false "Error with sys.lib"
 
   return

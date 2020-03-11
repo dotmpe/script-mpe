@@ -4,17 +4,18 @@
 
 docstat_lib_load()
 {
-  lib_assert statusdir
+  lib_assert statusdir || return
   # index id names and pathnames, ie. see htd-components
 
-  test -n "$DOCSTAT_TAB" || DOCSTAT_TAB=${STATUSDIR_ROOT}index/docstat.list
-  test -n "$DOCSTAT" || DOCSTAT=${STATUSDIR_ROOT}tree/docstat
+  test -n "${DOCSTAT_TAB-}" || DOCSTAT_TAB=${STATUSDIR_ROOT}index/docstat.list
+  test -n "${DOCSTAT-}" || DOCSTAT=${STATUSDIR_ROOT}tree/docstat
   test -d "$DOCSTAT" || mkdir "$DOCSTAT"
-  test -n "$DOCSTAT_PREF" || DOCSTAT_PREF=$DOCSTAT/
+  test -n "${DOCSTAT_PREF-}" || DOCSTAT_PREF=$DOCSTAT/
 }
 
 docstat_lib_init()
 {
+  test "${docstat_lib_init-}" = "0" && return
   test -e "$DOCSTAT_TAB" || {
     mkdir -p "$(dirname "$DOCSTAT_TAB")" || return
     touch "$DOCSTAT_TAB" || return

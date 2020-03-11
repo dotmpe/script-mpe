@@ -10,6 +10,7 @@ user_scripts_lib_load()
 
 user_scripts_lib_init()
 {
+  test "${user_scripts_lib_init-}" = "0" && return
   true
 }
 

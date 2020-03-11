@@ -15,14 +15,13 @@ list_lib_load()
 
 lst_preload()
 {
-  CWD=$(pwd -P)
-  test -n "$EDITOR" || EDITOR=nano
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -n "$uname" || uname=$(uname)
-  test -n "$archive_dt_strf" || archive_dt_strf=%Y-%M-%dT%H:%m:%S
-  test -n "$lst_base" || lst_base=htd
+  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${archive_dt_strf-}" || archive_dt_strf=%Y-%M-%dT%H:%m:%S
+  test -n "${lst_base-}" || lst_base=htd
 
-  test -n "$SCRIPT_ETC" || SCRIPT_ETC="$(lst_init_etc | head -n 1)"
+  test -n "${EDITOR-}" || EDITOR=nano
+  test -n "${SCRIPT_ETC-}" || SCRIPT_ETC="$(lst_init_etc | head -n 1)"
 }
 
 lst_load()

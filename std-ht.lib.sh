@@ -10,6 +10,7 @@ std_ht_lib_load()
 
 std_ht_lib_init()
 {
+  test "${std_ht_lib_init-}" = "0" && return
   test -n "$INIT_LOG" || return 102
   $INIT_LOG info "" "Done std-ht"
 }

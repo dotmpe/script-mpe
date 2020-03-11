@@ -3,7 +3,7 @@
 
 src_lib_load()
 {
-  test -n "$sentinel_comment" || sentinel_comment="#"
+  test -n "${sentinel_comment-}" || sentinel_comment="#"
 }
 
 

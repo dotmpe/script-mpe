@@ -9,17 +9,19 @@ sys_htd_lib_load()
   export _5k=5120
 
   #test -n "$MIN_SIZE" || MIN_SIZE=1
-  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
+  test -n "${MIN_SIZE-}" || MIN_SIZE=$_6MB
 
-  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
-  test -n "$username" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
-  test -n "$arch" || arch="$(uname -p)"
-  test -n "$mach" || mach="$(uname -m)"
+  test -n "${os-}" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${username-}" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
+  test -n "${arch-}" || arch="$(uname -p)"
+  test -n "${mach-}" || mach="$(uname -m)"
 }
 
 sys_htd_lib_init()
 {
-  test -n "$INIT_LOG" || return 102
+  test "${sys_htd_lib_init-}" = "0" && return
+
+  test -n "${INIT_LOG-}" || return 102
 
   lib_assert sys os str main match || {
     $INIT_LOG error "" "In sys.lib init" $0"" 1
