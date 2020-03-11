@@ -1,6 +1,50 @@
 #!/bin/sh
 
 
+htd_man_1__package='Get local (project/workingdir) metadata
+
+  package ls|list-ids
+     List package IDs from local package metadata file.
+  package update
+     Regenerate main.json/PackMeta-JS-Main and package.sh/PackMeta-Sh files from YAML
+  package write-script NAME
+     Write env+script lines to as-is executable shell script for "scripts/NAME"
+  package write-scripts NAMES
+     Write scripts.
+  package remotes-init
+     Take all repository names/urls directly from YAML, and create remotes or
+     update URL for same in local repository. The remote name and exact
+     remote-url is determined with htd-repository-url (htd.lib.sh).
+  package remotes-reset
+     Remove all remotes and reset
+  package urls
+     TODO: List URLs for package.
+  package openurl|open-url [URL]
+     ..
+  package debug
+     Log each Sh package settings.
+  package scripts-write [NAME]
+     Compile script into as-is shell script.
+
+Plumbing
+  package sh-script SCRIPTNAME [PackMeta-JS-Main]
+     List script lines
+  package sh-env
+     List profile script lines from PackMeta-Sh
+  package sh-env-script
+     Update env profile script from sh-env lines
+
+  package dir-get-key <Dir> <Package-Id> [<Property>...]
+
+Plumbing commands dealing with the local project package file. See package.rst.
+These do not auto-update intermediate artefacts, or load a specific package-id
+into env.
+'
+htd_package__help ()
+{
+  echo "$htd_man_1__package"
+}
+
 
 htd_package_list_ids()
 {

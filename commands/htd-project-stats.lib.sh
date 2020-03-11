@@ -3,7 +3,6 @@
 htd_project_stats_lib_load()
 {
   lib_assert date project-stats build-htd
-
   # XXX: statusdir_init && package_lib_init && build_init && project_stats_init
 }
 

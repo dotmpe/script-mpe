@@ -3973,45 +3973,6 @@ htd__save_ref()
 htd_grp__save_ref=annex
 
 
-htd_man_1__package='Get local (project/workingdir) metadata
-
-  package ls|list-ids
-     List package IDs from local package metadata file.
-  package update
-     Regenerate main.json/PackMeta-JS-Main and package.sh/PackMeta-Sh files from YAML
-  package write-script NAME
-     Write env+script lines to as-is executable shell script for "scripts/NAME"
-  package write-scripts NAMES
-     Write scripts.
-  package remotes-init
-     Take all repository names/urls directly from YAML, and create remotes or
-     update URL for same in local repository. The remote name and exact
-     remote-url is determined with htd-repository-url (htd.lib.sh).
-  package remotes-reset
-     Remove all remotes and reset
-  package urls
-     TODO: List URLs for package.
-  package openurl|open-url [URL]
-     ..
-  package debug
-     Log each Sh package settings.
-  package scripts-write [NAME]
-     Compile script into as-is shell script.
-
-Plumbing
-  package sh-script SCRIPTNAME [PackMeta-JS-Main]
-     List script lines
-  package sh-env
-     List profile script lines from PackMeta-Sh
-  package sh-env-script
-     Update env profile script from sh-env lines
-
-  package dir-get-key <Dir> <Package-Id> [<Property>...]
-
-Plumbing commands dealing with the local project package file. See package.rst.
-These do not auto-update intermediate artefacts, or load a specific package-id
-into env.
-'
 htd_run__package=iAOpl
 htd__package()
 {
@@ -4023,7 +3984,7 @@ htd__package()
     } || set -- debug
   subcmd_prefs=${base}_package_\ package_ try_subcmd_prefixes "$@"
 }
-htd_libs__package='package htd-package'
+htd_libs__package='date package htd-package'
 
 htd_man_1__ls="List local package names"
 htd_als__ls=package\ list-ids
@@ -8725,7 +8686,7 @@ htd__project_stats()
   subcmd_prefs=${base}_project_stats_\ project_stats_ try_subcmd_prefixes "$@"
 }
 htd_run__project_stats=qilAO
-htd_libs__project_stats=project-stats\ htd-project-stats
+htd_libs__project_stats=date\ project-stats\ build-htd\ htd-project-stats
 htd_argsv__project_stats=opt_args
 
 
@@ -8879,7 +8840,7 @@ htd_lib()
   local __load_lib=1
   . $scriptpath/match.sh || return
   set -- sys-htd os-htd str-htd vc-htd htd match-htd std-ht \
-      date date-htd \
+      date date-htd statusdir \
       htd web box \
       list ignores table disk remote package htd-package htd-scripts \
       service archive prefix tmux schema ck net \

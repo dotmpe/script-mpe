@@ -6,10 +6,6 @@
 # Initialize Project Build Scripts shell modules
 build_htd_lib_load()
 {
-  lib_assert \
-      main argv date tasks du vc-htd vc match src function functions shell ||
-      return
-
   # XXX cleanup lib_load std stdio build-checks
 
   test -n "${cllct_set_base-}" || cllct_set_base=.cllct/specsets
@@ -17,6 +13,10 @@ build_htd_lib_load()
   test -n "${cllct_test_base-}" || cllct_test_base=.cllct/testruns
   test -n "${docbase-}" || docbase="doc/src/sh"
 }
+
+#  lib_assert \
+#      main argv date tasks du vc-htd vc match src function functions shell ||
+#      return
 
 # Initialize Project Build Scripts settings
 # TODO: set spec for build

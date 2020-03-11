@@ -360,7 +360,7 @@ normalize_relative()
 {
   OIFS=$IFS
   IFS='/'
-  local NORMALIZED
+  local NORMALIZED=
 
   for I in $1
   do

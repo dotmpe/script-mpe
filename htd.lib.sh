@@ -5,8 +5,9 @@
 
 htd_lib_load()
 {
-  test -n "$NS_NAME" || NS_NAME=dotmpe
-  lib_load statusdir sys-htd htd-project package project-stats htd-project-stats
+  # XXX: lib_assert statusdir sys-htd htd-project package project-stats htd-project-stats || return
+  #lib_load date statusdir sys-htd htd-project package project-stats htd-project-stats
+  test -n "${NS_NAME-}" || NS_NAME=dotmpe
 }
 
 

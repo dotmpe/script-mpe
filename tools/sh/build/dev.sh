@@ -15,7 +15,7 @@ echo '-------------------'
 echo Path: $SCRIPTPATH
 lib_assert os sys str shell build || true
 
-lib_load statusdir
+lib_load date statusdir
 statusdir_init
 
 #build_test_init

@@ -310,12 +310,12 @@ update_temp_package()
 # package.yaml exists, try to extract one temp package YAML from Pdoc.
 update_package() # Dir
 {
-  test -n "$1" -a -d "$1" || error "update-package dir '$1'" 21
-  test -z "$2" || error "update-package surplus args '$2'" 22
+  test -n "${1-}" -a -d "${1-}" || error "update-package dir '$1'" 21
+  test $# -eq 1 || error "update-package surplus args '$2'" 22
 
   metaf=
   local metash= metamain=
-  test -n "$ppwd" || ppwd=$(cd $1; pwd)
+  test -n "${ppwd-}" || ppwd=$(cd $1; pwd)
 
   package_file "$1" || {
     std_info "Creating temp package since none exists at '$metaf'"

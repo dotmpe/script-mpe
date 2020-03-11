@@ -241,19 +241,6 @@ reverse_lines()
   sed '1!G;h;$!d'
 }
 
-expr_substr()
-{
-  test -n "$expr" || error "expr init req" 1
-  case "$expr" in
-      sh-substr )
-          expr substr "$1" "$2" "$3" ;;
-      bash-substr )
-          bash -c 'MYVAR=_"'"$1"'"; printf -- "${MYVAR:'$2':'$3'}"' ;;
-      * ) error "unable to substr $expr" 1
-  esac
-}
-
-
 # Try to turn given variable names into a more "terse", human readble string seq
 var2tags()
 {
