@@ -4,7 +4,7 @@
 urlstat_lib_load()
 {
   lib_assert statusdir
-  test -n "$URLSTAT_TAB" || URLSTAT_TAB=${STATUSDIR_ROOT}index/urlstat.list
+  test -n "${URLSTAT_TAB-}" || URLSTAT_TAB=${STATUSDIR_ROOT}index/urlstat.list
 }
 
 urlstat_lib_init()

@@ -1,5 +1,27 @@
 #!/bin/sh
 
+htd_man_1__tools='Tools manages simple installation scripts from YAML and is
+usable to keep scripts in a semi-portable way, that do not fit anywhere else.
+
+It works from a metadata document that is a single bag of IDs mapped to
+objects, whose schema is described in schema/tools.yml. It can be used to keep
+multiple records for the same binary, providing alternate installations for
+the same tools.
+
+  install [TOOL...]
+  uninstall [TOOL...]
+  installed [TOOL...]
+  validate
+  outline
+    Transform tools.json into an outline compatible format.
+  script
+
+'
+
+tools__help ()
+{
+  echo "$htd_man_1__tools"
+}
 htd_tools_list()
 {
   tools_list

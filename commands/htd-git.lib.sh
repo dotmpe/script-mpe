@@ -1,5 +1,14 @@
 #!/bin/sh
 
+htd_man_1__git='
+    info
+    find
+'
+
+git__help ()
+{
+  echo "$htd_man_1__git"
+}
 
 # XXX: get at some compiled info for /src
 htd_git_info()

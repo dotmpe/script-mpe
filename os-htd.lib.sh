@@ -107,7 +107,8 @@ short()
 basenames()
 {
   test -n "$exts" || {
-    test -e "$1" || fnmatch ".*" "$1" && { exts="$1"; shift; }
+    fnmatch ".*" "$1" || return
+    exts="$1"; shift
   }
   while test -n "$1"
   do

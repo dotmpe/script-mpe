@@ -22,7 +22,7 @@ statusdir_lib_init()
 {
   test -n "$INIT_LOG" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
 
-  trueish "$choice_init" && {
+  trueish "${choice_init-}" && {
     statusdir_init &&
     return $?
   }
@@ -45,9 +45,10 @@ statusdir_init()
   test -e "${STATUSDIR_ROOT}cache"  || mkdir -p "${STATUSDIR_ROOT}cache"
 }
 
+# Load backend
 statusdir_lib_start()
 {
-  # Get temporary dir
+  # Get temporary dir: XXX move to fsdir
   test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
   test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
 
@@ -70,13 +71,21 @@ statusdir_lib_start()
   test -n "$sd_be_name" && sd_be=$sd_be_name
 }
 
+statusdir_assert() # <rtype> <idxname>
+{
+  local rtype=$1
+  shift
+  test $# -gt 0 -a -n "${1-}" || set -- status.json
+  $sd_be assert "$@"
+}
+
+# Unload backend
 statusdir_lib_finish()
 {
   test -n "$sd_tmp_dir" || error "sd_tmp_dir unload" 1
   # XXX: quick check for cruft. Is triggering on empty directories as well..
-  test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
-    || warn "Leaving temp files in $sd_tmp_dir: $(echo $sd_tmp_dir/*)"
-  unset sd_be sd_tmp_dir
+  #test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
+  #  || warn "Leaving temp files in $sd_tmp_dir: $(echo $sd_tmp_dir/*)"
 }
 
 statusdir_list()

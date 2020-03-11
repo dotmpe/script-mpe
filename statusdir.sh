@@ -68,36 +68,11 @@ statusdir__backend()
   $sd_be backend
 }
 
-statusdir_man_1__assert="echos path. Default index is 'default'."
-statusdir_spc__assert="assert <path-expr> [<index-name-id>]"
+statusdir_man_1__assert="echos path. Default index is 'tree'."
+statusdir_spc__assert="assert <rtype> [<index-name-id>]"
 statusdir__assert()
 {
-  test -n "$STATUSDIR_ROOT" || error "STATUSDIR_ROOT" 1
-  test -n "$1" || set -- status.json "$2"
-  test -n "$2" || set -- "$1" default
-  case "$2" in default )
-      path=$STATUSDIR_ROOT$1
-    ;;
-    * )
-      path=$STATUSDIR_ROOT$2/$1
-    ;;
-  esac
-  path=$(normalize_relative $path)
-  test -d $(dirname $path) \
-    || mkdir -vp $(dirname $path)
-  echo $path
-}
-
-# Make path in statusdir exists, args are pathelems
-# echos path.
-statusdir__assert_elems()
-{
-  test -n "$STATUSDIR_ROOT" || return 60
-  tree="$(echo "$@" | tr ' ' '/')"
-  path=$STATUSDIR_ROOT"tree/"$tree
-  mkdir -vp $path
-  echo $path
-  #export statusdir__tree=$tree
+  statusdir_assert "$@"
 }
 
 # As statusdir__assert, but last arg is filename
@@ -353,8 +328,7 @@ statusdir_main()
 {
   test -n "$verbosity" || verbosity=5
   local scriptname=$(basename $0 .sh) base=statusdir \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd= \
-    sd_tmp_dir=
+    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd=
 
   INIT_LOG=$LOG
   true "${script_util:="$scriptpath/tools/sh"}"

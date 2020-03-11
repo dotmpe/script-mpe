@@ -1396,23 +1396,6 @@ htd__validate_pdoc()
 }
 
 
-htd_man_1__tools='Tools manages simple installation scripts from YAML and is
-usable to keep scripts in a semi-portable way, that do not fit anywhere else.
-
-It works from a metadata document that is a single bag of IDs mapped to
-objects, whose schema is described in schema/tools.yml. It can be used to keep
-multiple records for the same binary, providing alternate installations for
-the same tools.
-
-  install [TOOL...]
-  uninstall [TOOL...]
-  installed [TOOL...]
-  validate
-  outline
-    Transform tools.json into an outline compatible format.
-  script
-
-'
 htd_run__tools=fl
 htd_spc__tools="tools (<action> [<args>...])"
 htd__tools()
@@ -1421,6 +1404,7 @@ htd__tools()
   subcmd_default=list subcmd_prefs=${base}_tools_ try_subcmd_prefixes "$@"
 }
 htd_grp__tools=htd-tools
+#htd_lib__tools="tools htd-tools"
 
 # FIXME: htd_als__install="tools install"
 #htd_als__install=install-tool
@@ -2203,55 +2187,9 @@ htd__txt()
 
 # Current tasks
 
-htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
-
-  Commands in this group:
-
-    htd tasks grep
-        Run over the source, aggregating tagged comments as "task lines".
-    htd tasks local
-        Run the projects preferred way to aggregate tasks, if none given
-        run `tasks-grep`.
-    htd tasks scan|grep|local|edit|buffers|hub
-        Use tasks-local to bring local todo,done.txt documents in sync.
-    htd tasks hub
-        Aside from todor,done.txt, keep task lists files in "./to", dubbed the
-        tasks-hub. See help for specific sub-commands.
-    htd tasks edit
-        Start editor session for todo,done.txt documents. Migrates requested
-        tags to the items from the hub, *and* back again after the session.
-        Every item that has a tag is sorted into an existing or new buffer.
-    htd tasks buffers [ @Context | +project ]
-        Given set of tags, list local paths to buffers.
-        TODO: sort out scripts into tasks-backends
-    htd tasks tags [todo] [done] [file..]
-        List tags found on items in files. Like ``tasks-hub tagged`` except
-        that checks every list in the hub. While this by default uses the local
-        todo.txt/done.txt file, and any filename given as the third and following
-        arguments
-    htd tasks add-dates [--date=] [--echo] TODOTXT [date-def]
-      Rewrite tasks lines, adding dates from SCM blame-log if non found.
-      This sets the creation date(s) to the known author date,
-      when the line was last changed.
-    htd tasks sync SRC DEST
-      Go over entries and update/add new(er) entries in SRC to DEST.
-      SRC may have changes, DEST should have clean SCM status.
-
-  Default: tasks-scan.
-  See tasks-hub for more local functions.
-
-  Print package pd-meta tags setting using:
-
-    htd package pd-meta tags
-    htd package pd-meta tags-document
-    htd package pd-meta tags-done
-    .. etc,
-
-  See also package.rst docs.
-  The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
-'
 htd_run__tasks=iqtlAO
 htd_libs__tasks=htd-tasks\ tasks
+# lib_load os str std list vc tasks todo
 htd__tasks() { false; }
 
 
@@ -2743,22 +2681,6 @@ htd__done()
 }
 
 
-htd_man_1__urls='Grep URLs from plain text.
-
-  urls [encode|decode] ARGS...
-    Quote/unquote query, fragment or other URL name parts.
-  urls list FILE
-    Scan for URLs in text file
-  urls get [-|URI-Ref]
-    Download
-  urls todotxt FILE [1|EXT]
-    Output matched URLs enclosed in angled brackets, set 1 to reformat file
-    and EXT to backup before rewrite.
-  urls urlstat [--update] LIST [Init-Tags]
-    Add URLs found in text-file LIST to urlstat index, if not already recorded.
-    With update, reprocess existing entries too.
-
-'
 htd_run__urls=fl
 htd_libs__urls=web
 htd__urls()
@@ -2841,18 +2763,6 @@ See also:
 '
 
 
-htd_man_1__gitremote='List repos at remote (for SSH), or echo remote URL.
-
-    TODO: list
-    list-for-ns Ns-Name
-
-    TODO: hostinfo [ Remote-Name | Remote-ID ]
-        Get host for given remote name or UCONF:git:remote Id.
-
-
-TODO: match repositories for user/host with remote providers (SSH dirs, GIT
-servers)
-'
 htd__gitremote()
 {
   local remote_dir= remote_hostinfo= remote_name=
@@ -3170,7 +3080,7 @@ htd_man_1__github='Github lib'
 htd_run__github=l
 htd__github()
 {
-  test -n "$1" || set -- default
+  test -n "$1" || set -- help
   subcmd_prefs=${base}_github_\ github_ try_subcmd_prefixes "$@"
 }
 
@@ -6196,18 +6106,9 @@ htd__clean_empty_dirs()
 }
 
 
-
-
-htd_man_1__archive='Deal with archive files (tar, zip)
-
-  test-unpacked ARCHIVE [DIR]
-    Given archive, note files out of sync
-  clean-unpacked ARCHIVE [DIR]
-  note-unpacked ARCHIVE [DIR]
-'
 htd__archive()
 {
-  test -n "$1" || set -- status
+  test -n "$1" || set -- help
   subcmd_prefs=${base}_archive_ try_subcmd_prefixes "$@"
 }
 htd_run__archive=fl
@@ -6219,8 +6120,6 @@ htd_als__archive_list=archive\ list
 htd_als__test_unpacked=archive\ test-unpacked
 htd_als__clean_unpacked=archive\ clean-unpacked
 htd_als__note_unpacked=archive\ note-unpacked
-
-
 
 
 htd__export_docker_env()
@@ -8393,85 +8292,13 @@ htd_als__venv=ispyvenv
 
 
 
-htd_man_1__catalog='Build file manifests. See `htd help htd-catalog-*` for more
-details per function.
-
-Sets of catalogs
-
-  [CATALOGS=.catalogs] list-local
-    find catalog documents, cache full paths at CATALOG and list pathnames
-  [CATALOG_DEFAULT=] name [DIR]
-    select and set CATALOG filename from existing catalog.y*ml
-  find STR
-    for every catalog from "htd catalog list-local", look for literal string in it
-  list-files
-    List local catalog names
-  ignores
-    List ignore patterns to apply to local file listings (global, ignore and scm
-    groups)
-  update-ignores
-    Update CATALOG_IGNORES file from ignores
-  listdir DIR
-    List local files for cataloging, excluding dirs but including symlinked
-  listtree PATH
-    List untracked files for SCM dir, else find everything with ignores.
-  index PATH
-    List tree, check entries exists
-  organize PATH
-
-Single catalogs
-
-  [CATALOG=] check
-    Update cached status bits (see validate and fsck)
-  [CATALOG=] status
-    Run "check" and set return code according to status
-  [CATALOG=] add [DIR|FILE]
-    Add file, recording name, basic keys, and other file metadata.
-    See also add-file, add-from-folder, add-all-larger,
-  annex-import [Annex-Dir] [Annexed-Paths...]
-    Update entries from Annex (backend key and/or metadata)
-
-  ck [CATALOG}
-    print file checksums
-  fsck [CATALOG]
-    verify file checksums
-  validate [CATALOG]
-    verify catalog document schema
-  doctree
-    TODO doctree
-  listtree
-    List untracked files (not in SCM), or find with local ignores
-  untracked
-    List untracked files (not in SCM or ignored) not in catalog
-
-Single catalog entry
-
-  [CATALOG=] get-path NAME
-    Get src-file (full path) for record
-  [CATALOG=] drop NAME
-    Remove record
-  [CATALOG=] delete NAME
-    Remove record and src-file
-  drop-by-name [CATALOG] NAME
-    See drop.
-  copy NAME [DIR|CATALOG]
-    Copy record and file to another catalog and relative src-path
-  move NAME [DIR|CATALOG]
-    Copy and drop record + delete file
-  set [CATALOG] NAME KEY VALUE
-    Add/set any string value for record.
-  update [CATALOG] Entry-Id Value [Entry-Key]
-    Update single key of signle entry in catalog JSON and write back.
-
-Functions without CATALOG argument will use the likenamed env. See
-catalog-lib-load. Std. format is YAML.
-'
 htd__catalog()
 {
   test -n "$1" || set -- status
   subcmd_prefs=${base}_catalog_ try_subcmd_prefixes "$@"
 }
 htd_run__catalog=iIAO
+htd_libs__catalog='catalog htd-catalog'
 
 htd_als__catalogs='catalog list'
 htd_als__fsck_catalog='catalog fsck'
@@ -8804,23 +8631,6 @@ htd__src()
 }
 
 
-htd_man_1__docstat='Build docstat index from local documents
-
-    proc - Run processor for single document
-    check - Check, update entry for single document
-    update - Refresh entry for single document w/o check
-    extdescr -  Update status descriptor bits of entry
-    extitle -  Update title of entry
-    extags - Update tags for entry
-    ptags - Reset primary tag
-
-    procall - Process all documents
-    addall - Check index for all documents
-    run - Run any other sub-command for each doc
-
-    checkidx - Slow duplicate index check
-    taglist - updat taglist from index
-'
 htd__docstat()
 {
   test -n "$1" || set -- list
@@ -8828,7 +8638,7 @@ htd__docstat()
   subcmd_prefs=docstat_ try_subcmd_prefixes "$@"
 }
 htd_run__docstat=ql
-htd_libs__docstat=docstat\ ctx-doc\ doc
+htd_libs__docstat=docstat\ htd-docstat\ ctx-doc\ doc
 
 
 htd_man_1__context='
@@ -8851,23 +8661,6 @@ htd__lists()
 }
 
 
-htd_man_1__urlstat='Build urlstat index
-
-  list [Glob]
-    List entries
-  urllist ? [Stat-Tab]
-    List URI-Refs, see htd urls for other URL listing cmds.
-  entry-exists URI-Ref [Stat-Tab]
-  check [--update] [--process]
-    Add missing entries, update only if default stats changed. To update stat
-    or other descriptor fields, or (re)process for new field values set option.
-  checkall [-|URI-Refs]...
-    Run check
-  updateall
-    See `htd checkall --update`
-  processall
-    See `htd checkall --process --update`
-'
 htd__urlstat()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
@@ -8875,7 +8668,7 @@ htd__urlstat()
       subcmd_prefs=urlstat_ try_subcmd_prefixes "$@"
 }
 htd_run__urlstat=qliAO
-htd_libs__urlstat=urlstat
+htd_libs__urlstat="urlstat htd-urlstat"
 
 
 htd_man_1__scrtab='Build scrtab index

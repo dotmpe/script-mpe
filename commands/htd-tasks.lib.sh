@@ -1,5 +1,57 @@
 #!/bin/sh
 
+htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
+
+  Commands in this group:
+
+    htd tasks grep
+        Run over the source, aggregating tagged comments as "task lines".
+    htd tasks local
+        Run the projects preferred way to aggregate tasks, if none given
+        run `tasks-grep`.
+    htd tasks scan|grep|local|edit|buffers|hub
+        Use tasks-local to bring local todo,done.txt documents in sync.
+    htd tasks hub
+        Aside from todor,done.txt, keep task lists files in "./to", dubbed the
+        tasks-hub. See help for specific sub-commands.
+    htd tasks edit
+        Start editor session for todo,done.txt documents. Migrates requested
+        tags to the items from the hub, *and* back again after the session.
+        Every item that has a tag is sorted into an existing or new buffer.
+    htd tasks buffers [ @Context | +project ]
+        Given set of tags, list local paths to buffers.
+        TODO: sort out scripts into tasks-backends
+    htd tasks tags [todo] [done] [file..]
+        List tags found on items in files. Like ``tasks-hub tagged`` except
+        that checks every list in the hub. While this by default uses the local
+        todo.txt/done.txt file, and any filename given as the third and following
+        arguments
+    htd tasks add-dates [--date=] [--echo] TODOTXT [date-def]
+      Rewrite tasks lines, adding dates from SCM blame-log if non found.
+      This sets the creation date(s) to the known author date,
+      when the line was last changed.
+    htd tasks sync SRC DEST
+      Go over entries and update/add new(er) entries in SRC to DEST.
+      SRC may have changes, DEST should have clean SCM status.
+
+  Default: tasks-scan.
+  See tasks-hub for more local functions.
+
+  Print package pd-meta tags setting using:
+
+    htd package pd-meta tags
+    htd package pd-meta tags-document
+    htd package pd-meta tags-done
+    .. etc,
+
+  See also package.rst docs.
+  The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
+'
+tasks__help ()
+{
+  echo "$htd_man_1__tasks"
+}
+
 htd_tasks_lib_load()
 {
   test -n "$TODOTXT_EDITOR" || {
@@ -10,7 +62,6 @@ htd_tasks_lib_load()
     eval $(map=package_pd_meta_ package_sh tasks_hub)
     test -z "$tasks_hub" -o -e "$tasks_hub" || mkdir -p "$tasks_hub"
   }
-  lib_load os str std list vc tasks todo
 }
 
 htd__tasks()

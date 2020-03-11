@@ -1,5 +1,35 @@
 #!/bin/sh
 
+context__help ()
+{
+  cat <<EOM
+Context tracks all current or local tags, ie. any Name Id as todo.txt item.
+
+tab or list - output all
+check <TAG> - verify exists, or check subcontext and check case
+tag -
+
+info
+summary
+
+TODO: what to do with commands/htd-context
+TODO: Not all docstats have tag (context) yet. URLs (urlstat) idem.
+TODO: drafts are not in docstat, context
+EOM
+}
+
+context__info ()
+{
+  true
+}
+
+context__summary ()
+{
+  CTX_CNT=$(context_tab | count_lines)
+
+  $LOG header2 "Contexts" "" "$CTX_CNT"
+}
+
 
 # Use docstat built-in to retrieve cached tag list
 htd_context_list()

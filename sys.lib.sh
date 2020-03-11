@@ -173,7 +173,8 @@ sys_confirm()
 # Add an entry to PATH, see add-env-path-lookup for solution to other env vars
 add_env_path() # Prepend-Value Append-Value
 {
-  test -e "$1" -o -e "$2" || {
+  test $# -ge 1 -a -n "$1" -o -n "${2-}" || return
+  test -e "$1" -o -e "${2-}" || {
     echo "No such file or directory '$*'" >&2
     return 1
   }
@@ -227,12 +228,17 @@ lookup_path_list() # VAR-NAME
   eval echo \"\$$1\" | tr ':' '\n'
 }
 
+path_exists()
+{
+  test -e "$1/$2" && echo "$1/$2"
+}
+
 # lookup-path List existing local paths, or fail if second arg is not listed
 # lookup-test: command to test equality with, default test_exists
 # lookup-first: boolean setting to stop after first success
 lookup_path() # VAR-NAME LOCAL-PATH
 {
-  test -n "$lookup_test" || lookup_test="test_exists"
+  test -n "$lookup_test" || lookup_test="path_exists"
 
   lookup_path_list $1 | while read _PATH
   do

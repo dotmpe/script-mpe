@@ -50,6 +50,10 @@ fsdir()
         test -e $p
         return $?
       ;;
+    assert )
+        test -d $p || mkdir -vp $p
+        echo $p/$k
+      ;;
     backend )
         echo fsdir
       ;;

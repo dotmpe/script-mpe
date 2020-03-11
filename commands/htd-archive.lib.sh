@@ -2,6 +2,19 @@
 
 # Archive files, list/update contents, unpack and cleanup; frontend routines.
 
+htd_man_1__archive='Deal with archive files (tar, zip)
+
+  test-unpacked ARCHIVE [DIR]
+    Given archive, note files out of sync
+  clean-unpacked ARCHIVE [DIR]
+  note-unpacked ARCHIVE [DIR]
+'
+
+htd_archive__help ()
+{
+  echo "$htd_man_1__archive"
+}
+
 
 htd_archive_list()
 {
