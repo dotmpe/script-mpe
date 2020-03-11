@@ -36,6 +36,7 @@ package_lib_init()
 #  test -z "$package_id" -a  \
 #      -z "$package_main" || warn "Already initialized ($package_id/$package_main)"
 #  package_init_env && package_req_env || warn "Default package env"
+  true
 }
 
 # Preprocess YAML

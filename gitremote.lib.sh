@@ -3,8 +3,8 @@
 
 gitremote_lib_load()
 {
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf
-  test -n "$GIT_REMOTE_CONF" ||
+  test -n "${UCONFDIR-}" || UCONFDIR=$HOME/.conf
+  test -n "${GIT_REMOTE_CONF-}" ||
       export GIT_REMOTE_CONF"=$UCONFDIR/etc/git/remotes"
 }
 

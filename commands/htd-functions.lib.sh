@@ -3,7 +3,7 @@
 
 htd_functions_lib_load()
 {
-  lib_load functions
+  lib_assert functions
 }
 
 ht_functions() { htd__functions "$@"; }

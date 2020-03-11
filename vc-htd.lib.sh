@@ -5,8 +5,8 @@
 
 vc_htd_lib_load()
 {
-  test -n "$vc_rt_def" || vc_rt_def=origin
-  test -n "$vc_br_def" || vc_br_def=master
+  test -n "${vc_rt_def-}" || vc_rt_def=origin
+  test -n "${vc_br_def-}" || vc_br_def=master
 }
 
 # See if path is in GIT checkout
@@ -24,10 +24,10 @@ vc_isgit()
 # Note this is the repo for the root checkout, not for submodules.
 vc_gitdir()
 {
-  test -n "$1" || set -- "."
+  test -n "${1-}" || set -- "."
   test -e "$1" -a -d "$1" || set -- "$(dirname "$1")"
   test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
-  test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
+  test -z "${2-}" || error "vc-gitdir surplus arguments: '$2'" 1
 
   local pwd="$(pwd)"
   cd "$1"
@@ -45,7 +45,7 @@ vc_gitdir()
 # for GIT submodules.
 vc_gitrepo()
 {
-  test -n "$1" || set -- "."
+  test -n "${1-}" || set -- "."
   test -e "$1" -a -f "$1" || set -- "$(dirname "$1")"
   test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
   test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
