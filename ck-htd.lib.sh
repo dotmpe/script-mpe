@@ -6,8 +6,8 @@
 
 ck_htd_lib_load()
 {
-  test -n "$ck_tab" || ck_tab=table
-  test -n "$ck_exts" || ck_exts="ck crc32 md5 sha1 sha2 sha256"
+  test -n "${ck_tab-}" || ck_tab=table
+  test -n "${ck_exts-}" || ck_exts="ck crc32 md5 sha1 sha2 sha256"
   empty_md5=d41d8cd98f00b204e9800998ecf8427e
   empty_sha1=da39a3ee5e6b4b0d3255bfef95601890afd80709
   empty_sha2=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
@@ -16,7 +16,7 @@ ck_htd_lib_load()
 
 ck_exists()
 {
-  test -n "$1" || set -- .
+  test -n "${1-}" || set -- .
   test_glob "$1/$ck_tab.{$(echo "$ck_exts" | tr ' ' ',')}"
 }
 

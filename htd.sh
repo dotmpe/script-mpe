@@ -3831,17 +3831,6 @@ htd_run__push_commit_all=iIAO
 htd_als__pcia=push-commit-all
 
 
-htd_man_1__cabinet='Manage files, folders with perma-URL style archive-paths
-
-  cabinet add [--{not-,}-dry-run] [--archive-date=] REFS..
-    Move path to Cabinet-Dir, preserving timestamps and attributes. Use filemtime
-    for file unless now=1.
-
-        <refs>...  =>  <Cabinet-Dir>/%Y/%m/%d-<ref>...
-
-Env
-    CABINET_DIR $PWD/cabinet $HTDIR/cabinet
-'
 htd_spc__cabinet='cabinet [CMD ARGS..]'
 htd__cabinet()
 {

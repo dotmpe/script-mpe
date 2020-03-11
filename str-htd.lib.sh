@@ -44,8 +44,8 @@ mkid() # Str Extra-Chars Substitute-Char
   # Use empty c if given explicitly, else default
   test $# -gt 2 || c='\.\\\/:_'
   test -n "$s" || s=-
-  test -n "$upper" && {
-    trueish "$upper" && {
+  test -n "${upper-}" && {
+    trueish "${upper-}" && {
       id=$(printf -- "%s" "$1" | tr -sc 'A-Za-z0-9'"$c$s" "$s" | tr 'a-z' 'A-Z')
     } || {
       id=$(printf -- "%s" "$1" | tr -sc 'A-Za-z0-9'"$c$s" "$s" | tr 'A-Z' 'a-z')
@@ -61,8 +61,8 @@ mkid() # Str Extra-Chars Substitute-Char
 # For real pretty would want lookup for abbrev. Too complex so another function.
 mksid()
 {
-  test $# -gt 2 || set -- "$1" "$2" "_"
-  mkid "$@" ; sid=$id
+  test $# -gt 2 || set -- "${1-}" "${2-}" "_"
+  mkid "$@" ; sid=$id ; unset id
 }
 
 # Variable-like ID for any series of chars, only alphanumerics and underscore

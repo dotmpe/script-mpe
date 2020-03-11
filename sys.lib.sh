@@ -16,7 +16,7 @@ sys_lib_load()
 incr() # VAR [AMOUNT=1]
 {
   local incr_amount
-  test -n "$2" && incr_amount=$2 || incr_amount=1
+  test -n "${2-}" && incr_amount=$2 || incr_amount=1
   v=$(eval echo \$$1)
   eval $1=$(( $v + $incr_amount ))
 }
@@ -34,8 +34,7 @@ getidx()
 # Error unless non-empty and true-ish value
 trueish() # Str
 {
-  test $# -eq 1 || return
-  test -n "$1" || return
+  test $# -eq 1 -a -n "${1-}" || return
   case "$1" in [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1) return 0;;
     * ) return 1;;
   esac
@@ -51,7 +50,7 @@ not_trueish()
 # Error unless non-empty and falseish
 falseish()
 {
-  test -n "$1" || return 1
+  test $# -eq 1 -a -n "${1-}" || return 1
   case "$1" in
     [Oo]ff|[Ff]alse|[Nn]|[Nn]o|0)
       return 0;;
@@ -93,7 +92,7 @@ try_exec_func()
   $func "$@" || return $?
 }
 
-# TODO: redesign
+# TODO: redesign @Dsgn
 try_var()
 {
   local value="$(eval echo "\$$1")"
@@ -192,7 +191,7 @@ add_env_path() # Prepend-Value Append-Value
     }
   }
   # XXX: to export or not to launchctl
-  #test "$uname" != "Darwin" || {
+  #test "$uname" != "darwin" || {
   #  launchctl setenv "$1" "$(eval echo "\$$1")" ||
   #    echo "Darwin setenv '$1' failed ($?)" >&2
   #}
@@ -269,22 +268,21 @@ lookup_path_shadows() # VAR-NAME LOCAL
 # Return 1 if env was provided, or 0 if default was set
 default_env() # VAR-NAME DEFAULT-VALUE
 {
-  test -n "$1" -a $# -eq 2 || error "default-env requires two args ($*)" 1
+  test -n "${1-}" -a $# -eq 2 || error "default-env requires two args ($*)" 1
   local vid= sid= id=
-  trueish "$title" && upper= || {
-    test -n "$upper" || upper=1
+  trueish "${title-}" && upper= || {
+    test -n "${upper-}" || upper=1
   }
-  mkvid "$1"
-  mksid "$1"
+  mkvid "$1" ; echo vid=$vid >&2
+  mksid "$1" ; echo sid=$sid >&2
   unset upper
-  test -n "$(eval echo \$$vid)" || {
-    debug "No $sid env ($vid), using '$2'"
-    eval $vid="$2"
+  test -n "$(eval echo \$$vid 2>/dev/null )" || {
+    debug "No $sid env ($vid), using '${2-}'"
+    eval $vid="${2-}"
     return 0
   }
   return 1
 }
-
 
 get_kv_k() # Key-Value-Str
 {

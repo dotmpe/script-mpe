@@ -4,10 +4,10 @@
 
 prefix_lib_load()
 {
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf
-  test -n "$pathnames" || pathnames=pathnames.tab
-  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
-  test -n "$BASEDIR_TAB" || BASEDIR_TAB=${STATUSDIR_ROOT}/index/basedirs.tab
+  lib_assert statusdir || return
+  test -n "${UCONFDIR-}" || UCONFDIR=$HOME/.conf
+  test -n "${pathnames-}" || pathnames=pathnames.tab
+  test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}/index/basedirs.tab
 }
 
 prefix_init()

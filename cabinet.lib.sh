@@ -4,16 +4,16 @@
 
 cabinet_lib_load()
 {
-  default_env HtDir "$HOME/htdocs"
+  title= upper=1 default_env HtDir "$HOME/htdocs" &&
   cabinet_init
 }
 
 cabinet_init()
 {
   test -e cabinet && {
-    default_env Cabinet-Dir "$(pwd)/cabinet"
+    title= upper=1 default_env Cabinet-Dir "$(pwd)/cabinet"
   } || {
-    default_env Cabinet-Dir "$HTDIR/cabinet"
+    title= upper=1 default_env Cabinet-Dir "$HTDIR/cabinet"
   }
 }
 

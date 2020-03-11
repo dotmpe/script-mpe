@@ -75,5 +75,5 @@ catalog-lib-load. Std. format is YAML.
 
 htd_catalog__help ()
 {
-  echo $htd_man_1__catalog
+  echo "$htd_man_1__catalog"
 }

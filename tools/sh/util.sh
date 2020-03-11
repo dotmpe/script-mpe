@@ -29,8 +29,8 @@ mkid() # Str Extra-Chars Substitute-Char
   # Use empty c if given explicitly, else default
   test $# -gt 2 || c='\.\\\/:_'
   test -n "$s" || s=-
-  test -n "$upper" && {
-    trueish "$upper" && {
+  test -n "${upper-}" && {
+    trueish "${upper-}" && {
       id=$(printf -- "%s" "$1" | tr -sc 'A-Za-z0-9'"$c$s" "$s" | tr 'a-z' 'A-Z')
     } || {
       id=$(printf -- "%s" "$1" | tr -sc 'A-Za-z0-9'"$c$s" "$s" | tr 'A-Z' 'a-z')
@@ -47,8 +47,8 @@ mkid() # Str Extra-Chars Substitute-Char
 # For real pretty would want lookup for abbrev. Too complex so another function.
 mksid()
 {
-  test $# -gt 2 || set -- "$1" "$2" "_"
-  mkid "$@" ; sid=$id
+  test $# -gt 2 || set -- "${1-}" "${2-}" "_"
+  mkid "$@" ; sid=$id ; unset id
 }
 # Sync-Sh: BIN:str-htd.lib.sh
 
@@ -127,7 +127,7 @@ sh-read () # ( FILE | - )
 }
 # Sh-Copy: read_nix_style_file
 
-test -n "$U_S" ||
+test -n "${U_S-}" ||
   $LOG "error" "" "Expected U-S env" "" 1
 
 test -d $U_S/.git || {
