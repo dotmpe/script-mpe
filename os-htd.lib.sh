@@ -58,7 +58,7 @@ pathname() # PATH EXT...
 # Simple iterator over pathname
 pathnames() # exts=... [ - | PATHS ]
 {
-  test -n "$exts" || exit 40
+  test -n "${exts-}" || exit 40
   test -n "$*" -a "$1" != "-" && {
     for path in "$@"
     do
@@ -699,6 +699,7 @@ strip_trail()
 }
 
 # if not exists, create directories and touch file for each given path arg
+# to print only existing files see filter_files
 assert_files()
 {
   for fn in $@

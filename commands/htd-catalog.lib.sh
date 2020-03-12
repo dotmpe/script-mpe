@@ -1,4 +1,5 @@
 #!/bin/sh
+
 htd_man_1__catalog='Build file manifests. See `htd help htd-catalog-*` for more
 details per function.
 
@@ -72,8 +73,19 @@ Single catalog entry
 Functions without CATALOG argument will use the likenamed env. See
 catalog-lib-load. Std. format is YAML.
 '
+htd__catalog()
+{
+  test -n "$1" || set -- status
+  subcmd_prefs=${base}_catalog_ try_subcmd_prefixes "$@"
+}
+htd_run__catalog=iIAO
+htd_libs__catalog='catalog htd-catalog'
+
+htd_als__catalogs='catalog list'
+htd_als__fsck_catalog='catalog fsck'
 
 htd_catalog__help ()
 {
-  echo "$htd_man_1__catalog"
+  std_help catalog
+  #echo "$htd_man_1__catalog"
 }

@@ -652,6 +652,12 @@ get_cmd_func()
   unset func_pref func_suf tag
 }
 
+load_group()
+{
+  test ! -e $HOME/bin/commands/htd-$1.lib.sh || {
+    . $HOME/bin/commands/htd-$1.lib.sh
+  }
+}
 
 # Setup some initial vars and load lib files for main script
 main_init()
@@ -761,7 +767,6 @@ main_run_subcmd()
     stdio_0_type= stdio_1_type= stdio_2_type=
 
   main_init
-
   #func_exists ${base}_parse_subcmd_args
 
   true "${box_prefix:="$(mkvid $base; echo $vid)"}"
@@ -772,6 +777,9 @@ main_run_subcmd()
   test $c -gt 0 && shift $c ; c=0
 
   #test -z "${DEBUG-}" || main_debug "c:$c *:$*"
+
+  local grp="$(try_value "${subcmd}" grp htd)"
+  test ! -n "$grp" || load_group $grp
 
   # XXX: box_lib="$(box_list_libs "$0")"
 

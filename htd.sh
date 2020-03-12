@@ -597,6 +597,7 @@ htd__commands()
 {
   choice_global='' choice_all=true std__commands
 }
+htd_grp__commands=std
 
 htd__libs_raw()
 {
@@ -604,6 +605,7 @@ htd__libs_raw()
   note "Raw lib routine listing for '$fn' script"
   dry_run='' box_list_libs "$fn"
 }
+htd_grp__libs_raw=std
 
 htd__libs()
 {
@@ -612,6 +614,7 @@ htd__libs()
   box_lib "$fn"
   note "Libs: '$box_lib'"
 }
+htd_grp__libs=std
 
 htd_man_1__man='Access to built-in help strings
 
@@ -630,6 +633,8 @@ htd__man()
 {
   std_man "$@"
 }
+htd_grp__man=std
+
 
 htd_man_1__help="Echo a combined usage, command and docs. See also htd man and
 try-help."
@@ -637,61 +642,13 @@ htd_spc__help="-h|help [<id>]"
 htd__help()
 {
   note "Listing all commands, see usage or composure"
+  test -z "${1-}" || load_group "$1"
   std_help "$@"
   stderr info "Listing all commands, see usage or composure"
 }
 htd_als___h=help
 htd_als____help=help
-
-
-htd_man_1__output_formats='List output formats for sub-command. The format is a
-tag that refers to the formatting on stdout of data or responses to invocations
-of the subcommand::
-
-    out_fmt=<fmt> htd <subcmd> <args>...
-
-For each output format a quality factor may be specified, to indicate levels of
-*increased* or *degraded* representation. The application of this value is
-similar to the source-quality attribute in HTTP TCN (RFC 2295), except that this
-raw value is not normalized to =<1.0.
-
-In general, the value is used to weigh rendering quality and should not take
-into account delay or load. Here, default values of 0.9 are used, because the
-shell scripts at themselves make too little guarantee of encoding and other
-precision. Values above 1.0 are permitted to indicate preferred, enhanced or
-richer representations.
-
-No current But no effort is made to
-
-htd_output_format_q
-
-the `ofq` attribute
-'
-htd_spc__output_formats='output-formats|OF [SUBCMD]'
-htd_als___OF=output-formats
-htd_of__output_formats='list csv tab json'
-htd_f__output_formats='fmt q'
-htd_ofq__output_formats='htd_output_formats_q'
-htd__output_formats()
-{
-  test -n "$1" || set -- table-reformat
-  # First resolve real command name if given an alias
-  als="$(try_value "$1" als htd )"
-  test -z "$als" || { shift; set -- "$als" "$@" ; }
-  {
-    upper= mkvid "$*"
-    # XXX: Retrieve and test for output-formats and quality factor
-    #try_func $(echo_local "$vid" "" htd) &&
-
-      # Print output format attribute value for field $*
-      output_formats="$(try_value "$vid" of htd )" &&
-        test -n "$output_formats"
-  } && {
-    echo $output_formats | tr ' ' '\n'
-  } || {
-    stderr error "No sub-command or output formats for '$*'" 1
-  }
-}
+htd_grp__help=std
 
 
 htd_man_1__version="Version info"
@@ -702,43 +659,14 @@ htd__version()
 #htd_als___V=version
 htd_als____version=version
 htd_run__version=p
+htd_grp__version=std
 
+htd_grp__output_formats=main
+htd_grp__info=main
 
-htd__show()
-{
-  show_inner() { eval echo \"\$$1\"; }
-  p= s= act=show_inner foreach_do "$@"
-}
-
-
-htd__home()
-{
-  htd__show HTDIR
-}
-
-
-htd__env_info()
-{
-  log "Script:                '$scriptname'"
-  log "User Config Dir:       '$UCONFDIR' [UCONFDIR]"
-  log "User Public HTML Dir:  '$HTDIR' [HTDIR]"
-  log "Project ID:            '$PROJECT' [PROJECT]"
-  log "Minimum filesize:      '$(( $MIN_SIZE / 1024 ))'"
-  log "Editor:                '$EDITOR' [EDITOR]"
-  log "Default GIT remote:    '$HTD_GIT_REMOTE' [HTD_GIT_REMOTE]"
-  log "Ignored paths:         '$IGNORE_GLOBFILE' [IGNORE_GLOBFILE]"
-}
-
-
-htd_run__info=p
-htd__info()
-{
-  test -n "$1" || set -- $(pwd -P)
-  test -z "$2" || error "unexpected args '$2'" 1
-  vc_getscm "$1" || return $?
-  cd "$1"
-  vc_info
-}
+htd_grp__env_info=env
+htd_grp__show=env
+htd_grp__home=env
 
 
 htd__doctor()
@@ -821,28 +749,8 @@ htd_run__make=p
 htd_als__mk=make
 
 
-htd_man_1__expand='Expand arguments or lines on stdin to existing paths.
-
-Default is to expand names with dir. set expand-dir to false to get names.
-Provide `dir` to use instead of CWD. With no arguments stdin is default.
-'
-htd_spc__expand='expand [--dir=] [--(,no-)expand-dir] [GLOBS | -]'
-htd_env__expand="dir="
-htd_run__expand=eiAO
-htd__expand()
-{
-  htd_expand "$@"
-}
-
-
-htd_man_1__edit_main="Edit the main script file(s), and add arguments"
-htd_spc__edit_main="-E|edit-main [ -SREGEX | --search REGEX ] [ID-or-PATHS]"
-htd__edit_main()
-{
-  htd_edit_main "$@"
-}
-htd_run__edit_main=piAO
-htd_als___XE=edit-main
+htd_grp__expand=main
+htd_grp__edit_main=main
 
 
 htd__ls_main_files()
@@ -4060,358 +3968,14 @@ htd_run__list_run=iAOql
 htd_libs__list_run='package htd-scripts'
 
 
-
-htd_man_1__rules='
-  edit
-    Edit the HtD rules file.
-  show
-    Resolve and show HtD rules with Id, Cwd and proper Ctx.
-  status
-    Show Id and last status for each rule.
-  run [ Target-Grep [ Cmd-Grep ] ]
-    Evalute all rules and update status and targets. Rule selection arguments
-    like `each`.
-  ids [ Target-Grep [ Cmd-Grep ] ]
-    Resolve rules and list IDs generated from the command, working dir and context.
-  foreach
-  each [ Target-Grep [ Cmd-Grep ] ]
-    Parse rules to key/values, filter on values using given Grep patterns.
-  id
-  env-id
-  parse-ctx
-  eval-ctx
-'
-htd__rules()
-{
-  test -n "$htd_chatter" || htd_chatter=$verbosity
-  test -n "$htd_rule_chatter" || htd_rule_chatter=3
-  test -n "$1" || set -- table
-  case "$1" in
-
-    edit )                        htd__edit_rules || return  ;;
-    table ) shift ;               raw=true htd__show_rules "$@" || return  ;;
-    show ) shift ;                htd__show_rules "$@" || return  ;;
-    status ) shift ;              htd__period_status_files "$@" || return ;;
-    run ) shift ;                 htd__run_rules "$@" || return ;;
-    ids ) shift ;                 htd__rules foreach "$1" "$2" id || return ;;
-    foreach ) shift
-        test -n "$*" || set -- 'local\>' "" id
-        htd__rules each "$1" "$2" | while read vars
-        do
-          local package_id= ENV_NAME= htd_rule_id=
-          line= row_nr= CMD= RT= TARGETS= CWD= CTX=
-          eval "$vars"
-          htd__rules pre-proc "$vars" || continue
-          htd__rules "$3" "$vars" ||
-            error "Running '$3' for $row_nr: '$line' ($?)"
-          continue
-        done
-      ;;
-    each ) shift
-        # TODO: use optparse instead test -z "$1" || local htd_rules=$1 ; shift
-        fixed_table $htd_rules CMD RT TARGETS CTX | {
-          case " $* " in
-            " "[0-9]" "|" "[0-9]*[0-9]" " ) grep "row_nr=$1\>" - ;;
-            * ) { test -n "$2" &&
-                  grep '^.*\ CMD=\\".*'"$2"'.*\\"\ \ RT=.*$' - || cat -
-              } | { test -n "$1" &&
-                  grep '^.*\ TARGETS=\\".*'"$1"'.*\\"\ \ CTX=.*$' - || cat -
-              } ;;
-          esac
-        }
-      ;;
-    id ) shift
-        case " $* " in
-          " "[0-9]" "|" "[0-9]*[0-9]" " )
-              vars="$(eval echo "$(htd__rules each $1)")"
-              line= row_nr= CMD= RT= TARGETS= CWD= CTX=
-              set -- "$vars"
-              eval export "$@"
-              verbosity=$htd_chatter
-              htd__rules parse-ctx "$*" || return
-              local package_id= ENV_NAME= htd_rule_id=
-              htd__rules eval-ctx "$vars" || return
-            ;;
-          *" CMD="* ) # from given vars
-              line= row_nr= CMD= RT= TARGETS= CWD= CTX=
-              vars="$@"
-              verbosity=$htd_rule_chatter eval export "$vars"
-              verbosity=$htd_chatter
-            ;;
-          * ) # Cmd Ret Targets Ctx
-              line= row_nr= CMD="$1" RT="$2" TARGETS="$3" CWD="$4" CTX="$5"
-              vars="CMD=\"$1\" RT=\"$2\" TARGETS=\"$3\" CWD=\"$4\" CTX=\"$5\""
-            ;;
-        esac
-        test -z "$DEBUG" ||
-          note "$row_nr: CMD='$CMD' RET='$RT' CWD='$CWD' CTX='$CTX'"
-        htd__rules env-id || return
-      ;;
-    env-id ) shift
-        test -n "$htd_rule_id" || { local sid=
-          test -n "$package_id" && {
-              mksid "$CWD $package_id $CMD"
-            } || {
-              test -n "$ENV_NAME" && {
-                mksid "$CWD $ENV_NAME $CMD"
-              } || {
-                mksid "$CWD $CMD"
-              }
-            }
-            htd_rule_id=$sid
-          }
-          echo $htd_rule_id
-      ;;
-    parse-ctx ) shift
-        test -n "$CTX" || {
-          ctx_var="$(echo "$vars" | sed 's/^.*CTX="\([^"]*\)".*$/\1/')"
-          warn "Setting CWD to root, given empty '$ctx_var' env. "
-          CTX=/
-        }
-        CWD=$(echo $CTX | cut -f1 -d' ')
-        test -d "$CWD" && CTX=$(echo $CTX | cut -c$(( ${#CWD} + 1 ))- ) || CWD=
-      ;;
-    eval-ctx ) shift
-        test -n "$CTX" -a -n "$CWD" -a \( \
-          -n "$package_id" -o -n "$htd_rule_id" -o "$ENV_NAME" \
-        \) || {
-          # TODO: alternative profile locations, config/tools/env.sh,
-          # .local/etc , ~/.conf
-          test -e "$HOME/.local/etc/profile.sh" && CTX="$CTX . $HOME/.local/etc/profile.sh"
-        }
-        test -n "$CTX" && {
-          verbosity=$htd_rule_chatter eval $CTX
-          verbosity=$htd_chatter
-        }
-        test -n "$CWD" || {
-          ctx_var="$(echo "$*" | sed 's/^.*CTX="\([^"]*\)".*$/\1/')' env"
-          warn "Setting CWD to root, given '$ctx_var' ctx"
-          CWD=/
-        }
-      ;;
-
-    pre-proc ) shift
-        htd__rules parse-ctx "$vars" || {
-          error "Parsing ctx at $row_nr: $ctx" && continue ; }
-        htd__rules eval-ctx "$vars" || {
-          error "Evaluating ctx at $row_nr: $ctx" && continue ; }
-        # Get Id for rule
-        htd_rule_id=$(htd__rules env-id "$vars")
-        test -n "$htd_rule_id" || {
-          error "No ID for $row_nr: '$line'" && continue ; }
-        return 0
-
-        # TODO: to run rules, first get metadata for path, like max-age
-        # In this case, metadata like ck-names might provide if matched with a
-        # proper datatype chema
-        htd_tasks_buffers $TARGET "$@" | while read buffer
-        do test -e "$buffer" || continue; echo "$buffer"; done
-
-        target_files= targets= max_age=
-        #targets="$(prefix_expand $TARGETS "$@")"
-        #are_newer_than "$targets" $max_age && continue
-        #sets_overlap "$TARGETS" "$target_files" || continue
-        #for target in $targets ; do case "$target" in
-
-        #    p:* )
-        #        #test -e "$(statusdir.sh file period ${target#*:})" && {
-        #        #  echo "TODO 'cd $CWD;"$CMD"' for $target"
-        #        #} || error "Missing period for $target"
-        #      ;;
-
-        #    @* ) echo "TODO: run at context $target"; continue ;;
-
-        #  esac
-        #done
-        test -z "$DEBUG" ||
-          $htd_log ok pre-proc "CMD=$CMD RT=$RT TARGETS=$TARGETS CWD=$CWD CTX=$CTX" >&2
-      ;;
-
-    update | post-proc ) shift
-        test -n "$3" || set -- "$1" "$2" 86400
-        # TODO: place record in each context. Or rather let backends do what
-        # they want with the ret/stdout/stderr.
-        note "targets: '$TARGETS'"
-        for target in $TARGETS
-        do
-          scr="$(htd_tasks_buffers "$target" | grep '\.sh$' | head -n 1)"
-          test -n "$scr" ||
-              error "Error lookuping backend for target '$target'" 1
-          test -x "$scr" || { warn "Disabled: $scr"; continue; }
-          note "$target($scr): Status $RT, $CMD $CWD $CTX"
-        done
-        note "TODO record $1: $2 $3"
-        #test -e "$stdout" -o -e "$stderr" ||
-        #note "Done: $(filesize $stdout $stderr) $(filemtype $stdout $stderr)"
-      ;;
-
-    * ) error "'$1'? 'rules $*'"
-      ;;
-  esac
-}
 htd_grp__rules=rules
-#htd_als__edit_rules='rules edit'
-htd__edit_rules()
-{
-  $EDITOR $htd_rules
-}
 htd_grp__edit_rules=rules
+#htd_als__edit_rules='rules edit'
 #htd_als__id_rules='rules id'
 #htd_als__env_rules='rules id'
-
-
-# htdoc rules development documentation in htdocs:Dev/Shell/Rules.rst
-# pick up with config:rules/comp.json and build `htd comp` aggregate metadata
-# and update statemachines.
-#
-htd__period_status_files()
-{
-  touch -t $(date %H%M) $(statusdir.sh file period 1min)
-  M=$(date +%M)
-  _5M=$(( $(( $M / 5 )) * 5 ))
-  touch -t $(date +%y%m%d%H${_5M}) $(statusdir.sh file period 5min)
-  touch -t $(date +%y%m%d%H00) $(statusdir.sh file period hourly)
-  H=$(date +%H)
-  _3H=$(printf "%02d" $(( $(( $H / 3 )) * 3 )))
-  touch -t $(date +%y%m%d${_3H}00) $(statusdir.sh file period 3hr)
-  touch -t $(date +%y%m%d0000) $(statusdir.sh file period daily)
-  ls -la $(statusdir.sh file period 3hr)
-  ls -la $(statusdir.sh file period 5min)
-  ls -la $(statusdir.sh file period hourly)
-}
 htd_grp__period_status_files=rules
-
-
-# Run either when arguments given match a targets, or if any of the linked
-# targets needs regeneration.
-# Targets should resolve to a path, and optionally a maximum age which defaults
-# to 0.
-#
-htd__run_rule()
-{
-  line= row_nr= CMD= RT= TARGETS= CWD= CTX=
-  local package_id= ENV_NAME= htd_rule_id= vars="$1"
-  eval local "$1"
-  htd__rules pre-proc "$var" || {
-    error "Parsing ctx at $row_nr: $ctx" && continue ; }
-  note "Running '$htd_rule_id'..."
-  local stdout=$(setup_tmpf .stdout) stderr=$(setup_tmpf .stderr)
-  R=0 ; {
-    cd $CWD # Home if empty
-    htd__rules eval-ctx || { error "Evaluating $ctx" && continue ; }
-    test -n "$CMD" || { error "Command required" && continue; }
-    test -n "$CWD" || { error "Working dir required" && continue; }
-    #test -n "$ENV_NAME" || { error "Env profile required" && continue; }
-    note "Executing command.."
-    ( cd $CWD && $CMD 2>$stderr >$stdout )
-  } || { R=$?
-    test "$R" = "$RT" || warn "Unexpected return from rule exec ($R)"
-  }
-  test "$RT" = "0" || {
-    test "$R" = "$RT" &&
-      note "Non-zero exit ignored by rule ($R)" ||
-        warn "Unexpected result $R, expected $RT"
-  }
-  htd__rules post-proc $htd_rule_id $R
-  rm $stdout $stderr 2>/dev/null
-  return $R
-}
-
-htd__run_rules()
-{
-  test -n "$1" || set -- '@local\>'
-  htd__rules each "$1" "$2" | while read vars ; do
-    htd__run_rule "$vars"
-    continue
-  done
-}
 htd_grp__run_rules=rules
-
-
-htd__show_rules()
-{
-  # TODO use optparse htd_host_arg
-  upper=0 default_env out-fmt plain
-  upper=0 default_env raw false
-  trueish "$raw" && {
-    test -z "$*" || error "Raw mode does not accept filter arguments" 1
-    local cutf= fields="$(fixed_table_hd_ids "$htd_rules")"
-    fixed_table_cuthd "$htd_rules" "$fields"
-    cat $htd_rules | case "$out_fmt" in
-      txt|plain|text ) cat - ;;
-      csv )       out_fmt=csv   htd__table_reformat - ;;
-      yml|yaml )  out_fmt=yml   htd__table_reformat - ;;
-      json )      out_fmt=json  htd__table_reformat - ;;
-      * ) error "Unknown format '$out_fmt'" 1 ;;
-    esac
-  } || {
-    local fields="Id Nr CMD RT TARGETS CWD CTX line"
-    test "$out_fmt" = "csv" && { echo "#"$fields | tr ' ' ',' ; }
-    htd__rules each "$@" | while read vars
-    do
-      line= row_nr= CMD= RT= TARGETS= CWD= CTX=
-      local package_id= ENV_NAME= htd_rule_id=
-      {
-        eval local "$vars" && htd__rules pre-proc "$var"
-      } || {
-        error "Resolving context at $row_nr ($?)" && continue
-      }
-      case "$out_fmt" in
-        txt|plain|text ) printf \
-            "$htd_rule_id: $CMD <$CWD> [$CTX] ($RT) $TARGETS <$htd_rules:$row_nr>\n"
-          ;;
-        csv ) printf \
-            "$htd_rule_id,$row_nr,\"$CMD\",$RT,\"$TARGETS\",\"$CWD\",\"$CTX\",\"$line\"\n"
-          ;;
-        yml|yaml ) printf -- "- nr: $row_nr\n  id: $htd_rule_id\n"\
-"  CMD: \"$CMD\"\n  RT: $RT\n  CWD: \"$CWD\"\n  CTX: \"$CTX\"\n"\
-"  TARGETS: \"$TARGETS\"\n  line: \"$line\"\n"
-          ;;
-        json ) test $row_nr -eq 1 && printf "[" || printf ",\n"
-          printf "{ \"id\": \"$htd_rule_id\", \"nr\": $row_nr,"\
-" \"CMD\": \"$CMD\", \"RT\": $RT, \"TARGETS\": \"$TARGETS\","\
-" \"CWD\": \"$CWD\", \"CTX\": \"$CTX\", \"line\": \"$line\" }"
-          ;;
-        * ) error "Unknown format '$out_fmt'" 1 ;;
-      esac
-    done
-    test "$out_fmt" = "json" && { echo "]" ; } || true
-  }
-}
-htd_of__show_rules='plain csv yaml json'
 htd_grp__show_rules=rules
-
-
-# arg: 1:target
-# ret: 2: has run but failed or incomplete, 1: not run, 0: run was ok
-htd__rule_target()
-{
-  case "$1" in
-
-    # Period: assure exec once each period
-    p:* )
-      case "$1" in
-        [smhdMY]* ) ;;
-        [0-9]* )
-          tdate=$(date +%y%m%d0000)
-          ;;
-      esac
-      ;;
-
-    # Domain
-    d:* )
-      sf=$(statusdir.sh file domain-network)
-      test -e "$sf" || return 0
-      test "d:$(cat $sf)" = "$1" || return 1
-      ;;
-
-    @* )
-      sf=$(statusdir.sh file htd-rules-$1)
-      test -s $sf && return 2 || test -e $sf || return 1
-      ;;
-
-  esac
-}
 htd_grp__rule_target=rules
 
 
@@ -6056,15 +5620,7 @@ htd__clean_empty_dirs()
 }
 
 
-htd__archive()
-{
-  test -n "$1" || set -- help
-  subcmd_prefs=${base}_archive_ try_subcmd_prefixes "$@"
-}
-htd_run__archive=fl
-htd_libs__archive=archive\ htd-archive
-
-#htd_env__clean_unpacked='P'
+htd_grp__archive=archive
 
 htd_als__archive_list=archive\ list
 htd_als__test_unpacked=archive\ test-unpacked
@@ -7762,17 +7318,7 @@ htd__darwin()
 htd_run__darwin=f
 
 
-htd__exif()
-{
-  exiftool -DateTimeOriginal \
-      -ImageDescription -ImageSize \
-      -Rating -RatingPercent \
-      -ImageID -ImageUniqueID -ImageIDNumber \
-      -Copyright -CopyrightStatus \
-      -Make -Model -MakeAndModel -Software -DateTime \
-      -UserComment  \
-    "$@"
-}
+htd_grp__exif=media
 
 
 # Advanced init-symlinks script with multiple modes and attributes
@@ -7847,103 +7393,9 @@ htd__date_shift()
 htd_als__rshift=date-shift
 
 
-htd_man__couchdb='Stuff couchdb
-  couchdb htd-scripts
-  couchdb htd-tiddlers
-'
-htd__couchdb()
-{
-  # XXX: experiment parsing Sh. Need to address bugs and refactor lots
-  #cd ~/bin && htd__couchdb_htd_scripts || return $?
-  cd ~/hdocs && htd__couchdb_htd_tiddlers || return $?
-}
-
-
-htd__couchdb_htd_tiddlers()
-{
-  COUCH_DB=tw
-  mkdir -vp $HTD_BUILDDIR/tiddlers
-  find . \
-    -not -ipath '*static*' \
-    -not -ipath '*build*' \
-    -not -ipath '*node_modules*' \
-    -type f -iname '*.rst' | while read rst_doc
-  do
-    tiddler_id="$( echo $rst_doc | cut -c3-$(( ${#rst_doc} - 4 )) )"
-
-
-    # Note: does not have the titles format=mediawiki mt=text/vnd.tiddlywiki
-    format=html mt=text/html
-
-    tiddler_file=$HTD_BUILDDIR/tiddlers/${tiddler_id}.$format
-    mkdir -vp $(dirname $tiddler_file)
-    pandoc -t $format "$rst_doc" > $tiddler_file
-
-    wc -l $tiddler_file
-
-    git ls-files --error-unmatch "$rst_doc" >/dev/null && {
-      ctime=$(git log --diff-filter=A --format='%ct' -- $rst_doc)
-      created=$(date \
-        -r $ctime \
-        +"%Y%m%d%H%M%S000")
-      mtime=$(git log --diff-filter=M --format='%ct' -- $rst_doc | head -n 1)
-      test -n "$mtime" && {
-        modified=$(date \
-          -r $mtime \
-          +"%Y%m%d%H%M%S000")
-      } || modified=$created
-    } || {
-      #htd_doc_ctime "$rst_doc"
-      #htd_doc_mtime "$rst_doc"
-      modified=$(date \
-        -r $(filemtime "$rst_doc") \
-        +"%Y%m%d%H%M%S000")
-      created="$modified"
-    }
-
-    tiddler_jsonfile=$HTD_BUILDDIR/tiddlers/${tiddler_id}.json
-    { cat <<EOM
-    { "_id": "$tiddler_id", "fields":{
-        "created": "$created",
-        "modified": "$modified",
-        "title": "$tiddler_id",
-        "text": $(jsotk encode $tiddler_file),
-        "tags": [],
-        "type": "$mt"
-    } }
-EOM
-    } > $tiddler_jsonfile
-
-    curl -X POST -sSf $COUCH_URL/$COUCH_DB/ \
-       -H "Content-Type: application/json" \
-      -d @$tiddler_jsonfile
-
-  done
-}
-
-
-# enter function listings and settings into JSON blobs per src
-htd__couchdb_htd_scripts()
-{
-  local src= grp=
-  test -n "$*" || set -- htd
-  # *.lib.sh
-  upper=0 default_env out-fmt names
-  groups="$( htd__list_function_groups "$@" | lines_to_words )"
-  export verbosity=4 DEBUG=
-  for src in "$@"
-  do
-    for grp in $groups
-    do
-      Inclusive_Filter=0 \
-      Attr_Filter= \
-        htd__filter_functions "grp=$grp" $src || {
-          warn "Error getting 'grp=$grp' for <$src>"
-          return 1
-        }
-    done
-  done
-}
+htd_grp__couchdb=couchdb
+htd_grp__couchdb_htd_scripts=couchdb
+htd_grp__couchdb_htd_tiddlers=couchdb
 
 
 htd__lfs_files()
@@ -7964,107 +7416,7 @@ htd__lfs_files()
 }
 
 
-htd__env='Print env var names (local or global)
-
-  all | local | global | tmux
-    List env+local, local, env or tmux vars.
-    Names starting with "_" are filtered out.
-
-  pathnames | paths | pathvars
-    Tries to print names, values, or variable declarations where value is a
-    lookup path. The values must match ``*/*:*/*``. This may include some URLs.
-    Excludes values with only local names, or at least two paths.
-
-  dirnames | dirs | dirvars
-    Print names, values, or variable declarations where value is a directory path.
-
-  filenames | files | filevars
-    Print names, values, or variable declarations where value is a file path.
-
-  symlinknames | symlinks | symlinkvars
-    Print names, values, or variable declarations where value is a symlink path.
-
-  foreach (all|local|global) [FUNC [FMT [OUT]]]
-    Print <OUT>names, <OUT>s or <OUT>vars.
-    By default prints where value is an existing path.
-
-XXX: Doesnt print tmux env. and whatabout launchctl
-'
-
-htd__env()
-{
-  test -n "$1" || set -- all
-  case "$1" in
-
-    foreach )
-        test -n "$4" -a -n "$5" || set -- "$1" "$2" "$3" vars
-        test -n "$2" || set -- "$1" all "$3" "$4" "$5"
-        test -n "$3" || {
-            _f() { test -e "$2" ; }
-            set -- "$1" "$2" "_f" "$4" "$5"
-        }
-        htd__env $2 | while read varname
-        do
-            V="${!varname}" ; $3 "$varname" "$V" || continue
-            case "$4" in
-                ${5}names ) echo "$varname" ;;
-                ${5}s ) echo "$V" ;;
-                ${5}vars ) echo "$varname=$V" ;;
-            esac
-        done
-          ;;
-
-    pathnames | paths | pathvars )
-        _f(){ case "$2" in *[/]*":"*[/]* ) ;; * ) return 1 ;; esac; }
-        htd__env foreach "$2" _f "$1" path
-      ;;
-
-    dirnames | dirs | dirvars )
-        _f() { test -d "$2" ; }
-        htd__env foreach "$2" _f "$1" dir
-      ;;
-
-    filenames | files | filevars )
-        _f() { test -f "$2" ; }
-        htd__env foreach "$2" _f "$1" file
-      ;;
-
-    symlinknames | symlinks | symlinkvars )
-        _f() { test -L "$3" ; }
-        htd__env foreach "$2" _f "$1" symlink
-      ;;
-
-    all )
-        { env && local; } | sed 's/=.*$//' | grep -v '^_$' | sort -u
-      ;;
-    global )
-        env | sed 's/=.*$//' | grep -v '^_$' | sort -u
-      ;;
-    local )
-        local | sed 's/=.*$//' | grep -v '^_$' | sort -u
-      ;;
-
-    lookup-list ) shift ;
-        lookup_path_list "$@"
-      ;;
-
-    lookup ) shift ;
-        lookup_path "$@"
-      ;;
-
-    lookup-shadows ) shift ;
-        lookup_path_shadows "$@"
-      ;;
-
-    #host ) # XXX: tmux, launch/system/init daemon?
-    #  ;;
-    tmux ) # XXX: cant resolve the from shell
-        htx__tmux show local
-      ;;
-    #* ) # XXX: schemes looking at ENV, ENV_NAME
-    #  ;;
-  esac
-}
+htd_grp__env=env
 
 
 # Show prefix of VIM install
@@ -8074,130 +7426,7 @@ htd__vim_get_runtime()
 }
 
 
-htd_man_1__ips='
-    --block-ips
-    --unblock-ips
-    -grep-auth-log
-    --init-blacklist
-    --deinit-blacklist
-    --blacklist-ips
-    -list
-    -table
-    --blacklist-ssh-password
-      Use iptables to block IPs with password SSH login attempts.
-'
-htd__ips()
-{
-  fnmatch *" root "* " $(groups) " || sudo="sudo "
-  case "$1" in
-
-      deinit-wlist ) shift
-          for ip in 185.27.175.61 anywhere
-          do
-            ${sudo}iptables -D INPUT -s ${ip} -j ACCEPT
-          done
-        ;;
-
-      init-wlist ) shift
-          set -e
-
-          ${sudo}iptables -P FORWARD DROP # we aren't a router
-          ${sudo}iptables -A INPUT -m state --state INVALID -j DROP
-          ${sudo}iptables -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
-          ${sudo}iptables -A INPUT -i lo -j ACCEPT
-          #${sudo}iptables -A INPUT -s ${ip} -j ACCEPT
-
-          wlist=./allowed-ips.list
-          wc -l $wlist
-          read_nix_style_file $wlist |
-          while read ip
-          do
-            ${sudo}iptables -A INPUT -s ${ip} -j ACCEPT
-          done
-
-          ${sudo}iptables -P INPUT DROP # Drop everything we don't accept
-        ;;
-
-      init-blist ) shift
-          blist=./banned-ips.list
-          wc -l $blist
-          {
-            cat $blist
-            htd ips -grep-auth-log
-          } | sort -u >$blist
-          wc -l $blist
-          htd ips --init-blacklist
-          read_nix_style_file $blist |
-          while read ip
-          do
-            ${sudo}ipset add blacklist $ip
-          done
-        ;;
-
-      --block-ips ) shift
-          for ip in "$@" ; do
-              ${sudo}iptables -I INPUT -s $ip -j DROP ; done
-        ;;
-
-      --unblock-ips ) shift
-          for ip in "$@" ; do
-              ${sudo}iptables -D INPUT -s $ip -j DROP ; done
-        ;;
-
-      -grep-auth-log-ips ) # get IP's to block from auth.log
-          htd__ips -grep-auth-log |
-            sed 's/.*from\ \([0-9\.]*\)\ .*/\1/g' |
-            sort -u
-        ;;
-
-      -grep-auth-log ) # get IP's to block from auth.log
-          ${sudo}grep \
-              ':\ Failed\ password\ for [a-z0-9]*\ from [0-9\.]*\ port\ ' \
-              /var/log/auth.log
-        ;;
-
-
-      --init-blacklist )
-          test -x "$(which ipset)" || error ipset 1
-          ${sudo}ipset create blacklist hash:ip hashsize 4096
-
-          # Set up iptables rules. Match with blacklist and drop traffic
-          #${sudo}iptables -A INPUT -m set --match-set blacklist src -j DROP
-          ${sudo}iptables -A INPUT -m set --match-set blacklist src -j DROP ||
-              warn "Failed setting blacklist for INPUT src"
-          ${sudo}iptables -A FORWARD -m set --match-set blacklist src -j DROP ||
-              warn "Failed setting blacklist for FORWARD src"
-          #${sudo}iptables -I INPUT -m set --match-set IPBlock src,dst -j Drop
-        ;;
-
-      --deinit-blacklist )
-          test -x "$(which ipset)" || error ipset 1
-          ${sudo}ipset destroy blacklist
-        ;;
-
-      --blacklist-ips ) shift
-          for ip in "$@" ; do ${sudo}ipset add blacklist $ip; done
-        ;;
-
-      -list ) shift ; test -n "$1" || set -- blacklist
-          ${sudo}ipset list $blacklist | tail -n +8
-        ;;
-
-      -table ) ${sudo}iptables -L
-        ;;
-
-      --blacklist )
-          htd__ips -grep-auth-log | while read ip;
-          do
-            ${sudo}ipset add blacklist $ip
-          done
-        ;;
-
-
-      * ) error "? 'ips $*'" 1
-        ;;
-  esac
-}
+htd_grp__ips=net
 
 
 htd__photos()
@@ -8242,16 +7471,8 @@ htd_als__venv=ispyvenv
 
 
 
-htd__catalog()
-{
-  test -n "$1" || set -- status
-  subcmd_prefs=${base}_catalog_ try_subcmd_prefixes "$@"
-}
-htd_run__catalog=iIAO
-htd_libs__catalog='catalog htd-catalog'
-
-htd_als__catalogs='catalog list'
-htd_als__fsck_catalog='catalog fsck'
+htd_grp__catalog=catalog
+#htd_grp__catalogs=catalog
 
 
 htd__annexdir()
@@ -8262,95 +7483,9 @@ htd__annexdir()
 htd_run__annexdir=f
 
 
-# TODO move foreach to htd str
-htd_man_1__foreach='Execute based on match for each argument or line
-
-Executes "$act" and "$no_act" for each arg or line based on glob, regex, etc.
-These can be function or command names that accept exactly one argument.
-Without arguments (or "-") all input is read from standard-input.
-
-This can be used to reuse a simple function that accepts one argument, into one
-that accepts multiple arguments and/or reads from stdin and provides a way to
-add filters. The defaults are "htd foreach * echo /dev/null -", but three
-arguments are required. Ie. this simply echoes all lines on stdin:
-
-  htd foreach "" "" ""
-
-EXPR may be a glob, regex, command or function, or shell expression.
-To prevent ambiguity, EXPR prefixes set the type ("g:", "r:", "x:" or "e:").
-The default is glob, and no further effort is made ie. to detect existing
-functions or commands. The signatures are:
-
-  g:<glob>
-  r:<regex>
-     Test each arg/line S
-  x:<callback>
-     Invoke <callback> with each S as argument
-  e:<shell-expression>
-     Evaluate for each S, without any further arguments
-
-For example scripts see `htd help filter`.
-'
-htd_spc__foreach='foreach EXPR ACT NO_ACT [ - | Subject... ]'
-htd__foreach()
-{
-  local type_= expr_= act="$2" no_act="$3" s= p=
-  foreach_match_setexpr "$@" ; shift 3
-  foreach_match "$@"
-}
-
-
-htd_man_1__filter='Return matching paths from args or stdin
-
-See `htd foreach` for EXPR and argument handling. Example to get "./*.lib.sh"
-files:
-
-   htd filter "*.lib.sh" *.sh
-   htd filter "r:.*\.lib\.sh$" *.sh
-
-These are just examples, instead of a new command some simple shell glob expansion
-could give the same result. The real power of this routine is that it implements
-the same wether input is arguments or lines on standard input, and can call
-other functions to perform the actual testing. It is not restricted to testing
-on filename/pathname only, and can work on any provided list directly.
-
-List all executable or symlinks in tracked in GIT repository:
-
-   git ls-files | htd filter e:"test -x \"./\$S\""
-   git ls-files | htd filter x:"test -x"
-   git ls-files | htd filter x:"test -h"
-
-As another example emulate GNU `find` selectors based on file descriptor. Using
-functions loaded by `htd`, similar actions are easier to write:
-
-   git ls-files | htd filter-out x:"test -s" # find . -empty -type f
-   git ls-files | htd filter "e:test \$(filesize \"./\$S\") -gt 1024" # +size
-   git ls-files | htd filter "e:older_than \"\$S\" \$_1YEAR" # +time?
-
-NOTE: that because the examples are single-quoted, it prevents any single quote
-in the documentation. While it would make the above examples a bit more readable
-with less escaping.
-'
-htd_spc__filter='filter EXPR [ - | PATH... ]'
-htd__filter()
-{
-  local type_= expr_= mode_=
-  foreach_match_setexpr "$1" ; shift
-  mode_=1 htd_filter "$@"
-}
-
-
-htd_man_1__filter_out='Return non-matches for glob, regex or other expression
-
-See `htd help filter`.
-'
-htd_spc__filter_out='filter EXPR [ - | PATH... ]'
-htd__filter_out()
-{
-  local type_= expr_= mode_=
-  foreach_match_setexpr "$1" ; shift
-  mode_=0 htd_filter "$@"
-}
+htd_grp__foreach=main
+htd_grp__filter=main
+htd_grp__filter_out=main
 
 
 htd_als__cal=calendar
@@ -8360,11 +7495,7 @@ htd__calendar()
 }
 
 
-htd__whoami()
-{
-  note "Host: $(whoami) ($uname)"
-  note "GIT: $(git config --get user.name)"
-}
+htd_grp__whoami=env
 
 
 htd_man_1__watch='Alias to local script feature-watch [ARG]'
@@ -8475,41 +7606,7 @@ help-commands is hard-coded and more documented but getting stale.
 commands is a long, long listing is generated en-passant from the source
 '
 
-
-htd_man_1__composure='Composure: dont fear the Unix chainsaw
-
-A set of 7 shell functions, to rule all the others:
-
-cite KEYWORD.. - create keyword function
-draft NAME [HIST] - create shell routine function of last command or history index
-glossary - list all composure functions
-metafor - retrieve string from typeset output
-reference FUNC - print usage
-revise FUNC - edit shell routine function
-write FUNC.. - print composed function(s)
-
-The benefit of using shell functions is free auto-complete without any fus.
-
-Composure includes private functions under the "_" prefix. Its main techniques
-are:
-
-1. empty (no-op) functions for keeping strings (iso. vars or comments), for
-   better performance having typeset access function bodies and metafor grep
-2. draft/revise/write and other helper functions to create new functions,
-   stored at ~/.local/composure/*.inc
-
-reference accesses all the interesting metadata keywords for a function. The
-short help string is called "about".
-
-XXX: it would be interesting to "overload" functions, or rewrite compsure
-entirely using composure functions. all the files need some organization,
-have metadata for lib or cmd groups. ie. let it generate itself, or
-customizations.
-
-the interesting bit is overriding of functions. like when does a app decide
-to use the global, host, vendor provided scripts or when does it let a local
-user provided script take over.
-'
+htd_grp__composure=main
 
 
 htd_man_1__meta='
@@ -8524,42 +7621,11 @@ htd__meta()
 }
 
 
-htd_man_1__emby='
+htd_grp__emby=media
 
-  emby (un)favorite ID
-    Add/remove favorite item.
-  emby (un)like | remove-like ID
-    Add, change or remove "Likes" setting.
 
-  emby studio [ID]
-    List all or get one studio item.
-  emby year(s) [YEAR]
-    List all or show one year item.
-
-  emby logs
-    List available logs
-  emby plugins
-    List installed plugins
-  emby scheduled [ID]
-    List all or get one scheduled tasks item.
-
-  item-roots
-  items
-
-  TODO: items-sub
-  TODO: items-by-id
-  TODO: item-images
-    Tabulate images
-'
-htd__embyapi()
-{
-  lib_load curl meta emby
-  emby_api_init
-  test $# -gt 0 || set -- default
-  subcmd_prefs=${base}_emby__\ emby_api__ try_subcmd_prefixes "$@"
-}
-htd__emby() { htd__embyapi "$@"; }
-
+htd_grp__github=code
+htd_grp__src=code
 
 htd_man_1__github=''
 htd_libs__github=github
@@ -8621,32 +7687,7 @@ htd_run__urlstat=qliAO
 htd_libs__urlstat="urlstat htd-urlstat"
 
 
-htd_man_1__scrtab='Build scrtab index
-
-  new [NAME] [CMD]
-    Create a new SCR-Id, if name is a file move it to the SCR dir (ignore CMD).
-    If CMD is given for name, create SCR dir script. Else use as literal cmd.
-  list [Glob]
-    List entries
-  scrlist ? [Stat-Tab]
-    List SCR-Ids
-  entry-exists SCR-Id [Stat-Tab]
-  check [--update] [--process]
-    Add missing entries, update only if default tabs changed. To update tab
-    or other descriptor fields, or (re)process for new field values set option.
-  checkall [-|SCR-Ids]...
-    Run check
-  updateall
-    See `htd checkall --update`
-  processall
-    See `htd checkall --process --update`
-'
-htd__scrtab()
-{
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
-  subcmd_default=list subcmd_prefs=scrtab_\ htd_scrtab_ try_subcmd_prefixes "$@"
-}
-htd_run__scrtab=qliAO
+htd_grp__scrtab=scrtab
 
 
 htd_man_1__redo=''

@@ -293,7 +293,7 @@ htd_tasks_scan() # tasks-scan [ --interactive ] [ --Check-All-Tags ] [ --Check-A
   test -z "$todo_slug" && {
     warn "Slug required to update store for $grep_Hn ($todo_document)"
   } ||  {
-    note "Updating tasks document.. ($todo_document $(var2tags verbose choice_interactive Check_All_Tags Check_All_Tags))"
+    note "Updating tasks document.. ($todo_document $(var2tags verbose choice_interactive Check_All_Tags Check_All_Files))"
     tasks_flags="$(
       test -z "$verbosity" && {
         falseish "$verbose" || printf -- " -v ";
@@ -335,11 +335,11 @@ htd_tasks_grep() # ~ [ --tasks-grep-expr | --Check-All-Tags] [ --Check-All-Files
 {
   local out=$(setup_tmpf .out)
   # NOTE: not using tags from metadata yet, need to build expression for tags
-  trueish "$Check_All_Tags" && {
-    test -n "$tasks_grep_expr" ||
+  trueish "${Check_All_Tags-}" && {
+    test -n "${tasks_grep_expr-}" ||
       tasks_grep_expr='\<\(TODO\|FIXME\|XXX\)\>' # tasks:no-check
   } || {
-    test -n "$tasks_grep_expr" || tasks_grep_expr='\<XXX\>' # tasks:no-check
+    test -n "${tasks_grep_expr-}" || tasks_grep_expr='\<XXX\>' # tasks:no-check
   }
   test -e .git && src_grep="git grep -nI" || src_grep="grep -nsrI \
       --exclude '*.html' "

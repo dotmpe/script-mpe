@@ -12,8 +12,21 @@ htd_man_1__archive='Deal with archive files (tar, zip)
 
 htd_archive__help ()
 {
-  echo "$htd_man_1__archive"
+  #echo "$htd_man_1__archive"
+  std_help archive
 }
+
+
+htd__archive()
+{
+  test -n "$1" || set -- help
+  subcmd_prefs=${base}_archive_ try_subcmd_prefixes "$@"
+}
+htd_run__archive=fl
+htd_libs__archive=archive\ htd-archive
+
+
+#htd_env__clean_unpacked='P'
 
 
 htd_archive_list()

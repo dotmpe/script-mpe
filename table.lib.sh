@@ -126,10 +126,11 @@ fixed_table()
     row_nr=$(( $row_nr + 1 ))
     cat "$cutf" | grep -v '^\s*\(#.*\)\?$' | while read col args
       do
-        printf " $col=$_q$(echo $(echo "$line" | cut $args) | sed 's/[%]/&/g')$_q "
+        printf " $col=$_q$(echo $(echo "$line" | cut $args) | sed 's/[%]/&/g')$_q"
       done
-      printf " row_nr=$row_nr "
-      printf " line=$_q$(echo "$line" | sed 's/[%]/&/g')$_q "
+      printf " src_f=$_q$tab$_q"
+      printf " row_nr=$row_nr"
+      printf " line=$_q$(echo "$line" | sed 's/[%]/&/g')$_q"
       echo
   done
 }

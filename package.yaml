@@ -86,7 +86,7 @@
       document: todo.txt
       done: .done.txt
       grep: ./tools/sh/tags.sh
-      grep-filter: ./tools/sh/tags-filter.sh
+      grep-filter: ./tools/sh/parts/tags-filter.sh
       coops:
         - HTD # tasks:no-check
         - NODE-SITEFILE # tasks:no-check

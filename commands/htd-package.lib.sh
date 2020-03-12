@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 htd_man_1__package='Get local (project/workingdir) metadata
 
   package ls|list-ids
