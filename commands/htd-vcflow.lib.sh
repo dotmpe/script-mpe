@@ -1,5 +1,20 @@
 #!/bin/sh
 
+htd_man_1__vcflow='
+TODO: see also vc gitflow
+'
+htd_libs__vcflow=vcflow\ htd-vcflow
+htd_run__vcflow=fl
+htd__vcflow()
+{
+  test -n "$1" || set -- status
+  subcmd_prefs=${base}_vcflow_ try_subcmd_prefixes "$@"
+}
+
+vcflow__help()
+{
+  std_help vcflow
+}
 
 # set-local, and echo local path-name for vcflow doc
 htd_vcflow_doc()

@@ -35,11 +35,14 @@ try:
     loads = json_.loads
     dumps = json_.dumps
     load = json_.load
-    dump = json_.dump
     parse = loads
+    import sys
+    def dump(data):
+        json_.dump(data, sys.stdout)
 
 except Exception, e:
     pass#log.warn("Failed loading json %r", e)
+
 
 if not loads:
     log.err("No known json library installed. Plain Python printing.")

@@ -1,35 +1,15 @@
 #!/bin/sh
 
-context__help ()
+htd_man_1__context='
+  TODO context list -
+'
+htd__context()
 {
-  cat <<EOM
-Context tracks all current or local tags, ie. any Name Id as todo.txt item.
-
-tab or list - output all
-check <TAG> - verify exists, or check subcontext and check case
-tag -
-
-info
-summary
-
-TODO: what to do with commands/htd-context
-TODO: Not all docstats have tag (context) yet. URLs (urlstat) idem.
-TODO: drafts are not in docstat, context
-EOM
+  test -n "$1" || set -- list
+  subcmd_prefs=${base}_context_\ context_ try_subcmd_prefixes "$@"
 }
-
-context__info ()
-{
-  true
-}
-
-context__summary ()
-{
-  CTX_CNT=$(context_tab | count_lines)
-
-  $LOG header2 "Contexts" "" "$CTX_CNT"
-}
-
+htd_run__context=l
+htd_libs__context="match match-htd statusdir src src-htd str-htd list prefix context"
 
 # Use docstat built-in to retrieve cached tag list
 htd_context_list()
@@ -108,3 +88,35 @@ htd_context_tree()
 {
   txt.py txtstat-tree "$HTDCTX_TAB"
 }
+
+context__help ()
+{
+  cat <<EOM
+Context tracks all current or local tags, ie. any Name Id as todo.txt item.
+
+tab or list - output all
+check <TAG> - verify exists, or check subcontext and check case
+tag -
+
+info
+summary
+
+TODO: what to do with commands/htd-context
+TODO: Not all docstats have tag (context) yet. URLs (urlstat) idem.
+TODO: drafts are not in docstat, context
+EOM
+}
+
+context__info ()
+{
+  true
+}
+
+context__summary ()
+{
+  CTX_CNT=$(context_tab | count_lines)
+
+  $LOG header2 "Contexts" "" "$CTX_CNT"
+}
+
+#

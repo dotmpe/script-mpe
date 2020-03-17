@@ -1,5 +1,12 @@
 #!/bin/sh
 
+
+htd_rules_lib_load()
+{
+  #2017-05-01
+  test -n "${htd_rules-}" || htd_rules=$UCONFDIR/rules/$hostname.tab
+}
+
 htd_man_1__rules='
   edit
     Edit the HtD rules file.
@@ -24,14 +31,10 @@ htd_man_1__rules='
     TODO: parse-ctx eval-ctx
   update | post-proc
 
-development documentation in HT:Dev/Shell/Rules.rst
+Development documentation in HT:Dev/Shell/Rules.rst
+TODO: proc rules, output log.
+TODO: Transform log to new rule states...
 '
-
-rules__help()
-{
-  std_help rules
-}
-
 htd__rules()
 {
   test -n "$htd_chatter" || htd_chatter=$verbosity
@@ -356,6 +359,12 @@ htd__rule_target()
       ;;
 
   esac
+}
+
+
+rules__help()
+{
+  std_help rules
 }
 
 #

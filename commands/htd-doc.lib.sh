@@ -4,7 +4,6 @@
 # See also docstat-list XXX: see also doc-find, list from SCM etc.
 htd_doc_list()
 {
-  lib_load package &&
   doc_list_local
 }
 
@@ -145,9 +144,9 @@ htd_rst_doc_create_update()
           # Get week...
           thisweek=$(realpath "${log}${log_path_ysep}week$EXT")
 
-          day="$( gdate +"%F" )"
-          weekstart="$( gdate -d "$day -$(gdate -d $day +%u) days" +"%F" )"
-          month_at_weekstart="$( gdate -d $day +%b )"
+          day="$( $gdate +"%F" )"
+          weekstart="$( $gdate -d "$day -$($gdate -d $day +%u) days" +"%F" )"
+          month_at_weekstart="$( $gdate -d $day +%b )"
 
           title="$(date_fmt "" "Week %V, $month_at_weekstart %G")"
 

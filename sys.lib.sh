@@ -39,6 +39,7 @@ trueish() # Str
     * ) return 1;;
   esac
 }
+# Id: sh-trueish
 
 # No error on empty, or not trueish match
 not_trueish()
@@ -265,23 +266,26 @@ lookup_path_shadows() # VAR-NAME LOCAL
   return $r
 }
 
-# Return 1 if env was provided, or 0 if default was set
+# Return non-zero if default was set, or present value does not match default
 default_env() # VAR-NAME DEFAULT-VALUE
 {
   test -n "${1-}" -a $# -eq 2 || error "default-env requires two args ($*)" 1
-  local vid= sid= id=
+  local vid= sid= id= v=
   trueish "${title-}" && upper= || {
     test -n "${upper-}" || upper=1
   }
-  mkvid "$1" ; echo vid=$vid >&2
-  mksid "$1" ; echo sid=$sid >&2
+  mkvid "$1"
+  mksid "$1"
   unset upper
-  test -n "$(eval echo \$$vid 2>/dev/null )" || {
+  v="$(eval echo \$$vid 2>/dev/null )"
+  test -n "$v" && {
+    test "$v" = "${2-}"
+    return $?
+  } || {
     debug "No $sid env ($vid), using '${2-}'"
     eval $vid="${2-}"
     return 0
   }
-  return 1
 }
 
 get_kv_k() # Key-Value-Str

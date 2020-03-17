@@ -76,16 +76,16 @@ catalog-lib-load. Std. format is YAML.
 htd__catalog()
 {
   test -n "$1" || set -- status
-  subcmd_prefs=${base}_catalog_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_catalog__ try_subcmd_prefixes "$@"
 }
 htd_run__catalog=iIAO
-htd_libs__catalog='catalog htd-catalog'
+htd_libs__catalog='match str-htd catalog htd-catalog' # XXX: match-htd statusdir src-htd
 
 htd_als__catalogs='catalog list'
 htd_als__fsck_catalog='catalog fsck'
 
 htd_catalog__help ()
 {
-  std_help catalog
-  #echo "$htd_man_1__catalog"
+  #std_help catalog
+  echo "$htd_man_1__catalog"
 }

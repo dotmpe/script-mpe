@@ -8,6 +8,20 @@ htd_functions_lib_load()
 
 ht_functions() { htd__functions "$@"; }
 
+htd_man_1__functions='List functions, group, filter, and use `source` to get
+source-code info.
+
+   list-functions|list-func|ls-functions|ls-func
+     List shell functions in files.
+   find-functions Grep Scripts...
+     List functions matching grep pattern in files
+   list-groups [ Src-Files... ]
+     List distinct values for "grp" attribute. See box-list-function-groups.
+   list-attr [ Src-Files... ]
+     See box-list-functions-attrs.
+
+'
+htd_run__functions=iAOl
 htd__functions()
 {
   test -n "$1" || set -- copy
@@ -38,3 +52,4 @@ htd__functions()
 	# error "'$1'?" 1 ;;
   esac
 }
+htd_libs__functions=functions

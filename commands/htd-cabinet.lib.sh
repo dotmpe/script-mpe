@@ -25,3 +25,12 @@ htd_cabinet_add() # Refs
     while read p ; do test -d "$p" && echo "$p/" || echo "$p" ; done |
     archive_path_map | sed 's/\/$//' | rsync_pairs
 }
+
+htd_libs__cabinet="str-htd"
+
+htd_cabinet_lib_init()
+{
+  debug "Using Cabinet-Dir '$CABINET_DIR'"
+}
+
+#

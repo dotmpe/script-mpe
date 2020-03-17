@@ -851,6 +851,7 @@ vc_info()
     note "Sourcing '$PACKMETA_SH'..."
     . "$PACKMETA_SH"
     cat <<EOM
+$2spec: $package_id/$package_version
 $2id: $package_id
 $2version: $package_version
 $2vendor: $package_vendor

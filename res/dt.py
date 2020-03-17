@@ -25,6 +25,14 @@ def iso8601_from_stamp(ts):
     dt = datetime.fromtimestamp(ts)
     return dt.isoformat()
 
+def parse_chrome_microsecondstamp(microseconds):
+    #microseconds = int(dt, 16) / 10
+    seconds, microseconds = divmod(microseconds, 1000000)
+    days, seconds = divmod(seconds, 86400)
+
+    return datetime(1601, 1, 1) + timedelta(days, seconds, microseconds)
+
+
 def parse_isodatetime(s):
     """
     Opposite of datetime().isoformat()

@@ -18,11 +18,13 @@ test -n "${LOG:-}" -a -x "${LOG:-}" -o \
 
 test -n "$sh_src_base" || sh_src_base=/src/sh/lib
 
-test -n "$U_S" -a -d "$U_S" || . $PWD$sh_util_base/parts/env-0-u_s.sh
+test -n "$1" && scriptpath=$1 || scriptpath=$(pwd -P)
+#test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname -- "$0")")" )" # No-Sync
+test -n "$scriptname" || scriptname="$(basename -- "$0")" # No-Sync
+
+test -n "$U_S" -a -d "$U_S" || . $scriptpath/tools/sh/parts/env-0-u_s.sh
 test -n "$U_S" -a -d "$U_S" || return
 
-test -n "$scriptpath" || scriptpath="$(dirname "$(dirname "$(dirname -- "$0")")" )" # No-Sync
-test -n "$scriptname" || scriptname="$(basename -- "$0")" # No-Sync
 test -n "$sh_tools" || sh_tools="$U_S/tools/sh"
 
 # Now include module with `lib_load`

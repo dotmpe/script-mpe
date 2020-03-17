@@ -16,7 +16,7 @@ from script_mpe import log, confparse
 from urlparse import urlparse
 
 from . import js
-from .dt import iso8601_from_stamp
+from .dt import parse_chrome_microsecondstamp, iso8601_from_stamp
 from .. import lib
 from ..taxus.model import Bookmark
 from ..taxus.core import Tag, Name
@@ -88,22 +88,69 @@ class MozJSONExport(object):
 
 
 
-def rst_print(bm, i=1):
+def rst_print(bm, l=0):
     """
     Print MozJSONExport as a rSt-reminiscent nested list
     """
-    print i*'  ', '-', '`'+bm.name + ('url' in bm and ' <'+bm.url+'>`_' or '`')
-    if 'children' in bm and bm.children:
+    print l*'  ', '-', '`'+bm.name + ('url' in bm and ' <'+bm.url+'>`_' or '`')
+    if 'children' in bm and bm.children: # type==folder
         print
         for sb in bm.children:
-            rst_print(confparse.Values(sb), i+1)
+            rst_print(confparse.Values(sb), l+1)
         print
+
+
+def repr_print(bm, l=0):
+    if 'children' in bm and bm.children: # type==folder
+        for sb in bm.children:
+            repr_print(confparse.Values(sb), l+1)
+    elif bm.type == 'url':
+        print repr(bm.todict())
+
+
+def outline_print(bm, l=0, groups=[]):
+    """
+    Print URLs JSON folder outline only.
+    """
+    if 'children' in bm and bm.children: # type==folder
+        print '  '*l, bm.name
+        for sb in bm.children:
+            outline_print(confparse.Values(sb), l+1)
+
+tag_re = re.compile('^[A-Za-z0-9\/:\._-]+$')
+
+def todotxt_print(bm, l=0, groups=[]):
+    """
+    Print URLs as todo.txt formatted lines.
+    """
+    if bm.type == 'url':
+        # Remove windows-epoch timestamps
+        print \
+            (bm.date_added == u'11644473600000000' and '-' or \
+                parse_chrome_microsecondstamp(int(bm.date_added)).isoformat()) \
+            + ' '+bm.name \
+            + ('url' in bm and ' <'+bm.url+'>' or '') \
+            + ('guid' in bm and ' #'+bm.guid+'' or '') \
+            + ' '+(
+                ' '.join(map(lambda x: '`%s`'%x, filter(lambda s: not
+                        tag_re.match(s), groups)))+
+                ' '+
+                ' '.join(map(lambda x: '@'+x, filter(tag_re.match, groups)))
+            )
+    elif 'children' in bm and bm.children:
+        groups.append(bm.name)
+        for sb in bm.children:
+            todotxt_print(confparse.Values(sb), l, list(groups))
+
 
 moz_json_printer = dict(
     item={
+        'repr': lambda group: repr_print(group),
         'rst': lambda group: rst_print(group),
         'json': lambda group: js.dump(group),
-        'outline': lambda group: rst_print(group)
+        'outline': lambda group: outline_print(group),
+        'todotxt': lambda group: todotxt_print(group),
+        'todo.txt': lambda group: todotxt_print(group)
     })
 
 _ttuple = lambda text, attrs: tuple(( text, attrs ))
@@ -251,6 +298,10 @@ html_soup_formatters = {
 
 class BmImporter(object):
 
+    """
+    Import bookmarks into SQLAlchemy database.
+    """
+
     def __init__(self, sa):
         self.sa = sa
         self.r = 0
@@ -299,7 +350,8 @@ class BmImporter(object):
         else:
             bm = Bookmark.fetch((Bookmark.name == name,), exists=False)
             if bm:
-                log.std("Name already exists: %r" % name)
+                log.std("Name already exists: %r at <%s>, not <%s>" % (name,
+                    bm.location.ref, locator.ref))
                 return
             bm = Bookmark(
                     location=locator,
@@ -338,8 +390,12 @@ class BmImporter(object):
         if domain_offset > 0:
             return domain_offset
         # Prepare domain stats
-        avgDomainFreq = sum(self.domains_stat.values())/(len(self.domains_stat)*1.0)
-        hiDomainFreq = max(self.domains_stat.values())
+        if not self.domains_stat:
+            avgDomainFreq = 0
+            hiDomainFreq = 0
+        else:
+            avgDomainFreq = sum(self.domains_stat.values())/(len(self.domains_stat)*1.0)
+            hiDomainFreq = max(self.domains_stat.values())
         log.std("Found domain usage (max/avg): %i/%i", hiDomainFreq, avgDomainFreq)
         if domain_offset == 0:
             domain_offset = hiFreq
@@ -380,8 +436,12 @@ class BmImporter(object):
         if tag_offset > 0:
             return tag_offset
         # Prepare tag stats
-        avgFreq = sum(self.tags_stat.values())/(len(self.tags_stat)*1.0)
-        hiFreq = max(self.tags_stat.values())
+        if not self.tags_stat:
+            avgFreq = 0
+            hiFreq = 0
+        else:
+            avgFreq = sum(self.tags_stat.values())/(len(self.tags_stat)*1.0)
+            hiFreq = max(self.tags_stat.values())
         log.std("Found tag usage (max/avg): %i/%i", hiFreq, avgFreq)
         if tag_offset == 0:
             tag_offset = hiFreq

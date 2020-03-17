@@ -49,4 +49,48 @@ htd__exif()
     "$@"
 }
 
+
+# validate torrent
+htd__ck_torrent()
+{
+  test -s "$1" || error "Not existent torrent arg 1: $1" 1
+  test -f "$1" || error "Not a torrent file arg 1: $1" 1
+  test -z "$2" -o -d "$2" || error "Missing dir arg" 1
+  htwd=$(pwd)
+  dir=$2
+  test "$dir" != "." && pushd $2 > /dev/null
+  test "${dir: -1:1}" = "/" && dir="${dir:0: -1}"
+  log "In $dir, verify $1"
+
+  #echo testing btshowmetainfo
+  #btshowmetainfo $1
+
+  node $PREFIX/bin/btinfo.js "$1" > $(setup_tmpd)/htd-ck-torrent.sh
+  . $(setup_tmpd)/htd-ck-torrent.sh
+  echo BTIH:$infoHash
+
+  torrent-verify.py "$1" | while read line
+  do
+    test -e "${line}" && {
+      echo $htwd/$dir/${line} ok
+    }
+  done
+  test "$dir" != "." && popd > /dev/null
+}
+
+
+# xxx find corrupt files: .mp3
+htd__mp3_validate()
+{
+  eval "find . $find_ignores -o -name "*.mp3" -a \( -type f -o -type l \) -print" \
+  | while read p
+  do
+    SZ=$(filesize "$p")
+    test -s "$p" || {
+      error "Empty file $p"
+      continue
+    }
+    mp3val "$p"
+  done
+}
 #

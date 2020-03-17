@@ -8,8 +8,10 @@ ignores_lib_load()
   test -n "$1" || set -- $base
   test -n "$2" || set -- $1 $(str_upper $1)
 
-  test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" ||
-      error "ignores: SCRIPT-ETC '$SCRIPT_ETC'" 2
+  default_env Script-Etc "$( htd_init_etc|head -n 1 )" ||
+    debug "Using Script-Etc '$SCRIPT_ETC'"
+  #test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" ||
+  #    error "ignores: SCRIPT-ETC '$SCRIPT_ETC'" 2
 
   local varname=$(echo $2 | tr '-' '_')_IGNORE fname=.${1}ignore
 

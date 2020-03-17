@@ -200,8 +200,11 @@ get_subcmd_func()
       }
     }
 
+    load_groups $subcmd
+
     # Break on first existing function
     try_local_func "$@" && {
+
       subcmd_func="$(echo_local "$@")"
       #test "$base" = "$b" || base=$b
       return
@@ -250,7 +253,7 @@ try_subcmd_prefixes()
     $cmd "$@"
     return $?
   done
-  error "No prefixed subcmd func for '$vid'" 1
+  error "No prefixed subcmd func for '$vid' ($subcmd_prefs)" 1
 }
 
 try_package_action()
@@ -606,19 +609,25 @@ main_subcmd_args()
   }
 }
 
-get_cmd_func_name()
+get_cmd_func_name() # SUBCMD
 {
-  test -n "$1" || error "get_cmd_func_name:1:varname expected" 1
+  test $# -eq 1 -a -n "${1-}" || error "get_cmd_func_name:1:varname expected" 1
   local cmd_name="$(eval echo "\$${1}")"
 
-  local cmd_alias="$(eval echo \$${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
+  local cmd_alias=
+  get_cmd_alias $1
+
+  eval ${1}_func=$(echo "${func_pref}${cmd_name}${func_suf}" | tr '-' '_')
+}
+
+get_cmd_alias() # SUBCMD
+{
+  cmd_alias="$(eval echo \$${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
   test -z "$cmd_alias" || {
     $LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
     cmd_name=$cmd_alias
     eval ${1}_alias=$cmd_alias
   }
-
-  eval ${1}_func=$(echo "${func_pref}${cmd_name}${func_suf}" | tr '-' '_')
 }
 
 # set ${1}_name to cmd-function
@@ -652,11 +661,18 @@ get_cmd_func()
   unset func_pref func_suf tag
 }
 
+load_groups() # SUBCMD
+{
+  local grp="$(try_value "${1}" grp ${base})"
+  test ! -n "$grp" || load_group $grp
+}
+
 load_group()
 {
-  test ! -e $HOME/bin/commands/htd-$1.lib.sh || {
-    . $HOME/bin/commands/htd-$1.lib.sh
-  }
+  local libs="$(for x in "$@"; do
+    test -e $scriptpath/commands/$base-$x.lib.sh && echo $base-$x || echo $x ; done)"
+  lib_load $libs
+  # XXX: no lib_init $libs for htd cmd groups
 }
 
 # Setup some initial vars and load lib files for main script
@@ -777,9 +793,6 @@ main_run_subcmd()
   test $c -gt 0 && shift $c ; c=0
 
   #test -z "${DEBUG-}" || main_debug "c:$c *:$*"
-
-  local grp="$(try_value "${subcmd}" grp htd)"
-  test ! -n "$grp" || load_group $grp
 
   # XXX: box_lib="$(box_list_libs "$0")"
 

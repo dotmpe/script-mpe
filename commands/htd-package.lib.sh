@@ -39,20 +39,34 @@ Plumbing commands dealing with the local project package file. See package.rst.
 These do not auto-update intermediate artefacts, or load a specific package-id
 into env.
 '
+htd_run__package=iAOlQ
+htd__package()
+{
+  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  test -n "$*" && {
+      test -n "$1" || {
+        shift && set -- debug "$@"
+      }
+    } || set -- debug
+  subcmd_prefs=${base}_package__\ package_ try_subcmd_prefixes "$@"
+}
+htd_libs__package=date\ package\ htd-package
+
+
 htd_package__help ()
 {
   echo "$htd_man_1__package"
 }
 
 
-htd_package_list_ids()
+htd_package__list_ids()
 {
   test -e "${PACKMETA-}" || error "htd-package-list-ids no file '$PACKMETA'" 1
   jsotk.py -I yaml -O py objectpath $PACKMETA '$.*[@.id is not None].id'
 }
 
 
-htd_package_update()
+htd_package__update()
 {
   test $# -le 1 || return
   test $# -eq 1 || set -- .
@@ -60,7 +74,7 @@ htd_package_update()
 }
 
 
-htd_package_debug()
+htd_package__debug()
 {
   #test -z "$1" || export package_id=$1
   package_lib_set_local "$(pwd -P)"
@@ -89,14 +103,14 @@ htd_package_debug()
 }
 
 # List strings at main package 'urls' key
-htd_package_urls()
+htd_package__urls()
 {
   test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
   test -e "${PACKMETA_JS_MAIN-}" || error "No '$PACKMETA_JS_MAIN' file" 1
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" urls
 }
 
-htd_package_open_url()
+htd_package__open_url()
 {
   test -n "${1-}" || error "name expected" 1
   test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
@@ -109,7 +123,7 @@ htd_package_open_url()
 
 # Take PACKMETA file and read main package's 'repositories', looking for a local
 # remote repository or adding/updating each name/URL.
-htd_package_remotes_init()
+htd_package__remotes_init()
 {
   test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
   test -e "${PACKMETA_JS_MAIN-}" || error "No '$PACKMETA_JS_MAIN' file" 1
@@ -132,7 +146,7 @@ htd_package_remotes_init()
   done
 }
 
-htd_package_remotes_reset()
+htd_package__remotes_reset()
 {
   test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
   git remote | while read -r remote
@@ -140,10 +154,10 @@ htd_package_remotes_reset()
       git remote remove $remote && std_info "Removed '$remote'"
   done
   note "Removed all remotes, re-adding.."
-  htd_package_remotes_init
+  htd_package__remotes_init
 }
 
-htd_package_write_script() # [env script_out=.htd/scripts/NAME] : NAME
+htd_package__write_script() # [env script_out=.htd/scripts/NAME] : NAME
 {
   test -n "${1-}" || set -- "init"
   test -n "${script_out-}" || script_out=.htd/scripts/$1.sh
@@ -187,7 +201,7 @@ htd_package_write_script() # [env script_out=.htd/scripts/NAME] : NAME
   unset script_out
 }
 
-htd_package_write_scripts() # NAMES...
+htd_package__write_scripts() # NAMES...
 {
   # Init env, update package if stale, if not set yet
   test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
@@ -208,24 +222,24 @@ htd_package_write_scripts() # NAMES...
 }
 
 # Initialize package.yaml file, using values `from` extractors
-htd_package_init() #
+htd_package__init() #
 {
   case "$from" in
 
-    git ) htd_package_from_$from ;;
+    git ) htd_package__from_$from ;;
 
     * ) error "no such 'from' value '$from'" 1 ;;
   esac
 }
 
 # Initialize package.yaml from (local) GIT checkout
-htd_package_from_git() # [DIR=. [REMOTE [FROM...]]]
+htd_package__from_git() # [DIR=. [REMOTE [FROM...]]]
 {
-  htd_package_print_from_git "$@" > $PACKMETA
+  htd_package__print_from_git "$@" > $PACKMETA
 }
 
 # TODO; See htd-package-init
-htd_package_print_from_git() # [DIR=. [REMOTE [FROM...]]]
+htd_package__print_from_git() # [DIR=. [REMOTE [FROM...]]]
 {
   # Get ID for package from primary (default) remote
 

@@ -148,6 +148,7 @@ urlstat_process()
   debug "entry '$entry'"
 
   case "$urlstat_src" in
+
       http|https )
 
           status=$(curl -sSo/dev/null -m10 "$urlstat_src" --write-out %{http_code})
@@ -157,6 +158,8 @@ urlstat_process()
           fnmatch "5*" "$status" && status=5
           #test -n "$title"
         ;;
+
+      * ) ;; # XXX: urlstat unknown protocol
   esac
 }
 
@@ -342,3 +345,21 @@ urlstat_processall()
 {
   urlstat_update_process=1 urlstat_check_update=1 urlstat_checkall "$@"
 }
+
+urlstat_diigo_import()
+{ true
+}
+
+urlstat_shaarli_import()
+{ true
+}
+
+urlstat_google_import()
+{ true
+}
+
+urlstat_chrome_import()
+{ true
+}
+
+#

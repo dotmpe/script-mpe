@@ -169,12 +169,32 @@ diff_where() # Where/Line Where/Span Src-File
   echo
 }
 
+# List values for directive from file
+list_preproc() # Directive File
+{
+  # Resolve all includes recursively
+  for ref in $(grep_preproc "$@")
+  do
+      fnmatch "[/~$]*" "$ref" || ref=$(dirname "$2")/$ref
+      file="$(eval echo "$ref")"
+      echo "$file"
+      test -e "$file" || continue
+      list_preproc $1 "$file"
+  done
+}
+
+# List values for directive from root file
+grep_preproc() # Direct File
+{
+  $gsed -n 's/^#'$1'\ \(.*\)$/\1/gp' "$2"
+}
+
 # Replace include directives with file content, using two sed's and some subproc
 # per include line in between.
-expand_preproc()
+expand_preproc() # Directive File
 {
-  # Get include lines, reformat to sed commands, and execute
-  $gsed -n 's/^#'$1'\ \(.*\)$/\1/gp' "$2" |
+  # Get include lines, reformat to sed commands, and execute sed-expr on input
+  list_preproc "$@" |
   while read -r include
   do printf -- '/^#'$1'\ %s/r %s\n' \
       "$(match_grep "$include")" \

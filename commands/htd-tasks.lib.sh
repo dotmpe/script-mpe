@@ -1,5 +1,19 @@
 #!/bin/sh
 
+# Current tasks
+
+htd_tasks_lib_init()
+{
+  test -n "${TODOTXT_EDITOR-}" || {
+    test -x "$(command -v todotxt-machine)" &&
+      TODOTXT_EDITOR=todotxt-machine || TODOTXT_EDITOR=$EDITOR
+  }
+  test -n "${tasks_hub-}" || {
+    eval $(map=package_pd_meta_ package_sh tasks_hub)
+    test -z "$tasks_hub" -o -e "$tasks_hub" || mkdir -p "$tasks_hub"
+  }
+}
+
 htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
 
   Commands in this group:
@@ -47,21 +61,203 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
   See also package.rst docs.
   The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
 '
-tasks__help ()
+htd_run__tasks=itAOlQ
+htd_libs__tasks=package\ htd-tasks\ tasks
+# lib_load os str std list vc tasks todo
+
+
+htd_man_1__tasks_edit='Edit local todo/done.txt generated from to/do-{at,in}*
+
+Tasks are migrated between the local todo/.done.txt and buffers (ie. all
+to/do-at-<context>.list and to/do-in-<project>.list files found), moving
+to the todo/done files before the edit session and back to the buffers after
+closing it.
+
+This serves as a first step to manage tasks existing across project borders, and
+to use backends based on context. Ideally in this mode, every source is locked
+for editing so at the end of the editor session each change is a simple update.
+'
+htd_spc__tasks_edit="tasks-edit TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
+# This reproduces most of the essential todotxt-edit code, b/c before migrating
+# we need exclusive access to update the files anyway.
+htd_env__tasks_edit='
+  tags=
+  id=$htd_session_id migrate=${migrate-1} remigrate=${remigrate-1}
+  todo_slug= todo_document= todo_done=
+  tags= projects= contexts= buffers= add_files= locks=
+  colw=${colw-32}
+'
+htd__tasks_edit()
 {
-  echo "$htd_man_1__tasks"
+  htd_tasks_edit "$@"
+}
+htd_run__tasks_edit=epqlA
+htd_libs__tasks_edit=htd-tasks
+htd_argsv__tasks_edit=htd_argsv_tasks_session_start
+htd_als__edit_tasks=tasks-edit
+
+
+htd_man_1__tasks_hub='Given a tasks-hub directory, either get tasks, tags or
+additional settings ie. backends, indices, cardinality.
+
+  htd tasks-hub init
+    Figure out identity for buffer lists
+  htd tasks-hub be
+    List the backend scripts, a hack on context "@be-" prefix..
+  htd tasks-hub tags
+    List tags for which local task buffers or backend/proc scripts exists.
+    TODO: only list buffers, list scripts elsewhere. E.g backend
+  htd tasks-hub tagged
+    Lists the tags, from items in lists
+  htd tasks-hub urlstat
+    Iterate over hub files and scan for URLs, see htd urlstat list and checkall
+
+'
+htd_man_1__tasks_hub_tags='List tags for which buffers exist'
+htd_env__tasks_hub='projects=${projects-1} contexts=${contexts-1}'
+htd_spc__tasks_hub='tasks-hub [ (be|tags|tagged) [ ARGS... ] ]'
+htd_spc__tasks_hub_taggged='tasks-hub tagged [ --all | --lists | --endpoints ] [ --no-projects | --no-contexts ] '
+htd__tasks_hub()
+{
+  htd_tasks_hub "$@"
+}
+htd_run__tasks_hub=eqiAOl
+htd_libs__tasks_hub=tasks\ htd-tasks
+htd_als__hub=tasks-hub
+
+
+# TODO: introduce htd proc LIST
+  # Lists are files with lines treated as items with rules applied.
+  # Each list is associated with its own unique context(s)
+  # If the context corresponds to a script it is used to manage the item.
+  # Each lifecycle event can be hooked and trigger a reaction by the context.
+  # By setting a default certain rules are always inherited.
+  # The default list however is todo, or to/do. Also see, buy, fix, whatever.
+  # Items remain in their list, and are considered dirty or uncommitted until
+  # they have a context tag added. Setting a context rule for a list allows
+  # to indicate a required context choice, to migrate items to the
+  # appropiate list, and to note items that have no context.
+  # With a dynamic context, automatic or interactive handling and cleanup is
+  # possible for various sorts of items: tasks, reminders, references,
+  # reports, etc. On the other hand it is also possible to generate lists,
+  # filter, etc. E.g. directories, issues, packages, bookmarks, emails,
+  # name it. Having the list-item formet here helps to integrate with e.g.
+  # node-sitefile. Next; start thinking in structured tags, topics.
+  # And then add support for containment, nesting, grouping.
+
+htd_spc__tasks_process='process [ LIST [ TAG.. [ --add ] | --any ]'
+htd_env__tasks_process='
+  todo_slug=${todo_slug} todo_document=${todo_document} todo_done=${todo_done}
+'
+htd__tasks_process()
+{
+  #projects=0 htd__tasks_hub tags | tr -d '@' | while read ctx
+  #do
+  #  echo TODO process task arg ctx: $ctx
+  #done
+  tags="$(htd__tasks_tags "$@" | lines_to_words ) $tags"
+  note "Process Tags: '$tags'"
+  htd_tasks_buffers $tags | grep '\.sh$' | while read scr
+  do
+    test -e "$scr" || continue
+    test -x "$scr" || { warn "Disabled: $scr"; continue; }
+  done
+  for tag in $tags
+  do
+    scr="$(htd_tasks_buffers "$tag" | grep '\.sh$' | head -n 1)"
+    test -n "$scr" -a -e "$scr" || continue
+    test -x "$scr" || { warn "Disabled: $scr"; continue; }
+
+    echo tag=$tag scr=$scr
+    #grep $tag'\>' $todo_document | $scr
+    # htd_tasks__at_Tasks process line
+    continue
+  done
+}
+htd_run__tasks_process=lA
+htd_libs__tasks_process=htd-tasks
+htd_argsv__tasks_process=htd_argsv_tasks_session_start
+htd_als__tasks_proc=tasks-process
+htd_als__process_tasks=tasks-process
+
+
+# Given a list of tags, turn these into task storage backends. One path
+# for reserved read/write access per context or project. See tasks.rst for
+# the implemented mappings. Htd can migrate tasks between stores based on
+# tag, or request new or remove existing tag Ids.
+htd_man_1__tasks_buffers="For given tags, print buffer paths. "
+htd_spc__tasks_buffers='tasks-buffers [ @Contexts... +Projects... ]'
+htd__tasks_buffers()
+{
+  htd_tasks_buffers "$@"
+}
+htd_run__tasks_buffers=l
+htd_libs__tasks_buffers=htd-tasks
+
+
+htd_man_1__tasks_session_start='Starts an editing session for TODO.txt lines.
+
+With no tags given (@ or +) this will not do anything. But for each tag given
+the lines are first migrated from its local buffer (in to/*.list or another
+location) to the TODO.TXT file.
+
+There is the idea to introduce an * or "all" value to accumulate every task,
+but I think that easily becomes overkill.
+'
+htd_spc__tasks_session_start="tasks-session-start TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
+htd_env__tasks_session_start="$htd_env__tasks_edit"
+htd__tasks_session_start()
+{
+  stderr info "3.1. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  set -- $todo_document $todo_done
+  assert_files $1 $2
+  # Get tags too for current todo/done file, to get additional locks
+  tags="$(tasks_todotxt_tags "$1" "$2" | lines_to_words ) $tags"
+  note "Session-Start Tags: ($(echo "$tags" | count_words
+    )) $(echo "$tags" )"
+  stderr info "3.2. Env: $(var2tags \
+    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
+  # Get additional paths to all files, look for todo/done buffer files per tag
+  buffers="$(htd_tasks_buffers $tags )"
+  # Lock files todo/done and additional-paths to buffers
+  locks="$(lock_files $id "$@" $buffers $add_files | lines_to_words )"
+  { exts="$TASK_EXTS" pathnames $locks ; echo; } | column_layout
+  # Fail now if main todo/done files are not included in locks
+  verify_lock $id $1 $2 || {
+    released="$(unlock_files $id $@ $buffers | lines_to_words )"
+    error "Unable to lock main files: $1 $2" 1
+  }
+  note "Acquired locks ($(echo "$locks" | count_words ))"
 }
 
-htd_tasks_lib_load()
+
+htd__tasks__src__exists()
 {
-  test -n "${TODOTXT_EDITOR-}" || {
-    test -x "$(command -v todotxt-machine)" &&
-      TODOTXT_EDITOR=todotxt-machine || TODOTXT_EDITOR=$EDITOR
+  test -n "$2" || {
+    echo
   }
-  test -n "${tasks_hub-}" || {
-    eval $(map=package_pd_meta_ package_sh tasks_hub)
-    test -z "$tasks_hub" -o -e "$tasks_hub" || mkdir -p "$tasks_hub"
-  }
+  echo grep -srIq $1 $all $TASK_DIR/
+}
+htd__tasks__src__add()
+{
+  new_id=$(htd rndstr < /dev/tty)
+  while htd__tasks__src__exists "$new_id"
+  do
+    new_id=$(htd rndstr < /dev/tty)
+  done
+  echo $new_id
+}
+htd__tasks__src__remove()
+{
+  false
+}
+
+
+htd_tasks__help ()
+{
+  #std_help tasks
+  echo "$htd_man_1__tasks"
 }
 
 htd__tasks()
@@ -115,7 +311,7 @@ htd__tasks()
 # Default
 
     * )
-        subcmd_prefs=${base}__tasks_\ ${base}_tasks_ try_subcmd_prefixes "$@"
+        subcmd_prefs=${base}_tasks__\ ${base}_tasks_ try_subcmd_prefixes "$@"
       ;;
   esac
 }

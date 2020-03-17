@@ -1,7 +1,5 @@
-#chrome_bookmarks_path= '~/Library/Application Support/Google/Chrome/Default/Bookmarks'
-
+import os
 from ... import confparse, res
-#js import load as load_json
 
 
 def full_path(label, generator):
@@ -19,6 +17,10 @@ def flatten_norecurse(lists):
 
 class BookmarksJSON:
 
+    """
+    Helper to pick (Chrome) Bookmarks JSON.
+    """
+
     def __init__(self, data):
         self.data = data
 
@@ -27,10 +29,31 @@ class BookmarksJSON:
             if 'type' in v and v['type'] == 'folder':
                 yield k, v
 
+    def merge_roots(self):
+        d = dict(children=[], name='root')
+        for root, items in self.roots():
+            d['children'].extend(items['children'])
+        return d
+
+    def urls_gen(self, pick=None, data=None):
+        if not data: data = self.merge_roots()
+        for v in data['children']:
+            if not isinstance(v, dict): continue
+            if 'type' in v and v['type'] == 'folder':
+                for groups, u in self.urls_gen(pick, v):
+                    groups.insert(0, data['name'] )
+                    yield groups, u
+            elif 'type' in v and v['type'] == 'url':
+                if pick:
+                    yield [ data['name'] ], v[pick]
+                else:
+                    yield [ data['name'] ], v
+
     def groups_gen(self, pick=None, data=None):
         """Yield groups, with a generator for sub-groups.
         If specified, pick attribute to yield iso. group object.
         """
+        if not data: data = self.merge_roots()
         for v in data['children']:
             if not isinstance(v, dict): continue
             if 'type' in v and v['type'] == 'folder':
@@ -48,6 +71,7 @@ class BookmarksJSON:
 
     @staticmethod
     def load(json_file):
-        data = res.js.load(open(json_file))
+        data = res.js.load(open(os.path.expanduser(json_file)))
         return BookmarksJSON(data)
 
+#

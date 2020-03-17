@@ -42,42 +42,16 @@ htd_load()
   # Default-Env upper-case: shell env constants
   local upper=1 title=
 
+  set -eo pipefail
+
   CWD=$(pwd)
   not_trueish "$DEBUG" || {
     test "$CWD" = "$(pwd -P)" || warn "Current path seems to be aliased ($CWD)"
   }
 
   default_env EDITOR vim || debug "Using EDITOR '$EDITOR'"
-  default_env UCONFDIR "$HOME/.conf/" || debug "Using UCONFDIR '$UCONFDIR'"
-  default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
-  default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
-  test -n "$FIRSTTAB" || export FIRSTTAB=50
-  default_env Script-Etc "$( htd_init_etc|head -n 1 )" ||
-    debug "Using Script-Etc '$SCRIPT_ETC'"
-  default_env Htd-ToolsFile "$CWD/tools.yml"
-  #test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
-  default_env Htd-ToolsDir "$HOME/.htd-tools"
-  # test -n "$HTD_TOOLSDIR" || export HTD_TOOLSDIR=$HOME/.htd-tools
-  default_env Jrnl-Dir "personal/journal" || debug "Using Jrnl-Dir '$JRNL_DIR'"
-  default_env Htd-GIT-Remote "$HTD_GIT_REMOTE" ||
-    debug "Using Htd-GIT-Remote name '$HTD_GIT_REMOTE'"
-  default_env Htd-Ext ~/htdocs:~/bin ||
-    debug "Using Htd-Ext dirs '$HTD_EXT'"
-  default_env Htd-ServTab $UCONFDIR/htd-services.tab ||
-    debug "Using Htd-ServTab table file '$HTD_SERVTAB'"
-  debug "Using Cabinet-Dir '$CABINET_DIR'"
-  test -d "$HTD_TOOLSDIR/bin" || mkdir -p "$HTD_TOOLSDIR/bin"
-  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p "$HTD_TOOLSDIR/cellar"
-  default_env Htd-BuildDir .build
-  test -n "$HTD_BUILDDIR" || exit 121
-  #test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
-  export B=$HTD_BUILDDIR
-
-  #default_env Couch-URL "http://localhost:5984"
+  default_env FIRSTTAB 50
   default_env GitVer-Attr ".version-attributes"
-
-  # TODO: move env vars to lowercase? or ucfirst case?
-  upper=0 title=
 
   test -n "$stdio_0_type" -a  -n "$stdio_1_type" -a -n "$stdio_2_type" ||
       stderr error "stdio lib should be initialized" 1
@@ -131,10 +105,10 @@ htd_load()
   # run flag 'p'.
 
   # TODO: clean up git-versioning app-id
-  test -n "$APP_ID" -o ! -e .app-id || read -r APP_ID < .app-id
-  test -n "$APP_ID" -o ! -e "$GITVER_ATTR" ||
+  test -n "${APP_ID:-}" -o ! -e .app-id || read -r APP_ID < .app-id
+  test -n "${APP_ID:-}" -o ! -e "${GITVER_ATTR-}" ||
       APP_ID="$(get_property "$GITVER_ATTR" "App-Id")"
-  test -n "$APP_ID" -o ! -e .git ||
+  test -n "${APP_ID:-}" -o ! -e .git ||
       APP_ID="$(basename "$(git config "remote.$vc_rt_def.url")" .git)"
 
   # TODO: go over above default-env and see about project-specific stuff e.g.
@@ -163,15 +137,12 @@ htd_load()
     }
   }
 
-  htd_rules=$UCONFDIR/rules/$hostname.tab
-  ns_tab=$UCONFDIR/namespace/$hostname.tab
-
-  test -n "$htd_session_id" || htd_session_id=$(htd__uuid)
+  test -n "${htd_session_id-}" || htd_session_id=$(htd__uuid)
 
   # Process subcmd 'run' flags, single letter code triggers load/unload actions.
   # Sequence matters. Actions are predefined, or supplied using another subcmd
-  # attribute. Action callbacks can be a first class function, or a literal
-  # function name.
+  # attribute. Action callbacks can be a first class function, or a string var
+  # with the actual callback-function name.
   local flags="$(try_value "${subcmd}" run htd | sed 's/./&\ /g')"
   test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
   for x in $flags
@@ -305,11 +276,13 @@ htd_load()
 
     q | Q ) # set if not set, don't update, eval package main env
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
-            test -n "$PACKMETA" -a -e "$PACKMETA" &&
-                stderr note "Using package '$PACKMETA'" ||
-                stderr error "No local package" 5
-            package_lib_set_local "$CWD" ||
-                stderr error "Setting local package ($CWD)" 6
+            test -n "$PACKMETA" -a -e "$PACKMETA" && {
+                stderr note "Using package '$PACKMETA'"
+                package_lib_set_local "$CWD" ||
+                    stderr error "Setting local package ($CWD:$?)" 6
+            } || {
+                    test "$x" = "q" || stderr error "No local package" 5
+                }
         }
 
         # Evaluate package env
@@ -330,7 +303,7 @@ htd_load()
       ;;
 
     t ) # more terminal tooling: load shell and init
-        lib_load shell
+        test "${shell_lib_loaded-}" = "0" || lib_load shell
         shell_lib_init
       ;;
 
@@ -642,7 +615,13 @@ htd_spc__help="-h|help [<id>]"
 htd__help()
 {
   note "Listing all commands, see usage or composure"
-  test -z "${1-}" || load_group "$1"
+
+  test -z "${1-}" || {
+    local cmd=$1 cmd_alias=
+    cmd_alias="$(eval echo \"\$${base}_als_$(echo "_${1}" | tr '-' '_')\")"
+    test -z "$cmd_alias" || cmd="$cmd_alias"
+    load_groups $cmd
+  }
   std_help "$@"
   stderr info "Listing all commands, see usage or composure"
 }
@@ -683,6 +662,7 @@ htd__doctor()
       stderr ok "No empty files" && stderr warnning "Empty files above"
 
   # Go over named paths, see if there are any checks for its contexts
+  # TODO: check prefixes state @Diagnostics
   #test -e "$ns_tab" && {
 
   #  info "Looking for contexts with 'checks' method..."
@@ -813,43 +793,6 @@ htd_als__edit=edit-local
 htd_als___e=edit-local
 
 
-htd_man_1__find="Find file by name, or abort.
-
-See also 'git-grep' and 'content' to search based on content.
-"
-htd_spc__find="-f|find <id>"
-htd__find()
-{
-  test -n "$1" || error "name pattern expected" 1
-  test -z "$2" || error "surplus argumets '$2'" 1
-
-  note "Compiling ignores..."
-  local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
-
-  test -n "$FINDPATH" || {
-    note "Looking in all volumes"
-    FINDPATH=$(echo /srv/volume-[0-9]*-[0-9]* | tr ' ' ':')
-  }
-
-  lookup_path_list FINDPATH | while read v
-  do
-    vr="$(cd "$v"; pwd -P)"
-    note "Looking in $v ($vr)..."
-
-    # NOTE: supress output of any permision, non-existent or other IO error
-    eval find "$vr" -iname "$1" 2>/dev/null
-
-    #echo find $v $find_ignores -o -iname "$1" -a -print
-    #eval find $v "$find_ignores -o \( -type l -o -type f \) -a -print "
-    #echo "\l"
-  done
-
-  note "Looking in repositories"
-  htd git-files "$1"
-}
-htd_als___f=find
-
-
 htd_man_1__count="Look for doc and count. "
 htd_spc__count="count"
 htd__count()
@@ -910,7 +853,6 @@ htd__volumes()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
   test -n "$1" || set -- list
-  lib_load volume
   case "$1" in
 
     list ) shift ; htd_list_volumes "$@" ;;
@@ -1010,7 +952,7 @@ Per host, cwd info
 htd_als__st=status
 htd_als__stat=status
 htd_run__status=ql
-htd_libs__status=htd-list\ htd-tasks\ ctx-base
+htd_libs__status=package\ sys-htd\ ctx-std\ htd-list\ htd-tasks\ ctx-base
 htd__status()
 {
   htd_wf_ctx_sub status "$@"
@@ -1161,7 +1103,6 @@ htd_run__project=p
 htd__project()
 {
   test -n "$1" || set -- info
-  lib_load htd-project htd-src
   case "$1" in
 
     create ) shift ; htd_project_create "$@" ;;
@@ -1204,6 +1145,7 @@ htd__project()
     * ) error "? 'project $*'" 1 ;;
   esac
 }
+htd_load__project=htd-project\ htd-src
 
 
 htd__go()
@@ -1428,42 +1370,16 @@ htd__man_5_table_names=""
 
 htd__test_find_path_locals()
 {
-    htd_find_path_locals table.names $1
-    echo path_locals=$path_locals
+  htd_find_path_locals table.names $1
+  echo path_locals=$path_locals
 
-    htd_find_path_locals table.names $1 $(pwd)
-    echo path_locals=$path_locals
+  htd_find_path_locals table.names $1 $(pwd)
+  echo path_locals=$path_locals
 }
 
 
-# List root IDs
-htd__list_local_ns()
-{
-  test -e "$ns_tab" || warn "No namespace table for $hostname" 1
-  fixed_table $ns_tab SID GROUPID| while read vars
-  do
-    eval local "$vars"
-    echo $SID
-  done
-}
-
-# TODO: List namespaces matching query
-htd_spc__ns_names='ns-names [<path>|<localname> [<ns>]]'
-htd__ns_names()
-{
-  test -z "$3" || error "Surplus arguments: $3" 1
-  test -e "$ns_tab" || warn "No namespace table for $hostname" 1
-  fixed_table "$ns_tab" SID GROUPID | while read vars
-  do
-    eval local "$vars"
-    note "FIXME: $SID eval local var from pathnames.tab"
-    continue
-    cd $CMD_PATH
-    note "In '$ID' ($CMD_PATH)"
-    eval $CMD "$1"
-    cd $CWD
-  done
-}
+htd_grp__ns_names=prefix
+htd_grp__list_local_ns=prefix
 
 
 # Run a sys-* target in the main htdocs dir.
@@ -1505,10 +1421,10 @@ TODO: revise to:
 '
 htd__edit_today()
 {
-  lib_load doc htd-doc
   htd_edit_today "$@"
 }
-htd_run__edit_today=p
+htd_libs__edit_today=htd-main\ package\ date-htd\ journal\ doc\ htd-doc
+htd_run__edit_today=lp
 htd_als__vt=edit-today
 
 
@@ -1716,7 +1632,6 @@ htd_man_1__main_doc_paths='Print candidates for main document
 '
 htd__main_doc_paths()
 {
-  lib_load doc
   local candidates="$(doc_main_files)"
   test -n "$1" && {
     fnmatch "* $1$DOC_EXT *" " $candidates " &&
@@ -1729,6 +1644,7 @@ htd__main_doc_paths()
     set -- "$x"; break; done
   echo "$(basename "$1" $DOC_EXT) $1"
 }
+htd_load__main_doc_paths=doc
 htd_grp__main_doc_paths=cabinet
 
 
@@ -2093,904 +2009,52 @@ htd__txt()
 }
 
 
-# Current tasks
-
-htd_run__tasks=iqtlAO
-htd_libs__tasks=htd-tasks\ tasks
-# lib_load os str std list vc tasks todo
-htd__tasks() { false; }
-
-
-htd_man_1__tasks_edit='Edit local todo/done.txt generated from to/do-{at,in}*
-
-Tasks are migrated between the local todo/.done.txt and buffers (ie. all
-to/do-at-<context>.list and to/do-in-<project>.list files found), moving
-to the todo/done files before the edit session and back to the buffers after
-closing it.
-
-This serves as a first step to manage tasks existing across project borders, and
-to use backends based on context. Ideally in this mode, every source is locked
-for editing so at the end of the editor session each change is a simple update.
-'
-htd_spc__tasks_edit="tasks-edit TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
-# This reproduces most of the essential todotxt-edit code, b/c before migrating
-# we need exclusive access to update the files anyway.
-htd_env__tasks_edit='
-  tags=
-  id=$htd_session_id migrate=${migrate-1} remigrate=${remigrate-1}
-  todo_slug= todo_document= todo_done=
-  tags= projects= contexts= buffers= add_files= locks=
-  colw=${colw-32}
-'
-htd__tasks_edit()
-{
-  htd_tasks_edit "$@"
-}
-htd_run__tasks_edit=epqlA
-htd_libs__tasks_edit=htd-tasks
-htd_argsv__tasks_edit=htd_argsv_tasks_session_start
-htd_als__edit_tasks=tasks-edit
+htd_grp__tasks=tasks
 htd_grp__tasks_edit=tasks
-
-
-htd_man_1__tasks_hub='Given a tasks-hub directory, either get tasks, tags or
-additional settings ie. backends, indices, cardinality.
-
-  htd tasks-hub init
-    Figure out identity for buffer lists
-  htd tasks-hub be
-    List the backend scripts, a hack on context "@be-" prefix..
-  htd tasks-hub tags
-    List tags for which local task buffers or backend/proc scripts exists.
-    TODO: only list buffers, list scripts elsewhere. E.g backend
-  htd tasks-hub tagged
-    Lists the tags, from items in lists
-  htd tasks-hub urlstat
-    Iterate over hub files and scan for URLs, see htd urlstat list and checkall
-
-'
-htd_man_1__tasks_hub_tags='List tags for which buffers exist'
-htd_env__tasks_hub='projects=${projects-1} contexts=${contexts-1}'
-htd_spc__tasks_hub='tasks-hub [ (be|tags|tagged) [ ARGS... ] ]'
-htd_spc__tasks_hub_taggged='tasks-hub tagged [ --all | --lists | --endpoints ] [ --no-projects | --no-contexts ] '
-htd__tasks_hub()
-{
-  htd_tasks_hub "$@"
-}
-htd_run__tasks_hub=eqiAOl
-htd_libs__tasks_hub=tasks\ htd-tasks
 htd_grp__tasks_hub=tasks
-htd_als__hub=tasks-hub
-
-
-# TODO: introduce htd proc LIST
-  # Lists are files with lines treated as items with rules applied.
-  # Each list is associated with its own unique context(s)
-  # If the context corresponds to a script it is used to manage the item.
-  # Each lifecycle event can be hooked and trigger a reaction by the context.
-  # By setting a default certain rules are always inherited.
-  # The default list however is todo, or to/do. Also see, buy, fix, whatever.
-  # Items remain in their list, and are considered dirty or uncommitted until
-  # they have a context tag added. Setting a context rule for a list allows
-  # to indicate a required context choice, to migrate items to the
-  # appropiate list, and to note items that have no context.
-  # With a dynamic context, automatic or interactive handling and cleanup is
-  # possible for various sorts of items: tasks, reminders, references,
-  # reports, etc. On the other hand it is also possible to generate lists,
-  # filter, etc. E.g. directories, issues, packages, bookmarks, emails,
-  # name it. Having the list-item formet here helps to integrate with e.g.
-  # node-sitefile. Next; start thinking in structured tags, topics.
-  # And then add support for containment, nesting, grouping.
-
-htd_spc__tasks_process='process [ LIST [ TAG.. [ --add ] | --any ]'
-htd_env__tasks_process='
-  todo_slug=${todo_slug} todo_document=${todo_document} todo_done=${todo_done}
-'
-htd__tasks_process()
-{
-  #projects=0 htd__tasks_hub tags | tr -d '@' | while read ctx
-  #do
-  #  echo TODO process task arg ctx: $ctx
-  #done
-  tags="$(htd__tasks_tags "$@" | lines_to_words ) $tags"
-  note "Process Tags: '$tags'"
-  htd_tasks_buffers $tags | grep '\.sh$' | while read scr
-  do
-    test -e "$scr" || continue
-    test -x "$scr" || { warn "Disabled: $scr"; continue; }
-  done
-  for tag in $tags
-  do
-    scr="$(htd_tasks_buffers "$tag" | grep '\.sh$' | head -n 1)"
-    test -n "$scr" -a -e "$scr" || continue
-    test -x "$scr" || { warn "Disabled: $scr"; continue; }
-
-    echo tag=$tag scr=$scr
-    #grep $tag'\>' $todo_document | $scr
-    # htd_tasks__at_Tasks process line
-    continue
-  done
-}
-htd_run__tasks_process=lA
-htd_libs__tasks_process=htd-tasks
-htd_argsv__tasks_process=htd_argsv_tasks_session_start
-htd_als__tasks_proc=tasks-process
-htd_als__process_tasks=tasks-process
 htd_grp__tasks_process=tasks
-
-
-# Given a list of tags, turn these into task storage backends. One path
-# for reserved read/write access per context or project. See tasks.rst for
-# the implemented mappings. Htd can migrate tasks between stores based on
-# tag, or request new or remove existing tag Ids.
-htd_man_1__tasks_buffers="For given tags, print buffer paths. "
-htd_spc__tasks_buffers='tasks-buffers [ @Contexts... +Projects... ]'
-htd__tasks_buffers()
-{
-  htd_tasks_buffers "$@"
-}
-htd_run__tasks_buffers=l
-htd_libs__tasks_buffers=htd-tasks
 htd_grp__tasks_buffers=tasks
 
 
-htd_man_1__tasks_session_start='Starts an editing session for TODO.txt lines.
-
-With no tags given (@ or +) this will not do anything. But for each tag given
-the lines are first migrated from its local buffer (in to/*.list or another
-location) to the TODO.TXT file.
-
-There is the idea to introduce an * or "all" value to accumulate every task,
-but I think that easily becomes overkill.
-'
-htd_spc__tasks_session_start="tasks-session-start TODO.TXT DONE.TXT [ @PREFIX... ] [ +PROJECT... ] [ ADDITIONAL-PATHS ]"
-htd_env__tasks_session_start="$htd_env__tasks_edit"
-htd__tasks_session_start()
-{
-  stderr info "3.1. Env: $(var2tags \
-    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  set -- $todo_document $todo_done
-  assert_files $1 $2
-  # Get tags too for current todo/done file, to get additional locks
-  tags="$(tasks_todotxt_tags "$1" "$2" | lines_to_words ) $tags"
-  note "Session-Start Tags: ($(echo "$tags" | count_words
-    )) $(echo "$tags" )"
-  stderr info "3.2. Env: $(var2tags \
-    id todo_slug todo_document todo_done tags buffers add_files locks colw)"
-  # Get additional paths to all files, look for todo/done buffer files per tag
-  buffers="$(htd_tasks_buffers $tags )"
-  # Lock files todo/done and additional-paths to buffers
-  locks="$(lock_files $id "$@" $buffers $add_files | lines_to_words )"
-  { exts="$TASK_EXTS" pathnames $locks ; echo; } | column_layout
-  # Fail now if main todo/done files are not included in locks
-  verify_lock $id $1 $2 || {
-    released="$(unlock_files $id $@ $buffers | lines_to_words )"
-    error "Unable to lock main files: $1 $2" 1
-  }
-  note "Acquired locks ($(echo "$locks" | count_words ))"
-}
-
-
-htd__tasks__src__exists()
-{
-  test -n "$2" || {
-    echo
-  }
-  echo grep -srIq $1 $all $TASK_DIR/
-}
-htd__tasks__src__add()
-{
-  new_id=$(htd rndstr < /dev/tty)
-  while htd__tasks__src__exists "$new_id"
-  do
-    new_id=$(htd rndstr < /dev/tty)
-  done
-  echo $new_id
-}
-htd__tasks__src__remove()
-{
-  false
-}
-
-
-htd_man_1__todo='Edit and mange todo.txt/done files.
-
-(todo is an alias for tasks-edit, see help tasks-edit for command usage)
-
-Other commands:
-
-  todotxt tree - TODO: treeview
-  todotxt list|list-all - TODO: files in UCONFDIR
-  todotxt count|count-all - count in UCONFDIR
-  todotxt edit
-
-   todo-clean-descr
-   todo-read-line
-
-  todotxt-edit
-  todotxt-tags
-  todo-gtags
-
-  htd build-todo-list
-'
-
-htd_als__todo=tasks-edit
-
-
-htd_man_1__todotxt_edit='Edit local todo/done.txt
-
-Edit task descriptions. Files do not need to exist. First two files default to
-todot.txt and .done.txt and will be created.
-
-This locks/unlocks all given files before starting the $TODOTXT_EDITOR, which
-gets to edit only the first two arguments. The use is to aqcuire exclusive
-read-write on todo.txt tasks which are included in other files. See htd tasks
-for actually managing tasks spread over mutiple files.
-'
-htd_spc__todotxt_edit="todotxt-edit TODO.TXT DONE.TXT [ ADDITIONAL-PATHS ]"
-htd__todotxt_edit()
-{
-  test -n "$1" || {
-    test -n "$2" || set -- .done.txt "$@"
-    set  -- todo.txt "$@"
-  }
-  local colw=32 # set column-layout width
-  assert_files $1 $2
-  # Lock main files todo/done and additional-paths
-  local id=$htd_session_id
-  locks="$(lock_files $id "$@" | lines_to_words )"
-  note "Acquired locks:"
-  { basenames ".list" $locks ; echo ; } | column_layout
-  # Fail now if main todo/done files are not included in locks
-  verify_lock $id $1 $2 || {
-    unlock_files $id "$@"
-    error "Unable to lock main files: $1 $2" 1
-  }
-  # Edit todo and done file
-  $TODOTXT_EDITOR $1 $2
-  # release all locks
-  released="$(unlock_files $id "$@" | lines_to_words )"
-  note "Released locks"
-  { basenames ".list" $released ; echo; } | column_layout
-}
-htd_als__tte=todotxt-edit
-#htd_run__todo=O
-
-
-htd__todotxt()
-{
-  test -n "$UCONFDIR" || error UCONFDIR 15
-  test -n "$1" || set -- edit
-  case "$1" in
-
-    # Print
-    tree ) # TODO: somekind of todotxt in tree view?
-      ;;
-
-    list|list-all )
-        for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
-        do
-          fnmatch "*done*" "$fn" && continue
-          test -s "$fn" && {
-            echo "# $fn"
-            cat $fn
-            echo
-          }
-        done
-      ;;
-
-    count|count-all )
-        # List paths below current (proj/dirs with txtm files)
-        { for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
-          do
-            fnmatch "*done*" "$fn" && continue
-            cat $fn
-          done
-        } | wc -l
-      ;;
-
-    edit ) htd__todotxt_edit "$2" "$3" ;;
-
-    tags ) shift 1; tasks_todotxt_tags "$@" ;;
-
-  esac
-}
-
-
-# Experimenting with gtasks.. looking at todo targets
-htd__todo_gtasks()
-{
-  test -e TODO.list && {
-    cat TODO.list | \
-      grep -Ev '^(#.*|\s*)$' | \
-      while read line
-      do
-        todo_read_line "$line"
-        todo_clean_descr "$comment"
-        echo "$fn $ln  $tag  $descr"
-        # (.,.)p
-      done
-  } || {
-    echo
-    echo "..Htdocs ToDo.."
-    gtasks -L -dsc -dse -sn
-    echo "Due:"
-    gtasks -L -sdo -dse -sn
-#  echo ""
-#  gtasks -L -sb tomorrow -sa today -dse
-  }
-}
-
-
-htd_grep_line_exclude()
-{
-  grep -v '.*\ htd:ignore\s*'
-  # TODO: build lookup util for ignored file line ranges
-  #| while read line
-  #do
-  #    file=$()
-  #    linenr=$()
-  #    htd__htd_excluded_line $file $linenr
-  #done
-}
-
-htd_man_1__build_todo_list="Build indented file of path/line/tag from FIXME: etc tagged
-src files"
-htd__build_todo_list()
-{
-  test -n "$1" || set -- TODO.list "$2"
-  test -n "$2" || {
-    test -s .app-id \
-        && set -- "$1" "$(cat .app-id)" \
-        || set -- "$2" "$(basename "$(pwd)")"
-  }
-
-  { for tag in FIXME TODO NOTE XXX # tasks:no-check
-  do
-    grep -nsrI $tag':' . \
-        | grep -v $1':' \
-        | htd_grep_line_exclude \
-        | while read line;
-      do
-        tid="$(echo $line | sed -n 's/.*'$tag':\([a-z0-9\.\+_-]*\):.*/\1/p')"
-        test -z "$tid" \
-            && echo "$(pwd);$2#$tag;$line" \
-            || echo "$(pwd);$2#$tag:$tid;$line";
-
-      done
-  done; } | todo-meta.py import -
-}
-
-
-# Lists and tasks
-
-gtasks_list_arg()
-{
-    test -z "$1" && list=Standaardlijst || list="$1"
-}
-gtasks_num_arg()
-{
-    test -z "$1" && return 1 || num="$1"
-}
-gtasks_list_opt()
-{
-  test -z "$1" && {
-    list="-l Standaardlijst"
-  } || {
-    test "${1:0:1}" = "-" && {
-      # possibly use verbatim opts (-L)
-      list="$1"
-    } || {
-      list="-l $1"
-    }
-  }
-}
-gtasks_opts()
-{
-  cnt=0
-  gtasks_opts=
-  while test "${1:0:1}" = "-"
-  do
-    gtasks_opts="$gtasks_opts $1"
-    cnt=$(( $cnt + 1 ))
-    shift 1
-  done
-  return $cnt
-}
-
-htd__gtasks_lists()
-{
-  test -n "$gtasks_opts" || gtasks_opts="-dsc"
-  gtasks -ll $gtasks_opts
-}
-
-# List tasks in lists
-htd__gtasks()
-{
-  gtasks_opts $@
-  shift $?
-  test -n "$gtasks_opts" || gtasks_opts="-dsc"
-  test -z "$1" && {
-    gtasks_list_opt
-    gtasks $list $gtasks_opts
-  }
-  while test -n "$1"
-  do
-    gtasks_list_opt $@ && shift 1
-    gtasks $list $gtasks_opts
-  done
-}
-
-# Add task to list with title
-htd__new_task()
-{
-  gtasks_list_arg $1 && shift 1
-  gtasks -l "$list" -a - -t "$@"
-}
-
-# Edit notes of a task in the $EDITOR
-htd__gtask_note()
-{
-  gtasks_list_arg $1 && shift 1
-  gtasks_num_arg $1 && shift 1 || exit 1
-  tmpf=/tmp/gtasks-$list-$num-note
-  title="$(gtasks -dsc -l "$list" -gt $num)"
-  mkdir -p $(dirname $tmpf)
-  gtasks -dsc -l "$list" -gn $num > $tmpf.current
-  check_pre=$(md5sum $tmpf.current | cut -f 1 -d ' ')
-  echo -e "$title\n" > $tmpf.txt
-  cat $tmpf.current >> $tmpf.txt
-  $EDITOR $tmpf.txt
-  new_title=$(head -n 1 $tmpf.txt)
-  tail -n +3 $tmpf.txt > $tmpf.new
-  check=$(md5sum $tmpf.new | cut -f 1 -d ' ')
-  test "$title" != "$new_title" && {
-    printf "Updating title ... "
-    gtasks -l "$list" -e $num -t "$new_title" -dsl
-  } || {
-    echo "No changes to title. "
-  }
-  test "$check_pre" != "$check" && {
-    printf "Updating notes ... "
-    gtasks -l "$list" -e $num -n "$(cat $tmpf.new)" -dsl
-  } || {
-    echo "No changes to notes. "
-  }
-}
-
-# Get or updte title of task
-htd__gtask_title()
-{
-  gtasks_list_arg $1 && shift 1
-  gtasks_num_arg $1 && shift 1 || exit 1
-  test -z "$1" && {
-    gtasks -dsc -l "$list" -gt $num
-  } || {
-    gtasks -dsc -l "$list" -e $num -t "$1"
-  }
-}
-
-# Toggle task completed status
-htd__done()
-{
-  test -n "$2" && {
-    test "$2" -gt 0 && {
-      gtasks_list_arg $1 && shift 1
-      gtasks_num_arg $1 && shift 1 || exit 1
-    }
-  } || {
-    test -n "$1" -a "$1" -gt 0 && {
-      # default list
-      gtasks_list_arg
-      gtasks_num_arg $1 && shift 1 || exit 1
-    }
-  }
-  gtasks -dsc -l "$list" -c $num
-}
-
-
-htd_run__urls=fl
-htd_libs__urls=web
-htd__urls()
-{
-  test -n "$1" || set -- list
-  subcmd_prefs=${base}_urls_\ urls_ try_subcmd_prefixes "$@"
-}
-
-
-htd__save_url()
-{
-  annex=/Volumes/Simza/Downloads
-  test "$(pwd -P)" = $annex || cd $annex
-
-  test -n "$1" || error 'URL expected' 1
-  test -n "$2" || {
-    parseuri.py "$1"
-    error "TODO: get filename"
-  }
-  test ! -e "$2" || error "File already exists: $2" 1
-  git annex addurl "$1" --file "$2"
-}
-htd_grp__save_url=annex
-
-
-htd_man_1__git='
-
-  info
-    Compile some info on checkouts (remote names and URLs) in $PROJECTS.
-
-  find <user>/<repo>
-    Look in all /srv/scm-git for repo.
-
-  req|require <user>/<repo> [Check-Branch]
-    See that checkout for repo is available, print path. With branch or other
-    version check version of checkout as well.
-
-  get <user>/<repo> [Version]
-    Create or upate repo at /srv/scm-git, then make checkout at $VND_GH_SRC.
-    Link that to $PROJECT_DIR.
-
-  get-env [ENV] <user>/<repo> [Version]
-    Make a reference checkout in a new subdir of $SRC_LOCAL and set it to commit
-    or Env-Ver.
-
-Helpers
-
-  list
-    Find repo checkouts in $PROJECTS.
-  scm-list
-    Find bare repos in $PROJECTS_SCM.
-  scm-find <user>/<repo>
-    Looks for (partial) [<user>/]<repo>.git (glob pattern) in SCM basedirs.
-  scm-get VENDOR <user>/<repo>
-    Create bare repo from vendor.
-  src-get VENDOR <user>/<repo>
-    Create checkout from local SCM. Fix remote to vendor, and $PROJECT_DIR
-    symlink.
-
-FIXME: cleanup below
-
-    git-remote
-    git-init-local
-    git-init-remote
-    git-drop-remote
-    git-init-version
-    git-missing
-    git-init-src
-    git-list
-    git-files
-    git-grep
-    git-features
-    gitrepo
-    git-import
-
-See also:
-
-    htd vcflow
-    vc
-'
-
-
-htd__gitremote()
-{
-  local remote_dir= remote_hostinfo= remote_name=
-  lib_load gitremote
-
-  test -n "$*" || set -- "$HTD_GIT_REMOTE"
-
-  # Insert empty arg if first represents UCONF:git:remotes sh-props file
-  test -e $UCONFDIR/etc/git/remotes/$1.sh -a $# -le 2 && {
-    # Default command to 'list' when remote-id exists and no further args given
-    test $# -eq 1 && set -- "list" "$@" || set -- url "$@"
-  }
-
-  test -n "$1" || set -- list
-  subcmd_prefs=gitremote_ try_subcmd_prefixes "$@"
-}
-
-
-
-htd__git_init_local() # [ Repo ]
-{
-  local remote=local
-  repo="$(basename "$(pwd)")"
-  [ -n "$repo" ] || error "Missing project ID" 1
-
-  BARE=/srv/scm-git-local/$NS_NAME/$repo.git
-  [ -d $BARE ] || {
-      log "Creating temp. bare clone"
-      git clone --bare . $BARE
-    }
-
-  remote_url="$(git config remote.$remote.url)"
-  test -n "$remote_url" && {
-    test "$remote_url" = $BARE || error "$remote not $BARE just created" 1
-  } || {
-    git remote add $remote $BARE
-  }
-}
-
-htd__git_init_remote() # [ Repo ]
-{
-  [ -e .git ] || error "No .git directory, stopping remote init" 0
-  test -n "$HTD_GIT_REMOTE" || error "No HTD_GIT_REMOTE" 1
-  local repo= remote=$HTD_GIT_REMOTE BARE=
-
-  # Create local repo if needed
-  htd__git_init_local || warn "Error initializing local repo ($?)"
-
-  # Remote repo, idem.
-  local $(htd__gitremote sh-env "$remote" "$repo")
-  {
-    test -n "$remote_hostinfo" && test -n "$remote_repo_dir"
-  } ||
-    error "Incomplete env" 1
-
-  ssh_cmd="mkdir -v $remote_repo_dir"
-  ssh $remote_hostinfo "$ssh_cmd" && {
-
-    log "Syning new bare repo to $remote_scp_url"
-    rsync -azu $BARE/ $remote_scp_url
-
-  } ||
-    warn "Remote exists, checking remote '$remote'"
-
-  # Initialise remotes for checkout
-  {
-    echo $remote $remote_scp_url
-    echo local $BARE
-    echo $hostname $hostname.zt:$BARE
-  } | while read rt rurl
-  do
-    url="$(git config --get remote.${rt}.url)"
-    test -n "$url" && {
-      test "$rurl" = "$url" || {
-        warn "Local remote '$rt' does not match '$rurl'"
-      }
-    } || {
-      git remote add $rt $rurl
-      git fetch $rt
-      log "Added remote $rt $rurl"
-    }
-  done
-}
-
-htd__git_drop_remote()
-{
-  [ -n "$1" ] && repo="$1" || repo="$PROJECT"
-  log "Checking if repo exists.."
-  ssh_opts=-q
-  htd__gitremote | grep $repo || {
-    error "No such remote repo $repo" 1
-  }
-  source_git_remote # FIXME
-  log "Deleting remote repo $remote_user@$remote_host:$remote_dir/$repo"
-  ssh_cmd="rm -rf $remote_dir/$repo.git"
-  ssh -q $remote_user@$remote_host "$ssh_cmd"
-  log "OK, $repo no longer exists"
-}
-
-htd__git_init_version()
-{
-  local readme="$(echo [Rr][Ee][Aa][Dd][Mm][Ee]"."*)"
-
-  test -n "$readme" && {
-    fnmatch "* *" "$readme" && { # Multiple files
-      warn "Multiple Read-Me's ($readme)"
-    } ||
-      note "Found Read-Me ($readme)"
-
-  } || {
-    readme=README.md
-    {
-      echo "Version: 0.0.1-dev"
-    } >$readme
-    note "Created Read-Me ($readme)"
-  }
-
-  grep -i '\<version\>[\ :=]*[0-9][0-9a-zA-Z_\+\-\.]*' $readme >/dev/null && {
-
-    test -e .versioned-files.list ||
-      echo "$readme" >.versioned-files.list
-  } || {
-
-    warn "no verdoc, TODO: consult scm"
-  }
-
-  # TODO: gitflow etc.
-  git describe ||
-    error "No GIT description, tags expected" 1
-}
-
-
-# List everything in  HTD_GIT_REMOTE repo collection
-
-# Warn about missing src or project
-htd__git_missing()
-{
-  test -d /srv/project-local || error "missing local project folder" 1
-  test -d /srv/scm-git-local || error "missing local git folder" 1
-
-  htd__gitremote | while -r read repo
-  do
-    test -e /srv/scm-git-local/$repo.git || warn "No src $repo" & continue
-    test -e /srv/project-local/$repo || warn "No checkout $repo"
-  done
-}
-
-# Create local bare in /src/
-htd__git_init_src()
-{
-  test -d /srv/scm-git-local || error "missing local git folder" 1
-
-  htd__gitremote | while read repo
-  do
-    fnmatch "*annex*" "$repo" && continue
-    test -e /srv/scm-git-local/$repo.git || {
-      git clone --bare $(htd git-remote $repo) /srv/scm-git-local/$repo.git
-    }
-  done
-}
-
-
-htd_man_1__git_list='List files at remove, or every src repo for current Ns-Name
-'
-htd__git_list()
-{
-  test -n "$1" || set -- $(echo /src/*/$NS_NAME/*.git)
-  for repo in $@
-  do
-    echo $repo
-    git ls-remote $repo
-  done
-}
-
-htd_man_1__git_files='List or look for files'
-htd_spc__git_files='git-files [ REPO... -- ] GLOB...'
-htd_run__git_files=ia
-htd__git_files()
-{
-  local pat="$(compile_glob $(lines_to_words $arguments.glob))"
-  read_nix_style_file $arguments.repo | while read repo
-  do
-    cd "$repo" || continue
-    note "repo: $repo"
-    # NOTE: only lists files at HEAD branch
-    git ls-tree --full-tree -r HEAD |
-        awk '{print $NF}' |
-        sed 's#^#'"$repo"':HEAD/#' | grep "$pat"
-  done
-}
-htd_argsv__git_files=arg-groups-r
-htd_arg_groups__git_files="repo glob"
-#htd_defargs_repo__git_files=/src/*/*/*/
-htd_defargs_repo__git_files=/srv/scm-git-local/$NS_NAME/*.git
-
-
-htd_man_1__git_grep='Run git-grep for every repository.
-
-To run git-grep with bare repositories, a tree reference is required.
-
-With `-C` interprets argument as shell command first, and passes ouput as
-argument(s) to `git grep`. Defaults to `git rev-list --all` output (which is no
-pre-run but per exec. repo).
-
-If env `repos` is provided it is used iso. stdin.
-Or if `dir` is provided, each "*.git" path beneath that is used. Else uses the
-arguments.
-
-If stdin is attach to the terminal, `dir=/src` is set. Without any
-arguments it defaults to scanning all repos for "git.grep".
-
-TODO: spec
-'
-htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
-htd_run__git_grep=iAO
-htd__git_grep()
-{
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
-  test -n "$grep" || { test -n "$1" && { grep="$1"; shift; } || grep='\<git.grep\>'; }
-
-  test -n "$grep_args" -o -n "$grep_eval" && {
-    note "Using env args:'$grep_args' eval:'$grep_eval'"
-  } || {
-
-    trueish "$C" && {
-      test -n "$1" && {
-        grep_eval="$1"; shift
-      }
-    }
-
-    test -n "$1" && { grep_args="$1"; shift; } || { #grep_args=master
-        trueish "$all_revs" && {
-          grep_eval='$(git br|tr -d "*\n")'
-        } ||
-          grep_eval='$(git rev-list --all)';
-      }
-  }
-
-  note "Running ($(var2tags grep C grep_eval grep_args))"
-  gitrepos "$@" | { while read repo
-    do
-      {
-        stderr info "$repo:"
-        cd $repo || continue
-        test -n "$grep_eval" && {
-          eval git --no-pager grep -il "'$grep'" "$grep_eval" || { r=$?
-            test $r -eq 1 && continue
-            warn "Failure in $repo ($r)"
-          }
-        } || {
-          git --no-pager grep -il "$grep" $grep_args || { r=$?
-            test $r -eq 1 && continue
-            warn "Failure in $repo ($r)"
-          }
-        }
-      } | sed 's#^.*#'$repo'\:&#'
-    done
-  }
-  #| less
-  note "Done ($(var2tags grep C grep_eval grep_args repos))"
-}
-
-
-htd_man_1__gitrepo='List local GIT repositories
-
-Arguments are passed to htd-expand, repo paths can be given verbatim.
-This does not check that paths are GIT repositories.
-Defaults effectively are:
-
-    --dir=/srv/scm-git-local/$NS_NAME *.git``
-    --dir=/srv/scm-git-local/$NS_NAME -
-
-Depending on wether there is a terminal or pip/file at stdin (fd 0).
-'
-htd_spc__gitrepo='gitrepo [--(,no-)expand-dir] [--repos=] [--dir=] [ GLOBS... | PATHS.. | - ]'
-htd_env__gitrepo="dir="
-htd_run__gitrepo=eiAO
-htd__gitrepo()
-{
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
-  stderr info "Running '$*' ($(var2tags grep repos dir stdio_0_type))"
-  gitrepos "$@"
-}
-
-
-htd__git_import()
-{
-  test -d "$1" || error "Source dir expected" 1
-  note "GIT import from '$1'..."
-  find $1 | cut -c$(( 2 + ${#1}))- | while read pathname
-  do
-    test -n "$pathname" || continue
-    test -d "$1/$pathname" && mkdir -vp "$pathname"
-    test -L "$pathname" && continue
-    test -f "$pathname" || continue
-    trueish "$dry_run" && {
-      echo mv -v "$1/$pathname" "$pathname"
-    } || {
-      mv -v "$1/$pathname" "$pathname"
-    }
-  done
-}
-
-htd_libs__git=git\ htd-git\ git-htd
-htd_run__git=l
-htd__git()
-{
-  test -n "$1" || set -- info
-  subcmd_prefs=${base}_git_\ git_ try_subcmd_prefixes "$@"
-}
-
-
-htd_libs__github=github
-htd_man_1__github='Github lib'
-htd_run__github=l
-htd__github()
-{
-  test -n "$1" || set -- help
-  subcmd_prefs=${base}_github_\ github_ try_subcmd_prefixes "$@"
-}
+htd_grp__todo=todo
+htd_grp__todotxt=todo
+htd_grp__todo_gtasks=todo
+htd_grp__build_todo_list=todo
+
+
+htd_grp__gtasks_lists=gtasks
+htd_grp__gtasks=gtasks
+htd_grp__new_task=gtasks
+htd_grp__gtask_note=gtasks
+htd_grp__gtask_title=gtasks
+htd_grp__done=gtasks
+
+
+htd_grp__urls=urls
+htd_grp__save_url=urls
+
+
+htd_grp__find=code
+htd_als___f=find
+
+htd_grp__github=code
+
+htd_grp__src=code
+
+htd_grp__git=code
+htd_grp__gitremote=code
+htd_grp__git_init_local=code
+htd_grp__git_init_remote=code
+htd_grp__git_drop_remote=code
+htd_grp__git_init_version=code
+htd_grp__git_missing=code
+htd_grp__git_init_src=code
+htd_grp__git_list=code
+htd_grp__git_files=code
+htd_grp__git_grep=code
+htd_grp__gitrepo=code
+htd_grp__git_import=code
+htd_grp__github=code
 
 
 htd_man_1__file='TODO: Look for name and content at path; then store and cleanup.
@@ -3065,296 +2129,25 @@ htd__date()
 }
 
 
-htd_man_1__vcflow='
-TODO: see also vc gitflow
-'
-htd_libs__vcflow=vcflow\ htd-vcflow
-htd_run__vcflow=fl
-htd__vcflow()
-{
-  test -n "$1" || set -- status
-  subcmd_prefs=${base}_vcflow_ try_subcmd_prefixes "$@"
-}
+htd_grp__vcflow=vcflow
+
 htd_als__gitflow_check_doc=vcflow\ check-doc
 htd_als__gitflow_check=vcflow\ check
 htd_als__gitflow=vcflow\ status
 htd_als__feature_branches=vcflow\ list-features
 
 
+htd_grp__source=src
+htd_grp__function=src
+htd_grp__diff_function=src
+htd_grp__sync_function=src
+htd_grp__diff_functions=src
+htd_grp__sync_functions=src
+htd_grp__diff_sh_lib=src
 
-htd_man_1__source='Generic sub-commands dealing with source-code. For Shell
-specific routines see also `function`.
-
-  source lines FILE [ START [ END ]]        Copy (output) from line to end-line.
-  expand-source-line FILE LINENR
-    Replace a source line with the contents of the sourced script
-
-    This must be pointed to a line with format:
-
-      .\ (P<sourced-file>.*)
-'
-htd__source()
-{
-  test -n "$1" || set -- copy
-  case "$1" in
-
-    lines ) shift
-        test -e "$1" || error "file expected '$1'" 1
-        source_lines "$@" || return $?
-      ;;
-    line ) shift
-        test -e "$1" || error "file expected '$1'" 1
-        source_line "$@" || return $?
-      ;;
-    copy ) shift
-        htd__source lines "$3" "$1" "" "$2"
-      ;;
-    copy-where ) shift
-        copy_where "$@"
-      ;;
-    cut-where ) shift
-        cut_where "$@" || return $?
-      ;;
-    copy-paste ) shift
-        test -z "$4" && cp_board=htd-source || cp=$4
-        copy_only=false \
-        copy_paste "$1" "$2" "$3" || return $?
-        test -n "$4" || echo $cp
-      ;;
-
-    diff-where | sync-where ) shift
-        diff_where "$@" || return $?
-      ;;
-
-    where-grep ) shift
-        file_where_grep "$@" || return $?
-        echo $line_number
-      ;;
-
-    where-grep-before ) shift
-        file_where_before "$@" || return $?
-        echo $line_number
-      ;;
-
-    where-grep-tail ) shift
-        file_where_grep_tail "$@" || return $?
-        echo $line_number
-      ;;
-
-    # XXX: ... No wrappers yet
-    file-insert-at ) fail TODO ;;
-    file-replace-at ) fail TODO ;;
-    file-insert-where-before ) fail TODO ;;
-    split-file-where-grep ) fail TODO ;;
-    truncate ) fail TODO ;;
-    truncate-lines ) fail TODO ;;
-    # NOTE: see also htd function subcommand
-    func-comment ) fail TODO ;;
-    header-comment ) fail TODO ;;
-    backup-header-comment ) fail TODO ;;
-    list-functions ) fail TODO ;;
-    # And many more in src.lib.sh
-
-    expand-sentinel ) shift
-        where_line="$(grep -nF "# htd source copy-paste: $2" "$1")"
-        line_number=$(echo "$where_line" | sed 's/^\([0-9]*\):\(.*\)$/\1/')
-        test -n "$line_number" || return $?
-        expand_sentinel_line "$1" $line_number || return $?
-      ;;
-    expand-source-line ) shift ; expand_source_line "$@" ;;
-    expand-include-sentinels ) shift ; expand_include_sentinels "$@" ;;
-
-    * ) error "'$1'?" 1
-      ;;
-  esac
-}
-
-
-htd_man_1__function='Operate on specific functions in Sh scripts.
-
-   copy FUNC FILE
-     Retrieves function-range and echo function including envelope.
-   copy-paste [ --{,no-}copy-only ] FUNC FILE
-     Remove function from source and place in seperately sourced file
-   start-line
-     Retrieve line-number for function.
-   range
-     Retrieve start- and end-line-number for function.
-
-See also
-    src
-    sync-func(tion)|diff-func(tion) FILE1 FUNC1 DIR[FILE2 [FUNC2]]
-    sync-functions|diff-functions FILE FILE|DIR
-    diff-sh-lib [DIR=$scriptpath]
-'
-htd__function() { false; }
-htd_run__function=l
-htd_libs__function=htd-function
-
-
-htd_man_1__diff_function='
-  Compare single function from Sh script, to manually sync/update related
-  functions in different files/directories. Normally runs vimdiff on a synced
-  file. But quiet instead exists, and copy-only does not modify the source
-  script but only shows the diff.  Normally (!copy-only) the two functions are
-  replaced by a source command to their temporary file used for comparison,
-  so that during editing the script remains fully functional.
-
-  But meanwhile the both function versions are conveniently in separate files,
-  for vimdiff or other comparison/sync tool.
-'
-htd_spc__diff_function="diff-func(tion) [ --quiet ] [ --copy-only ] [ --no-edit ] FILE1 FUNC1 DIR[FILE2 [FUNC2]] "
-htd__diff_function()
-{
-  test -n "$1" -a -n "$2" -a -n "$3" || error "usage: $htd_spc__diff_function" 21
-  test -n "$4" || {
-    test -d "$3" -o -f "$3" || error "usage: $htd_spc__diff_function" 22
-    test -f "$3" && {
-      set -- "$1" "$2" "$3" "$2"
-    } || {
-      set -- "$1" "$2" "$3/$1" "$2"
-    }
-  }
-  test -f "$1" -a -f "$3" || {
-    stderr error "Missing files '$1' or '$3'"
-    error "usage: $htd_spc__diff_function" 23
-  }
-  sh_isset quiet || quiet=false
-  sh_isset sync || {
-    trueish "$quiet" && sync=false || sync=true
-  }
-  sh_isset edit || edit=$sync
-  sh_isset copy_only || {
-    trueish "$sync" && copy_only=true || copy_only=false
-  }
-
-  lib_load functions
-
-  # Extract both functions to separate file, and source at original scriptline
-  mkid "$1" "" "_-" ; ext="$(filenamext "$1")"
-  cp_board= ext="$id.$ext" copy_paste_function "$2" "$1" || { r=$?
-    error "copy-paste-function 1 ($r)"
-    return $r
-  }
-  test -s "$cp" || error "copy-paste file '$cp' for '$1:$2' missing" 1
-  src1_line=$start_line ; start_line= ; src1=$cp ; cp=
-  mkid "$3" "" "_-" ; ext="$(filenamext "$3")"
-  cp_board= ext="$id.$ext" copy_paste_function "$4" "$3" || { r=$?
-    # recover after error
-    expand_source_line $1 $src1_line || error "expand-source-line 1" $?
-    error "copy-paste-function 2 ($r)"
-    return $r
-  }
-  test -s "$cp" || error "copy-paste file '$cp' for '$3:$4' missing" 1
-  src2_line=$start_line ; start_line= ; src2=$cp ; cp=
-
-  # Edit functions side by side
-  trueish "$edit" && {
-    diff -bqr $src1 $src2 >/dev/null 2>&1 &&
-      stderr ok "nothing to do, '$2' in sync for '$1' $3'" || {
-        vimdiff $src1 $src2 < /dev/tty &&
-          stderr done "vimdiff ended" ||
-          stderr error "vimdiff aborted, leaving unexpanded source lines" $?
-      }
-  } || {
-    trueish "$quiet" && {
-      diff -bqr $src1 $src2 >/dev/null 2>&1 && {
-        stderr ok "in sync '$2'"
-        echo "diff-function:$*" >> $passed
-      } || {
-        stderr warn "Not in sync '$2'"
-        echo "diff-function:$*" >> $failed
-      }
-    } || {
-      diff "$src1" "$src2"
-      stderr ok "'$2'"
-    }
-  }
-  trueish "$quiet" || {
-    diff -bqr "$src1" "$src2" >/dev/null 2>&1 &&
-    stderr debug "synced '$*'" ||
-    stderr warn "not in sync '$*'"
-  }
-
-  trueish "$copy_only" || {
-    # Move functions back to scriptline
-    expand_source_line "$1" $src1_line || error "expand-source-line 1" $?
-    expand_source_line "$3" $src2_line || error "expand-source-line 2" $?
-  }
-}
-htd_run__diff_function=iAO
 htd_als__diff_func=diff-function
 
 
-htd_man_1__sync_function='Compare Sh functions using vimdiff. See diff-function,
-this command uses:
-  quiet=false copy-only=false edit=true diff-function $@
-'
-htd__sync_function()
-{
-  export quiet=false copy_only=false edit=true
-  htd__diff_function "$@"
-}
-htd_run__sync_function=iAO
-htd_als__sync_func=sync-function
-
-
-htd_man_1__diff_functions="List all functions in FILE, and compare with FILE|DIR
-
-See diff-function for behaviour.
-"
-htd__diff_functions() # FILE FILE|DIR
-{
-  test -n "$1" || error "diff-functions FILE FILE|DIR" 1
-  test -n "$2" || set -- "$1" $scriptpath
-  test -e "$2" || error "Directory or file to compare to expected '$2'" 1
-  test -f "$2" || set -- "$1" "$2/$1"
-  test -e "$2" || { stderr info "No remote side for '$1'"; return 1; }
-  test -z "$3" || error "surplus arguments: '$3'" 1
-  lib_load functions
-  functions_list $1 | sed 's/\(\w*\)()/\1/' | sort -u | while read -r func
-  do
-    grep -bqr "^$func()" "$2" || {
-      warn "No function $func in $2"
-      continue
-    }
-    htd__diff_function "$1" "$func" "$2" ||
-        warn "Error on '$1:$func' <$2> ($?)" 1
-  done
-}
-htd_run__diff_functions=iAO
-
-
-htd_man_1__sync_functions='List and compare functions.
-
-Direct diff-function to be verbose, cut functions into separate files, use
-editor for sync and then restore both functions at original location.
-'
-htd__sync_functions()
-{
-  export quiet=false copy_only=false edit=true
-  htd__diff_functions "$@"
-}
-htd_run__sync_functions=iAO
-
-
-htd_man_1__diff_sh_lib='Look for local *.lib files, compare to same file in DIR.
-  See {sync,diff}-functions for options'
-htd_spc__diff_sh_lib='diff-sh-lib [DIR=$scriptpath]'
-htd__diff_sh_lib()
-{
-  test -n "$1" || set -- $scriptpath
-  test -d "$1" || error "Directory expected '$1'" 1
-  test -z "$2" || error "surplus arguments: '$3'" 1
-  list_functions_scriptname=false
-  quiet=true
-  for lib in *.lib.sh
-  do
-    note "Lib: $lib"
-    htd__sync_functions $lib $1 || continue
-  done
-}
-htd_run__diff_sh_lib=iAO
 
 
 htd__find_empty()
@@ -3521,7 +2314,6 @@ htd__fix_names()
 {
   local path_regex names_tables names_table
   req_cdir_arg "$1"
-  lib_load match
   match_grep_pattern_test "$path" || return 1
   path_regex="$p_"
   match_name_tables "$path"
@@ -3549,6 +2341,8 @@ htd__fix_names()
     done
   done
 }
+htd_load__fix_names=match
+
 
 # XXX: cleanup
 htd_host_arg()
@@ -3816,7 +2610,7 @@ htd__save()
       ;;
   esac
 }
-htd_grp__save=annex
+htd_grp__save='urls annex'
 
 
 htd_man_1__tags='
@@ -3881,19 +2675,7 @@ htd__save_ref()
 htd_grp__save_ref=annex
 
 
-htd_run__package=iAOpl
-htd__package()
-{
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
-  test -n "$*" && {
-      test -n "$1" || {
-        shift && set -- debug "$@"
-      }
-    } || set -- debug
-  subcmd_prefs=${base}_package_\ package_ try_subcmd_prefixes "$@"
-}
-htd_libs__package='date package htd-package'
-
+htd_grp__package=package
 htd_man_1__ls="List local package names"
 htd_als__ls=package\ list-ids
 
@@ -4101,590 +2883,37 @@ htd__table()
 }
 
 
-# parse path and annex metadata using given path
-
-req_arg_pattern="Pattern format"
-req_arg_path="Path"
-
-htd__name_tags_test()
-{
-  lib_load match
-  match_name_vars $@
-}
-
-htd__name_tags()
-{
-  local pattern
-  lib_load match
-  req_arg "$1" 'name-tags' 1 pattern && shift 1|| return 1
-  req_arg "$1" 'name-tags' 2 path && path="$1" || return 1
-  c=0
-  test "${path: -1:1}" = "/" && path="${path:0: -1}"
-  test -d "$path" && {
-    eval find "$path $find_ignores -o \( -type f -o -type l \) -a -print" \
-    | while read p
-    do
-      echo $p
-      match_name_vars "$pattern" "$p" 2> /dev/null
-      #c=$(( $c + 1 ))
-      #echo $c
-      #echo
-    done
-  } || {
-    error "Req dir arg" 1
-  }
-}
-
-htd__name_tags_all()
-{
-  lib_load match
-  req_arg "$1" 'name-tags-all' 1 path && path="$1" || return 1
-  test "${path: -1:1}" = "/" && path="${path:0: -1}"
-  test -d "$path" && {
-    eval find "$path $find_ignores -o \( -type f -o -type l \) -a -print" \
-    | while read p
-    do
-      match_names "$p"
-    done
-  } || {
-    error "Req dir arg" 1
-  }
-}
+htd_grp__name_tags_test=meta
+htd_grp__name_tags=meta
 htd_grp__name_tags_all=meta
-
-
-htd_spc__update_checksums="update-checksums [TABLE_EXT]..."
-htd__update_checksums()
-{
-  test -n "$1" || set -- ck sha1 md5
-  local failed=$(setup_tmpf .failed)
-  test $(echo table.*) != "table.*" || error "No tables" 1
-  for CK in $1
-  do
-    test -e table.$CK || continue
-    note "Updating $CK table..."
-    htd__ck_prune $CK || echo "htd:update:ck-prune:$CK" >>$failed
-    htd__ck_clean $CK || echo "htd:update:ck-prune:$CK" >>$failed
-    htd__ck_update $CK || echo "htd:update:ck-prune:$CK" >>$failed
-    note "Update $CK table done"
-  done
-}
 htd_grp__update_checksums=meta
-
-
-# Checksums frontend
-
-
-htd_man_1__ck='Validate given table-ext, ck-files, or default table.$ck-exts set
-
-Arguments are files with checksums to validate, or basenames and extensions to
-check. With no file given, checks table.*
-'
-htd_spc__ck='ck [CK... | TAB...]'
-htd__ck()
-{
-  local exts= ck_files=
-  test -z "$*" && {
-    exts="$ck_exts"
-  }
-  test -e "$1" && {
-      ck_files="$*"
-  } || {
-    exts="$( for a in "$@" ; do \
-      test -e "$a" && continue || echo "$a"; done | lines_to_words)"
-    ck_files="$(ck_files "." $exts)"
-  }
-
-  for tab in $ck_files
-  do
-    # Skip unexpanded names and non-existing checksum tables
-    test -e "$tab" || continue
-    ck_run $tab || return $?
-  done
-}
-
-htd_man_1__ck_add='Add new entries but dont hash'
-htd_spc__ck_add="ck TAB [PATH|.]"
+htd_grp__ck=meta
 htd_grp__ck_add=meta
-htd__ck_add()
-{
-  test -n "$1" || error "Need table to update" 1
-  ck_run_update "$@" || error "ck-update '$1' failed" 1
-}
-
 htd_grp__ck_init=meta
-htd__ck_init()
-{
-  test -n "$ck_tab" || ck_tab=table
-  test -n "$1" || set -- ck "$@"
-  test -n "$2" || set -- ck .
-  touch $ck_tab.$1
-  ck_arg "$1"
-  shift 1
-  htd__ck $ck_tab.$CK "$@"
-}
-
-htd__man_5_table_ck="Table of CK checksum, filesize and path"
-htd__man_5_table_sha1="Table of SHA1 checksum and path"
-htd__man_5_table_md5="Table of MD5 checksum and path"
 htd_grp__ck_table=meta
-# Either check table for path, or iterate all entries. Echoes checksum, two spaces and a path
-htd__ck_table()
-{
-  lib_load match
-  sh_isset ck_tab || local ck_tab=
-  # table ext
-  ck_arg "$1"
-  test -n  "$1" && shift 1
-  # second table ext
-  test -n "$1" -a -e "$ck_tab.$CK.$1" && {
-    S=$1; shift 1
-  } || S=
-  test -z "$1" && {
-    {
-      echo "#${T_CK}SUM  PATH"
-      # run all entries
-      cat $ck_tab.$CK$S | grep -Ev '^\s*(#.*|\s*)$' | \
-      while read ckline_1 ckline_2 ckline_3
-      do
-        test "$CK" = "ck" && {
-          cks=$ckline_1
-          sz=$ckline_2
-          p="$ckline_3"
-        } || {
-          cks=$ckline_1
-          p="$ckline_2 $ckline_3"
-        }
-        echo "$cks  $p"
-      done
-    }
-  } || {
-    # look for single path
-    htd_relative_path "$1"
-    match_grep_pattern_test "$relpath" || return 1
-    grep ".*\ \(\.\/\)\?$p_$" $ck_tab.$CK$S >> /dev/null && {
-      grep ".*\ \(\.\/\)\?$p_$" $ck_tab.$CK$S
-    } || {
-      echo unknown
-      return 1
-    }
-  }
-}
-
-htd_man_1__ck_table_subtree="Like ck-table, but this takes a partial path starting at the root level and returns the checksum records for files below that. "
-htd_spc__ck_table_subtree="ck-tabke-subtree $ck_arg_spec <path>"
 htd_grp__ck_table_subtree=meta
-htd__ck_table_subtree()
-{
-  lib_load match
-  ck_arg "$1"
-  shift 1
-  test -n "$1" || return 1
-  match_grep_pattern_test "$1" || return 1
-  grep ".*\ $p_.*$" table.$CK | grep -v '^\(\s*\|#.*\)$' | \
-  while read -a ckline
-    do
-      test "$CK" = "ck" && {
-        cks=${ckline[@]::1}
-        sz=${ckline[@]::1}
-        p="${ckline[@]:2}"
-      } || {
-        cks=${ckline[@]::1}
-        p="${ckline[@]:1}"
-      }
-      echo "$cks  $p"
-    done
-}
-
 htd_grp__ck_update=meta
-# find all files, check their names, size and checksum
-htd__ck_update()
-{
-  test -n "$choice_ignore_small" || choice_ignore_small=1
-  # XXX: htd_find_ignores
-  ck_write "$1"
-  shift 1
-  test -n "$1" || set -- .
-  while test -e "$1"
-  do
-    update_p="$1"
-    shift 1
-    test -n "$update_p" || error "empty argument" 1
-    test -d "$update_p"  && {
-      note "Checking $T_CK for dir '$update_p'"
-      ck_update_find "$update_p" || return $?
-      continue
-    }
-    test -f "$update_p" && {
-      note "Checking $T_CK for '$update_p'"
-      ck_update_file "$update_p" || return $?
-      continue
-    }
-    test -L "$update_p" && {
-      note "Checking $T_CK for symlink '$update_p'"
-      ck_update_file "$update_p" || return 4
-      continue
-    }
-    warn "Failed updating '$(pwd)/$update_p'"
-  done
-  test -z "$1" || error "Aborted on missing path '$1'" 1
-}
-
 htd_grp__ck_drop=meta
-htd__ck_drop()
-{
-  lib_load match
-  ck_write "$1"
-  shift 1
-  echo TODO ck_drop "$1"
-  return
-  req_arg "$1" 'ck-drop' 2 path || return 1
-  match_grep_pattern_test "$1" || return 1
-  cp table.$CK table.$CK.tmp
-  cat table.$CK.tmp | grep "^.*$p_$" >> table.$CK.missing
-  cat table.$CK.tmp | grep -v "^.*$p_$" > table.$CK
-  rm table.$CK.tmp
-}
-
 htd_grp__ck_validate=meta
-htd_spc__ck_validate="ck-validate $ck_arg_spec [FILE..]"
-htd__ck_validate()
-{
-  ck_arg "$1"
-  shift 1
-  test "$CK" = "ck" && {
-    test -n "$1" && {
-      for update_file in "$@"
-      do
-        htd__ck_table "$CK" "$update_file" | htd__cksum -
-      done
-    } || {
-      htd__cksum table.$CK
-    }
-  } || {
-    test -n "$1" && {
-      for update_file in "$@"
-      do
-        htd__ck_table "$CK" "$update_file" | ${CK}sum -c -
-      done
-    } || {
-      # Chec entire current $CK table
-      ${CK}sum -c table.$CK
-    }
-  }
-  stderr ok "Validated files from table.$CK"
-}
-
-# check file size and cksum
-htd__cksum()
-{
-  test -n "$1"  && T=$1  || T=table.ck
-  test -z "$2" || error "Surplus cksum arguments: '$2'" 1
-  cat $T | while read cks sz p
-  do
-    SZ="$(filesize "$p")"
-    test "$SZ" = "$sz" || { error "File-size mismatch on '$p'"; continue; }
-    CKS="$(cksum "$p" | awk '{print $1}')"
-    test "$CKS" = "$cks" || { error "Checksum mismatch on '$p'"; continue; }
-    note "$p cks ok"
-  done
-}
-htd_spc__cksum="cksum [<table-file>]"
 htd_grp__cksum=meta
-
-# Drop non-existant paths from table, copy to .missing
-htd__ck_prune()
-{
-  ck_write "$1"
-  shift 1
-  stderr info "Looking for missing files in $CK table.."
-  htd__ck_table $CK \
-    | grep -Ev '^(#.*|\s*)$' \
-    | while read cks p
-  do
-    test -e "$p" || {
-      htd__ck_drop $CK "$p" \
-        && note "TODO Dropped $CK key $cks for '$p'"
-    }
-  done
-}
 htd_grp__ck_prune=meta
-
-# Read checksums from *.{sha1,md5,ck}{,sum}
-htd__ck_consolidate()
-{
-  htd_find_ignores
-  test -n "$find_ignores" || error htd-$subcmd-find_ignores 1
-  eval "find . $find_ignores -o -name '*.{sha1,md5,ck}{,sum}' -a \( -type f -o -type l \) " -print | while read p
-  do
-    echo "$p"
-  done
-}
 htd_grp__ck_consolidate=meta
-
-# try to find files from .missing, or put them in .gone
-# XXX: htd_man_1__ck_clean="Iterate checksum table, check for duplicates, normalize paths"
-htd__ck_clean()
-{
-  ck_write "$1"
-  shift 1
-  test -s "table.$CK.missing" || {
-    note "$T_CK.missing table does not exists, nothing to check"
-    return
-  }
-  log "Looking for missing files from $CK table"/
-  htd__ck_table $CK .missing | while read cks p
-  do
-    BN="$(basename "$p")"
-    test -n "$BN" || continue
-    NW=$(eval find ./ $find_ignores -o -iname '$BN' -a type f -a -print)
-    test -n "$NW" && echo "$BN -> $NW"
-  done
-  echo 'TODO rewrite ck table path'
-}
 htd_grp__ck_clean=meta
-
-# TODO consolidate meta
-htd__ck_metafile()
-{
-  [ -n "$1" ] && d=$1 || d=.
-  CK=sha1
-  eval find $d $find_ignores -o -iname \'*.meta\' -print \
-  | while read metafile
-  do
-    ck_mf_p="$(dirname "$metafile")/$(basename "$metafile" .meta)"
-    [ -e "$ck_mf_p" ] || {
-      echo "missing source file $metafile: $ck_mf_p"
-      continue
-    }
-    cks=$(rsr.py --show-sha1sum-hexdigest "$ck_mf_p" 2> /dev/null)
-    htd__ck_table "$CK" "$ck_mf_p" > /dev/null && {
-      log "$cks found"
-    } || {
-      CKS=$(${CK}sum "$ck_mf_p" | cut -d' ' -f1)
-      #echo CKS=$CKS cks=$cks
-      test "$cks" = "$CKS" && {
-        log "$CKS ok $ck_mf_p"
-      } || {
-        error "Corrupt file: $ck_mf_p"
-        continue
-      }
-      echo "$CKS  $ck_mf_p" >> table.$CK
-    }
-
-  done
-}
 htd_grp__ck_metafile=meta
 
 
-
-# validate torrent
-htd__ck_torrent()
-{
-  test -s "$1" || error "Not existent torrent arg 1: $1" 1
-  test -f "$1" || error "Not a torrent file arg 1: $1" 1
-  test -z "$2" -o -d "$2" || error "Missing dir arg" 1
-  htwd=$(pwd)
-  dir=$2
-  test "$dir" != "." && pushd $2 > /dev/null
-  test "${dir: -1:1}" = "/" && dir="${dir:0: -1}"
-  log "In $dir, verify $1"
-
-  #echo testing btshowmetainfo
-  #btshowmetainfo $1
-
-  node $PREFIX/bin/btinfo.js "$1" > $(setup_tmpd)/htd-ck-torrent.sh
-  . $(setup_tmpd)/htd-ck-torrent.sh
-  echo BTIH:$infoHash
-
-  torrent-verify.py "$1" | while read line
-  do
-    test -e "${line}" && {
-      echo $htwd/$dir/${line} ok
-    }
-  done
-  test "$dir" != "." && popd > /dev/null
-}
 htd_grp__ck_torrent=media
-
-
-
-# xxx find corrupt files: .mp3
-htd__mp3_validate()
-{
-  eval "find . $find_ignores -o -name "*.mp3" -a \( -type f -o -type l \) -print" \
-  | while read p
-  do
-    SZ=$(filesize "$p")
-    test -s "$p" || {
-      error "Empty file $p"
-      continue
-    }
-    mp3val "$p"
-  done
-}
 htd_grp__mp3_validate=media
 
 
-
-htd__mux()
-{
-  test -n "$1" || set -- "docker-"
-  test -n "$2" || set -- "$1" "dev"
-  test -n "$3" || set -- "$1" "$2" "$(hostname -s)"
-
-  note "tmuxinator start $1 $2 $3"
-  tmuxinator start $1 $2 $3
-}
 htd_grp__mux=tmux
-
-
-htd_man_1__tmux='Unless tmux is running, get a new tmux session, based on the
-current environment TMUX_SOCK and/or a name in TMUX_SDIR. See `htd tmux get`.
-
-If tmux is running with an environment matching the current, attach. Different
-tmux environments are managed by using seperate sockets per session.
-
-Matching to a socket is done per user, an by the values of env vars set with
-Htd-TMux-Env. By default it tracks hostname and CS (color-scheme light or dark).
-::
-
-    <TMux-SDir>/tmux-<User-Id>/htd<Env-Var-Names>
-
-Ohter commands deal with
-
-Start tmux, tmuxinator or htd-tmux with given names.
-TODO: first deal with getting a server and session. Maybe later per window
-management.
-
-  tmux list-sockets | sockets
-    List (active) sockets of tmux servers. Each server is a separate env with
-    sessions and windows.
-
-  tmux list [ - | MATCH ] [ FMT ]
-    List window names for current socket/session. Note these may be empty, but
-    alternate formats can be provided, ie. "#{window_index}".
-
-  tmux list-windows  [ - | MATCH ] [ FMT ]
-
-  tmux get [SESSION-NAME [WINDOW-NAME [CMD]]]
-    Look for session/window with current selected server and attach. The
-    default name arguments may dependent on the env, or default to Htd/bash.
-    Set TMUX_SOCK or HTD_TMUX_ENV+env to select another server, refer to
-    tmux-env doc.
-
-  tmux current | current-session | current-window
-    Show combined, or session name, or window index for current shell window
-
-  tmux show TMux Var-Name
-  tmux stuff Session Window-Nr String
-  tmux send Session Window-Nr Cmd-Line
-
-  tmux resurrect
-    See tmux-resurrect for help on dumpfiles.
-'
-htd__tmux()
-{
-  tmux_env_req 0
-  test -n "$1" || set -- get
-
-  case "$1" in
-    list-sockets | sockets ) shift ; htd_tmux_sockets "$@" || return ;;
-    list ) shift ; htd_tmux_list_sessions "$@" || return ;;
-    list-windows ) shift ; htd_tmux_session_list_windows "$@" || return ;;
-    current-session ) shift ; tmux display-message -p '#S' || return ;;
-    current-window ) shift ; tmux display-message -p '#I' || return ;;
-    current ) shift ; tmux display-message -p '#S:#I' || return ;;
-
-    # TODO: find a way to register tmux windows by other than name; PWD, CMD
-    # maybe need to record environment profiles per session
-    show ) shift ; $tmux show-environment "$@" || return ;;
-
-    stuff ) shift ; $tmux send-keys -t $1:$2 "$3" || return ;;
-    send ) shift ; $tmux send-keys -t $1:$2 "$3" enter || return ;;
-
-    resurrect ) shift ; htd__tmux_resurrect "$@" || return ;;
-
-    * ) subcmd_prefs=${base}_tmux_ try_subcmd_prefixes "$@" || return ;;
-  esac
-
-  # TODO: cleanup old tmux setup
-  #while test -n "$1"
-  #do
-  #  func_exists "$func" && {
-
-  #    # Look for init subcmd to setup windows
-  #    note "Starting Htd-TMux $1 (tmux-$fname) init"
-  #    try_exec_func "$func" || return $?
-
-  #  } || {
-  #    test -f "$UCONFDIR/tmuxinator/$fname.yml" && {
-  #      note "Starting tmuxinator '$1' config"
-  #      htd__mux $1 &
-  #    } || {
-  #      note "Starting Htd-TMux '$1' config"
-  #      htd__tmux_init $1
-  #    }
-  #  }
-  #  shift
-  #done
-}
 htd_grp__tmux=tmux
+htd_grp__tmux_resurrect=tmux
+
 htd_als__tmux_list=tmux\ list-sessions
 htd_als__tmux_sessions=tmux\ list-sessions
 htd_als__tmux_windows=tmux\ session-list-windows
 htd_als__tmux_session_windows=tmux\ session-list-windows
-
-
-htd_man_5__tmux_resurrect='The tmux-resurrect dumps come as a line-based
-file format, with three types of lines: several windows, and panes for windows,
-and a state line.
-
-1       2    3      4           5     6    7    8  9     10    11
-Window: Name Index  active-idx? bits? layout/geom?
-Pane:   Name Index? Colon-Title num? bits? num? Pwd num? name? Cmd
-State:  Window-Names?
-'
-
-htd_man_1__tmux_resurrect='Manage local tmux-resurrect sessions and configs
-(tmux.lib.sh). See htd help tmux.
-
-Env
-    $TMUX_RESURRECT ~/.tmux/resurrect
-
-Commands
-    list
-        Print basenames of all dumps on local box.
-    lastname
-        Print name of most recent dump.
-    panes [Dumpfile]
-        Line up window, pane, pwd and command for every dumpfile ever or given.
-    names
-        Print basenames plus list of window names for all dumps on local box.
-    listwindows [Dumpfile]
-        List window names (for last session)
-    allwindows
-        List all names, for every window ever
-    table
-        Tabulate panel counts for every window.
-    info [Window [Dumpfile]]
-        Print table or look for window panes in every dumpfile ever.
-    drop [last]
-        Remove dumpfile and reset
-    reset
-        Restore "last" link. If no dumpfile is found, call restore first.
-    backup-all
-        Move all dumpfiles except last to cabinet.
-    restore [Date|last]
-        Find last
-
-See tmux-resurrect in section 5. (file-formats) for more details.
-'
-htd__tmux_resurrect()
-{
-  test -n "$1" || set -- lastname
-  subcmd_prefs=tmux_resurrect_ try_subcmd_prefixes "$@"
-}
 
 
 htd_man_1__test='Alias for run test TODO: or pd test'
@@ -5212,18 +3441,32 @@ htd_als__lsof=open-paths
 htd_als__open_files=open-paths
 
 
-htd_man_1__current_paths='List open paths for user (belonging to shells)'
-htd__current_paths() # User Cmd-Grep Cmd-Len
+htd_man_1__current_paths='List open paths for user (belonging to specific processes)'
+htd__current_paths() #
 {
-  test -n "$1" || set -- $(whoami) "$2" "$3"
-  test -n "$2" || set -- "$1" '/^(bash|sh|ssh|dash|zsh)$/x' "$3"
-  test -n "$3" || set -- $1 "$2" "15"
-
-  lsof +c $3 -c $2 -u "$1" -a -d cwd |
-      tail -n +2 | awk '{print $9}' | sort -u
+  htd__shell_cwds | tail -n +2 | awk '{print $9}' | sort -u
 }
 htd_of__current_paths='list'
 htd_als__open_paths=current-paths
+
+
+htd_man_1__lsof='List CWD for user process'
+htd__lsof_cwd() # [User] Cmd-Grep [Cmd-Len]
+{
+  test -n "${1-}" || set -- $USER "${2-}" "${3-}"
+  test -n "${3-}" || set -- $1 "${2-}" "15"
+  lsof +c $3 -c $2 -u "$1" -a -d cwd
+}
+
+htd__editor_cwds() # User Cmd-Grep Cmd-Len
+{
+  htd__lsof_cwd "${1-}" '/^('"$EDITOR"')$/x'
+}
+
+htd__shell_cwds() # User Cmd-Grep Cmd-Len
+{
+  htd__lsof_cwd "${1-}" '/^(bash|sh|ssh|dash|zsh)$/x'
+}
 
 
 htd_man_1__open_paths='Lists names of currently claimed by a process.
@@ -5264,22 +3507,19 @@ htd__open_paths()
   test_dir "$2" || return $?
   note "Listing open paths for '$2'"
   set -- "$1" "$(cd "$2" && pwd -P)"
+
   case "$1" in
 
-    dirs ) shift ; htd__open_paths paths "$1"  | filter_dirs - ;;
     paths ) shift ; lsof -F n +D "$1" | grep -v '^p' | cut -c2- | sort -u ;;
 
-    pid-paths ) shift
-          lsof -F pRin0 +D "$1" | tr '\0' ' '
-        ;;
+    dirs ) shift ; htd__open_paths paths "$1" | filter_dirs - ;;
+    files ) shift ; htd__open_paths paths "$1" | filter_files - ;;
 
-    info ) shift
-          lsof -F pRcoin0 +D "$1" | tr '\0' ' '
-        ;;
+    pid-paths ) shift ; lsof -F pRin0 +D "$1" | tr '\0' ' ' ;;
 
-    details ) shift
-          lsof -F pRcoaldfin0 +D "$1" | tr '\0' ' '
-        ;;
+    info ) shift ; lsof -F pRcoin0 +D "$1" | tr '\0' ' ' ;;
+
+    details ) shift ; lsof -F pRcoaldfin0 +D "$1" | tr '\0' ' ' ;;
   esac
 }
 
@@ -5344,144 +3584,12 @@ htd__recent_paths()
 }
 
 
-
-## Prefixes: named paths, or aliases for base paths
-
-htd_man_1__prefixes='Manage local prefix table and index, or query cache.
-
-  (op|open-files)
-    Default command. Pipe htd current-cwd to htd prefixes names.
-    Set htd_path=1 to get full paths with prefix/localname pairs outputted in
-    one line.
-
-Read from table
-  list
-    List prefix varnames from table.
-  table | raw-table
-    Print user or default prefix-name lookup table
-  table-id
-    Print table filename
-
-Lookup with table
-  name Path-Name
-    Resolve to real, absolute path and echo <prefix>:<localpath> by scanning
-    prefix index.
-  names (Path-Names..|-)
-    Call name for each line or argument.
-  pairs (Path-Names..|-)
-    Get both path and name for each line or argument.
-  expand (Prefix-Paths..|-)
-    Expand <prefix>:<local-path> back to to absolute path.
-  op
-    Feed Htd-current-paths through htd-prefixes-names
-
-Cache
-  cache
-    List cached prefixes and paths beneath them.
-  update [TTL=60min [<persist=false>]]
-    Update cache, read below.
-  current
-    List but dont update, this is essentially the same as htd-prefixes-op but
-    tailored for htd-update-prefixes.
-
-Other
-  check
-    TODO htd prefixes check ..
-
-See prefix.rst for design and use-cases.
-
-# Cache
-Cache has two parts. An in-memory index, for tracking current prefixes,
-and the local paths beneath prefixes. And secondary a persisted part, where a
-cumulative tree of all prefixes/paths for a certain period is stored. And where
-individual cards are kept per path, with timestamps.
-
-The in-memory parts are updated every run of `update`.
-Paths are kept in memory for TTL seconds after they closed, to allow recalling
-them during that time.
-
-If there is a change, the persisted document is not updated. Only until some
-path TTL expires and is dropped from the index is the persisted document updated
-automatically. Otherwise, a persist to secondary storage is only requested by
-invocation argument.
-
-Updating the first cache requires checking and possibly changing two lists.
-For the secondary, several JSON documents are created: one with the entire tree
-and current time, and if needed one for each path, setting a new ctime.
-This setup prevents conflicts in distributed stores, but it leaves the task of
-cleaning up old trees and ctimes documents.
-
-
-TODO: track path timestamp, keep for X amount of time in index
-TODO: clear indices on certain (global) context switches: day, domain
-TODO: check for services, redis is required. couch can be offline for a bit
-TODO: update registry atime/utime once cache elapses?
-
-'
-htd__prefixes()
-{
-  test -n "$index" || local index=
-  test -s "$index" || prefix_require_names_index || return
-
-  test -n "$1" || set -- op
-  case "$1" in
-
-    # Read from table
-    info|table-id ) shift ;  echo $UCONFDIR/$pathnames ; test -e "$pathnames" || return $? ;;
-    raw-table ) shift ;      cat $UCONFDIR/$pathnames || return $? ;;
-    tab|table )              prefix_tab || return $? ;;
-    list )                   prefix_names || return $? ;;
-
-    # Lookup with table
-    name ) shift ;           prefix_resolve "$1" || return $? ;;
-    names ) shift ;          prefix_resolve_all "$@" || return $? ;;
-    pairs ) shift ;          prefix_resolve_all_pairs "$@" || return $? ;;
-    expand ) shift ;         prefix_expand "$@" || return $? ;;
-
-    # Update/fetch from cache
-    cache )                  htd_list_prefixes || return $? ;;
-    update )                 htd_update_prefixes || return $? ;;
-    current )
-        htd__current_paths | prefix_resolve_all_pairs - |
-          while IFS=' :' read path prefix localpath
-        do
-          trueish "$htd_act" && {
-            older_than $path $_1HOUR && act='- ' || act='+ '
-          }
-
-          trueish "$htd_path" &&
-              echo "$act$path" || echo "$act$prefix:$localpath"
-        done
-      ;;
-
-    op | open-files ) shift
-        htd__current_paths | prefix_resolve_all -
-      ;;
-
-    check )
-        # Read index and look for env vars
-        prefix_names | while read name
-        do mkvid "$name"
-            #val="${!vid}"
-            val="$( eval echo \"\$$vid\" )"
-            test -n "$val" || warn "No env for $name"
-        done
-      ;;
-
-    * ) error "No subcmd $1" ; return 1 ;;
-  esac
-} # End prefixes
-
+htd_grp__prefixes=prefix
 htd_als__prefix=prefixes
-
-htd_of__prefixes_list='plain text txt rst yaml yml json'
 htd_als__prefixes_list=prefixes\ list
 htd_als__list_prefixes=prefixes\ list
-
-htd_of__prefixes_update='txt rst plain'
 htd_als__prefixes_update=prefixes\ update
 htd_als__update_prefixes=prefixes\ update
-
 
 
 ## Services
@@ -6095,117 +4203,14 @@ SRVS="archive archive-old scm-git src annex www-data cabinet htdocs shared \
 # TODO: use service names from disk catalog
 
 
-htd__munin_ls()
-{
-  test -n "$1" || set -- $DCKR_VOL/munin/db
-  tail -n +2 $1/datafile | while read dataline
-  do
-    hostgroup=$(echo $dataline | cut -d ':' -f 1)
-    echo hostgroup=$hostgroup
-    #grep -F $hostgroup $1/datafile \
-    #  | sed 's#/^.*:##'
-
-  done
-  #| sort -u
-}
-
-htd__munin_ls_hosts()
-{
-  test -n "$1" || set -- $DCKR_VOL/munin/db
-  tail -n +2 $1/datafile | while read dataline
-  do echo $dataline | cut -d ':' -f 1
-  done | sort -u
-}
-
-htd__munin_archive()
-{
-  echo TODO $subcmd
-# archive selected plugins, sensor names
-# 4 sets MIN/MAX/AVG values per attr:
-# 5min (day), 30min (week), 2h (month), 24h (year)
-# File: munin-log/2016/[02/[01/]]<group>.log.gz
-# Line: <ts> <plugin> <attr>=<min>,<max>,<avg> [<attr>.*=<v>]*
-#
-# One backup every day, two every week, three every month, and all four very year.
-}
-
-htd__munin_merge()
-{
-  echo TODO $subcmd
-  # rename/merge selected plugins, sensor names
-}
-
-htd__munin_volumes()
-{
-  local local_dckr_vol=/srv/$(readlink /srv/docker-local)
-
-  echo /srv/docker-*-*/munin | words_to_lines | while read munin_volume
-  do
-    test "$local_dckr_vol/munin" = "$munin_volume" && {
-      echo $munin_volume [local]
-    } || {
-      echo $munin_volume
-    }
-  done
-}
-
-# Remove stale databases, check index
-htd__munin_check()
-{
-  test -n "$1" || set -- "$DCKR_VOL/munin/db"
-  while read dataline
-  do
-    group="$(echo $dataline | cut -d ':' -f 1)"
-    propline="$(echo $dataline | cut -d ':' -f 2)"
-    plugin="$(echo $propline | sed 's/\.[a-zA-Z0-9_-]*\ .*$//' )"
-    attr="$(echo $propline | sed 's/^.*\.\([a-zA-Z0-9_-]*\)\ .*$/\1/' )"
-    value="$(echo $propline | sed 's/^[^\ ]*\ //' )"
-
-  done < $4/datafile
-}
-
-htd__munin_export()
-{
-  test -n "$1" || {
-    test -n "$4" || set -- "" "$2" "$3" $DCKR_VOL/munin/db
-    test -n "$3" || set -- "" "$2" g "$4" # or d
-    test -n "$2" || set -- "" vs1/vs1-users-X-$2.rrd "$3" "$4"
-    set -- "$4/$2-$3.rrd" "$2" "$3" "$4"
-  }
-
-  while read dataline
-  do
-    group="$(echo $dataline | cut -d ':' -f 1)"
-    propline="$(echo $dataline | cut -d ':' -f 2)"
-    plugin="$(echo $propline | sed 's/\.[a-zA-Z0-9_-]*\ .*$//' )"
-    attr="$(echo $propline | sed 's/^.*\.\([a-zA-Z0-9_-]*\)\ .*$/\1/' )"
-    value="$(echo $propline | sed 's/^[^\ ]*\ //' )"
-
-    echo $dataline | grep -q 'title' && {
-      echo "$group\t$plugin\t$attr\t$value"
-    }
-    echo $dataline | grep -qv '\.graph_' && {
-      echo "$group\t$plugin\t$attr\t$value"
-      #echo ls -la $4/$(echo $group | tr ';' '/')-$plugin-$(echo $attr | tr '.' '_' )-*.rrd
-    }
-  done < $4/datafile
-# | column -tc 3 -s '\t'
-
-  return
-
-  # ds-name for munin is always 42?
-  #"/srv/docker-local/munin-old-2015/db"
-
-  for name in $4/*/*.rrd
-  do
-    basename "$name" .rrd
-    continue
-    rrdtool xport --json \
-            DEF:out1=$1:42:AVERAGE \
-            XPORT:out1:"42"
-  done
-}
-
+#htd_grp__munin=munin
+htd_grp__munin_ls=munin
+htd_grp__munin_ls_hosts=munin
+htd_grp__munin_archive=munin
+htd_grp__munin_merge=munin
+htd_grp__munin_volumes=munin
+htd_grp__munin_check=munin
+htd_grp__munin_export=munin
 
 
 htd_man_1__count_files='Count files under dir(s)'
@@ -6807,10 +4812,10 @@ htd__pathnames()
 
 htd_man_1__src_info=
 htd_grp__src_info=box-src
+htd_load__src_info=src\ functions
 htd__src_info()
 {
   test -n "$1" || set -- $0
-  lib_load src functions
   local functions=0 lines=0
   for src in $@
   do
@@ -6831,23 +4836,7 @@ htd__src_info()
 }
 
 
-htd_man_1__functions='List functions, group, filter, and use `source` to get
-source-code info.
-
-   list-functions|list-func|ls-functions|ls-func
-     List shell functions in files.
-   find-functions Grep Scripts...
-     List functions matching grep pattern in files
-   list-groups [ Src-Files... ]
-     List distinct values for "grp" attribute. See box-list-function-groups.
-   list-attr [ Src-Files... ]
-     See box-list-functions-attrs.
-
-'
-htd_run__functions=iAOl
-htd__functions() { false; }
-htd_libs__functions=htd-functions\ functions
-
+htd_grp__functions=htd-functions
 htd_als__list_functions=functions\ list
 htd_als__list_funcs=functions\ list
 htd_als__ls_functions=functions\ list
@@ -6858,260 +4847,14 @@ htd_als__find_funcs=functions\ find
 
 htd_als__funcs=functions
 
+htd_grp__filter_functions=src
+htd_grp__list_functions_added=src
+htd_grp__list_functions_removed=src
+htd_grp__diff_function_names=csrc
+htd_grp__find_function=src
 
-htd_man_1__find_function='Get function matching grep pattern from files
-'
-htd_spc__find_function='find-function <grep> <scripts>..'
-htd__find_function()
-{
-  func=$(first_match=1 find_function "$@")
-  test -n "$func" || return 1
-  echo "$func"
-}
-htd_grp__find_function=box-src
-
-
-htd_man_1__filter_functions='
-  Find and list all function and attribute declarations from Src-Files,
-  filtering by one or more key=regex inclusively or exclusively. Output is
-  normally a list of function names (out_fmt=names), or else all declaration
-  lines (out_fmt=src).
-
-  In inclusive mode one big grep-for is build from the filters and execution is
-  done on each src with the accumulated result rewritten to unique function
-  names, if requested (out-fmt=names).
-
-  For exclusive mode, a grep for each filter is executed seperately against each
-  source. With filter the resulting function-keys set is narrowed down, with
-  then the resulting function keys being listed as is (out-fmt=names) or grepped
-  from the source (out-fmt=src).
-
-  Depending on the output format requested, more processing is done. The
-  simplest format is names, followed by src. All other formats list beside the
-  script-name, also the attributes values. However as some attributes may be
-  multiline, they require additional source lookup to output.
-
-  Other supported formats besides names and src are csv, json and yaml/yml.
-  Each of these sources the source script and dereferences the required
-  attribute values. '
-
-htd_spc__filter_functions='filter-functions Attr-Filter [Src-Files...]'
-htd__filter_functions() # Attr-Filter [Src-Files...]
-{
-  upper=0 default_env out-fmt names
-  title=1 default_env Inclusive-Filter 1
-  # With no filter env, use first argument or set default
-  test -n "$Attr_Filter" || {
-    test -n "$1" || { shift; set -- grp=box-src "$@"; }
-    Attr_Filter="$1"
-  }
-  shift # first arg is ignored unless Attr_Filter is empty
-  debug "Filtering functions from '$*' ($(var2tags Attr_Filter Inclusive_Filter ))"
-  # sort out the keys from the filter into Filters, and export filter_$key env
-  Filters=
-  for kv in $Attr_Filter ; do
-    k=$(get_kv_k "$kv") ; v=$(get_kv_v "$kv" filter_ $k)
-    export filter_$k="$v" Filters="$Filters $k"
-  done
-  # Assemble grep args (inclusive mode) or grep-pattern lines (exclusive mode)
-  Grep_For="$(
-      for filter in $Filters ; do test -n "$filter" || continue
-        trueish "$Inclusive_Filter" && printf -- "-e "
-        printf -- "'^[a-z_]*_${filter}__.*=$(eval echo \"\$filter_${filter}\")' "
-      done
-    )"
-  # Output function names to file, adding all declaration lines (inclusive mode)
-  # or filtering out non-matching function-names (exclusive mode)
-  local outf=$(setup_tmpf .out-$out_fmt-tmp)
-  for src in "$@"
-  do
-    test -n "$src" || continue
-    local func_keys=$(setup_tmpf .func-keys)
-    {
-      trueish "$Inclusive_Filter" && {
-        eval grep $Grep_For $src |
-
-          case "$out_fmt" in names )
-              sed 's/^[a-z][a-z0-9_]*__\([^=(]*\).*$/\1/' ;;
-          * )
-              sed 's/^[a-z][a-z0-9_]*__\([^=(]*\).*$/\1/' > $func_keys
-              eval grep "$( while read func_key ; do
-                  printf -- "-e '^[a-z_]*__$func_key[=(].*' " ; done < $func_keys
-                )" "$@"
-            ;;
-          esac
-      } || {
-        local src_lines=$(setup_tmpf .src-lines)
-        grep  '^[a-z][a-z0-9_]*__.*[=(].*' "$src" > $src_lines
-        for Grep_Rx in $Grep_For
-        do
-          mv $src_lines $src_lines.tmp
-          eval grep $Grep_Rx $src | sed 's/^[a-z][a-z0-9_]*__\([^=(]*\).*$/\1/' > $func_keys
-          test -s "$func_keys" || {
-            warn "No matches for $Grep_Rx '$src'"
-            return 1
-          }
-          # Remove functions declarations from src-lines where no matching func-keys
-          eval grep "$( while read func_key ; do
-              printf -- "-e '^[a-z][a-z0-9_]*__$func_key[=(].*' " ; done < $func_keys
-            )" $src_lines.tmp > $src_lines
-          rm $src_lines.tmp
-        done
-
-        case "$out_fmt" in
-          names ) sed 's/^[a-z][a-z0-9_]*__\([^=(]*\).*$/\1/' $src_lines ;;
-          * ) test -s "$src_lines" &&
-              cat $src_lines || warn "Nothing found for '$src'"
-            ;;
-        esac
-      }
-    } | sed 's#^.*#'$src' &#'
-  done > $outf
-  test -s "$outf" && {
-    cat $outf | htd_filter_functions_output
-  } || {
-    rm $outf
-    return 1
-  }
-  rm $outf
-}
-htd_grp__filter_functions=box-src
-htd_filter_functions_output()
-{
-
-  case "$out_fmt" in
-    names ) tr '_' '-'  | uniq ;;
-    src ) cat - ;;
-    * ) cat - |
-        sed 's/\([^\ ]*\)\ \([a-z][a-z0-9_]*\)__\([^(]*\)().*/\1 \3/g' |
-        sed 's/\([^\ ]*\)\ \([a-z][a-z0-9_]*\)__\([^=]*\)=\(.*\)/\1 \3 \2 \4/g' |
-        while read script_name func_name func_attr func_attr_value
-        do # XXX: I whish I could replace this loop with a sed/awk/perl oneliner
-          test -n "$func_attr_value" || {
-            echo "$script_name $func_name" ; continue
-          }
-          echo "$script_name $func_name $(
-              dsp=$(( ${#script_name} + 2 ))
-              expr_substr "$func_attr" $dsp  $(( 1 + ${#func_attr} - $dsp ))
-            ) $func_attr_value"
-        done | sort -u | {
-          case "$out_fmt" in
-            csv )      htd_filter_functions_output_csv || return $? ;;
-            yaml|yml ) htd_filter_functions_output_yaml || return $? ;;
-            json )     htd_filter_functions_output_yaml | jsotk yaml2json - ||
-              return $? ;;
-          esac
-        }
-      ;;
-  esac
-}
-htd_filter_functions_output_csv()
-{
-  local current_script=
-  echo "# Script-Name, Func-Key, Func-Attr-Key, Func-Attr-Value"
-  while read script_name func_key func_attr_key func_attr_value
-  do
-    test -n "$func_attr_value" || {
-      test "$script_name" = "$current_script" || {
-        export __load_lib=1
-        source $script_name
-        current_script=$script_name
-      }
-      continue
-    }
-    upper=0 mkvid "$script_name"
-    value="$( eval echo \"\$${vid}_${func_attr_key}__${func_key}\" )"
-    fnmatch "*\n*\n*" "$value" &&
-      value="$( echo "$value" | sed 's/$/\\n/g' | tr -d '\n' )"
-    echo "$script_name,$func_key,$func_attr_key,\"$value\""
-  done
-}
-htd_filter_functions_output_yaml()
-{
-  local current_script=
-  while read script_name func_key func_attr_key func_attr_value
-  do
-    test "$script_name" = "$current_script" || {
-      export __load_lib=1
-      source $script_name
-      echo "type: application/vnd.org.wtwta.box-instance"
-      echo "script-name: $script_name"
-      echo "command-functions:"
-      current_script=$script_name
-    }
-    test -n "$func_attr_value" || {
-      echo "  - subcmd: $(echo $func_key | tr '_' '-')"
-      continue
-    }
-    upper=0 mkvid "$script_name"
-    value="$( eval echo \"\$${vid}_${func_attr_key}__${func_key}\" )"
-    fnmatch "*\n*\n*" "$value" && {
-      value="$(echo "$value" | jsotk encode -)"
-      # FIXME: htd filter-functions out-fmt=yaml could use pretty multilines
-      echo "    $(echo $func_attr_key | tr '_' '-'): $value"
-    } || {
-      echo   "    $(echo $func_attr_key | tr '_' '-'): '$value'"
-    }
-  done
-}
-
-
-htd_grp__list_functions_added=box-src
-htd__list_functions_added()
-{
-  filter=A htd__diff_function_names "$@"
-}
 htd_als__new_functions=list-functions-added
-
-
-htd_grp__list_functions_removed=box-src
-htd__list_functions_removed()
-{
-  filter=D htd__diff_function_names "$@"
-}
 htd_als__deleted_functions=list-functions-removed
-
-
-htd_man_1__diff_function_names='
-  Compare function names in script, show changes
-'
-htd_grp__diff_function_names=box-src
-htd__diff_function_names()
-{
-  local version2=$2 version1=$1
-  shift 2
-  test -n "$1" || set -- "$(echo $scriptpath/*.sh)"
-  test -n "$filter" || filter=A
-  tmplistcur=$(setup_tmpf .func-list)
-  tmplistprev=$(setup_tmpf .func-list-old)
-  test -n "$version2" || version2=HEAD^
-  {
-    cd $scriptpath
-    for name in $@
-    do
-      fnmatch "/*" "$name" &&
-        name=$(echo "$name" | cut -c$(( 2 + ${#scriptpath} ))-)
-      git show $version2:$name | list_functions_foreach |
-        sed 's/\(\w*\)()/\1/' | sort -u > $tmplistprev
-      test -n "$version1" && {
-        note "Listing new fuctions at $version1 since $version2 in $name"
-        git show $version1:$name | list_functions_foreach |
-          sed 's/\(\w*\)()/\1/' | sort -u > $tmplistcur
-      } || {
-        note "Lising new fuctions since $version2 in $name"
-        list_functions $name | sed 's/\(\w*\)()/\1/' | sort -u > $tmplistcur
-      }
-      case "$filter" in
-        U ) comm_f=" -1 -2 " ;;
-        A ) comm_f=" -2 -3 " ;;
-        D ) comm_f=" -1 -3 " ;;
-        * ) comm_f=" " ;;
-      esac
-      comm $comm_f $tmplistcur $tmplistprev
-    done
-  }
-}
-
 
 
 htd__vcard2n3()
@@ -7163,112 +4906,11 @@ htd__crypto_volume_find()
 }
 
 
-htd_man_1__crypto='
-  list         Show local volumes with crypto folder
-  find         Find local crypto volume with specific volume Id.
-  find-all     Show all volume Ids found on local volume paths.
-  check        See if htd crypto is good to go
-'
-htd__crypto()
-{
-  test -n "$1" || set -- check
-  # TODO: use crypto source or something
-  cr_m=$HTDIR/crypto/main.tab
-  test -e $cr_m || cr_m=~/.local/etc/crypto-bootstrap.tab
-  case "$1" in
-
-    list ) htd__crypto_volumes || return ;;
-    find ) htd__crypto_volume_find "$@" || return ;;
-    list-ids|find-all ) echo "#Volume-Id,File-Size"; htd__crypto_volumes | while read v
-      do for p in $v/*.vc ; do echo "$(basename $p .vc) $(filesize "$p")" ; done
-      done ;;
-
-    check )
-      test -x "$(which veracrypt)" || error "VeraCrypt exec missing" 1
-      test -e $cr_m || error cr-m-tab 1
-      veracrypt --version || return ;;
-
-    mount-all ) htd__crypto_mount_all || return ;;
-    mount ) htd__crypto_mount "$@" || return ;;
-    unmount ) htd__crypto_unmount "$@" || return ;;
-
-    * ) error "'$1'? 'htd crypto $*'" 1 ;;
-  esac
-}
-
-htd__crypto_mount_all()
-{
-  test -e $cr_m || error cr-m-tab 1
-  c_tab() { fixed_table $cr_m Lvl VolumeId Prefix Contexts ; }
-  c_tab | while read vars
-  do eval $vars
-    test -n "$Prefix" || continue
-    test -e "$Prefix" || {
-      test -d "$(dirname "$Prefix")" || {
-        warn "Missing path '$Prefix'"; continue;
-      }
-      mkdir -p "$Prefix"
-    }
-    test -d "$Prefix" || { warn "Non-dir '$Prefix'"; continue; }
-    Prefix_Real=$(cd "$(dirname "$Prefix")"; pwd -P)/$(basename "$Prefix")
-    mountpoint -q "$Prefix_Real" && {
-      note "Already mounted: $Lvl: $VolumeId ($Contexts at $Prefix)"
-    } || {
-      htd__crypto_mount "$Lvl" "$VolumeId" "$Prefix_Real" "$Contexts" && {
-        stderr ok "$Lvl: $VolumeId ($Contexts at $Prefix)"
-      } || {
-        warn "Mount failed"
-        continue
-      }
-    }
-    mountpoint -q "$Prefix_Real" || {
-      warn "Non-mount '$Prefix'"; continue;
-    }
-  done
-}
-htd_run__crypto=f
-
-htd__crypto_mount() # Lvl VolumeId Prefix_Real Contexts
-{
-  local device=$(htd__crypto_volume_find "$2.vc")
-  test -n "$device" || {
-    error "No volume found for '$2'"
-    return 1
-  }
-  . ~/.local/etc/crypto.sh
-  test -n "$(eval echo \$$2)" || {
-    error "No key for $1"
-    return 1
-  }
-  eval echo "\$$2" | \
-    sudo veracrypt --non-interactive --stdin -v $device $3
-}
-
-
-htd__crypto_unmount() # VolumeId
-{
-  local device=$(htd__crypto_volume_find "$1.vc")
-  test -n "$device" || error "Cannot find mount of '$1'" 1
-  note "Unmounting volume '$1' ($device)"
-  sudo veracrypt -d $device
-}
-
-
-htd__crypto_vc_init() # VolumeId Secret Size
-{
-  test -n "$1" || set -- Untitled0002 "$2"
-  test -n "$2" || error passwd-var-expected 1
-  test -n "$3" || set -- "$1" "$2" "10M"
-  eval echo "\$$2" | \
-    sudo veracrypt --non-interactive --stdin \
-      --create $1.vc --hash sha512 --encryption aes \
-      --filesystem exFat --size $3 --volume-type=normal
-  mkdir /tmp/$(basename $1)
-  sudo chown $(whoami):$(whoami) $1.vc
-  eval echo "\$$2" | \
-    sudo veracrypt --non-interactive --stdin \
-      -v $1.vc /tmp/$(basename "$1")
-}
+htd_grp__crypto=crypto
+htd_grp__crypto_mount_all=crypto
+htd_grp__crypto_mount=crypto
+htd_grp__crypto_unmount=crypto
+htd_grp__crypto_vc_init=crypto
 
 
 htd_man_1__vfs='
@@ -7616,25 +5258,11 @@ htd_man_1__meta='
 See also embyapi'
 htd__meta()
 {
-  lib_load meta
   subcmd_prefs=meta_ try_subcmd_prefixes "$@"
 }
 
 
 htd_grp__emby=media
-
-
-htd_grp__github=code
-htd_grp__src=code
-
-htd_man_1__github=''
-htd_libs__github=github
-htd_run__github=fl
-htd__github()
-{
-  test -n "$1" || set -- default
-  subcmd_prefs=${base}_github_ try_subcmd_prefixes "$@"
-}
 
 
 htd_man_1__src=''
@@ -7647,26 +5275,11 @@ htd__src()
 }
 
 
-htd__docstat()
-{
-  test -n "$1" || set -- list
-  doc_lib_init
-  subcmd_prefs=docstat_ try_subcmd_prefixes "$@"
-}
-htd_run__docstat=ql
-htd_libs__docstat=docstat\ htd-docstat\ ctx-doc\ doc
+htd_grp__docstat=docstat
 
 
-htd_man_1__context='
-  TODO context list -
-'
-htd__context()
-{
-  test -n "$1" || set -- list
-  subcmd_prefs=${base}_context_ try_subcmd_prefixes "$@"
-}
-htd_run__context=l
-htd_libs__context=context\ htd-context
+htd_grp__context=context
+
 htd_als__ctx=context
 
 
@@ -7677,15 +5290,7 @@ htd__lists()
 }
 
 
-htd__urlstat()
-{
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
-  subcmd_default=list urlstat_check_update=$update \
-      subcmd_prefs=urlstat_ try_subcmd_prefixes "$@"
-}
-htd_run__urlstat=qliAO
-htd_libs__urlstat="urlstat htd-urlstat"
-
+htd_grp__urlstat=urls
 
 htd_grp__scrtab=scrtab
 
@@ -7880,14 +5485,8 @@ htd_lib()
 {
   local __load_lib=1
   . $scriptpath/match.sh || return
-  set -- sys-htd os-htd str-htd vc-htd htd match-htd std-ht \
-      date date-htd statusdir \
-      htd web box \
-      list ignores table disk remote package htd-package htd-scripts \
-      service archive prefix tmux schema ck net \
-      catalog journal annex lfs pm2 make docstat du u-s htd-u-s || return
+  set -- date str-htd logger-theme vc-htd os-htd htd
   lib_load "$@" && lib_init "$@"
-  # XXX: DEBUG  lib_loaded
 
   # -- htd box lib sentinel --
 }

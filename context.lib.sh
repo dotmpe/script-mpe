@@ -10,7 +10,7 @@ context_lib_load()
   true "${CTX_TAB:="${STATUSDIR_ROOT}index/context.list"}"
 }
 
-# TODO: add dry-run, and add to install/provisioning script +U-c
+# TODO: add dry-run/stat/update mode, and add to install/provisioning script +U-c
 context_lib_init()
 {
   test "${context_lib_init-}" = "0" && return
@@ -19,10 +19,17 @@ context_lib_init()
   }
 }
 
+# List includes
+context_tabs()
+{
+  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
+  list_preproc include "$context_tab"
+}
+
 # Echo table after preproc
 context_tab()
 {
-  test -n "${context_tab-}" || context_tab="$CTX_TAB"
+  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
 
   grep -q '^#include\ ' "$context_tab" && {
     expand_preproc include "$context_tab" | grep -Ev '^\s*(#.*|\s*)$'
@@ -59,7 +66,7 @@ context_exists() # Tag
 {
   p_="$(match_grep "$1")" ; grep_fl=-q
   context_tab |
-      $ggrep $grep_fl "^[0-9 -]*\b$p_\\ "
+      $ggrep $grep_fl "^[0-9 -]*\b$p_:\?\\ "
 }
 
 # Compile and match grep for tag in Ctx-Table, case insensitive
@@ -67,14 +74,14 @@ context_existsi() # Tag
 {
   p_="$(match_grep "$1")" ; grep_fl=-qi
   context_tab |
-      $ggrep $grep_fl "^[0-9a-z -]*\b$p_\\ "
+      $ggrep $grep_fl "^[0-9a-z -]*\b$p_:\?\\ "
 }
 
 # Compile and match grep for sub-tag in Ctx-Table
 context_existsub()
 {
   p_="$(match_grep "$1")" ; grep_fl=-qi
-  context_tab | $ggrep $grep_fl "^[0-9a-z -]*\b[^ ]*\/$p_\\ "
+  context_tab | $ggrep $grep_fl "^[0-9a-z -]*\b[^ ]*\/$p_:\?\\ "
 }
 
 # Return record for given ctx tag-id
@@ -82,18 +89,18 @@ context_tag_entry()
 {
   test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
   test -n "${NS:-}" || local NS=$CTX_DEF_NS
-  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b\\($NS:\\)\\?$1\\ "
+  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b\\($NS:\\)\\?$1:\\?\\ "
   #p_="$(match_grep "$1")"
   #context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b\\($NS:\\)\\?$p_\\ "
 }
 
-# Return record for given ../subtag.
+# XXX: Return record for given ../subtag.
 context_subtag_entries()
 {
   test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
   #test -n "${NS:-}" || local NS=$CTX_DEF_NS
   p_="$(match_grep "$1")"
-  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b[^ ]*\/$p_\\ "
+  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b[^ ]*\/$p_:\?\\ "
 }
 
 # Return tagged entries
@@ -117,15 +124,20 @@ context_parse()
   rest="$(echo "$rest" | sed 's/[^_A-Za-z]*//' )"
 
   # TODO: Use tags to find contexts with parse interface, and finish parsing
-  for ctx in ctx_${}
-  do
-    # TODO: context-parse contexts
-    ctx_iface__${ctx}
-    ctx__${ctx}__parse
-  done
+  #for ctx in ctx_${}
+  #do
+  #  # TODO: context-parse contexts
+  #  ctx_iface__${ctx}
+  #  ctx__${ctx}__parse
+  #done
 
-  # XXX:
-  tagid="$(echo "$rest" | cut -d ' ' -f 1)"
+  # Split Ids from description
+  ids="$(echo "$rest" | sed 's/:\ .*$//')"
+  tagid="$(echo "$ids" | cut -d ' ' -f 1)"
+  cid="$(echo "$ids" | sed 's/^.*\ //')"
+  rest="$(echo "$rest" | sed 's/^.*:\ //')"
+
+  # Parse NS: from tag if present
   fnmatch "*:*" "$tagid" && {
     prefix_require_names_index &&
     local _tagns=$(echo "$tagid" | cut -d':' -f1) &&
@@ -155,4 +167,22 @@ context_tag_fields_init()
 {
   date +'%Y-%m-%d'
   echo "$tagid"
+}
+
+# Prep/parse (primary) context given or default
+context_init()
+{
+  test -n "${package_lists_contexts_default-}" || package_lists_contexts_default=@Std
+  test -n "${1-}" || set -- $package_lists_contexts_default
+  ctx="$1"
+  primctx="$(echo "$1" | cut -f 1 -d ' ')"
+  # Remove '@'
+  upper=0 mkvid "$(echo "$primctx" | cut -c2-)" && primctx_sid="$vid"
+  upper= mkvid "$(echo "$primctx" | cut -c2-)" && primctx_id="$vid"
+}
+
+context_load()
+{
+  test -n "${primctx:-}" || context_init "$@"
+  context_tag_env "$primctx_id"
 }

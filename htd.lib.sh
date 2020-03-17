@@ -670,45 +670,48 @@ gitrepos()
 htd_wf_ctx_sub()
 {
   upper=0 mkvid "$1" ; shift ; flow="$vid"
+  test -n "${ctx_base-}" || ctx_base=${base}_ctx__
+  test "0" = "${context_lib_loaded-}" -a \
+    "0" = "${prefix_lib_loaded-}" -a \
+    "0" = "${match_lib_loaded-}" -a \
+    "0" = "${statusdir_lib_loaded-}" -a \( \
+    "0" = "${src_htd_lib_loaded-}" -o \
+    "0" = "${src_lib_loaded-}" \) ||
+      lib_load match statusdir prefix src-htd context
+
+  $LOG info "htd-workflow" "Init for '$flow' action" "$*"
   htd_current_context "$@" || return $?
+
+  $LOG debug "htd-workflow" "Primary context" "$primctx ${primctx_id}/${primctx_sid}"
   # Load/run action on primary context
-  lib_load ctx-${primctx_id}
-  ctx_${primctx_id}_init "$@"
+  lib_load ctx-${primctx_sid}
+  $LOG info "htd-workflow" "" "ctx-${primctx_id}-init $*"
+  ctx_${primctx_sid}_lib_init "$@"
   #try_context_actions current std base
-  htd_ctx__${primctx_id}__${flow} "$@"
+  $LOG note "htd-workflow" "Running '${flow}'" "${ctx_base}${primctx_id}__${flow} $*"
+  ${ctx_base}${primctx_id}__${flow} "$@"
 }
 
-# Prep/parse context given or default
-htd_context()
-{
-  test -n "$package_lists_contexts_default" || package_lists_contexts_default=@Std
-  test -n "$1" || set -- $package_lists_contexts_default
-  ctx="$1"
-  primctx="$(echo "$1" | cut -f 1 -d ' ')"
-  # Remove '@'
-  upper=0 mkvid "$(echo "$primctx" | cut -c2-)"
-  primctx_id="$vid"
-}
 
-#
+# Get primary context...
 htd_current_context()
 {
   test -n "$1" && {
     test -e "$1" && {
       context_exists "$1" && {
         context_tag_env "$1"
-        htd_context @$tag_id $rest
+        context_init @$tag_id $rest
         return $?
       }
       context_existsub "$1" && {
         context_subtag_env "$1"
-        htd_context @$tag_id $rest
+        context_init @$tag_id $rest
         return $?
       }
     }
     fnmatch "@*" "$1" && {
-      htd context exists $(echo "$1" | cut -c2-) || return $?
-      htd_context "$1"
+      context_exists $(echo "$1" | cut -c2-) || return $?
+      context_init "$1"
       return $?
     }
     fnmatch "+*" "$1" && {
@@ -716,9 +719,9 @@ htd_current_context()
       test "$package_id" = "$project_id" || error TODO 1
       # TODO: get primctx for other package
       #( cd "...$1" && htd context ... )
-      htd_context "$package_lists_contexts_default"
+      context_init "$package_lists_contexts_default"
       return $?
     }
   }
-  htd_context
+  context_init
 }

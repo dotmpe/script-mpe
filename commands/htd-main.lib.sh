@@ -53,11 +53,14 @@ htd__output_formats()
 }
 
 
-htd_run__info=p
+htd_libs__info=package\ htd-package
+htd_run__info=lp
 htd__info()
 {
   test -n "$1" || set -- $(pwd -P)
   test -z "$2" || error "unexpected args '$2'" 1
+
+  echo "package:"
   vc_getscm "$1" || return $?
   cd "$1"
   vc_info
@@ -212,6 +215,34 @@ htd__filter_out()
   local type_= expr_= mode_=
   foreach_match_setexpr "$1" ; shift
   mode_=0 htd_filter "$@"
+}
+
+
+htd_main_lib_load()
+{
+  default_env UCONF "$HOME/.conf/" || debug "Using UCONFDIR '$UCONFDIR'"
+  default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
+  default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
+
+  default_env Htd-ToolsFile "$CWD/tools.yml"
+  #test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
+  default_env Htd-ToolsDir "$HOME/.htd-tools"
+  # test -n "$HTD_TOOLSDIR" || export HTD_TOOLSDIR=$HOME/.htd-tools
+  default_env Jrnl-Dir "personal/journal" || debug "Using Jrnl-Dir '$JRNL_DIR'"
+  default_env Htd-GIT-Remote "$HTD_GIT_REMOTE" ||
+    debug "Using Htd-GIT-Remote name '$HTD_GIT_REMOTE'"
+  default_env Htd-Ext ~/htdocs:~/bin ||
+    debug "Using Htd-Ext dirs '$HTD_EXT'"
+  default_env Htd-ServTab $UCONFDIR/htd-services.tab ||
+    debug "Using Htd-ServTab table file '$HTD_SERVTAB'"
+  test -d "$HTD_TOOLSDIR/bin" || mkdir -p "$HTD_TOOLSDIR/bin"
+  test -d "$HTD_TOOLSDIR/cellar" || mkdir -p "$HTD_TOOLSDIR/cellar"
+  default_env Htd-BuildDir .build
+  test -n "$HTD_BUILDDIR" || exit 121
+  #test -d "$HTD_BUILDDIR" || mkdir -p $HTD_BUILDDIR
+  export B=$HTD_BUILDDIR
+
+  #default_env Couch-URL "http://localhost:5984"
 }
 
 #

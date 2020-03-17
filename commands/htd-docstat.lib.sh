@@ -17,6 +17,15 @@ htd_man_1__docstat='Build docstat index from local documents
     taglist - updat taglist from index
 '
 
+htd__docstat()
+{
+  test -n "$1" || set -- list
+  doc_lib_init
+  subcmd_prefs=docstat_ try_subcmd_prefixes "$@"
+}
+htd_run__docstat=ql
+htd_libs__docstat=str\ date\ statusdir\ docstat\ htd-docstat\ ctx-doc\ doc
+
 docstat__help ()
 {
   echo "$htd_man_1__docstat"
