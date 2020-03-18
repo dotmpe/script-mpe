@@ -1,6 +1,6 @@
 #!/bin/sh
 
-test -n "$U_S" -a -d "$U_S" || source "$(dirname -- "$0")/parts/env-0-u_s.sh"
+test -n "$U_S" -a -d "$U_S" || . "$(dirname -- "$0")/parts/env-0-u_s.sh"
 test -n "$U_S" -a -d "$U_S" || return
 
 # Dev-Module for lib_loadXXX: cli wrapper, see init.sh
