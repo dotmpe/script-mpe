@@ -2,7 +2,7 @@
 
 htd_man_1__package='Get local (project/workingdir) metadata
 
-  package ls|list-ids
+  package ls|list|list-ids
      List package IDs from local package metadata file.
   package update
      Regenerate main.json/PackMeta-JS-Main and package.sh/PackMeta-Sh files from YAML
@@ -59,6 +59,7 @@ htd_package__help ()
 }
 
 
+htd_package__list() { htd_package__list_ids; }
 htd_package__list_ids()
 {
   test -e "${PACKMETA-}" || error "htd-package-list-ids no file '$PACKMETA'" 1

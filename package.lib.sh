@@ -7,36 +7,42 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
   lib_assert sys os src || return
 
-  test -n "${1-}" || set -- .
   #upper=0 default_env out-fmt py || true
   test -n "${PACK_DIR-}" || PACK_DIR=.htd
-  test -d "$1"/$PACK_DIR || mkdir "$1"/$PACK_DIR
-  test -n "${PACK_TOOLS-}" || PACK_TOOLS=$PACK_DIR/tools
-  test -n "${PACK_SCRIPTS-}" || PACK_SCRIPTS=$PACK_DIR/scripts
-  # Get first existing file
-  PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
-  # Detect wether Pre-process is needed
-  {
-    test -e "$PACKMETA" && grep -q '^#include\ ' "$PACKMETA"
-  } && {
-    PACKMETA_SRC=$PACKMETA
-    PACKMETA="$1"/$PACK_DIR/package.yaml
-  } || PACKMETA_SRC=''
 
   # XXX: Python path for local lib, & pyvenv
-  export PYTHONPATH=${PYTHONPATH-"$PYTHONPATH:"}$HOME/.local/lib/usr-py
+  #export PYTHONPATH=${PYTHONPATH-"$PYTHONPATH:"}$HOME/.local/lib/usr-py
   #. ~/.pyvenv/htd/bin/activate
   #preprocess_package || true
 }
 
 package_lib_init()
 {
-  test "${package_lib_init-}" = "0" && return
+  test "${package_lib_init-}" = "0" || return 0 # do nothing during lib-init
 #
-#  test -z "$package_id" -a  \
-#      -z "$package_main" || warn "Already initialized ($package_id/$package_main)"
-#  package_init_env && package_req_env || warn "Default package env"
-  true
+  test -n "${1-}" || set -- .
+  test -d "$1"/$PACK_DIR || mkdir "$1"/$PACK_DIR
+  test -n "${PACK_TOOLS-}" || PACK_TOOLS=$PACK_DIR/tools
+  test -n "${PACK_SCRIPTS-}" || PACK_SCRIPTS=$PACK_DIR/scripts
+
+  # Get first existing file
+  PACKMETA="$(echo "$1"/package.y*ml | cut -f1 -d' ')"
+  # Detect wether Pre-process is needed
+  {
+    test -e "$PACKMETA" && grep -q '^#include\ ' "$PACKMETA"
+  } && {
+    PACKMETA_SRC="$PACKMETA"
+    PACKMETA="$1"/$PACK_DIR/package.yaml
+  } || PACKMETA_SRC=''
+  PACKMETA="$(realpath --relative-to=$1 "$PACKMETA")"
+
+  test -z "$package_id" -a  \
+      -z "$package_main" || {
+          warn "Already initialized ($package_id/$package_main)"
+          return
+      }
+
+  package_init_env && package_req_env || warn "Default package env"
 }
 
 # Preprocess YAML
@@ -95,7 +101,7 @@ package_lib_reset()
 package_lib_set_local()
 {
   test -n "$1" || error "package.lib set-local" 1
-  test -z "$default_package_id" || package_lib_reset
+  test -z "${default_package_id-}" || package_lib_reset
   # Default package is entry named as main
   default_package_id=$(package_default_id "$1") || return
   test -n "$package_id" -a "$package_id" != "(main)" || {
@@ -481,11 +487,11 @@ package_sh_list() # show_index=0 show_item=1 show_eval=1 PACKAGE-SH LIST-KEY
   }
   test -n "${2-}" || error package_sh_list:list-key 1
   test -n "${4-}" || set -- "$1" "$2" "${3-}" "package_"
-  test -n "$show_index" || show_index=0
-  test -n "$show_item" || show_item=1
-  test -n "$show_eval" || show_eval=1
+  test -n "${show_index-}" || show_index=0
+  test -n "${show_item-}" || show_item=1
+  test -n "${show_eval-}" || show_eval=1
   trueish "$show_eval" && {
-      test -n "$package_main" || . $1
+      test -n "${package_main-}" || . $1
     }
   local subp="$3" ; test -n "$subp" && subp="__$subp" || subp=''
 

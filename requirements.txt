@@ -12,9 +12,10 @@ icalendar
 json-spec
 keyring
 #mysqlclient
-mysql-connector==2.1.7
+#mysql-connector==2.1.7
+mysql-connector==2.2.9
 nltk
-#objectpath
+objectpath
 pbPlist
 pydelicious
 pydot

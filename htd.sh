@@ -239,6 +239,7 @@ htd_load()
             htd_subcmd_libs=$subcmd
 
         lib_load $htd_subcmd_libs || return
+        lib_init $htd_subcmd_libs || return
       ;;
 
     m )
@@ -267,6 +268,7 @@ htd_load()
         # Set to detected PACKMETA file, set main package-id, and verify var
         # caches are up to date. Don't load vars.
         # TODO: create var cache per package-id. store in redis etc.
+        package_lib_init "$CWD"
         test -n "$PACKMETA" -a -e "$PACKMETA" && {
             package_lib_set_local "$CWD" && update_package $CWD
             test -n "$package_id" && note "Found package '$package_id'"
@@ -275,6 +277,7 @@ htd_load()
       ;;
 
     q | Q ) # set if not set, don't update, eval package main env
+        package_lib_init "$CWD"
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
             test -n "$PACKMETA" -a -e "$PACKMETA" && {
                 stderr note "Using package '$PACKMETA'"
