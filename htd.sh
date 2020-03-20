@@ -5366,6 +5366,8 @@ htd__user()
 }
 
 
+htd_grp__docker_hub=docker-hub
+
 # -- htd box insert sentinel --
 
 

@@ -115,11 +115,11 @@ htd_urls_urlstat() # Text-File [Init-Tags]
 web_fetch() # URL [Output=-]
 {
   test $# -ge 1 -a $# -le 2 || return
-  test $# -eq 1 && set -- "$1" -
+  test $# -eq 2 || set -- "$1" -
 
   case "$bin_http" in
-    curl ) curl -sSf $1 -o $2 ;;
-    wget ) wget -q $1 -O $2 ;;
+    curl ) curl -sSf "$1" -o $2 ;;
+    wget ) wget -q "$1" -O $2 ;;
   esac
 }
 
