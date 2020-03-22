@@ -11,6 +11,7 @@ ssh_keygen() # Tag
   ssh-keygen -t rsa -C "$2" -f "$HOME/.ssh/$1-id_rsa"
 }
 
+# Echo path for private SSH key
 ssh_keyfile() # Tag
 {
   test -n "$1" || return
@@ -58,6 +59,8 @@ ssh_token_install() # Tag
   done
 }
 
+# Create SSH key for tag; if token does not already exists, fetch if not present
+# locally
 ssh_init_key() # Tag
 {
   ssh_key_exists "$1" || {
