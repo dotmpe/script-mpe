@@ -214,8 +214,8 @@ vc__type()
 # ? : untracked "
 __vc_status()
 {
-  test -n "$1" || set -- "$PWD"
-  test -d "$1" || err "No such directory $1" 3
+  test -n "${1-}" || set -- "$PWD"
+  test -d "${1-}" || error "No such directory '$1'" 3
 
   local w short repo sub realcwd
 
@@ -606,8 +606,8 @@ vc__print_all()
 # special updater (for Bash PROMPT_COMMAND)
 vc__prompt_command()
 {
-  test -n "$1" -a -d "$1" \
-    || error "No such directory '$1'" 3
+  test -n "${1-}" || set -- "$PWD"
+  test -d "${1-}" || error "No such directory '$1'" 3
 
   # cache response in file
   pwdref="$(echo "$1" | tr '/' '-' )"

@@ -7,13 +7,8 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
   lib_assert sys os src || return
 
-  #upper=0 default_env out-fmt py || true
+  test -n "${out_fmt-}" || out_fmt=py
   test -n "${PACK_DIR-}" || PACK_DIR=.htd
-
-  # XXX: Python path for local lib, & pyvenv
-  #export PYTHONPATH=${PYTHONPATH-"$PYTHONPATH:"}$HOME/.local/lib/usr-py
-  #. ~/.pyvenv/htd/bin/activate
-  #preprocess_package || true
 }
 
 package_lib_init()
@@ -42,20 +37,26 @@ package_lib_init()
           return
       }
 
-  package_init_env && package_req_env || warn "Default package env"
+  package_init_env &&
+      preprocess_package &&
+      package_req_env || warn "Default package env"
 }
 
-# Preprocess YAML
+# Preprocess YAML if needed
 preprocess_package()
 {
+  # If actual source file different than package file setting
   test -e "$PACKMETA" -a -z "$PACKMETA_SRC" || {
     test -e "$PACKMETA_SRC" || return
+    # And source file is newer
     test -e "$PACKMETA" -a "$PACKMETA" -nt "$PACKMETA_SRC" || {
+      # Process include-directives
       add_sentinels=1 expand_include_sentinels "$PACKMETA_SRC" > "$PACKMETA"
     }
   }
 }
 
+# Simply clear or default library env
 package_lib_reset()
 {
   default_package_id=
@@ -98,6 +99,7 @@ package_lib_reset()
   package_permalog_method=
 }
 
+# Process env and generate derived
 package_lib_set_local()
 {
   test -n "$1" || error "package.lib set-local" 1
@@ -204,7 +206,7 @@ jsotk_package_sh_defaults()
   } | sed 's/^\([^=]*\)=/test -n "$\1" || \1=/g'
 }
 
-# Setup eithr local or default package env.
+# Setup either local or default package env. (generate derived files)
 package_init_env()
 {
   test -n "${PACKMETA_SH-}" || {
@@ -218,12 +220,12 @@ package_init_env()
   }
 }
 
-# Require sh package env.
+# Require sh package env. (but don't prepare)
 package_req_env()
 {
   test -n "${PACKMETA_SH-}" || return
-  note "Loading package lib env"
-  test -e "$PACKMETA_SH" || return
+  test -f "$PACKMETA_SH" || return
+  note "Loading package lib env <$PACKMETA_SH>"
   . "$PACKMETA_SH" || return
   package_defaults
 }
@@ -381,7 +383,6 @@ package_sh()
 # NOTE: double-quote elements with special chars: my.path."with special".element
 package_get_keys() # Property...
 {
-  test -n "$out_fmt" || out_fmt=py
   while test $# -gt 0
   do
     jsotk.py objectpath -O${out_fmt} $PACKMETA '$.*[@.id is "'$package_id'"].'$1

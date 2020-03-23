@@ -1155,7 +1155,7 @@ docker_sh_init()
   # XXX: /usr/local/share/mkdoc/Core/log.sh
   test -z "$BOX_INIT" || return 1
   test -n "$scriptpath"
-  test -n "${SCRIPTPATH:-}" || export SCRIPTPATH=$scriptpath
+  test -n "${SCRIPTPATH-}" || export SCRIPTPATH=$scriptpath
   test -e /var/run/docker.sock -a -x "$(which docker)" && {
     test -w /var/run/docker.sock || sudo="sudo "
     dckr=${sudo}docker
@@ -1166,7 +1166,7 @@ docker_sh_init()
   $CWD/tools/sh/log.sh "note" "" default_lib "$default_lib"
   lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
-  lib_load main box docker-sh logger std
+  lib_load main box docker-sh logger std stdio
   #lib_load projectdir
   box_run_sh_test
   # -- dckr-sh box init sentinel --

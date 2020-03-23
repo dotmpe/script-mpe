@@ -4,12 +4,10 @@
 
 sys_lib_load()
 {
-  test -n "$LOG" || return 102
+  test -n "${LOG-}" || return 102
   test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
-
-  test -n "${scriptname-}" || scriptname="$(basename "$0" .sh)"
-  test -n "${base-}" || base=$scriptname:sys
+  test -n "${HOST-}" || HOST=$hostname
 }
 
 # Sh var-based increment

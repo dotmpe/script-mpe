@@ -18,7 +18,7 @@ set -o | grep -q pipefail || {
 : "${APP_ID:="script-mpe"}" # No-Sync
 : "${SUITE:="Sh"}"
 : "${sh_main_cmdl:="spec"}"
-: "${U_S:="$CWD"}"
+: "${U_S:="/srv/project-local/user-scripts"}" # No-Sync
 export scriptname=${scriptname:-"`basename -- "$0"`"}
 
 test -n "${sh_util_:-}" || {
@@ -30,9 +30,6 @@ sh_include \
   env-0-1-lib-sys \
   print-color remove-dupes unique-paths \
   env-0-src
-#SCRIPTPATH=
-# XXXX:
-#SCRIPTPATH=$CWD/contexts:$CWD/commands:$CWD:/home/travis/build/dotmpe/user-scripts/src/sh/lib:/home/travis/build/dotmpe/user-scripts/src/sh/lib:/home/travis/build/dotmpe/user-scripts/commands
 
 test -z "${DEBUG:-}" -a -z "${CI:-}" ||
   print_yellow "${SUITE} Env parts" "$(suite_from_table "${build_tab}" "Parts" "${SUITE}" 0|tr '\n' ' ')" >&2

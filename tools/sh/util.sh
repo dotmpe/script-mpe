@@ -144,8 +144,9 @@ test -d $U_S/.git || {
 }
 
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
-. "$U_S/tools/ci/parts/print-err.sh" # No-Sync
 . "$U_S/tools/sh/parts/include.sh" # No-Sync
+. "$U_S/tools/ci/parts/print-err.sh" # No-Sync
+. "$U_S/tools/ci/parts/exec.sh" # No-Sync
 
 sh_include hd-offsets suite-from-table suite-source suite-run
 
