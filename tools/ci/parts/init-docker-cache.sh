@@ -12,6 +12,7 @@ mkdir -p ~/.statusdir/{logs,tree,index}
 
 sh_include env-docker-cache
 
+( ls -la $U_S && cd $U_S && git show-ref && git status )
 SCRIPTPATH=$SCRIPTPATH:$CWD/commands
 u_s_dckr_lib_loaded= lib_load u_s-ledge
 u_s_dckr_lib_loaded= lib_load u_s-dckr
