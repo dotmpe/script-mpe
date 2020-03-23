@@ -131,12 +131,17 @@ test -n "${U_S-}" ||
   $LOG "error" "" "Expected U-S env" "" 1
 
 test -d $U_S/.git || {
-  test ! -d "$U_S" || rm -rf $U_S
-  git clone https://github.com/dotmpe/user-scripts.git $U_S
+  trueish "$ENV_DEV" && {
+    {
+      test ! -d "$U_S" || rm -rf "$U_S"
+      git clone https://github.com/dotmpe/user-scripts.git $U_S
+    }
+    ( cd $U_S/ && git fetch --all &&
+        git checkout feature/docker-ci &&
+        git pull origin feature/docker-ci )
+  } ||
+      $LOG "error" "" "Expected U-S checkout" "" 1
 }
-( cd $U_S/ && git fetch --all &&
-    git checkout feature/docker-ci &&
-    git pull origin feature/docker-ci )
 
 . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
 . "$U_S/tools/ci/parts/print-err.sh" # No-Sync
