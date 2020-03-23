@@ -53,6 +53,7 @@ treebox()
   }
 
   sh_include env-scriptpath-deps lib-load || return
+  . "./commands/u_s-ledge.lib.sh" || return
   . "./commands/u_s-dckr.lib.sh" || return
   docker_image=$sh_treebox_img dckr_load || return
 

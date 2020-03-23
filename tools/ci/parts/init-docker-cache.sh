@@ -13,6 +13,7 @@ mkdir -p ~/.statusdir/{logs,tree,index}
 sh_include env-docker-cache
 
 SCRIPTPATH=$SCRIPTPATH:$CWD/commands
+u_s_dckr_lib_loaded= lib_load u_s-ledge
 u_s_dckr_lib_loaded= lib_load u_s-dckr
 
 ci_announce "Looking for image at hub..."
