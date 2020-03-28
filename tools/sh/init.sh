@@ -15,12 +15,6 @@ test -n "${LOG-}" -a -x "${LOG-}" -o \
   LOG_ENV=1 INIT_LOG=$LOG || LOG_ENV=0 INIT_LOG=$CWD/tools/sh/log.sh
 # Sh-Sync: tools/sh/parts/env-init-log.sh
 
-test -n "${SH_EXT-}" || {
-  test -n "${REAL_SHELL-}" ||
-    REAL_SHELL=$(ps --pid $$ --format cmd --no-headers | cut -d' ' -f1)
-  SH_EXT=$(basename "$REAL_SHELL")
-}
-
 # Must be set after U-s:load
 test -n "${U_S-}" -a -d "${U_S-}" || . $CWD/tools/sh/parts/env-0-u_s.sh
 
