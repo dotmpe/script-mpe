@@ -5,7 +5,7 @@
 
 disk_lib_load()
 {
-  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${username-}" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
   test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
 

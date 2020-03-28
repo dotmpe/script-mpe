@@ -1,5 +1,6 @@
 #!/bin/sh
-uname=$(uname)
+
+test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
 
 case "$uname" in
 

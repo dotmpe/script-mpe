@@ -117,7 +117,7 @@ c-run()
 {
   test $# -ge 1 -a -n "${1:-}" || return 98
   : "${c_lbl:="Step"}"
-  test $verbosity -le 4 || print_yellow "" "Running $c_lbl $c_run '$1'..."
+  test $verbosity -le 5 || print_yellow "" "Running $c_lbl $c_run '$1'..."
 
   {
     $c_run "$@" | {

@@ -257,6 +257,7 @@ sh_spec() # File-Path
 {
   test $# -gt 0 -a $# -le 2 || return
   test -f "$1" || return
+  print_yellow "sh-spec" "Starting '$*'" >&2
   local specfile=$1
   shift 1
 

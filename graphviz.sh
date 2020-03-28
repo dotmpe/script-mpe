@@ -99,8 +99,6 @@ gv_init()
     touch -t $tdate $today
   }
 
-  uname=$(uname)
-
   box_lib gv
 }
 

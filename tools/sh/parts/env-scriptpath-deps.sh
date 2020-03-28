@@ -1,26 +1,62 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-# Add user-scripts and dependencies to SCRIPTPATH
+# Add script-packages (from dependencies.txt) to SCRIPTPATH
 
-type unique-paths >/dev/null 2>&1 || return 101
 test -n "${INIT_LOG:-}" || return 109
 
-$INIT_LOG note "env-scriptpath-deps" "Current SCRIPTPATH" "$SCRIPTPATH"
+test -z "${SCRIPTPATH:-}" ||
+  $INIT_LOG note "env-scriptpath-deps" "Current SCRIPTPATH" "$SCRIPTPATH"
 
-: "${SCRIPTPATH:="$PWD:$PWD/commands:$PWD/contexts"}" # $U_S/src/sh/lib:$U_S/commands"}"
-: "${VND_PATHS:="$(unique-paths ~/build $VND_GH_SRC $VND_SRC_PREFIX ~/.basher/cellar/packages)"}" # /src/*/ )"}"
+type trueish >/dev/null 2>&1 || {
+  . $CWD/tools/sh/parts/trueish.sh
+}
+type remove_dupes >/dev/null 2>&1 || {
+  . $CWD/tools/sh/parts/remove-dupes.sh
+}
+type unique_paths >/dev/null 2>&1 || {
+  . $CWD/tools/sh/parts/unique-paths.sh
+}
+type script_package_include >/dev/null 2>&1 || {
+  . $CWD/tools/sh/parts/script-package-include.sh
+}
 
-for supportlib in $(grep '^git ' $CWD/dependencies.txt|cut -d' ' -f2);
+script_package_include $CWD ||
+  $INIT_LOG "error" "" "Error including script-package at $CWD" 1
+
+trueish "$ENV_DEV" && {
+  test -n "${PROJECT_DIR-}" || {
+    for pd in $HOME/project /srv/project-local
+    do test -d "$pd" || continue
+      PROJECT_DIR="$pd"
+      break
+    done
+    unset pd
+  }
+}
+
+test -n "${VND_PATHS-}" ||
+  VND_PATHS="$(unique_paths ~/build $VND_GH_SRC $VND_SRC_PREFIX ~/.basher/cellar/packages)"
+
+for supportlib in $(grep '^\(git\|basher\) ' $CWD/dependencies.txt | cut -d' ' -f2);
 do
-  for vnd_base in $VND_PATHS;
+  trueish "$ENV_DEV" && {
+    test -d "$PROJECT_DIR/$(basename "$supportlib")" && {
+      script_package_include "$PROJECT_DIR/$(basename "$supportlib")" && break
+      $INIT_LOG "error" "" "Error including script-package at $PROJECT_DIR/$(basename "$supportlib")" 1
+    }
+  }
+  for vnd_base in $VND_PATHS
   do
-    lib_path="$vnd_base/$supportlib";
-    test -f $lib_path/load.bash || continue
-    . "$lib_path/load.bash";
-  done;
+    test -d "$vnd_base/$supportlib" || continue
+    script_package_include "$vnd_base/$supportlib" && break
+    $INIT_LOG "error" "" "Error including script-package at $vnd_base/$supportlib" 1
+  done
 done
 
-$INIT_LOG note "" "Set new SCRIPTPATH" "$SCRIPTPATH"
+test -z "${SCRIPTPATH:-}" &&
+    $INIT_LOG error "" "No SCRIPTPATH found" ||
+    $INIT_LOG note "" "New SCRIPTPATH" "$SCRIPTPATH"
 unset supportlib vnd_base lib_path
 export SCRIPTPATH
+
 # Sync: U-S:

@@ -293,8 +293,6 @@ diskdoc_load()
     test -n "$tdate" || error "formatting date" 1
     touch -t $tdate $today
   }
-
-  uname=$(uname)
 }
 
 # Post-exec: subcmd and script deinit

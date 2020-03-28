@@ -5431,13 +5431,6 @@ htd_main()
   esac
 }
 
-htd_init_etc()
-{
-  lst_init_etc
-  #XXX: test ! -e .conf || echo .conf
-  #test ! -e $UCONFDIR/htd || echo $UCONFDIR
-}
-
 # The default optionparser for htd, see htd-subcmd-optsv
 htd_optsv()
 {

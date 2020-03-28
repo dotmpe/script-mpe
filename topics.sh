@@ -101,21 +101,15 @@ topics_main()
 # FIXME: Pre-bootstrap init
 topics_init()
 {
-  # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
   test -n "$scriptpath"
   . $scriptpath/tools/sh/init.sh
-  #export SCRIPTPATH=$scriptpath
   #: "${sh_tools:="$scriptpath/tools/sh"}"
   #: "${ci_tools:="$scriptpath/tools/ci"}"
-  #INIT_LOG=$sh_tools/log.sh
   #util_mode=ext . $scriptpath/tools/sh/util.sh
-  #util_init
   lib_load match
-  #. $scriptpath/match.lib.sh
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  #. $scriptpath/htd.lib.sh
-  lib_load main meta box date doc table remote
+  lib_load main meta box date doc table remote std
   # -- topics box init sentinel --
 }
 

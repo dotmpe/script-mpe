@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 test -z "${sh_util_:-}" && sh_util_=1 || return 198 # Recursion
 
-info() { exit 123; }
+# XXX: enable for CI? info() { exit 123; }
+
+# TODO: move some of below to CI util.sh
 
 git_version()
 {
@@ -82,7 +84,7 @@ trueish()
   esac
 }
 # Sh-Copy: HT:tools/u-s/parts/trueish.inc.sh
-# Sh-Copy: U-S:src/sh/lib/sys.lib.sh
+# Sh-Copy-Part: U-S:src/sh/lib/sys.lib.sh
 
 # Error unless non-empty and falseish
 falseish()
@@ -95,7 +97,7 @@ falseish()
       return 1;;
   esac
 }
-# Sh-Copy: U-S:src/sh/lib/sys.lib.sh
+# Sh-Copy-Part: U-S:src/sh/lib/sys.lib.sh
 
 # Error unless empty or falseish
 not_trueish()
@@ -112,7 +114,7 @@ not_falseish()
 }
 
 # Read file filtering octothorp comments and empty lines
-sh-read () # ( FILE | - )
+sh_read () # ( FILE | - )
 {
   test $# -gt 0 -a $# -le 2 || return 98
   test -n "$1" -a -e "$1" || return 97

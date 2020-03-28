@@ -125,7 +125,7 @@ box_instance_load()
   #PATH=$PWD:$PATH
 
   hostname=$(hostname -s)
-  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
 }
 
 box_instance_unload()

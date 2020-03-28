@@ -1,7 +1,5 @@
 #!/bin/sh
 # Created: 2015-12-14
-pd_src="$_"
-
 set -e
 
 version=0.0.4-dev # script-mpe
@@ -1413,19 +1411,17 @@ pd__help()
 # Setup for subcmd; move some of this to box.lib.sh eventually
 pd_preload()
 {
-  CWD=$(pwd -P)
-  test -n "$EDITOR" || EDITOR=nano
-  #test -n "$P" || PATH=$CWD:$PATH
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -n "$uname" || uname=$(uname)
-  test -n "$SCRIPT_ETC" || SCRIPT_ETC="$(pd_init_etc | head -n 1)"
+  scriptpath="$(dirname "$(realpath "$0")")"
+  CWD="$scriptpath"
+  test -n "${LOG-}" -a -x "${LOG-}" || export LOG=$CWD/tools/sh/log.sh
+  test -n "${EDITOR-}" || EDITOR=nano
+  test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${SCRIPT_ETC-}" || SCRIPT_ETC="$(pd_init_etc | head -n 1)"
 }
 
 pd_load()
 {
-  sys_lib_load
-  str_lib_load
-
   test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
   test -n "$PD_TMPDIR" || PD_TMPDIR=$(setup_tmpd $base)
@@ -1670,14 +1666,10 @@ pd_unload()
 
 pd_init()
 {
-  scriptpath="$(dirname "$(realpath "$0")")"
-  test -n "${U_S-}" || export U_S=/srv/project-local/user-scripts
-  test -n "${LOG-}" -a -x "${LOG-}" || export LOG=$U_S/tools/sh/log.sh
-  test -n "${SCRIPTPATH-}" || export SCRIPTPATH=$scriptpath
-  pd_preload || exit $?
+  pd_preload || exit $?Q
   . $scriptpath/tools/sh/init.sh
   #util_mode=ext . $scriptpath/util.sh load-ext
-  lib_load str sys os std stdio src match main argv
+  lib_load str sys os std stdio src match main argv str-htd std-ht sys-htd htd
   . $scriptpath/tools/sh/box.env.sh
   lib_load meta box package
   box_run_sh_test
@@ -1709,7 +1701,7 @@ pd_lib()
 
 pd_main()
 {
-  local scriptname=projectdir scriptalias=pd base= \
+  local scriptname=projectdir scriptalias=pd \
     subcmd=$1 \
     base="$(basename "$0" .sh)" scriptpath=
 

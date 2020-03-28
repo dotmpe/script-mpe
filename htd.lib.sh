@@ -725,3 +725,13 @@ htd_current_context()
   }
   context_init
 }
+
+
+htd_init_etc()
+{
+  lst_init_etc
+  #XXX: test ! -e .conf || echo .conf
+  #test ! -e $UCONFDIR/htd || echo $UCONFDIR
+}
+
+

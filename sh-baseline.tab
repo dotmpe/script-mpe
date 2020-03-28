@@ -20,8 +20,8 @@ true                                           . ./sh-main
 CWD=$PWD                                       . ./tools/sh/env.sh
 CWD=$PWD                                       . ./tools/ci/env.sh
 
-export U_S; echo U-s:$U_S                      . ./tools/sh/util.sh
-  . ./tools/sh/util.sh                         . ./tools/ci/util.sh
+true                                           . ./tools/sh/util.sh
+. ./tools/sh/util.sh                           . ./tools/ci/util.sh
 
 set -euo pipefail
 
