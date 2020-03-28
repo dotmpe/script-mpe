@@ -5,7 +5,7 @@
 test -n "${INIT_LOG:-}" || return 109
 
 test -z "${SCRIPTPATH:-}" ||
-  $INIT_LOG note "env-scriptpath-deps" "Current SCRIPTPATH" "$SCRIPTPATH"
+  $INIT_LOG "note" "env-scriptpath-deps" "Current SCRIPTPATH" "$SCRIPTPATH"
 
 type trueish >/dev/null 2>&1 || {
   . $CWD/tools/sh/parts/trueish.sh
@@ -54,8 +54,8 @@ do
 done
 
 test -z "${SCRIPTPATH:-}" &&
-    $INIT_LOG error "" "No SCRIPTPATH found" ||
-    $INIT_LOG note "" "New SCRIPTPATH" "$SCRIPTPATH"
+    $INIT_LOG "error" "" "No SCRIPTPATH found" ||
+    $INIT_LOG "note" "" "New SCRIPTPATH" "$SCRIPTPATH"
 unset supportlib vnd_base lib_path
 export SCRIPTPATH
 
