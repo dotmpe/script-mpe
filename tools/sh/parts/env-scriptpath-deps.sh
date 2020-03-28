@@ -20,6 +20,12 @@ type script_package_include >/dev/null 2>&1 || {
   . $CWD/tools/sh/parts/script-package-include.sh
 }
 
+test -n "${SH_EXT-}" || {
+  test -n "${REAL_SHELL-}" ||
+    REAL_SHELL=$(ps --pid $$ --format cmd --no-headers | cut -d' ' -f1)
+  SH_EXT=$(basename "$REAL_SHELL")
+}
+
 script_package_include $CWD ||
   $INIT_LOG "error" "" "Error including script-package at $CWD" 1
 
