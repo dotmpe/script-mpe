@@ -331,7 +331,8 @@ read_head_comment()
 # backup-header-comment file [suffix-or-abs-path]
 backup_header_comment() # Src-File [.header]
 {
-  test -n "$2" || set -- "$1" ".header"
+  test -f "${1-}" || return
+  test -n "${2-}" || set -- "$1" ".header"
   fnmatch "/*" "$2" \
     && backup_file="$2" \
     || backup_file="$1$2"

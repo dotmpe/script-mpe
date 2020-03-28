@@ -23,7 +23,7 @@ type script_package_include >/dev/null 2>&1 || {
 script_package_include $CWD ||
   $INIT_LOG "error" "" "Error including script-package at $CWD" 1
 
-trueish "$ENV_DEV" && {
+trueish "${ENV_DEV-}" && {
   test -n "${PROJECT_DIR-}" || {
     for pd in $HOME/project /srv/project-local
     do test -d "$pd" || continue
@@ -39,7 +39,7 @@ test -n "${VND_PATHS-}" ||
 
 for supportlib in $(grep '^\(git\|basher\) ' $CWD/dependencies.txt | cut -d' ' -f2);
 do
-  trueish "$ENV_DEV" && {
+  trueish "${ENV_DEV-}" && {
     test -d "$PROJECT_DIR/$(basename "$supportlib")" && {
       script_package_include "$PROJECT_DIR/$(basename "$supportlib")" && break
       $INIT_LOG "error" "" "Error including script-package at $PROJECT_DIR/$(basename "$supportlib")" 1

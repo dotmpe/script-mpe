@@ -4,11 +4,7 @@
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
 #
 #HELP="vc - version-control helper functions "
-vc_src="$_"
-
 set -e
-
-
 
 version=0.0.4-dev # script-mpe
 
@@ -1123,14 +1119,14 @@ vc__local_branch_exists()
 
 # regenerate .git/info/exclude
 # NOTE: a duplication is happening, but not no recursion, only once. As
-# accumulated patterns (current contents) is unique listed first, and then all
-# items are added again grouped with each source path
+# accumulated patterns (current contents) is unique-listed first, and then all
+# items are added again grouped at each source path
 vc__regenerate()
 {
   local gitdir="$(vc_gitrepo "$1")"
   local excludes=$gitdir/info/exclude
 
-  test -e $excludes.header || backup_header_comment $excludes
+  test -e $excludes.header -o ! -e $excludes || backup_header_comment $excludes
 
   std_info "Resetting local GIT excludes file"
   read_nix_style_file $excludes | sort -u > $excludes.list
@@ -1170,6 +1166,7 @@ vc__gitrepo()
 {
   __vc_gitrepo || return $?
 }
+
 
 # Add/update local git bare repo
 vc_run__local=fq
@@ -1836,13 +1833,14 @@ vc_main()
             failed= \
             ext_sh_sub=
 
-        lib_load vc-htd || return
+        lib_load main vc-htd || return
+
         type $func >/dev/null 2>&1 && {
           shift 1
 
-          lib_load main sys-htd std std-ht date package stdio &&
+          lib_load sys-htd std std-ht date src package stdio &&
           INIT_LOG=$LOG \
-          lib_init main sys-htd std std-ht date package stdio || return
+          lib_init sys-htd std std-ht date src package stdio || return
 
           vc_load || return
           $func "$@" || return $?
