@@ -32,7 +32,7 @@ pipeline:
        . ./tools/ci/parts/init.sh ;
        scriptname=install ;
        mkdir /home/treebox/build ;
-       sudo=sudo UCONFDIR=$HOME/etc Build_Deps_Default_Paths=1 . ./tools/ci/parts/install.sh
+       sudo=sudo UCONF=$HOME/etc Build_Deps_Default_Paths=1 . ./tools/ci/parts/install.sh
 
 #       . ./tools/ci/parts/install.sh
 

@@ -3,9 +3,9 @@
 
 gitremote_lib_load()
 {
-  test -n "${UCONFDIR-}" || UCONFDIR=$HOME/.conf
+  test -n "${UCONF-}" || UCONF=$HOME/.conf
   test -n "${GIT_REMOTE_CONF-}" ||
-      export GIT_REMOTE_CONF"=$UCONFDIR/etc/git/remotes"
+      export GIT_REMOTE_CONF"=$UCONF/etc/git/remotes"
 }
 
 gitremote_init_uconf()
@@ -144,7 +144,7 @@ gitremote_github_list()
   cache=$confd/$1.json
 
   { test -e $cache && newer_than $cache $_1DAY
-  } && stderr ok "File UCONFDIR:etc/git/remotes/$1.json" || {
+  } && stderr ok "File UCONF:etc/git/remotes/$1.json" || {
 
     URL="https://api.github.com/users/$remote_user/repos"
     per_page=100

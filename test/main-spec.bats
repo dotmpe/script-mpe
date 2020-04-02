@@ -230,6 +230,6 @@ setup()
 
 @test "$base: expect the env for Box" {
 
-  skip "not requiring exports for now.. but should test PREFIX, UCONFDIR handling. ."
+  skip "not requiring exports for now.. but should test PREFIX, UCONF handling. ."
   sh_isset BOX_DIR || stdfail "Expected BOX_DIR= var in env"
 }

@@ -266,8 +266,8 @@ ino_lib()
 
 ino_load()
 {
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -n "$INO_CONF" || INO_CONF=$UCONFDIR/ino
+  test -n "$UCONF" || UCONF=$HOME/.conf/
+  test -n "$INO_CONF" || INO_CONF=$UCONF/ino
   test -n "$APP_DIR" || APP_DIR=/Applications
 
   hostname="$(hostname -s | tr 'A-Z.-' 'a-z__' | tr -s '_' '_' )"

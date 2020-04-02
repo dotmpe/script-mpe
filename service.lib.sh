@@ -3,9 +3,9 @@
 
 service_lib_load()
 {
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -n "$HTD_SERVTAB" || export HTD_SERVTAB=$UCONFDIR/htd-services.tab
-  #test -n "$HTD_SERVD" || export HTD_SERVD=$UCONFDIR/htd/service/
+  test -n "$UCONF" || UCONF=$HOME/.conf/
+  test -n "$HTD_SERVTAB" || export HTD_SERVTAB=$UCONF/htd-services.tab
+  #test -n "$HTD_SERVD" || export HTD_SERVD=$UCONF/htd/service/
 }
 
 # Binds to local working dir

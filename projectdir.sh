@@ -439,10 +439,10 @@ pd__list()
 
 pd__list_all()
 {
-  test -d "$UCONFDIR/project/" || error list-all-UCONFDIR 1
+  test -d "$UCONF/project/" || error list-all-UCONF 1
   local pdoc=
   {
-    for pdoc in $UCONFDIR/project/*/*.y*ml
+    for pdoc in $UCONF/project/*/*.y*ml
     do
       pd__meta list-prefixes
     done
@@ -1444,12 +1444,12 @@ pd_load()
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
-  test -n "${UCONFDIR-}" || {
-    test -e $HOME/.conf && UCONFDIR=$HOME/.conf || error env-UCONFDIR 1
+  test -n "${UCONF-}" || {
+    test -e $HOME/.conf && UCONF=$HOME/.conf || error env-UCONF 1
   }
 
   # Master dir for per-host pdocs, used by some pdoc management commands
-  test -n "${PD_CONFDIR-}" || PD_CONFDIR=$UCONFDIR/project
+  test -n "${PD_CONFDIR-}" || PD_CONFDIR=$UCONF/project
 
   # Default local project doc/volume
   test -n "${PD_DEFDIR-}" || PD_DEFDIR=projects
@@ -1707,7 +1707,7 @@ pd_init_etc()
     test ! -e "$(dirname "$0")/etc/htd" || echo "$(dirname "$0")/etc"
     test ! -e "$HOME/bin/etc/htd" || echo "$HOME/bin/etc"
     #XXX: test ! -e .conf || echo .conf
-    #test ! -e $UCONFDIR/htd || echo $UCONFDIR
+    #test ! -e $UCONF/htd || echo $UCONF
   } | awk '!a[$0]++'
 }
 

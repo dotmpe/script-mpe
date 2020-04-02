@@ -64,7 +64,7 @@ htd__gitremote()
   test -n "$*" || set -- "$HTD_GIT_REMOTE"
 
   # Insert empty arg if first represents UCONF:git:remotes sh-props file
-  test -e $UCONFDIR/etc/git/remotes/$1.sh -a $# -le 2 && {
+  test -e $UCONF/etc/git/remotes/$1.sh -a $# -le 2 && {
     # Default command to 'list' when remote-id exists and no further args given
     test $# -eq 1 && set -- "list" "$@" || set -- url "$@"
   }

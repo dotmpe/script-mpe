@@ -110,7 +110,7 @@ env__help()
 htd__env_info()
 {
   log "Script:                '$scriptname'"
-  log "User Config Dir:       '$UCONFDIR' [UCONFDIR]"
+  log "User Config Dir:       '$UCONF' [UCONF]"
   log "User Public HTML Dir:  '$HTDIR' [HTDIR]"
   log "Project ID:            '$PROJECT' [PROJECT]"
   log "Minimum filesize:      '$(( $MIN_SIZE / 1024 ))'"

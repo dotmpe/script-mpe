@@ -88,7 +88,7 @@ htd__tmux()
   #    try_exec_func "$func" || return $?
 
   #  } || {
-  #    test -f "$UCONFDIR/tmuxinator/$fname.yml" && {
+  #    test -f "$UCONF/tmuxinator/$fname.yml" && {
   #      note "Starting tmuxinator '$1' config"
   #      htd__mux $1 &
   #    } || {

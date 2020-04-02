@@ -4,7 +4,7 @@
 htd_prefix_lib_load()
 {
   # 2016-09-18
-  ns_tab=$UCONFDIR/namespace/$hostname.tab
+  ns_tab=$UCONF/namespace/$hostname.tab
 }
 
 htd_man_1__prefix='Alias for `prefixes`. See also dev notes.'
@@ -83,8 +83,8 @@ htd__prefixes()
   case "$1" in
 
     # Read from table
-    info|table-id ) shift ;  echo $UCONFDIR/$pathnames ; test -e "$pathnames" || return $? ;;
-    raw-table ) shift ;      cat $UCONFDIR/$pathnames || return $? ;;
+    info|table-id ) shift ;  echo $UCONF/$pathnames ; test -e "$pathnames" || return $? ;;
+    raw-table ) shift ;      cat $UCONF/$pathnames || return $? ;;
     tab|table )              prefix_tab || return $? ;;
     list )                   prefix_names || return $? ;;
 

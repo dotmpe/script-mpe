@@ -71,7 +71,7 @@ lst_init_etc()
   test -n "$1" || set -- $(dirname "$0")
   test ! -e $1/etc/htd || echo $1/etc
   #XXX: test ! -e .conf || echo .conf
-  #test ! -e $UCONFDIR/htd || echo $UCONFDIR
+  #test ! -e $UCONF/htd || echo $UCONF
   #info "Set htd-etc to '$*'"
 }
 

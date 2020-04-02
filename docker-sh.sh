@@ -210,7 +210,7 @@ docker_sh_man_1__register="Register a project with dckr build package metadata. 
 docker_sh_spc__register="register <project-name>"
 docker_sh__register()
 {
-  test -n "$UCONFDIR" || error "UCONFDIR" 1
+  test -n "$UCONF" || error "UCONF" 1
 
   test -n "$proj_dir" || proj_dir="$HOME/project/$1"
   test -d "$proj_dir" || error "no checkout $1" 1
@@ -839,7 +839,7 @@ docker_sh_load_psh()
 docker_sh_arg_psh()
 {
   test -n "$1" || error "project name expected" 1
-  psh=$UCONFDIR/dckr/$1/$2.sh
+  psh=$UCONF/dckr/$1/$2.sh
   mkdir -vp $(dirname $psh)
 }
 
@@ -1183,10 +1183,10 @@ docker_sh_lib()
 # Pre-exec: post subcmd-boostrap init
 docker_sh_load()
 {
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -e "$UCONFDIR" || error "Missing user config dir $UCONFDIR" 1
+  test -n "$UCONF" || UCONF=$HOME/.conf/
+  test -e "$UCONF" || error "Missing user config dir $UCONF" 1
 
-  test -n "$DCKR_UCONF" || DCKR_UCONF=$UCONFDIR/dckr
+  test -n "$DCKR_UCONF" || DCKR_UCONF=$UCONF/dckr
   test -n "$DCKR_VOL" || DCKR_VOL=/srv/docker-volumes-local
   test -n "$DCKR_CONF" || DCKR_CONF=$DCKR_VOL/config
   test -e "$DCKR_UCONF" || error "Missing docker user config dir $DCKR_UCONF" 1

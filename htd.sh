@@ -766,12 +766,12 @@ htd__edit_local()
   case "$1" in
     # NEW
     sandbox-jenkins-mpe | sandbox-mpe-new )
-        cd $UCONFDIR/vagrant/sandbox-trusty64-jenkins-mpe
+        cd $UCONF/vagrant/sandbox-trusty64-jenkins-mpe
         $EDITOR Vagrantfile
         return $?
       ;;
     treebox-new )
-        cd $UCONFDIR/vagrant/
+        cd $UCONF/vagrant/
         $EDITOR Vagrantfile
         return $?
       ;;
@@ -1808,14 +1808,14 @@ htd__shutdown()
 {
   test -n "$1" || error host 1
   test -n "$2" || {
-    test -e $UCONFDIR/disk/$hostname-$1.user && {
-      set -- "$1" "$(head -n 1 $UCONFDIR/disk/$hostname-$1.user )"
+    test -e $UCONF/disk/$hostname-$1.user && {
+      set -- "$1" "$(head -n 1 $UCONF/disk/$hostname-$1.user )"
     }
   }
   # Unmount remote disks from local mounts
-  test -e $UCONFDIR/disk/$hostname-$1.list && {
+  test -e $UCONF/disk/$hostname-$1.list && {
     note "Unmounting from local.."
-    mounts="$(read_nix_style_file $UCONFDIR/disk/$hostname-$1.list | lines_to_words)"
+    mounts="$(read_nix_style_file $UCONF/disk/$hostname-$1.list | lines_to_words)"
     sudo umount "$mounts"
   }
   ssh_req $1 $2 &&
@@ -1827,8 +1827,8 @@ htd_grp__shutdown=box
 
 htd__ssh_vagrant()
 {
-  test -d $UCONFDIR/vagrant/$1 || error "No vagrant '$1'" 1
-  cd $UCONFDIR/vagrant/$1
+  test -d $UCONF/vagrant/$1 || error "No vagrant '$1'" 1
+  cd $UCONF/vagrant/$1
   vagrant up || {
     vagrant up --provision || {
       warn "Provision error $?. See htd edit to review Vagrantfile. "
@@ -1843,7 +1843,7 @@ htd__ssh_vagrant()
 htd_run__ssh=f
 htd__ssh()
 {
-  test -d $UCONFDIR/vagrant/$1 && {
+  test -d $UCONF/vagrant/$1 && {
 
     htd__ssh_vagrant "$@"
     return $?
@@ -1860,19 +1860,19 @@ htd__ssh()
 
     # TODO: move to vagrants
     sandbox | sandbox-mpe | vdckr | vdckr-mpe )
-        cd $UCONFDIR/dckr/ubuntu-trusty64-docker-mpe/
+        cd $UCONF/dckr/ubuntu-trusty64-docker-mpe/
         vagrant up
         vagrant ssh
       ;;
 
     # OLD vagrants
     treebox | treebox-precise | treebox-mpe )
-        cd $UCONFDIR/vagrant/treebox-hashicorp-precise-mpe
+        cd $UCONF/vagrant/treebox-hashicorp-precise-mpe
         vagrant up
         vagrant ssh
       ;;
     trusty )
-        cd $UCONFDIR/vagrant/ubuntu-trusty64
+        cd $UCONF/vagrant/ubuntu-trusty64
         vagrant up
         vagrant ssh
       ;;
@@ -3235,7 +3235,7 @@ htd__events()
 {
   test -n "$2" || set -- "$1" "days=3"
   gcal.py --version || return
-  read_nix_style_file $UCONFDIR/google/cals.tab | while read calId summary
+  read_nix_style_file $UCONF/google/cals.tab | while read calId summary
   do
     note "Upcoming events for '$summary'"
     gcal.py list-upcoming 7 $calId "$2" 2>/dev/null

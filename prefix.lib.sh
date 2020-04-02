@@ -5,7 +5,7 @@
 prefix_lib_load()
 {
   lib_assert statusdir || return
-  test -n "${UCONFDIR-}" || UCONFDIR=$HOME/.conf
+  test -n "${UCONF-}" || UCONF=$HOME/.conf
   test -n "${pathnames-}" || pathnames=pathnames.tab
   test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}/index/basedirs.tab
 }
@@ -21,7 +21,7 @@ prefix_init()
 # Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
 prefix_pathnames_tab()
 {
-  test -n "$1" || set -- "$UCONFDIR/$pathnames" "$2"
+  test -n "$1" || set -- "$UCONF/$pathnames" "$2"
 
   { test -n "$1" -a -s "$1" && {
 
@@ -36,7 +36,7 @@ prefix_pathnames_tab()
   } || { cat <<EOM
 / ROOT
 $HOME/ HOME
-\$(test -e "\$UCONFDIR" && echo \$UCONFDIR/ UCONF)
+\$(test -e "\$UCONF" && echo \$UCONF/ UCONF)
 EOM
     }
   } | uniq
@@ -45,7 +45,7 @@ EOM
 # Setup temp-file index for shell env profile, created from pathnames-table
 prefix_require_names_index() # Pathnames-Table
 {
-  test -n "${1:-}" || set -- "$UCONFDIR/$pathnames" "${2:-}"
+  test -n "${1:-}" || set -- "$UCONF/$pathnames" "${2:-}"
   test -n "${2:-}" || set -- "$1" "$BASEDIR_TAB"
   test $# -eq 2 || return
 

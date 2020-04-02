@@ -220,7 +220,7 @@ htd__filter_out()
 
 htd_main_lib_load()
 {
-  default_env UCONF "$HOME/.conf/" || debug "Using UCONFDIR '$UCONFDIR'"
+  default_env UCONF "$HOME/.conf/" || debug "Using UCONF '$UCONF'"
   default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"
   default_env HTDIR "$HOME/public_html" || debug "Using HTDIR '$HTDIR'"
 
@@ -233,7 +233,7 @@ htd_main_lib_load()
     debug "Using Htd-GIT-Remote name '$HTD_GIT_REMOTE'"
   default_env Htd-Ext ~/htdocs:~/bin ||
     debug "Using Htd-Ext dirs '$HTD_EXT'"
-  default_env Htd-ServTab $UCONFDIR/htd-services.tab ||
+  default_env Htd-ServTab $UCONF/htd-services.tab ||
     debug "Using Htd-ServTab table file '$HTD_SERVTAB'"
   test -d "$HTD_TOOLSDIR/bin" || mkdir -p "$HTD_TOOLSDIR/bin"
   test -d "$HTD_TOOLSDIR/cellar" || mkdir -p "$HTD_TOOLSDIR/cellar"

@@ -166,8 +166,8 @@ meta_sh_lib()
 # Pre-exec: post subcmd-boostrap init
 meta_sh_load()
 {
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -n "$INO_CONF" || INO_CONF=$UCONFDIR/meta_sh
+  test -n "$UCONF" || UCONF=$HOME/.conf/
+  test -n "$INO_CONF" || INO_CONF=$UCONF/meta_sh
   test -n "$APP_DIR" || APP_DIR=/Applications
 
   hostname="$(hostname -s | tr 'A-Z.-' 'a-z__' | tr -s '_' '_' )"

@@ -67,8 +67,8 @@ htd_tmux_init()
   test -z "$4" || error "surplus arguments: '$4'" 1
   tmux_env_req 0
   # set window working dir
-  test -e $UCONFDIR/script/htd/tmux-init.sh &&
-    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
+  test -e $UCONF/script/htd/tmux-init.sh &&
+    . $UCONF/script/htd/tmux-init.sh || error TODO 1
   test -n "$3" || {
     set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
   }
@@ -223,8 +223,8 @@ htd_tmux_winit()
   test -n "$1" || error "Session <arg1> required" 1
   test -n "$2" || error "Window <arg2> required" 1
   # set window working dir
-  test -e $UCONFDIR/script/htd/tmux-init.sh &&
-    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
+  test -e $UCONF/script/htd/tmux-init.sh &&
+    . $UCONF/script/htd/tmux-init.sh || error TODO 1
   test -n "$3" || {
     set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
   }

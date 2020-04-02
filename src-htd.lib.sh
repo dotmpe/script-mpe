@@ -127,9 +127,9 @@ deref_include() # Include-Spec
 
 setup_temp_src()
 {
-  test -n "$UCONFDIR" || error "metaf UCONFDIR" 1
-  mkdir -p "$UCONFDIR/_temp-src"
-  setup_tmpf "$@" "$UCONFDIR/_temp-src"
+  test -n "$UCONF" || error "metaf UCONF" 1
+  mkdir -p "$UCONF/_temp-src"
+  setup_tmpf "$@" "$UCONF/_temp-src"
 }
 
 

@@ -4,7 +4,7 @@
 htd_rules_lib_load()
 {
   #2017-05-01
-  test -n "${htd_rules-}" || htd_rules=$UCONFDIR/rules/$hostname.tab
+  test -n "${htd_rules-}" || htd_rules=$UCONF/rules/$hostname.tab
 }
 
 htd_man_1__rules='

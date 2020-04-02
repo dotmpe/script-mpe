@@ -5,8 +5,8 @@ htd_man_1__todo='Edit and mange todo.txt/done files.
 Other commands:
 
   todotxt tree - TODO: treeview
-  todotxt list|list-all - TODO: files in UCONFDIR
-  todotxt count|count-all - count in UCONFDIR
+  todotxt list|list-all - TODO: files in UCONF
+  todotxt count|count-all - count in UCONF
   todotxt edit
 
    todo-clean-descr
@@ -64,8 +64,8 @@ htd_als__tte=todotxt-edit
 
 htd__todotxt()
 {
-  test -n "$UCONFDIR" || error UCONFDIR 15
-  test -n "$1" || set -- edit
+  test -n "${UCONF-}" || error UCONF 15
+  test -n "${1-}" || set -- edit
   case "$1" in
 
     # Print
@@ -73,7 +73,7 @@ htd__todotxt()
       ;;
 
     list|list-all )
-        for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
+        for fn in $UCONF/todotxtm/*.ttxtm $UCONF/todotxtm/project/*.ttxtm
         do
           fnmatch "*done*" "$fn" && continue
           test -s "$fn" && {
@@ -86,7 +86,7 @@ htd__todotxt()
 
     count|count-all )
         # List paths below current (proj/dirs with txtm files)
-        { for fn in $UCONFDIR/todotxtm/*.ttxtm $UCONFDIR/todotxtm/project/*.ttxtm
+        { for fn in $UCONF/todotxtm/*.ttxtm $UCONF/todotxtm/project/*.ttxtm
           do
             fnmatch "*done*" "$fn" && continue
             cat $fn
