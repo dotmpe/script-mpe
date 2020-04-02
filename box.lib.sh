@@ -254,18 +254,18 @@ box_list_libs()
 
 box_init()
 {
-  test -n "$UCONF" || error "box-init: UCONF" 1
+  test -n "${UCONF-}" || error "box-init: UCONF" 1
   cd $UCONF
 }
 
 
 box_update()
 {
-  test -n "$UCONF" || error "box-update: UCONF" 1
+  test -n "${UCONF-}" || error "box-update: UCONF" 1
   cd $UCONF
 
-  test -n "$box_host" || box_host=$hostname
-  test -n "$box_user" || box_user=$(whoami)
+  test -n "${box_host-}" || box_host=$hostname
+  test -n "${box_user-}" || box_user=$(whoami)
 
   #on_host "$box_host" || ssh_req $box_host $box_user
   #run_cmd "$box_host" "cd \$HOME/.conf && git fetch --all && git pull"

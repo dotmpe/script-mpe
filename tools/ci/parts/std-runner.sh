@@ -274,12 +274,12 @@ sh_spec() # File-Path
   }
 
   fnmatch "*.list" "$specfile" && {
-    sh-read "$specfile" | sh_spec_outline "$@"
+    sh_read "$specfile" | sh_spec_outline "$@"
     return $?
 
   } || {
 
-    sh-read "$specfile" | sh_spec_table "$@"
+    sh_read "$specfile" | sh_spec_table "$@"
   }
 }
 
