@@ -8,6 +8,8 @@ htd_lib_load()
   # XXX: lib_assert statusdir sys-htd htd-project package project-stats htd-project-stats || return
   #lib_load date statusdir sys-htd htd-project package project-stats htd-project-stats
   test -n "${NS_NAME-}" || NS_NAME=dotmpe
+  # TODO: cleanup
+  . $scriptpath/tools/sh/parts/env-0-1-lib-sys.sh
 }
 
 
@@ -474,6 +476,173 @@ htd_expand()
   }
 }
 
+# Generate or update document file, and keep checksum for generated files.
+# XXX: this is getting a bit longish, should split up specific rst-doc fields
+# and allow them to be overriden.
+htd_rst_doc_create_update()
+{
+  test -n "$1" || error "htd-rst-doc-create-update" 12
+  local outf="$1" title="$2" ; shift 2
+  test -s "$outf" && new=0 || new=1
+
+  test $new -eq 1 || {
+
+    # Document file exists, update
+    updated=":\1pdated: $(date +%Y-%m-%d)"
+    grep -qi '^\:[Uu]pdated\:.*$' $outf && {
+      sed -i.bak 's/^\:\([Uu]\)pdated\:.*$/'"$updated"'/g' $outf
+    } || {
+      warn "Cannot update 'updated' field."
+    }
+  }
+
+  # By default set title if given as argument,
+  # to skip use any sensical argument ie. no-title
+  test -z "$title" -o -n "$1" || set -- title
+
+  while test -n "$1"
+  do
+    case "$1" in
+
+      # Title always starts file, but only if required.
+      title ) test $new -eq 0 || {
+                # Use the basedir for the file-entry path to generate title
+                test -n "$title" ||
+                    title="$(basename "$(dirname "$(realpath "$outf")")")"
+                echo "$title" > $outf
+                echo "$title" | tr -C '\n' '=' >> $outf
+            } ;;
+
+      # Other arguments indicate lines to add to newly generated file
+      created )  test $new -eq 1 || break ;
+            echo ":created: $(date +%Y-%m-%d)" >> $outf ;;
+      updated )  test $new -eq 1 || break ;
+            echo ":updated: $(date +%Y-%m-%d)" >> $outf ;;
+
+      default-rst ) test $new -eq 1 || break ;
+          test -n "${package_sh_rst_default_include-}" ||
+              package_sh_rst_default_include=.default.rst # FIXME: package pd-meta defaults elsewhere
+
+          test -e "$package_sh_rst_default_include" && {
+            local rstinc="$package_sh_rst_default_include"
+
+            #fnmatch "/*" "$rstinc" &&
+            #    rstinc=$($grealpath --relative-to=)
+
+            #fnmatch "/*" "$outf" &&
+            #  # FIXME: get common basepath and build rel if abs given
+            #  includedir="$(pwd -P)" ||
+            #  includedir="$(dirname $outf | sed 's/[^/]*/../g')"
+
+            local relp="$($grealpath --relative-to=$(dirname "$outf") $rstinc)"
+            {
+              echo ; echo ; echo ".. insert:" ; echo ".. include:: $relp"
+            } >> $outf
+          }
+        ;;
+
+      # Link up with period (week/month/Q/Y) stats files
+      link-year-up )
+          req_logdir_env
+          # Get year...
+          thisyear=$(realpath "${log}${log_path_ysep}year$EXT")
+          title="$(date_fmt "" "%G")"
+          test -s "$thisyear" || {
+            # Recurse
+            htd_rst_doc_create_update "$thisyear" "$title" \
+                title created default-rst
+          }
+          # TODO htd_rst_doc_create_update "$thisyear" "" link-all-years
+          grep -q '\.\.\ footer::' "$outf" || {
+            thisyearrel=$($grealpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}year$EXT")
+            {
+              printf -- ".. footer::\n\n  - \`$title <$thisyearrel>\`_"
+            } >> $outf
+          }
+        ;;
+
+      link-month-up )
+          req_logdir_env
+          # Get month...
+          thismonth=$(realpath "${log}${log_path_ysep}month$EXT")
+          title="$(date_fmt "" "%B %G")"
+          test -s "$thismonth" || {
+            # Recurse
+            htd_rst_doc_create_update "$thismonth" "$title" \
+                title created default-rst link-year-up
+          }
+          # TODO: for further mangling need beter editor
+          #{ test -n "$thisweek" && grep -Fq "$thisweekrel" "$outf"
+          #} || {
+          #  sed 's/.. htd journal week insert sentitel//'
+          #}
+          # Recurse
+          htd_rst_doc_create_update "$thismonth" "" link-year-up
+          grep -q '\.\.\ footer::' "$outf" || {
+            thismonthrel=$($grealpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}month$EXT")
+            {
+              printf -- ".. footer::\n\n  - \`$title <$thismonthrel>\`_"
+            } >> $outf
+          }
+        ;;
+
+      link-week-up )
+          req_logdir_env
+          thisweek=$(realpath "${log}${log_path_ysep}week$EXT")
+          title="$(date_fmt "" "%V week %G")"
+          test -s "$thisweek" || {
+            htd_rst_doc_create_update "$thisweek" "$title" \
+                title created default-rst
+          }
+          htd_rst_doc_create_update "$thisweek" "" link-month-up
+          grep -q '\.\.\ footer::' "$outf" || {
+            thisweekrel=$($grealpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
+            {
+              printf -- ".. footer::\n\n  - \`$title <$thisweekrel>\`_"
+            } >> $outf
+          }
+        ;;
+
+      link-day )
+          req_logdir_env
+          # Get week...
+          thisweek=$(realpath "${log}${log_path_ysep}week$EXT")
+
+          day="$( $gdate +"%F" )"
+          weekstart="$( $gdate -d "$day -$($gdate -d $day +%u) days" +"%F" )"
+          month_at_weekstart="$( $gdate -d $day +%b )"
+
+          title="$(date_fmt "" "Week %V, $month_at_weekstart %G")"
+
+          test -s "$thisweek" || {
+            htd_rst_doc_create_update "$thisweek" "$title" \
+                title created default-rst
+          }
+          htd_rst_doc_create_update "$thisweek" "" link-week-up
+
+          #test $new -eq 1 || break ;
+          grep -q '\.\.\ footer::' "$outf" || {
+            thisweekrel=$($grealpath --relative-to=$(dirname "$outf") "${log}${log_path_ysep}week$EXT")
+            {
+              printf -- ".. footer::\n\n  - \`$title <$thisweekrel>\`_"
+            } >> $outf
+          }
+        ;;
+
+    esac; shift
+  done
+  test -e "$outf" || touch $outf
+
+  test $new -eq 0 && {
+    export cksum=
+    export cksums="$cksums <noclean>"
+  } || {
+    note "New file '$outf'"
+    export cksum="$(md5sum $outf | cut -f 1 -d ' ')"
+    export cksums="$cksums $cksum"
+  }
+}
+
 htd_edit_today()
 {
   test -n "$EXT" || EXT=.rst
@@ -483,7 +652,8 @@ htd_edit_today()
   test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" && {
     #. $PACKMETA_SH || error "Sourcing package Sh" 1
     eval local $(map=package_pd_meta_: package_sh \
-      log log_path log_title log_entry log_path_ysep log_path_msep log_path_dsep) >/dev/null
+      log log_path log_title log_entry log_path_ysep log_path_msep \
+      log_path_dsep rst_default_include) >/dev/null
   }
 
   # Handle arguments wether log-file or cabinet-path/archive-dir
