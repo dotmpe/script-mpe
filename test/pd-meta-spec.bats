@@ -3,11 +3,11 @@
 load init
 base=projectdir-meta
 
-init
+. ./tools/sh/init.sh
+#init
 
 setup()
 {
-  . ./tools/sh/init.sh
   lib_load projectenv env-deps
 }
 

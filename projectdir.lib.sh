@@ -7,6 +7,9 @@ projectdir_lib_load()
   # Local pdoc name, used by most command to determine pdir
   test -n "${UCONF-}" || UCONF=$HOME/.conf
   test -n "${pdoc-}" || pdoc=$UCONF/etc/projects.yaml
+  test -n "${PD_SYNC_AGE-}" || export PD_SYNC_AGE=$_3HOUR
+  test -n "${PD_TMPDIR-}" || PD_TMPDIR=$(setup_tmpd $base)
+  test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
 }
 
 # Load support includes
@@ -108,7 +111,8 @@ backup_if_comments()
 
 # Generate/install GIT hook scripts from env (loaded from package.yaml)
 
-test -n "$GIT_HOOK_NAMES" || GIT_HOOK_NAMES="apply-patch commit-msg post-update pre-applypatch pre-commit pre-push pre-rebase prepare-commit-msg update"
+test -n "${GIT_HOOK_NAMES-}" ||
+    GIT_HOOK_NAMES="apply-patch commit-msg post-update pre-applypatch pre-commit pre-push pre-rebase prepare-commit-msg update"
 
 generate_git_hooks()
 {
@@ -333,12 +337,14 @@ pd_sets="init check test"
 pd_init__sets=
 pd_check__sets=
 pd_test__sets=
+pd_sync__sets=
+pd_build__sets=
 
 pd_register()
 {
   local mod=$1 registry=
   shift
-  while test -n "$1"
+  while test $# -gt 0
   do
     fnmatch "*$1*" "$pd_sets" || pd_sets="$pd_sets $1"
     registry="$(echo_local sets $1)"
@@ -607,7 +613,7 @@ pd_registered_prefix_target_args()
   #  fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
   #  shift
   #done)
-  test -n "$choice_reg" || choice_reg=1
+  test -n "${choice_reg-}" || choice_reg=1
   pd_prefix_target_args "$@" || return $?
 }
 
@@ -885,7 +891,7 @@ pd_run()
 
 pd_run_suite()
 {
-  test -n "$1" || error "pd-run-suite: Suite ID expected" 1
+  test -n "${1-}" || error "pd-run-suite: Suite ID expected" 1
   local r=0 suite=$1; shift
   echo "$@" >$arguments
   subcmd=$suite:run pd__run || return $?
@@ -898,8 +904,8 @@ pd_run_suite()
 # TODO: duplicate from htd_find_ignores, while further devving
 pd_find_ignores()
 {
-  test -z "$find_ignores" || return
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+  test -z "${find_ignores-}" || return
+  test -n "${IGNORE_GLOBFILE-}" -a -e "${IGNORE_GLOBFILE-}" && {
     #mv $a.merged $a.tmp
     #sort -u $a.tmp > $a.merged
     find_ignores="$(find_ignores $IGNORE_GLOBFILE)"

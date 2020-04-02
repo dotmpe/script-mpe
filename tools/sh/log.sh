@@ -221,6 +221,7 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
       ;;
 
   esac
+
   if [ $len -lt 0 ]; then len=0; fi
   # FIXME: should use printf
   padd=" ";

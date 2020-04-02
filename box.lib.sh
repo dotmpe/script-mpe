@@ -307,17 +307,17 @@ box_bg_setup()
 {
   not_trueish "$no_background" && {
 
-    test ! -e "$main_sock" || error "pd meta bg already running" 1
+    test ! -e "$main_sock" || error "box: pd meta bg already running" 1
     $main_bg &
     PID=$!
     while test ! -e $main_sock
-    do note "Waiting for server.." ; sleep 1 ; done
-    std_info "Backgrounded $main_bg (PID $PID)"
+    do note "box: Waiting for server.." ; sleep 1 ; done
+    std_info "box: Backgrounded $main_bg (PID $PID)"
 
   } || {
-    note "Forcing foreground/cleaning up background"
+    note "box: Forcing foreground/cleaning up background"
     test ! -e "$main_sock" || $main_bg exit \
-      || error "Exiting old" $?
+      || error "box: Exiting old" $?
   }
 }
 
@@ -327,9 +327,9 @@ box_bg_teardown()
   test ! -e "$main_sock" || {
     $main_bg exit
     while test -e $main_sock
-    do note "Waiting for background shutdown.." ; sleep 1 ; done
-    std_info "Closed background metadata server"
-    test -z "$no_background" || warn "no-background on while pd-sock existed"
+    do note "box: Waiting for background shutdown.." ; sleep 1 ; done
+    std_info "box: Closed background metadata server"
+    test -z "$no_background" || warn "box: no-background on while pd-sock existed"
   }
 }
 

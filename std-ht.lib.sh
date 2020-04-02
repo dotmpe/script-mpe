@@ -18,7 +18,7 @@ std_ht_lib_init()
 io_dev_path()
 {
   case "$uname" in
-    linux ) echo /proc/$pid/fd ;;
+    linux ) echo /proc/$$/fd ;;
     darwin ) echo /dev/fd ;;
     * ) error "io_dev_path $uname" 1
   esac

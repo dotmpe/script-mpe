@@ -21,7 +21,7 @@ test -e "${U_S-}" || {
     U_S=$HOME/build/dotmpe/user-scripts
 }
 test -e "${U_S-}" || U_S=$u_s
-$LOG "info" "" "Using U-s:" "$U_S"
+$INIT_LOG "info" "" "Using U-s:" "$U_S"
 unset u_s
 
 # Sync: U-S:tools/sh/parts/env-0-u_s.sh

@@ -129,3 +129,19 @@ c-main:
 
 ht-main:
   ..
+
+----
+
+main-bg
+  Some user-scripts have a 'meta' command that interactis with a metadata
+  backend, a python script more suited for processing ie. YAML or database
+  interaction.
+
+  The ``--background`` option starts a re-usable single-threaded? background
+  server instance (using twisted).
+
+  The background process stays attached to the tty, so use a separate shell or
+  job control for the invocation (ie. prepend ``shell -c`` or append ``&`` to
+  the line).
+
+main-bg-writeread

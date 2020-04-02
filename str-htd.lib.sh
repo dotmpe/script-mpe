@@ -184,7 +184,7 @@ fnmatch() # Glob Str
 
 words_to_lines()
 {
-  test -n "$1" && {
+  test -n "${1-}" && {
     while test -n "$1"
     do echo "$1"; shift; done
   } || {
@@ -194,7 +194,7 @@ words_to_lines()
 
 lines_to_words()
 {
-  test -n "$1" && {
+  test -n "${1-}" && {
     { while test -n "$1"
       do test -e "$1" && cat "$1" || echo "$1"; shift; done
     } | tr '\n' ' '
@@ -206,7 +206,7 @@ lines_to_words()
 # Quote each line
 lines_quoted() # [-|FILE]
 {
-  test -n "$1" || set -- "-"
+  test -n "${1-}" || set -- "-"
   cat "$1" |
   sed 's/^.*$/"&"/' "$1"
 }
@@ -220,25 +220,31 @@ lines_to_args() # [-|FILE]
 # replace linesep with given char
 linesep()
 {
-  test -n "$1" || set -- " "
+  test -n "${1-}" || set -- " "
   tr '\n' "$1"
 }
 wordsep()
 {
-  test -n "$1" || set -- " "
+  test -n "${1-}" || set -- " "
   tr ' ' "$1"
 }
 words_to_unique_lines()
 {
-  words_to_lines | sort -u
+  words_to_lines "$@" | sort -u
 }
 unique_words()
 {
-  words_to_unique_lines | lines_to_words
+  words_to_unique_lines "$@" | lines_to_words
 }
 reverse_lines()
 {
   sed '1!G;h;$!d'
+}
+
+# Sort into lookup table (with Awk) to remove duplicate lines
+remove_dupes() # ~
+{
+  awk '!a[$0]++'
 }
 
 # Try to turn given variable names into a more "terse", human readble string seq

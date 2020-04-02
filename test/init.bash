@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Helpers for BATS project test env.
 
@@ -60,7 +60,7 @@ err_() # [type] [cat] [msg] [tags] [status]
 {
   test $# -gt 0 || return
   test $# -gt 1 || set -- "$@" "" "" "" ""
-  test -z "$verbosity" -a -z "$DEBUG" && return
+  test -z "${verbosity:-}" -a -z "${DEBUG:-}" && return
   test -n "$2" || set -- "$1" "$base" "$3" "${4:-}" "${5:-}"
   test -z "$verbosity" -a -n "$DEBUG" || {
 
@@ -191,6 +191,8 @@ init() # ( 0 | 1 [~ [~ [~]]] )
   }
 
   load_init_bats
+
+  echo u-s:$U_S
 
   test "$1" = "0" || {
 # FIXME: deal with sub-envs wanting to know about lib-envs exported by parent

@@ -1,7 +1,7 @@
 Feature: Project checkout handling
   
   Checkouts imply a source repository. A local folder represents a copy of a
-  distinct body of work, and a means of distribution. For VCS detailed tracking
+  distinct body of work, and a means of distribution. For VCS, detailed tracking
   of blobs stored in filetrees through time and parallel versions is possible.
   Technically publication back to the repository is easy, however while other
   checkouts maybe mere downloads. Ie. compressed filetree archives which in 

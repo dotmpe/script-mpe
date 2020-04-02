@@ -284,8 +284,6 @@ diskdoc_load()
     esac
   done
 
-  export PD_SYNC_AGE=$_3HOUR
-
   local tdy="$(try_value "${subcmd}" "" today)"
   test -z "$tdy" || {
     today=$(statusdir.sh file $tdy)

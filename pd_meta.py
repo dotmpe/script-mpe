@@ -3,7 +3,7 @@
 :created: 2015-11-30
 :updated: 2016-06-06
 
-Python helper to query/update Projectdir metadatadocument '.projects.yaml'
+Python helper to query/update Projectdir metadatadocument
 
 Usage:
     projectdir-meta [options] get-repo <prefix>
@@ -40,7 +40,7 @@ Options:
                 or do anything else but enter an infinite server loop.
   -f PD, --file PD
                 Give custom path to projectdir document file
-                [default: ./.projects.yaml]
+                [default: ~/.conf/etc/projects.yaml]
   --filesystem PATH
                 Run filesystem server and mount at path. A background process
                 must be running. TODO: no vfs impl. yet.
@@ -277,7 +277,7 @@ def toggle_state(newstate, pdhdata, ctx):
     if newstate+'d' != state:
         set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
         yaml_safe_dumps(pdhdata,
-                open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+                open(os.path.expanduser(ctx.opts.flags.file), 'w+'), default_flow_style=False)
     return True
 
 def toggle_host(newstate, pdhdata, ctx):
@@ -303,7 +303,8 @@ def check_host(record, ctx):
     return False
 
 def yaml_commit(pdhdata, ctx):
-    yaml_safe_dumps(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+    yaml_safe_dumps(pdhdata, os.path.expanduser(open(ctx.opts.flags.file),
+        'w+'), default_flow_style=False)
 
 def yaml_sort(doc, key, recurse=True):
     o = dict(doc[key])
@@ -773,7 +774,7 @@ def prerun(ctx, cmdline):
     ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
     if not pdhdata:
-        pdhdata = yaml_load(open(ctx.opts.flags.file))
+        pdhdata = yaml_load(open(os.path.expanduser(ctx.opts.flags.file)))
 
     return [ pdhdata ]
 
@@ -825,7 +826,7 @@ def main(ctx):
 
     else:
         # Normal execution
-        pdhdata = yaml_load(open(ctx.opts.flags.file))
+        pdhdata = yaml_load(open(os.path.expanduser(ctx.opts.flags.file)))
         func = ctx.opts.cmds[0]
         assert func in handlers
         return handlers[func](pdhdata, ctx)

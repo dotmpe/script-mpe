@@ -46,12 +46,20 @@ pd__new()
 
 
 pd_load__meta=y #B
-pd_man_1__meta="Defer a command to the python script for YAML parsing"
+pd_man_1__meta='Defer a command to the python script for YAML parsing
+
+With no argument, create a new background process. If first command is a
+sub-command name, try to pass invocation to background process if running.
+
+The background process stays attached to the tty, so use a separate shell or job
+control for the invocation (ie. append "&" to the line)
+'
 pd__meta()
 {
-  test -n "$1" || set -- --background
+  test -n "${1-}" || set -- --background
   test -f "$pdoc" || error "No file for pdoc" 2
 
+  # Unless option is given, pass sub-cmd to backend (if pd-sock) exists
   fnmatch "$1" "-*" || {
     test -x "$(which socat)" -a -e "$pd_sock" && {
 
@@ -59,7 +67,13 @@ pd__meta()
       return $?
     }
   }
-  test -n "$pd_sock" && set -- --address $pd_sock "$@"
+
+  # With no option, use existing pd-sock as requested address
+  test -n "$pd_sock" && {
+    test ! -e "$pd_sock" || $LOG "error" "" "PD socket exists" "$pd_sock" 1
+    set -- --address $pd_sock "$@"
+  }
+
   $scriptpath/projectdir-meta -f $pdoc "$@" || return $?
 }
 
@@ -1426,27 +1440,25 @@ pd_load()
 {
   test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
-  test -n "$PD_TMPDIR" || PD_TMPDIR=$(setup_tmpd $base)
-  test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
   # FIXME: test with this enabled
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
 
-  test -n "$UCONFDIR" || {
+  test -n "${UCONFDIR-}" || {
     test -e $HOME/.conf && UCONFDIR=$HOME/.conf || error env-UCONFDIR 1
   }
 
   # Master dir for per-host pdocs, used by some pdoc management commands
-  test -n "$PD_CONFDIR" || PD_CONFDIR=$UCONFDIR/project
+  test -n "${PD_CONFDIR-}" || PD_CONFDIR=$UCONFDIR/project
 
   # Default local project doc/volume
-  test -n "$PD_DEFDIR" || PD_DEFDIR=projects
+  test -n "${PD_DEFDIR-}" || PD_DEFDIR=projects
 
   # Keep symlinks /srv/*-local to map Pdoc name to local path.
 
   # FIXME: ignore files for projectdir commands
   ignores_lib_load $lst_base || error "pd-load: failed loading ignores.lib" 1
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+  test -n "${IGNORE_GLOBFILE-}" -a -e "${IGNORE_GLOBFILE-}" && {
     test -n "$PD_IGNORE" -a -e "$PD_IGNORE" ||
         error "expected $base ignore dotfile (PD_IGNORE)" 1
     lst_init_ignores
@@ -1616,7 +1628,7 @@ pd_load()
         # including socket path, to check for running Bg metadata proc
 
         req_vars pdoc
-        test -n "$pd_root" || pd_finddoc
+        test -n "${pd_root-}" || pd_finddoc
       ;;
 
   esac; stderr debug "'$subcmd' flag '$x' loaded"; done
@@ -1681,11 +1693,11 @@ pd_init()
   pd_preload || exit $?
   . $scriptpath/tools/sh/init.sh || return
   lib_load str sys os std stdio src match main argv str-htd std-ht sys-htd htd
-  . $scriptpath/tools/sh/box.env.sh
+  # XXX: . $scriptpath/tools/sh/box.env.sh
+  #box_run_sh_test
   lib_load meta box package src-htd
-  box_run_sh_test
   # -- pd box init sentinel --
-  test -n "$verbosity" && note "Verbosity at $verbosity" || verbosity=6
+  test -n "${verbosity-}" && note "Verbosity at $verbosity" || verbosity=6
 }
 
 pd_init_etc()
@@ -1701,7 +1713,7 @@ pd_init_etc()
 
 pd_lib()
 {
-  test -z "$__load_lib" || return 14
+  test -z "${__load_lib-}" || return 14
   local __load_lib=1
   test -n "$scriptpath" || return 11
   lib_load box meta list match date doc table ignores vc-htd projectdir \
@@ -1778,7 +1790,6 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
-      set -euo pipefail
       pd_main "$@"
     ;;
 
