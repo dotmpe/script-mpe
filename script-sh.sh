@@ -214,7 +214,7 @@ script_sh_init()
   export SCRIPTPATH=$scriptpath
   test -n "$SCRIPT_ETC" || SCRIPT_ETC="$scriptpath/etc"
 
-  util_mode=ext . $scriptpath/util.sh load-ext
+  . $scriptpath/tools/sh/init.sh || return
   lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test

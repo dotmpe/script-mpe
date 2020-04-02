@@ -97,21 +97,11 @@ twitter_main()
 # FIXME: Pre-bootstrap init
 twitter_init()
 {
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh
-  util_init
-  . $scriptpath/match.lib.sh
+  test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/init.sh || return
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  #. $scriptpath/htd.lib.sh
-  . $scriptpath/main.lib.sh load-ext
-  . $scriptpath/meta.lib.sh
-  . $scriptpath/box.lib.sh
-  . $scriptpath/date.lib.sh
-  . $scriptpath/doc.lib.sh
-  . $scriptpath/table.lib.sh
-  lib_load remote
+  lib_load match main stdio std meta box date doc table remote
   # -- twitter box init sentinel --
 }
 
@@ -119,7 +109,6 @@ twitter_init()
 twitter_lib()
 {
   local __load_lib=1
-  . $scriptpath/match.sh load-ext
   # -- twitter box lib sentinel --
   set --
 }

@@ -42,8 +42,7 @@ test_main()
             scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
             pwd=$(pwd -P) ppwd=$(pwd) spwd=.
 
-        export SCRIPTPATH=$scriptpath
-        #. $scriptpath/util.sh load-ext
+        . $scriptpath/tools/sh/init.sh || return
         test -n "$verbosity" || verbosity=5
 
         local func=$(echo test__$subcmd | tr '-' '_') \
@@ -77,12 +76,7 @@ test_main()
 case "$0" in "" ) ;; "-"* ) ;; * )
   test -n "$f_lib_load" || {
 
-    util_mode=main && . $(dirname "$0")/tools/sh/util.sh
-    test "$1" = "$util_mode" || set -- "$util_mode" "$@"
-
-    case "$1" in
-      main ) shift ; test_main "$@" ;;
-    esac
+    test_main "$@"
 
   } ;;
 esac

@@ -509,16 +509,15 @@ disk_main()
 
 ### Main init, libs
 
-# FIXME: Pre-bootstrap init
 disk_init()
 {
-  util_mode=boot . $scriptpath/util.sh || return
+  . $scriptpath/tools/sh/init.sh || return
   # -- disk box init sentinel --
 }
 
 disk_lib()
 {
-  set -- disk date str-htd sys-htd os-htd table darwin remote
+  set -- disk date str-htd sys-htd os-htd table darwin remote std stdio main
 
   INIT_LOG=$init_log lib_load "$@" || return
   INIT_LOG=$init_log lib_init "$@" || return
@@ -530,7 +529,7 @@ disk_lib()
 
 # Pre-exec: post subcmd-boostrap init
 disk_load()
-
+{
   #test -x "/sbin/parted" || error "parted required" 1
   #test -x "/sbin/fdisk" || error "fdisk required" 1
   test -n "$disk_session_id" || disk_session_id=$(get_uuid)

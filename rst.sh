@@ -89,13 +89,10 @@ rst_main()
 rst_init()
 {
   test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh
-  util_init
+  . $scriptpath/tools/sh/init.sh || return
+  lib_load main box std stdio
   . $scriptpath/tools/sh/box.env.sh
-  . $scriptpath/box.lib.sh
   box_run_sh_test
-  . $scriptpath/main.lib.sh load-ext
   # -- rst box init sentinel --
 }
 

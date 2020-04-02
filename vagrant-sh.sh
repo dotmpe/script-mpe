@@ -271,12 +271,12 @@ vagrant_sh_init()
   test -n "$LOG" ||
     export LOG=/usr/local/share/mkdoc/Core/log.sh
 
-  test -n "$scriptpath"
-  util_mode=ext . $scriptpath/util.sh
-  lib_load $default_lib
+  test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/init.sh || return
+  # XXX: lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  lib_load main meta box doc date table remote
+  lib_load main meta box doc date table remote std stdio
   # -- vagrant-sh box init sentinel --
 }
 

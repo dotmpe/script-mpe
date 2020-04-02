@@ -165,12 +165,10 @@ match_lib()
 {
   test -z "$__load_lib" || return 1
   test -n "$scriptpath" || return 1
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh
-  util_init
+  . $scriptpath/tools/sh/init.sh || return
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  . $scriptpath/main.lib.sh load-ext
+  lib_load match main std stdio
   # -- match box init sentinel --
 }
 
@@ -178,13 +176,7 @@ match_init()
 {
   local __load_lib=1
   test -n "$scriptpath" || return 11
-  #lib_load box match os date doc table
-  . $scriptpath/box.lib.sh "$@"
-  . $scriptpath/match.lib.sh "$@"
-  . $scriptpath/os.lib.sh
-  . $scriptpath/date.lib.sh
-  . $scriptpath/doc.lib.sh
-  . $scriptpath/table.lib.sh
+  lib_load box os date doc table
   # -- match box lib sentinel --
   set --
 }

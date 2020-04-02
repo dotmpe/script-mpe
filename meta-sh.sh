@@ -147,13 +147,12 @@ meta_sh__main()
 meta_sh_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh load-ext
+  test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/init.sh || return
   lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  lib_load main box meta
+  lib_load main box meta std stdio
 }
 
 # FIXME: 2nd boostrap init

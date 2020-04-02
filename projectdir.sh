@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #!/bin/sh
 # Created: 2015-12-14
 set -e
@@ -44,13 +45,12 @@ pd__new()
 }
 
 
-pd_load__meta=y
-#B
+pd_load__meta=y #B
 pd_man_1__meta="Defer a command to the python script for YAML parsing"
 pd__meta()
 {
   test -n "$1" || set -- --background
-  test -n "$pdoc" || error pdoc 2
+  test -f "$pdoc" || error "No file for pdoc" 2
 
   fnmatch "$1" "-*" || {
     test -x "$(which socat)" -a -e "$pd_sock" && {
@@ -406,7 +406,8 @@ pd__find()
 }
 
 pd_load__list_prefixes=y
-pd_man_1__list_prefixes="list-prefixes [PREFIX-OR-GLOB]"
+pd_man_1__list_prefixes="List enabled prefixes"
+pd_spc__list_prefixes="list-prefixes [prefix-or-glob]"
 pd__list_prefixes()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -1417,7 +1418,8 @@ pd_preload()
   test -n "${EDITOR-}" || EDITOR=nano
   test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  test -n "${SCRIPT_ETC-}" || SCRIPT_ETC="$(pd_init_etc | head -n 1)"
+  test -n "${SCRIPT_ETC-}" ||
+      SCRIPT_ETC="$(pd_init_etc || ignore_sigpipe $? | head -n 1)"
 }
 
 pd_load()
@@ -1461,6 +1463,7 @@ pd_load()
   SCR_SYS_SH=bash-sh
 
   # Selective per-subcmd init
+  verbosity=7
   stderr debug "Loading subcmd '$subcmd', flags: $(try_value "${subcmd}" load | sed 's/./&\ /g')"
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
   do case "$x" in
@@ -1545,6 +1548,14 @@ pd_load()
         export $pd_inputs $pd_outputs
       ;;
 
+    l )
+        pd_subcmd_libs="$(try_value $subcmd libs pd)" ||
+            pd_subcmd_libs=$subcmd
+
+        lib_load $pd_subcmd_libs || return
+        lib_init $pd_subcmd_libs || return
+      ;;
+
     o )
         local pd_optsv="$(echo_local $subcmd optsv)"
         func_exists $pd_optsv || pd_optsv="$(eval echo "\"\$$pd_optsv\"")"
@@ -1603,6 +1614,7 @@ pd_load()
     y )
         # look for Pd Yaml and set env: pd_prefix, pd_realpath, pd_root
         # including socket path, to check for running Bg metadata proc
+
         req_vars pdoc
         test -n "$pd_root" || pd_finddoc
       ;;
@@ -1666,12 +1678,11 @@ pd_unload()
 
 pd_init()
 {
-  pd_preload || exit $?Q
-  . $scriptpath/tools/sh/init.sh
-  #util_mode=ext . $scriptpath/util.sh load-ext
+  pd_preload || exit $?
+  . $scriptpath/tools/sh/init.sh || return
   lib_load str sys os std stdio src match main argv str-htd std-ht sys-htd htd
   . $scriptpath/tools/sh/box.env.sh
-  lib_load meta box package
+  lib_load meta box package src-htd
   box_run_sh_test
   # -- pd box init sentinel --
   test -n "$verbosity" && note "Verbosity at $verbosity" || verbosity=6
@@ -1679,11 +1690,13 @@ pd_init()
 
 pd_init_etc()
 {
-  test ! -e etc/htd || echo etc
-  test ! -e $(dirname $0)/etc/htd || echo $(dirname $0)/etc
-  test ! -e $HOME/bin/etc/htd || echo $HOME/bin/etc
-  #XXX: test ! -e .conf || echo .conf
-  #test ! -e $UCONFDIR/htd || echo $UCONFDIR
+  {
+    test ! -e "$PWD/etc/htd" || echo "$PWD/etc"
+    test ! -e "$(dirname "$0")/etc/htd" || echo "$(dirname "$0")/etc"
+    test ! -e "$HOME/bin/etc/htd" || echo "$HOME/bin/etc"
+    #XXX: test ! -e .conf || echo .conf
+    #test ! -e $UCONFDIR/htd || echo $UCONFDIR
+  } | awk '!a[$0]++'
 }
 
 pd_lib()
@@ -1691,7 +1704,8 @@ pd_lib()
   test -z "$__load_lib" || return 14
   local __load_lib=1
   test -n "$scriptpath" || return 11
-  lib_load box meta list match date doc table ignores vc-htd projectdir package
+  lib_load box meta list match date doc table ignores vc-htd projectdir \
+      package
   . $scriptpath/vc.sh
   # -- pd box lib sentinel --
 }
@@ -1764,6 +1778,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
 
+      set -euo pipefail
       pd_main "$@"
     ;;
 

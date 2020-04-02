@@ -237,9 +237,6 @@ lst_main()
 
   test -n "$verbosity" || verbosity=5
 
-  #export SCRIPTPATH=$scriptpath
-  util_mode=boot . $scriptpath/util.sh
-
   lst_init || exit $?
 
   case "$base" in
@@ -263,6 +260,7 @@ lst_main()
 lst_init()
 {
   test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/init.sh || return
   . $scriptpath/tools/sh/box.env.sh &&
   lib_load box main &&
   box_run_sh_test

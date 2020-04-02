@@ -88,7 +88,7 @@ box_instance_main()
 # FIXME: Pre-bootstrap init
 box_instance_init()
 {
-  util_mode=ext . $scriptpath/util.sh
+  . $scriptpath/tools/sh/init.sh || return
   lib_load main std str sys stdio src
   . $scriptpath/tools/sh/box.env.sh
   lib_load box

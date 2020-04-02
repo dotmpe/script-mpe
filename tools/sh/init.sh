@@ -40,8 +40,8 @@ test -z "${DEBUG-}" || echo . $u_s_lib/lib.lib.sh >&2
 
 # And conclude with logger setup but possibly do other script-util bootstraps.
 
-test "$init_sh_libs" = "0" || {
-  test -n "$init_sh_libs" -a "$init_sh_libs" != "1" ||
+test "${init_sh_libs-}" = "0" || {
+  test -n "${init_sh_libs-}" -a "${init_sh_libs-}" != "1" ||
     init_sh_libs=sys\ os\ str\ script\ log\ shell
 
   $INIT_LOG "info" "$scriptname:sh:init" "Loading" "$init_sh_libs"
@@ -55,14 +55,14 @@ test "$init_sh_libs" = "0" || {
   lib_init $init_sh_libs ||
     $INIT_LOG "error" "$scriptname:init.sh" "Failed init'ing libs: $?" "$init_sh_libs" 1
 
-  test -n "$init_sh_boot" || init_sh_boot=1
+  test -n "${init_sh_boot-}" || init_sh_boot=1
   test -n "$init_sh_boot" && {
 
     test "$init_sh_boot" != "0" || init_sh_boot=null
     test "$init_sh_boot" != "1" || init_sh_boot=stderr-console-logger
   }
 
-  test -z "$DEBUG" || echo sh_tools=$sh_tools scripts_init $init_sh_boot >&2
+  test -z "${DEBUG-}" || echo sh_tools=$sh_tools scripts_init $init_sh_boot >&2
   scripts_init $init_sh_boot ||
     $INIT_LOG "error" "$scriptname:init.sh" "Failed at bootstrap '$init_sh_boot'" $? 1
 }

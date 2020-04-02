@@ -1815,8 +1815,8 @@ vc_main()
         # PWD, real PWD and relative 'short/symbolic' path
         ppwd="$(pwd -P)" ppwd="$PWD" spwd=.
 
-        test -n "$LOG" -a \( -x "$LOG" -o "$(type -t $LOG)" = "function" \) \
-            || export LOG=$scriptpath/tools/sh/log.sh
+        test -n "$LOG" -a \( -x "$LOG" -o "$(type -t $LOG)" = "function" \) ||
+            LOG=$scriptpath/tools/sh/log.sh
 
         U_S=/srv/project-local/user-scripts
 

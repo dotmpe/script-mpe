@@ -497,7 +497,7 @@ box_init()
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   export SCRIPTPATH=$scriptpath
-  util_mode=boot . $scriptpath/util.sh
+  . $scriptpath/tools/sh/init.sh || return
   lib_load box main src
   # -- box box init sentinel --
 }

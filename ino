@@ -251,10 +251,8 @@ ino_main()
 ino_init()
 {
   test -z "$BOX_INIT" || return 1
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh
-  util_init
+  test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/init.sh || return
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   lib_load main box htd

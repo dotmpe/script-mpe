@@ -143,18 +143,17 @@ srv_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
 srv_init()
 {
   test -n "$LOG" ||
     export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
 
   test -n "$scriptpath"
-  util_mode=ext . $scriptpath/util.sh || return
+  . $scriptpath/tools/sh/init.sh || return
   lib_load $default_lib || return
   . $scriptpath/tools/sh/box.env.sh || return
   box_run_sh_test || return
-  lib_load main meta box doc date table remote
+  lib_load main meta box doc date table remote std stdio
   # -- srv box init sentinel --
 }
 

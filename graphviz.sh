@@ -144,8 +144,7 @@ gv_main()
         # invoke with function name first argument,
         local subcmd_func= c=0
 
-  		export SCRIPTPATH=$scriptpath
-		util_mode=boot . $scriptpath/util.sh
+        . $scriptpath/tools/sh/init.sh || return
 
         gv_init "$@" || {
           error "init error '$@'" 1

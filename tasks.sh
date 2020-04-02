@@ -98,19 +98,14 @@ tasks_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
 tasks_init()
 {
-  # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh load-ext
-  util_init
-  . $scriptpath/match.lib.sh
+  test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/init.sh || return
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
   #. $scriptpath/htd.lib.sh
-  lib_load main meta box date doc table remote tasks
+  lib_load main meta box date doc table remote tasks std stdio match
   # -- tasks box init sentinel --
 }
 

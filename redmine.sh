@@ -117,14 +117,11 @@ redmine_main()
 redmine_init()
 {
   # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  util_mode=ext . $scriptpath/util.sh
-  util_init
-  . $scriptpath/match.lib.sh
+  test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/init.sh || return
   . $scriptpath/tools/sh/box.env.sh
   box_run_sh_test
-  lib_load main meta box date doc table remote
+  lib_load main meta box date doc table remote match std stdio
   # -- redmine box init sentinel --
 }
 

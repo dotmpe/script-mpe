@@ -5,9 +5,11 @@ projectdir_lib_load()
 {
   projectdir_lib_parts_load || return
   # Local pdoc name, used by most command to determine pdir
-  test -n "$pdoc" || pdoc=.projects.yaml
+  test -n "${UCONF-}" || UCONF=$HOME/.conf
+  test -n "${pdoc-}" || pdoc=$UCONF/etc/projects.yaml
 }
 
+# Load support includes
 projectdir_lib_parts_load()
 {
   . $scriptpath/projectdir-fs.inc.sh &&

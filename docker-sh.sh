@@ -1162,7 +1162,7 @@ docker_sh_init()
   }
   # util_mode=ext . $scriptpath/util.sh load-ext
   CWD=$scriptpath
-  . $scriptpath/tools/sh/init.sh
+  . $scriptpath/tools/sh/init.sh || return
   $CWD/tools/sh/log.sh "note" "" default_lib "$default_lib"
   lib_load $default_lib
   . $scriptpath/tools/sh/box.env.sh
