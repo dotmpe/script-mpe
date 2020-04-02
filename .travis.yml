@@ -50,6 +50,7 @@ env:
     - ENV_NAME=testing
     - TEST_ENV=travis
     - ENV_D=test:travis
+    - ENV_DEV=1
     - CS=dark
     - sudo=
     - UCONFDIR=$HOME/etc

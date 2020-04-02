@@ -133,7 +133,7 @@ test -n "${U_S-}" ||
   $LOG "error" "" "Expected U-S env" "" 1
 
 test -d $U_S/.git || {
-  trueish "$ENV_DEV" && {
+  trueish "${ENV_DEV-}" && {
     {
       test ! -d "$U_S" || rm -rf "$U_S"
       git clone https://github.com/dotmpe/user-scripts.git $U_S
