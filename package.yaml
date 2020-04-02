@@ -103,6 +103,8 @@
 
     init: "./install-dependencies.sh git:init"
     # FIXME: what about git annex pre-commit .
+    rst:
+      default-include: .rst-global.rst
 
   environment:
     development:

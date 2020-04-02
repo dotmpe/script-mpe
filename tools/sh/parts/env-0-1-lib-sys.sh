@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-: "${sys_lib_loaded:=""}"
 
 : "${base:=}"
 : "${lookup_test:=}"
