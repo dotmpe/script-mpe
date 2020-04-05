@@ -177,3 +177,26 @@ htd_doc_check()
         docstat_check "$doc"
     done
 }
+
+
+htd_man_1__tpaths='List topic paths (nested dl terms) in document paths.
+
+See du:dl-term-paths and also htd:tpath-raw
+'
+htd_run__tpaths=l
+htd_load__tpaths=xsl
+htd_libs__tpaths=du
+htd__tpaths()
+{
+  test $# -gt 0 || error "At least one document expected" 1
+  test -n "${print_src:-}" || local print_src=0
+  test -n "${print_baseid:-}" || local print_baseid=0
+
+  test $# -gt 1 || {
+    du_dl_term_paths "$1"
+    return $?
+  }
+
+  act=du_dl_term_paths foreach_do "$@"
+}
+htd_vars__tpaths="path rel_leaf root xml"
