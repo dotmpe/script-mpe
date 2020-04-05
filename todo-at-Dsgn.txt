@@ -7,7 +7,7 @@
 2018-11-28 bats load @Dev @Htd @Work
 
 2018-11-30 @Htd git get
-2018-11-30 @Htd vt
+2018-11-30 @Htd vt htd.rst#summaries
 2018-11-30 @Htd meta
 
 2018-12-01 @Htd doc new
@@ -22,5 +22,10 @@
 2018-12-02 @Htd txt fold: #lSKp
 2018-12-02 TODO: @Htd @Tasks specs: #PcDK
 2018-12-02 @Htd tasks sync: #GdwA
+
+2020-04-05 @Htd cabinet: generic log/journal/listing/inventory/note/archive... content containers
+
+2020-04-05 TODO: Use local package to set document include mode #H-ZHgcmF <htd.lib.sh> ``htd-rst-docs-create-update``
+2020-04-05 TODO: Read custom default include-mode per package, set to absolute global file or local name to look for. #ZrFk88Dd <htd.lib.sh> ``htd-rst-docs-create-update``
 
 # ----- -- ----

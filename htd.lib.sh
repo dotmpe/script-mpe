@@ -519,10 +519,21 @@ htd_rst_doc_create_update()
       updated )  test $new -eq 1 || break ;
             echo ":updated: $(date +%Y-%m-%d)" >> $outf ;;
 
+      # TODO: Read custom default include-mode per package, set to absolute
+      # global file or local name to look for. #ZrFk88Dd
+      include ) test $new -eq 1 || break ;
+          {
+            local relp="$($grealpath --relative-to=$(dirname "$outf") $rstinc)"
+            {
+              echo ; echo ; echo ".. insert:" ; echo ".. include:: $relp"
+            } >> $outf
+          }
+
       default-rst ) test $new -eq 1 || break ;
           test -n "${package_sh_rst_default_include-}" ||
               package_sh_rst_default_include=.default.rst # FIXME: package pd-meta defaults elsewhere
 
+          # Use local package to set document include mode #H-ZHgcmF
           test -e "$package_sh_rst_default_include" && {
             local rstinc="$package_sh_rst_default_include"
 
@@ -720,6 +731,7 @@ htd_edit_today()
       test -s "$today" || {
         # %U     week number of year, with Sunday as first day of week (00..53)
         # %V     ISO week number, with Monday as first day of week (01..53)
+        # %G     is year of ISO week?
         test -n "$log_title" || log_title="%A %G.%V"
         title="$(date_fmt "" "$log_title")"
         htd_rst_doc_create_update "$today" "$title" title created default-rst \
