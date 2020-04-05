@@ -3,13 +3,20 @@
 load init
 base=projectdir-meta
 
-. ./tools/sh/init.sh
+#. ./tools/sh/init.sh
 #init
+#lib_load projectenv env-deps
+
+bin=pd_meta.py
+
+load helper/extra
 
 setup()
 {
-  lib_load projectenv env-deps
+  true
+  test -z "${tmpd-}" || rm -rf $tmpd
 }
+
 
 @test "${bin} - default no-args" {
   run $bin
@@ -62,6 +69,7 @@ f_pd1=" -f test/var/pd/projects.yml "
 
 # XXX: see mod_pd_meta.py
 @test "${bin} clean-mode" {
+  load helper/extra
   tmpd
   cd $tmpd
 {
@@ -106,7 +114,6 @@ EOM
   test ${status} -eq 0
 # Check mode (quiet)
 # Check mode (quiet+strict)
-  rm -rf $tmpd
 }
 
 

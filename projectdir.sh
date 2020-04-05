@@ -1433,7 +1433,7 @@ pd_preload()
   test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
   test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${SCRIPT_ETC-}" ||
-      SCRIPT_ETC="$(pd_init_etc || ignore_sigpipe $? | head -n 1)"
+      SCRIPT_ETC="$({ pd_init_etc || ignore_sigpipe $?; } | head -n 1)"
 }
 
 pd_load()
@@ -1667,12 +1667,14 @@ pd_unload()
         clean_io_lists $pd_inputs $pd_outputs
         std_io_report $pd_outputs || subcmd_result=$?
       ;;
+
     y )
         test -z "$pd_sock" || {
           main_sock=$pd_sock main_bg=pd__meta box_bg_teardown
           unset bgd pd_sock
         }
       ;;
+
   esac; done
 
   test -n "$PD_TMPDIR" || error "PD_TMPDIR unload" 1

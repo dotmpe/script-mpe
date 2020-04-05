@@ -127,7 +127,7 @@ test_env_load()
   unset part env_d
 
   test -n "$base" || return 12 # NOTE: sanity
-  test -n "$INIT_LOG" || return 102 # NOTE: sanity
+  test -n "$INIT_LOG" || return 109 # NOTE: sanity
   $INIT_LOG "info" "" "Env initialized from parts"
 }
 
@@ -191,8 +191,6 @@ init() # ( 0 | 1 [~ [~ [~]]] )
   }
 
   load_init_bats
-
-  echo u-s:$U_S
 
   test "$1" = "0" || {
 # FIXME: deal with sub-envs wanting to know about lib-envs exported by parent
@@ -298,7 +296,7 @@ load_init_bats()
   : ${BATS_LIB_DEFAULT:=load}
 }
 
-load() # ( PATH | NAME )
+load_override() # ( PATH | NAME )
 {
   test $# -gt 0 || return 1
   : "${lookup_exts:=${BATS_LIB_EXTS}}"

@@ -5,7 +5,7 @@
 
 ignores_lib_load()
 {
-  default_env Script-Etc "$( htd_init_etc || ignore_sigpipe $? | head -n 1 )" ||
+  default_env Script-Etc "$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1 )" ||
     debug "Using Script-Etc '$SCRIPT_ETC'"
 
   #test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" ||
