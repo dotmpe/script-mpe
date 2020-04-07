@@ -42,7 +42,9 @@ htd_load()
   # Default-Env upper-case: shell env constants
   local upper=1 title=
 
+  # TODO: reinstate htd.sh nounset
   set -eo pipefail
+  #shopt -s globstar
 
   CWD=$(pwd)
   not_trueish "$DEBUG" || {
@@ -67,7 +69,8 @@ htd_load()
 
   # Get project dir and version-control system name
   vc_getscm
-  go_to_dir_with ".$scm" && {
+  { test -n "${scm-}" && go_to_dir_with ".$scm"
+  } && {
     # $localpath is the path from the project base-dir to the CWD
     localpath="$(normalize_relative "$go_to_before")"
     # Keep an absolute pathref for project dir too for libs not willing to
@@ -1407,21 +1410,25 @@ htd_als__show_alias=alias
 
 
 htd_grp__edit_today=cabinet
-htd_grp__vt=cabinet
+htd_als__vt=edit-today
 htd_grp__edit_week=cabinet
-htd_grp__vw=cabinet
-htd_grp__ew=cabinet
+htd_als__vw=edit-week
+htd_als__ew=edit-week
 htd_grp__week_nr=cabinet
 htd_grp__this_week=cabinet
-htd_grp__week=cabinet
-htd_grp__wknr=cabinet
-htd_grp__jrnl=cabinet
-htd_grp__jrnl_json=cabinet
-htd_grp__jrnl_times=cabinet
+htd_als__week=this-week
+htd_als__wknr=week-nr
+htd_grp__journal=cabinet
+htd_grp__journal=cabinet
+htd_als__jrnl=journal
+htd_grp__journal_json=cabinet
+htd_als__jrnl_json=journal-json
+htd_als__jrnl_j=journal-json
+htd_grp__journal_times=cabinet
+htd_als__jrnl_times=journal-times
+htd_als__jrnl_t=journal-times
 htd_grp__archive_path=cabinet
 htd_grp__today=cabinet
-
-
 
 
 # TODO: use with edit-local

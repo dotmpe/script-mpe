@@ -228,7 +228,6 @@ htd_main_lib_load()
   #test -n "$HTD_TOOLSFILE" || HTD_TOOLSFILE="$CWD"/tools.yml
   default_env Htd-ToolsDir "$HOME/.htd-tools"
   # test -n "$HTD_TOOLSDIR" || export HTD_TOOLSDIR=$HOME/.htd-tools
-  default_env Jrnl-Dir "personal/journal" || debug "Using Jrnl-Dir '$JRNL_DIR'"
   default_env Htd-GIT-Remote "$HTD_GIT_REMOTE" ||
     debug "Using Htd-GIT-Remote name '$HTD_GIT_REMOTE'"
   default_env Htd-Ext ~/htdocs:~/bin ||

@@ -1,4 +1,4 @@
-#!/bin/sh
+#id !/bin/sh
 
 # Htd support lib, see also htd-* libs
 
@@ -528,6 +528,7 @@ htd_rst_doc_create_update()
               echo ; echo ; echo ".. insert:" ; echo ".. include:: $relp"
             } >> $outf
           }
+        ;;
 
       default-rst ) test $new -eq 1 || break ;
           test -n "${package_sh_rst_default_include-}" ||

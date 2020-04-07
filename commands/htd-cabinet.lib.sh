@@ -1,5 +1,6 @@
 #!/bin/sh
 
+
 htd_man_1__cabinet='Manage files, folders with perma-URL style archive-paths
 
   cabinet add [--{not-,}-dry-run] [--archive-date=] REFS..
@@ -11,11 +12,21 @@ htd_man_1__cabinet='Manage files, folders with perma-URL style archive-paths
 Env
     CABINET_DIR $PWD/cabinet $HTDIR/cabinet
 '
-
 htd_cabinet__help ()
 {
   echo "$htd_man_1__cabinet"
 }
+
+
+htd_cabinet_lib_load()
+{
+  default_env Cabinet-Dir "cabinet" || debug "Using Cabinet-Dir '$CABINET_DIR'"
+  default_env Jrnl-Dir "personal/journal" || debug "Using Jrnl-Dir '$JRNL_DIR'"
+  # set -u
+  shopt -s extglob
+  shopt -s globstar
+}
+
 
 htd_cabinet_add() # Refs
 {
@@ -27,11 +38,6 @@ htd_cabinet_add() # Refs
 }
 
 htd_libs__cabinet="str-htd"
-
-htd_cabinet_lib_init()
-{
-  debug "Using Cabinet-Dir '$CABINET_DIR'"
-}
 
 
 htd_man_1__archive_path='
@@ -89,7 +95,6 @@ htd__edit_today()
 }
 htd_libs__edit_today=htd-main\ package\ date-htd\ journal\ doc\ htd-doc
 htd_run__edit_today=lp
-htd_als__vt=edit-today
 
 
 htd__edit_week()
@@ -101,26 +106,26 @@ htd__edit_week()
     error "ERR: $1/ $?" 1
   }
 }
-htd_als__vw=edit-week
-htd_als__ew=edit-week
 
 
-# update yesterday, today and tomorrow and all current, prev and next weekday links
+htd_man_1__today='Update yesterday, today and tomorrow and all current, prev
+and next weekday links'
 htd__today() # Jrnl-Dir YSep MSep DSep [ Tags... ]
 {
   htd_jrnl_day_links "$@"
   htd_jrnl_period_links "$1" "$2"
 }
+htd_run__today=l
+htd_libs__today=journal\ date-htd
 
 
-htd_als__wknr=week-nr
+htd_als__week_nr='Show current journal week/day id (ISO)'
 htd__week_nr()
 {
-  expr $(date +%U) + 1
+  date +%V
 }
 
 
-htd_als__week=this-week
 htd__this_week()
 {
   test -n "$1" || set -- "$(pwd)/log" "$2"
@@ -142,16 +147,19 @@ htd__this_week()
 htd_grp__this_week=cabinet
 
 
-htd_man_1__jrnl="Handle rSt log entries at archive formatted paths
+htd_man_1__journal="Handle rSt log entries at archive paths
 
 TODO: status check update
+
+  update
   list [ Prefix=2... ]
-      List entries with prefix, use current year if empty. Set to * for
-      listing everything.
+      List entries with prefix, use current year if empty.
+      Set to * for listing all entry.
+
   entries
       XXX: resolve metadata
 "
-htd__jrnl()
+htd__journal()
 {
   test -n "$1" || set -- status
   case "$1" in
@@ -164,9 +172,12 @@ htd__jrnl()
 
     update ) shift
         test -n "$1" || set -- $JRNL_DIR/entries.list
-        htd__jrnl list '*' |
-            htd__jrnl entries |
-            htd__jrnl ids > $1.tmp
+        htd__journal list '[0-9]*' |
+            journal_index $CABINET_DIR $JRNL_DIR |
+            journal_entries
+        return
+        #|
+        #    htd__journal ids > $1.tmp
 
         c=$(count_lines "$1")
         enum_nix_style_file $1.tmp | while read n id line
@@ -184,36 +195,24 @@ htd__jrnl()
         rm $1.tmp
       ;;
 
-    entries ) shift
-        JRNL_ENTRY_G="[0-9][0-9][0-9][0-9]?[0-9][0-9]?[0-9][0-9].*"
-        while read id l
-        do
-          fnmatch $JRNL_ENTRY_G "$id" || continue
-          echo "$id $l"
-        done
+    entries ) shift; journal_entries ;;
+
+    ids ) shift; # Prefix paths with entry ID
+        journal_index $CABINET_DIR $JRNL_DIR
       ;;
 
-    ids ) shift
-        while read p
-        do echo "$( basename "$p" .rst )"
-        done
+    list ) shift; # List entry names (no base-dir)
+        test $# -gt 0 || set -- $(date +'%Y')
+        ls ${CABINET_DIR}/$1{*/**,**}/journal.rst |
+            cut -c$(( 2 + ${#CABINET_DIR} ))-
+        ls ${JRNL_DIR}/$1**.rst | cut -c$(( 2 + ${#JRNL_DIR} ))-
       ;;
 
-    list ) shift
-        test -n "$1" || set -- $(date +'%Y')
-        w=$(( ${#JRNL_DIR} + 2 ))
-        for p in $JRNL_DIR/$1*.rst
-        do
-          test -f "$p" && {
-            echo "$p" | cut -c$w-
-            continue
-          }
-          test -h "$p" && {
-            echo "$(echo "$p" | cut -c$w-) -> $(readlink "$p")"
-          } || {
-            warn "$p"
-          }
-        done
+    list-paths ) shift; # List entry paths
+        test $# -gt 0 || set -- $(date +'%Y')
+        ls \
+            ${CABINET_DIR}/$1{*/**,**}/journal.rst \
+            ${JRNL_DIR}/$1**.rst
       ;;
 
     to-couch ) shift
@@ -224,29 +223,34 @@ htd__jrnl()
     * ) error "'$1'? 'htd jrnl $*'" 1 ;;
   esac
 }
+htd_run__journal=l
+htd_libs__journal=journal\ date-htd
 
-htd_of__jrnl_json='json-stream'
-htd__jrnl_json()
+
+htd_of__journal_json='json-stream'
+htd__journal_json()
 {
   test -n "$1" || set -- $JRNL_DIR/entries.list
   htd__txt to-json "$1"
 }
 
-htd_man_1__jrnl_times='
+htd_man_1__journal_times='
     list-day PATH
         List times found in log-entry at PATH.
     list-tri*
         List times for +/- 1 day (by alias).
     list-days TODO
     list-weeks TODO
-    list-dir Date-Prefix
+    list-dir [Date-Prefix]
+        paths with times
     TODO: list (-1) (+1) (dir|days|weeks)
     to-cal
 '
-htd__jrnl_times()
+htd__journal_times()
 {
-  cd $HTDIR
-  htd__today personal/journal
+  set -euo pipefail
+  # Move to journal-dir cd $HTDIR
+  # Update links: htd__today personal/journal
   case "$1" in
 
     list-day )
@@ -258,7 +262,7 @@ htd__jrnl_times()
           personal/journal/yesterday.rst
         do
           # Prefix date (from real filename), and (symbolic) filename
-          htd__jrnl_times list-day $p |
+          htd__journal_times list-day $p |
             sed "s#^#$(basename $(readlink $p) .rst) #g" |
             sed "s#^#$p #g"
         done
@@ -272,12 +276,18 @@ htd__jrnl_times()
       ;;
 
     list-dir )
-        for p in personal/journal/$2[0-9]*.rst
+        local p times
+        for p in \
+            ${CABINET_DIR}/${2-}[0-9]**/journal.rst \
+            ${JRNL_DIR}/${2-}[0-9]*.rst
         do
           # Prefix date (from real filename), and (symbolic) filename
-          htd__jrnl_times list-day $p |
-            sed "s#^#$(basename $p .rst) #g" |
-            sed "s#^#$p #g"
+          times="$( htd__journal_times list-day $p | tr '\n' ' ' )"
+          test -n "$times" || continue
+          echo "$p $times"
+          # |
+          #   sed "s#^#$(basename $p .rst) #g" |
+          #   sed "s#^#$p #g"
         done
       ;;
 
@@ -286,14 +296,14 @@ htd__jrnl_times()
         test -n "$4" || set -- "$1" "$2" "$3" days
         case "$4" in
           dir )
-              htd__jrnl_times list-dir "$2"
+              htd__journal_times list-dir "$2"
             ;;
           days )
               test "$2" = "-1" -a "$3" = "+1" &&
-                htd__jrnl_times list-triune || htd__jrnl_times list-days "$2"
+                htd__journal_times list-triune || htd__journal_times list-days "$2"
             ;;
           weeks )
-              htd__jrnl_times list-week "$2"
+              htd__journal_times list-week "$2"
             ;;
         esac
       ;;
@@ -304,7 +314,7 @@ htd__jrnl_times()
         # w. journal entry without specific times
         shift
         local findevt=$(setup_tmpf .event)
-        htd__jrnl_times list "$@" | while read file date time
+        htd__journal_times list "$@" | while read file date time
         do
           gcalcli search --calendar Journal/Htd-Events "[$time] jrnl" "$date"\
             > $findevt
