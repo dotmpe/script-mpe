@@ -17,11 +17,10 @@ test -n "${LOG-}" -a -x "${LOG-}" -o \
 
 # Must be set after U-s:load
 test -n "${U_S-}" -a -d "${U_S-}" || . $CWD/tools/sh/parts/env-0-u_s.sh
+test -n "${U_S-}" -a -d "${U_S-}" || $LOG "error" "" "Missing U-s" "$U_S" 1
 
 # Must be started from script-package, or provide SCRIPTPATH
 test -n "${SCRIPTPATH-}" || . $CWD/tools/sh/parts/env-scriptpath-deps.sh
-
-test -n "${U_S-}" -a -d "${U_S-}" || $LOG "error" "" "Missing U-s" "$U_S" 1
 
 test -n "${sh_src_base-}" || sh_src_base=/src/sh/lib
 test -n "${u_s_lib-}" || u_s_lib="$U_S$sh_src_base"

@@ -13,4 +13,4 @@ script_package_include() # SH_EXT ~ SCRIPT_PATH
   return 1
 }
 
-# Id: BIN:tools/sh/parts/script-package-include.sh                vim:ft=bash:
+# Sync: U-S:tools/sh/parts/script-package-include.sh              vim:ft=bash:

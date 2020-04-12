@@ -9,6 +9,7 @@ usage() # Short usage help or spec list for (partial) command name ~ [Command]
     echo 'Usage:'
     echo '  ./sh-main <function name> <func args>'
     echo '  ./sh-main ( usage [command] | commands )'
+    echo ''
     echo 'Allowing for any profile and functions to be loaded to particular or generic scripts'
   } ||  {
     src= sh_cmd_funcs "$1"

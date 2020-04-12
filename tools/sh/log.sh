@@ -51,12 +51,36 @@ log_level_num() # Level-Name
   esac
 }
 
+# set log-key to best guess
+log_src_id_key_var()
+{
+  test -n "${log_key-}" || {
+    test -n "${stderr_log_channel-}" && {
+      log_key="$stderr_log_channel"
+    } || {
+      test -n "${base-}" -a -z "$scriptname" || {
+        log_key="\$CTX_PID:\$scriptname"
+      }
+      test -n "$log_key" || {
+        test -n "${scriptext-}" || scriptext=.sh
+        log_key="\$base\$scriptext"
+      }
+      test -n "$log_key" || echo "Cannot get log-src-id key" 1>&2;
+    }
+  }
+}
+
+log_src_id()
+{
+  eval echo \"$log_key\"
+}
+
 # left align first columnt at:
 test -n "$FIRSTTAB" || FIRSTTAB=24
 
 if [ -z "$CS" ]
 then
-  echo "$scriptname: warning, using dark colorscheme (set CS to override)" 1>&2
+  echo "$(log_src_id): warning, using dark colorscheme (set CS to override)" 1>&2
   CS=dark
 fi
 COLOURIZE=yes
@@ -126,11 +150,18 @@ mk_p_trgt_purple="$c5[$c7%s$c5]$c51"
 __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
 {
   test -n "$2" || {
-    set -- "$1" "$scriptname" "$3" "$4" "$5"
-    # XXX: prolly want shell-lib-load base macro instead
-    test -n "$2" || set -- "$1" "$base" "$3" "$4" "$5"
+    test -n "${log_key:-}" || log_src_id_key_var
+    test -n "$2" || set -- "$1" "$(log_src_id)" "$3" "$4" "$5"
     test -n "$2" || set -- "$1" "$0" "$3" "$4" "$5"
   }
+
+    # XXX: should use src-id
+  # test -n "$2" || {
+  #   set -- "$1" "$scriptname" "$3" "$4" "$5"
+  #   # XXX: prolly want shell-lib-load base macro instead
+  #   test -n "$2" || set -- "$1" "$base" "$3" "$4" "$5"
+  #   test -n "$2" || set -- "$1" "$0" "$3" "$4" "$5"
+  # }
 
   lvl=$(log_level_num "$1")
   test -z "$lvl" -o -z "$verbosity" || {

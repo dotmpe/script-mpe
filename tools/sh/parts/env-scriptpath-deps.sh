@@ -2,9 +2,9 @@
 
 # Add script-packages (from dependencies.txt) to SCRIPTPATH
 
-test -n "${INIT_LOG:-}" || return 109
+test -n "${INIT_LOG-}" || return 109
 
-test -z "${SCRIPTPATH:-}" ||
+test -z "${SCRIPTPATH-}" ||
   $INIT_LOG "note" "env-scriptpath-deps" "Current SCRIPTPATH" "$SCRIPTPATH"
 
 type trueish >/dev/null 2>&1 || {
