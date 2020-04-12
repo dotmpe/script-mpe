@@ -16,7 +16,7 @@ test -n "${U_S-}" ||
   $LOG "error" "" "Expected U-S env" "" 1
 
 test -d $U_S/.git || {
-  trueish "${ENV_DEV-}" && {
+  test "${ENV_DEV-}" = "1" && {
     {
       test ! -d "$U_S" || rm -rf "$U_S"
       git clone https://github.com/dotmpe/user-scripts.git $U_S
@@ -35,7 +35,8 @@ test -d $U_S/.git || {
 
 . $PWD/tools/sh/init-include.sh # Initialize sh_include
 
-sh_include str-bool str-id read exec hd-offsets suite-from-table suite-source suite-run
+sh_include \
+    str-bool str-id read exec hd-offsets suite-from-table suite-source suite-run
 #sh_include offsets
 
 
