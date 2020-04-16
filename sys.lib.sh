@@ -117,14 +117,15 @@ setup_tmpd()
 {
   test $# -le 2 || return
   while test $# -lt 2 ; do set -- "$@" "" ; done
-
   test -n "$1" || set -- "$base-$(get_uuid)" "$2"
-  test -n "$2" -o -z "$RAM_TMPDIR" || set -- "$1" "$RAM_TMPDIR"
-  test -n "$2" -o -z "$TMPDIR" || set -- "$1" "$TMPDIR"
-  test -n "$2" || {
-        $LOG warn sys "No RAM tmpdir/tmpdir settings found"
+  test -n "${RAM_TMPDIR-}" || {
         test -w "/dev/shm" && RAM_TMPDIR=/dev/shm/tmp
       }
+  test -n "$2" -o -z "$RAM_TMPDIR" || set -- "$1" "$RAM_TMPDIR"
+  test -n "$2" -o -z "$TMPDIR" || set -- "$1" "$TMPDIR"
+  test -n "$2" ||
+        $LOG warn sys "No RAM tmpdir/No tmpdir settings found" "" 1
+
   test -d $2/$1 || mkdir -p $2/$1
   test -n "$2" -a -d "$2" || $LOG error sys "Not a dir: '$2'" "" 1
   echo "$2/$1"

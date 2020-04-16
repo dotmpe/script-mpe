@@ -391,7 +391,7 @@ normalize_relative()
           ;;
       esac
     } || NORMALIZED=.
-  trueish "$strip_trail" && echo "$NORMALIZED" || case "$1" in
+  trueish "${strip_trail-}" && echo "$NORMALIZED" || case "$1" in
     */ ) echo "$NORMALIZED/"
       ;;
     * ) echo "$NORMALIZED"

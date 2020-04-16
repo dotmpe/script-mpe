@@ -4,15 +4,17 @@
 export_stage()
 {
   test -n "${1:-}" || return 100
-  test -n "${2:-}" || set -- "$1" "$1"
+  test -n "${2:-}" || set -- "$1" "$(mkvid $1 && echo $vid)"
 
   export stage=$1 stage_id=$2 ${2}_ts="$($gdate +%s.%N)"
-  ci_stages="$ci_stages $stage_id"
+  test -n "${ci_stages-}" &&
+      ci_stages="$ci_stages $stage_id" ||
+      ci_stages="$stage_id"
 }
 
 announce_time()
 {
-  test -n "$travis_ci_timer_ts" && {
+  test -n "${travis_ci_timer_ts-}" && {
 
     deltamicro="$(echo "$1 - $travis_ci_timer_ts" | bc )"
     print_yellow "$scriptname:$stage" "$deltamicro sec: $2"

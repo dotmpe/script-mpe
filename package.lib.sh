@@ -67,6 +67,7 @@ package_lib_reset()
   package_specs_units=
   #
   package_components=
+  package_component_name=
   package_cwd=
   package_default=
   package_description=

@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 redo-ifchange "sh-libs.list"
   
 funcname="$(basename "$1" .func-deps)"
@@ -20,7 +23,7 @@ test ! -e "$1" -o -s "$1" || rm "$1"
 
 # Pass filename to build routine
 (
-  scriptpath=$REDO_BASE . $REDO_BASE/util.sh && lib_load;
+  scriptpath=$REDO_BASE . $REDO_BASE/tools/sh/init.sh && lib_load;
 
   scriptname="do:$REDO_PWD:$1" && {
     test -n "$docid" -a -n "$funcname" -a -n "$path" || {

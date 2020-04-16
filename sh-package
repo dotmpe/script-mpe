@@ -1,23 +1,22 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 unset  U_S  LOG  INIT_LOG  SCRIPTPATH
 
-#: "${U_S:="$HOME/project/user-scripts"}"
+ENV_DEV=1
+: "${U_S:="$HOME/project/user-scripts"}"
 : "${LOG:="$U_S/tools/sh/log.sh"}"
 : "${INIT_LOG:="$LOG"}"
 
 export  U_S  LOG  INIT_LOG
 export verbosity=7
 . $U_S/tools/sh/init.sh
-note OK
+$LOG "ok" "" OK
 
 lib_load composure std src vc-htd function functions ck-htd ck shell git volume oil docker-sh
 lib_load package
 lib_init
-composure_check_name_scripts
-note Done
-exit $?
+#composure_check_name_scripts
 
 #vc_tracked
 

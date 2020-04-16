@@ -1,6 +1,6 @@
 set -- "$@" "$REDO_PWD/$3" "$(basename "$1" .tap)"
 
-scriptpath=$REDO_BASE . $REDO_BASE/util.sh &&
+scriptpath=$REDO_BASE . $REDO_BASE/tools/sh/init.sh &&
   lib_load &&
   scriptname="do:$REDO_PWD:$1" &&
   cd "$REDO_BASE" &&

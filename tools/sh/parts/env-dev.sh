@@ -3,6 +3,8 @@
 test -n "$U_S" -a -d "$U_S" || source $scriptpath/tools/sh/parts/env-0-u_s.sh # No-Sync
 #test -n "${LOG:-}" -a -x "${LOG:-}" || export LOG=$U_S/tools/sh/log.sh
 
+ENV_DEV=1
+
 : "${hostname:="`hostname -s`"}"
 
 : "${sh_src_base:="/src/sh/lib"}"
@@ -21,6 +23,8 @@ test -n "$U_S" -a -d "$U_S" || source $scriptpath/tools/sh/parts/env-0-u_s.sh # 
 : "${CWD:="$PWD"}"
 : "${sh_tools:="$CWD$sh_util_base"}"
 : "${ci_tools:="$CWD$ci_util_base"}"
+
+type sh_include >/dev/null 2>&1 || . $scriptpath/tools/sh/init-include.sh
 
 sh_include env-0-src env-std env-ucache
 

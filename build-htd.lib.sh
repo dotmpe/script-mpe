@@ -12,6 +12,7 @@ build_htd_lib_load()
   test -n "${cllct_src_base-}" || cllct_src_base=.cllct/src
   test -n "${cllct_test_base-}" || cllct_test_base=.cllct/testruns
   test -n "${docbase-}" || docbase="doc/src/sh"
+  test -n "${ggrep-}" || ggrep=grep
 }
 
 #  lib_assert \
@@ -22,37 +23,37 @@ build_htd_lib_load()
 # TODO: set spec for build
 build_init()
 {
-  test -n "$base" || base=build.lib
-  test -n "$build_id" || build_id=$(uuidgen)
+  test -n "${base-}" || base=build.lib
+  test -n "${build_id-}" || build_id=$(uuidgen)
 
-  test -n "$src_stat" || src_stat="$PWD/$cllct_src_base"
+  test -n "${src_stat-}" || src_stat="$PWD/$cllct_src_base"
 
-  test -n "$sh_list" || sh_list="$src_stat/sh-files.list"
-  test -n "$sh_file_exts" || sh_file_exts="sh bash do"
-  test -n "$sh_shebang_re" || sh_shebang_re='^\#\!\/bin\/.*sh\>'
+  test -n "${sh_list-}" || sh_list="$src_stat/sh-files.list"
+  test -n "${sh_file_exts-}" || sh_file_exts="sh bash do"
+  test -n "${sh_shebang_re-}" || sh_shebang_re='^\#\!\/bin\/.*sh\>'
 
-  test -n "$TAP_COLORIZE" || TAP_COLORIZE="$PWD/script-bats.sh colorize"
+  test -n "${TAP_COLORIZE-}" || TAP_COLORIZE="$PWD/script-bats.sh colorize"
 
-  test -n "$project_scm_add_checks" ||
+  test -n "${project_scm_add_checks-}" ||
       project_scm_add_checks=project_scm_add_checks
-  test -n "$project_scm_commit_checks" ||
+  test -n "${project_scm_commit_checks-}" ||
       project_scm_commit_checks=project_scm_commit_checks
 
-  test -n "$package_specs_script_libs" ||
+  test -n "${package_specs_script_libs-}" ||
       package_specs_script_libs="./\${id}.lib.sh \
                                  ./contexts/\${id}.lib.sh \
                                  ./contexts/ctx-\${id}.lib.sh \
                                  ./commands/\${id}.lib.sh \
                                  ./commands/htd-\${id}.lib.sh"
-  test -n "$package_specs_libs" ||
+  test -n "${package_specs_libs-}" ||
     package_specs_libs="$package_specs_script_libs"
-  test -n "$package_specs_scripts" ||
+  test -n "${package_specs_scripts-}" ||
       package_specs_scripts="./\${id}.sh \
                                  ./\${id} \
                                  ./\${id}.py"
 
-  test -n "$package_build" || package_build=redo\ \"\$@\"
-  test -n "$package_specs_required" ||
+  test -n "${package_build-}" || package_build=redo\ \"\$@\"
+  test -n "${package_specs_required-}" ||
       package_specs_required=str\ sys\ os\ std\ argv\ shell\ match\ src\ main\ sh\ bash\ redo\ build\ box\ functions\ oshc\ vc\ ck\ schema
 
   build_io_init || return
@@ -61,14 +62,14 @@ build_init()
 
 get_tmpio_env()
 {
-  test -n "$1" -a -n "$2" || return
+  test -n "${1-}" -a -n "${2-}" || return
   local tmpf="$( setup_tmpf .$1 "$build_id-$2" )"
   eval "$1=\"$tmpf\""
 }
 
 build_io_init()
 {
-  test -n "$failed" || get_tmpio_env failed build-io-init
+  test -n "${failed-}" || get_tmpio_env failed build-io-init
 }
 
 show_spec()
@@ -212,7 +213,7 @@ list_builds()
 # List any /bin/*sh or non-empty .sh/.bash file, from everything checked into SCM
 list_sh_files()
 {
-  test -n "$build_init" || build_init
+  test -n "${build_init-}" || build_init
   spwd=. vc_tracked | while read -r path ; do
 
 # Cant do anything with empty file or dirs
@@ -321,7 +322,7 @@ build_graphs()
 
 build_package_script_lib_list()
 {
-  # XXX package_init_env ; package_req_env || return
+  # XXX: package_init_env ; package_req_env || return
 
   expand_spec_src script_libs |
       p= s= act=$package_component_name foreach_inscol

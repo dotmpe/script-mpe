@@ -947,16 +947,16 @@ run_check()
 # remember starting dir and track real vs. symbolic?
 push_cwd()
 {
-  test -n "$CWD" && {
+  test -n "${CWD-}" && {
     CWD_D=$PWD:$CWD
   }
   CWD=$PWD
 
-  test -z "$1" || {
+  test -z "${1-}" || {
       fnmatch "/*" "$1" && return 1 || RCWD=$1
   }
 
-  test -z "$RCWD" || cd $RCWD
+  test -z "${RCWD-}" || cd $RCWD
 
   #test "$CWD" = "$PWD"
   #test "$CWD" = "$PCWD"
