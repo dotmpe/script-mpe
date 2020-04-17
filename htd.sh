@@ -131,9 +131,9 @@ htd_load()
     cols=79
   }
 
-  test -n "$htd_tmp_dir" || htd_tmp_dir="$(setup_tmpd)"
+  test -n "${htd_tmp_dir-}" || htd_tmp_dir="$(setup_tmpd)"
   test -n "$htd_tmp_dir" || stderr error "htd_tmp_dir load" 1
-  fnmatch "dev*" "$ENV" || {
+  main_isdevenv || {
     #rm -r "${htd_tmp_dir:?}"/*
     test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
       rm -r $htd_tmp_dir/*

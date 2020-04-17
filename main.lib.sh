@@ -979,3 +979,12 @@ pop_cwd()
     unset CWD
   }
 }
+
+main_isdevenv()
+{
+  test -z "${ENV_DEV-}" && {
+    fnmatch "dev*" "${ENV-}" && ENV_DEV=1 || ENV_DEV=0
+  }
+  trueish "$ENV_DEV"
+  return $?
+}

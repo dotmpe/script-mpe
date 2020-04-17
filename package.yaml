@@ -12,7 +12,7 @@
   environments:
     - dev
 
-  env: scriptname=$script_out . ./tools/ci/env.sh
+  env: . ./tools/ci/env.sh
 
   urls:
     license:
@@ -68,7 +68,7 @@
       behat-specs: "./vendor/bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
 
       # XXX: this would be nice, and is one way to do file watching for BDD
-      behat-watch: "nodemon -x './vendor/bin/behat test/$1.feature' -w test/bootstrap/FeatureContext.php -w test/$1.feature -w ./$1.*"
+      behat-watch: nodemon -x "./vendor/bin/behat test/\$1.feature" -w test/bootstrap/FeatureContext.php -w test/\$1.feature -w ./\$1.*
     stats: unique-filelines unique-lines
     # XXX: what if want to allow Sh here. Or use another project attr. for Sh
     # scripts
@@ -124,7 +124,7 @@
   scripts:
     get-env:
       - EXIT_ON_ERROR=0 . ./.htd/tools/env.sh
-    list-scripts: lib_load build-htd && list_sh_files "$@"
+    list-scripts: lib_load build-htd && list_sh_files "\$@"
     init:
       - htd package update
       - htd package write-scripts --no-eval init build install test get-env
@@ -141,10 +141,10 @@
       - htd srv
 
     db-deinit:
-      - db=htd-test db_root_passwd=$BM_DB_PASS docker-sh.sh mysql drop-db
+      - db=htd-test db_root_passwd=\$BM_DB_PASS docker-sh.sh mysql drop-db
     db-init:
-      - db=htd-test db_root_passwd=$BM_DB_PASS docker-sh.sh mysql create-db
-      - db_sa.py --dbref=$BM_DB init script_mpe.sa_migrate.bms.model
+      - db=htd-test db_root_passwd=\$BM_DB_PASS docker-sh.sh mysql create-db
+      - db_sa.py --dbref=\$BM_DB init script_mpe.sa_migrate.bms.model
 
     install:
       - export SCR_SYS_SH=bash-sh
@@ -182,51 +182,51 @@
     #test: pd test
     test:
       - lib_load build-test
-      - test -n "$1" || before_test
-      - test -n "$1" || set -- $REQ_SPECS
-      - build_test $@
+      - test -n "\$1" || before_test
+      - test -n "\$1" || set -- \$REQ_SPECS
+      - build_test \$@
 
     # TODO: Run complete test-suite, including WIP
     test-all:
       - lib_load build-test
-      - test -n "$1" || set -- $REQ_SPECS $TEST_SPECS
-      - project_test $@
+      - test -n "\$1" || set -- \$REQ_SPECS \$TEST_SPECS
+      - project_test \$@
 
     # Run unit & component tests
-    project-test: lib_load build-test && project_test "$@"
+    project-test: lib_load build-test && project_test "\$@"
 
     # List unit & component testfiles
-    list-tests: lib_load build-test && project_tests "$@"
+    list-tests: lib_load build-test && project_tests "\$@"
 
     # Summarize
-    tests: lib_load build-test && test_status "$@"
+    tests: lib_load build-test && test_status "\$@"
 
     # Run test-cases, and re-run after change
-    tdd-scm: lib_load build-test && exec_watch_scm_paths "$@"
+    tdd-scm: lib_load build-test && exec_watch_scm_paths "\$@"
 
     # Keep testfiles and tested list, and keep running while one or more fails
     # TODO: restart suite only after changes
-    retest: lib_load build-test && retest "$@"
-    tested: lib_load build-test && tested "$@"
-    totest: lib_load build-test && totest "$@"
+    retest: lib_load build-test && retest "\$@"
+    tested: lib_load build-test && tested "\$@"
+    totest: lib_load build-test && totest "\$@"
 
     # NOTE: the only thing missing with this tools/sh/env test-watch setup is
     # a replay feature, and keep watching only failing specs. see htd
     # resolve-modified too.
-    test-unit: lib_load build-test && test_any_unit "$@"
-    features: lib_load build-test && any_feature "$@"
-    test-feature: lib_load build-test && test_any_feature "$@"
-    test-features: lib_load build-test && test_any_feature "$@"
-    feature-defs: $TEST_FEATURE_DEFS
+    test-unit: lib_load build-test && test_any_unit "\$@"
+    features: lib_load build-test && any_feature "\$@"
+    test-feature: lib_load build-test && test_any_feature "\$@"
+    test-features: lib_load build-test && test_any_feature "\$@"
+    feature-defs: \$TEST_FEATURE_DEFS
     # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
-    feature-specs: $TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
+    feature-specs: \$TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
 
     ci: lib_load build && list_builds \"\$@\"
 
     unique-filelines:
-    - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' $f ; done | wc -l
+    - vc tracked-files | while read f ; do test ! -h "\$f" || continue; grep -vF "\$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' \$f ; done | wc -l
     unique-lines:
-    - vc tracked-files | while read f ; do test ! -h "$f" || continue; grep -vF "$f" .cllct/ls-non-src.list || continue; sort -u $f ; done | sort -u | wc -l
+    - vc tracked-files | while read f ; do test ! -h "\$f" || continue; grep -vF "\$f" .cllct/ls-non-src.list || continue; sort -u \$f ; done | sort -u | wc -l
 
     tasks-list: tasks.py -t todo.txt list-issues
     tasks-update: htd tasks --Check-All-Tags --Check-All-Files
@@ -248,8 +248,8 @@
            localhost:5000/ubuntu-user-script:build \
            'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
 
-    build-docs: lib_load build-htd && build_docs "$@"
-    build-refdocs: lib_load build-htd && build_refdocs "$@"
+    build-docs: lib_load build-htd && build_docs "\$@"
+    build-refdocs: lib_load build-htd && build_refdocs "\$@"
 
 
     # End of [0]/scripts

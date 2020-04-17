@@ -126,9 +126,10 @@ basenames()
 # for each argument echo filename-extension suffix (last non-dot name element)
 filenamext() # Name..
 {
-  while test -n "$1"; do
+  test $# -gt 0 || return
+  while test $# -gt 0; do
     basename -- "$1"
-  shift; done | grep '\.' | sed 's/^.*\.\([^\.]*\)$/\1/'
+    shift; done | grep '\.' | sed 's/^.*\.\([^\.]*\)$/\1/'
 }
 
 # Return basename for one file, using filenamext to extract extension.
@@ -155,7 +156,7 @@ fileisext() # Name Exts..
 filename_baseid()
 {
   basename="$(filestripext "$1")"
-  mkid "$basename" '' '_-'
+  mkid "$basename" '-' '_'
 }
 
 # Use `file` to get mediatype aka. MIME-type

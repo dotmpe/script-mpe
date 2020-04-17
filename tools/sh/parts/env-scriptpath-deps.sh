@@ -40,8 +40,12 @@ trueish "${ENV_DEV-}" && {
   }
 }
 
-test -n "${VND_PATHS-}" ||
+test -n "${VND_PATHS-}" || {
+  test -n "${VND_GH_SRC-}" || VND_GH_SRC=/src/github.com
+  test -n "${VND_SRC_PREFIX-}" || VND_SRC_PREFIX=/src/local
+
   VND_PATHS="$(unique_paths ~/build $VND_GH_SRC $VND_SRC_PREFIX ~/.basher/cellar/packages)"
+}
 
 for supportlib in $(grep '^\(git\|basher\) ' $CWD/dependencies.txt | cut -d' ' -f2);
 do

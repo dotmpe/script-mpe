@@ -14,7 +14,12 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
 package_lib_init()
 {
   test "${package_lib_init-}" = "0" || return 0 # do nothing during lib-init
-#
+
+  test -z "${package_id-}" -a  -z "${package_main-}" || {
+    warn "Already initialized ($package_id/$package_main)"
+    return 1
+  }
+
   test -n "${1-}" || set -- .
   test -d "$1"/$PACK_DIR || mkdir "$1"/$PACK_DIR
   test -n "${PACK_TOOLS-}" || PACK_TOOLS=$PACK_DIR/tools
@@ -30,12 +35,6 @@ package_lib_init()
     PACKMETA="$1"/$PACK_DIR/package.yaml
   } || PACKMETA_SRC=''
   PACKMETA="$(realpath --relative-to=$1 "$PACKMETA")"
-
-  test -z "$package_id" -a  \
-      -z "$package_main" || {
-          warn "Already initialized ($package_id/$package_main)"
-          return
-      }
 
   package_init_env &&
       preprocess_package &&
@@ -122,7 +121,7 @@ package_lib_set_local()
   PACKMETA_SH=$1/$PACK_DIR/$PACKMETA_BN.sh
 
   package_defaults || return
-  test -z "$tasks_lib_loaded" && return
+  test -z "${tasks_lib_loaded-}" && return # XXX: other way to deal with components
   tasks_package_defaults
 }
 
@@ -130,7 +129,11 @@ package_defaults()
 {
   test -n "${package_main-}" || package_main="$package_id"
   test -n "${package_env_file-}" || package_env_file=$PACK_TOOLS/env.sh
-  test -n "${package_log_dir-}" -o -n "$package_log" || package_log="$package_log_dir"
+  test -n "${package_log_dir-}" && {
+      test -n "${package_log-}" || package_log="$package_log_dir"
+  } || {
+      test -z "${package_log-}" || package_log_dir="$package_log"
+  }
 
   test -n "${package_components-}" || package_components=package_components
   test -n "${package_component_name-}" || package_component_name=package_component_name
@@ -173,7 +176,7 @@ package_file()
 
 package_basename()
 {
-  test -n "$1" || set -- "$PACKMETA"
+  test -n "${1-}" || set -- "$PACKMETA"
   basename "./$(basename "./$(basename "$1" .json)" .yaml)" .yml
 }
 
@@ -181,8 +184,8 @@ package_basename()
 update_package_json()
 {
   test -n "$1" || set -- ./
-  test -n "$metajs" || local metajs=$PACKMETA_JSON
-  test -e "$metaf" || error "update-package-json no metaf '$metaf'" 1
+  test -n "${metajs-}" || local metajs=$PACKMETA_JSON
+  test -e "${metaf-}" || error "update-package-json no metaf '$metaf'" 1
   metajs=$(normalize_relative "$metajs")
   test $metaf -ot $metajs ||
   {
@@ -532,7 +535,7 @@ package_component_name()
 {
   test -n "$1" || error package-component-name 1
   filename_baseid "$1"
-  echo "$id" | gsed -E '
+  echo "$id" | $gsed -E '
     s/-((spec)|(lib))//g
     s/-[0-9]+$//g
   '
@@ -542,10 +545,10 @@ package_paths_io()
 {
   local spwd=.
 
-  test "$stdio_0_type" = "t" -o \( -n "$1" -a "$1" != "-" \) && {
+  test "$stdio_0_type" = "t" -o \( -n "${1-}" -a "${1-}" != "-" \) && {
 
 # ... retrieve using defined script or vc-tracked to fetch paths
-    test -n "$package_paths" || package_paths=vc_tracked
+    test -n "${package_paths-}" || package_paths=vc_tracked
     #eval $package_env || return $?
     $package_paths "$@" || return
   } || cat -
