@@ -9,7 +9,7 @@ test -n "$U_S" -a -d "$U_S" || return
 
 lib_lib_load()
 {
-  test -n "$default_lib" ||
+  test -n "${default_lib-}" ||
       default_lib="os std sys str log shell stdio src main argv match vc std-ht"
 }
 
@@ -30,7 +30,7 @@ case "$0" in
 
   * )
 
-      test -n "$f_lib_load" && {
+      test -n "${f_lib_load-}" && {
         # never
         echo "util.sh assert failed: f-lib-load is set ($0: $*)" >&2
         exit 1
@@ -38,7 +38,7 @@ case "$0" in
       } || {
 
         # Set util_mode before sourcing util.sh to do anything else
-        test -n "$util_mode" || util_mode=ext
+        test -n "${util_mode-}" || util_mode=ext
       }
 
       # Return now for 'ext'

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #FIXME: !/bin/sh
 # Created: 2014-12-17
 #
@@ -24,8 +24,8 @@
 # shellcheck disable=SC2116 # Useless echo in cmd-args; is not useless while normalizing unquoted whitespace for printf
 htd_src=$_
 
-set -o posix
-set -e
+#set -o posix
+set -euo pipefail
 
 version=0.0.4-dev # script-mpe
 
@@ -131,9 +131,9 @@ htd_load()
     cols=79
   }
 
-  test -n "$htd_tmp_dir" || htd_tmp_dir="$(setup_tmpd)"
+  test -n "${htd_tmp_dir-}" || htd_tmp_dir="$(setup_tmpd)"
   test -n "$htd_tmp_dir" || stderr error "htd_tmp_dir load" 1
-  fnmatch "dev*" "$ENV" || {
+  main_isdevenv || {
     #rm -r "${htd_tmp_dir:?}"/*
     test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
       rm -r $htd_tmp_dir/*
@@ -1271,8 +1271,9 @@ htd_als__installed=tools\ installed
 htd_als__outline=tools\ outline
 
 
-htd_man_1__script="Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping of
-  scriptnames to script lines. See Htd run and run-names for package scripts. "
+# XXX: setup env before main?
+htd_man_1__script='Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping
+of scriptnames to script lines. See Htd run and run-names for package scripts. '
 htd_spc__script="script"
 htd_run__script=pSmr
 htd_S__script=\$package_id
@@ -3957,7 +3958,7 @@ htd__uuid()
 }
 
 
-htd_man_1__finfo="Touch document metadata for htdocs:$HTDIR"
+htd_man_1__finfo='Touch document metadata for htdocs:$HTDIR' # XXX: setup env before main?
 htd_spc__finfo="finfo DIR"
 htd__finfo()
 {
@@ -4882,11 +4883,10 @@ No sub-file components either.
 htd__components()
 {
   test -n "$package_components" && { eval $package_env || return $? ; }
-  test -n "$package_components" || package_components=package_components
-  test -n "$package_component_name" || package_component_name=package_component_name
   $package_components
 }
-htd_run__components=pq
+htd_run__components=lpq
+htd_libs__components=package
 
 
 htd_man_1__test_all='TODO: see htd run test-all for script.mpe, work towards
@@ -4960,9 +4960,10 @@ commands is a long, long listing is generated en-passant from the source
 htd_grp__composure=main
 
 
+# XXX: setup env before main?
 htd_man_1__meta='
 
-'$meta_api_man_1'
+$meta_api_man_1
 
 See also embyapi'
 htd__meta()
@@ -5092,9 +5093,9 @@ htd_main()
 
   #test -n "$U_S" || U_S=/srv/project-local/user-scripts
   #test -n "$htd_log" || htd_log=$U_S/tools/sh/log.sh
-  test -n "$script_util" || script_util=$scriptpath/tools/sh
-  test -n "$htd_log" || htd_log=$script_util/log.sh
-  test -n "$verbosity" || verbosity=4
+  test -n "${script_util-}" || script_util=$scriptpath/tools/sh
+  test -n "${htd_log-}" || htd_log=$script_util/log.sh
+  test -n "${verbosity-}" || verbosity=4
 
   htd_init || $htd_log error htd-main "During htd-init: $?" "$0" $? || return
 
@@ -5153,14 +5154,14 @@ htd_optsv()
 htd_init()
 {
   test -n "$script_util" || return 103 # NOTE: sanity
-  set -e
-  unset CWD
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
-  test -n "$htd_env_d_default" ||
-      htd_env_d_default=init-log\ ucache\ scriptpath\ std
+  test -n "${htd_env_d_default-}" ||
+      htd_env_d_default=0-src\ dev\ init-log\ ucache\ scriptpath\ std
   test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
   INIT_LOG=$LOG
   U_S=/srv/project-local/user-scripts
+  CWD=$scriptpath
+  SCRIPTPATH=
 
   for env_d in $htd_env_d_default
   do
@@ -5199,7 +5200,7 @@ htd_lib()
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
-  test -n "$__load_lib" || {
+  test -n "${__load_lib-}" || {
     htd_main "$@" || exit $?
   }
 ;; esac

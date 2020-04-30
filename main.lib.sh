@@ -947,16 +947,16 @@ run_check()
 # remember starting dir and track real vs. symbolic?
 push_cwd()
 {
-  test -n "$CWD" && {
+  test -n "${CWD-}" && {
     CWD_D=$PWD:$CWD
   }
   CWD=$PWD
 
-  test -z "$1" || {
+  test -z "${1-}" || {
       fnmatch "/*" "$1" && return 1 || RCWD=$1
   }
 
-  test -z "$RCWD" || cd $RCWD
+  test -z "${RCWD-}" || cd $RCWD
 
   #test "$CWD" = "$PWD"
   #test "$CWD" = "$PCWD"
@@ -978,4 +978,13 @@ pop_cwd()
     cd "$CWD"
     unset CWD
   }
+}
+
+main_isdevenv()
+{
+  test -z "${ENV_DEV-}" && {
+    fnmatch "dev*" "${ENV-}" && ENV_DEV=1 || ENV_DEV=0
+  }
+  trueish "$ENV_DEV"
+  return $?
 }

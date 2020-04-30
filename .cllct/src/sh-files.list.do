@@ -1,10 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 redo-ifchange "scm-status"
 
 (
-  util_mode=boot scriptpath=$REDO_BASE . $REDO_BASE/util.sh
+  util_mode=boot scriptpath=$REDO_BASE . $REDO_BASE/tools/sh/init.sh
   scriptname="do:$REDO_PWD:$1"
   cd "$REDO_BASE" &&
-  lib_load build-htd &&
+  lib_load build-htd vc-htd main &&
 
   list_sh_files >"$REDO_PWD/$3"
 

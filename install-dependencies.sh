@@ -191,47 +191,48 @@ install_pylib()
 
 install_apenwarr_redo()
 {
-  test -n "$global" || {
-    test -n "$sudo" && global=1 || global=0
-  }
+  git clone https://github.com/apenwarr/redo.git /src/github.com/apenwarr/redo && \
+  cd /src/github.com/apenwarr/redo &&
+	DESTDIR= PREFIX=/usr/local ./do -j10 install
 
-  #git clone https://github.com/apenwarr/redo.git /src/github.com/apenwarr/redo && \
-  #cd /src/github.com/apenwarr/redo && ./redo test && ./redo install
+  #test -n "$global" || {
+  #  test -n "$sudo" && global=1 || global=0
+  #}
 
-  test $global -eq 1 && {
+  #test $global -eq 1 && {
 
-    test -d /usr/local/lib/python2.7/site-packages/redo \
-      || {
+  #  test -d /usr/local/lib/python2.7/site-packages/redo \
+  #    || {
 
-        $pref git clone https://github.com/apenwarr/redo.git \
-            /usr/local/lib/python2.7/site-packages/redo || return 1
-      }
+  #      $pref git clone https://github.com/apenwarr/redo.git \
+  #          /usr/local/lib/python2.7/site-packages/redo || return 1
+  #    }
 
-    test -h /usr/local/bin/redo \
-      || {
+  #  test -h /usr/local/bin/redo \
+  #    || {
 
-        $pref ln -s /usr/local/lib/python2.7/site-packages/redo/redo \
-            /usr/local/bin/redo || return 1
-      }
+  #      $pref ln -s /usr/local/lib/python2.7/site-packages/redo/redo \
+  #          /usr/local/bin/redo || return 1
+  #    }
 
-  } || {
+  #} || {
 
-    which basher 2>/dev/null >&2 && {
+  #  which basher 2>/dev/null >&2 && {
 
-      { redo -h || test $? -eq 97
-      } || {
-         basher package-path apenwarr/redo && {
-            basher uninstall apenwarr/redo || return
-        }
-      }
+  #    { redo -h || test $? -eq 97
+  #    } || {
+  #       basher package-path apenwarr/redo && {
+  #          basher uninstall apenwarr/redo || return
+  #      }
+  #    }
 
-      basher install apenwarr/redo ||
-          stderr_ "install apenwarr/redo" $?
+  #    basher install apenwarr/redo ||
+  #        stderr_ "install apenwarr/redo" $?
 
-    } ||
+  #  } ||
 
-      stderr_ "Need basher to install apenwarr/redo locally" 1
-  }
+  #    stderr_ "Need basher to install apenwarr/redo locally" 1
+  #}
 
   redo -h || test $? -eq 97
 }

@@ -16,7 +16,7 @@ test -n "${U_S-}" ||
   $LOG "error" "" "Expected U-S env" "" 1
 
 test -d $U_S/.git || {
-  trueish "${ENV_DEV-}" && {
+  test "${ENV_DEV-}" = "1" && {
     {
       test ! -d "$U_S" || rm -rf "$U_S"
       git clone https://github.com/dotmpe/user-scripts.git $U_S
@@ -28,15 +28,11 @@ test -d $U_S/.git || {
       $LOG "error" "" "Expected U-S checkout" "" 1
 }
 
-# . "$U_S/tools/sh/parts/fnmatch.sh" # No-Sync
-# . "$U_S/tools/sh/parts/include.sh" # No-Sync
-# . "$U_S/tools/ci/parts/print-err.sh" # No-Sync
-# . "$U_S/tools/ci/parts/exec.sh" # No-Sync
-
 . $PWD/tools/sh/init-include.sh # Initialize sh_include
 
-sh_include str-bool str-id read exec hd-offsets suite-from-table suite-source suite-run
-#sh_include offsets
+sh_include \
+    str-bool str-id read exec hd-offsets suite-from-table suite-source suite-run
+# XXX: sh_include offsets
 
 
 # Sync: X-CI-0.1:

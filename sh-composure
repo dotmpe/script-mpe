@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 CWD="$PWD"
 PPWD="`pwd -P`"
 
 unset  U_S  LOG  INIT_LOG  SCRIPTPATH
+
+base=sh-composure
 
 #test -n "${PROJECT_DIR:-}" || {
 #  test -w /srv/project-local &&
@@ -13,42 +15,43 @@ unset  U_S  LOG  INIT_LOG  SCRIPTPATH
 
 #U_S=/src/github.com/dotmpe/user-scripts
 #: "${U_S:="$HOME/build/dotmpe/user-scripts"}"
-#: "${U_S:="$HOME/project/user-scripts"}"
+: "${U_S:="$HOME/project/user-scripts"}"
 #: "${LOG:="$PPWD/tools/sh/log.sh"}"
-#: "${LOG:="$U_S/tools/sh/log.sh"}"
+: "${LOG:="$U_S/tools/sh/log.sh"}"
 #: "${INIT_LOG:="$LOG"}"
 
-. "tools/sh/parts/env-ucache.sh"
+scriptpath=$CWD
+SCRIPTPATH=
 
-. "tools/ci/util.sh"
+. $scriptpath/tools/sh/init-include.sh
 
-. "tools/sh/parts/env-0.sh"
-. "tools/sh/parts/env-log.sh"
-. "tools/sh/parts/env-std.sh"
-. "tools/sh/parts/env-src.sh"
-. "tools/sh/parts/env-dev.sh"
-. "tools/sh/parts/env-test.sh"
+sh_include env-ucache env-0 env-log env-std env-dev env-test std-ci-helper \
+    print-color
 
-. "tools/ci/parts/init-user-repo.sh"
+#. "tools/ci/util.sh"
+#
+#. "tools/ci/parts/init-user-repo.sh"
 
-unset SCRIPTPATH
 . "tools/sh/parts/env-scriptpath.sh"
 echo '-----'
 echo $SCRIPTPATH | tr ':' '\n'
 
+. $PPWD/tools/sh/init.sh
+lib_load composure str-htd std src function functions ck shell git volume oil docker-sh
+lib_init
+
+export_stage "$base"
+
 ci_announce '---------- Listing user checkouts'
-./bin/u-s user-repos
+$U_S/bin/u-s user-repos
 echo
 
 #export  U_S  LOG  INIT_LOG
 export verbosity=7
 
-. $PPWD/tools/sh/init.sh
 note OK
 
 
-lib_load composure std src function functions ck shell git volume oil docker-sh
-lib_init
 composure_check_name_scripts
 #oil_docker_init
 

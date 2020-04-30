@@ -91,9 +91,9 @@ vc_bzrdir()
 # except but one in order.
 vc_dir()
 {
-  test -n "$1" || set -- "."
+  test -n "${1-}" || set -- "."
   test -d "$1" || error "vc-dir expected dir argument: '$1'" 1
-  test -z "$2" || error "vc-dir surplus arguments: '$2'" 1
+  test -z "${2-}" || error "vc-dir surplus arguments: '$2'" 1
   vc_gitdir "$1" && return
   vc_bzrdir "$1" && return
   vc_svndir "$1" && return
@@ -103,7 +103,7 @@ vc_dir()
 
 vc_isscmdir()
 {
-  test -n "$1" || set -- "."
+  test -n "${1-}" || set -- "."
   test -d "$1" || error "vc-isscmdir expected dir argument: '$1'" 1
   vc_isgit "$1" && return
   vc_isbzr "$1" && return
@@ -134,14 +134,14 @@ vc_fsck_git()
 
 vc_fsck()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_fsck_${scm}
 }
 
 
 vc_remotes_git()
 {
-  test -n "$1" && {
+  test -n "${1-}" && {
     git config --get remote.$1.url
     return $?
   } || {
@@ -182,7 +182,7 @@ vc_ls_remote_git()
 
 vc__ls_remote()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_ls_remote_${scm} "$@"
 }
 
@@ -297,7 +297,7 @@ vc_unversioned_hg()
 # List untracked paths (excluding ignored files)
 vc_unversioned()
 {
-  test -n "$RCWD" || error spwd-13 13
+  test -n "${RCWD-}" || error spwd-13 13
 
   # list paths not in git (including ignores)
   vc_unversioned_$scm
@@ -391,9 +391,9 @@ vc_tracked_hg()
 # List file tracked in version
 vc_tracked()
 {
-  test -n "$RCWD" -a -n "$CWD" || push_cwd
+  test -n "${RCWD-}" -a -n "${CWD-}" || push_cwd
 
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
 
   # list paths under version control
   vc_tracked_$scm "$@"
@@ -416,7 +416,7 @@ vc_tracked()
     done
   }
 
-  test -n "$RCWD" -a -n "$CWD" || pop_cwd
+  test -n "${RCWD-}" -a -n "${CWD-}" || pop_cwd
 }
 
 
@@ -431,7 +431,7 @@ vc_staged_bzr() { false; }
 # List staged files
 vc_staged()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_staged_${scm}
 }
 
@@ -447,7 +447,7 @@ vc_modified_bzr() { false; }
 # List modified files
 vc_modified()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_modified_${scm} "$@"
 }
 
@@ -578,7 +578,7 @@ vc_roots_hg()
 
 vc_roots()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_roots_${scm} "$@"
 }
 
@@ -622,7 +622,7 @@ vc_diskuse_git()
 
 vc_diskuse()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_diskuse_${scm} "$@"
 }
 
@@ -908,7 +908,7 @@ vc_checkout_bzr() { false; }
 # checkout
 vc_checkout()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_checkout_${scm} "$@"
 }
 
@@ -924,7 +924,7 @@ vc_fetch_bzr() { false; }
 # fetch
 vc_fetch()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_fetch_${scm} "$@"
 }
 
@@ -999,7 +999,7 @@ vc_revision_bzr()
 # Return version for working tree, aka revision Id, commit Id, etc.
 vc_revision()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_revision_${scm}
 }
 
@@ -1027,7 +1027,7 @@ vc_blame_bzr() { false; }
 
 vc_blame()
 {
-  test -n "$scm" || vc_getscm
+  test -n "${scm-}" || vc_getscm
   vc_blame_${scm} "$@"
 }
 
@@ -1076,6 +1076,6 @@ vc_author_date() # Commit
 ## status
 #vc_status()
 #{
-#  test -n "$scm" || vc_getscm
+#  test -n "${scm-}" || vc_getscm
 #  vc_status_${scm}
 #}
