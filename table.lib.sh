@@ -107,9 +107,9 @@ fixed_table()
 {
   test -e "$1" -o "$1" = "-" || error "fixed-table Table file expected" 1
   local tab="$1" cutf=
-  test -n "$2" -a -e "$2" && cutf="$2" || {
+  test -n "${2-}" -a -e "${2-}" && cutf="$2" || {
     # Get headers from first comment if not given
-    test -n "$2" || {
+    test -n "${2-}" || {
       test -n "$fields" || fields="$(fixed_table_hd_ids "$1")"
       set -- "$1" "$fields"
     }
@@ -117,8 +117,8 @@ fixed_table()
     fixed_table_cuthd "$@"
   }
   # expand contained code, var references on eval
-  upper=0 default_env expand 1
-  trueish "$expand" && _q='\\"' || _q='\'\'
+  # XXX: upper=0 default_env expand 1
+  trueish "${expand:-1}" && _q='\\"' || _q='\'\'
   # Walk over rows, columns and assemble Sh vars, include raw-src in $line
   local row_nr=0
   grep -v '^\s*\(#.*\)\?$' "$tab" | while read line

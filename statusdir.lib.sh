@@ -90,7 +90,7 @@ statusdir_lib_finish()
   #  || warn "Leaving temp files in $sd_tmp_dir: $(echo $sd_tmp_dir/*)"
 }
 
-statusdir_list()
+statusdir_list() #
 {
   ls -la ${STATUSDIR_ROOT}{logs,index,tree}
 }

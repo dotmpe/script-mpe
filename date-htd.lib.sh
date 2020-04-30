@@ -391,8 +391,8 @@ time_fun()
 # Get first and last day of given week: sunday and saturday
 date_week() # Week Year [Date-Fmt]
 {
-	test $# -ge 2 -a $# -le 3 || return 2
-	test $# -eq 3 || set -- "$@" "+%Y-%m-%d"
+  test $# -ge 2 -a $# -le 3 || return 2
+  test $# -eq 3 || set -- "$@" "+%Y-%m-%d"
   local week=$1 year=$2 date_fmt="$3"
   local week_num_of_Jan_1 week_day_of_Jan_1
   local first_Sun
