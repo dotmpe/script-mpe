@@ -47,6 +47,16 @@ statusdir_init()
   test -e "${STATUSDIR_ROOT}cache"  || mkdir -p "${STATUSDIR_ROOT}cache"
 }
 
+statusdir_index() # Local-Name [Exists]
+{
+  { not_falseish "${2-}" || test -e "${STATUSDIR_ROOT}index/$1"
+  } || {
+    $LOG error "" "No such index" "${STATUSDIR_ROOT}index/$1"
+    return 2
+  }
+  echo "${STATUSDIR_ROOT}index/$1"
+}
+
 # Load backend
 statusdir_lib_start()
 {

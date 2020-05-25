@@ -511,7 +511,8 @@ disk_main()
 
 disk_init()
 {
-  . $scriptpath/tools/sh/init.sh || return
+  util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
+  #. $scriptpath/tools/sh/init.sh || return
   # -- disk box init sentinel --
 }
 
@@ -519,8 +520,8 @@ disk_lib()
 {
   set -- disk date str-htd sys-htd os-htd table darwin remote std stdio main
 
-  INIT_LOG=$init_log lib_load "$@" || return
-  INIT_LOG=$init_log lib_init "$@" || return
+  INIT_LOG=$LOG lib_load "$@" || return
+  INIT_LOG=$LOG lib_init "$@" || return
   # -- disk box lib sentinel --
 }
 

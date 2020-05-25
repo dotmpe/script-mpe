@@ -36,26 +36,26 @@ disk_lib_init()
 
 req_fdisk()
 {
-  test -x "$(which fdisk)" || {
-    error "$1: missing fdisk" 1
-  }
-  fdisk="$dev_pref $(which fdisk)"
+  #test -n "${fdisk-}" -a -x "$($dev_pref which fdisk)" || {
+  #  error "$1: missing fdisk" 1
+  #}
+  fdisk="$dev_pref $($dev_pref which fdisk)"
 }
 
 req_parted()
 {
-  test -n "$parted" -a -x "/sbin/parted" || {
-    error "$1: missing parted" 1
-  }
-  parted="$dev_pref $(which parted)"
+  #test -n "${parted-}" -a -x "$($dev_pref which parted)" || {
+  #  error "$1: missing parted" 1
+  #}
+  parted="$dev_pref $($dev_pref which parted)"
 }
 
 req_blkid()
 {
-  test -n "$blkid" -a -x "/sbin/blkid" || {
-    error "$1: missing blkid" 1
-  }
-  blkid="$dev_pref $(which blkid)"
+  #test -n "${blkid-}" -a -x "$($dev_pref which blkid)" || {
+  #  error "$1: missing blkid" 1
+  #}
+  blkid="$dev_pref $($dev_pref which blkid)"
 }
 
 
@@ -64,7 +64,7 @@ disk_fdisk_id()
   req_fdisk disk-fdisk-id || return
   case "$uname" in
 
-      Linux )
+      linux )
             { # List partition table
               $fdisk -l $1 || {
                 error "disk-fdisk-id at '$1'"
@@ -73,7 +73,7 @@ disk_fdisk_id()
             } | grep Disk.identifier | sed 's/^Disk.identifier: //'
           ;;
 
-      Darwin )
+      darwin )
             # Dump partition table
               $fdisk -d $1 || return $?
           ;;
@@ -82,16 +82,16 @@ disk_fdisk_id()
   esac
 }
 
-disk_id()
+disk_serial_id()
 {
   case "$uname" in
 
-    Linux )
+    linux )
         udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
           | cut -d '=' -f 2
       ;;
 
-    Darwin )
+    darwin )
         local bsd_name=$(basename $1) xml=
         #diskutil info "$1" | grep 'UUID' >&2 || warn "No grep $dev"
 
@@ -126,6 +126,11 @@ disk_id()
   esac
 }
 
+disk_id() # DEVICE
+{
+  disk_serial_id "$@"
+}
+
 disk_id_for_dev()
 {
   local dev="$1" ;
@@ -139,7 +144,7 @@ disk_model()
 {
   case "$uname" in
 
-    Linux ) req_parted disk-model || return
+    linux ) req_parted disk-model || return
 
         req_parted disk-model || return
         {
@@ -150,7 +155,7 @@ disk_model()
         } | grep Model: | sed 's/^Model: //'
       ;;
 
-    Darwin )
+    darwin )
         # FIXME: this only works with one disk, would need to parse XML plist
         system_profiler SPSerialATADataType | grep -qv disk1 || {
           error "Parse SPSerialATADataType plist" 1
@@ -167,7 +172,7 @@ disk_size()
 {
   case "$uname" in
 
-    Linux ) req_parted disk-size || return
+    linux ) req_parted disk-size || return
         req_parted disk-size || return
         {
           $parted -s $1 print || {
@@ -177,7 +182,7 @@ disk_size()
         } | grep Disk.*: | sed 's/^Disk[^:]*: //'
       ;;
 
-    Darwin )
+    darwin )
         echo $(system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
           | cut -d ':' -f 2 | cut -d ' ' -f 2 )GB
       ;;
@@ -190,7 +195,7 @@ disk_tabletype()
 {
   case "$(uname)" in
 
-    Linux ) req_parted disk-tabletype || return
+    linux ) req_parted disk-tabletype || return
         req_parted disk-tabletype || return
         {
           $parted -s $1 print || {
@@ -200,7 +205,7 @@ disk_tabletype()
         } | grep Partition.Table: | sed 's/^Partition.Table: //'
       ;;
 
-    Darwin )
+    darwin )
         system_profiler SPSerialATADataType | grep -qv GPT || {
           error "Parse SPSerialATADataType plist" 1
         }
@@ -215,7 +220,7 @@ disk_local_inner()
 {
   local disk=$1; shift
   debug "disk-local-inner disk='$disk'"
-  while test -n "$1"
+  while test $# -gt 0
   do
     case $(str_lower $1) in
       num ) disk_info "$disk" disk_index || echo -1 ;;
@@ -236,7 +241,6 @@ disk_local_inner()
 disk_local()
 {
   test -n "$1" || error disk-local 1
-  disk_local_inner "$@"
 
   echo $( disk_local_inner "$@" || {
     #return 1
@@ -250,18 +254,37 @@ disk_local()
   #  $(disk_tabletype $1) $(find_mount $1 | count_words)
 }
 
+
+disk_local_all()
+{
+  test -n "$*" || set -- $(os_disk_list)
+  std_info "Devices: '$*'"
+  {
+    echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
+    {
+      while test $# -gt 0
+      do
+        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C ||
+          echo "disk:local:$1" >&2 # >$failed
+        shift
+      done
+    } | sort -n
+  } | column -tc 3
+}
+
+
 # List (local) disks by mount point
 disk_mounts()
 {
   case "$uname" in
 
-    Darwin )
+    darwin )
         mount |
             grep 'on\ ' |
             sed 's/^.*\ on\ //g' | cut -d ' ' -f 1
       ;;
 
-    #Linux ) ;;
+    #linux ) ;;
 
     * ) error "Disk-Mounts not supported on: $uname" 1 ;;
   esac
@@ -272,14 +295,14 @@ os_disk_list()
 {
   case "$uname" in
 
-    Linux )
+    linux )
         glob=/dev/sd*[a-z]
         test "$(echo $glob)" = "$glob" || {
           echo $glob | tr ' ' '\n'
         }
       ;;
 
-    Darwin )
+    darwin )
         echo /dev/disk[0-9]* |
             tr ' ' '\n' |
             grep -v '[0-9]s[0-9]*$'
@@ -296,11 +319,11 @@ disk_list_part_local()
   test -n "$1" || error no-disk-list-part-local-args 1
   test -z "$2" || error "disk-list-part-local surplus args '$2'" 1
   case "$uname" in
-    Linux )
+    linux )
         test -z "$1" && glob=/dev/sd*[a-z]*[0-9] \
           || glob=$1[0-9]
       ;;
-    Darwin )
+    darwin )
         # FIXME: deal with system_profiler plist datatypes
         # This only uses first disk to avoid complexity
         test -z "$1" && glob=/dev/disk0s*[0-9] \
@@ -422,12 +445,15 @@ copy_fs()
 
 disk_info()
 {
-  test -n "$1" || error "disk-info disk-device" 1
-  test -n "$2" || set -- "$1" "prefix"
+  test -n "${1-}" || error "disk-info disk-device" 1
+  test -n "${2-}" || set -- "$1" "prefix"
   test -d "$DISK_CATALOG" || error "Invalid catalog env ($DISK_CATALOG)" 1
-  test -e "$DISK_CATALOG/disk/$1.sh" || {
-      set -- "$(disk_id_for_dev)" "$2" || {
-        error "No such known disk '$1'"; return 1; }; }
+
+  test -e "$DISK_CATALOG/disk/$1.sh" || { {
+      set -- "$(disk_id_for_dev "$1")" "$2" &&
+      test -e "$DISK_CATALOG/disk/$1.sh"
+    } || { error "No such known disk '$1'"; return 1; }; }
+
   . $DISK_CATALOG/disk/$1.sh
   eval echo \$$2
 }
@@ -630,4 +656,45 @@ disk_bootnumber()
   eval local $(disk_smartctl_attrs disk0)
   echo "$Power_Cycle_Count_Raw-$Power_Off_Retract_Count_Raw"
   echo "$Power_Cycle_Count-$Power_Off_Retract_Count"
+}
+
+# Load into env or print on dry-run columns from lsblk output line
+disk_lsblk_type_load() # Device Type Columns...
+{
+  local dev type lsblk colidx vid
+  dev=$1 type=$2; shift 2
+  lsblk="$(lsblk -o TYPE,$(echo $* | tr ' ' ',') $dev | grep -m 1 '^'$type' ' )" ||
+      return
+  for colidx in $(seq 2 $(( 1 + $# )) )
+  do
+    upper=1 mkvid $1
+    test $# -gt 1 || colidx=$colidx- # Use all remaining fiels as value for last column
+    trueish "${dry_run-}" &&
+        echo "$vid=\"$(echo $lsblk | cut -d' ' -f$colidx)\"" ||
+        eval "$vid=\"$(echo $lsblk | cut -d' ' -f$colidx)\""
+    shift
+  done
+}
+
+# Load into env columns from lsblk for disk devices
+disk_lsblk_load() # Device Columns...
+{
+  local dev
+  dev=$1 ; shift
+  test $# -gt 0 || set -- KNAME TYPE TRAN RM SIZE SERIAL REV VENDOR MODEL
+  disk_lsblk_type_load "$dev" disk "$@"
+}
+
+# Load into env columns from lsblk for partition devices
+disk_partition_lsblk_load() # Device Columns...
+{
+  local dev
+  dev=$1 ; shift
+  disk_lsblk_type_load "$dev" part "$@"
+}
+
+# Print columns from lsblk for disk devices
+disk_lsblk_show() # Device Columns
+{
+  dry_run=1 disk_lsblk_load "$@"
 }

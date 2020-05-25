@@ -974,8 +974,9 @@ linux_boottime()
   echo $(( $($gdate +"%s" ) + $(linux_uptime) ))
 }
 
-# Remove duplicate lines (unlike uniq -u) without sorting
-remove_dupes()
+# Sort into lookup table (with Awk) to remove duplicate lines.
+# Remove duplicate lines (unlike uniq -u) without sorting.
+remove_dupes() # ~
 {
   awk '!a[$0]++' "$@"
 }

@@ -59,7 +59,7 @@ log_src_id_key_var()
       log_key="$stderr_log_channel"
     } || {
       test -n "${base-}" -a -z "$scriptname" || {
-        log_key="\$CTX_PID:\$scriptname"
+        log_key="\$CTX_PID:\$scriptname/\$\$"
       }
       test -n "$log_key" || {
         test -n "${scriptext-}" || scriptext=.sh

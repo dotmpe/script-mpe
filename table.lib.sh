@@ -103,18 +103,29 @@ fixed_table_cuthd()
 # on the headers that precludes using the standard header parsing provided here
 # and makes providing `cut` arguments based on the header row more cumbersome.
 # See htd proc.
-fixed_table()
+fixed_table() # fields= ~ Table-File [ Cut-File | Columns... ]
 {
   test -e "$1" -o "$1" = "-" || error "fixed-table Table file expected" 1
   local tab="$1" cutf=
   test -n "${2-}" -a -e "${2-}" && cutf="$2" || {
-    # Get headers from first comment if not given
-    test -n "${2-}" || {
-      test -n "$fields" || fields="$(fixed_table_hd_ids "$1")"
+
+    test "$1" = "-" && {
+
+      $LOG error "" "TODO: parse cutfile from stdin..." 1
+      test -n "${2-}" || {
+        test -n "${fields-}" || local fields="$(head -n 1 "$1")"
+      }
       set -- "$1" "$fields"
+
+    } || {
+      # Get headers from first comment if not given
+      test -n "${2-}" || {
+        test -n "${fields-}" || local fields="$(fixed_table_hd_ids "$1")"
+        set -- "$1" "$fields"
+      }
+      # Assemble COL-ID CUTFLAG table (if missing or stale)
+      fixed_table_cuthd "$@"
     }
-    # Assemble COLID CUTFLAG table (if missing or stale)
-    fixed_table_cuthd "$@"
   }
   # expand contained code, var references on eval
   # XXX: upper=0 default_env expand 1

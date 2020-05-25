@@ -6,7 +6,7 @@
 stattab_lib_load()
 {
   lib_assert statusdir || return
-  test -n "${STTAB-}" || STTAB=${STATUSDIR_ROOT}index/stattab.list
+  test -n "${STTAB-}" || STTAB=$(statusdir_index stattab.list 0)
 }
 
 stattab_lib_init()
@@ -15,6 +15,7 @@ stattab_lib_init()
   test -e "$STTAB" || {
     mkdir -p "$(dirname "$STTAB")" && touch "$STTAB"
   }
+  sttab_id=
 }
 
 stattab_load()
@@ -57,7 +58,7 @@ stattab_list() # Match-Line
   }
 }
 
-# List ST-Id's
+# TODO: List ST-Id's
 stattab_statlist() # ? LIST
 {
   test -n "$2" || set -- "$1" "$STTAB"
@@ -69,8 +70,12 @@ stattab_init() # ST-Id [Init-Tags]
 {
   note "Initializing $1"
   test -n "$sttab_id" || stattab_load "$1"
-  stattab_entry_update
+  stattab_entry_update &&
+  stattab_init_show
+}
 
+stattab_init_show() #
+{
   pref=eval set_always=1 \
     capture_var 'stattab_entry_fields "$@" | normalize_ws' sttab_r new_entry "$@"
   echo "$new_entry" >>"$STTAB"
@@ -118,6 +123,7 @@ stattab_update()
   false
 }
 
+# Quietly check wether entry exists, don't capture output
 stattab_entry_exists() # Entry-Id [Tab]
 {
   test -n "$sttab_id" || stattab_load "$1"
@@ -125,6 +131,7 @@ stattab_entry_exists() # Entry-Id [Tab]
   $ggrep -q '^[0-9 +-]*\b'"$sttab_id"'\b\ ' "$2"
 }
 
+# Quietly fetch and parse entry
 stattab_entry() # Entry-Id [Tab]
 {
   test -n "$sttab_id" || stattab_load "$1"
@@ -135,7 +142,7 @@ stattab_entry() # Entry-Id [Tab]
 }
 
 # Parse statusdir index file line
-stattab_entry_parse() # Tab-Entry
+stattab_entry_parse() # Tab-Grep
 {
   # Split grep-line number from rest
   lineno="$(echo "$1" | cut -d ':' -f 1)"
@@ -165,9 +172,9 @@ stattab_entry_parse() # Tab-Entry
 
 stattab_parse_std_descr()
 {
-  test -z "$1" || scr_status=$1
-  test -z "$2" || scr_ctime=$(date_pstat "$2")
-  test -z "$3" || scr_mtime=$(date_pstat "$3")
+  test -z "$1" || sttab_status=$1
+  test -z "$2" || sttab_ctime=$(date_pstat "$2")
+  test -z "$3" || sttab_mtime=$(date_pstat "$3")
 }
 
 stattab_entry_fetch() # ST-Ref

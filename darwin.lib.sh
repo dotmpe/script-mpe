@@ -4,13 +4,13 @@
 
 darwin_lib_load()
 {
-  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
-  test -n "$xattr" || xattr=xattr-2.7
-  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
-  test -d "$STATUSDIR_ROOT/logs/$hostname" ||
+  test -n "${os-}" || os="$(uname -s | tr 'A-Z' 'a-z')"
+  test -n "${xattr-}" || xattr=xattr-2.7
+  test -n "${STATUSDIR_ROOT-}" || STATUSDIR_ROOT=$HOME/.statusdir
+  test -d "${STATUSDIR_ROOT-}/logs/$hostname" ||
       mkdir -p "$STATUSDIR_ROOT/logs/$hostname"
-  test -n "$sleeplog" || sleeplog=$HOME/.statusdir/logs/$hostname/sleep.log
-  test -n "$locklog" || locklog=$HOME/.statusdir/logs/$hostname/lock.log
+  test -n "${sleeplog-}" || sleeplog=$HOME/.statusdir/logs/$hostname/sleep.log
+  test -n "${locklog-}" || locklog=$HOME/.statusdir/logs/$hostname/lock.log
 }
 
 darwin_locklog_env()

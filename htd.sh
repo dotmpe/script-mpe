@@ -25,7 +25,7 @@
 htd_src=$_
 
 #set -o posix
-set -euo pipefail
+#set -euo pipefail
 
 version=0.0.4-dev # script-mpe
 
@@ -38,6 +38,7 @@ htd__outputs="passed skipped error failed"
 htd_load()
 {
   # -- htd box load insert sentinel --
+  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-load
 
   # Default-Env upper-case: shell env constants
   local upper=1 title=
@@ -336,10 +337,13 @@ htd_load()
   do
     htd_load_$ext || warn "Exception during loading $subcmd $ext"
   done
+
+  scriptname=$scriptname_old
 }
 
 htd_unload()
 {
+  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-unload
   local unload_ret=0
   for x in $(try_value "${subcmd}" run htd | sed 's/./&\ /g')
   do case "$x" in
@@ -397,6 +401,7 @@ htd_unload()
   #  || warn "Leaving HtD temp files $(echo $htd_tmp_dir/*)"
   unset htd_tmp_dir
 
+  scriptname=$scriptname_old
   return $unload_ret
 }
 
@@ -2825,6 +2830,7 @@ htd__disks()
   sudo which parted 1>/dev/null && parted=$(sudo which parted) \
     || warn "No parted" 1
   test -n "$parted" || error "parted required" 1
+
   DISKS=/dev/sd[a-e]
   for disk in $DISKS
   do
@@ -5162,12 +5168,14 @@ htd_init()
   U_S=/srv/project-local/user-scripts
   CWD=$scriptpath
   SCRIPTPATH=
+  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-init
 
   for env_d in $htd_env_d_default
   do
-    . $script_util/parts/env-$env_d.sh
+    scriptname=$scriptname . $script_util/parts/env-$env_d.sh
   done
-  $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
+  scriptname=$scriptname \
+    $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
 
   # XXX: cleanup
   util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
@@ -5176,23 +5184,27 @@ htd_init()
 
   lib_lib_load && lib_lib_init || return
 
-  $htd_log note "$scriptname" "Bootstrapping..." "$default_lib"
+  scriptname=$scriptname \
+    $htd_log note "" "Bootstrapping..." "$default_lib"
   INIT_LOG=$htd_log
   lib_load $default_lib || return
   lib_init $default_lib || return
 
   . $scriptpath/tools/sh/box.env.sh && box_run_sh_test
 
+  scriptname=$scriptname_old
   # -- htd box init sentinel --
 }
 
 htd_lib()
 {
+  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-lib
   local __load_lib=1
   . $scriptpath/match.sh || return
   set -- date str-htd logger-theme vc-htd os-htd htd
   lib_load "$@" && lib_init "$@"
 
+  scriptname=$scriptname_old
   # -- htd box lib sentinel --
 }
 

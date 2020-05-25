@@ -1,28 +1,48 @@
 #!/bin/sh
 
-# Script status records
+# Track script status and Id records in file
 
 scrtab_lib_load()
 {
-  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
-  test -n "$SCRDIR" || SCRDIR=$HOME/.local/scr.d
+  lib_assert prefix statusdir &&
+
+  test -n "${SCRDIR-}" || SCRDIR=$HOME/.local/scr.d
   test -d "$SCRDIR" || {
     mkdir -p "$SCRDIR" || return
   }
-  test -n "$SCRTAB" || SCRTAB=${STATUSDIR_ROOT}/index/scrtab.list
+
+  test -n "${SCRTAB-}" || SCRTAB=${STATUSDIR_ROOT}/index/scrtab.list
   test -e "$SCRTAB" || {
     touch "$SCRTAB" || return
   }
 }
 
-scrtab_load()
+scrtab_lib_init()
 {
-  scrtab_entry_env && scrtab_entry_init "$1" && {
-    test -z "$1" || shift
+  test "${scrtab_lib_init-}" = "0" && return
+
+  true
+}
+
+scrtab_load() # [Scr] [Id]
+{
+  test -f "${1-}" && scr_src=$1 || scr_src=
+  test -n "${2-}" && {
+    srctab_exists "$2" # XXX: wip
+  }
+}
+
+# Prepare env for Scr-Id
+scrtab_prep() # Scr
+{
+  scrtab_entry_env_reset &&
+  scrtab_entry_init "$1" && {
+      test -z "$1" || shift
   } && scrtab_entry_defaults "$@"
 }
 
-scrtab_entry_init() # SCR
+# Set src-src and src-id and check input
+scrtab_entry_init() # Scr-Src
 {
   scr_src="$1"
   scr_id="$(basename "$1" .sh)"
@@ -43,7 +63,7 @@ scrtab_entry_name() # Tags...
 
 scrtab_entry_create() # Src-Id [-|Scr-Src-File]
 {
-  test -n "$scr_src" || scrtab_load "$1"
+  test -n "$scr_src" || scrtab_prep "$1"
   test -n "$2" -o -z "$src_file" || set -- "$1" "$src_file"
 cat <<EOM
 #!/bin/bash
@@ -88,7 +108,7 @@ scrtab_scrlist() # ? LIST
 scrtab_init() # SCR-Id [Init-Tags]
 {
   note "Initializing $1"
-  test -n "$scr_src" || scrtab_load "$1"
+  test -n "$scr_src" || scrtab_prep "$1"
   scrtab_entry_update
 
   pref=eval set_always=1 \
@@ -102,7 +122,7 @@ scrtab_entry_fields() # SCR-Id [Init-Tags]
 {
   note "Init fields '$*'"
 
-  test -n "$scr_src" || scrtab_load "$1"
+  test -n "$scr_src" || scrtab_prep "$1"
   test -z "$1" || shift
 
   # Process scr_tags_raw, etc. and capture ret, set scr_tags
@@ -188,7 +208,7 @@ scrtab_new() # [--script | --alias] [NAME] [CMD] [TAGS...]
     NAME="$scr_src"
   }
 
-  #test -n "$scr_src" || scrtab_load "$NAME"
+  #test -n "$scr_src" || scrtab_prep "$NAME"
   #stderr info "ScrTab: $scr_id $scr_src $scr_vid"
   #stderr info "Tags: '$scr_primctx' '$scr_tags' '$scr_tags_raw'"
 
@@ -210,7 +230,7 @@ scrtab_new() # [--script | --alias] [NAME] [CMD] [TAGS...]
 # Apply status and record values where changed, but don't update entry yet
 scrtab_proc()
 {
-  test -n "$scr_src" || scrtab_load "$1"
+  test -n "$scr_src" || scrtab_prep "$1"
   test -e "$scr_file" || error "scrtab-proc: SCR file required: $1" 1
 
   # Parse
@@ -246,7 +266,7 @@ scrtab_entry_update()
 # scrtab-entry env
 scrtab_update() # SCR-Id [Tags]
 {
-  test -n "$scr_src" || scrtab_load "$1"
+  test -n "$scr_src" || scrtab_prep "$1"
   test -n "$scr_src" || error "scrtab-update: SCR required: $1" 1
   test -n "$scr_entry" || scrtab_entry_fetch "$1"
   debug "Entry '$scr_entry'"
@@ -299,14 +319,14 @@ scrtab_update() # SCR-Id [Tags]
 
 scrtab_entry_exists() # SCR-Id [LIST]
 {
-  test -n "$scr_src" || scrtab_load "$1"
+  test -n "$scr_src" || scrtab_prep "$1"
   test -n "$2" || set -- "$1" "$SCRTAB"
   $ggrep -q "^[0-9 +-]*\b$scr_id\\ " "$2"
 }
 
 scrtab_initid() # SCR-Name [LIST]
 {
-  test -n "$scr_id" || scrtab_load "$1"
+  test -n "$scr_id" || scrtab_prep "$1"
   test -n "$2" || set -- "$1" "$SCRTAB"
   last_id=$( $ggrep -o "^[0-9 +-]*\b$scr_id-[0-9]*\\ " "$2"|sed 's/^.*-\([0-9]*\) *$/\1/'|sort -n|tail -n 1)
   debug "Last Id: $last_id"
@@ -318,11 +338,11 @@ scrtab_initid() # SCR-Name [LIST]
 # Provide ctx arg to parse descriptor iso. primary context (if func exists)
 scrtab_entry() # SCR-Id
 {
-  test -n "$scr_src" || scrtab_load "$1"
+  test -n "$scr_src" || scrtab_prep "$1"
   test -n "$2" || set -- "$1" "$SCRTAB"
   scr_re="$(match_grep "$1")"
-  scrtab_entry="$( $ggrep -m 1 -n "^[0-9 +-]*\b$scr_re\\ " "$2" )" || return $?
-  scrtab_parse "$scrtab_entry"
+  scrtab_entry="$(
+  scrtab_tab | $ggrep -m 1 -n "^[0-9 +-]*\b$scr_re\\ " "$2" )" || return $?
 }
 
 # Parse statusdir index file line
@@ -367,11 +387,11 @@ scrtab_parse_std_descr()
 
 scrtab_entry_fetch() # SCR-Id
 {
-  scrtab_entry "$1" || error "No entry '$1'" 1
+  scrtab_parse "$(scrtab_entry "$1" )" || error "No entry '$1'" 1
   test -n "$scr_status" || error "Error parsing" 1
 }
 
-scrtab_entry_env()
+scrtab_entry_env_reset()
 {
   scr_id=
   scr_src=
@@ -407,7 +427,7 @@ scrtab_entry_defaults() # Tags
 
 scrtab_check() # SCR-Id [Tags]
 {
-  test -n "$scr_src" || scrtab_load "$1"
+  test -n "$scr_src" || scrtab_prep "$1"
   test -n "$1" || set -- "$scr_src"
   scrtab_entry_exists "$1" && {
 
@@ -448,6 +468,7 @@ scrtab_processall()
   scrtab_update_cached=1 scrtab_process_reset=1 scrtab_checkall "$@"
 }
 
+
 htd_scrtab_show() # Var-Names...
 {
   htd__show "$@"
@@ -455,7 +476,7 @@ htd_scrtab_show() # Var-Names...
 
 htd_scrtab_entry_show() # Scr-Id Var-Names...
 {
-  scrtab_load "$1"
+  scrtab_prep "$1"
   shift
   scrtab_entry_fetch "$scr_id"
   htd__show "$@"
