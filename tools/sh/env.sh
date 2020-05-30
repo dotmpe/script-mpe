@@ -4,15 +4,9 @@
 
 test -z "${sh_env_:-}" && sh_env_=1 || return 98 # Recursion
 
-: "${CWD:="$PWD"}"
-: "${sh_tools:="$CWD/tools/sh"}"
-: "${ci_tools:="$CWD/tools/ci"}"
+set -o | grep -q pipefail || sh_include env-strict
 
 : "${build_tab:="build.txt"}"
-
-set -o | grep -q pipefail || {
-  . "$sh_tools/parts/env-strict.sh"
-}
 
 : "${APP_LBL:="Script.mpe"}" # No-Sync
 : "${APP_ID:="script-mpe"}" # No-Sync

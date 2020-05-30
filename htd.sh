@@ -38,7 +38,7 @@ htd__outputs="passed skipped error failed"
 htd_load()
 {
   # -- htd box load insert sentinel --
-  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-load
+  local scriptname_old=$scriptname; export scriptname=htd-load
 
   # Default-Env upper-case: shell env constants
   local upper=1 title=
@@ -343,7 +343,7 @@ htd_load()
 
 htd_unload()
 {
-  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-unload
+  local scriptname_old=$scriptname; export scriptname=htd-unload
   local unload_ret=0
   for x in $(try_value "${subcmd}" run htd | sed 's/./&\ /g')
   do case "$x" in
@@ -5168,11 +5168,11 @@ htd_init()
   U_S=/srv/project-local/user-scripts
   CWD=$scriptpath
   SCRIPTPATH=
-  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-init
+  local scriptname_old=$scriptname; export scriptname=htd-init
 
   for env_d in $htd_env_d_default
   do
-    scriptname=$scriptname . $script_util/parts/env-$env_d.sh
+    . $script_util/parts/env-$env_d.sh
   done
   scriptname=$scriptname \
     $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
@@ -5198,7 +5198,7 @@ htd_init()
 
 htd_lib()
 {
-  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-lib
+  local scriptname_old=$scriptname; export scriptname=htd-lib
   local __load_lib=1
   . $scriptpath/match.sh || return
   set -- date str-htd logger-theme vc-htd os-htd htd

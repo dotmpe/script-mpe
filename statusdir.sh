@@ -369,7 +369,7 @@ statusdir_init()
   true "${sd_be:="fsdir"}"
 
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
-  test -n "$htd_env_d_default" ||
+  test -n "${htd_env_d_default-}" ||
       htd_env_d_default=init-log\ ucache\ scriptpath\ std
 
   true "${U_S:="/srv/project-local/user-scripts"}"
@@ -378,18 +378,23 @@ statusdir_init()
   test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
   INIT_LOG=$LOG
 
+  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-init
+
   for env_d in $htd_env_d_default
   do
-    . $script_util/parts/env-$env_d.sh
+    scriptname=$scriptname . $script_util/parts/env-$env_d.sh
   done
   test -n "$htd_log" || htd_log=$LOG
   test -n "$lib_lib_log" || lib_lib_log=$LOG
-  $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
+  scriptname=$scriptname \
+      $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
 
   util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
   . $scriptpath/tools/sh/box.env.sh &&
   box_run_sh_test &&
   lib_load os sys str std logger-std logger-theme log shell main str-htd
+
+  scriptname=$scriptname_old
   # -- statusdir box init sentinel --
 }
 

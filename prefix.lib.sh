@@ -6,7 +6,7 @@ prefix_lib_load()
 {
   lib_assert statusdir || return
   test -n "${UCONF-}" || UCONF=$HOME/.conf
-  test -n "${pathnames-}" || pathnames=pathnames.tab
+  test -n "${pathnames-}" || pathnames=user/pathnames.tab
   test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}/index/basedirs.tab
 }
 
@@ -48,6 +48,7 @@ prefix_require_names_index() # Pathnames-Table
   test -n "${1:-}" || set -- "$UCONF/$pathnames" "${2:-}"
   test -n "${2:-}" || set -- "$1" "$BASEDIR_TAB"
   test $# -eq 2 || return
+  test -f "$1" || return
 
   test -n "$index" || export index=$2
   test -s "$index" -a "$index" -nt "$1" || {

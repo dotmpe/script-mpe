@@ -120,9 +120,10 @@ htd_libs__today=journal\ date-htd
 
 
 htd_als__week_nr='Show current journal week/day id (ISO)'
-htd__week_nr()
+htd__week_nr() # Date
 {
-  date +%V
+  test $# -gt 0 || set -- now
+  date +%V -d "$*"
 }
 
 
@@ -234,7 +235,9 @@ htd__journal_json()
   htd__txt to-json "$1"
 }
 
-htd_man_1__journal_times='
+
+htd_man_1__journal_times='Filter journal date-tags
+
     list-day PATH
         List times found in log-entry at PATH.
     list-tri*

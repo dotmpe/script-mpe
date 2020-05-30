@@ -8,7 +8,7 @@ test -z "${SCRIPTPATH-}" ||
   $INIT_LOG "note" "env-scriptpath-deps" "Current SCRIPTPATH" "$SCRIPTPATH"
 
 type trueish >/dev/null 2>&1 || {
-  . $CWD/tools/sh/parts/trueish.sh
+  . $U_S/tools/sh/parts/trueish.sh
 }
 type remove_dupes >/dev/null 2>&1 || {
   . $CWD/tools/sh/parts/remove-dupes.sh
