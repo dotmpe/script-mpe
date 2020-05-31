@@ -226,7 +226,8 @@ try_subcmd()
   get_subcmd_func "$1" || {
     e=$?
     test -z "$subcmd" && {
-      try_usage
+      ( try_local_func usage && $func_name ) \
+        || ( try_local_func usage '' std && $func_name )
       error 'No command given, see "help"' 1
     } || {
       test "$e" = "1" -a -z "$func_exists" && {

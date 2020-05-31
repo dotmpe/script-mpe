@@ -2,7 +2,7 @@
 
 #ctx_std_lib_load
 
-ctx_std_init() # Tags...
+ctx_std_lib_init() # Tags...
 {
   test -z "$1" || note "std init: $*"
 }
