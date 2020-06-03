@@ -5192,6 +5192,7 @@ htd_init()
 
   . $scriptpath/tools/sh/box.env.sh && box_run_sh_test
 
+  unset INIT_LOG
   scriptname=$scriptname_old
   # -- htd box init sentinel --
 }
