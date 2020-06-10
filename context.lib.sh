@@ -5,7 +5,7 @@
 
 context_lib_load()
 {
-  lib_assert prefix statusdir &&
+  lib_assert statusdir &&
   true "${CTX_DEF_NS:="HT"}" &&
   true "${CTX_TAB:="${STATUSDIR_ROOT}index/context.list"}"
 }
@@ -170,7 +170,7 @@ context_tag_fields_init()
 }
 
 # Prep/parse (primary) context given or default
-context_init()
+contexttab_init()
 {
   test -n "${package_lists_contexts_default-}" || package_lists_contexts_default=@Std
   test -n "${1-}" || set -- $package_lists_contexts_default
@@ -181,8 +181,8 @@ context_init()
   upper= mkvid "$(echo "$primctx" | cut -c2-)" && primctx_id="$vid"
 }
 
-context_load()
+contexttab_load_entry()
 {
-  test -n "${primctx:-}" || context_init "$@"
+  test -n "${primctx:-}" || contexttab_init "$@"
   context_tag_env "$primctx_id"
 }

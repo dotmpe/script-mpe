@@ -4,7 +4,7 @@
 
 scrtab_lib_load()
 {
-  lib_assert prefix statusdir &&
+  lib_assert statusdir &&
 
   test -n "${SCRDIR-}" || SCRDIR=$HOME/.local/scr.d
   test -d "$SCRDIR" || {

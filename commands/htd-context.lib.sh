@@ -28,9 +28,12 @@ htd_context_roots_docstat()
 # Check that given context names exist, either as root or sub-context
 htd_context_check()
 {
+  test -n "$*" || warn "Arguments expected" 1 || return
+
   htd_context_check_inner()
   {
     context_exists "$1" && {
+      $LOG ok "" "Exists" "$1"
       return
     } || {
       context_existsi "$1" && {
@@ -41,6 +44,7 @@ htd_context_check()
           warn "Sub-tag exists for '$1'"
           return 2
         } || {
+          $LOG nok "" "No such tag" "$1"
           return 1
         }
       }
@@ -64,52 +68,29 @@ htd_context_new()
 
 # Other context actions
 
-htd_context_update()
-{
-  true
-}
-
-htd_context_start()
-{
-  echo TODO: start
-}
-
-htd_context_close()
-{
-  echo TODO: close
-}
-
-htd_context_destroy()
-{
-  echo TODO: destroy
-}
+#htd_context_update()
+#{
+#  true
+#}
+#
+#htd_context_start()
+#{
+#  echo TODO: start
+#}
+#
+#htd_context_close()
+#{
+#  echo TODO: close
+#}
+#
+#htd_context_destroy()
+#{
+#  echo TODO: destroy
+#}
 
 htd_context_tree()
 {
   txt.py txtstat-tree "$HTDCTX_TAB"
-}
-
-context__help ()
-{
-  cat <<EOM
-Context tracks all current or local tags, ie. any Name Id as todo.txt item.
-
-tab or list - output all
-check <TAG> - verify exists, or check subcontext and check case
-tag -
-
-info
-summary
-
-TODO: what to do with commands/htd-context
-TODO: Not all docstats have tag (context) yet. URLs (urlstat) idem.
-TODO: drafts are not in docstat, context
-EOM
-}
-
-context__info ()
-{
-  true
 }
 
 context__summary ()

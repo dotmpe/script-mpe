@@ -18,10 +18,11 @@ the same tools.
 
 '
 
-tools__help ()
+htd_tools_help ()
 {
   echo "$htd_man_1__tools"
 }
+
 htd_tools_list()
 {
   tools_list

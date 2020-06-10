@@ -10,17 +10,21 @@ tools_lib_load()
   # default_env Htd-ToolsFile "$CWD/tools.yml"
   test -n "${HTD_TOOLSFILE-}" || export HTD_TOOLSFILE="$CWD"/tools.yml
 
-  # default_env Htd-ToolsDir "$HOME/.htd-tools"
-  test -n "${HTD_TOOLSDIR-}" || export HTD_TOOLSDIR=$HOME/.htd-tools
-
   # default_env Htd-BuildDir .build
-  test -n "${HTD_BUILDDIR-}" || export HTD_BUILDDIR=".build"
-
+  test -n "${HTD_BUILDDIR-}" || export HTD_BUILDDIR="$CWD/.build"
   export B="$HTD_BUILDDIR"
 
-  tools_json || true
+  # default_env Htd-ToolsDir "$HOME/.htd-tools"
+  test -n "${HTD_TOOLSDIR-}" || export HTD_TOOLSDIR=$HOME/.htd-tools
 }
 
+tools_lib_init()
+{
+  test -d $B || mkdir -p $B
+  tools_json
+}
+
+# Create $B/tools.json from HTD_TOOLSFILE yaml
 tools_json()
 {
   test -e $HTD_TOOLSFILE || return $?

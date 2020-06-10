@@ -215,7 +215,7 @@ args_to_title() # Title-Descr
     done ; } | tr '\n' '-'
 }
 
-# Given a string(s), convert to ID and title
+# Given a string(s), convert to ID and title using context.list
 doc_title_id() # Title-Descr...
 {
   doc_id="$(args_to_filename "$@")"

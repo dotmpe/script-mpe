@@ -883,18 +883,18 @@ htd_current_context()
     test -e "$1" && {
       context_exists "$1" && {
         context_tag_env "$1"
-        context_init @$tag_id $rest
+        contexttab_init @$tag_id $rest
         return $?
       }
       context_existsub "$1" && {
         context_subtag_env "$1"
-        context_init @$tag_id $rest
+        contexttab_init @$tag_id $rest
         return $?
       }
     }
     fnmatch "@*" "$1" && {
       context_exists $(echo "$1" | cut -c2-) || return $?
-      context_init "$1"
+      contexttab_init "$1"
       return $?
     }
     fnmatch "+*" "$1" && {
@@ -902,11 +902,11 @@ htd_current_context()
       test "$package_id" = "$project_id" || error TODO 1
       # TODO: get primctx for other package
       #( cd "...$1" && htd context ... )
-      context_init "$package_lists_contexts_default"
+      contexttab_init "$package_lists_contexts_default"
       return $?
     }
   }
-  context_init
+  contexttab_init
 }
 
 
