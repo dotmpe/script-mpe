@@ -67,14 +67,14 @@ topics_als___e=edit
 
 
 
+### Main
 
-# Script main functions
 
 topics_main()
 {
   local
       scriptname=topics \
-      base=$(basename $0 .sh) \
+      base="$(basename "$0" ".sh")" \
       verbosity=5 \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     failed=
@@ -98,7 +98,7 @@ topics_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
+# Initial step to prepare for subcommand
 topics_init()
 {
   test -n "$scriptpath"
@@ -113,7 +113,7 @@ topics_init()
   # -- topics box init sentinel --
 }
 
-# FIXME: 2nd boostrap init
+# Second step to prepare for subcommand
 topics_lib()
 {
   local __load_lib=1
@@ -159,7 +159,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
-  test -n "$__load_lib" || {
+  test -n "${__load_lib-}" || {
     #case "$SHELL" in
     #    */bin/bash ) set -o nounset ;;
     #    */bin/dash ) set -o nounset -o pipefail ;;

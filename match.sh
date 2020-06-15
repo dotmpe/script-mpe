@@ -140,19 +140,23 @@ req_arg()
 }
 
 
+
 ### Main
 
 
 match_main()
 {
-  local scriptname=match base="$(basename "$0" .sh)" verbosity=4 \
+  local \
+      scriptname=match \
+      base="$(basename "$0" ".sh")" \
+      verbosity=4 \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
 
-  match_lib || return $(( $? - 1 ))
+  match_init || return $(( $? - 1 ))
 
   case "$base" in $scriptname )
 
-      match_init || return $?
+      match_load || return $?
 
       # Execute
       main_run_subcmd "$@"
@@ -161,7 +165,8 @@ match_main()
   esac
 }
 
-match_lib()
+# Initial step to prepare for subcommand
+match_init()
 {
   test -z "$__load_lib" || return 1
   test -n "$scriptpath" || return 1
@@ -172,7 +177,11 @@ match_lib()
   # -- match box init sentinel --
 }
 
-match_init()
+
+### Subcmd init, deinit
+
+# Pre-exec: post subcmd-boostrap init
+match_load()
 {
   local __load_lib=1
   test -n "$scriptpath" || return 11
@@ -189,12 +198,15 @@ match_init()
 #  set -- load-ext
 #;; esac
 
-# Ignore login shell
+# Main entry - bootstrap script if requested
+# Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
-  test -n "$__load_lib" || {
+  test -n "${__load_lib-}" || {
     match_main "$@" || exit $?
   }
 ;; esac
+
+# Id: script-mpe/0.0.4-dev match.sh

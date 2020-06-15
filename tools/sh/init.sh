@@ -9,7 +9,7 @@
 #    ;;
 #esac
 
-test -n "${CWD-}" || CWD="$PWD"
+#test -n "${CWD-}" || CWD="$PWD"
 test -n "${LOG-}" -a -x "${LOG-}" -o \
   "$(type -t "${LOG:-}" 2>/dev/null )" = "function" &&
   LOG_ENV=1 INIT_LOG=$LOG || LOG_ENV=0 INIT_LOG=$CWD/tools/sh/log.sh

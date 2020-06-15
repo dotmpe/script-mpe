@@ -1,4 +1,5 @@
 #!/bin/sh
+# Created: 2018-03-17
 ht__source=$_
 
 # Ht - trying to optimize htd.sh a bit. See `HT:dev/main` docs.
@@ -272,6 +273,7 @@ ht_main()
   esac
 }
 
+# Initial step to prepare for subcommand
 ht_init()
 {
   test -n "$script_util" || return 103 # NOTE: sanity
@@ -342,6 +344,7 @@ ht_init_dyn()
   # -- ht box init-dynamic sentinel --
 }
 
+# Second step to prepare for subcommand
 ht_lib()
 {
   INIT_LOG=$LOG
@@ -354,10 +357,12 @@ ht_lib()
 
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
+
   # Ignore 'load-ext' sub-command
-  test -n "$__load_lib" || {
-    case "$1" in load-ext ) ;; * )
-      ht_main "$@"
-    ;; esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "${__load_lib-}" || {
+    ht_main "$@"
   }
 ;; esac
+
+# Id: script-mpe/0.0.4-dev ht.sh

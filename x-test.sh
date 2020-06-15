@@ -72,11 +72,14 @@ test_main()
 
 
 
-# Ignore login console interpreter
+# Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
-  test -n "$f_lib_load" || {
 
+  # Ignore 'load-ext' sub-command
+  test "$1" != load-ext || __load_lib=1
+  test -n "${__load_lib-}" || {
     test_main "$@"
+  }
+;; esac
 
-  } ;;
-esac
+# Id: script-mpe/0.0.4-dev x-test.sh

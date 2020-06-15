@@ -5157,6 +5157,7 @@ htd_optsv()
   done
 }
 
+# Initial step to prepare for subcommand
 htd_init()
 {
   test -n "$script_util" || return 103 # NOTE: sanity
@@ -5211,10 +5212,11 @@ htd_lib()
 
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
+
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
   test -n "${__load_lib-}" || {
-    htd_main "$@" || exit $?
+    htd_main "$@"
   }
 ;; esac
 

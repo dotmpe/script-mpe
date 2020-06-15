@@ -4,8 +4,6 @@ srv__source=$_
 
 set -e
 
-
-
 version=0.0.4-dev # script-mpe
 
 
@@ -143,6 +141,7 @@ srv_main()
   esac
 }
 
+# Initial step to prepare for subcommand
 srv_init()
 {
   test -n "$LOG" ||
@@ -157,7 +156,7 @@ srv_init()
   # -- srv box init sentinel --
 }
 
-# FIXME: 2nd boostrap init
+# Second step to prepare for subcommand
 srv_lib()
 {
   local __load_lib=1
@@ -203,14 +202,10 @@ srv_unload()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in
-    load-ext ) ;;
-    * )
-      srv_main "$@" ;;
-
-  esac ;;
-esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "${__load_lib-}" || {
+    srv_main "$@"
+  }
+;; esac
 
 # Id: script-mpe/0.0.4-dev srv.sh
-

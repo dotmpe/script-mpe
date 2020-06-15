@@ -104,9 +104,9 @@ try_value()
 {
   local value=
   test $# -gt 1 && {
-    value="$(eval echo "\"\$$(echo_local "$@")\"")"
+    value="$(eval echo "\"\${$(echo_local "$@")-}\"")"
   } || {
-    value="$(echo $(eval echo "\$$1"))"
+    value="$(echo $(eval echo "\${$1-}"))"
   }
   test -n "$value" || return 1
   echo "$value"

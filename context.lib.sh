@@ -6,6 +6,8 @@
 context_lib_load()
 {
   lib_assert statusdir &&
+  true "${CTX:=""}"
+  true "${PCTX:=""}"
   true "${CTX_DEF_NS:="HT"}" &&
   true "${CTX_TAB:="${STATUSDIR_ROOT}index/context.list"}"
 }

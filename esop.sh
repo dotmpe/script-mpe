@@ -4,8 +4,6 @@ esop__source="$_"
 
 set -e
 
-
-
 version=0.0.4-dev # script-mpe
 
 
@@ -87,13 +85,14 @@ esop_als___e=edit
 
 
 
-# Script main functions
+### Main
+
 
 esop_main()
 {
   local \
       scriptname=esop \
-      base="$(basename $0 ".sh")" \
+      base="$(basename "$0" ".sh")" \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
       failed=
 
@@ -111,7 +110,7 @@ esop_main()
   main_run_subcmd "$@" || return $?
 }
 
-# FIXME: Pre-bootstrap init
+# Initial step to prepare for subcommand
 esop_init()
 {
   test -n "$LOG" ||
@@ -123,7 +122,7 @@ esop_init()
   # -- esop box init sentinel --
 }
 
-# FIXME
+# Second step to prepare for subcommand
 esop_lib()
 {
   debug esop-lib
@@ -131,6 +130,8 @@ esop_lib()
   set --
 }
 
+
+### Subcmd init, deinit
 
 # Pre-exec: post subcmd-boostrap init
 esop_load()
@@ -164,11 +165,10 @@ tasks_unload()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  case "$1" in load-ext ) ;;
-    * )
-      esop_main "$@" ;;
-
-  esac ;;
-esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "${__load_lib-}" || {
+    esop_main "$@"
+  }
+;; esac
 
 # Id: script-mpe/0.0.4-dev esop.sh

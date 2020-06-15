@@ -4,8 +4,6 @@ lst__src="$_"
 
 set -e
 
-
-
 version=0.0.4-dev # script-mpe
 
 
@@ -256,22 +254,23 @@ lst_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
+# Initial step to prepare for subcommand
 lst_init()
 {
   test -n "$scriptpath" || return
   . $scriptpath/tools/sh/init.sh || return
   . $scriptpath/tools/sh/box.env.sh &&
-  lib_load box main &&
   box_run_sh_test
+  set -- box main
+  lib_load "$@"
   # -- lst box init sentinel --
 }
 
-# FIXME: 2nd boostrap init
+# Second step to prepare for subcommand
 lst_lib()
 {
-  lib_load date meta list &&
-  lib_load ignores
+  set -- date meta list ignores
+  lib_load "$@" && lib_init
   #lst_load
   # -- lst box lib sentinel --
   set --
@@ -281,10 +280,12 @@ lst_lib()
 # Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
+
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
-  test -n "$__load_lib" || {
-    lst_main "$@" || exit $?
+  test -n "${__load_lib-}" || {
+    lst_main "$@"
   }
-  ;;
-esac
+;; esac
+
+# Id: script-mpe/0.0.4-dev list.sh

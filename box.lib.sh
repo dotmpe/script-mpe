@@ -15,7 +15,7 @@ box_lib_init()
 
   lib_assert src
 
-  test -z "$DEBUG" || {
+  test -z "${DEBUG-}" || {
     test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
   }
 
@@ -288,15 +288,15 @@ box_lib()
 # return source paths, extract from lines found by box-list-libs
 box_lib_src()
 {
-  dry_run= box_list_libs "$@" | while read src arg args
-    do case "$src" in
+  dry_run= box_list_libs "$@" | while read dir arg args
+    do case "$dir" in
       . | source ) eval echo $arg ;;
       dir_load ) test -n "$args" || args=.sh
           for scr in $(eval echo $arg/*$args) ; do
               echo $scr
           done ;;
       lib_load ) for lib in $arg $args ; do
-            eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib
+            echo XXX: eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib >&2
           done ;;
       * ) ;;
     esac; done
