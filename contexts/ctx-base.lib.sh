@@ -116,3 +116,21 @@ htd_ctx__base__clean()
 }
 
 #ctx_bin__base__
+
+at_Base__init () #
+{
+  true
+}
+
+# TODO: deferred definitions, pseudo-instances
+at_Base () #
+{
+  local at_Base=at_Base__${instanceid}
+}
+
+at_Base__define ()
+{
+  eval "${!at_Base_id}"
+}
+
+#

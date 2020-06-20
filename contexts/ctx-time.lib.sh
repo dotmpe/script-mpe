@@ -1,3 +1,4 @@
+#!/bin/sh
 
 # Execute at least once every day.
 ctx__Daily__sh_rules() # ~

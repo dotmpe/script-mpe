@@ -1,12 +1,14 @@
+#!/bin/sh
+
 
 # local, <hostname>
-ctx__host__sh_rules() # ~
+at_Pd__at_host__sh_rules() # ~
 {
   true
 }
 
 # <project-name>
-ctx__project__sh_rules() # ~
+at_Project__sh_rules() # ~
 {
   true
 }

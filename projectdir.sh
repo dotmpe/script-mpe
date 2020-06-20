@@ -324,7 +324,7 @@ pd__regenerate()
 }
 
 
-pd_man_1__update="Given existing checkouts upate local scripts and then projdoc"
+pd_man_1__update="Given existing checkout, update local scripts and then projdoc"
 pd_load__update=yfP
 pd__update()
 {
@@ -333,7 +333,6 @@ pd__update()
   local cwd=$(pwd)
 
   note "Regenerating in $1"
-
   exec 3>$failed
   ( cd $1 && pd_regenerate "$1" )
   exec 3<&-
@@ -1759,7 +1758,7 @@ pd_main()
         try_subcmd "$@" && {
 
           #record_env_keys pd-subcmd pd-env
-          box_lib $0 $scriptalias
+          echo XXX: box_lib $0 $scriptalias
           shift 1
 
           pd_load "$@" || error "pd_load" $?

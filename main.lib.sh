@@ -35,6 +35,7 @@ try_help() # 1:section-number 2:help-id
   do
     help="$( try_value $2 man_$1 $b || continue )"
     test -n "$help" || continue
+    # XXX: cleanup
     #spec="$( try_value $2 spc $b || printf "" )"
     #test -n "$spec" && {
     #  printf -- "$ $base $2\n\t$help\nUsage:\n\t$(eval echo "\"$base $spec\"")\n"
@@ -342,7 +343,6 @@ std__commands()
   # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
 
-  #
   trueish "$choice_global" || {
     trueish "$choice_all" || {
       local_id=$(pwd | tr '/-' '__')
@@ -351,9 +351,7 @@ std__commands()
     }
   }
 
-  test -z "$choice_debug" || echo "local_id=$local_id"
-
-  local cont= file= local_file=
+  test -z "${choice_debug-}" || echo "local_id=$local_id"
   list_functions_foreach "$@" | while read line
   do
     # Check sentinel for new file-name
@@ -361,8 +359,9 @@ std__commands()
       test "$(expr_substr "$line" 1 7)" = "# file=" && {
 
         file="$(expr_substr "$line" 8 ${#line})"
-        debug "File: $(basename "$file" .sh)"
-        test -e "$file" || warn "$line" 1
+        test -e "$file" &&
+            debug "std:commands File: $(basename "$file" .sh)" ||
+            warn "std:commands No such file $file" 1
         local_file="$($grealpath --relative-to="$(pwd)" "$file")"
 
         # XXX: test -z "$local_id" && {
@@ -380,10 +379,7 @@ std__commands()
     } || true
 
     local subcmd_func_pref=${base}_
-    #echo "file=$file local-file=$local_file 0=$0"
-
     if trueish "$cont"; then continue; fi
-    #echo "line=$line subcmd_func_pref=$subcmd_func_pref cont=$cont"
 
     func=$(echo $line | grep '^'${subcmd_func_pref}_ | sed 's/()//')
     test -n "$func" || continue
@@ -650,7 +646,7 @@ get_cmd_func()
 
   get_cmd_func_name $1
 
-  test -z "$choice_debug" || {
+  test -z "${choice_debug-}" || {
     eval echo "get_cmd_func @='\$@' "\
       " ${1}_pref=\$${1}_pref "\
       " ${1}_suf=\$${1}_suf " \

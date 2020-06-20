@@ -13,6 +13,7 @@ Usage:
     projectdir-meta [options] (enabled|disabled) <prefix>
     projectdir-meta [options] (enable|disable) <prefix>
     projectdir-meta [options] clean-mode <prefix> [<mode>]
+    projectdir-meta [options] list-basedirs [<root>]
     projectdir-meta [options] list-prefixes [<root>]
     projectdir-meta [options] list-enabled [<root>]
     projectdir-meta [options] list-disabled [<root>]
@@ -548,9 +549,30 @@ def H_sort(pdhdata, ctx):
     yaml_sort(pdhdata, 'repositories')
     yaml_commit(pdhdata, ctx)
 
-def H_list_prefixes(pdhdata, ctx):
-    # List all project repo prefixes
+def H_list_basedirs(pdhdata, ctx):
     for k in list(pdhdata['repositories'].keys()):
+        if prefix_match( k, ctx.opts.args.root, ctx.opts ):
+            ctx.out.write(k + "\n")
+
+def list_prefixes_recurse(data, ctx):
+    for k in list(data.keys()):
+        if k in ( 'symlinks', 'description', 'status' ): continue
+        if not isinstance(data[k], dict):
+            ctx.err.write("Not a mapping object: %r\n" % data[k])
+            continue
+        if 'enabled' in data[k] or 'disabled' in data[k] \
+                or 'remotes' in data[k] \
+                or 'src' in data[k]:
+            yield k
+        else:
+            for k2 in list_prefixes_recurse(data[k], ctx):
+                yield "%s/%s" % ( k, k2 )
+
+def H_list_prefixes(pdhdata, ctx):
+    """Recurse into base-dirs to each checkout and print path.
+    """
+    # List all project repo prefixes
+    for k in list_prefixes_recurse(pdhdata['repositories'], ctx):
         if prefix_match( k, ctx.opts.args.root, ctx.opts ):
             ctx.out.write(k + "\n")
 

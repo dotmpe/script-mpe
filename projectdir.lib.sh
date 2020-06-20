@@ -261,7 +261,7 @@ pd_list_upstream()
   done
 }
 
-# Find and move to Pd root
+# Find and move to Pd root, where also a copy/symlink of/to pdoc is.
 pd_finddoc()
 {
   # set/check for Pd for subcmd

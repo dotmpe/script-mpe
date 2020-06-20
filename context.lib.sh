@@ -5,17 +5,17 @@
 
 context_lib_load()
 {
-  lib_assert statusdir &&
-  true "${CTX:=""}"
-  true "${PCTX:=""}"
-  true "${CTX_DEF_NS:="HT"}" &&
-  true "${CTX_TAB:="${STATUSDIR_ROOT}index/context.list"}"
+  lib_require statusdir ctx-base &&
+  true "${CTX:=""}" &&
+  true "${PCTX:=""}" &&
+  true "${CTX_DEF_NS:="HT"}"
 }
 
 # TODO: add dry-run/stat/update mode, and add to install/provisioning script +U-c
 context_lib_init()
 {
   test "${context_lib_init-}" = "0" && return
+  true "${CTX_TAB:="${STATUSDIR_ROOT}index/context.list"}"
   test -e "$CTX_TAB" || {
     touch "$CTX_TAB" || return $?
   }
