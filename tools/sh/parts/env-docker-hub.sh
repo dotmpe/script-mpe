@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-case " $CTX $CTX_P " in *" @Docker "* )
+case " ${CTX-} ${CTX_P-} " in *" @Docker "* )
 
 test ! -e ~/.local/etc/tokens.d/docker-hub-$DOCKER_NS.sh || {
 
