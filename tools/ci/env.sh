@@ -4,7 +4,8 @@
 
 test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 
-sh_include env-strict env-0-1-lib-sys
+. "$CWD/tools/sh/parts/env-strict.sh"
+. "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
 
 ci_env_ts=$($gdate +"%s.%N")
 ci_stages="${ci_stages:-} ci_env"
@@ -32,6 +33,7 @@ lib_load build-htd env-deps web # No-Sync
 
 $INIT_LOG note "" "CI Env pre-load time: $(echo "$sh_env_ts - $ci_env_ts"|bc) seconds"
 ci_env_end_ts=$($gdate +"%s.%N")
+
 $INIT_LOG note "" "Sh Env load time: $(echo "$ci_env_end_ts - $ci_env_ts"|bc) seconds"
 print_yellow "ci:env" "Starting: $0 '$*'" >&2
 # Sync: U-S:

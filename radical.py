@@ -442,8 +442,8 @@ class EmbeddedIssue:
             'todo.txt': lambda cmt, data, rc, opts: " ".join([
                     # FIXME: cleanup & parsing in EmbeddedIssue re.sub(r'\s+', ' ', cmt.descr),
                     re.sub(r'\s+', ' ', cmt.raw),
-                    opts.todotxt_paths and
-                        opts.todotxt_pathpref+cmt.srcdoc.source_name or '',
+                    ( opts.todotxt_paths and  cmt.srcdoc.source_name ) and (
+                        opts.todotxt_path_fmt % cmt.srcdoc.source_name ) or '',
                     opts.todotxt_lines and
                         "line:%i-%i" % tuple(cmt.line_span) or '',
                     opts.todotxt_chars and
@@ -1000,10 +1000,10 @@ def find_tagged_comments(session, matchbox, source, data, lines=None):
                     (tag_match.start(), tag_match.end()),
                     (tag_match.end(), description_end),
                     inline, comment_flavour, lines)
-            continue
+            continue # XXX:
 
             # FIXME:
-            #  Get and further clean the issue text from the source data
+            # Get and further clean the issue text from the source data
             tag_data = clean_comment(rc.comment_scan[comment_flavour],
                     data[tag_match.end():description_end].lstrip())
             if inline:
@@ -1127,15 +1127,16 @@ STD_COMMENT_SCAN = {
         'unix_generic': [ '(\#\s)' ],
         'c_line': [ '(\/\/)' ]
     }
+
 # Tag pattern, format and index type
 DEFAULT_TAG_RE = r'''
-  (?: ^|\s+ )
+  (?: ^|\s+ )                                  # After line start or space
   (?:
-        (%s)
+        (%s)                                   # Starting with TAG
         (?:
-              (?: [:\.,_-] )
-            | (?: [\s:\.,_-]* [\s\._0-9-]+ )
-            | (?: [:\.,_-]* [^\ ]+ )
+              (?: [:\.,_-] )                   # Followed by delimiter
+            | (?: [\s:\.,_-]* [\s\._0-9-]+ )   # or delimiter and number
+            | (?: [:\.,_-]* [^\ ]+ )           #
         )?
   )
   (?: $|\s+ )
@@ -1225,6 +1226,10 @@ class Radical(rsr.Rsr):
                     'metavar': 'FILE',
                     'dest': 'input',
                     'help': "Read path arguments from file (or '-' for stdin)." }),
+                p(('--ignore-empty',),{
+                    'action': 'store_true',
+                    'dest': 'ignore_empty',
+                    'help': "Ignore empty files (otherwise generates unreadable file error)." }),
 
                 p(('-t', '--tag'),{
                     'metavar': 'TAG',
@@ -1270,9 +1275,9 @@ class Radical(rsr.Rsr):
                     'action': 'store_false',
                     'help': "Add path-context to TODO.txt lines" }),
 
-                p(('--todotxt-pathpref',), {
-                    'dest': 'todotxt_pathpref',
-                    'default': '@', 'help': "Use for path prefix" }),
+                p(('--todotxt-path-format',), {
+                    'dest': 'todotxt_path_fmt',
+                    'default': '<%s>', 'help': "Use for path prefix" }),
 
                 p(('--todotxt-lines',), {
                     'dest': 'todotxt_lines',
@@ -1379,11 +1384,13 @@ class Radical(rsr.Rsr):
 
         yield dict( services=services )
 
-    def walk_paths(self, paths):
+    def walk_paths(self, paths, ignore_empty=False):
         # Recurse dirs, return all file paths
         sources = []
         for p in paths:
-            if not os.path.isdir(p):
+            if ignore_empty and os.path.isfile(p) and not os.path.getsize(p):
+                continue
+            elif not os.path.isdir(p):
                 sources.append(p)
             else:
                 for p2 in res.fs.Dir.walk(p, opts=dict(recurse=True, files=True)):
@@ -1401,6 +1408,11 @@ class Radical(rsr.Rsr):
 
             yield source
 
+    def rdc_tags(self, sa, issue_format=None, opts=None, services=None, paths=[]):
+        log.stdout('Radical tags: %r %r', prog, sa)
+        r = self.execute('rdc_run_embedded_issue_scan')
+        log.stdout(r)
+
     def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None,
             services=None, paths=[]):
 
@@ -1411,10 +1423,12 @@ class Radical(rsr.Rsr):
         if not paths:
             raise Exception("Pathname argument(s) expected")
 
+        ret = 0
+
         # TODO: make ascii peek optional, charset configurable
         # TODO: implement contexts, ref per source
         context = ''
-        source_iter = self.walk_paths(paths)
+        source_iter = self.walk_paths(paths, opts.ignore_empty)
 
         # pre-compile patterns XXX: per context
         matchbox = compile_rdc_matchbox(self.rc)
@@ -1445,6 +1459,7 @@ class Radical(rsr.Rsr):
                         log.err("Unable to find comment span for tag '%s' at %s:%s " % (
                             parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
                         traceback.print_exc()
+                    ret = 1
                     continue
 
                 if not cmt:
@@ -1459,6 +1474,8 @@ class Radical(rsr.Rsr):
                 # Process comment with tracker service(s)
                 cmt.store(tag, services)
 
+        return ret
+
     def rdc_issue(self, cmt, data, issue_format='id', opts=None):
         if issue_format not in EmbeddedIssue.formats:
             raise Exception("Unknown format '%r', %s" % (issue_format,
@@ -1470,7 +1487,8 @@ class Radical(rsr.Rsr):
             print(formatted)
 
     def rdc_info(self, prog, sa):
-        log.stdout('Radical info', prog, sa)
+        print(self.DEPS)
+        log.stdout('Radical info: %r %r', prog, sa)
         r = self.execute('rdc_run_embedded_issue_scan')
         log.stdout(r)
 
