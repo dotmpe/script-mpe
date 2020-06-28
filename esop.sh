@@ -113,13 +113,13 @@ esop_main()
 # Initial step to prepare for subcommand
 esop_init()
 {
-  test -n "$LOG" ||
-    export LOG=/usr/local/share/mkdoc/Core/log.sh
-  . $scriptpath/tools/sh/init.sh || return
-  lib_load str sys os std stdio main argv shell box src
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
+  local scriptname_old=$scriptname; export scriptname=box-init
+
+  INIT_ENV="strict 0 0-src dev init-log ucache scriptpath std" \
+  INIT_LIB="str sys os std stdio main argv shell box src" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- esop box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # Second step to prepare for subcommand

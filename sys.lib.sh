@@ -106,7 +106,7 @@ try_value()
   test $# -gt 1 && {
     value="$(eval echo "\"\${$(echo_local "$@")-}\"" || return )"
   } || {
-    value="$(echo $(eval echo "\${${1-}-}"))"
+    value="$(eval echo "\${${1-}-}" || return )"
   }
   test -n "$value" || return 1
   echo "$value"

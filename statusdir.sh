@@ -407,12 +407,13 @@ statusdir_lib()
   set --
 }
 
+# Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
+
   # Ignore 'load-ext' sub-command
-  test -n "$__load_lib" || {
-    case "$1" in load-ext ) ;; * )
-      statusdir_main "$@"
-    ;; esac
+  test "$1" != load-ext || __load_lib=1
+  test -n "${__load_lib-}" || {
+    statusdir_main "$@"
   }
 ;; esac

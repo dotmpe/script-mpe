@@ -242,7 +242,6 @@ vagrant_sh_main()
   local
       scriptname=vagrant-sh \
       base=$(basename $0 .sh) \
-      verbosity=5 \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
       failed=
 
@@ -265,19 +264,15 @@ vagrant_sh_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
 vagrant_sh_init()
 {
-  test -n "$LOG" ||
-    export LOG=/usr/local/share/mkdoc/Core/log.sh
+  local scriptname_old=$scriptname; export scriptname=vagrant-sh-init
 
-  test -n "$scriptpath" || return
-  . $scriptpath/tools/sh/init.sh || return
-  # XXX: lib_load $default_lib
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load main meta box doc date table remote std stdio
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+  INIT_LIB="\$default_lib main meta box doc date table remote std stdio"
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- vagrant-sh box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # FIXME: 2nd boostrap init
@@ -294,8 +289,8 @@ vagrant_sh_lib()
 # Pre-exec: post subcmd-boostrap init
 vagrant_sh_load()
 {
-  test -n "$VAGRANT_HOME" || error "Expected VAGRANT_HOME env" 1
-  test -n "$VAGRANT_NAME" || export VAGRANT_NAME=default
+  test -n "${VAGRANT_HOME-}" || error "Expected VAGRANT_HOME env" 1
+  test -n "${VAGRANT_NAME-}" || export VAGRANT_NAME=default
   # -- vagrant-sh box lib sentinel --
   set --
 }

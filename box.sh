@@ -1,4 +1,5 @@
 #!/bin/sh
+#!/usr/bin/env bash
 box__source=$_
 # Box: create namespaced script commands
 
@@ -15,7 +16,7 @@ version=0.0.4-dev # script-mpe
 
 box_man_1__stat="Stat local host script file"
 box_spc_stat="-S|stat"
-box__als__S=stat
+box_als___S=stat
 box__stat()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
@@ -25,7 +26,7 @@ box__stat()
 
   return $?
 
-  note "FIXME this is more like a info list. need something more actual for stat. think about keeping state in files.."
+#  FIXME: this is more like a info list. need something more actual for stat. think about keeping state in files.."
 
   local_file=$BOX_DIR/$(hostname -s | tr 'A-Z' 'a-z')/${nid_cwd}.sh
 
@@ -79,7 +80,7 @@ box__edit()
   note "invoking '$evoke'"
   eval $evoke $files $lib_files
 }
-box__als__e="edit"
+box_als___e="edit"
 
 
 box_man_1__edit_main="Edit box script and local scripts. "
@@ -104,11 +105,11 @@ box__edit_main()
   note "invoking '$evoke'"
   $evoke $files
 }
-box__als__E=edit-main
+box_als___E=edit-main
 
 
 # FIXME: expect this is broken
-box__als__i=init
+box_als___i=init
 box__main_1_init="Add script function, optionally providing command and script name"
 box_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
 box__init()
@@ -201,7 +202,7 @@ EOF
 
 box__main_1_new="Initialize new localscript"
 box_spc_new="-n|new [<name>=$hostname]"
-box__als__n=new
+box_als___n=new
 box__new()
 {
   local name= cmd=run c=0 script=
@@ -239,7 +240,7 @@ box__function()
   echo TODO add function to script
   echo "# -- $base $scope $action sentinel"
 }
-box__als__f=function
+box_als___f=function
 
 
 box_man_1__list="."
@@ -254,7 +255,7 @@ box__list()
   std_info "TODO box list: get script names for local box command"
   grep -srI ${nid_cwd} $BOX_BIN_DIR/*
 }
-box__als__l=list
+box_als___l=list
 
 
 box_man_1__list_libs="List includes for script."
@@ -350,7 +351,7 @@ box__run()
 
 
 box_man_1__="Default: (local) run"
-box_als__c=run
+box_als___c=run
 
 
 
@@ -430,6 +431,15 @@ box__specs()
 }
 
 
+box__context()
+{
+  tree $BOX_DIR
+  ls -la \
+      $BOX_DIR/bin/$box_name \
+      $BOX_DIR/$hostname/
+}
+
+
 # -- box box insert sentinel --
 
 
@@ -444,7 +454,6 @@ box_man_1__help="Box: Generic: Help
                       extended output. "
 box__help()
 {
-  note "1: $box_lib"
   choice_global=1 std__help $*
 }
 # XXX compile these from human readable cl-option docstring, provide bash
@@ -472,13 +481,17 @@ search="htd\ box\ insert\ sentinel"
 
 box_main()
 {
-  local scriptname=box base=$(basename "$0" .sh) \
-      scriptpath="$(cd $(dirname "$0"); pwd -P)" box_sock= box_lib=
+  local \
+      scriptname=box \
+      base=$(basename "$0" .sh) \
+      scriptpath="$(cd $(dirname "$0"); pwd -P)" \
+      box_sock= box_lib=
+
+  export v="${verbosity-5}"
 
   # FIXME: only one instnce
   box_sock=/tmp/box-serv.sock
-  box_init || return 0
-  sh_isset verbosity || verbosity=5
+  box_init || return
 
   case "$base" in $scriptname )
         box_lib box || error "box-src-lib $scriptname" 1
@@ -494,23 +507,26 @@ box_main()
 
 box_init()
 {
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/tools/sh/init.sh || return
-  lib_load box main src
+  local scriptname_old=$scriptname; export scriptname=box-init
+  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \
+  INIT_LIB="\$default_lib str-htd logger-theme main box src-htd" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- box box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 box_lib()
 {
+  local scriptname_old=$scriptname; export scriptname=box-lib
   # -- box box lib sentinel --
   box_lib_current_path
+  export scriptname=$scriptname_old
 }
 
 # Pre-exec: post subcmd-boostrap init
 box_load()
 {
+  local scriptname_old=$scriptname; export scriptname=box-load
   # -- box box load sentinel --
   box_name="${base}:${subcmd}"
 
@@ -525,6 +541,7 @@ box_load()
 
     esac
   done
+  export scriptname=$scriptname_old
 }
 
 # Main entry - bootstrap script if requested

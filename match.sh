@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #!/bin/sh
 match_src=$_
 
@@ -168,13 +169,13 @@ match_main()
 # Initial step to prepare for subcommand
 match_init()
 {
-  test -z "$__load_lib" || return 1
-  test -n "$scriptpath" || return 1
-  . $scriptpath/tools/sh/init.sh || return
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load match main std stdio
+  local scriptname_old=$scriptname; export scriptname=match-init
+
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+  lib_load box os date doc table match main std stdio src-htd
   # -- match box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 
@@ -183,11 +184,11 @@ match_init()
 # Pre-exec: post subcmd-boostrap init
 match_load()
 {
-  local __load_lib=1
-  test -n "$scriptpath" || return 11
-  lib_load box os date doc table
+  local scriptname_old=$scriptname; export scriptname=match-load
+
+  INIT_LOG=$LOG lib_init || return
   # -- match box lib sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 #test "$match_src" != "$0" && {

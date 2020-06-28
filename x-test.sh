@@ -72,6 +72,7 @@ test_main()
 
 
 
+# Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
 

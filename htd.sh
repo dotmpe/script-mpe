@@ -5160,42 +5160,16 @@ htd_optsv()
 # Initial step to prepare for subcommand
 htd_init()
 {
+  local scriptname_old=$scriptname; export scriptname=htd-init
   test -n "$script_util" || return 103 # NOTE: sanity
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
-  test -n "${htd_env_d_default-}" ||
-      htd_env_d_default=0-src\ dev\ init-log\ ucache\ scriptpath\ std
-  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
-  INIT_LOG=$LOG
-  U_S=/srv/project-local/user-scripts
-  CWD=$scriptpath
-  SCRIPTPATH=
-  local scriptname_old=$scriptname; export scriptname=htd-init
 
-  for env_d in $htd_env_d_default
-  do
-    . $script_util/parts/env-$env_d.sh
-  done
-  scriptname=$scriptname \
-    $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
+  LOG=$htd_log \
+  INIT_ENV="init-log 0 0-src dev ucache scriptpath std box" \
+  . ${CWD:="$scriptpath"}/tools/main/init.sh
 
-  # XXX: cleanup
-  util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
-  #. $scriptpath/tools/sh/init.sh || return
-  #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
-
-  lib_lib_load && lib_lib_init || return
-
-  scriptname=$scriptname \
-    $htd_log note "" "Bootstrapping..." "$default_lib"
-  INIT_LOG=$htd_log
-  lib_load $default_lib || return
-  lib_init $default_lib || return
-
-  . $scriptpath/tools/sh/box.env.sh && box_run_sh_test
-
-  unset INIT_LOG
-  scriptname=$scriptname_old
   # -- htd box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 htd_lib()
@@ -5206,8 +5180,8 @@ htd_lib()
   set -- date str-htd logger-theme vc-htd os-htd htd
   lib_load "$@" && lib_init "$@"
 
-  scriptname=$scriptname_old
   # -- htd box lib sentinel --
+  export scriptname=$scriptname_old
 }
 
 # Use hyphen to ignore source exec in login shell

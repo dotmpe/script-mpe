@@ -1,3 +1,22 @@
-#!/usr/bin/env bash
-set -euo pipefail
+case "$SHELL" in
+
+    */bin/bash )
+
+            # Sh-mode Bash or regular Bash?
+            type shopt >/dev/null 2>&1 && sh_mode=0 || sh_mode=1
+
+            $INIT_LOG debug "" "Detected Bash" "sh-mode:$sh_mode"
+            test $sh_mode -eq 1 &&
+                set -eu ||
+                set -euo pipefail
+        ;;
+
+    */bin/sh )
+            set -e
+        ;;
+
+    * ) $INIT_LOG error "" "Unknown shell" "$SHELL"
+        ;;
+esac
+
 # Sync: U-S:

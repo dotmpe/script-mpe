@@ -3,8 +3,6 @@ set -e
 
 
 
-
-
 # Script subcmd's funcs and vars
 
 twitter__meta()
@@ -97,12 +95,13 @@ twitter_main()
 # FIXME: Pre-bootstrap init
 twitter_init()
 {
+  local scriptname_old=$scriptname; export scriptname=twitter-init
   test -n "$scriptpath" || return
-  . $scriptpath/tools/sh/init.sh || return
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load match main stdio std meta box date doc table remote
+  INIT_ENV="strict init-log 0 0-src 0-u_s dev ucache scriptpath std box" \
+  INIT_LIB="\$default_lib match main stdio std meta box date doc table remote" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- twitter box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # FIXME: 2nd boostrap init

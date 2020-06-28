@@ -85,15 +85,15 @@ box_instance_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
 box_instance_init()
 {
-  . $scriptpath/tools/sh/init.sh || return
-  lib_load main std str sys stdio src
-  . $scriptpath/tools/sh/box.env.sh
-  lib_load box
-  box_run_sh_test
+  local scriptname_old=$scriptname; export scriptname=box-instance-init
+
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+  INIT_LIB="\$default_lib main std str sys stdio src-htd box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- box_instance box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # Pre-exec: post subcmd-boostrap init

@@ -88,18 +88,21 @@ rst_main()
 
 rst_init()
 {
-  test -z "$BOX_INIT" || return 1
-  . $scriptpath/tools/sh/init.sh || return
-  lib_load main box std stdio
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
+  local scriptname_old=$scriptname; export scriptname=rst-init
+
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+  lib_load main box std stdio src-htd || return
   # -- rst box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 rst_lib()
 {
+  local scriptname_old=$scriptname; export scriptname=rst-lib
+  INIT_LOG=$LOG lib_init || return
   # -- rst box lib sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 rst_load()

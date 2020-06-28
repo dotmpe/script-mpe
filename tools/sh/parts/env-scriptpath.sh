@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 # XXX: not sure where/how/why to put this but keeping a cache to capture
 # pipeline result value
 ENV_D_SCRIPTPATH=$UCACHE/user-env/$$-SCRIPTPATH.txt
@@ -11,7 +10,7 @@ support_libs="user-scripts user-scripts-support user-scripts-incubator user-conf
 # XXX: Prefer dev/build/src location for CI
 base_dirs="$HOME/project /srv/project-local $VND_GH_SRC/user-tools $VND_GH_SRC/dotmpe $HOME/lib/sh $HOME/.basher/cellar/packages/user-tools $HOME/.basher/cellar/packages/dotmpe"
 
-test -n "$sh_src_base" || sh_src_base=/src/sh/lib
+test -n "${sh_src_base-}" || sh_src_base=/src/sh/lib
 
 
 # Pipe interesting paths to SCRIPTPATH-builder

@@ -2,10 +2,6 @@
 
 # Env without any pre-requisites.
 
-
-: "${INIT_LOG:="$U_S/tools/sh/log.sh"}"
-
-
 # Env pre-checks
 
 test -z "${BASH_ENV:-}" || {
@@ -13,15 +9,9 @@ test -z "${BASH_ENV:-}" || {
   test -f "$BASH_ENV" || $INIT_LOG "warn" "" "No such Bash-Env script" "$BASH_ENV"
 }
 
-test -z "${CWD:-}" || {
-  test "$CWD" = "$PWD" || {
-    $INIT_LOG "error" "" "CWD =/= PWD" "$CWD"
-    CWD=
-  }
-}
-
 # Start 0. env
 
+: "${verbosity:=4}"
 : "${SCRIPTPATH:=}"
 : "${CWD:="$PWD"}"
 : "${DEBUG:=}"
@@ -46,4 +36,5 @@ test "$USER" = "treebox" && : "${dckr_pref:="sudo "}"
 : "${scriptname:="`basename -- "$0"`"}"
 : "${LOG:="$CWD/tools/sh/log.sh"}"
 
+$INIT_LOG debug "" "0-env started" ""
 # Sync: U-S:

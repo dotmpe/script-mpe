@@ -72,12 +72,11 @@ topics_als___e=edit
 
 topics_main()
 {
-  local
+  local \
       scriptname=topics \
       base="$(basename "$0" ".sh")" \
-      verbosity=5 \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    failed=
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      failed=
 
   topics_init || exit $?
 
@@ -101,16 +100,12 @@ topics_main()
 # Initial step to prepare for subcommand
 topics_init()
 {
-  test -n "$scriptpath"
-  . $scriptpath/tools/sh/init.sh
-  #: "${sh_tools:="$scriptpath/tools/sh"}"
-  #: "${ci_tools:="$scriptpath/tools/ci"}"
-  #util_mode=ext . $scriptpath/tools/sh/util.sh
-  lib_load match
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load main meta box date doc table remote std
+  local scriptname_old=$scriptname; export scriptname=topics-init
+  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \
+  INIT_LIB="\$default_lib match main meta box date doc table remote std" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- topics box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # Second step to prepare for subcommand
@@ -160,11 +155,6 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
   test -n "${__load_lib-}" || {
-    #case "$SHELL" in
-    #    */bin/bash ) set -o nounset ;;
-    #    */bin/dash ) set -o nounset -o pipefail ;;
-    #esac
-    test -z "${DEBUG-}" || set -x
     topics_main "$@" || exit $?
   }
 ;; esac

@@ -90,7 +90,6 @@ redmine_main()
   local \
       scriptname=redmine \
       base=$(basename $0 .sh) \
-      verbosity=5 \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
       failed=
 
@@ -113,25 +112,26 @@ redmine_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
 redmine_init()
 {
-  # XXX test -n "$SCRIPTPATH" , does $0 in init.sh alway work?
-  test -n "$scriptpath" || return
-  . $scriptpath/tools/sh/init.sh || return
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load main meta box date doc table remote match std stdio
+  local scriptname_old=$scriptname; export scriptname=redmine-init
+
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+  lib_load main meta box date doc table remote match std stdio || return
   # -- redmine box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # FIXME: 2nd boostrap init
 redmine_lib()
 {
+  local scriptname_old=$scriptname; export scriptname=redmine-lib
   local __load_lib=1
   . $scriptpath/match.sh load-ext
+  INIT_LOG=$LOG lib_init || return
   # -- redmine box lib sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 # Pre-exec: post subcmd-boostrap init

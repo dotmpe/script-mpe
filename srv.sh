@@ -144,24 +144,23 @@ srv_main()
 # Initial step to prepare for subcommand
 srv_init()
 {
-  test -n "$LOG" ||
-    export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
+  local scriptname_old=$scriptname; export scriptname=srv-init
 
-  test -n "$scriptpath"
-  . $scriptpath/tools/sh/init.sh || return
-  lib_load $default_lib || return
-  . $scriptpath/tools/sh/box.env.sh || return
-  box_run_sh_test || return
-  lib_load main meta box doc date table remote std stdio
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+  lib_load main meta box doc date table remote std stdio || return
   # -- srv box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # Second step to prepare for subcommand
 srv_lib()
 {
+  local scriptname_old=$scriptname; export scriptname=srv-lib
   local __load_lib=1
+  INIT_LOG=$LOG lib_init || return
   # -- srv box lib sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 

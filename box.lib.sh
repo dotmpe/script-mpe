@@ -13,7 +13,8 @@ box_lib_init()
 {
   test "${box_lib_init-}" = "0" && return
 
-  lib_assert src
+  box_run_sh_test || return
+  lib_assert src || return
 
   test -z "${DEBUG-}" || {
     test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
@@ -22,19 +23,12 @@ box_lib_init()
   test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
 
-  mkvid $(pwd)
+  mkvid $PWD
   nid_cwd=$vid
   unset vid
 
-  test -e "$BOX_DIR/bin/$box_name" \
-    && box_file="$BOX_DIR/bin/$box_name" || true
-}
-
-
-box_docs()
-{
-  true
-  # XXX: echo 'Docs:'
+  test ! -e "$BOX_DIR/bin/$box_name" ||
+      box_file="$BOX_DIR/bin/$box_name"
 }
 
 
@@ -215,12 +209,12 @@ box_init_args()
 # Extract source lines from {base}-load routine in frontend script
 box_list_libs()
 {
-  test -n "$1" || {
+  test -n "${1-}" || {
     set -- "$0" "$2"
     test -e "$1" || set -- "$(which "$1")" "$2"
     test -e "$1" || error "Cannot find script for '$0'" 1
   }
-  test -n "$2" || set -- "$1" "$(basename "$1" .sh)"
+  test -n "${2-}" || set -- "$1" "$(basename "$1" .sh)"
 
   local \
     line_offset="$(box_script_insert_point $1 "" lib $2)" \

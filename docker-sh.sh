@@ -1150,33 +1150,25 @@ docker_sh_main()
 # FIXME: Pre-bootstrap init
 docker_sh_init()
 {
-  # XXX logger_stderr not loaded yet: test -n "$LOG" || export
-  LOG=$scriptpath/tools/sh/log.sh
-  # XXX: /usr/local/share/mkdoc/Core/log.sh
-  test -z "$BOX_INIT" || return 1
-  test -n "$scriptpath"
-  test -n "${SCRIPTPATH-}" || export SCRIPTPATH=$scriptpath
   test -e /var/run/docker.sock -a -x "$(which docker)" && {
     test -w /var/run/docker.sock || sudo="sudo "
     dckr=${sudo}docker
   }
-  # util_mode=ext . $scriptpath/util.sh load-ext
-  CWD=$scriptpath
-  . $scriptpath/tools/sh/init.sh || return
-  $CWD/tools/sh/log.sh "note" "" default_lib "$default_lib"
-  lib_load $default_lib
-  . $scriptpath/tools/sh/box.env.sh
-  lib_load main box docker-sh logger std stdio
-  #lib_load projectdir
-  box_run_sh_test
+  local scriptname_old=$scriptname; export scriptname=docker-sh-init
+
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+  INIT_LIB="\$default_lib main box docker-sh logger std stdio"
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- dckr-sh box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # FIXME: 2nd boostrap init
 docker_sh_lib()
 {
+  local scriptname_old=$scriptname; export scriptname=docker-sh-lib
   # -- dckr-sh box lib sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 

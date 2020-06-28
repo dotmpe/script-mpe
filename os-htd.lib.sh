@@ -405,7 +405,7 @@ normalize_relative()
 split_multipath()
 {
   local root=
-  { test -n "$1" && echo "$@" || cat - ; } \
+  { test -n "${1-}" && echo "$@" || cat - ; } \
      | grep -Ev '^(#.*|\s*)$' \
      | sed 's/\([^\.]\)\/\.\./\1\
 ../g' \
@@ -426,10 +426,10 @@ split_multipath()
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
 read_nix_style_file() # [cat_f=] ~ File [Grep-Filter]
 {
-  test -n "$1" || return 1
-  test -n "$2" || set -- "$1" '^\s*(#.*|\s*)$'
-  test -z "$3" || $LOG error "os" "read-nix-style-file: surplus arguments '$2'" "" 1
-  cat $cat_f "$1" | grep -Ev "$2" || return 1
+  test $# -ge 1 -a -n "${1-}" || return 1
+  test -n "${2-}" || set -- "$1" '^\s*(#.*|\s*)$'
+  test -z "${3-}" || $LOG error "os" "read-nix-style-file: surplus arguments '$2'" "" 1
+  cat ${cat_f-} "$1" | grep -Ev "$2" || return 1
 }
 
 grep_nix_lines()
@@ -446,7 +446,7 @@ enum_nix_style_file()
 # Test for file or return before read
 read_if_exists()
 {
-  test -n "$1" || return 1
+  test -n "${1-}" || return 1
   read_nix_style_file "$@" 2>/dev/null || return 1
 }
 
@@ -455,7 +455,7 @@ read_if_exists()
 # is broken.
 lines_while() # CMD
 {
-  test -n "$1" || return
+  test -n "${1-}" || return 1
 
   line_number=0
   while read -r line
@@ -469,7 +469,7 @@ lines_while() # CMD
 # Offset content from input/file to line-based window.
 lines_slice() # [First-Line] [Last-Line] [-|File-Path]
 {
-  test -n "$3" || error "File-Path expected" 1
+  test -n "${3-}" || error "File-Path expected" 1
   test "$3" = "-" && set -- "$1" "$2"
   test -n "$1" && {
     test -n "$2" && { # Start - End: tail + head
@@ -496,9 +496,9 @@ lines_slice() # [First-Line] [Last-Line] [-|File-Path]
 #
 read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
 {
-  test -n "$1" || error "Argument expected (1)" 1
+  test -n "${1-}" || error "Argument expected (1)" 1
   test -f "$1" || error "Not a filename argument: '$1'" 1
-  test -n "$2" -a -z "$5" || return
+  test -n "${2-}" -a $# -le 4 || return
   local stat=''
 
   read_lines_while_inner()

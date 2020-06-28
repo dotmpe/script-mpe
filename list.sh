@@ -257,23 +257,23 @@ lst_main()
 # Initial step to prepare for subcommand
 lst_init()
 {
-  test -n "$scriptpath" || return
-  . $scriptpath/tools/sh/init.sh || return
-  . $scriptpath/tools/sh/box.env.sh &&
-  box_run_sh_test
-  set -- box main
-  lib_load "$@"
+  local scriptname_old=$scriptname; export scriptname=lst-init
+
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+  lib_load box main src htd || return
   # -- lst box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # Second step to prepare for subcommand
 lst_lib()
 {
-  set -- date meta list ignores
-  lib_load "$@" && lib_init
-  #lst_load
+  local scriptname_old=$scriptname; export scriptname=lst-lib
+  lib_load date meta list ignores str-htd || return
+  INIT_LOG=$LOG lib_init || return
   # -- lst box lib sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 

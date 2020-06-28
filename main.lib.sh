@@ -11,7 +11,6 @@ main_lib_load()
 main_lib_init()
 {
   test "${main_lib_init-}" = "0" && return
-  # XXX: lib_assert log std std-ht || return
 
   local log=; req_init_log || return
   $log info "" "Loaded main.lib" "$0"
@@ -129,7 +128,7 @@ echo_local() # Subcmd [ Property [ Base ] ]
 try_local_var() # Export-Var [ Subcmd [ Property [ Base ] ] ]
 {
   test -n "$1" || error "var" 1
-  local value="$(eval echo "\$$(echo_local "$2" "$3" "$4")")"
+  local value="$(eval echo \"\${$(echo_local "$2" "$3" "$4")-}\")"
   test -n "$value" && {
     eval $1="$value"
   } || return $?
@@ -140,6 +139,8 @@ try_local_var() # Export-Var [ Subcmd [ Property [ Base ] ] ]
 try_spec() # Subcmd Base
 {
   local b=
+  test $# -ge 1 || return
+  test -n "${2-}" || set -- "$1" "$base"
   for b in "$2" "std"
   do
     try_value "$1" "spc" "$b" || continue
@@ -298,17 +299,20 @@ std__help()
 {
   test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
 
-  test -z "$1" && {
+  test -z "${1-}" && {
 
     lib_load functions
 
     # Generic help (no args)
-    try_exec_func ${box_prefix}__usage $1 || { std__usage $1; echo ; }
+    #try_exec_func ${box_prefix}__usage || { std__usage; echo ; }
+
     try_exec_func ${box_prefix}__commands || { std__commands; echo ; }
-    try_exec_func ${box_prefix}__docs || true
+    return
+    #try_exec_func ${box_prefix}__docs || true
 
   } || {
 
+    # XXX: try_exec_func ${box_prefix}__usage $1 || { std__usage $1; echo ; }
     # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
     spc="$(try_spec $1)"
     test -n "$spc" && {
@@ -323,7 +327,7 @@ std__help()
 
 std__usage()
 {
-  test -z "$1" && {
+  test -z "${1-}" && {
     echo "$scriptname.sh Bash/Shell script helper"
     echo 'Usage:'
     echo "  $scriptname <cmd> [<args>..]"
@@ -334,7 +338,7 @@ std__usage()
 
 std__commands()
 {
-  test -n "$1" || set -- "$0" "$box_lib"
+  test -n "${1-}" || set -- "$0" "$box_lib"
   #test -n "$2" || {
   #  locate_name $base
   #  test -n "$box_lib" || box_lib "$fn"
@@ -343,8 +347,8 @@ std__commands()
   # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
 
-  trueish "$choice_global" || {
-    trueish "$choice_all" || {
+  trueish "${choice_global-}" || {
+    trueish "${choice_all-}" || {
       local_id=$(pwd | tr '/-' '__')
       std_info "Local-ID: $local_id"
       echo 'Local commands: '$(short)': '
@@ -379,7 +383,7 @@ std__commands()
     } || true
 
     local subcmd_func_pref=${base}_
-    if trueish "$cont"; then continue; fi
+    if trueish "${cont-}"; then continue; fi
 
     func=$(echo $line | grep '^'${subcmd_func_pref}_ | sed 's/()//')
     test -n "$func" || continue
@@ -394,10 +398,10 @@ std__commands()
       test -n "$lcmd" || lcmd="-"
       #spc="* $lcmd ($lcwd)"
       spc="* $lcmd "
-      descr="$(eval echo \"\$${subcmd_func_pref}man_1__$func_name\")"
+      descr="$(try_value ${subcmd_func_pref}man_1__$func_name)"
     else
-      spc="$(eval echo \"\$${subcmd_func_pref}spc__$func_name\")"
-      descr="$(eval echo \"\$${subcmd_func_pref}man_1__$func_name\")"
+      spc="$(try_value ${subcmd_func_pref}spc__$func_name)"
+      descr="$(try_value ${subcmd_func_pref}man_1__$func_name)"
     fi
     test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
 
@@ -619,7 +623,7 @@ get_cmd_func_name() # SUBCMD
 
 get_cmd_alias() # SUBCMD
 {
-  cmd_alias="$(eval echo \$${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
+  cmd_alias="$(try_value ${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
   test -z "$cmd_alias" || {
     $LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
     cmd_name=$cmd_alias
@@ -642,7 +646,7 @@ get_cmd_func()
   done
 
   # get cmd_name
-  test -n "$(eval echo \$${1})" || eval ${1}=$(eval echo \$${1}_def)
+  test -n "$(try_value ${1} )" || eval ${1}=$(eval echo \$${1}_def)
 
   get_cmd_func_name $1
 
@@ -789,9 +793,10 @@ main_run_subcmd()
   }
   test $c -gt 0 && shift $c ; c=0
 
-  #test -z "${DEBUG-}" || main_debug "c:$c *:$*"
+  # XXX: test -z "${DEBUG-}" || main_debug "c:$c *:$*"
 
-  # XXX: box_lib="$(box_list_libs "$0")"
+  test -n "${box_lib-}" || box_lib="$(eval "echo $ENV_SRC")"
+  #box_lib="$(box_list_libs "$0")"
 
   get_subcmd_func || {
     debug "No such subcmd-func '$scriptname:$subcmd' <$subcmd_func> ($base)"
@@ -802,7 +807,7 @@ main_run_subcmd()
       error "No such command: '$scriptname:$subcmd'" 2
     }
   }
-  test -z "$subcmd_args_pre" || set -- "$subcmd_args_pre" "$@"
+  test -z "${subcmd_args_pre-}" || set -- "$subcmd_args_pre" "$@"
 
   load_subcmd $box_prefix "$@" || return $?
   test -z "${DEBUG-}" || debug "Base '$base' loaded"

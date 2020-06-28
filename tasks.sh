@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #!/bin/sh
 tasks_src=$_
 
@@ -75,9 +76,8 @@ tasks_main()
   local
       scriptname=tasks \
       base=$(basename $0 .sh) \
-      verbosity=5 \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    failed=
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+      failed=
 
   tasks_init || exit $?
 
@@ -100,20 +100,20 @@ tasks_main()
 
 tasks_init()
 {
-  test -n "$scriptpath" || return
-  . $scriptpath/tools/sh/init.sh || return
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  #. $scriptpath/htd.lib.sh
-  lib_load main meta box date doc table remote tasks std stdio match
+  local scriptname_old=$scriptname; export scriptname=tasks-init
+
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+  lib_load main meta box date doc table remote tasks std stdio match src-htd
   # -- tasks box init sentinel --
+  export scriptname=$scriptname_old
 }
 
-# FIXME: 2nd boostrap init
 tasks_lib()
 {
   local __load_lib=1
-  . $scriptpath/match.sh load-ext
+  . $scriptpath/match.sh load-ext || return
+  INIT_LOG=$LOG lib_init || return
   # -- tasks box lib sentinel --
   set --
 }
@@ -155,7 +155,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
   test "$1" != load-ext || __load_lib=1
-  test -n "$__load_lib" || {
+  test -n "${__load_lib-}" || {
     tasks_main "$@" || exit $?
   }
 ;; esac

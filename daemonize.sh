@@ -1,6 +1,5 @@
 #!/bin/sh
 
-. ~/bin/std.sh load-ext
 
 # Testing daemonization of shell script, for no particular reason.
 # Using netcat at Darwin works somewhat:
@@ -169,10 +168,12 @@ daemonize__spawn()
 
 daemonize__init()
 {
-  daemonize_init || return 0
+  local \
+      scriptname=daemonize \
+      base=$(basename $0 .sh) \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
 
-  local scriptname=daemonize base=$(basename $0 .sh) verbosity=5 \
-    scriptpath="$(dirname "$(realpath "$0")")"
+  daemonize_init || return
 
   case "$base" in $scriptname )
 
@@ -194,29 +195,34 @@ daemonize__init()
 
 daemonize_init()
 {
+  local scriptname_old=$scriptname; export scriptname=daemonize-init
   test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/tools/sh/box.env.sh
-  . $scriptpath/tools/sh/init.sh || return
-  box_run_sh_test
-  lib_load main box darwin
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+  lib_load main box darwin || return
   # -- daemonize box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 daemonize_lib()
 {
+  local scriptname_old=$scriptname; export scriptname=daemonize-lib
+  local __load_lib=1
   . $scriptpath/match.sh load-ext
+  INIT_LOG=$LOG lib_init || return
   # -- daemonize box lib sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 daemonize_load()
 {
+  local scriptname_old=$scriptname; export scriptname=daemonize-load
+
   sock=/tmp/daemonize.sock
   fifo=/tmp/f
 
   # -- daemonize box load sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 case "$0" in "" ) ;; "-*" ) ;; * )

@@ -29,10 +29,6 @@ test -z "$TRAVIS_BRANCH" || {
 #type func_exists >/dev/null 2>&1 || ci_abort "Missing sys.lib" 1
 #func_exists lib_load || ci_bail "lib.lib missing"
 
-#. ./tools/sh/box.env.sh &&
-#. ./box.lib.sh &&
-#box_run_sh_test
-
 #lib_load htd meta box doc
 #lib_load std-htd htd meta box doc table disk darwin remote
 
