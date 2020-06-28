@@ -5,6 +5,7 @@
 test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 
 : "${CWD:="$PWD"}"
+. "$CWD/tools/sh/parts/env-init-log.sh"
 . "$CWD/tools/sh/parts/env-strict.sh"
 . "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
 . "$CWD/tools/sh/parts/debug-exit.sh"
