@@ -9,22 +9,21 @@ __box_init() # Exec-Name
   cwd="$(dirname "$box")"
   scriptname="$(basename "$box" .sh)"
   base="$(echo "$scriptname" | tr '-' '_')"
-  case "$cwd" in
-    $HOME/.conf/script ) ctags=$HOME/.conf/tags ;;
-    * ) ctags=$cwd/tags ;; esac
+
+  #case "$cwd" in
+  #  $HOME/.conf/script ) ctags=$HOME/.conf/tags ;;
+  #  * ) ctags=$cwd/tags ;; esac
 
   # eval "$(grep $base'_spc__' $box)"
 }
 
 __box_cmds()
 {
-  test -e "$ctags" || return
-  grep -oP '^'$base'__\K\w+' "$ctags" | sort -u | tr '_' '-'
+  grep -oP '^'$base'__\K\w+' "$box" | sort -u | tr '_' '-'
 }
 
 __box_options()
 {
-  test -e "$ctags" || return
   grep -oP '^'$base'_spc__[\w_]+=.\K.+(?=["'"'"'])' "$box" |
       sort -u | cut -f1 -d' ' |
       tr '_' '-' | tr '|' '\n'
@@ -32,13 +31,12 @@ __box_options()
 
 __box_aliases()
 {
-  test -e "$ctags" || return
   grep -oP '^'$base'_als__\K\w+(?==)' "$box" | sort -u | tr '_' '-'
 }
 
 __box_bash_auto_complete()
 {
-  test -n "${box-}" || __box_init
+  test -n "${box-}" || __box_init "$@"
 
   local cur_idx cur prev
   cur=${COMP_WORDS[COMP_CWORD]}
@@ -54,7 +52,7 @@ __box_ac_def() # Exec Handle
 {
   test -n "${2-}" || set -- "$1" "__box_bash_auto_complete"
   local box scriptname base
-  box="$(which "$1")"
+  box="$(which "$1.sh")"
   scriptname="$(basename "$box" .sh)"
   base="$(echo "$scriptname" | tr '-' '_')"
   eval "$(cat <<EOM
