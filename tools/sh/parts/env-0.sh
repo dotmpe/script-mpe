@@ -5,7 +5,7 @@
 # Env pre-checks
 
 test -z "${BASH_ENV:-}" || {
-  $INIT_LOG "warn" "" "Bash-Env specified" "$BASH_ENV"
+  $LOG "warn" "" "Bash-Env specified" "$BASH_ENV"
   test -f "$BASH_ENV" || $INIT_LOG "warn" "" "No such Bash-Env script" "$BASH_ENV"
 }
 
@@ -36,5 +36,5 @@ test "$USER" = "treebox" && : "${dckr_pref:="sudo "}"
 : "${scriptname:="`basename -- "$0"`"}"
 : "${LOG:="$CWD/tools/sh/log.sh"}"
 
-$INIT_LOG debug "" "0-env started" ""
+$LOG debug "" "0-env started" ""
 # Sync: U-S:
