@@ -1,8 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2016-03-28
-esop__source="$_"
-
-set -e
 
 version=0.0.4-dev # script-mpe
 
@@ -60,7 +57,6 @@ esop_load__help=f
 esop_spc__help='-h|help [ID]'
 esop__help()
 {
-  test $verbosity -gt 4 || export verbosity=4
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   choice_global=1 std__help "$@"
   rm_failed || return
@@ -73,8 +69,8 @@ esop__version()
 {
   echo "script-mpe:$scriptname/$version"
 }
-#esop_als___V=version
-#esop_als____version=version
+esop_als___V=version
+esop_als____version=version
 
 
 esop__edit()
@@ -87,88 +83,15 @@ esop_als___e=edit
 
 ### Main
 
+MAKE-HERE
+INIT_ENV="init-log 0 0-src dev init-log ucache scriptpath std box" \
+INIT_LIB="str sys os std log stdio main argv shell box src logger-theme"
 
-esop_main()
-{
-  local \
-      scriptname=esop \
-      base="$(basename "$0" ".sh")" \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-      failed=
+main-local
+failed=
 
-  esop_init || return $?
-  debug esop-main-init
-  case "$base" in $scriptname ) ;;
-    * )
-        error "$scriptname: not a frontend for $base" 1
-      ;;
-  esac
+main-unload
+  clean_failed || unload_ret=1 ; unset failed
 
-  debug esop-main-lib
-  esop_lib || return $?
-  debug esop-main-run-subcmd
-  main_run_subcmd "$@" || return $?
-}
-
-# Initial step to prepare for subcommand
-esop_init()
-{
-  local scriptname_old=$scriptname; export scriptname=box-init
-
-  INIT_ENV="strict 0 0-src dev init-log ucache scriptpath std" \
-  INIT_LIB="str sys os std stdio main argv shell box src" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  # -- esop box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-# Second step to prepare for subcommand
-esop_lib()
-{
-  debug esop-lib
-  # -- box box lib sentinel --
-  set --
-}
-
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-esop_load()
-{
-  # -- esop box load sentinel --
-  set --
-}
-
-# Post-exec: subcmd and script deinit
-tasks_unload()
-{
-  local unload_ret=0
-
-  #for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  #do case "$x" in
-  # ....
-  #esac; done
-
-  clean_failed || unload_ret=$?
-
-  unset subcmd subcmd_pref \
-          def_subcmd func_exists func \
-          failed
-
-  return $unload_ret
-}
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    esop_main "$@"
-  }
-;; esac
-
+main-epilogue
 # Id: script-mpe/0.0.4-dev esop.sh

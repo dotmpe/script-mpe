@@ -41,9 +41,35 @@ context_tab()
 }
 
 # List tags
-context_list()
+context_tab_list()
 {
   context_tab | cut -d' ' -f3 | cut -d':' -f2
+}
+
+# List envs or contexts
+context_env_list()
+{
+  case "${1-}" in
+
+    env )
+        for e in PCTX ${!CTX*}
+        do
+          echo "$e: ${!e-}"
+        done
+      ;;
+
+    tags )
+        echo ${CTX:-} | tr ' ' '\n'
+        echo '--'
+        echo ${PCTX:-} | tr ' ' '\n'
+      ;;
+
+    "" )
+        echo ${ENV_D:-} | tr ' ' '\n'
+      ;;
+
+    * ) return 1 ;;
+  esac
 }
 
 # Check that given tag exists. Return 0 for an exact match,

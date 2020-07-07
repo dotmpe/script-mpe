@@ -235,3 +235,8 @@ htd_ctx__std__clean()
   test -n "$package_std_clean_bases" || package_std_clean_bases=base
   try_context_actions clean $package_std_clean_bases -- "$@"
 }
+
+ctx_std_property() #
+{
+  true
+}

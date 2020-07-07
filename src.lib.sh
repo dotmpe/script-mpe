@@ -340,43 +340,6 @@ backup_header_comment() # Src-File [.header]
   read_head_comment "$1" >"$backup_file" || return $?
 }
 
-
-# NOTE: its a bit fuzzy on the part after '<id>()' but works
-
-# List shell functions in file
-list_functions() # Sh-File
-{
-  local file=$1
-  test_out list_functions_head $1 || true
-  trueish "$list_functions_scriptname" && {
-    # Add sh-file name before match
-    grep '^\s*[A-Za-z0-9_\/-]*().*$' $1 | sed "s#^#$1 #"
-  } || {
-    grep '^\s*[A-Za-z0-9_\/-]*().*$' $1
-  }
-  test_out list_functions_tail $1 || true
-  return 0
-}
-
-# List shell functions in files
-list_functions_foreach() # Sh-Files...
-{
-  p= s= act=list_functions foreach_do "$@"
-}
-
-# List functions matching grep pattern in files
-find_functions() # Grep Sh-Files
-{
-  local grep="$1" ; shift
-  falseish "$first_match" && first_match=
-  for file in $@
-  do
-    grep -q '^\s*'"$grep"'().*$' $file || continue
-    echo "$file"
-    test -n "$first_match" || break
-  done
-}
-
 # Return span of lines from Src, starting output at Start-Line and ending
 # Span-Lines later, or at before End-Line.
 #

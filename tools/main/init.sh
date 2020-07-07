@@ -1,10 +1,9 @@
 #!/bin/sh
 
-test -n "${INIT_ENV-}" || return 120
-test -n "${CWD-}" || CWD=$scriptpath
+test -n "${CWD-}" || CWD=$PWD
 test -n "${script_util-}" || script_util=$CWD/tools/sh
 
-for env_d in $INIT_ENV
+for env_d in ${INIT_ENV-}
 do
   . $script_util/parts/env-$env_d.sh || return 121
 done
@@ -13,12 +12,13 @@ unset env_d
 test -n "${INIT_LOG-}" || INIT_LOG=$script_util/log.sh
 
 scriptname=$scriptname \
-  $INIT_LOG "info" "" "Env initialized from parts" "$INIT_ENV"
+  $INIT_LOG "info" "" "Env initialized from parts" "${INIT_ENV-}"
 
+test -n "${sh_tools-}" || sh_tools="$CWD/tools/sh"
 # XXX: cleanup
   #: "${sh_tools:="$scriptpath/tools/sh"}"
   #: "${ci_tools:="$scriptpath/tools/ci"}"
-util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
+util_mode=ext . $CWD/tools/sh/init-wrapper.sh || return
 #. $scriptpath/tools/sh/init.sh || return
 #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
 

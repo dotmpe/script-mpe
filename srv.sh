@@ -1,8 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2017-02-25
-srv__source=$_
-
-set -e
 
 version=0.0.4-dev # script-mpe
 
@@ -86,8 +83,7 @@ srv__help()
 {
   test -z "$dry_run" || stderr note " ** DRY-RUN ** " 0
   (
-    base=srv \
-      choice_global=1 std__help "$@"
+    choice_global=1 std__help "$@"
   )
 }
 #srv_als__h=help
@@ -111,100 +107,18 @@ srv__edit()
 srv_als___e=edit
 
 
-# Script main functions
-
-srv_main()
-{
-  local
-      scriptname=srv \
-      base=$(basename $0 .sh) \
-      verbosity=5 \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      failed=
-
-  srv_init || exit $?
-
-  case "$base" in
-
-    $scriptname )
-
-        test -n "$1" || set -- list
-
-        srv_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-# Initial step to prepare for subcommand
-srv_init()
-{
-  local scriptname_old=$scriptname; export scriptname=srv-init
-
-  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  lib_load main meta box doc date table remote std stdio || return
-  # -- srv box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-# Second step to prepare for subcommand
-srv_lib()
-{
-  local scriptname_old=$scriptname; export scriptname=srv-lib
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
+INIT_LIB="\\\$default_lib main meta box doc date table remote std stdio"
+main-local
+failed=
+main-init
+main-lib
   local __load_lib=1
   INIT_LOG=$LOG lib_init || return
-  # -- srv box lib sentinel --
-  export scriptname=$scriptname_old
-}
-
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-srv_load()
-{
-  # -- srv box lib sentinel --
-  set --
-}
-
-# Post-exec: subcmd and script deinit
-srv_unload()
-{
-  local unload_ret=0
-
-  #for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  #do case "$x" in
-  # ....
-  #    f )
-  #        clean_failed || unload_ret=1
-  #      ;;
-  #esac; done
-
+main-load
+main-unload
   clean_failed || unload_ret=$?
-
-  unset subcmd subcmd_pref \
-          def_subcmd func_exists func \
-          failed
-
-  return $unload_ret
-}
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    srv_main "$@"
-  }
-;; esac
-
+  unset failed
+main-epilogue
 # Id: script-mpe/0.0.4-dev srv.sh

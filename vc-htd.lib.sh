@@ -391,7 +391,7 @@ vc_tracked_hg()
 # List file tracked in version
 vc_tracked()
 {
-  test -n "${RCWD-}" -a -n "${CWD-}" || push_cwd
+  pwd_d || push_pwd
 
   test -n "${scm-}" || vc_getscm
 
@@ -403,7 +403,7 @@ vc_tracked()
 
     vc_git_submodules | while read prefix
     do
-      push_cwd $prefix
+      push_pwd $prefix
 
       #smpath="$CWD/$prefix"
       #cd "$smpath"
@@ -412,11 +412,11 @@ vc_tracked()
             | grep -Ev '^\s*(#.*|\s*)$' \
             | sed 's#^#'"$prefix"'/#'
 
-      pop_cwd
+      pop_pwd
     done
   }
 
-  test -n "${RCWD-}" -a -n "${CWD-}" || pop_cwd
+  test -n "${RCWD-}" -a -n "${CWD-}" || pop_pwd
 }
 
 
@@ -526,7 +526,7 @@ vc_list_all_branches()
 
 vc_git_submodules() # [ppwd=.] ~
 {
-  push_cwd || return
+  push_pwd || return
 
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
   do
@@ -539,7 +539,7 @@ vc_git_submodules() # [ppwd=.] ~
     echo "$prefix"
   done
 
-  pop_cwd
+  pop_pwd
 }
 
 

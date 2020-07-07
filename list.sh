@@ -1,8 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2015-12-14
-lst__src="$_"
-
-set -e
 
 version=0.0.4-dev # script-mpe
 
@@ -224,68 +221,12 @@ lst_als___e=edit
 
 # Script main functions
 
-lst_main()
-{
-  local \
-      scriptname=list \
-      scriptalias=lst \
-      base=lst \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      failed=
-
-  test -n "$verbosity" || verbosity=5
-
-  lst_init || exit $?
-
-  case "$base" in
-
-    $scriptname | $scriptalias )
-
-        test -n "$1" || set -- list
-
-        lst_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-# Initial step to prepare for subcommand
-lst_init()
-{
-  local scriptname_old=$scriptname; export scriptname=lst-init
-
-  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  lib_load box main src htd || return
-  # -- lst box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-# Second step to prepare for subcommand
-lst_lib()
-{
-  local scriptname_old=$scriptname; export scriptname=lst-lib
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s 0-std ucache scriptpath box"
+main-lib
+  lib_load box main str-htd src htd || return
+main-load
   lib_load date meta list ignores str-htd || return
   INIT_LOG=$LOG lib_init || return
-  # -- lst box lib sentinel --
-  export scriptname=$scriptname_old
-}
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    lst_main "$@"
-  }
-;; esac
-
+main-epilogue
 # Id: script-mpe/0.0.4-dev list.sh

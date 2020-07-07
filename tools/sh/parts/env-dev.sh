@@ -24,7 +24,7 @@ ENV_DEV=1
 : "${sh_tools:="$CWD$sh_util_base"}"
 : "${ci_tools:="$CWD$ci_util_base"}"
 
-type sh_include >/dev/null 2>&1 || . $scriptpath/tools/sh/init-include.sh
+type sh_include >/dev/null 2>&1 || . $sh_tools/init-include.sh
 
 sh_include env-0-src env-std env-ucache
 
@@ -37,7 +37,7 @@ sh_include env-0-1-lib-sys env-0-2-lib-os env-0-3-lib-str env-0-4-lib-script
 
 : "${init_sh_boot:=""}"
 
-sh_include env-0-5-lib-log env-0-6-lib-git env-0-7-lib-vc env-0-1-lib-shell
+sh_include env-0-6-lib-git env-0-7-lib-vc env-0-1-lib-shell
 
 sh_include trueish
 

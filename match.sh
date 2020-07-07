@@ -1,8 +1,5 @@
-#!/usr/bin/env bash
-#!/bin/sh
-match_src=$_
-
-set -e
+#!/usr/bin/env make.sh
+# Created: 2015-08-10
 
 version=0.0.4-dev # script-mpe
 
@@ -144,70 +141,14 @@ req_arg()
 
 ### Main
 
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
 
-match_main()
-{
-  local \
-      scriptname=match \
-      base="$(basename "$0" ".sh")" \
-      verbosity=4 \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
+main-lib
+  lib_load box os date doc table match main std stdio src-htd || return
 
-  match_init || return $(( $? - 1 ))
-
-  case "$base" in $scriptname )
-
-      match_load || return $?
-
-      # Execute
-      main_run_subcmd "$@"
-      ;;
-
-  esac
-}
-
-# Initial step to prepare for subcommand
-match_init()
-{
-  local scriptname_old=$scriptname; export scriptname=match-init
-
-  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  lib_load box os date doc table match main std stdio src-htd
-  # -- match box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-match_load()
-{
-  local scriptname_old=$scriptname; export scriptname=match-load
-
+main-load
   INIT_LOG=$LOG lib_init || return
-  # -- match box lib sentinel --
-  export scriptname=$scriptname_old
-}
 
-#test "$match_src" != "$0" && {
-#  set -- load-ext
-#}
-#case "$1" in "." | "source" )
-#  match_src=$2
-#  set -- load-ext
-#;; esac
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    match_main "$@" || exit $?
-  }
-;; esac
-
+main-epilogue
 # Id: script-mpe/0.0.4-dev match.sh

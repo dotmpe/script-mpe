@@ -1,21 +1,14 @@
-#!/bin/sh
-#!/usr/bin/env bash
-box__source=$_
-# Box: create namespaced script commands
-
+#!/usr/bin/env make.sh
+# Box - create namespaced script commands
 # Id: script-mpe/0.0.4-dev box.sh
-
-set -e
-
-
-
 version=0.0.4-dev # script-mpe
 
+set -eu
 
 # Script subcmd's funcs and vars
 
 box_man_1__stat="Stat local host script file"
-box_spc_stat="-S|stat"
+box_spc__stat="-S|stat"
 box_als___S=stat
 box__stat()
 {
@@ -40,7 +33,7 @@ box__stat()
 
 
 box_man_1__edit="Edit localscript and box script or abort. "
-box_spc_edit="-e|edit [<name>:]<script>"
+box_spc__edit="-e|edit [<name>:]<script>"
 box__edit()
 {
   local c=0 script_files= \
@@ -84,7 +77,7 @@ box_als___e="edit"
 
 
 box_man_1__edit_main="Edit box script and local scripts. "
-box_spc_edit_main="-E|edit-main"
+box_spc__edit_main="-E|edit-main"
 box__edit_main()
 {
   local c=0 script_files= \
@@ -110,8 +103,8 @@ box_als___E=edit-main
 
 # FIXME: expect this is broken
 box_als___i=init
-box__main_1_init="Add script function, optionally providing command and script name"
-box_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
+box_man_1__init="Add script function, optionally providing command and script name"
+box_spc__init='-i|init [<cmd>=run [<name>=$hostname]]'
 box__init()
 {
   local c=0 script_name= subcmd= \
@@ -201,7 +194,7 @@ EOF
 # FIXME new script
 
 box__main_1_new="Initialize new localscript"
-box_spc_new="-n|new [<name>=$hostname]"
+box_spc__new='-n|new [<name>=$hostname]'
 box_als___n=new
 box__new()
 {
@@ -229,7 +222,7 @@ EOF
 
 
 box__main_1_function="Initialize function for current location"
-box_spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
+box_spc__function='-n|function [[<name>=$hostname] <cmd>=run]'
 box__function()
 {
   local name= cmd=run c=0
@@ -244,7 +237,7 @@ box_als___f=function
 
 
 box_man_1__list="."
-box_spc_list="list <Name>"
+box_spc__list="list <Name>"
 box__list()
 {
   test -z "$dry_run" || {
@@ -259,7 +252,7 @@ box_als___l=list
 
 
 box_man_1__list_libs="List includes for script."
-box_spc_list_libs="list-libs"
+box_spc__list_libs="list-libs"
 box__list_libs()
 {
   local c=0 script_files= \
@@ -291,7 +284,7 @@ box_man_1__run="Run local or global function.
 
 For local, require localscript and exec. given function.
 "
-box_spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
+box_spc__run='-r|run [<cmd>=run [<name>=$hostname]]'
 box__run()
 {
   local c=0 \
@@ -356,7 +349,7 @@ box_als___c=run
 
 
 box_man_1__complete="Testing bash complete with sh compatible script."
-box_spc_complete=complete
+box_spc__complete=complete
 box__complete()
 {
   cmds=""
@@ -364,7 +357,7 @@ box__complete()
 
 
 box_man_1__check_install="Run internal tests."
-box_spc_check_install=check-install
+box_spc__check_install=check-install
 box__check_install()
 {
   {
@@ -390,6 +383,7 @@ box__check_install()
   }
 }
 
+# TEST: box 
 
 box__log_demo()
 {
@@ -427,16 +421,66 @@ box__d()
 
 box__specs()
 {
-  htd list-functions "$@" | box__d specs -
+  htd functions list "$@" | box__d specs -
 }
 
 
+box_man_1__context='
+'
 box__context()
 {
-  tree $BOX_DIR
-  ls -la \
-      $BOX_DIR/bin/$box_name \
-      $BOX_DIR/$hostname/
+  subcmd_default=list subcmd_prefs=${base}_context_\ htd_context_\ context_ try_subcmd_prefixes "$@"
+}
+
+box_flags__context=l
+box_libs__context=statusdir\ statusdir-uc\ sys-uc\ context\ context-uc\ htd-context
+
+
+box_man_1__cwd='
+  list
+  exists
+  init
+'
+box__cwd()
+{
+  local boxtab=$BOX_DIR/$hostname.list
+  subcmd_default=list subcmd_prefs=${base}_cwd_ try_subcmd_prefixes "$@"
+}
+
+box_cwd_list()
+{
+  box_cwds_tab_assert || return
+  test $# -eq 0 || return 3
+  read_nix_style_file $boxtab
+}
+
+box_cwd_exists()
+{
+  box_cwds_tab_assert || return
+  test -n "$*" || set -- "$PWD"
+  test $# -eq 1 || return 3
+  grep -qF "$1" "$boxtab"
+}
+
+box_cwd_init()
+{
+  test -n "$*" || set -- "$PWD"
+  test $# -eq 1 || return 3
+  box_cwd_exists "$@" && {
+    error "Cannot create entry exists" 1
+  }
+  test -e $1/load.sh -o -e $1/load.$SHELL_NAME || return 2
+  # XXX: lots of auto-detect potential for cwds here with hooked
+  # handles:
+  #test -e package.sh
+  #test -e package.yml -o -e package.yaml
+  #test -e package.json
+  echo "$1" | tee -a $boxtab
+}
+
+box_cwds_tab_assert()
+{
+  test -e $boxtab || warn "No initialized cwds" 20
 }
 
 
@@ -469,90 +513,46 @@ box__commands()
 {
   choice_global=1 std__commands
 }
-# FIXME: non-flag subcmd aliases
-box__als_c=commands
+box_als___c=commands
 
 
 search="htd\ box\ insert\ sentinel"
 
 
-
-# Script main functions
-
-box_main()
-{
-  local \
-      scriptname=box \
-      base=$(basename "$0" .sh) \
-      scriptpath="$(cd $(dirname "$0"); pwd -P)" \
-      box_sock= box_lib=
-
-  export v="${verbosity-5}"
-
-  # FIXME: only one instnce
-  box_sock=/tmp/box-serv.sock
-  box_init || return
-
-  case "$base" in $scriptname )
-        box_lib box || error "box-src-lib $scriptname" 1
-        # Execute
-        main_run_subcmd "$@"
-      ;;
-
-    * )
-        error "not a frontend for $base"
-      ;;
-  esac
+box__type()
+{ true
 }
 
-box_init()
-{
-  local scriptname_old=$scriptname; export scriptname=box-init
-  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \
-  INIT_LIB="\$default_lib str-htd logger-theme main box src-htd" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  # -- box box init sentinel --
-  export scriptname=$scriptname_old
+
+box__here()
+{ true
 }
 
-box_lib()
-{
-  local scriptname_old=$scriptname; export scriptname=box-lib
-  # -- box box lib sentinel --
-  box_lib_current_path
-  export scriptname=$scriptname_old
-}
 
-# Pre-exec: post subcmd-boostrap init
-box_load()
-{
-  local scriptname_old=$scriptname; export scriptname=box-load
-  # -- box box load sentinel --
-  box_name="${base}:${subcmd}"
+# Script main parts
 
-  local flags="$(try_value "${subcmd}" run ${base} | sed 's/./&\ /g')"
-  test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
-  for x in $flags
-  do case "$x" in
+main_env \
+  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
+  INIT_LIB="\$default_lib str-htd logger-theme main box src-htd"
+main_local \\
+  box_sock= box_lib=
+main_init box_sock=/tmp/box-serv.sock
+main-lib box_lib_current_path
+main-load box_name="${base}:${subcmd}" \
+  sh_include_path_langs="htd main ci bash sh"
+main-load-flags \
+    l ) sh_include subcommand-libs || return ;; \
+    f ) # failed: set/cleanup failed varname \
+        export failed=$(setup_tmpf .failed) \
+      ;; \
+      \
+    * ) error "No load flag <$x>" 3 ;; \
 
-    f ) # failed: set/cleanup failed varname
-        export failed=$(setup_tmpf .failed)
-      ;;
+main_unload unset box_name \
+  sh_include_path_langs="htd main ci bash sh"
+main_unload_flags \
+    l ) ;; \
+    * ) error "No unload flag <$x>" 3 ;; \
 
-    esac
-  done
-  export scriptname=$scriptname_old
-}
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  case "$1" in load-ext ) ;;
-    * ) box_main "$@" ;;
-
-  esac ;;
-esac
-
-# Id: script-mpe/0.0.4-dev box.sh
+main_load_epilogue \
+# Id: script-mpe/0.0.4-dev box.sh                                  ex:ft=bash:

@@ -1,5 +1,5 @@
 """
-Builder for node-sitefile.readthedocs.io
+Sphinx setup for script-mpe.readthedocs.io
 """
 from recommonmark.parser import CommonMarkParser
 
@@ -13,6 +13,7 @@ source_suffix = ['.rst', '.md']
 # print globals().keys()
 ['source_parsers', 'tags', '__builtins__', 'CommonMarkParser', '__file__', '__doc__']
 """
+keep_warnings = True
 
 intersphinx_mapping = {
     'python': ('http://python.readthedocs.io/en/latest/', None),

@@ -1,10 +1,7 @@
 #!/bin/sh
+#!/usr/bin/env bash
+#!/usr/bin/env make.sh
 # Created: 2017-02-25
-vagrant_sh__source=$_
-
-set -e
-
-
 
 version=0.0.4-dev # script-mpe
 
@@ -237,76 +234,29 @@ vagrant_sh_als___e=edit
 
 # Script main functions
 
-vagrant_sh_main()
-{
-  local
-      scriptname=vagrant-sh \
-      base=$(basename $0 .sh) \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      failed=
+CWD="$(dirname "$0")"
+. $CWD/main-defs.lib.sh
+. $HOME/.conf/script/str-uc.lib.sh
+. $HOME/.conf/script/util-min-uc.lib.sh
 
-  vagrant_sh_init || exit $?
-
-  case "$base" in
-
-    $scriptname )
-
-        test -n "$1" || set -- list
-
-        vagrant_sh_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-vagrant_sh_init()
-{
-  local scriptname_old=$scriptname; export scriptname=vagrant-sh-init
-
-  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-  INIT_LIB="\$default_lib main meta box doc date table remote std stdio"
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  # -- vagrant-sh box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-# FIXME: 2nd boostrap init
-vagrant_sh_lib()
-{
-  local __load_lib=1
-  # -- vagrant-sh box lib sentinel --
-  set --
-}
-
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-vagrant_sh_load()
-{
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+INIT_LIB="\$default_lib main meta box doc date table remote std stdio"
+  main_define \
+    vagrant-sh \
+' # Vagrant-Sh init
+' \
+' # Vagrant-Sh lib
+' \
+' # Vagrant-Sh load
   test -n "${VAGRANT_HOME-}" || error "Expected VAGRANT_HOME env" 1
   test -n "${VAGRANT_NAME-}" || export VAGRANT_NAME=default
-  # -- vagrant-sh box lib sentinel --
-  set --
-}
+' \
+' # Vagrant-Sh load-flags
+' \
+' # Vagrant-Sh unload
 
-# Post-exec: subcmd and script deinit
-vagrant_sh_unload()
-{
-  local unload_ret=0
-
-  #for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  #do case "$x" in
-  # ....
   #    f )
   #        clean_failed || unload_ret=1
-  #      ;;
-  #esac; done
 
   clean_failed || unload_ret=$?
 
@@ -314,19 +264,10 @@ vagrant_sh_unload()
           def_subcmd func_exists func \
           failed
 
-  return $unload_ret
-}
+' \
+' # Vagrant-Sh unload-flags
+'
 
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || util_mode=ext
-  test -n "$util_mode" || {
-    vagrant_sh_main "$@" || exit $?
-  }
-;; esac
+main_entry "$@"
 
 # Id: script-mpe/0.0.4-dev vagrant-sh.sh

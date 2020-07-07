@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2015-12-14
 
 
@@ -64,31 +64,17 @@ gv__help()
 }
 
 
-# Pre-run: Initialize from argv/env to run subcmd
-gv_init()
-{
-  local parse_all_argv= \
-    scsep=__ \
-    subcmd_pref=${scriptalias} \
-    def_subcmd=status
 
-  gv_preload || {
-    error "preload" $?
-  }
+### Main
 
-  gv_parse_argv "$@" || {
-    error "parse-argv" $?
-  }
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s dev ucache scriptpath std box" \
+INIT_LIB="os sys std stdio str shell logger-theme log match main graphviz date"
 
-  shift $c
+main-local
+failed=
 
-  test -n "$subcmd_func" || {
-    error "subcmd-func required" $?
-  }
-
-  gv__lib "$@" || {
-    error "lib error '$@'" $?
-  }
+main-init
 
   local tdy="$(try_value "${subcmd}" "" today)"
 
@@ -100,89 +86,21 @@ gv_init()
   }
 
   box_lib gv
-}
 
-# Init stage 1: Preload libraries
-gv_preload()
-{
-  local __load_lib=1
-  test -n "$scriptpath"
-  test -n "$BIN" || BIN=$scriptpath
-  . $scriptpath/main.lib.sh
-  . $scriptpath/graphviz.inc.sh "$@"
-  . $scriptpath/date.lib.sh
-  . $BIN/match.sh load-ext
-  . $BIN/vc.sh load-ext
-  test -n "$verbosity" || verbosity=6
-  # -- gv box init sentinel --
-}
+main-load
 
-# Pre-run stage 3: more libraries, possibly for subcmd.
-gv__lib()
-{
-  local __load_lib=1
-  . $BIN/box.lib.sh
-  # -- gv box lib sentinel --
-}
+  # gv_parse_argv "$@" || {
+  #   error "parse-argv" $?
+  # }
 
+  # shift $c
 
-### Main
+  # test -n "$subcmd_func" || {
+  #   error "subcmd-func required" $?
+  # }
 
-gv_main()
-{
-  test -z "$__load_lib" || return 1
+main-unload
+  clean_failed || unload_ret=1 ; unset failed
 
-  local scriptname=graphviz scriptalias=gv base=gv \
-    subcmd=$1 \
-    scriptpath="$(dirname "$(realpath "$0")")"
-
-
-  case "$base" in
-
-    $scriptname | $scriptalias )
-
-        # invoke with function name first argument,
-        local subcmd_func= c=0
-
-        . $scriptpath/tools/sh/init.sh || return
-
-        gv_init "$@" || {
-          error "init error '$@'" 1
-        }
-
-        shift $c
-
-        $subcmd_func "$@" || r=$?
-          #XXX: choice_quiet?
-          #gv_unload || error "unload on error failed: $?"
-          #error "exec error $subcmd_func: $r" $r
-
-        gv_unload || {
-          error "unload error"
-        }
-
-        exit $r
-
-      ;;
-
-    * )
-      echo "Not a frontend for $base ($scriptname)"
-      exit 1
-      ;;
-
-  esac
-}
-
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-
-      gv_main "$@"
-    ;;
-
-  esac ;;
-esac
+main-epilogue
+# Id: script-mpe/0.0.4-dev topics.sh

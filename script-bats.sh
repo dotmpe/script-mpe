@@ -112,8 +112,8 @@ script_bats_main()
   case "$base" in
     $scriptname )
       local scriptpath="$(dirname $0)"
-      script_bats_init || return $?
-      main_run_subcmd "$@" || return $?
+      script_bats_main_init || return $?
+      main_subcmd_run "$@" || return $?
       ;;
     * )
       echo "$scriptname: not a frontend for $base"
@@ -123,20 +123,13 @@ script_bats_main()
 }
 
 
-script_bats_init()
+script_bats_main_init()
 {
   test -n "$scriptpath" || return
   . $scriptpath/tools/sh/init.sh || return
   lib_load $default_lib || return
   lib_load table
   # -- htd box init sentinel --
-  set --
-}
-
-script_bats_lib()
-{
-  # -- htd box lib sentinel --
-  set --
 }
 
 # Use hyphen to ignore source exec in login shell

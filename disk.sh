@@ -1,9 +1,5 @@
 #!/bin/sh
 # Created: 2016-02-22
-disk__source=$_
-
-set -e
-
 
 
 version=0.0.4-dev # script-mpe
@@ -468,6 +464,7 @@ disk_main()
 {
   local \
       scriptname=disk \
+      scriptalias=disk \
       base=$(basename $0 .sh) \
       scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
       subcmd=
@@ -478,9 +475,9 @@ disk_main()
 
         # invoke with function name first argument,
         local scsep=__ bgd= \
-          subcmd_pref=${scriptalias} \
+          subcmd_pref=${scriptname} \
           disk_default=status \
-          disk_log="$INIT_LOG" \
+          disk_log="${LOG-}" \
           func_exists= \
           func= \
           sock= \
@@ -496,7 +493,7 @@ disk_main()
         disk_lib "$@" || $disk_log error "" "lib failed" "" $?
 
         std_info "3/3 disk.sh run"
-        main_run_subcmd "$@" || exit $?
+        main_subcmd_run "$@" || exit $?
       ;;
 
     * )
@@ -529,7 +526,7 @@ disk_lib()
 ### Subcmd init, deinit
 
 # Pre-exec: post subcmd-boostrap init
-disk_load()
+disk_subcmd_load()
 {
   #test -x "/sbin/parted" || error "parted required" 1
   #test -x "/sbin/fdisk" || error "fdisk required" 1
@@ -591,7 +588,7 @@ disk_load()
   done
 }
 
-disk_unload()
+disk_subcmd_unload()
 {
   local unload_ret=0
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
@@ -625,6 +622,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   # fix using another mechanism:
   test "$1" != load-ext || __load_lib=1
   test -n "${__load_lib-}" || {
+    set -eu
     disk_main "$@"
   }
 ;; esac

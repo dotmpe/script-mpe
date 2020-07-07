@@ -1,22 +1,21 @@
 #!/bin/sh
-statusdir__source=$_
 
 # Statusdir - a property store for bash with lightweight backends
 
 # Does not store actual properties yet, and the tree files are not actually used.
 # The files in the index are used to store lists of keys, see env.sh
 
-set -e
+set -eu
 
 version=0.0.4-dev # script-mpe
 
 
-statusdir_load()
+statusdir_subcmd_load()
 {
   statusdir_lib_start
 }
 
-statusdir_unload()
+statusdir_subcmd_unload()
 {
   statusdir_lib_finish
 }
@@ -193,95 +192,96 @@ statusdir__unload()
 
 statusdir__list()
 {
-  test -z "${2-}" || error "surplus arguments '$2'" 1
+  test -n "${1-}" || error "key expected" 1
+  test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
   $sd_be list $1 || return $?
 }
 
 statusdir__get()
 {
-  test -n "$1" || error "key expected" 1
-  test -z "$2" || error "surplus arguments '$2'" 1
+  test -n "${1-}" || error "key expected" 1
+  test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
   $sd_be get $1 || return $?
 }
 
 statusdir__set()
 {
-  test -n "$1" || error "key expected" 1
-  test -n "$2" || error "value expected" 1
-  test -n "$3" || set -- "$1" "$2" 0
-  test -z "$4" || error "surplus arguments '$4'" 1
+  test -n "${1-}" || error "key expected" 1
+  test -n "${2-}" || error "value expected" 1
+  test -n "${3-}" || set -- "$1" "$2" 0
+  test $# -eq 3 -a -z "${4-}" || error "surplus arguments '$4'" 1
   $sd_be set "$1" "$3" "$2" || return $?
 }
 
 # FIXME: statusdir_als__delete=del
 statusdir__del()
 {
-  test -n "$1" || error "key expected" 1
-  test -z "$2" || error "surplus arguments '$2'" 1
+  test -n "${1-}" || error "key expected" 1
+  test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
   $sd_be del $1 || return $?
 }
 
 statusdir__incr()
 {
-  test -n "$1" || error "key expected" 1
-  test -n "$2" || set -- "$1" 1
-  test -z "$3" || error "surplus arguments '$3'" 1
+  test -n "${1-}" || error "key expected" 1
+  test -n "${2-}" || set -- "$1" 1
+  test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
   $sd_be incr $1 $2 || return $?
 }
 
 statusdir__decr()
 {
-  test -n "$1" || error "key expected" 1
-  test -n "$2" || set -- "$1" 1
-  test -z "$3" || error "surplus arguments '$3'" 1
+  test -n "${1-}" || error "key expected" 1
+  test -n "${2-}" || set -- "$1" 1
+  test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
   $sd_be decr "$@" || return $?
 }
 
 statusdir__exists()
 {
-  test -n "$1" || error "key expected" 1
-  test -z "$2" || error "surplus arguments '$3'" 1
+  test -n "${1-}" || error "key expected" 1
+  test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
   $sd_be exists "$1" || return $?
 }
 
 statusdir__has()
 {
-  test -n "$1" -a -n "$2" || error "key/member expected" 1
-  test -z "$3" || error "surplus arguments '$3'" 1
   $sd_be has "$@" || return $?
 }
 
 statusdir__members()
 {
-  test -n "$1" || error "key expected" 1
-  test -z "$2" || error "surplus arguments '$3'" 1
+  test -n "${1-}" || error "key expected" 1
+  test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
   $sd_be members "$1" || return $?
 }
 
 statusdir__add()
 {
-  test -n "$1" -a -n "$2" || error "key/member expected" 1
-  test -z "$3" || error "surplus arguments '$3'" 1
+  test -n "${1-}" || error "key expected" 1
+  test -n "${2-}" || error "member expected" 1
+  test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
   $sd_be add "$@" || return $?
 }
 
 statusdir__rem()
 {
-  test -n "$1" -a -n "$2" || error "key/member expected" 1
-  test -z "$3" || error "surplus arguments '$3'" 1
+  test -n "${1-}" || error "key expected" 1
+  test -n "${2-}" || error "member expected" 1
+  test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
   $sd_be rem "$@" || return $?
 }
 
 
 statusdir__be()
 {
-  test -n "$1" || error "cmd expected" 1
+  test -n "${1-}" || error "cmd expected" 1
   $sd_be "$@"
 }
 
 statusdir__x()
 {
-  test -n "$1" || error "cmd expected" 1
+  test -n "${1-}" || error "cmd expected" 1
   $sd_be x "$@"
 }
 
@@ -306,8 +306,8 @@ statusdir__version()
 {
   echo "script-mpe:$scriptname/$version"
 }
-#statusdir_als___V=version
-#statusdir_als____version=version
+statusdir_als___V=version
+statusdir_als____version=version
 
 
 statusdir_man_1__edit='Edit this script and files'
@@ -326,30 +326,30 @@ statusdir_als___e=edit
 
 statusdir_main()
 {
-  test -n "$verbosity" || verbosity=5
+  test -n "${verbosity-}" || verbosity=5
   local scriptname=$(basename $0 .sh) base=statusdir \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd=
 
   INIT_LOG=$LOG
   true "${script_util:="$scriptpath/tools/sh"}"
-  statusdir_init || exit $?
+  statusdir_main_init || exit $?
   shell_lib_init || return
   unset INIT_LOG
 
   case "$scriptname" in $base | sd )
 
-        statusdir_lib || exit 2$?
-        statusdir_load || exit 1$?
-        main_run_subcmd "$@" || exit 0$?
+        statusdir_main_lib || exit 2$?
+        statusdir_subcmd_load || exit 1$?
+        main_subcmd_run "$@" || exit 0$?
       ;;
 
     * )
-        error "not a frontend for $base"
+        error "$scriptname: not a frontend for $base"
       ;;
   esac
 }
 
-statusdir_usage()
+statusdir_main_usage()
 {
     cat <<EOM
 statusdir.sh - Wrapper for simple access to memory store and DB services.
@@ -360,45 +360,25 @@ Usage:
 EOM
 }
 
-statusdir_init()
+statusdir_main_init()
 {
   test -n "$script_util" || return 103 # NOTE: sanity
   test -n "$scriptpath" || return
-  unset CWD
+  local scriptname_old=$scriptname; export scriptname=statusdir-main-init
 
   true "${sd_be:="fsdir"}"
+  CWD=$scriptpath
 
-  # FIXME: instead going with hardcoded sequence for env-d like for lib.
-  test -n "${htd_env_d_default-}" ||
-      htd_env_d_default=init-log\ ucache\ scriptpath\ std
+  #init-log\ ucache\ scriptpath\ std
+  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std" \
+  INIT_LIB=" os sys str src shell log logger-std logger-theme main meta shell str-htd std stdio" \
+      . $scriptpath/tools/main/init.sh || return
 
-  true "${U_S:="/srv/project-local/user-scripts"}"
-  export U_S
-
-  test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
-  INIT_LOG=$LOG
-
-  local scriptname_old=$scriptname; export scriptname=$scriptname:htd-init
-
-  for env_d in $htd_env_d_default
-  do
-    scriptname=$scriptname . $script_util/parts/env-$env_d.sh
-  done
-  test -n "$htd_log" || htd_log=$LOG
-  test -n "$lib_lib_log" || lib_lib_log=$LOG
-  scriptname=$scriptname \
-      $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
-
-  util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
-  . $scriptpath/tools/sh/box.env.sh &&
-  box_run_sh_test &&
-  lib_load os sys str std logger-std logger-theme log shell main str-htd
-
-  scriptname=$scriptname_old
   # -- statusdir box init sentinel --
+  export scriptname=$scriptname_old
 }
 
-statusdir_lib()
+statusdir_main_lib()
 {
   test -z "$__load_lib" || return 14
   local __load_lib=1

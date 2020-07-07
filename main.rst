@@ -63,7 +63,7 @@ Specs
 `main.lib.sh`:
   Main: CLI helpers; init/run func as subcmd
 
-  ``main_run_subcmd <args...>``
+  ``main_subcmd_run <args...>``
 
   lots of option, lookup, debug, pre/post init/deinit load/unload stuff things
   happening.

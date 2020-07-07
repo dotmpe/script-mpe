@@ -52,7 +52,6 @@ try_help() # 1:section-number 2:help-id
 # :
 echo_help()
 {
-  #try_exec_func ${help_base}__usage $1 || std__usage $1
   for i in $(seq 1 7)
   do
     try_help $i $1 && return 0
@@ -128,7 +127,7 @@ echo_local() # Subcmd [ Property [ Base ] ]
 try_local_var() # Export-Var [ Subcmd [ Property [ Base ] ] ]
 {
   test -n "$1" || error "var" 1
-  local value="$(eval echo \"\${$(echo_local "$2" "$3" "$4")-}\")"
+  local value="$(eval echo \"\${$(echo_local "$2" "$3" "${4-}")-}\")"
   test -n "$value" && {
     eval $1="$value"
   } || return $?
@@ -245,9 +244,12 @@ try_subcmd()
 }
 
 
+# Execute first found subcmd handle
 try_subcmd_prefixes()
 {
-  test -n "$1" || set -- "$subcmd_default"
+  test -n "${subcmd_prefs-}" || return
+  test -n "$*" || set -- "${subcmd_default-help}"
+  local vid p cmd
   upper=0 mkvid "$1" ; shift ;
   for p in ${subcmd_prefs}
   do
@@ -301,12 +303,12 @@ std__help()
 
   test -z "${1-}" && {
 
-    lib_load functions
+    lib_load functions || return
 
     # Generic help (no args)
     #try_exec_func ${box_prefix}__usage || { std__usage; echo ; }
 
-    try_exec_func ${box_prefix}__commands || { std__commands; echo ; }
+    try_exec_func ${box_prefix}__commands || { std__commands ; echo ; }
     return
     #try_exec_func ${box_prefix}__docs || true
 
@@ -338,12 +340,8 @@ std__usage()
 
 std__commands()
 {
-  test -n "${1-}" || set -- "$0" "$box_lib"
-  #test -n "$2" || {
-  #  locate_name $base
-  #  test -n "$box_lib" || box_lib "$fn"
-  #  test -n "$box_lib" && set -- "$0" "$box_lib"
-  #}
+  test -n "${1-}" || set -- ${script-} ${box_lib-}
+  test -n "${1-}" || set -- "$0"
   # group commands per file, using sentinal line to mark next file
   local list_functions_head="# file=\$file"
 
@@ -351,9 +349,11 @@ std__commands()
     trueish "${choice_all-}" || {
       local_id=$(pwd | tr '/-' '__')
       std_info "Local-ID: $local_id"
-      echo 'Local commands: '$(short)': '
+      echo 'Local commands: '$PWD': '
     }
   }
+
+  lib_load functions || return
 
   test -z "${choice_debug-}" || echo "local_id=$local_id"
   list_functions_foreach "$@" | while read line
@@ -672,7 +672,7 @@ load_group()
 {
   local libs="$(for x in "$@"; do
     test -e $scriptpath/commands/$base-$x.lib.sh && echo $base-$x || echo $x ; done)"
-  lib_load $libs
+  lib_require $libs
   # XXX: no lib_init $libs for htd cmd groups
 }
 
@@ -695,87 +695,30 @@ main_init()
 }
 
 
-# Run any load routines, pass it subcmd args
-load_subcmd() #  Box-Prefix [Argv]
+# Run load routine, pass it subcmd args
+main_subcmd_load() #  Box-Prefix [Argv]
 {
-  test -n "$1" || error "main-load argument expected" 1
-  local box_prefix="$1" r= ; shift
-  try_exec_func std_load && {
-    $LOG debug "" "Standard load OK"
-  } || true # { r=$? error "std load failed"; return $r; }
-  try_exec_func ${box_prefix}_load "$@" && {
-    $LOG debug "" "Load $box_prefix OK"
-  } || {
-    test -z "$r" || {
-      test $r -eq 0 || error "std and ${box_prefix} load failed" 1
-    }
-  }
+  test -n "$1" ||
+      error "main-subcmd-load Box-Prefix argument expected" 1
+  local box_prefix="$1"; shift
+
+  func_exists ${box_prefix}_subcmd_load || return 0
+  ${box_prefix}_subcmd_load "$@" || return
+  $LOG debug "" "Load $box_prefix OK"
 }
 
-# FIXME: two loaders std+base is not used anywhere
-std_load()
+# Run unload routine
+main_subcmd_unload() # Box-Prefix
 {
-    true
+  test -n "$1" ||
+      error "main-subcmd-unload Box-Prefix argument expected" 1
+
+  func_exists ${1}_subcmd_unload || return 0
+  ${1}_subcmd_unload || return
+  $LOG debug "" "Unload $1 OK"
 }
 
-std_unload()
-{
-    true
-}
-
-# Run any load routines
-main_unload()
-{
-  test -n "$1" || error "main-unload argument expected" 1
-
-  local b=
-  for b in "$1" "std"
-  do
-    try_local_func "" "unload" "$b" && {
-      $(echo_local "" unload $b) || return $?
-    } || continue
-    return
-  done
-  return
-
-  # XXX: cleanup
-  local r=
-  try_exec_func std_unload && {
-    debug "Standard unload OK"
-  } || {
-    # f
-    r=$?; test -n "$1" || {
-      test $1 -eq 0 || error "std unload failed" $r
-    }
-  }
-  test -n "$1" || return
-  try_exec_func ${1}_unload && {
-    debug "Load $1 OK"
-  } || {
-    test -z "$r" || {
-      test $r -eq 0 || error "std and ${1} unload failed" 1
-    }
-  }
-}
-
-main_debug()
-{
-  debug "vars:
-    cmd=$base args=$*
-    subcmd=$subcmd subcmd_alias=$subcmd_alias subcmd_def=$subcmd_def
-    script_name=$script_name script_subcmd=$script_subcmd
-    subcmd_func=$subcmd_func subcmd_func_pref=$subcmd_func_pref subcmd_func_suf=$subcmd_func_suf
-
-    silent=$silent silence=$silence verbosity=$verbosity
-    choice_local=$choice_local choice_global=$choice_global
-    choice_all=$choice_all
-    choice_force=$choice_force
-  "
-}
-
-
-
-main_run_subcmd()
+main_subcmd_run()
 {
   local e= c=0 \
     subcmd= subcmd_alias= subcmd_func= \
@@ -784,7 +727,7 @@ main_run_subcmd()
     stdio_0_type= stdio_1_type= stdio_2_type=
 
   main_init
-  #func_exists ${base}_parse_subcmd_args
+  # XXX: func_exists ${base}_parse_subcmd_args
 
   true "${box_prefix:="$(mkvid $base; echo $vid)"}"
 
@@ -793,14 +736,12 @@ main_run_subcmd()
   }
   test $c -gt 0 && shift $c ; c=0
 
-  # XXX: test -z "${DEBUG-}" || main_debug "c:$c *:$*"
-
-  test -n "${box_lib-}" || box_lib="$(eval "echo $ENV_SRC")"
+  #test -n "${box_lib-}" -o -z "${ENV_SRC-}" || box_lib="$(eval "echo $ENV_SRC")"
   #box_lib="$(box_list_libs "$0")"
 
   get_subcmd_func || {
     debug "No such subcmd-func '$scriptname:$subcmd' <$subcmd_func> ($base)"
-    try_exec_func ${base}_usage || std__usage
+    try_exec_func ${base}_main_usage || std__usage
     test -z "$subcmd" && {
       error 'No command given' 1
     } || {
@@ -809,8 +750,8 @@ main_run_subcmd()
   }
   test -z "${subcmd_args_pre-}" || set -- "$subcmd_args_pre" "$@"
 
-  load_subcmd $box_prefix "$@" || return $?
-  test -z "${DEBUG-}" || debug "Base '$base' loaded"
+  main_subcmd_load $box_prefix "$@" || return $?
+  test -z "${DEBUG-}" || debug "Base '$base $subcmd' loaded"
 
   test -z "$dry_run" \
     && {
@@ -820,14 +761,14 @@ main_run_subcmd()
   # Execute and exit
   $subcmd_func "$@" && {
     prev_subcmd=$subcmd
-    main_unload "$box_prefix" && true || {
+    main_subcmd_unload "$box_prefix" && true || {
       error "Command '$scriptname:$prev_subcmd' failed ($?)" 4
     }
 
   } || {
     e=$?
     prev_subcmd=$subcmd
-    main_unload $box_prefix
+    main_subcmd_unload $box_prefix
     error "Command '$scriptname:$prev_subcmd' returned $e" 3
   }
 
@@ -843,7 +784,7 @@ daemon()
 
   while read argline
   do
-    main_run_subcmd "$argline" || {
+    main_subcmd_run "$argline" || {
       echo "?=$?"
     }
   done
@@ -944,49 +885,11 @@ run_check()
 #  }
 }
 
-# For commands that always work relative to a basedir, ie. project root;
-# acquire required dir or set env with just one var
-# remember starting dir and track real vs. symbolic?
-push_cwd()
-{
-  test -n "${CWD-}" && {
-    CWD_D=$PWD:$CWD
-  }
-  CWD=$PWD
-
-  test -z "${1-}" || {
-      fnmatch "/*" "$1" && return 1 || RCWD=$1
-  }
-
-  test -z "${RCWD-}" || cd $RCWD
-
-  #test "$CWD" = "$PWD"
-  #test "$CWD" = "$PCWD"
-
-  #CWD
-  #PCWD
-  #RCWD
-}
-
-pop_cwd()
-{
-  test -z "$CWD_D" || {
-    CWD="$(echo "$CWD_D" | cut -d':' -f1)"
-    CWD_D="$(echo "$CWD_D" | cut -d':' -f2-)"
-  }
-  test -n "$CWD_D" || unset CWD_D
-
-  test -z "$CWD" || {
-    cd "$CWD"
-    unset CWD
-  }
-}
-
+# Look if ENV name starts with 'dev'
 main_isdevenv()
 {
-  test -z "${ENV_DEV-}" && {
+  test -n "${ENV_DEV-}" || {
     fnmatch "dev*" "${ENV-}" && ENV_DEV=1 || ENV_DEV=0
   }
   trueish "$ENV_DEV"
-  return $?
 }

@@ -26,12 +26,12 @@ ignores_init()
   local varname=$(echo $2 | tr '-' '_')_IGNORE fname=.${1}ignore
 
   export IGNORE_GLOBFILE_VAR=$varname
-  export IGNORE_GLOBFILE=$(eval echo \"\$$IGNORE_GLOBFILE_VAR\")
+  export IGNORE_GLOBFILE="$(try_var "$IGNORE_GLOBFILE_VAR")"
   test -z "$DEBUG" || {
     test -n "$IGNORE_GLOBFILE" || warn "No IGNORE_GLOBFILE for $varname set"
   }
 
-  test -n "$(eval echo \"\$$varname\")" || eval $varname=$fname
+  eval $varname=\"\${$varname-$fname}\"
   local value="$(eval echo "\$$varname")"
 
   test -e "$value" || {

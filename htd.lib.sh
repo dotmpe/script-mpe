@@ -9,7 +9,7 @@ htd_lib_load()
   #lib_load date statusdir sys-htd htd-project package project-stats htd-project-stats
   test -n "${NS_NAME-}" || NS_NAME=dotmpe
   # TODO: cleanup
-  . $scriptpath/tools/sh/parts/env-0-1-lib-sys.sh
+  . $sh_tools/parts/env-0-1-lib-sys.sh
 }
 
 
@@ -398,8 +398,8 @@ htd_function_comment() # Func-Name [ Script-Path ]
   upper= mkvid "$1" ; shift ; set -- "$vid" "$@"
   test -n "$2" || {
     # TODO: use SCRIPTPATH?
-    #set -- "$1" "$(first_match=1 find_functions "$1" $scriptpath/*.sh)"
-    set -- "$1" "$(first_match=1 find_functions "$1" $(git ls-files | grep '\.sh$'))"
+    #set -- "$1" "$(first_match=1 functions_find "$1" $scriptpath/*.sh)"
+    set -- "$1" "$(first_match=1 functions_find "$1" $(git ls-files | grep '\.sh$'))"
   }
   file="$2"
   test -n "$2" || { error "No shell scripts for '$1'" ; return 1; }

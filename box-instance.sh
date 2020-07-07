@@ -76,7 +76,7 @@ box_instance_main()
   case "$base" in
     $scriptname )
       box_instance_init || return $?
-      main_run_subcmd "$@" || return $?
+      main_subcmd_run "$@" || return $?
       ;;
     * )
       echo "$scriptname: not a frontend for $base"
@@ -90,7 +90,7 @@ box_instance_init()
   local scriptname_old=$scriptname; export scriptname=box-instance-init
 
   INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-  INIT_LIB="\$default_lib main std str sys stdio src-htd box" \
+  INIT_LIB="\$default_lib logger-theme main std str sys stdio src-htd box" \
     . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- box_instance box init sentinel --
   export scriptname=$scriptname_old
@@ -99,8 +99,6 @@ box_instance_init()
 # Pre-exec: post subcmd-boostrap init
 box_instance_load()
 {
-  local __load_lib=1
-  . $scriptpath/match.sh load-ext
   # -- box_instance box load sentinel --
 
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
@@ -110,7 +108,7 @@ box_instance_load()
         debug "Preparing failed report for subcmd $subcmd"
         # Preset name to subcmd failed file placeholder
         req_vars base subcmd
-        test -n "$box_instance" && {
+        test -n "${box_instance-}" && {
           req_vars p
           failed=/tmp/${base}-$p-$subcmd.failed
         } || {

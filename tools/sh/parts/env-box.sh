@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e -o nounset
+# XXX: restore for box env: set -e -o nounset
 
 # Something to manage messages
 test -n "${INIT_LOG:-}" -a -x "${INIT_LOG:-}" || exit 102 # NOTE: sanity

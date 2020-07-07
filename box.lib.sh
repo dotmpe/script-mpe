@@ -207,14 +207,10 @@ box_init_args()
 }
 
 # Extract source lines from {base}-load routine in frontend script
-box_list_libs()
+box_list_libs() # Scrip-File Box-Prefix
 {
-  test -n "${1-}" || {
-    set -- "$0" "$2"
-    test -e "$1" || set -- "$(which "$1")" "$2"
-    test -e "$1" || error "Cannot find script for '$0'" 1
-  }
-  test -n "${2-}" || set -- "$1" "$(basename "$1" .sh)"
+  test -n "${1-}" || error "Script-File required" 1
+  test -n "${2-}" || error "Box-Prefix required" 1
 
   local \
     line_offset="$(box_script_insert_point $1 "" lib $2)" \
@@ -330,7 +326,6 @@ box_bg_teardown()
 box_lib_current_path()
 {
   # test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
-
   set -- $( ( while true ; do pwd && cd .. ; test "$PWD" != '/' || break; done ) |
       while read -r path
       do

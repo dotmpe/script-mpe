@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-test_src="$_"
+#!/usr/bin/env make.sh
 
 set -e
 
@@ -7,80 +6,38 @@ set -e
 version=0.0.4-dev # script-mpe
 
 
-test__version()
+x_test__version()
 {
   echo $version
 }
-test___V() { test__version; }
-test____version() { test__version; }
+x_test___V() { x_test__version; }
+x_test____version() { x_test__version; }
 
 
-test__ack()
+x_test__ack()
 {
   echo Ack.
 }
 
-test___h()
+x_test___h()
 {
-  test__help
+  x_test__help
 }
-test__help()
+x_test__help()
 {
   echo Help?
 }
 
 
-test_main()
-{
-  # Do something if script invoked as 'x-test.sh'
-  local scriptname=x-test base="$(basename "$0" .sh)" \
-    subcmd=$1
+main_env \
+    INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
+    INIT_LIB="\$default_lib str str-htd logger-theme match main std stdio sys os box src src-htd"
 
-  case "$base" in $scriptname )
+main_local \\
+    subcmd_def=version subcmd_func_pref=${base}__
 
-        test -n "$scriptpath" || \
-            scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-            pwd=$(pwd -P) ppwd=$(pwd) spwd=.
+main_init \
+        test -n "${verbosity-}" || verbosity=5
 
-        . $scriptpath/tools/sh/init.sh || return
-        test -n "$verbosity" || verbosity=5
-
-        local func=$(echo test__$subcmd | tr '-' '_') \
-            failed= \
-            ext_sh_sub=
-
-        lib_load str match main std stdio sys os src
-
-        type $func >/dev/null 2>&1 && {
-          shift 1
-          $func "$@" || return $?
-        } || {
-          R=$?
-          test $R -eq 127 && warn "No such command '$1'"
-          return $R
-        }
-      ;;
-
-    * )
-        echo "Test is not a frontend for $base ($scriptname)" 2>&1
-        exit 1
-      ;;
-
-  esac
-}
-
-
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    test_main "$@"
-  }
-;; esac
-
+main_load_epilogue \
 # Id: script-mpe/0.0.4-dev x-test.sh

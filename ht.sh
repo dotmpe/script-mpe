@@ -262,7 +262,7 @@ ht_main()
             ht__$subcmd "$@" || return $?
         } || {
 
-            main_run_subcmd "$@" || exit $?
+            main_subcmd_run "$@" || exit $?
         }
       ;;
 

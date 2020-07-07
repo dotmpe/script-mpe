@@ -166,7 +166,7 @@ daemonize__spawn()
 
 # Main
 
-daemonize__init()
+daemonize_main()
 {
   local \
       scriptname=daemonize \
@@ -184,7 +184,7 @@ daemonize__init()
       daemonize_lib
 
       # Execute
-      main_run_subcmd "$@"
+      main_subcmd_run "$@"
       ;;
 
     #* )
@@ -199,7 +199,7 @@ daemonize_init()
   test -z "$BOX_INIT" || return 1
   INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
     . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  lib_load main box darwin || return
+  lib_load logger-theme main box darwin match || return
   # -- daemonize box init sentinel --
   export scriptname=$scriptname_old
 }
@@ -208,13 +208,12 @@ daemonize_lib()
 {
   local scriptname_old=$scriptname; export scriptname=daemonize-lib
   local __load_lib=1
-  . $scriptpath/match.sh load-ext
   INIT_LOG=$LOG lib_init || return
   # -- daemonize box lib sentinel --
   export scriptname=$scriptname_old
 }
 
-daemonize_load()
+daemonize_subcmd_load()
 {
   local scriptname_old=$scriptname; export scriptname=daemonize-load
 
@@ -226,8 +225,8 @@ daemonize_load()
 }
 
 case "$0" in "" ) ;; "-*" ) ;; * )
-  daemonize__init "$@"
+  daemonize_main "$@"
       ;;
 esac
 
-
+# Id: script-mpe/0.0.4-dev daemonize.sh

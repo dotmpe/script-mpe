@@ -1,9 +1,4 @@
-#!/bin/sh
-topics_src=$_
-
-set -e
-
-
+#!/usr/bin/env make.sh
 
 version=0.0.4-dev # script-mpe
 
@@ -69,94 +64,21 @@ topics_als___e=edit
 
 ### Main
 
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s dev 0-std ucache scriptpath std box"
+INIT_LIB="os sys str log shell match main meta src box date doc table remote std stdio"
+main-local
+failed=
 
-topics_main()
-{
-  local \
-      scriptname=topics \
-      base="$(basename "$0" ".sh")" \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      failed=
-
-  topics_init || exit $?
-
-  case "$base" in
-
-    $scriptname )
-
-        test -n "$1" || set -- list
-
-        topics_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-# Initial step to prepare for subcommand
-topics_init()
-{
-  local scriptname_old=$scriptname; export scriptname=topics-init
-  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \
-  INIT_LIB="\$default_lib match main meta box date doc table remote std" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  # -- topics box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-# Second step to prepare for subcommand
-topics_lib()
-{
+main-lib
   local __load_lib=1
-  . $scriptpath/match.sh load-ext
-  # -- topics box lib sentinel --
-  set --
-}
+  INIT_LOG=$LOG lib_init || return
 
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-topics_load()
-{
+main-load
   export TOPIC_DB=postgres://localhost:5432
-  # -- topics box lib sentinel --
-  set --
-}
 
-# Post-exec: subcmd and script deinit
-topics_unload()
-{
-  local unload_ret=0
+main-unload
+  clean_failed || unload_ret=1 ; unset failed
 
-  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  do case "$x" in
-      f )
-          clean_failed || unload_ret=1
-        ;;
-  esac; done
-
-  unset subcmd subcmd_pref \
-          topics_default def_subcmd func_exists func \
-          failed topics_session_id
-
-  return $unload_ret
-}
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    topics_main "$@" || exit $?
-  }
-;; esac
-
+main-epilogue
 # Id: script-mpe/0.0.4-dev topics.sh

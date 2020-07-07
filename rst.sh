@@ -1,7 +1,4 @@
-#!/bin/sh
-c_rst__source="$_ $0 $@"
-
-set -e
+#!/usr/bin/env make.sh
 
 version=0.0.4-dev # script-mpe
 
@@ -9,16 +6,16 @@ version=0.0.4-dev # script-mpe
 ### User commands
 
 
-c_rst_man_1__test="rst test? "
-c_rst__test()
+rst_man_1__test="rst test? "
+rst__test()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   note "TODO box_run_cwd /home/.../bin Bats_test $@"
 }
 
 
-c_rst_man_1__date="Print date"
-c_rst__date()
+rst_man_1__date="Print date"
+rst__date()
 {
     echo 1
   test -z "$1" && {
@@ -46,74 +43,39 @@ c_rst__date()
 ### User help functions
 
 
-c_rst_als___h=help
-c_rst_spc__help='-h|help [ID]'
-c_rst__help()
+rst_als___h=help
+rst_spc__help='-h|help [ID]'
+rst__help()
 {
-  std__help rst "$@"
+  choice_global=1 std__help "$@"
 }
 
 
-c_rst_als___e=edit
-c_rst_spc__edit='-e|edit'
-c_rst__edit()
+rst_als___e=edit
+rst_spc__edit='-e|edit'
+rst__edit()
 {
   $EDITOR $0 "$@"
 }
 
 
-c_rst_man_1__version="Version info"
-c_rst__version()
+rst_man_1__version="Version info"
+rst__version()
 {
   echo "box-rst/$version"
 }
-c_rst_als___V=version
+rst_als___V=version
 
 
 
 ### Main
 
 
-rst_main()
-{
-  local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-  rst_init || return 0
-  local scriptname=rst base=$(basename $0 .sh) dirname=$(dirname $0)
-  case "$base" in $scriptname )
-      local subcmd_func_pref=c_${base} verbosity=5 c_rst_default=version
-      rst_lib
-      main_run_subcmd "$@" ;;
-  esac
-}
-
-rst_init()
-{
-  local scriptname_old=$scriptname; export scriptname=rst-init
-
-  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
+main-default
+version
+main-init
+main-lib
   lib_load main box std stdio src-htd || return
-  # -- rst box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-rst_lib()
-{
-  local scriptname_old=$scriptname; export scriptname=rst-lib
   INIT_LOG=$LOG lib_init || return
-  # -- rst box lib sentinel --
-  export scriptname=$scriptname_old
-}
-
-rst_load()
-{
-  # -- rst box load sentinel --
-  set --
-}
-
-# Use hyphen to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  rst_main "$@"
-fi
-
-

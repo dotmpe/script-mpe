@@ -35,7 +35,7 @@ version=0.0.4-dev # script-mpe
 htd__inputs="arguments prefixes options"
 htd__outputs="passed skipped error failed"
 
-htd_load()
+htd_subcmd_load()
 {
   # -- htd box load insert sentinel --
   local scriptname_old=$scriptname; export scriptname=htd-load
@@ -238,13 +238,7 @@ htd_load()
         export ${htd__inputs?} ${htd__outputs?}
       ;;
 
-    l )
-        htd_subcmd_libs="$(try_value $subcmd libs htd)" ||
-            htd_subcmd_libs=$subcmd
-
-        lib_load $htd_subcmd_libs || return
-        lib_init $htd_subcmd_libs || return
-      ;;
+    l ) sh_include subcommand-libs || return ;;
 
     m )
         # TODO: Metadata blob for host
@@ -341,7 +335,7 @@ htd_load()
   scriptname=$scriptname_old
 }
 
-htd_unload()
+htd_subcmd_unload()
 {
   local scriptname_old=$scriptname; export scriptname=htd-unload
   local unload_ret=0
@@ -5125,8 +5119,7 @@ htd_main()
         htd_lib "$@" || {
           $htd_log error htd-main "During htd-lib" "" $? || return
         }
-        main_run_subcmd "$@" || r=$?
-        htd_unload || r=$?
+        main_subcmd_run "$@" || r=$?
 
         # XXX: cleanup, run_subcommand with ingegrated modes?
         #  test -z "$arguments" -o ! -s "$arguments" || {
@@ -5165,7 +5158,7 @@ htd_init()
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
 
   LOG=$htd_log \
-  INIT_ENV="init-log 0 0-src dev ucache scriptpath std box" \
+  INIT_ENV="init-log 0 dev ucache scriptpath std box" \
   . ${CWD:="$scriptpath"}/tools/main/init.sh
 
   # -- htd box init sentinel --
@@ -5175,9 +5168,7 @@ htd_init()
 htd_lib()
 {
   local scriptname_old=$scriptname; export scriptname=htd-lib
-  local __load_lib=1
-  . $scriptpath/match.sh || return
-  set -- date str-htd logger-theme vc-htd os-htd htd
+  set -- match date str-htd logger-theme vc-htd os-htd htd
   lib_load "$@" && lib_init "$@"
 
   # -- htd box lib sentinel --

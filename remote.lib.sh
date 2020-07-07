@@ -21,9 +21,9 @@ run_cmd()
 {
   test -n "$1" || set -- "$hostname" "$2"
   test -n "$2" || set -- "$1" "whoami"
-  test -n "$host_addr_info" || host_addr_info=$hostname
+  test -n "${host_addr_info-}" || host_addr_info=$hostname
 
-  test -z "$dry_run" && {
+  test -z "${dry_run-}" && {
     on_host "$1" && {
       eval "$2" \
         && debug "Executed locally: '$2'" \
@@ -48,7 +48,7 @@ run_cmd()
 # Set host_addr_info for SSH connection
 ssh_req()
 {
-  test -n "$host_addr_info" || {
+  test -n "${host_addr_info-}" || {
     test -n "$1" || set -- "$hostname" "$2"
     test -n "$2" || set -- "$1" "$(whoami)"
     host_addr_info="$1"
@@ -61,7 +61,7 @@ ssh_req()
 wait_for()
 {
   test -n "$1" || set -- "$hostname"
-  while [ 1 ]
+  while true
   do
     ping -c 1 $1 >/dev/null 2>/dev/null && break
     note "Waiting for $1.."

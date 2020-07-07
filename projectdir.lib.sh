@@ -15,15 +15,15 @@ projectdir_lib_load()
 # Load support includes
 projectdir_lib_parts_load()
 {
-  . $scriptpath/projectdir-fs.inc.sh &&
-  . $scriptpath/projectdir-git.inc.sh &&
-  . $scriptpath/projectdir-git-versioning.inc.sh &&
-  . $scriptpath/projectdir-grunt.inc.sh &&
-  . $scriptpath/projectdir-npm.inc.sh &&
-  . $scriptpath/projectdir-make.inc.sh &&
-  . $scriptpath/projectdir-lizard.inc.sh &&
-  . $scriptpath/projectdir-vagrant.inc.sh &&
-  . $scriptpath/projectdir-bats.inc.sh
+  . $CWD/projectdir-fs.inc.sh &&
+  . $CWD/projectdir-git.inc.sh &&
+  . $CWD/projectdir-git-versioning.inc.sh &&
+  . $CWD/projectdir-grunt.inc.sh &&
+  . $CWD/projectdir-npm.inc.sh &&
+  . $CWD/projectdir-make.inc.sh &&
+  . $CWD/projectdir-lizard.inc.sh &&
+  . $CWD/projectdir-vagrant.inc.sh &&
+  . $CWD/projectdir-bats.inc.sh
 }
 
 no_act()
@@ -348,7 +348,7 @@ pd_register()
   do
     fnmatch "*$1*" "$pd_sets" || pd_sets="$pd_sets $1"
     registry="$(echo_local sets $1)"
-    eval export $registry="\"\$$registry $mod\""
+    eval export $registry="\"\${$registry-} $mod\""
     shift
   done
 }

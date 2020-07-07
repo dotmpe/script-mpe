@@ -1,10 +1,4 @@
-#!/usr/bin/env bash
-#!/bin/sh
-tasks_src=$_
-
-set -e
-
-
+#!/usr/bin/env make.sh
 
 version=0.0.4-dev # script-mpe
 
@@ -67,97 +61,17 @@ tasks__edit()
 tasks_als___e=edit
 
 
-
-
 # Script main functions
 
-tasks_main()
-{
-  local
-      scriptname=tasks \
-      base=$(basename $0 .sh) \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      failed=
-
-  tasks_init || exit $?
-
-  case "$base" in
-
-    $scriptname )
-
-        test -n "$1" || set -- list
-
-        tasks_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-tasks_init()
-{
-  local scriptname_old=$scriptname; export scriptname=tasks-init
-
-  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
-  lib_load main meta box date doc table remote tasks std stdio match src-htd
-  # -- tasks box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-tasks_lib()
-{
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
+INIT_LIB="os sys main str shell meta box date doc table remote tasks std stdio match log src src-htd"
+main-local
+failed= tasks_session_id
+main-lib
   local __load_lib=1
-  . $scriptpath/match.sh load-ext || return
   INIT_LOG=$LOG lib_init || return
-  # -- tasks box lib sentinel --
-  set --
-}
-
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-tasks_load()
-{
-  # -- tasks box lib sentinel --
-  set --
-}
-
-# Post-exec: subcmd and script deinit
-tasks_unload()
-{
-  local unload_ret=0
-
-  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  do case "$x" in
-      f )
-          clean_failed || unload_ret=1
-        ;;
-  esac; done
-
-  unset subcmd subcmd_pref \
-          tasks_default def_subcmd func_exists func \
-          failed tasks_session_id
-
-  return $unload_ret
-}
-
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    tasks_main "$@" || exit $?
-  }
-;; esac
-
+main-unload
+  clean_failed || unload_ret=1 ; unset failed
+main-epilogue
 # Id: script-mpe/0.0.4-dev tasks.sh

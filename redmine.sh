@@ -1,12 +1,4 @@
-#!/bin/sh
-
-redmine_src=$_
-test -z "$__load_lib" || set -- "load-ext"
-
-set -e
-
-
-
+#!/usr/bin/env make.sh
 
 
 # Script subcmd's funcs and vars
@@ -85,74 +77,23 @@ redmine__help()
 
 # Script main functions
 
-redmine_main()
-{
-  local \
-      scriptname=redmine \
-      base=$(basename $0 .sh) \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      failed=
+MAKE-HERE
 
-  redmine_init || exit $?
+INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
 
-  case "$base" in
+main-local
+failed=
 
-    $scriptname )
+main-init
 
-        test -n "$1" || set -- list
-
-        redmine_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-redmine_init()
-{
-  local scriptname_old=$scriptname; export scriptname=redmine-init
-
-  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+main-lib
   lib_load main meta box date doc table remote match std stdio || return
-  # -- redmine box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-# FIXME: 2nd boostrap init
-redmine_lib()
-{
-  local scriptname_old=$scriptname; export scriptname=redmine-lib
   local __load_lib=1
-  . $scriptpath/match.sh load-ext
   INIT_LOG=$LOG lib_init || return
-  # -- redmine box lib sentinel --
-  export scriptname=$scriptname_old
-}
 
-# Pre-exec: post subcmd-boostrap init
-redmine_load()
-{
+main-load
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
 
-  test -n "$remote_host" || remote_host=dandy
-  test -n "$remote_user" || remote_user=hari
-  on_host $remote_host || ssh_req $remote_host $remote_user
-}
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-  # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-      redmine_main "$@"
-    ;;
-  esac ;;
-esac
-
+  test -n "${remote_host-}" || remote_host=dandy
+  test -n "${remote_user-}" || remote_user=hari
+  on_host ${remote_host-} || ssh_req $remote_host $remote_user

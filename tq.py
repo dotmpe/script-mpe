@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-tq - open
+tq - text-query: simple text character/line+column resolver
 """
 from __future__ import print_function
 import os

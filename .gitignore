@@ -51,3 +51,4 @@ doc/src/sh/*.rst
 _tmp
 *.tmp
 test/var/nix_comments.txt.header
+tags

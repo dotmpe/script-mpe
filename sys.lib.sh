@@ -84,17 +84,17 @@ func_exists()
 try_exec_func()
 {
   test -n "$1" || return 97
-  $LOG debug "sys" "try-exec-func '$1'"
-  func_exists $1 || return $?
+  func_exists $1 || return
   local func=$1
   shift 1
-  $func "$@" || return $?
+  $func "$@" || return
 }
 
 # TODO: redesign @Dsgn
 try_var()
 {
-  local value="$(eval echo "\$$1")"
+  local value=
+  eval "value=\"\$$1\"" >/dev/null 2>/dev/null
   test -n "$value" || return 1
   echo $value
 }
@@ -106,7 +106,7 @@ try_value()
   test $# -gt 1 && {
     value="$(eval echo "\"\${$(echo_local "$@")-}\"" || return )"
   } || {
-    value="$(eval echo "\${${1-}-}" || return )"
+    value="$(eval echo \"\${${1-}-}\" || return )"
   }
   test -n "$value" || return 1
   echo "$value"
@@ -447,3 +447,31 @@ exec_arg() # CMDLINE [ -- CMDLINE ]...
   $LOG info sys "Exec-arg: executed $execnr lines"
   test $execnr -gt 0 || return 1
 }
+
+pwd_p()
+{
+  test -n "${PWD_P-}"
+}
+
+pwd_init()
+{
+  pwd_p || PWD_P=$PWD
+}
+
+push_pwd() # [Dir]
+{
+  test "$1" = "$PWD" && return
+  cd $1
+  test -n "${PWD_D-}" && PWD_D=${PWD_D}:$PWD || PWD_D=$PWD
+}
+
+pop_pwd()
+{
+  test -n "${PWD_D-}" || return
+  local pwd="$(echo "$PWD_D" | cut -d':' -f1)"
+  PWD_D="$(echo "$PWD_D" | cut -d':' -f2-)"
+  test -n "$PWD_D" || unset PWD_D
+  cd "$pwd"
+}
+
+#

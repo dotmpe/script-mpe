@@ -20,7 +20,7 @@ C_cached()
 }
 
 
-vc_usage()
+vc_main_usage()
 {
   echo 'Usage: '
   echo "  $scriptname <cmd> [<args>..]"
@@ -106,7 +106,7 @@ vc__help()
   echo "$base/$version - Reports on SCM state, build short description. "
   echo
   test -z "$1" && {
-    vc_usage
+    vc_main_usage
     echo
     echo "Default command: "
     echo "  $scriptname (print-all) [PATH...]"
@@ -1897,8 +1897,7 @@ vc_env_load()
 }
 
 
-vc_load()
-{
+main-load \
   local __load_lib=1 cwd="$(pwd)"
   # FIXME: sh autocompletion
   #. ~/.conf/bash/git-completion.bash
@@ -1932,12 +1931,7 @@ vc_load()
       test -e $dir && echo "$dir" || continue; done )
   }
 
-  # Look at run flags for subcmd
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
-  do
-    debug "${base} load ${subcmd} $x"
-    case "$x" in
-
+main-load-flags
     f )
         # Preset name to subcmd failed file placeholder
         failed=$(setup_tmpf .failed)
@@ -1977,17 +1971,7 @@ vc_load()
         debug "Found package '$package_id'"
       ;;
 
-    esac
-  done
-}
-
-# Post-exec: subcmd and script deinit
-vc_unload()
-{
-  for x in $(try_value "${subcmd}" run | sed 's/./&\ /g')
-  do
-    debug "${base} unload ${subcmd} $x"
-    case "$x" in
+main-unload-flags
 
     C )
         # Update cached value
@@ -1999,19 +1983,6 @@ vc_unload()
             }
           }
       ;;
-  esac; done
-  clean_failed
-}
 
-
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    vc_main "$@"
-  }
-;; esac
-
+main-epilogue
 # Id: script-mpe/0.0.4-dev vc.sh
