@@ -177,7 +177,7 @@ daemonize_main()
 
   case "$base" in $scriptname )
 
-    local subcmd_def= \
+    local subcmd_default= \
       subcmd_pref= subcmd_suf= \
       subcmd_func_pref=daemonize__ subcmd_func_suf=
 

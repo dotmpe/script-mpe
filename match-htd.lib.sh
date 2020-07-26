@@ -164,7 +164,7 @@ compile_globs()
 # wrapper for compile-globs
 globlist_to_regex()
 {
-  while test -n "$1"
+  while test $# -gt 0
   do
     test -e "$1" || error "no globlist file '$1'" 1
     test -s "$1" && {

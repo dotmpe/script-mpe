@@ -56,6 +56,7 @@ build_init()
   test -n "${package_specs_required-}" ||
       package_specs_required=str\ sys\ os\ std\ argv\ shell\ match\ src\ main\ sh\ bash\ redo\ build\ box\ functions\ oshc\ vc\ ck\ schema
 
+  package_lib_init || return
   build_io_init || return
   build_init=ok
 }
@@ -84,18 +85,18 @@ show_globspec()
 
 build_srcfiles()
 {
-  test -n "$1" || return 1
-  test -n "$package_paths" || package_paths=vc_tracked
+  test -n "${1-}" || return 1
+  test -n "${package_paths-}" || package_paths=vc_tracked
   spwd=. $package_paths "$@"
 }
 
 # XXX: redo-ifchanged .cllct/specsets/$1.
 expand_spec_src() # Spec-Set [Filter-From]
 {
-  test -n "$2" || set -- "$1" "$cllct_set_base/$1.excludes"
+  test -n "${2-}" || set -- "$1" "$cllct_set_base/$1.excludes"
+      # | tr ' ' '\n' | xargs -I % echo "'%'" | tr '\n' ' '
   eval build_srcfiles $(
-      show_globspec "$1" |
-      tr ' ' '\n' | xargs -I % echo "'%'" | tr '\n' ' '
+      show_globspec "$1"
     ) | { test -s "$2" && { $ggrep -vf "$2" || return ; } || cat ; }
 }
 
@@ -214,7 +215,7 @@ list_builds()
 list_sh_files()
 {
   test -n "${build_init-}" || build_init
-  spwd=. vc_tracked | while read -r path ; do
+  vc_tracked | while read -r path ; do
 
 # Cant do anything with empty file or dirs
     test -s "$path" -a ! -d "$path" || continue
@@ -323,7 +324,6 @@ build_graphs()
 build_package_script_lib_list()
 {
   # XXX: package_init_env ; package_req_env || return
-
   expand_spec_src script_libs |
       p= s= act=$package_component_name foreach_inscol
 }
@@ -356,7 +356,7 @@ build_lib_func_deps_list()
 # See <src-stat>/functions/<docid>.func-list
 build_lib_func_list()
 {
-  list_functions "$1" | gsed 's/().*$//' | ggrep -v '\ \ '
+  list_functions "$1" | sed 's/().*$//' | grep -v '^\s*$'
 }
 
 build_sh_lookup_func_lib() # Func

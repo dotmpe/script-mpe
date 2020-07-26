@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #!/bin/sh
 
 # Statusdir - a property store for bash with lightweight backends
@@ -289,11 +290,12 @@ statusdir__x()
 # Generic subcmd's
 
 statusdir_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-statusdir_load__help=f
+statusdir_flags__help=f
 statusdir_spc__help='-h|help [ID]'
 statusdir__help()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
+  lib_require ctx-std || return
   choice_global=1 std__help "$@"
   rm_failed || return
 }
@@ -340,7 +342,7 @@ statusdir_main()
 
         statusdir_main_lib || exit 2$?
         statusdir_subcmd_load || exit 1$?
-        main_subcmd_run "$@" || exit 0$?
+        main_run_subcmd "$@" || exit 0$?
       ;;
 
     * )
@@ -380,8 +382,7 @@ statusdir_main_init()
 
 statusdir_main_lib()
 {
-  test -z "$__load_lib" || return 14
-  local __load_lib=1
+  test -z "${__load_lib-}" || return 14
   lib_load box date statusdir notify
   # -- statusdir box lib sentinel --
   set --
@@ -392,7 +393,7 @@ statusdir_main_lib()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
+  test "${1-}" != load-ext || __load_lib=1
   test -n "${__load_lib-}" || {
     statusdir_main "$@"
   }

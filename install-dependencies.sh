@@ -367,7 +367,7 @@ main_load()
     stderr_ "0: '$0' *: $*" 1
 } && {
   test -n "$1" -o "$1" = "-" || set -- all
-  while test -n "$1"
+  while test $# -gt 0
   do
     main_entry "$1" || exit $?
     shift

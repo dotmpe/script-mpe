@@ -23,7 +23,7 @@ htd__docstat()
   doc_lib_init
   subcmd_prefs=docstat_ try_subcmd_prefixes "$@"
 }
-htd_run__docstat=ql
+htd_flags__docstat=ql
 htd_libs__docstat=str\ date\ statusdir\ docstat\ htd-docstat\ ctx-doc\ doc
 
 docstat__help ()

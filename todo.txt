@@ -75,4 +75,6 @@ http://github.com/BlueFlo0d/CSP/wiki/Implementation-details
 
 2020-03-07 Log build results uid:Jn7E results-log see also builds-log <build.rst#logging>
 
+2020-07-20 Move static init out of libs, review tools
+
 # vim:ft=todo.txt:nowrap:

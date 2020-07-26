@@ -12,7 +12,7 @@ version=0.0.4-dev # script-mpe
 
 # See $scriptname help to get started
 
-diskdoc_load__meta=y
+diskdoc_flags__meta=y
 diskdoc_man_1__meta='Defer to python script for YAML parsing'
 diskdoc__meta()
 {
@@ -53,7 +53,7 @@ diskdoc__meta_sq()
 }
 
 
-diskdoc_load__status=ybf
+diskdoc_flags__status=ybf
 diskdoc_man_1__help='Run over known prefixes and present status indicators'
 diskdoc__status()
 {
@@ -70,7 +70,7 @@ diskdoc__status()
 }
 
 
-diskdoc_load__check=ybf
+diskdoc_flags__check=ybf
 diskdoc_man_1__check='Check with remote refs'
 diskdoc__check()
 {
@@ -86,7 +86,7 @@ diskdoc__check()
 }
 
 
-#diskdoc_load__update=yfb
+#diskdoc_flags__update=yfb
 diskdoc__update()
 {
   test -n "$1" || set -- "*"
@@ -96,14 +96,14 @@ diskdoc__update()
 
 
 
-diskdoc_load__init=y
+diskdoc_flags__init=y
 diskdoc__init()
 {
   false
 }
 
 
-diskdoc_load__ids=y
+diskdoc_flags__ids=y
 diskdoc__ids()
 {
   sudo blkid | while read -r devicer uuidr typer partuuidr
@@ -126,7 +126,7 @@ diskdoc__ids()
 # Generic subcmd's
 
 diskdoc_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-diskdoc_load__help=f
+diskdoc_flags__help=f
 diskdoc_spc__help='-h|help [ID]'
 diskdoc__help()
 {
@@ -161,7 +161,7 @@ main_local \\
   diskdoc_default def_subcmd func_exists func \\
   failed diskdoc_session_id \\
   diskdoc_session_id= \\
-  subcmd_def=status \\
+  subcmd_default=status \\
   func_exists= \\
   func= \\
   main_bg=diskdoc__meta \\

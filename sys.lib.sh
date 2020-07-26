@@ -13,7 +13,7 @@ sys_lib_load()
 # Sh var-based increment
 incr() # VAR [AMOUNT=1]
 {
-  local incr_amount
+  local v incr_amount
   test -n "${2-}" && incr_amount=$2 || incr_amount=1
   v=$(eval echo \$$1)
   eval $1=$(( $v + $incr_amount ))
@@ -266,22 +266,26 @@ lookup_path_shadows() # VAR-NAME LOCAL
 }
 
 # Return non-zero if default was set, or present value does not match default
-default_env() # VAR-NAME DEFAULT-VALUE
+default_env() # VAR-NAME DEFAULT-VALUE [Level]
 {
   test -n "${1-}" -a $# -eq 2 || error "default-env requires two args ($*)" 1
-  local vid= sid= id= v=
+  local vid= cid= id= v= c=0
   trueish "${title-}" && upper= || {
     test -n "${upper-}" || upper=1
   }
   mkvid "$1"
-  mksid "$1"
+  mkcid "$1"
   unset upper
   v="$(eval echo \$$vid 2>/dev/null )"
+  test -n "${3-}" || set -- "$1" "$2" "debug"
   test -n "$v" && {
-    test "$v" = "${2-}"
-    return $?
+    test "$v" = "${2-}" || c=$?
+      test $c -eq 0 &&
+        $3 "Default $cid env ($vid)" ||
+        $3 "Custom $cid env ($vid): '${2-}'"
+    return $c
   } || {
-    debug "No $sid env ($vid), using '${2-}'"
+    $3 "No $cid env ($vid), using default '${2-}'"
     eval $vid="${2-}"
     return 0
   }
@@ -339,7 +343,6 @@ req_profile() # Name Vars...
     mv "$SCR_ETC/${name}-temp.sh" "$SCR_ETC/$name.sh"
   }
 }
-
 
 rnd_passwd()
 {
@@ -448,30 +451,4 @@ exec_arg() # CMDLINE [ -- CMDLINE ]...
   test $execnr -gt 0 || return 1
 }
 
-pwd_p()
-{
-  test -n "${PWD_P-}"
-}
-
-pwd_init()
-{
-  pwd_p || PWD_P=$PWD
-}
-
-push_pwd() # [Dir]
-{
-  test "$1" = "$PWD" && return
-  cd $1
-  test -n "${PWD_D-}" && PWD_D=${PWD_D}:$PWD || PWD_D=$PWD
-}
-
-pop_pwd()
-{
-  test -n "${PWD_D-}" || return
-  local pwd="$(echo "$PWD_D" | cut -d':' -f1)"
-  PWD_D="$(echo "$PWD_D" | cut -d':' -f2-)"
-  test -n "$PWD_D" || unset PWD_D
-  cd "$pwd"
-}
-
-#
+# Sync: U-S:src/sh/lib

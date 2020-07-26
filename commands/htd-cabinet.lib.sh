@@ -94,7 +94,7 @@ htd__edit_today()
   htd_edit_today "$@"
 }
 htd_libs__edit_today=htd-main\ package\ date-htd\ journal\ doc\ htd-doc
-htd_run__edit_today=lp
+htd_flags__edit_today=lp
 
 
 htd__edit_week()
@@ -115,7 +115,7 @@ htd__today() # Jrnl-Dir YSep MSep DSep [ Tags... ]
   htd_jrnl_day_links "$@"
   htd_jrnl_period_links "$1" "$2"
 }
-htd_run__today=l
+htd_flags__today=l
 htd_libs__today=journal\ date-htd
 
 
@@ -224,7 +224,7 @@ htd__journal()
     * ) error "'$1'? 'htd jrnl $*'" 1 ;;
   esac
 }
-htd_run__journal=l
+htd_flags__journal=l
 htd_libs__journal=journal\ date-htd
 
 

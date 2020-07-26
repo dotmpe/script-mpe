@@ -21,7 +21,7 @@ source-code info.
      See box-list-functions-attrs.
 
 '
-htd_run__functions=iAOl
+htd_flags__functions=iAOl
 htd__functions()
 {
   test -n "$1" || set -- copy

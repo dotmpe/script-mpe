@@ -51,7 +51,7 @@ pd_bats_files_args()
       test -n "$pd_trgtpref" \
         || pd_trgtpref="$(eval echo "\"\$$(echo_local "$subcmd" trgtpref)\"")"
 
-      while test -n "$1"
+      while test $# -gt 0
       do
         set -f
         for glob in $pd_trgtglob
@@ -101,7 +101,7 @@ pd_bats_files_args()
 }
 
 
-pd_load__bats_files=iIa
+pd_flags__bats_files=iIa
 pd__bats_files()
 {
   cat $arguments
@@ -110,7 +110,7 @@ pd_defargs__bats_files=pd_bats_files_args
 
 
 # glob-names: use glob to find all shorter names
-pd_load__bats_gnames=iI
+pd_flags__bats_gnames=iI
 pd__bats_gnames()
 {
   test -n "$pd_trgtglob" \
@@ -177,7 +177,7 @@ pd__bats_specs()
     }
   export values
 }
-pd_load__bats_specs=iIa
+pd_flags__bats_specs=iIa
 pd_defargs__bats_specs=pd_bats_files_args
 
 
@@ -213,12 +213,12 @@ pd__bats_count()
       failed "$subcmd:$@"
     }
 }
-pd_load__bats_count=igaI
+pd_flags__bats_count=igaI
 pd_defargs__bats_count=pd_bats_files_args
 pd_stat__bats_count=bats/count
 
 
-pd_load__bats=iIa
+pd_flags__bats=iIa
 pd__bats()
 {
   local argc=$# curarg=0

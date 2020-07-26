@@ -20,7 +20,43 @@ setup()
 
   incr COUNT 5
   test $COUNT -eq 7 || stdfail "2. ($COUNT)"
+}
 
+
+@test "$base: incr x (amount): increments var x, output is clean" {
+
+  sh_isset x && fail "Unexpected 'x' var in env (x=$x)" || true
+
+  incr x 3
+  test $? -eq 0
+  #test -z "${lines[*]}"
+
+  test -n "$x"
+  test $x -eq 3
+
+  incr x 1
+  test $x -eq 4
+
+  unset x
+}
+
+
+@test "$base: incr c: increments var c, output is clean" {
+
+  sh_isset c && fail "Unecpected 'c' var in env (c=$c)" || true
+
+  run incr c
+  test_ok_empty
+
+  incr c
+  test -n "$c"
+  test $c -eq 1
+  unset c
+
+  incr c && incr c && incr c
+  test $? -eq 0
+  test $c -eq 3
+  unset c
 }
 
 

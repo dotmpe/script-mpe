@@ -222,7 +222,7 @@ docker_sh__register()
   done
 }
 
-docker_sh_load__build=p
+docker_sh_flags__build=p
 docker_sh__build()
 {
   docker_sh_load_psh "$1" build || error "Loading dckr build script" 1
@@ -777,7 +777,7 @@ docker_sh__vbox()
 # Generic subcmd's
 
 docker_sh_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-docker_sh_load__help=f
+docker_sh_flags__help=f
 docker_sh_spc__help='-h|help [ID]'
 docker_sh__help()
 {

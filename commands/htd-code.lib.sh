@@ -232,7 +232,7 @@ htd__git_list()
 
 htd_man_1__git_files='List or look for files'
 htd_spc__git_files='git-files [ REPO... -- ] GLOB...'
-htd_run__git_files=ia
+htd_flags__git_files=ia
 htd__git_files()
 {
   local pat="$(compile_glob $(lines_to_words $arguments.glob))"
@@ -271,7 +271,7 @@ TODO: search checkouts as well, not only git bare repos
 TODO: spec
 '
 htd_spc__git_grep='git-grep [ -C=REPO-CMD ] [ RX | --grep= ] [ GREP-ARGS | --grep-args= ] [ --dir=DIR | REPOS... ] '
-htd_run__git_grep=liAO
+htd_flags__git_grep=liAO
 htd__git_grep()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
@@ -334,7 +334,7 @@ Depending on wether there is a terminal or pip/file at stdin (fd 0).
 '
 htd_spc__gitrepo='gitrepo [--(,no-)expand-dir] [--repos=] [--dir=] [ GLOBS... | PATHS.. | - ]'
 htd_env__gitrepo="dir="
-htd_run__gitrepo=eiAO
+htd_flags__gitrepo=eiAO
 htd__gitrepo()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
@@ -362,7 +362,7 @@ htd__git_import()
 }
 
 htd_libs__git=git\ htd-git\ git-htd
-htd_run__git=l
+htd_flags__git=l
 htd__git()
 {
   test -n "$1" || set -- info
@@ -372,7 +372,7 @@ htd__git()
 
 htd_libs__github=github
 htd_man_1__github='Github lib'
-htd_run__github=fl
+htd_flags__github=fl
 htd__github()
 {
   test -n "$1" || set -- help

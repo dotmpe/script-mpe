@@ -487,10 +487,10 @@ darwin_boottime()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Do nothing if loaded by lib-load
-  test -n "$__load_lib" || {
+  test -n "${__load_lib-}" || {
 
     # Otherwise set action with env __load
-    test -n "$__load" || {
+    test -n "${__load-}" || {
 
       # Sourced or executed without __load* env.
 

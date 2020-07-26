@@ -250,7 +250,7 @@ ck_run_update()
     && find_ignores="$ck_find_ignores" \
     || find_ignores="$find_ignores -o $ck_find_ignores"
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     test -e "$1" || error "No such path to check: '$1'" 1
     test -d "$1" && {

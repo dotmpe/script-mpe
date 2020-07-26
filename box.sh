@@ -297,7 +297,6 @@ box__run()
 
   #box_init_args $@
   test $c -eq 0 || shift $c ; c=0
-  test -n "$script_subcmd_name" || script_subcmd_name=$subcmd
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
@@ -537,7 +536,9 @@ main_env \
 main_local \\
   box_sock= box_lib=
 main_init box_sock=/tmp/box-serv.sock
-main-lib box_lib_current_path
+main-lib \
+  box_lib_current_path \
+  script_subcmd_name=$subcmd
 main-load box_name="${base}:${subcmd}" \
   sh_include_path_langs="htd main ci bash sh"
 main-load-flags \

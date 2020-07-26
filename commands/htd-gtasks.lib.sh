@@ -53,7 +53,7 @@ htd__gtasks()
     gtasks_list_opt
     gtasks $list $gtasks_opts
   }
-  while test -n "$1"
+  while test $# -gt 0
   do
     gtasks_list_opt $@ && shift 1
     gtasks $list $gtasks_opts

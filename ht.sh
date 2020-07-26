@@ -1,6 +1,6 @@
+#!/usr/bin/env make.sh
 #!/bin/sh
 # Created: 2018-03-17
-ht__source=$_
 
 # Ht - trying to optimize htd.sh a bit. See `HT:dev/main` docs.
 
@@ -85,7 +85,7 @@ ht__filesize()
   filesize "$1"
 }
 
-ht_run__file=fl
+ht_flags__file=fl
 ht__file()
 {
   test -n "$1" || set -- info
@@ -222,7 +222,7 @@ EOF
 }
 
 
-ht_run__ssh=fl
+ht_flags__ssh=fl
 ht__ssh()
 {
   test -n "$1" || set -- info
@@ -235,134 +235,48 @@ ht__ssh()
 
 # Script main functions
 
-ht_main()
-{
-  local scriptname=ht base=$(basename "$0" .sh) \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-    upper= \
-    package_id= package_cwd= package_env= \
-    subcmd= subcmd_alias= subcmd_args_pre= \
+MAKE-HERE
+INIT_ENV="init-log 0 0-src dev init-log ucache scriptpath std box" \
+INIT_LIB="str sys os std log stdio main argv shell box src logger-theme"
+
+#os
+#os-htd
+#sys
+#sys-htd
+#std
+#std-ht
+#str
+#str-htd
+#log
+#match
+#main
+
+main-local
     arguments= subcmd_prefs= options= \
     passed= skipped= error= failed=
 
+main-init
   test -n "$script_util" || script_util=$scriptpath/tools/sh
   test -n "$htd_log" || htd_log=$script_util/log.sh
-  test -n "$verbosity" || verbosity=4
 
-  ht_init || exit $?
-
-  case "$base" in $scriptname | sd )
-
-        ht_lib "$1" || exit $?
-
-        # Fast boot for simple or direct cmd function suffix
-        type ht__$1 1>/dev/null 2>&1 && {
-            subcmd=$1
-            shift 1
-            ht__$subcmd "$@" || return $?
-        } || {
-
-            main_subcmd_run "$@" || exit $?
-        }
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-# Initial step to prepare for subcommand
-ht_init()
-{
-  test -n "$script_util" || return 103 # NOTE: sanity
-  set -e
+        # XXX Fast boot for simple or direct cmd function suffix
+        #type ht__$1 1>/dev/null 2>&1 && {
+        #    subcmd=$1
+        #    shift 1
+        #    ht__$subcmd "$@" || return $?
+        #} || {
+        #    main_subcmd_run "$@" || exit $?
+        #}
 
   # NOTE: static init saves 100ms at 0.84s (12%)
-  test -n "$ht_init_dyn" && {
-    ht_init_dyn || $LOG "error" "ERR:$?" "Ht dynamic init error" "" 1
-  } || {
-    ht_init_static
-  }
-  # -- ht box init sentinel --
-}
+  #test -n "$ht_init_dyn" && {
+  #  ht_init_dyn || $LOG "error" "ERR:$?" "Ht dynamic init error" "" 1
+  #} || {
+  #  ht_init_static
+  #}
 
-ht_init_static()
-{
-  test -n "$script_util" || return 103 # NOTE: sanity
-  test -n "$scriptpath" || return
-  unset CWD
-  # FIXME: instead going with hardcoded sequence for env-d like for lib.
-  test -n "$htd_env_d_default" ||
-      htd_env_d_default=init-log\ ucache\ scriptpath\ std
-  #export SCRIPTPATH=$scriptpath
-  test -n "$U_S" || export U_S=/srv/project-local/user-scripts
-  test -n "$LOG" -a -x "$LOG" || export LOG=$scriptpath/tools/sh/log.sh
-  #test -n "$LOG" -a -x "$LOG" || export LOG=$U_S/tools/sh/log.sh
-  INIT_LOG=$LOG
+main-lib
+  INIT_LOG=$LOG lib_init
 
-  for env_d in $htd_env_d_default
-  do
-    . $script_util/parts/env-$env_d.sh
-  done
-  $htd_log "info" "" "Env initialized from parts" "$htd_env_d_default"
-
-  util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
-  #. $scriptpath/tools/sh/init.sh || return
-  #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
-
-  lib_lib_load && lib_lib_init || return
-
-  { __load=ext
-    . $scriptpath/os-htd.lib.sh && os_htd_lib_loaded=0 && lib_loaded="$lib_loaded os_htd" &&
-    . $scriptpath/sys-htd.lib.sh && sys_htd_lib_loaded=0 && lib_loaded="$lib_loaded sys_htd" &&
-    . $scriptpath/std-ht.lib.sh && std_ht_lib_loaded=0 && lib_loaded="$lib_loaded std_ht" &&
-    . $scriptpath/str-htd.lib.sh && str_htd_lib_loaded=0 && lib_loaded="$lib_loaded str_htd" &&
-    . $scriptpath/main.lib.sh && main_lib_loaded=0 && lib_loaded="$lib_loaded main" &&
-    . $U_S/src/sh/lib/os.lib.sh && os_lib_loaded=0 && lib_loaded="$lib_loaded os" &&
-    . $U_S/src/sh/lib/sys.lib.sh && sys_lib_loaded=0 && lib_loaded="$lib_loaded sys" &&
-    . $U_S/src/sh/lib/std.lib.sh && std_lib_loaded=0 && lib_loaded="$lib_loaded std" &&
-    . $U_S/src/sh/lib/str.lib.sh && str_lib_loaded=0 && lib_loaded="$lib_loaded str" &&
-    . $U_S/src/sh/lib/log.lib.sh && log_lib_loaded=0 && lib_loaded="$lib_loaded log" &&
-    . $U_S/src/sh/lib/match.lib.sh && match_lib_loaded=0 && lib_loaded="$lib_loaded match" &&
-    true
-  } || $LOG "error" "ERR:$?" "Libs load" "" 1
-
-  . $scriptpath/tools/sh/box.env.sh || return
-  box_run_sh_test || return
-
-  lib_init $lib_loaded || $LOG "error" "ERR:$?" "Libs init" "" 1
-  unset INIT_LOG CWD
-  # -- ht box init-static sentinel --
-}
-
-ht_init_dyn()
-{
-  test -n "$script_util" || return 103
-  util_mode=boot . $script_util/init-wrapper.sh || return
-  # -- ht box init-dynamic sentinel --
-}
-
-# Second step to prepare for subcommand
-ht_lib()
-{
-  INIT_LOG=$LOG
-  . $U_S/src/sh/lib/shell.lib.sh || return
-  shell_lib_load && shell_lib_init || return
-  unset INIT_LOG
-  # -- ht box lib sentinel --
-  set --
-}
-
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    ht_main "$@"
-  }
-;; esac
-
+main-epilogue
 # Id: script-mpe/0.0.4-dev ht.sh

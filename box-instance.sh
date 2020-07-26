@@ -12,7 +12,7 @@ version=0.0.4-dev # script-mpe
 # Script subcmd's funcs and vars
 
 box_instance_man_1__x=abc
-box_instance_load__x=f
+box_instance_flags__x=f
 box_instance_spc__x="x ARG [ARG..]"
 box_instance__x()
 {
@@ -24,7 +24,7 @@ box_instance__x()
   }
 }
 
-box_instance_load__y=f
+box_instance_flags__y=f
 box_instance__y()
 {
   test -z "$1" && {
@@ -39,7 +39,7 @@ box_instance__y()
 # Generic subcmd's
 
 box_instance_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-box_instance_load__help=f
+box_instance_flags__help=f
 box_instance_spc__help='-h|help [ID]'
 box_instance__help()
 {

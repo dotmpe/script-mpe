@@ -127,6 +127,9 @@ statusdir_record()
   esac
 }
 
+# XXX: test "$(test -t "statusdir")" != alias || unalias statusdir
+
+
 # Execute command or function and cache stdout, or return existing cache.
 # If the command errors, trash the result, keep quiet and return status.
 # See statusdir-index-spec comments on the argument and expiration logic.

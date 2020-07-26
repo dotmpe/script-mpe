@@ -1,6 +1,6 @@
 
 
-pd_load__vagrant=iI
+pd_flags__vagrant=iI
 pd__vagrant()
 {
   test -z "$2"

@@ -27,7 +27,9 @@ make_read_herescript()
   do
     test "$line" = "MAKE-HERE" && break
     test -n "${header-}" || {
-      case "$line" in "#"* ) continue;; * ) header=1;; esac
+      case "$line" in "#"* ) continue;; * )
+          make_scriptbody="#!/usr/bin/env bash"
+          header=1;; esac
     }
     line="$(echo "$line" | sed 's/%/%%/g')"
     make_scriptbody="$make_scriptbody\n$line"
@@ -43,7 +45,7 @@ make_read_herescript()
       main_env="${main_env-}$line "
     } || {
       eval "test -n \"\${main_$f-}\" &&
-        main_${f}=\"\${main_$f-}$'\n'\$line\" ||
+        main_${f}=\"\${main_$f-}"$'\n'"\$line\" ||
         main_${f}=\"\$line\""
     }
   done
@@ -80,7 +82,7 @@ make_preproc_script() # Make-Script ~ [Echo]
     case "$line" in *'\' ) cont=1 ;; * ) cont=0 ;; esac
 
     case "$line" in
-        main[-_]*" "* )
+        main[-_]*" "* | make[-_]main" "* )
                 f="$(echo "$line" | cut -d' ' -f1 | tr '-' '_')"
                 test $cont -eq 1 &&
                     line="$(echo "$line" | cut -c1-$(( ${#line}-1 )) )"
@@ -100,21 +102,17 @@ make_preproc_script() # Make-Script ~ [Echo]
   done
 }
 
+make_main_parts='main_env main_local main_lib main_load main_unload main_load_flags main_unload_flags main_epilogue main_bases'
+
 make_here()
 {
-  local make_script make_scriptname make_scriptbody
-  make_script=$1
-  make_scriptname=$(basename "$1" .sh)
-  base=
-
-  local main_local main_env main_lib main_load main_unload main_load_flags main_unload_flags main_epilogue CWD
-
   test -n "${make_pref-}" || {
       test ${make_echo-0} -eq 0 && {
           local make_pref=eval
       } || make_pref=echo
   }
 
+  local make_scriptbody
   make_read_herescript < "$1"
   $make_pref "$(printf "$make_scriptbody")"
 
@@ -124,19 +122,10 @@ make_here()
 
   eval "${main_env-} \
     main_make $make_scriptname"
-  shift
-  test ${make_echo-0} -eq 0 || echo
-  main_entry "$@"
 }
 
 make_preproc()
 {
-  local make_script make_scriptname base
-  make_script=$1
-  make_scriptname=$(basename "$1" .sh)
-  local vid; mkvid $make_scriptname; base=$vid
-
-  local main_env main_local main_env main_lib main_load main_unload main_load_flags main_unload_flags main_epilogue CWD
 
   test -n "${make_pref-}" || {
       test ${make_echo-0} -eq 0 && {
@@ -152,11 +141,9 @@ make_preproc()
   main_script=$make_script
   main_base=$make_scriptname
   main_scriptpath="$(dirname "$make_script")"
+  main_aliases=${aliases-$make_scriptname}
   # Create main parts but do not eval yet
   eval "${main_env-} main_make $make_scriptname"
-  shift
-  test ${make_echo-0} -eq 0 || echo
-  main_entry "$@"
 }
 
 # Id: script-mpe/0.0.4-dev main-make.lib.sh

@@ -77,7 +77,7 @@ docker_sh_script_from()
 req_vars()
 {
   local v=
-  while test -n "$1"
+  while test $# -gt 0
   do
     v="$(eval echo \$$1)"
     test -n "$v" || error $1 $?
@@ -237,7 +237,7 @@ docker_sh_rm()
 docker_sh_f_argv()
 {
   c=0
-  while test -n "$1"
+  while test $# -gt 0
   do
     test -z "$1" || {
       test "${1:0:1}" = "-" && {

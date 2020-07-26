@@ -210,7 +210,7 @@ args_to_title() # Title-Descr
       } || {
         printf -- " %s" "$1"
       };}
-      incr_c
+      incr c
       shift
     done ; } | tr '\n' '-'
 }

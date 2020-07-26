@@ -19,5 +19,5 @@ htd__docker_hub()
   test -n "$1" || set -- help
   subcmd_prefs=${base}_docker_hub__\ docker_hub_ try_subcmd_prefixes "$@"
 }
-htd_run__docker_hub=l
+htd_flags__docker_hub=l
 htd_libs__docker_hub=web\ docker-hub

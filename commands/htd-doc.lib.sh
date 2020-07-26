@@ -183,7 +183,7 @@ htd_man_1__tpaths='List topic paths (nested dl terms) in document paths.
 
 See du:dl-term-paths and also htd:tpath-raw
 '
-htd_run__tpaths=l
+htd_flags__tpaths=l
 htd_load__tpaths=xsl
 htd_libs__tpaths=du
 htd__tpaths()

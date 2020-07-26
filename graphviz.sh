@@ -10,7 +10,7 @@ gv__edit()
   $EDITOR $0 ~/bin/graphviz.inc.sh $(which graphviz.py) "$@"
 }
 
-gv_run__meta=G
+gv_flags__meta=G
 # Defer to python
 gv__meta()
 {
@@ -18,7 +18,7 @@ gv__meta()
   graphviz.py --file $graph --address $sock "$@" || return $?
 }
 
-gv_run__bg=G
+gv_flags__bg=G
 # Defer and wait
 gv__bg()
 {
@@ -33,7 +33,7 @@ gv__bg()
   std_info "Backgrounded"
 }
 
-gv_run__info=G #b
+gv_flags__info=G #b
 # Test argv
 gv__info()
 {
@@ -72,9 +72,9 @@ INIT_ENV="init-log 0 0-src 0-u_s dev ucache scriptpath std box" \
 INIT_LIB="os sys std stdio str shell logger-theme log match main graphviz date"
 
 main-local
-failed=
+failed= box_prefix=gv
 
-main-init
+main-load
 
   local tdy="$(try_value "${subcmd}" "" today)"
 
@@ -85,9 +85,7 @@ main-init
     touch -t $tdate $today
   }
 
-  box_lib gv
-
-main-load
+  box_lib $script $box_prefix
 
   # gv_parse_argv "$@" || {
   #   error "parse-argv" $?

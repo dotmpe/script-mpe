@@ -19,13 +19,6 @@ main_lib_init()
 main_lib_log() { req_init_log; }
 
 
-# Count arguments consumed
-incr_c()
-{
-  incr c $1
-}
-
-
 # Get help if exists for $section $id
 try_help() # 1:section-number 2:help-id
 {
@@ -57,56 +50,6 @@ echo_help()
     try_help $i $1 && return 0
   done
   return 1
-}
-
-std_usage()
-{
-  ( try_local_func usage && $func_name ) ||
-      ( try_local_func usage '' std && $func_name )
-}
-
-# Wrapper for try-help
-std_man() # [Section] Id
-{
-  test -n "$*" || set -- man
-  test $# -eq 1 && section= help_id="$1" || {
-      test $# -eq 2 && section=$1 help_id="$2"
-    }
-
-  try_help "$section" "$help_id"
-}
-
-std_help()
-{
-  test -z "$1" && {
-    std_usage
-    # XXX: using compiled list of help ID since real list gets to long htd_usage
-    echo ''
-    echo 'Other commands: '
-    other_cmds
-    choice_global=1 std__help "$@"
-    return
-  }
-
-  #test $# -eq 2 && section=$1 || section=1
-
-  spc="$(try_spec $1)"
-  test -n "$spc" && {
-    echo "Usage: "
-    echo "  $scriptname $spc"
-    echo
-  } || {
-    printf "Help '%s %s': " "$scriptname" "$1"
-  }
-
-  echo_help $1 || {
-    for func_id in "$1" "${base}__$1" "$base-$1"
-    do
-        htd_function_comment $func_id 2>/dev/null || continue
-        htd_function_help $func_id 2>/dev/null && return 1
-    done
-    error "Got nothing on '$1'" 1
-  }
 }
 
 # Echos variable or function name, for formats:
@@ -164,15 +107,59 @@ try_local_func()
   try_func $(echo_local "$@") || return $?
 }
 
-get_subcmd_func()
+main_local() # Base-Ids Attr-Id [Subs....]
 {
-  # Get default sub for base script
+  local v baseids="$1" attrid="$2" local
+  shift 2
+  test $# -gt 0 && local=__$(echo "$*" | sed 's/ /__/g') || local=
+  for baseid in $baseids
+  do
+    echo ${baseid}_${attrid}$local
+  done
+}
+
+main_var() # Base-Ids Var-Name [Default [Local]]
+{
+  local v baseids="$1" varid="$2" default="${3-"default"}" local
+  test $# -gt 2 && shift 3 || shift 2
+  for local in $( main_local "$baseids" "$varid" "$@" )
+  do
+    v="$(eval "echo \"\${$local-}\"")"
+    test -n "$v" || continue
+    #eval "$varid=\"$v\""
+    printf -v $varid "%s" "$v"
+    return
+  done
+  printf -v $varid "%s" "$default"
+  return 1
+}
+
+# Look for function part to main-*-run
+main_handle() # Base-Ids Handle-Name [Default [Local]]
+{
+  local f baseids="$1" hndid="$2" default="${3-"default"}" local
+  test $# -gt 2 && shift 3 || shift 2
+  for local in $( main_local "$baseids" "$hndid" "$@" )
+  do
+    test "$(type -t "$local")" = "function" || continue
+    printf -v $hndid "%s" "$local"
+    return
+  done
+  printf -v $hndid "%s" "$default"
+  return 1
+}
+
+main_subcmd_func()
+{
+  # Get default subcmd for base
   test -n "${1-}" || {
-    test -n "$subcmd" || {
+    test -n "${subcmd-}" || {
+      # main_var "$baseids" subcmd default
       try_local_var subcmd "" default || return 12
     }
     set -- "$subcmd"
   }
+
   test -n "$1" || error "get-subcmd-func $subcmd" 1
 
   local subcmd_default= b=
@@ -224,7 +211,7 @@ try_subcmd()
   #}
   test -z "$subcmd" && subcmd=$1
 
-  get_subcmd_func "$1" || {
+  main_subcmd_func "$1" || {
     e=$?
     test -z "$subcmd" && {
       ( try_local_func usage && $func_name ) \
@@ -294,154 +281,13 @@ try_context_actions()
 }
 
 
-std_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-std_spc__help='-h|help [ID]'
-std_als___h=help
-std__help()
-{
-  test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
-
-  test -z "${1-}" && {
-
-    lib_load functions || return
-
-    # Generic help (no args)
-    #try_exec_func ${box_prefix}__usage || { std__usage; echo ; }
-
-    try_exec_func ${box_prefix}__commands || { std__commands ; echo ; }
-    return
-    #try_exec_func ${box_prefix}__docs || true
-
-  } || {
-
-    # XXX: try_exec_func ${box_prefix}__usage $1 || { std__usage $1; echo ; }
-    # Specific help (subcmd, maybe file-format other doc, or a TODO: group arg)
-    spc="$(try_spec $1)"
-    test -n "$spc" && {
-      echo "Usage: "
-      echo "  $scriptname $spc"
-      echo
-    }
-    printf "Help '$1': "
-    echo_help "$1" || error "no help '$1'"
-  }
-}
-
-std__usage()
-{
-  test -z "${1-}" && {
-    echo "$scriptname.sh Bash/Shell script helper"
-    echo 'Usage:'
-    echo "  $scriptname <cmd> [<args>..]"
-  } || {
-    printf "$scriptname $1: "
-  }
-}
-
-std__commands()
-{
-  test -n "${1-}" || set -- ${script-} ${box_lib-}
-  test -n "${1-}" || set -- "$0"
-  # group commands per file, using sentinal line to mark next file
-  local list_functions_head="# file=\$file"
-
-  trueish "${choice_global-}" || {
-    trueish "${choice_all-}" || {
-      local_id=$(pwd | tr '/-' '__')
-      std_info "Local-ID: $local_id"
-      echo 'Local commands: '$PWD': '
-    }
-  }
-
-  lib_load functions || return
-
-  test -z "${choice_debug-}" || echo "local_id=$local_id"
-  list_functions_foreach "$@" | while read line
-  do
-    # Check sentinel for new file-name
-    test "$(expr_substr "$line" 1 1)" = "#" && {
-      test "$(expr_substr "$line" 1 7)" = "# file=" && {
-
-        file="$(expr_substr "$line" 8 ${#line})"
-        test -e "$file" &&
-            debug "std:commands File: $(basename "$file" .sh)" ||
-            warn "std:commands No such file $file" 1
-        local_file="$($grealpath --relative-to="$(pwd)" "$file")"
-
-        # XXX: test -z "$local_id" && {
-        #  # Global mode: list all commands
-        #    test "$BOX_DIR/$base/$local_file" = "$file" && {
-        #    echo "Commands: ($local_file) "
-        #  } || {
-        #    echo "Commands: ($file) "
-        #  }
-        #} || {
-        #  # Local mode: list local commands only
-        #  test "$local_file" = "${local_id}.sh" && cont= || cont=true
-        #}
-      } || continue
-    } || true
-
-    local subcmd_func_pref=${base}_
-    if trueish "${cont-}"; then continue; fi
-
-    func=$(echo $line | grep '^'${subcmd_func_pref}_ | sed 's/()//')
-    test -n "$func" || continue
-
-    func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'_//')"
-    spc=
-
-    if test "$(expr_substr "$func_name" 1 7)" = "local__"
-    then
-      lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
-      lcmd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\2/' | tr '_' '-')"
-      test -n "$lcmd" || lcmd="-"
-      #spc="* $lcmd ($lcwd)"
-      spc="* $lcmd "
-      descr="$(try_value ${subcmd_func_pref}man_1__$func_name)"
-    else
-      spc="$(try_value ${subcmd_func_pref}spc__$func_name)"
-      descr="$(try_value ${subcmd_func_pref}man_1__$func_name)"
-    fi
-    test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
-
-    test -n "$descr" || {
-      grep -q "^${subcmd_func_pref}${func_name}()" "$file" && {
-        descr="$(func_comment "$subcmd_func_pref$func_name" "$file")"
-      } || true
-    }
-    test -n "$descr" || descr=".." #  TODO: $func_name description"
-
-	  fnmatch *?"\n"?* "$descr" &&
-	    descr="$(printf -- "$descr" | head -n 1)"
-
-    test ${#spc} -gt 20 && {
-      printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
-    } || {
-      printf "  %-18s  %-50s\n" "$spc" "$descr"
-    }
-  done
-}
-
-
-std_als___V=version
-std_man_1__version="Version info"
-std_spc__version="-V|version"
-std__version()
-{
-  test -n "$scriptpath" || exit 11
-  test -n "$version" || exit 157
-  echo "$(cat $scriptpath/.app-id)/$version"
-}
-
-
 # Find shell script location with or without extension.
 # locate-name [ NAME || $scriptname ] [ .sh ]
 # :fn
 locate_name()
 {
-  test -n "$1" || set -- "$scriptname" "$2"
-  test -n "$2" || set -- "$1" .sh
+  test -n "${1-}" || set -- "$scriptname" "${2-}"
+  test -n "${2-}" || set -- "$1" .sh
   test -n "$1" || error "locate-name: script name required" 1
   # Test with and without extension
   fn="$(which "$1")"
@@ -476,7 +322,7 @@ main_subcmd_alias() # Target-Var Cmd-Id
 # Parse some random stuff, define vars for any short/long opt
 main_options_v()
 {
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
       --yaml ) format_yaml=1 ;;
@@ -550,7 +396,7 @@ main_subcmd_args()
           shift 1
           flags="-$(expr_substr "$flag" 3 ${#flag})"
           test "$flags" = "-" && {
-            incr sc
+            sc=$(( $sc + 1 ))
             continue
           } || {
             set -- "-$(expr_substr "$flag" 3 ${#flag})" "${1+$@}"
@@ -599,7 +445,7 @@ main_subcmd_args()
 
     esac
 
-    incr sc
+    sc=$(( $sc + 1 ))
     shift
 
   done
@@ -676,24 +522,6 @@ load_group()
   # XXX: no lib_init $libs for htd cmd groups
 }
 
-# Setup some initial vars and load lib files for main script
-main_init()
-{
-  test -n "${1-}" || set -- "$base"
-
-  {
-      stdio_type 0 $$ &&
-      stdio_type 1 $$ &&
-      stdio_type 2 $$
-  } || return
-
-  sh_isset verbosity || verbosity=6
-
-  #test -n "$scsep" || scsep=__
-
-  return 0
-}
-
 
 # Run load routine, pass it subcmd args
 main_subcmd_load() #  Box-Prefix [Argv]
@@ -718,18 +546,15 @@ main_subcmd_unload() # Box-Prefix
   $LOG debug "" "Unload $1 OK"
 }
 
-main_subcmd_run()
+main_run_subcmd()
 {
   local e= c=0 \
     subcmd= subcmd_alias= subcmd_func= \
     dry_run= silence= choice_force= \
-    choice_all= choice_local= choice_global= \
-    stdio_0_type= stdio_1_type= stdio_2_type=
+    choice_all= choice_local= choice_global=
 
-  main_init
-  # XXX: func_exists ${base}_parse_subcmd_args
-
-  true "${box_prefix:="$(mkvid $base; echo $vid)"}"
+  box_prefix="$base"
+  # true "${box_prefix:="$(mkvid $base; echo $vid)"}"
 
   main_subcmd_args "$@" || {
     error "parsing args" $?
@@ -739,17 +564,18 @@ main_subcmd_run()
   #test -n "${box_lib-}" -o -z "${ENV_SRC-}" || box_lib="$(eval "echo $ENV_SRC")"
   #box_lib="$(box_list_libs "$0")"
 
-  get_subcmd_func || {
-    debug "No such subcmd-func '$scriptname:$subcmd' <$subcmd_func> ($base)"
+  main_subcmd_func || {
+    $LOG debug '' "No such subcmd-func '$scriptname:$subcmd' <$subcmd_func> ($base)"
     try_exec_func ${base}_main_usage || std__usage
     test -z "$subcmd" && {
-      error 'No command given' 1
+      $LOG error '' 'No command given' 1
     } || {
-      error "No such command: '$scriptname:$subcmd'" 2
+      $LOG error '' "No such command: '$scriptname:$subcmd'" 2
     }
   }
   test -z "${subcmd_args_pre-}" || set -- "$subcmd_args_pre" "$@"
 
+  # XXX: main_subcmd_load "$baseids" "$@" || return $?
   main_subcmd_load $box_prefix "$@" || return $?
   test -z "${DEBUG-}" || debug "Base '$base $subcmd' loaded"
 
@@ -777,6 +603,94 @@ main_subcmd_run()
     || std_info "'$base-$subcmd' dry-drun completed" 0
 }
 
+main_subcmd_run_init()
+{
+  func_exists ${1}_subcmd_unload || return 0
+  ${1}_subcmd_unload || return
+  $LOG debug "" "Unload $1 OK"
+}
+
+main_subcmd_run ()
+{
+  local main=${main-"subcmd"} c r group
+  main_var "${baseids:="$base"}" group "" || true
+
+  # Pre-load env needed to bootstrap and run subcmd handler
+  main_handle "$baseids" run_init main_${main}_init || true
+
+  local c= subcmd
+  $run_init "$@" || return
+
+  main_${main}_run_init "$baseids" "$@" || return
+  test $c -gt 0 && shift $c ; c=0
+
+  main_${main}_run_load "$baseids" "$@" || return
+
+  $subcmd_func "$@"
+
+  main_${main}_run_unload "$baseids" "$c"
+
+  echo 1: $make_main
+  echo 2: $baseids
+  echo 3: $group
+  return
+}
+
+# TODO: make main_subcmd_run load contexts?
+#xtestmake_subcmd_init()
+#xtest_subcmd_init()
+#std_subcmd_init()
+
+main_subcmd_init()
+{
+  test -n "${1-}" || set -- $subcmd_default
+  echo main_handle "$baseids" "$1" || return
+  main_local "$baseids" "$1" || return
+  main_handle "$baseids" "$1" || return
+  c=1
+  subcmd="$(eval echo \"\$$1\")"
+#
+#  try_local_func "$subcmd" && {
+#    subcmd_func="$(echo_local "$@")"
+#  } || return
+}
+
+main_subcmd_run_load()
+{
+  echo main_subcmd_run_load $*
+}
+
+main_subcmd_run_unload()
+{
+  echo main_subcmd_run_unload $*
+}
+
+# Take semi-bootstrapped shell and start executable script
+main_run_static () # Base(s) Argv...
+{
+  test -n "${1-}" || return
+
+  test $(test -t "lib_load") = function || {
+    U_S=/srv/project-local/user-scripts
+    . $U_S/src/sh/lib/lib.lib.sh
+    . $U_S/src/sh/lib/lib-util.lib.sh
+  }
+  test $(test -t "lib_load") = function || {
+    . $HOME/bin/str-htd.lib.sh && str_htd_lib_load && str_htd_lib_loaded=$?
+
+  }
+
+  local base bases="$1" baseids main= main_run; shift;
+  baseids="$(for base in $bases;
+      do mknameid $base && echo $nameid ; done)"
+
+  # Prepare to defer to main-*-run defined by <base>_main
+  main_var "$baseids" main subcmd || true
+  main_run="main_$(echo "$main" | tr '-' '_')_run"
+
+  local scriptname=$(basename "$0")
+  $main_run $*
+}
 
 daemon()
 {
@@ -790,16 +704,6 @@ daemon()
   done
 }
 
-
-
-# TODO: retrieve leading/trailing X lines, truncate to Y length
-abbrev_content()
-{
-  echo
-}
-
-
-
 # Return path in statusdir metadata index
 setup_stat()
 {
@@ -809,7 +713,6 @@ setup_stat()
   test -n "$1" -a -n "$2" -a -n "$3" || error "empty arg(s)" 1
   statusdir.sh assert $2$1 $3 || return $?
 }
-
 
 stat_key()
 {

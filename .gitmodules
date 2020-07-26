@@ -8,3 +8,6 @@
   url = https://github.com/jakepetroules/wherefrom.git
 
 #
+[submodule "tools/chrome/htdocs"]
+	path = tools/chrome/htdocs
+	url = git@github.com:dotmpe/google-chrome-htdocs.git

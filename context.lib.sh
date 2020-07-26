@@ -64,7 +64,11 @@ context_env_list()
         echo ${PCTX:-} | tr ' ' '\n'
       ;;
 
-    "" )
+    oneline )
+        echo ${CTX:-} ${PCTX:-}
+      ;;
+
+    ""|libids )
         echo ${ENV_D:-} | tr ' ' '\n'
       ;;
 
@@ -92,9 +96,9 @@ context_check() # [case_match=1] [match_sub=0] ~ Tag
 # Compile and match grep for tag with Ctx-Table
 context_exists() # Tag
 {
-  p_="$(match_grep "$1")" ; grep_fl=-q
-  context_tab |
-      $ggrep $grep_fl "^[0-9 -]*\b$p_:\?\\ "
+  test "unset" != "${grep_f-"unset"}" || local grep_f=-q
+  local p_="$(match_grep "$1")"
+  context_tab | $ggrep $grep_f "^[0-9 -]*\b$p_:\?\\ "
 }
 
 # Compile and match grep for tag in Ctx-Table, case insensitive
@@ -132,11 +136,9 @@ context_subtag_entries()
 }
 
 # Return tagged entries
-context_tagged()
+context_tagged() # [File] Tag-Names...
 {
-  p_="$(match_grep "$1")"
-  context_tab |
-      $ggrep -n "^[0-9a-z -]*\b[^ ]*.*\\ \\(@\\|+\\)$p_\\(\\ \\|$\\)"
+  context_tab
 }
 
 context_parse()
@@ -195,6 +197,26 @@ context_tag_fields_init()
 {
   date +'%Y-%m-%d'
   echo "$tagid"
+}
+
+context_tag_order() # Tag
+{
+  context_tag_env "$1" || {
+    $LOG warn "" "Cannot get context spec" "$1"; return 1
+  }
+  test -n "${rest-}" || return
+  local tags= ctx ctxid vid
+  set -- $rest
+  while test $# -gt 0
+  do
+    case "$1" in "@"* ) ;; * ) shift ; continue;; esac
+    ctx=${1:1}; mkvid $ctx; ctxid=$vid; tags="${tags}$ctx"
+    echo $ctx
+    context_tag_env "$ctx" && {
+        set -- "$@" $rest
+    }
+    shift
+  done
 }
 
 # Prep/parse (primary) context given or default

@@ -56,16 +56,16 @@ htd_subcmd_load()
   default_env FIRSTTAB 50
   default_env GitVer-Attr ".version-attributes"
 
-  test -n "$stdio_0_type" -a  -n "$stdio_1_type" -a -n "$stdio_2_type" ||
-      stderr error "stdio lib should be initialized" 1
+  #test -n "$stdio_0_type" -a  -n "$stdio_1_type" -a -n "$stdio_2_type" ||
+  #    stderr error "stdio lib should be initialized" 1
 
   # Check stdin/out are t(ty), unless f(file) or p(ipe) set interactive mode
-  test "$stdio_0_type" = "t" -a "$stdio_1_type" = "t" &&
-        interactive_io=1 || interactive_io=0
+  test -t 0 -a -t 1 && interactive_io=1 || interactive_io=0
   default_env Choice-Interactive $interactive_io
 
   # Assume a file or pipe on stdin means batch-mode and data-on-input available
-  test "$stdio_0_type" = "t" && has_input=0 || has_input=1
+  test -t 0 && has_input=0 || has_input=1
+  #test "$stdio_0_type" = "t" && has_input=0 || has_input=1
   default_env Batch-Mode $has_input
 
   # Get project dir and version-control system name
@@ -147,7 +147,7 @@ htd_subcmd_load()
   # Sequence matters. Actions are predefined, or supplied using another subcmd
   # attribute. Action callbacks can be a first class function, or a string var
   # with the actual callback-function name.
-  local flags="$(try_value "${subcmd}" run htd | sed 's/./&\ /g')"
+  local flags="$(try_value "${subcmd}" flags htd | sed 's/./&\ /g')"
   test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
   for x in $flags
   do case "$x" in
@@ -159,7 +159,7 @@ htd_subcmd_load()
             stderr error "options/arguments env paths expected" 1
         local htd_subcmd_argsv=$(echo_local $subcmd argsv)
         func_exists $htd_subcmd_argsv || {
-          htd_subcmd_argsv="$(eval echo "\$$htd_subcmd_argsv")"
+          htd_subcmd_argsv="$(eval echo "\${$htd_subcmd_argsv-}")"
           # std. behaviour is a simmple for over the arguments that sorts
           # '-' (hyphen) prefixed words into $options, others into $arguments.
           test -n "$htd_subcmd_argsv" || htd_subcmd_argsv=opt_args
@@ -184,7 +184,7 @@ htd_subcmd_load()
 
             for group in $htd_arg_groups
             do
-                while test -n "$1" -a "$1" != "--"
+                while test $# -gt 0 -a "$1" != "--"
                 do
                   echo "$1" >>$arguments.$group
                   shift
@@ -249,7 +249,7 @@ htd_subcmd_load()
     O ) # 'optsv' callback is expected to process $options from input(s)
         local htd_subcmd_optsv=$(echo_local $subcmd optsv)
         func_exists $htd_subcmd_optsv || {
-          htd_subcmd_optsv="$(eval echo "\"\$$htd_subcmd_optsv\"")"
+          htd_subcmd_optsv="$(eval echo "\"\${$htd_subcmd_optsv-}\"")"
         }
         test -n "$htd_subcmd_optsv" || htd_subcmd_optsv=htd_optsv
         test -e "$options" && {
@@ -266,6 +266,8 @@ htd_subcmd_load()
         # Set to detected PACKMETA file, set main package-id, and verify var
         # caches are up to date. Don't load vars.
         # TODO: create var cache per package-id. store in redis etc.
+        { lib_require package && lib_init package
+        } || return
         package_lib_init "$CWD"
         test -n "$PACKMETA" -a -e "$PACKMETA" && {
             package_lib_set_local "$CWD" && update_package $CWD
@@ -339,7 +341,7 @@ htd_subcmd_unload()
 {
   local scriptname_old=$scriptname; export scriptname=htd-unload
   local unload_ret=0
-  for x in $(try_value "${subcmd}" run htd | sed 's/./&\ /g')
+  for x in $(try_value "$subcmd" flags htd | sed 's/./&\ /g')
   do case "$x" in
 
     I )
@@ -642,7 +644,7 @@ htd__version()
 }
 #htd_als___V=version
 htd_als____version=version
-htd_run__version=p
+htd_flags__version=p
 htd_grp__version=std
 
 htd_grp__output_formats=main
@@ -653,6 +655,7 @@ htd_grp__show=env
 htd_grp__home=env
 
 
+htd_man_1__doctor='Diagnose setup for deeper problems'
 htd__doctor()
 {
   test -n "$package_pd_meta_tasks_document" -a -n "$package_pd_meta_tasks_done" && {
@@ -692,7 +695,7 @@ htd_man_1__fsck='Check file contents with locally found checksum manifests
 
 Besides ck-validate and annex-fsck, look for local catalog.yml to validate too.
 '
-htd_run__fsck=i
+htd_flags__fsck=i
 htd__fsck()
 {
   note "Running: ck_tab='*' htd ck..."
@@ -730,7 +733,7 @@ htd__make()
   cd $HTDIR && make "$@"
 }
 htd_of__make=list
-htd_run__make=p
+htd_flags__make=p
 htd_als__mk=make
 
 
@@ -761,7 +764,7 @@ TODO: The search term must match an existing component, or set grep/glob mode
 to edit the first file.
 '
 htd_spc__edit_local="-e|edit [-g|--grep] [--glob] <search>"
-htd_run__edit_local=iAO
+htd_flags__edit_local=iAO
 htd__edit_local()
 {
   test -n "$1" || error "search term expected" 1
@@ -822,7 +825,7 @@ htd__find_doc()
   doc_find "$@"
 }
 htd_als___F=find-doc
-htd_run__find_doc=lx
+htd_flags__find_doc=lx
 htd_libs__find_doc=doc
 
 
@@ -837,7 +840,7 @@ htd__find_docs()
 {
   doc_find_all "$@"
 }
-htd_run__find_docs=pqlx
+htd_flags__find_docs=pqlx
 htd_libs__find_docs=doc
 
 
@@ -853,7 +856,7 @@ htd_man_1__volumes='Volumes
 htd_spc__volumes='volumes [--(,no-)catalog] [CMD]'
 htd_env__volumes="catalog=true"
 htd_of__volumes=list
-htd_run__volumes=eiAO
+htd_flags__volumes=eiAO
 htd__volumes()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
@@ -909,7 +912,7 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
 # Local or global context flow actions
 
 
-htd_run__current=fpql
+htd_flags__current=fpql
 htd_libs__current=htd-list\ htd-tasks\ ctx-base
 htd__current()
 {
@@ -925,7 +928,7 @@ Run diagnostics for CWD and system.
 - Check file names
 - Check file contents (fsck, cksum)
 '
-htd_run__check=fpqil
+htd_flags__check=fpqil
 htd_libs__check=ctx-base\ htd-check
 htd__check()
 {
@@ -939,14 +942,14 @@ htd__init()
 {
   htd_wf_ctx_sub init "$@"
 }
-htd_run__init=q
+htd_flags__init=q
 
 
 htd__list()
 {
   htd_wf_ctx_sub list "$@"
 }
-htd_run__list=ql
+htd_flags__list=ql
 htd_libs__list=list\ htd-list
 
 
@@ -956,7 +959,7 @@ Per host, cwd info
 '
 htd_als__st=status
 htd_als__stat=status
-htd_run__status=ql
+htd_flags__status=ql
 htd_libs__status=package\ sys-htd\ ctx-std\ htd-list\ htd-tasks\ ctx-base
 htd__status()
 {
@@ -967,8 +970,8 @@ htd__status()
 htd_man_1__process='Process each item in list.  '
 htd_spc__process='process [ LIST [ TAG.. [ --add ] | --any ]'
 #htd_env__process=''
-#htd_run__process=epqlA
-htd_run__process=pql
+#htd_flags__process=epqlA
+htd_flags__process=pql
 htd_libs__process=htd-list\ htd-tasks\ ctx-base\ context
 #htd_argsv__process=htd_argsv_list_session_start
 htd_als__proc=process
@@ -980,7 +983,7 @@ htd__process()
 }
 
 
-htd_run__update=q
+htd_flags__update=q
 htd__update()
 {
   htd_wf_ctx_sub update "$@"
@@ -989,12 +992,12 @@ htd__update()
 
 #htd_man_1__update_status='Update quick status'
 #htd_als__update_stats=update-status
-#htd_run__update_status=f
+#htd_flags__update_status=f
 
 #htd_als__update=update-checksums
 #htd_als__update=update-status
 
-#htd_run__status_cwd=fSm
+#htd_flags__status_cwd=fSm
 
 htd__volume_status()
 {
@@ -1014,7 +1017,7 @@ htd__workdir_status()
 }
 
 
-htd_run__build=pq
+htd_flags__build=pq
 htd__build()
 {
   htd_wf_ctx_sub build "$@"
@@ -1029,14 +1032,14 @@ TODO: in sequence:
 - finally (on archive itself, other files left),
   use `htd find` to find existing copies and de-dupe
 '
-htd_run__clean=pq
+htd_flags__clean=pq
 htd__clean()
 {
   htd_wf_ctx_sub clean "$@"
 }
 
 
-htd_run__test=pq
+htd_flags__test=pq
 htd__test()
 {
   htd_wf_ctx_sub test "$@"
@@ -1052,7 +1055,7 @@ htd_man_1__metadirs='TODO find packages, .meta dirs, DB client/query local-bg
 htd__metadirs()
 {
   test -n "$1" || set -- "$(pwd)"
-  while test -n "$1"
+  while test $# -gt 0
   do
     test -e $1/.meta && echo $1/.meta
     test "$p" != "/" || break
@@ -1104,7 +1107,7 @@ htd_man_1__project='Deal with project at local dir, see also projects.
 Vendoring consists of selecting a vendor and using it as remote repository for
 the project.
 '
-htd_run__project=p
+htd_flags__project=p
 htd__project()
 {
   test -n "$1" || set -- info
@@ -1236,7 +1239,7 @@ htd__validate()
 }
 
 htd_man_1__validate='Validate local package metadata aginst JSON-Schema '
-htd_run__validate_package=p
+htd_flags__validate_package=p
 htd__validate_package()
 {
   set -- $scriptpath/schema/package.yml $scriptpath/schema/package.json
@@ -1251,7 +1254,7 @@ htd__validate_pdoc()
 }
 
 
-htd_run__tools=fl
+htd_flags__tools=fl
 htd_spc__tools="tools (<action> [<args>...])"
 htd__tools()
 {
@@ -1274,7 +1277,7 @@ htd_als__outline=tools\ outline
 htd_man_1__script='Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping
 of scriptnames to script lines. See Htd run and run-names for package scripts. '
 htd_spc__script="script"
-htd_run__script=pSmr
+htd_flags__script=pSmr
 htd_S__script=\$package_id
 htd__script()
 {
@@ -1335,7 +1338,7 @@ htd__script()
   # htd-script and the script-mpe package ($HTD_TOOLSFILE). Gonna want a JSON
   # for shell scripts/aliases/etc. Also validation.
 
-  #    while test -n "$1"
+  #    while test $# -gt 0
   #    do
   #      jsotk.py objectpath -O py $HTD_TOOLSFILE '$..*[@.scripts."'$1'"]'
   #      shift
@@ -1488,7 +1491,7 @@ htd__main_doc_edit()
   htd_rst_doc_create_update $1 "$title" created default-rst
   htd_edit_and_update $1
 }
-htd_run__main_doc_edit=p
+htd_flags__main_doc_edit=p
 htd_als__md=main-doc-edit
 htd_als___E=main-doc-edit
 htd_grp__main_doc_edit=cabinet
@@ -1663,7 +1666,7 @@ htd__ssh_vagrant()
 }
 
 
-htd_run__ssh=f
+htd_flags__ssh=f
 htd__ssh()
 {
   test -d $UCONF/vagrant/$1 && {
@@ -1764,7 +1767,7 @@ htd__up()
     * ) error "'$1'? (htd up $*)" 1 ;;
   esac
 }
-htd_run__up=f
+htd_flags__up=f
 htd_als__detect=up
 htd_grp__up=box
 
@@ -1781,7 +1784,7 @@ htd__detect_ping() # Hosts...
   done
   test ! -s "$failed"
 }
-htd_run__detect_ping=f
+htd_flags__detect_ping=f
 htd_grp__detect_ping=box
 
 
@@ -1905,7 +1908,7 @@ htd_man_1__file='TODO: Look for name and content at path; then store and cleanup
 Given path, find matching from storage using name, or content. On match, compare
 and remove path if in sync.
 '
-htd_run__file=fl
+htd_flags__file=fl
 htd__file()
 {
   test -n "$1" || set -- info
@@ -1946,7 +1949,7 @@ htd_man_1__date='
     touchdt [FILE | TIMESTAMP]
     touch [FILE | TIMESTAMP FILE]
 '
-htd_run__date=fl
+htd_flags__date=fl
 htd_libs__date=date\ htd-date
 htd__date()
 {
@@ -2016,7 +2019,7 @@ htd_als__filesize=file\ size
 # XXX: a function to clean directories
 # TODO: hark back to statusdir?
 # TODO: notice deprecation marks
-htd_run__check_files=
+htd_flags__check_files=
 htd__check_files()
 {
   log "Looking for unknown files.."
@@ -2344,7 +2347,7 @@ htd__push_commit()
     }
   }
 }
-htd_run__push_commit=iIAO
+htd_flags__push_commit=iIAO
 htd_als__pci=push-commit
 
 
@@ -2355,7 +2358,7 @@ htd__push_commit_all()
   update=true every=true \
   htd__push_commit "$@"
 }
-htd_run__push_commit_all=iIAO
+htd_flags__push_commit_all=iIAO
 htd_als__pcia=push-commit-all
 
 
@@ -2367,7 +2370,7 @@ htd__cabinet()
   subcmd_prefs=${base}_cabinet_\ cabinet_ try_subcmd_prefixes "$@"
 }
 htd_grp__cabinet=cabinet
-htd_run__cabinet=ilAO
+htd_flags__cabinet=ilAO
 htd_argsv__cabinet()
 {
   opt_args "$@"
@@ -2516,7 +2519,7 @@ htd__topics()
   test -n "$1" || set -- list
   subcmd_prefs=${base}_topics_\ topics_ try_subcmd_prefixes "$@"
 }
-htd_run__topics=iAOpx
+htd_flags__topics=iAOpx
 
 htd_man_1__list_topics='List topics'
 htd_als__list_topics="topics list"
@@ -2533,7 +2536,7 @@ htd_man_1__scripts='Action on local package "scripts".
     Run scripts from package
 
 '
-htd_run__scripts=pfl
+htd_flags__scripts=pfl
 htd_libs__scripts='package htd-scripts'
 htd__scripts()
 {
@@ -2541,7 +2544,7 @@ htd__scripts()
   subcmd_prefs=${base}_scripts_ try_subcmd_prefixes "$@"
 }
 
-htd_run__script_opts=iAOpfl
+htd_flags__script_opts=iAOpfl
 htd_libs__script_opts='package htd-scripts'
 htd__script_opts()
 {
@@ -2552,7 +2555,7 @@ htd__script_opts()
 
 htd_man_1__run='Run script from local package.y*ml. See scripts (run).'
 htd_spc__run='run [SCRIPT-ID [ARGS...]]'
-htd_run__run=iAOpl
+htd_flags__run=iAOpl
 htd_libs__run='htd-scripts'
 htd__run()
 {
@@ -2572,7 +2575,7 @@ htd__list_run()
 {
   verbose_no_exec=1 htd_scripts_list "$@"
 }
-htd_run__list_run=iAOql
+htd_flags__list_run=iAOql
 htd_libs__list_run='package htd-scripts'
 
 
@@ -2602,7 +2605,7 @@ htd__storage()
     note "Processing for '$1':"; $cb ; shift 2
   done
 }
-htd_run__storage=plA
+htd_flags__storage=plA
 htd_libs__storage=htd-tasks
 htd_argsv__storage=htd_argsv_tasks_session_start
 htd_grp__storage=rules
@@ -2858,7 +2861,7 @@ htd_man_1__disk_doc='
     doc
         Generate JSON doc, with details of locally available disks.
 '
-htd_run__disk_doc=f
+htd_flags__disk_doc=f
 htd__disk_doc()
 {
   test -n "$1" || set -- list
@@ -3399,8 +3402,19 @@ htd__service() # Cmd [ Sid [ Type [ Dir ]]]
   esac
 }
 
+htd_man_1__audit='Check code heuristics, format. See also bashisms, and doctor.'
+htd__audit()
+{
+  git grep 'while test -n\s*['"'"'"]\$[{]\?[0-9]"' && { # Consider rewriting to $# -gt 0
+      stderr error "1."
+  } || stderr ok "1. OK"
 
-# Scan for bashims in given file or current dir
+  git grep 'test -z\s*['"'"'"]\$[{]\?[0-9][^-]"' && { # consider rewriting to test $# -eq 0
+      stderr error "2."
+  } || stderr ok "2. OK"
+}
+
+htd_man_1__bashisms='Scan for bashims in given file or current dir'
 htd_spc__bashisms="bashism [DIR]"
 htd__bashisms()
 {
@@ -3601,7 +3615,7 @@ htd__src()
     * ) error "'$1'?" 1 ;;
   esac
 }
-htd_run__src=f
+htd_flags__src=f
 
 
 htd__domain()
@@ -3633,7 +3647,7 @@ htd__path_depth()
 {
   test -n "$1" || error arg-1-path-expected 1
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     path="$(htd__normalize_relative "$1")"
     #note "Depth for path $path"
@@ -3829,7 +3843,6 @@ htd__srv_list()
 {
   upper=0 default_env out-fmt plain
   out_fmt="$(echo $out_fmt | str_upper)"
-  test -n "$verbosity" -a $verbosity -gt 5 || verbosity=6
   case "$out_fmt" in
       DOT )  echo "digraph htd__srv_list { rankdir=RL; ";; esac
   for srv in /srv/*
@@ -4110,7 +4123,7 @@ htd__annex()
   esac
 }
 
-htd_run__annex_fsck=i
+htd_flags__annex_fsck=i
 htd__annex_fsck()
 {
   local rules=.sync-rules.list
@@ -4246,7 +4259,7 @@ htd__init_backup_repo()
 
 
 # Copy/move all given file args to backup repo
-htd_run__backup=iAOP
+htd_flags__backup=iAOP
 htd__backup()
 {
   local act= bu_act_lbl= bu_act=
@@ -4279,7 +4292,7 @@ htd__backup()
 
   # Created dest path from given path but replace path elements
   local destpath= prefix=
-  while test -n "$1"
+  while test $# -gt 0
   do
     trueish "$no_cabinet" || {
       prefix=$(date_flags="-r $(filemtime $1)" date_fmt "" %Y/%m/%d-)
@@ -4331,7 +4344,7 @@ htd_optsv__backup=htd_backup_optsv
 htd_man_1__pack_create="Create archive for dir and add ck manifest"
 htd_man_1__pack_verify="Verify archive with manifest, see that all files in dir are there"
 htd_man_1__pack_check="Check file (w. checksum) TODO: dir with archive manifest"
-htd_run__pack=i
+htd_flags__pack=i
 htd__pack()
 {
   test -n "$2" || set -- "$1" . "$3"
@@ -4427,7 +4440,7 @@ htd_backup_argsv()
 
 htd_backup_optsv()
 {
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
       --archive* )
@@ -4635,7 +4648,7 @@ htd_man_1__vfs='
     check NAME
       Run mounted and running check.
 '
-htd_run__vfs=l
+htd_flags__vfs=l
 htd_libs__vfs=vfs
 htd__vfs()
 {
@@ -4644,7 +4657,7 @@ htd__vfs()
 }
 
 
-htd_run__hoststat=fl
+htd_flags__hoststat=fl
 htd_libs__hoststat=hoststat
 htd__hoststat()
 {
@@ -4653,7 +4666,7 @@ htd__hoststat()
 }
 
 
-htd_run__volumestat=l
+htd_flags__volumestat=l
 htd_libs__volumestat=volumestat
 htd__volumestat()
 {
@@ -4667,7 +4680,7 @@ htd__darwin()
   test -n "$1" || set -- list
   subcmd_prefs=${base}_darwin_\ darwin_ try_subcmd_prefixes "$@"
 }
-htd_run__darwin=f
+htd_flags__darwin=f
 
 
 htd_grp__exif=media
@@ -4710,7 +4723,7 @@ htd__checkout()
     done
   }
 }
-htd_run__checkout=ieOAp
+htd_flags__checkout=ieOAp
 htd_argsv__checkout()
 {
   (
@@ -4832,7 +4845,7 @@ htd__annexdir()
   test -n "$1" || set -- status
   subcmd_prefs=annexdir_ try_subcmd_prefixes "$@"
 }
-htd_run__annexdir=f
+htd_flags__annexdir=f
 
 
 htd_grp__foreach=main
@@ -4885,7 +4898,7 @@ htd__components()
   test -n "$package_components" && { eval $package_env || return $? ; }
   $package_components
 }
-htd_run__components=lpq
+htd_flags__components=lpq
 htd_libs__components=package
 
 
@@ -4907,7 +4920,7 @@ htd_man_1__doc='Wrapper for documents modules (doc.lib and htd-doc.lib)
 
 See also docstat.lib
 '
-htd_run__doc=fpql
+htd_flags__doc=fpql
 htd_libs__doc=doc\ htd-doc
 htd__doc()
 {
@@ -4934,7 +4947,7 @@ htd__pm2()
   test -n "$1" || set -- list
   subcmd_prefs=${base}_pm2_ try_subcmd_prefixes "$@"
 }
-htd_run__pm2=f
+htd_flags__pm2=f
 
 
 htd_man_1__make='
@@ -4946,7 +4959,7 @@ htd__make()
   test -n "$1" || set -- status
   subcmd_prefs=${base}_make_ try_subcmd_prefixes "$@"
 }
-htd_run__make=f
+htd_flags__make=f
 
 
 htd_man_1__todo='
@@ -4977,7 +4990,7 @@ htd_grp__emby=media
 
 htd_man_1__src=''
 htd_libs__src=htd-src
-htd_run__src=fl
+htd_flags__src=fl
 htd__src()
 {
   test -n "$1" || set -- default
@@ -4993,7 +5006,7 @@ htd_grp__context=context
 htd_als__ctx=context
 
 
-htd_run__lists=q
+htd_flags__lists=q
 htd__lists()
 {
   htd__gtasks_lists
@@ -5010,7 +5023,7 @@ htd__redo()
 {
   subcmd_default=list subcmd_prefs=redo_ try_subcmd_prefixes "$@"
 }
-htd_run__redo=l
+htd_flags__redo=l
 
 
 htd_man_1__stattab='Build stattab index
@@ -5028,7 +5041,7 @@ htd__sttab()
   eval set -- $(lines_to_args "$arguments") # Remove options from args
   subcmd_default=list subcmd_prefs=stattab_\ htd_stattab_ try_subcmd_prefixes "$@"
 }
-htd_run__sttab=qliAO
+htd_flags__sttab=qliAO
 htd_libs__sttab=stattab
 
 
@@ -5041,7 +5054,7 @@ htd__project_stats()
   subcmd_default=stat
   subcmd_prefs=${base}_project_stats_\ project_stats_ try_subcmd_prefixes "$@"
 }
-htd_run__project_stats=qilAO
+htd_flags__project_stats=qilAO
 htd_libs__project_stats=date\ project-stats\ build-htd\ htd-project-stats
 htd_argsv__project_stats=opt_args
 
@@ -5053,7 +5066,7 @@ htd__str()
   eval set -- $(lines_to_args "$arguments") # Remove options from args
   subcmd_prefs=${base}_str_\ str_ try_subcmd_prefixes "$@"
 }
-htd_run__str=ilAO
+htd_flags__str=ilAO
 htd_libs__str=str\ htd-str
 htd_argsv__str=opt_args
 
@@ -5063,7 +5076,7 @@ htd_als__count_columns=str\ colcount
 htd_als__count_chars=str\ charcount
 
 
-htd_run__user=ilAO
+htd_flags__user=ilAO
 htd_libs__user=user-scripts
 htd__user()
 {
@@ -5112,14 +5125,10 @@ htd_main()
           }
         }
 
-        main_init || return
-
-        export stdio_0_type stdio_1_type stdio_2_type
-
         htd_lib "$@" || {
           $htd_log error htd-main "During htd-lib" "" $? || return
         }
-        main_subcmd_run "$@" || r=$?
+        main_run_subcmd "$@" || r=$?
 
         # XXX: cleanup, run_subcommand with ingegrated modes?
         #  test -z "$arguments" -o ! -s "$arguments" || {
@@ -5168,7 +5177,7 @@ htd_init()
 htd_lib()
 {
   local scriptname_old=$scriptname; export scriptname=htd-lib
-  set -- match date str-htd logger-theme vc-htd os-htd htd
+  set -- match date str-htd logger-theme vc-htd os-htd htd ctx-std
   lib_load "$@" && lib_init "$@"
 
   # -- htd box lib sentinel --

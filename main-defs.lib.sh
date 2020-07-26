@@ -9,6 +9,7 @@ main_main() # Base Local-Vars Default-Cmd Alias
   test -n "${main_id-}" || {
     local vid; mkvid $1; main_id=$vid
   }
+
   test -n "${main_script-}" || main_script="\$0"
   test -n "${main_base-}" || main_base="\$(basename \$0 .sh)"
   test -n "${main_scriptpath-}" ||
@@ -23,11 +24,11 @@ ${main_id}_main()
   local \
       script="$main_script" \
       scriptname=$1 \
-      alias=$4 \
-      base="$main_base" \
       scriptpath="$main_scriptpath" $2 \
-      subcmd=\${1-$3} subcmd_alias subcmd_func subcmd_default prev_subcmd \
+      subcmd=\${1-$3} subcmd_alias subcmd_default prev_subcmd \
+      alias=\$(echo $4 | cut -d' ' -f1) \
       subcmd_func func_name func_exists \
+      base="$main_base" \
       box_prefix ${main_local-}
 
   ${main_id}_main_init || exit \$?
@@ -57,9 +58,9 @@ EOM
   )"
 }
 
-main_define() # 1:Base 2:Init 3:Lib 4:Load 5:Load-Flags 6:Unload 7:Unload-Flags
+main_define() # 1:Base 2:Local-Vars 3:Init 4:Lib 5:Load 6:Load-Flags 7:Unload 8:Unload-Flags
 {
-  local main_init="$2" main_lib="$3" main_load="$4" main_load_flags="$5" main_unload="$6" main_unload_flags="$7"
+  local main_local="$2" main_init="$3" main_lib="$4" main_load="$5" main_load_flags="$6" main_unload="$7" main_unload_flags="$8"
   main_make "$1"
 }
 
@@ -70,8 +71,13 @@ main_make()
     local vid; mkvid $1; main_id=$vid
   }
 
-  type_exists ${main_id}_main ||
-      main_main "$1" "${make_local-}" "${make_default-"\${subcmd_def-default}"}"
+  # Declare an entry point for base unless make-bases is given
+  { type_exists ${main_id}_main || test -n "${main_bases-}"
+  } || {
+    main_main "$1" "${main_local-}" \
+        "${make_default-"\${subcmd_default-default}"}" \
+        "${make_aliases-"\${aliases-$make_scriptname}"}"
+  }
 
   type_exists ${main_id}_init ||
       $make_pref "$(cat <<EOM
@@ -160,17 +166,31 @@ EOM
 main_entry()
 {
   test -n "${make_pref-}" || local make_pref=eval
-
+  # Choose main-entry form: 1 or multiple bases
+  local main_call
+  echo make_script: $make_script
+  echo make_scriptname: $make_scriptname
+  echo 0:$0
+  test -n "${main_bases-}" && {
+    main_call="
+  echo 0:\$0
+  echo main_bases:\$main_bases
+exit 123
+. \$HOME/bin/main.lib.sh && main_lib_load && main_lib_loaded=\$?
+${main_local-} main_run_static \"$main_bases\" \"\$@\""
+  } || {
+    main_call="${main_id}_main \"\$@\""
+  }
   $make_pref "$(cat <<EOM
 # Main entry - bootstrap script if requested
 # Use hyphen to ignore source exec in login shell
 case "\$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  case "\${1-}" in
-    load-ext ) ;;
-    * )
-      ${main_id}_main "\$@" ;;
+  test "load-ext" != "\${1-}" || __load=ext
+  case "\${__load-}" in
+    ext ) ;;
+    * ) ${main_call} ;;
 
   esac ;;
 esac

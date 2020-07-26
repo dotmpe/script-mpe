@@ -1,5 +1,15 @@
 #!/bin/sh
 
+ctx_base_lib_load() #
+{
+  true
+}
+
+at_Base()
+{
+  echo "Base (main entry-point) TODO: $*"
+}
+
 htd_ctx__base__current()
 {
   vc_getscm && {
@@ -113,24 +123,6 @@ htd_ctx__base__clean()
   done
 
   htd__clean_empty_dirs
-}
-
-#ctx_bin__base__
-
-at_Base__init () #
-{
-  true
-}
-
-# TODO: deferred definitions, pseudo-instances
-at_Base () #
-{
-  local at_Base=at_Base__${instanceid}
-}
-
-at_Base__define ()
-{
-  eval "${!at_Base_id}"
 }
 
 #

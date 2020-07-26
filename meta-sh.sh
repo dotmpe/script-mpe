@@ -62,7 +62,7 @@ meta_sh__annex_update_video()
 {
   test -n "$1" || error "Expected path" 1
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     meta_sh__video_info "$1"
 
@@ -117,7 +117,7 @@ main_env \
   INIT_LIB="\$default_lib main box meta std stdio logger-theme"
 
 main_local \\
-  subcmd_def=info subcmd_func_pref=${base}__
+  subcmd_default=info subcmd_func_pref=${base}__
 
 main_init \
   test -z "${BOX_INIT-}" || return 1 \

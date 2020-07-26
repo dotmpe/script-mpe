@@ -25,7 +25,7 @@ htd__scrtab()
   eval set -- $(lines_to_args "$arguments") # Remove options from args
   subcmd_default=list subcmd_prefs=scrtab_\ htd_scrtab_ try_subcmd_prefixes "$@"
 }
-htd_run__scrtab=qliAO
+htd_flags__scrtab=qliAO
 
 
 scrtab__help()

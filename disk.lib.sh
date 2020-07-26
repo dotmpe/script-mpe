@@ -594,7 +594,7 @@ disk_report()
   # leave disk_report_result to "highest" set value (where 1 is highest)
   disk_report_result=0
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
 

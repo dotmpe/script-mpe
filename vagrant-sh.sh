@@ -1,5 +1,5 @@
-#!/bin/sh
 #!/usr/bin/env bash
+# FIXME? !/bin/sh
 #!/usr/bin/env make.sh
 # Created: 2017-02-25
 
@@ -239,33 +239,31 @@ CWD="$(dirname "$0")"
 . $HOME/.conf/script/str-uc.lib.sh
 . $HOME/.conf/script/util-min-uc.lib.sh
 
-INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+INIT_ENV="init-log 0 0-src 0-u_s 0-std 0-1-lib-sys ucache scriptpath box" \
 INIT_LIB="\$default_lib main meta box doc date table remote std stdio"
   main_define \
     vagrant-sh \
-' # Vagrant-Sh init
-' \
-' # Vagrant-Sh lib
-' \
-' # Vagrant-Sh load
-  test -n "${VAGRANT_HOME-}" || error "Expected VAGRANT_HOME env" 1
-  test -n "${VAGRANT_NAME-}" || export VAGRANT_NAME=default
-' \
-' # Vagrant-Sh load-flags
-' \
-' # Vagrant-Sh unload
-
+    'failed=' '
+  # Vagrant-Sh init
+' '
+  # Vagrant-Sh lib
+' '
+  # Vagrant-Sh load
+  local upper=1
+  default_env Vagrant-Home "$HOME/.vagrant"
+  default_env Vagrant-Home "default"
+' '
+  # Vagrant-Sh load-flags
+' '
+  # Vagrant-Sh unload
   #    f )
   #        clean_failed || unload_ret=1
-
   clean_failed || unload_ret=$?
-
   unset subcmd subcmd_pref \
           def_subcmd func_exists func \
           failed
-
-' \
-' # Vagrant-Sh unload-flags
+' '
+  # Vagrant-Sh unload-flags
 '
 
 main_entry "$@"

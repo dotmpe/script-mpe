@@ -68,13 +68,13 @@ disk__status()
   cat $list | sort -n
   rm $list
 }
-disk_load__status=Rfo
+disk_flags__status=Rfo
 disk_outf__status="unknown uncataloged swap ext volume disk list"
 
 
 disk_man_1__id="Print the disk ID of a given device or path. "
 disk_spc__id="id [PATH|MOUNT|DEV]"
-disk_load__id=R
+disk_flags__id=R
 disk__id()
 {
   test -b "$1" || {
@@ -173,7 +173,7 @@ disk__local()
     } | sort -n
   } | column -tc 3
 }
-disk_load__local=f
+disk_flags__local=f
 
 
 disk_man_1__list_local="Tabulate disk info for local disks (e.g. from /dev/)"
@@ -182,7 +182,7 @@ disk__list_local()
 {
   disk__local || return && echo "# Disks at $(hostname), $(date_iso)"
 }
-disk_load__list_local=f
+disk_flags__list_local=f
 
 
 disk_man_1__list='List local devices'
@@ -217,7 +217,7 @@ disk__x_local()
     return
   }
 }
-disk_load__x_local=f
+disk_flags__x_local=f
 
 
 disk_man_1__list_local_mounts='Print info for local partitions (using mount).

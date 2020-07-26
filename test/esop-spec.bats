@@ -77,6 +77,6 @@ init
   test_ok_lines "*DRY-RUN*" "*esop loaded*" \
     "*try-exec-func 'esop_load'*" \
     "*cmd=esop args=" \
-    "*subcmd=help subcmd_alias= subcmd_def=" \
+    "*subcmd=help subcmd_alias= subcmd_default=" \
     || stdfail
 }

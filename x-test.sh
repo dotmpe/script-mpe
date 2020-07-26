@@ -1,4 +1,4 @@
-#!/usr/bin/env make.sh
+#!/usr/bin/env bash
 
 set -e
 
@@ -6,38 +6,84 @@ set -e
 version=0.0.4-dev # script-mpe
 
 
-x_test__version()
+test__version()
 {
   echo $version
 }
-x_test___V() { x_test__version; }
-x_test____version() { x_test__version; }
+test___V() { test__version; }
+test____version() { test__version; }
 
 
-x_test__ack()
+test__test()
 {
   echo Ack.
 }
 
-x_test___h()
+
+## Main
+
+test_main()
 {
-  x_test__help
+  # Do something if script invoked as 'x-test.sh'
+  local scriptname=x-test \
+      base="$(basename "$0" .sh)" \
+      CWD subcmd=$1
+
+  test_init || return
+
+  case "$base" in $scriptname )
+
+        #test -n "$scriptpath" || \
+        #    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
+        #    pwd=$(pwd -P) ppwd=$(pwd) spwd=.
+
+        #test -n "$verbosity" || verbosity=5
+
+        local func=$(echo test__$subcmd | tr '-' '_') \
+            failed= \
+            ext_sh_sub=
+
+        # lib_load str match main std stdio sys os src
+
+        type $func >/dev/null 2>&1 && {
+          shift 1
+          $func "$@" || return $?
+        } || {
+          R=$?
+          test $R -eq 127 && warn "No such command '$1'"
+          return $R
+        }
+      ;;
+
+    * )
+        echo "Test is not a frontend for $base ($scriptname)" 2>&1
+        exit 1
+      ;;
+
+  esac
 }
-x_test__help()
+
+test_init()
 {
-  echo Help?
+  local scriptname_old=$scriptname; export scriptname=$1-main-init
+
+  CWD="$(dirname "$0")"
+INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \
+INIT_LIB="\$default_lib str str-htd logger-theme match main std stdio sys os box src src-htd" \
+    . $CWD/tools/sh/init.sh || return
+  export scriptname=$scriptname_old
 }
 
 
-main_env \
-    INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
-    INIT_LIB="\$default_lib str str-htd logger-theme match main std stdio sys os box src src-htd"
+# Main entry - bootstrap script if requested
+# Use hyphen to ignore source exec in login shell
+case "$0" in "" ) ;; "-"* ) ;; * )
 
-main_local \\
-    subcmd_def=version subcmd_func_pref=${base}__
+  # Ignore 'load-ext' sub-command
+  test "$1" != load-ext || __load_lib=1
+  test -n "${__load_lib-}" || {
+    test_main "$@"
+  }
+;; esac
 
-main_init \
-        test -n "${verbosity-}" || verbosity=5
-
-main_load_epilogue \
 # Id: script-mpe/0.0.4-dev x-test.sh

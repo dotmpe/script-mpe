@@ -130,7 +130,7 @@ htd__prefixes()
 } # End prefixes
 
 htd_libs__prefixes=statusdir\ prefix
-htd_run__prefixes=l
+htd_flags__prefixes=l
 htd_of__prefixes_list='plain text txt rst yaml yml json'
 htd_of__prefixes_update='txt rst plain'
 

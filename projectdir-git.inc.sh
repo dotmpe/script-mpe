@@ -24,7 +24,7 @@ pd_test__git_autoconfig()
 }
 
 
-pd_load__git_status=i
+pd_flags__git_status=i
 pd__git_status()
 {
   local R=0 swpd= ppwd=

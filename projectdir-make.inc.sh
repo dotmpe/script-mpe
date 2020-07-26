@@ -28,7 +28,7 @@ pd__make_test()
 {
   echo make test || return $?
 }
-pd_load__make_test=i
+pd_flags__make_test=i
 
 
 pd__make()
@@ -46,8 +46,7 @@ pd__make()
 
   return $result
 }
-pd_load__make=i
+pd_flags__make=i
 pd_reportsh__make=.build/pd-make-states.sh
 
-
-
+#

@@ -78,7 +78,7 @@ htd__catalog()
   test -n "$1" || set -- status
   subcmd_prefs=${base}_catalog__ try_subcmd_prefixes "$@"
 }
-htd_run__catalog=iIAO
+htd_flags__catalog=iIAO
 htd_libs__catalog='match str-htd catalog htd-catalog' # XXX: match-htd statusdir src-htd
 
 htd_als__catalogs='catalog list'

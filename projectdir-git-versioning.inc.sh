@@ -12,7 +12,7 @@ pd_check__git_versioning_autoconfig()
 
 pd_als__vchk=git-versioning
 
-pd_load__git_versioning=i
+pd_flags__git_versioning=i
 pd__git_versioning()
 {
   test -n "$1" || set -- check

@@ -5,7 +5,7 @@
 
 os_htd_lib_load()
 {
-  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${os-}" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 }
 
@@ -59,7 +59,7 @@ pathname() # PATH EXT...
 pathnames() # exts=... [ - | PATHS ]
 {
   test -n "${exts-}" || exit 40
-  test -n "$*" -a "$1" != "-" && {
+  test "${1--}" != "-" && {
     for path in "$@"
     do
       pathname "$path" $exts
@@ -107,11 +107,11 @@ short()
 # and starts with a period '.' it is used as the value for exts.
 basenames()
 {
-  test -n "$exts" || {
+  test -n "${exts-}" || {
     fnmatch ".*" "$1" || return
     exts="$1"; shift
   }
-  while test -n "$1"
+  while test $# -gt 0
   do
     name="$1"
     shift
@@ -156,7 +156,7 @@ fileisext() # Name Exts..
 filename_baseid()
 {
   basename="$(filestripext "$1")"
-  mkid "$basename" '-' '_'
+  mkid "$basename" '' '_'
 }
 
 # Use `file` to get mediatype aka. MIME-type
@@ -190,32 +190,55 @@ fileformat()
 filesize() # File
 {
   local flags=- ; file_stat_flags
-  case "$uname" in
-    darwin )
-        stat -f '%z' $flags "$1" || return 1
-      ;;
-    linux )
-        stat -c '%s' $flags "$1" || return 1
-      ;;
-    * ) error "filesize: $1?" 1 ;;
-  esac
+  while test $# -gt 0
+  do
+    case "$uname" in
+      darwin )
+          stat -f '%z' $flags "$1" || return 1
+        ;;
+      linux )
+          stat -c '%s' $flags "$1" || return 1
+        ;;
+      * ) error "filesize: $1?" 1 ;;
+    esac; shift
+  done
+}
+
+# Use `stat` to get inode change time (in epoch seconds)
+filectime() # File
+{
+  while test $# -gt 0
+  do
+    case "$uname" in
+      darwin )
+          stat -L -f '%c' "$1" || return 1
+        ;;
+      linux | cygwin_nt-6.1 )
+          stat -L -c '%Z' "$1" || return 1
+        ;;
+      * ) $os_lib_log error "os" "filectime: $1?" "" 1 ;;
+    esac; shift
+  done
 }
 
 # Use `stat` to get modification time (in epoch seconds)
 filemtime() # File
 {
   local flags=- ; file_stat_flags
-  case "$uname" in
-    darwin )
-        trueish "$file_names" && pat='%N %m' || pat='%m'
-        stat -f "$pat" $flags "$1" || return 1
-      ;;
-    linux )
-        trueish "$file_names" && pat='%N %Y' || pat='%Y'
-        stat -c "$pat" $flags "$1" || return 1
-      ;;
-    * ) error "filemtime: $1?" 1 ;;
-  esac
+  while test $# -gt 0
+  do
+    case "$uname" in
+      darwin )
+          trueish "$file_names" && pat='%N %m' || pat='%m'
+          stat -f "$pat" $flags "$1" || return 1
+        ;;
+      linux )
+          trueish "$file_names" && pat='%N %Y' || pat='%Y'
+          stat -c "$pat" $flags "$1" || return 1
+        ;;
+      * ) error "filemtime: $1?" 1 ;;
+    esac; shift
+  done
 }
 
 # Use `stat` to get birth time (in epoch seconds)
@@ -455,7 +478,7 @@ read_if_exists()
 # is broken.
 lines_while() # CMD
 {
-  test -n "${1-}" || return 1
+  test $# -gt 0 || return
 
   line_number=0
   while read -r line
@@ -524,7 +547,7 @@ go_to_dir_with()
   while true
   do
     test -e "$1" && break
-    go_to_before=$(basename "$(pwd)")/$go_to_before
+    go_to_before=$(basename -- "$(pwd)")/$go_to_before
     test "$(pwd)" = "/" && break
     cd ..
   done
@@ -558,10 +581,11 @@ get_targets()
 # Count lines with wc (no EOF termination correction)
 count_lines()
 {
-  test -z "$1" -o "$1" = "-" && {
+  test "${1-"-"}" = "-" && {
     wc -l | awk '{print $1}'
+    return
   } || {
-    while test -n "$1"
+    while test $# -gt 0
     do
       wc -l $1 | awk '{print $1}'
       shift
@@ -572,7 +596,7 @@ count_lines()
 # Wrap wc but correct files with or w.o. trailing posix line-end
 line_count()
 {
-  test -s "$1" || return 42
+  test -s "${1-}" || return 42
   test $(filesize "$1") -gt 0 || return 43
   lc="$(echo $(od -An -tc -j $(( $(filesize $1) - 1 )) $1))"
   case "$lc" in "\n" ) ;;
@@ -586,10 +610,11 @@ line_count()
 # Count words
 count_words()
 {
-  test -z "$1" -o "$1" = "-" && {
+  test "${1:-"-"}" = "-" && {
     wc -w | awk '{print $1}'
+    return
   } || {
-    while test -n "$1"
+    while test $# -gt 0
     do
       wc -w $1 | awk '{print $1}'
       shift
@@ -600,14 +625,15 @@ count_words()
 # Count every character
 count_chars()
 {
-  test -n "$1" && {
-    while test -n "$1"
+  test "${1:-"-"}" = "-" && {
+    wc -w | awk '{print $1}'
+    return
+  } || {
+    while test $# -gt 0
     do
       wc -c $1 | awk '{print $1}'
       shift
     done
-  } || {
-    wc -w | awk '{print $1}'
   }
 }
 
@@ -623,8 +649,8 @@ count_char() # Char
 # Count tab-separated columns on first line. One line for each file.
 count_cols()
 {
-  test -n "$1" && {
-    while test -n "$1"
+  test $# -gt 0 && {
+    while test $# -gt 0
     do
       { printf '\t'; head -n 1 "$1"; } | count_char '\t'
       shift

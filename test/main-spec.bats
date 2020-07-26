@@ -14,47 +14,6 @@ setup()
 }
 
 
-
-# main / Incr-C
-
-
-@test "$base: incr x (amount): increments var x, output is clean" {
-
-  sh_isset x && fail "Unexpected 'x' var in env (x=$x)" || true
-
-  incr x 3
-  test $? -eq 0
-  #test -z "${lines[*]}"
-
-  test -n "$x"
-  test $x -eq 3
-
-  incr x 1
-  test $x -eq 4
-
-  unset x
-}
-
-
-@test "$base: incr-c: increments var c, output is clean" {
-
-  sh_isset c && fail "Unecpected 'c' var in env (c=$c)" || true
-
-  run incr_c
-  test_ok_empty
-
-  incr_c
-  test -n "$c"
-  test $c -eq 1
-  unset c
-
-  incr_c && incr_c && incr_c
-  test $? -eq 0
-  test $c -eq 3
-  unset c
-}
-
-
 @test "$base: std__help" {
   base=cmd
   cmd_man_1__sub="Bar1"

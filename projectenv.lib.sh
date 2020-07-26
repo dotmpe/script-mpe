@@ -124,7 +124,7 @@ expand_deps()
 expand_dep()
 {
   local value=
-  while test -n "$1"
+  while test $# -gt 0
   do
     dep_key="projectenv_$(printf -- "$1" | tr -cs 'A-Za-z0-9_' '_')_dep"
     try_value $dep_key && {

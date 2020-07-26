@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 #
 # SCM util functions and pretty prompt printer for Bash, GIT
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
 #
 #HELP="vc - version-control helper functions "
-set -e
+set -eu
 
 version=0.0.4-dev # script-mpe
 
@@ -488,7 +488,7 @@ vc__ls_errors()
 
 ### Command Line handlers
 
-vc_run__stat=f
+vc_flags__stat=f
 vc__stat()
 {
   test -n "$1" || set -- . "$2"
@@ -540,7 +540,7 @@ vc__flags()
 
 
 vc_man_1__ps1="Print VC status in the middle of PWD. ".
-vc_run__ps1=x
+vc_flags__ps1=x
 vc_spc__ps1="ps1"
 vc__ps1()
 {
@@ -552,7 +552,7 @@ vc_C_validate__ps1="vc__mtime \$gtd"
 
 
 vc_man_1__screen="Print VC status in the middle of PWD. ".
-vc_run__screen=x
+vc_flags__screen=x
 vc_spc__screen="screen"
 vc__screen()
 {
@@ -672,7 +672,7 @@ vc__largest_objects()
 vc__commit_for_object()
 {
   test -n "$1" || error "provide object hash" 1
-  while test -n "$1"
+  while test $# -gt 0
   do
     git rev-list --all |
     while read commit; do
@@ -825,8 +825,8 @@ vc__unversioned_uncleanable_files()
     return 1
   }
 }
-#vc_load__ufu=f
-#vc_load__unversioned_uncleanable_files=f
+#vc_flags__ufu=f
+#vc_flags__unversioned_uncleanable_files=f
 
 vc__modified() { vc__modified_files ; }
 vc__modified_files()
@@ -1068,7 +1068,7 @@ vc__branch_refs()
   } || set -- "$@" origin
   local branch="$1";
   shift
-  while test -n "$1"
+  while test $# -gt 0
   do
     git show-ref --verify -q "refs/remotes/$1/$branch" && {
       echo "refs/remotes/$1/$branch"
@@ -1161,7 +1161,7 @@ vc__regenerate_stale()
 }
 
 
-vc_run__gitrepo=fq
+vc_flags__gitrepo=fq
 vc__gitrepo()
 {
   __vc_gitrepo || return $?
@@ -1169,7 +1169,7 @@ vc__gitrepo()
 
 
 # Add/update local git bare repo
-vc_run__local=fq
+vc_flags__local=fq
 vc__local()
 {
   test -n "$1" || set -- "SCM_GIT_DIR" "$2"
@@ -1275,7 +1275,7 @@ vc__age()
 
 
 vc_man_1__checkout='Checkout'
-vc_run__checkout=f
+vc_flags__checkout=f
 vc__checkout() # [Branch] [Remote]
 {
   vc_getscm || return $?
@@ -1301,7 +1301,7 @@ vc__switch() # [Branch] [Remote]
 
 
 vc_man_1__update='Fetch local from remote TODO: use gitflow config'
-vc_run__update=f
+vc_flags__update=f
 vc__update() # [vc_dir=$scriptpath] checkout [Branch] [Remote] [Action]
 {
   vc_getscm || return $?
@@ -1325,7 +1325,7 @@ vc__update() # [vc_dir=$scriptpath] checkout [Branch] [Remote] [Action]
 }
 
 vc_man_1__update_from=''
-vc_run__update_from=f
+vc_flags__update_from=f
 vc__update_from() # [Remote] [Branch] [Action]
 {
   vc_getscm || return $?
@@ -1336,7 +1336,7 @@ vc__update_from() # [Remote] [Branch] [Action]
   git $3 "$1/$2" || return $?
 }
 
-vc_run__abort=f
+vc_flags__abort=f
 vc__abort()
 {
   test -n "$1" || set -- "merge"
@@ -1738,7 +1738,7 @@ vc__info()
 
 vc_man_1__dist='Push commits to remotes.
 If none given set to Package-Dist, or all remotes'
-vc_run__dist=q
+vc_flags__dist=q
 vc__dist() # [Remotes]
 {
   test -n "$1" || set -- $package_dist
@@ -1752,7 +1752,7 @@ vc__dist() # [Remotes]
 
 
 vc_man_1__update_local='Update local branches from remote'
-vc_run__update_local=f
+vc_flags__update_local=f
 vc__update_local()
 {
   vc_getscm || return $?

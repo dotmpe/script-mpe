@@ -6,7 +6,6 @@
 package_lib_load() # (env PACKMETA) [env out_fmt=py]
 {
   lib_assert sys os src || return
-
   test -n "${out_fmt-}" || out_fmt=py
   test -n "${PACK_DIR-}" || PACK_DIR=.htd
 }
@@ -15,6 +14,7 @@ package_lib_init()
 {
   test "${package_lib_init-}" = "0" || return 0 # do nothing during lib-init
 
+  # On subsequent calls:
   test -z "${package_id-}" -a  -z "${package_main-}" || {
     warn "Already initialized ($package_id/$package_main)"
     return 1
@@ -106,7 +106,7 @@ package_lib_set_local()
   test -z "${default_package_id-}" || package_lib_reset
   # Default package is entry named as main
   default_package_id=$(package_default_id "$1") || return
-  test -n "$package_id" -a "$package_id" != "(main)" || {
+  test -n "${package_id-}" -a "${package_id-}" != "(main)" || {
     package_id="$default_package_id"
     std_info "Set main '$package_id' from $1/package default"
   }

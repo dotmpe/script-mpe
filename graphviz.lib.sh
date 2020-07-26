@@ -13,7 +13,7 @@ gv_parse_argv()
     # test for subcmd
     case "$1" in
         [a-z_]* )
-          incr_c
+          incr c
           trueish "$parse_all_argv" && test -n "$subcmd" && {
             shift
             continue
@@ -30,20 +30,20 @@ gv_parse_argv()
     case "$1" in
         -v )
           verbosity=$(( $verbosity + 1 ))
-          incr_c
+          incr c
           shift;;
         --* )
           error "No long opts understood: $1" 1
-          incr_c
+          incr c
           shift;;
         -- )
-          incr_c
+          incr c
           shift
           note "More args: $@"
           return;;
         -* )
           #echo x-opt $1
-          incr_c
+          incr c
           shift;;
     esac
   done
@@ -57,8 +57,8 @@ gv__load_subcmd()
 
   subcmd_func="$(echo_local "$subcmd")"
 
-  # Look for <base>_run__<subcmd> variable
-  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  # Look for <base>_flags__<subcmd> variable
+  for x in $(try_value "$subcmd" flags gv | sed 's/./&\ /g')
   do case "$x" in
 
       a )
@@ -97,7 +97,7 @@ gv__load_subcmd()
 # Post-run: unset, cleanup
 gv_unload()
 {
-  for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
+  for x in $(try_value "$subcmd" flags gv | sed 's/./&\ /g')
   do case "$x" in
 
       b )

@@ -22,7 +22,7 @@ htd__archive()
   test -n "$1" || set -- help
   subcmd_prefs=${base}_archive_ try_subcmd_prefixes "$@"
 }
-htd_run__archive=fl
+htd_flags__archive=fl
 htd_libs__archive=archive\ htd-archive
 
 

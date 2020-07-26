@@ -28,7 +28,7 @@ mkvar_preproc()
 mkvar_preproc_()
 {
   #set -- "$1" "$2" "$(mkvar_shfmt_v "$3")"
-  while test -n "$1"
+  while test $# -gt 0
   do
     mkvar_preproc__ "$1" "$2" "$3"
     set -- "$1" "$2" "$__"
@@ -111,7 +111,7 @@ mkvar_shfmt()
   $LOG note "mkvar:shftm" "Formatting to shell" "$2 $1 '${3}'"
 
   #set -- "$1" "$2" "$(mkvar_shfmt_v "$3")"
-  while test -n "$1"
+  while test $# -gt 0
   do
     set -- "$1" "$2" "$(mkvar_shfmt_a "$1" "$2" "$3")"
     test -n "$rest" &&

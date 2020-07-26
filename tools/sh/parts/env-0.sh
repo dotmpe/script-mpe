@@ -4,9 +4,11 @@
 
 # Env pre-checks
 
+: "${LOG:="$CWD/tools/sh/log.sh"}"
+
 test -z "${BASH_ENV:-}" || {
   $LOG "warn" "" "Bash-Env specified" "$BASH_ENV"
-  test -f "$BASH_ENV" || $INIT_LOG "warn" "" "No such Bash-Env script" "$BASH_ENV"
+  test -f "$BASH_ENV" || $LOG "warn" "" "No such Bash-Env script" "$BASH_ENV"
 }
 
 # Start 0. env
@@ -34,7 +36,6 @@ test "$USER" = "treebox" && : "${dckr_pref:="sudo "}"
 : "${NS_NAME:="dotmpe"}"
 : "${DOCKER_NS:="$NS_NAME"}"
 : "${scriptname:="`basename -- "$0"`"}"
-: "${LOG:="$CWD/tools/sh/log.sh"}"
 
 $LOG debug "" "0-env started" ""
 # Sync: U-S:

@@ -10,7 +10,7 @@ pd_check__fs_autoconfig()
 }
 
 
-pd_load__fs_clean=i
+pd_flags__fs_clean=i
 pd__fs_clean()
 {
   mkid "fs:clean:TODO:$@" "" ""
@@ -18,7 +18,7 @@ pd__fs_clean()
 }
 
 
-pd_load__fs_names=i
+pd_flags__fs_names=i
 pd__fs_names()
 {
   mkid "fs:names:TODO:$@" "" ""

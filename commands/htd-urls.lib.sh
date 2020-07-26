@@ -17,7 +17,7 @@ htd_man_1__urls='Grep URLs from plain text.
     With update, reprocess existing entries too.
 
 '
-htd_run__urls=fl
+htd_flags__urls=fl
 htd__urls()
 {
   test -n "$1" || set -- list
@@ -49,7 +49,7 @@ htd__urlstat()
   subcmd_default=list urlstat_check_update=$update \
       subcmd_prefs=urlstat_ try_subcmd_prefixes "$@"
 }
-htd_run__urlstat=qliAO
+htd_flags__urlstat=qliAO
 htd_libs__urlstat="stdio statusdir urlstat"
 
 

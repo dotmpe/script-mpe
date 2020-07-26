@@ -67,8 +67,8 @@ EOM
 
 script_load str-uc std-uc &&
 
-for box in box diskdoc docker-sh esop graphviz htd ino list match meta-sh \
-    redmine rst script-sh srv tasks topics twitter vagrant-sh x-test
+for box in box diskdoc docker-sh esop graphviz htd htd ino list match meta-sh \
+    redmine rst script-sh srv tasks topics twitter vagrant-sh vc x-test
 do
   __box_ac_def $box
 done; unset box

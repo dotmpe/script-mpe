@@ -171,13 +171,13 @@ main_env \
   #lib_load htd meta box date doc table disk remote ignores package
 
 main_local \\
-    subcmd_def=main-doc subcmd_func_pref=${base}__
+    subcmd_default=main-doc subcmd_func_pref=${base}__
 
 main-lib \
   INIT_LOG=$LOG lib_init || return
 
 main_load \
-          box_lib script-sh || error "box-src-lib script-sh" 1 \
+          # XXX: cleanup: box_lib script-sh script.sh || error "box-src-lib script-sh" 1 \
           sh_isset verbosity || local verbosity=5
 
 #          test -z "$arguments" -o ! -s "$arguments" || {

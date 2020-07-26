@@ -21,7 +21,7 @@ test -e "$U_S" || {
     U_S=$HOME/build/dotmpe/user-scripts
 }
 test -e "$U_S" || U_S=$u_s
-scriptname=$scriptname:env-0-u_s scriptpid=$$ \
+scriptname=${scriptname-}:env-0-u_s scriptpid=$$ \
   $INIT_LOG "info" "" "Using U-s:" "$U_S"
 unset u_s
 

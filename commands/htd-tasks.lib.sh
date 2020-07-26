@@ -61,7 +61,7 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
   See also package.rst docs.
   The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
 '
-htd_run__tasks=itAOlQ
+htd_flags__tasks=itAOlQ
 htd_libs__tasks=package\ htd-tasks\ tasks
 # lib_load os str std list vc tasks todo
 
@@ -91,7 +91,7 @@ htd__tasks_edit()
 {
   htd_tasks_edit "$@"
 }
-htd_run__tasks_edit=epqlA
+htd_flags__tasks_edit=epqlA
 htd_libs__tasks_edit=htd-tasks
 htd_argsv__tasks_edit=htd_argsv_tasks_session_start
 htd_als__edit_tasks=tasks-edit
@@ -121,7 +121,7 @@ htd__tasks_hub()
 {
   htd_tasks_hub "$@"
 }
-htd_run__tasks_hub=eqiAOl
+htd_flags__tasks_hub=eqiAOl
 htd_libs__tasks_hub=tasks\ htd-tasks
 htd_als__hub=tasks-hub
 
@@ -174,7 +174,7 @@ htd__tasks_process()
     continue
   done
 }
-htd_run__tasks_process=lA
+htd_flags__tasks_process=lA
 htd_libs__tasks_process=htd-tasks
 htd_argsv__tasks_process=htd_argsv_tasks_session_start
 htd_als__tasks_proc=tasks-process
@@ -191,7 +191,7 @@ htd__tasks_buffers()
 {
   htd_tasks_buffers "$@"
 }
-htd_run__tasks_buffers=l
+htd_flags__tasks_buffers=l
 htd_libs__tasks_buffers=htd-tasks
 
 
@@ -316,7 +316,7 @@ htd__tasks()
   esac
 }
 
-# htd_run__tasks_session_start=epqiA
+# htd_flags__tasks_session_start=epqiA
 htd_argsv_tasks_session_start()
 {
   htd_tasks_load
@@ -365,7 +365,7 @@ htd_tasks_session_end()
 htd_tasks_load()
 {
   test -n "$1" || set -- init
-  while test -n "$1" ; do case "$1" in
+  while test $# -gt 0 ; do case "$1" in
 
     init )
   eval $(map=package_pd_meta_tasks_:todo_ package_sh document done slug )

@@ -30,10 +30,9 @@ sh_include env-0-src env-std env-ucache
 
 # XXX: remove from env; TODO: disable undefined check during init.sh,
 # or when dealing with other dynamic env..
-: "${__load_lib:=""}"
 : "${lib_loaded:=""}"
 
-sh_include env-0-1-lib-sys env-0-2-lib-os env-0-3-lib-str env-0-4-lib-script
+sh_include env-0-1-lib-sys env-0-2-lib-os
 
 : "${init_sh_boot:=""}"
 

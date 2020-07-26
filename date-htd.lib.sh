@@ -54,10 +54,10 @@ date_lib_init()
 # newer-than FILE SECONDS, filemtime must be greater-than Now - SECONDS
 newer_than() # FILE SECONDS
 {
-  test -n "$1" || error "newer-than expected path" 1
+  test -n "${1-}" || error "newer-than expected path" 1
   test -e "$1" || error "newer-than expected existing path" 1
-  test -n "$2" || error "newer-than expected delta seconds argument" 1
-  test -z "$3" || error "newer-than surplus arguments" 1
+  test -n "${2-}" || error "newer-than expected delta seconds argument" 1
+  test -z "${3-}" || error "newer-than surplus arguments" 1
 
   fnmatch "@*" "$2" || set -- "$1" "-$2"
   test $(date_epochsec "$2") -lt $(filemtime "$1")

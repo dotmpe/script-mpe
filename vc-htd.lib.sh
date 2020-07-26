@@ -9,6 +9,12 @@ vc_htd_lib_load()
   test -n "${vc_br_def-}" || vc_br_def=master
 }
 
+vc_htd_lib_init()
+{
+  test ${vc_htd_lib_init-1} -eq 0 && return # Run once
+  lib_assert std
+}
+
 # See if path is in GIT checkout
 vc_isgit()
 {
@@ -391,7 +397,7 @@ vc_tracked_hg()
 # List file tracked in version
 vc_tracked()
 {
-  pwd_d || push_pwd
+  pwd_p && push_pwd || pwd_init
 
   test -n "${scm-}" || vc_getscm
 
@@ -409,14 +415,14 @@ vc_tracked()
       #cd "$smpath"
       #ppwd="$smpath" spwd="$CWD/$prefix" \
         vc_tracked_git "$@" \
-            | grep -Ev '^\s*(#.*|\s*)$' \
+            | { grep -Ev '^\s*(#.*|\s*)$' || true; }\
             | sed 's#^#'"$prefix"'/#'
 
       pop_pwd
     done
   }
 
-  test -n "${RCWD-}" -a -n "${CWD-}" || pop_pwd
+  pop_pwd || true
 }
 
 
@@ -526,16 +532,17 @@ vc_list_all_branches()
 
 vc_git_submodules() # [ppwd=.] ~
 {
-  push_pwd || return
+  pwd_p && push_pwd "${1-}" || pwd_init
+  test -n "${CWD-}" || local CWD=$PWD
 
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
   do
     smpath=$CWD/$prefix
-    test -e $smpath/.git || {
+    test -e $CWD/.git || {
       warn "Not a submodule checkout '$prefix' ($CWD/$prefix)"
       continue
     }
-    trueish "$quiet" || note "Submodule '$prefix' ($CWD/$prefix)"
+    trueish "${quiet-}" || note "Submodule '$prefix' ($CWD/$prefix)"
     echo "$prefix"
   done
 

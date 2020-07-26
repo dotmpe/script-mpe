@@ -28,7 +28,7 @@ sys_htd_lib_init()
     return 100
   }
 
-  test -n "$SCR_SYS_SH" ||  {
+  test -n "${SCR_SYS_SH-}" ||  {
     test -n "$SHELL" &&
         SCR_SYS_SH="$(basename "$SHELL")" ||
         SCR_SYS_SH=bash
@@ -187,3 +187,31 @@ sendkey () {
     ssh $* 'cat >> ~/.ssh/authorized_keys' < ~/.ssh/id_dsa.pub
   fi
 }
+
+pwd_p()
+{
+  test -n "${PWD_P-}"
+}
+
+pwd_init()
+{
+  pwd_p || PWD_P=$PWD
+}
+
+push_pwd() # [Dir]
+{
+  test -z "${1-}" || cd $1
+  case "$PWD_P" in *:$PWD ) return ;; esac
+  PWD_P=${PWD_P}:$PWD
+}
+
+pop_pwd()
+{
+  test -n "${PWD_D-}" || return 0
+  local pwd="$(echo "$PWD_D" | cut -d':' -f1)"
+  PWD_D="$(echo "$PWD_D" | cut -d':' -f2-)"
+  test -n "$PWD_D" || unset PWD_D
+  cd "$pwd"
+}
+
+# Sync: U-S:src/sh/lib/sys.lib.sh

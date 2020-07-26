@@ -22,7 +22,7 @@ Group
 See ignores.rst
 '
 lst_spc__names="names GROUP.."
-lst_load__names=iI
+lst_flags__names=iI
 lst__names()
 {
   note "$@"
@@ -37,7 +37,7 @@ lst__names()
 lst_man_1__globs="Write globs (in group) to file and output"
 lst_als__list=globs
 lst_spc__globs="[GROUP]"
-lst_load__globs=iI
+lst_flags__globs=iI
 lst__globs()
 {
   local ext=
@@ -49,7 +49,7 @@ lst_als__init_ignores=globs
 
 
 lst_man_1__local="List globs from local file only, without inherited patterns"
-lst_load__local=iI
+lst_flags__local=iI
 lst__local()
 {
   local ext=
@@ -72,7 +72,7 @@ only while status was non-zero, and if falseish the opposite; run only while it
 was zero.
 "
 lst_spc__watch="FILE|DIR [ GLOB [ CMD [ TEST ]]]"
-lst_load__watch=iI
+lst_flags__watch=iI
 lst__watch()
 {
   test -n "$lst_watch_be" || error "'watch' backend required" 1
@@ -84,7 +84,7 @@ lst__watch()
 }
 
 lst_spc__watch_fswatch="FILE|DIR [GLOB [CMD]]"
-lst_load__watch_fswatch=iI
+lst_flags__watch_fswatch=iI
 lst__watch_fswatch()
 {
   req_path_arg "$@" || return $?
@@ -131,7 +131,7 @@ lst__watch_fswatch()
 }
 
 lst_spc__watch_inotify="FILE|DIR [GLOB [CMD]]"
-lst_load__watch_inotify=iI
+lst_flags__watch_inotify=iI
 lst__watch_inotify()
 {
   req_path_arg "$@" || return $?
@@ -160,7 +160,7 @@ lst__watch_inotify()
 
 
 # List all paths; -dfl or with --tasks filters
-lst_load__list_paths=iO
+lst_flags__list_paths=iO
 lst__list_paths()
 {
   opt_args "$@"

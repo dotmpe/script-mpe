@@ -38,7 +38,7 @@ box_find_localscript()
 {
   # XXX: or scan for function before determining script
   test -e "$local_script" && return || {
-    warn "No local_script for $hostname:$(pwd)"
+    warn "No local_script for $hostname:$PWD"
     return 1
   }
 }
@@ -84,7 +84,7 @@ box_init_local()
   test -n "$uconf_script" || uconf_script=$BOX_DIR/$script_name-localscripts.sh
   test -e $uconf_script && warn "TODO clean $uconf_script"
 
-  case "$1" in 1 )
+  case "${1-}" in 1 )
         test -e "$named_script" || touch $named_script
         box_req_files_localscript
       ;;
@@ -148,8 +148,8 @@ box_grep()
 # Return line-nr before function
 box_script_insert_point() # File Sub-Cmd Property Box-Prefix
 {
-  test -e "$1" || { error "box-script-insert-point: file-arg required"
-    return 1 ; }
+  test -e "$1" ||
+      error "box-script-insert-point: file-arg required <$1>" 1
   local subcmd_func= grep_file=$1
   shift
   local subcmd_func=$(echo_local "$@")
@@ -171,19 +171,19 @@ box_sentinel_indent()
 
 box_name_args()
 {
-  test -n "$1" && {
+  test -n "${1-}" && {
     name="$1" ; shift 1 ; c=$(( $c + 1 ))
   } || name="${hostname}"
 
-  test -n "$1" \
+  test -n "${1-}" \
     && { cmd="$1"; shift 1; c=$(( $c + 1 )); } \
     || note "using default cmd='run'"
 }
 
 box_run_cwd()
 {
-  test -n "$1" || error "box-run-cwd: req name" 1
-  test -n "$2" || error "box-run-cwd: req cmd" 1
+  test -n "${1-}" || error "box-run-cwd: req name" 1
+  test -n "${2-}" || error "box-run-cwd: req cmd" 1
   local func=$(echo $func_pref$1__$2 | tr '/-' '__')
   local tcwd=$1
   test -d $tcwd || error "box-run-cwd: no dir $tcwd" 1
@@ -195,11 +195,11 @@ box_run_cwd()
 box_init_args()
 {
   # subcmd-name
-  test -n "$1" && {
+  test -n "${1-}" && {
     subcmd="$1" ; c=$(( $c + 1 ))
   } || subcmd=run
   # script-name
-  test -n "$2" && {
+  test -n "${2-}" && {
     script_name="$2" ; c=$(( $c + 1 ))
   } || {
     script_name="${hostname}"

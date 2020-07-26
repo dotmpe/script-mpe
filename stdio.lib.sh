@@ -93,7 +93,7 @@ clean_io_lists()
 {
   local count= path=
   test -z "$DEBUG" || $LOG debug "" "clean-io-lists" "$*"
-  while test -n "$1"
+  while test $# -gt 0
   do
     count=0 path="$(eval echo \$$1)"
     test -s "$path" && {

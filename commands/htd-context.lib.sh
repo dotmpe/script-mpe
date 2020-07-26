@@ -8,7 +8,7 @@ htd__context()
   test -n "$1" || set -- list
   subcmd_prefs=${base}_context_\ context_ try_subcmd_prefixes "$@"
 }
-htd_run__context=l
+htd_flags__context=l
 htd_libs__context="match match-htd statusdir src src-htd str-htd list prefix context"
 
 # Use docstat built-in to retrieve cached tag list

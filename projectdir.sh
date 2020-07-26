@@ -28,7 +28,7 @@ pd__edit()
 pd_als___e=edit
 
 
-pd_load__new=y
+pd_flags__new=y
 pd__new()
 {
   test -e "$pdoc" || error pdoc 2
@@ -45,7 +45,7 @@ pd__new()
 }
 
 
-pd_load__meta=y #B
+pd_flags__meta=y #B
 pd_man_1__meta='Defer a command to the python script for YAML parsing
 
 With no argument, create a new background process. If first command is a
@@ -132,14 +132,14 @@ pd__status()
   done < $prefixes
   cd $pd_realdir
 }
-pd_load__status=yiIaop
+pd_flags__status=yiIaop
 pd_defargs__status=pd_registered_prefix_target_args
 pd_optsv__status=pd_options_v
 pd_als__stat=status
 pd_als__st=status
 
 
-pd_load__status_old=ybf
+pd_flags__status_old=ybf
 # Run over known prefixes and present status indicators
 pd__status_old()
 {
@@ -161,7 +161,7 @@ pd__status_old()
   test -z "$1" && {
     prefixes="$(cat $PD_TMPDIR/prefixes.list)"
   } || {
-    while test -n "$1"
+    while test $# -gt 0
     do
       grep -qF "$1" $PD_TMPDIR/prefixes.list && {
         prefixes="$prefixes $(echo $1)"
@@ -232,7 +232,7 @@ pd__status_old()
 }
 
 
-pd_load__clean=y
+pd_flags__clean=y
 pd__clean()
 {
   local R=0
@@ -309,8 +309,8 @@ pd__disable_clean()
 
 
 pd_man_1__regenerate="Regenerate local package metadata files and scripts"
-pd_load__regenerate=dfP
-#pd_load__regenerate=yfip
+pd_flags__regenerate=dfP
+#pd_flags__regenerate=yfip
 pd__regenerate()
 {
   test -n "$pd_prefix" || error pd_prefix 1
@@ -325,7 +325,7 @@ pd__regenerate()
 
 
 pd_man_1__update="Given existing checkout, update local scripts and then projdoc"
-pd_load__update=yfP
+pd_flags__update=yfP
 pd__update()
 {
   test -n "$1" || set -- .
@@ -353,7 +353,7 @@ pd__update()
 }
 
 pd_man_1__update_all="Add/remove repos, update remotes at first level. git only."
-pd_load__update_all=yfb
+pd_flags__update_all=yfb
 pd__update_all()
 {
   test -n "$1" \
@@ -402,7 +402,7 @@ pd__update_all()
   done
 }
 
-pd_load__find=y
+pd_flags__find=y
 pd_spc_find='[<path>|<localname> [<project>]]'
 pd__find()
 {
@@ -418,7 +418,7 @@ pd__find()
   }
 }
 
-pd_load__list_prefixes=y
+pd_flags__list_prefixes=y
 pd_man_1__list_prefixes="List enabled prefixes"
 pd_spc__list_prefixes="list-prefixes [prefix-or-glob]"
 pd__list_prefixes()
@@ -448,7 +448,7 @@ pd__list_all()
   } | sort -u
 }
 
-pd_load__compile_ignores=y
+pd_flags__compile_ignores=y
 pd__compile_ignores()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
@@ -463,7 +463,7 @@ pd__compile_ignores()
 }
 
 # prepare Pd var, failedfn
-pd_load__sync=yf
+pd_flags__sync=yf
 pd_man_1__sync='Update remotes and check refs
 '
 pd__sync()
@@ -577,11 +577,12 @@ pd__sync()
     || stderr info "In sync with at least one remote: $prefix";
 }
 
-pd_load__enable_all=ybf
+pd_flags__enable_all=ybf
 pd__enable_all()
 {
+  test $# -gt 0 || return
   pwd=$(pwd)
-  while test -n "$1"
+  while test $# -gt 0
   do
     pd__enable "$1" || touch $failed
     cd $pwd
@@ -590,10 +591,10 @@ pd__enable_all()
 }
 
 # Assert checkout exists, or reinitialize from Pd document.
-pd_load__enable=y
+pd_flags__enable=y
 pd__enable()
 {
-  test -z "$1" && {
+  test $# -gt 0 || {
     local prefixes="$(pd__meta list-enabled)"
     test -n "$prefixes" || {
         note "Nothing to check out"
@@ -628,11 +629,11 @@ pd__enable()
   note "Initialized '$1'"
 }
 
-pd_load__init_all=ybf
+pd_flags__init_all=ybf
 pd__init_all()
 {
   pwd=$(pwd)
-  while test -n "$1"
+  while test $# -gt 0
   do
     pd__init "$1" || touch $failed
     cd $pwd
@@ -642,7 +643,7 @@ pd__init_all()
 
 # Given existing prefix, update projectdocument and regen
 #, update local .git with remotes, regen hooks.
-pd_load__init=yfP
+pd_flags__init=yfP
 pd__init()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -668,7 +669,7 @@ pd__init()
 
 
 pd_man_1__init_new="Run init_new targets (for single prefix)"
-pd_load__init_new=yiIap
+pd_flags__init_new=yiIap
 pd_defargs__init_new=pd_prefix_target_args
 pd__init_new()
 {
@@ -680,7 +681,7 @@ pd__init_new()
 
 
 # Set the remotes from metadata
-pd_load__set_remotes=y
+pd_flags__set_remotes=y
 pd__set_remotes()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -720,11 +721,11 @@ no_act()
   test -n "$dry_run"
 }
 
-pd_load__disable_all=ybf
+pd_flags__disable_all=ybf
 pd__disable_all()
 {
   pwd=$(pwd)
-  while test -n "$1"
+  while test $# -gt 0
   do
     pd__disable "$1" || touch $failed
     cd $pwd
@@ -733,7 +734,7 @@ pd__disable_all()
 }
 
 # Disable prefix. Remove checkout if clean.
-pd_load__disable=yf
+pd_flags__disable=yf
 pd__disable()
 {
   test -n "$1" || error "prefix argument expected" 1
@@ -770,7 +771,7 @@ pd__disable()
 pd_man_1__add='Add or update SCMs of a repo.
 Arguments checkout dir prefix, url and prefix, or remote name, url and prefix.
 '
-pd_load__add=y
+pd_flags__add=y
 pd_spc__add="add ( PREFIX | REPO PREFIX | NAME REPO PREFIX )"
 pd__add()
 {
@@ -816,7 +817,7 @@ pd__add()
 
 # Add a new item to the projectdoc, resolving some default values
 # Fail if prefix already in use
-pd_load__add_new=f
+pd_flags__add_new=f
 pd__add_new()
 {
   local prefix=$1; shift; local props="$@"
@@ -840,7 +841,7 @@ pd__add_new()
 # Given prefix and optional props, update metadata. Props is prepended
 # and so may be overruled by host/env. To update metadata directly,
 # use pd__meta{,_sq} update-repo.
-pd_load__update_repo=f
+pd_flags__update_repo=f
 pd__update_repo()
 {
   local cwd=$(pwd); prefix=$1; shift; local props="$@"
@@ -923,7 +924,7 @@ pd__copy() # HOST PREFIX [ VOLUME ]
 
 
 # Run (project) helper commands and track results
-pd_load__run=yiIapq
+pd_flags__run=yiIapq
 pd_defargs__run=pd_prefix_target_args
 pd_spc__run='run [ PREFIX | [:]TARGET ]...'
 pd__run()
@@ -944,7 +945,7 @@ pd__run()
       std_info "Setting targets to states of 'init' for '$pd_root/$pd_prefix'"
       set -- $(pd__ls_targets init 2>/dev/null)
     }
-    while test -n "$1"
+    while test $# -gt 0
     do
       fnmatch ":*" "$1" && target=$(echo "$1" | cut -c2- ) || target=$1
 
@@ -968,7 +969,7 @@ pd__run()
 
 
 pd_man_1__run_suite="Run test targets (for single prefix)"
-pd_load__run_suite=yiIp
+pd_flags__run_suite=yiIp
 pd__run_suite()
 {
   test -n "$pd_prefix" -a -n "$pd_root" || error "Projectdoc context expected" 1
@@ -982,7 +983,7 @@ pd__run_suite()
 
 
 pd_man_1__test="Run test targets (for single prefix)"
-pd_load__test=yiIap
+pd_flags__test=yiIap
 pd_defargs__test=pd_prefix_target_args
 pd__test()
 {
@@ -993,7 +994,7 @@ pd__test()
 }
 
 
-pd_load__check_all=ybf
+pd_flags__check_all=ybf
 pd_man_1__check_all='Check if setup, with remote refs '
 pd__check_all()
 {
@@ -1009,7 +1010,7 @@ pd__check_all()
 
 
 pd_man_1__check='Run targets for "check" suite of local project'
-pd_load__check=yiIap
+pd_flags__check=yiIap
 pd_defargs__check=pd_registered_prefix_target_args
 pd__check()
 {
@@ -1020,7 +1021,7 @@ pd__check()
 }
 
 
-pd_load__build=yiIap
+pd_flags__build=yiIap
 pd_defargs__build=pd_registered_prefix_target_args
 pd__build()
 {
@@ -1031,7 +1032,7 @@ pd__build()
 }
 
 
-pd_load__tasks=yiIap
+pd_flags__tasks=yiIap
 pd_defargs__tasks=pd_registered_prefix_target_args
 pd__tasks()
 {
@@ -1051,13 +1052,13 @@ pd__tasks()
 }
 
 
-pd_load__show=yiap
+pd_flags__show=yiap
 pd_defargs__show=pd_prefix_args
 pd_spc__show="show [ PREFIX ]..."
 # Print Pdoc record and main section of package meta file.
 pd__show()
 {
-  while test -n "$1"
+  while test $# -gt 0
   do
 
     test "$dry_run" && {
@@ -1106,7 +1107,7 @@ pd_named_set_args()
 {
   local named_sets="$(pd__ls_sets | lines_to_words )"
   test -n "$1" || set -- $named_sets
-  while test -n "$1"
+  while test $# -gt 0
   do
     fnmatch "* $1 *" " $named_sets " && {
       echo $1
@@ -1129,14 +1130,14 @@ pd__ls_comp()
 # List targets for given named set(s)
 pd__ls_reg()
 {
-  while test -n "$1"; do
+  while test $# -gt 0; do
     note "Targets for set '$1'"
     eval echo $(try_value sets $1) | words_to_lines
     shift
   done
 }
 pd_defargs__ls_reg=pd_named_set_args
-pd_load__ls_reg=ia
+pd_flags__ls_reg=ia
 
 
 # Gather targets that apply for given named set(s) (in prefix)
@@ -1148,7 +1149,7 @@ pd__ls_targets()
   for pd_prefix in $pd_prefixes
   do
     local name=
-    while test -n "$1"
+    while test $# -gt 0
     do
       note "Named target list '$1' ($pd_prefix)"; name=$1; shift
       read_if_exists $pd_prefix/.pd-$name && continue
@@ -1162,14 +1163,14 @@ pd__ls_targets()
   done | words_to_lines
 }
 pd_defargs__ls_targets=pd_named_set_args
-pd_load__ls_targets=yiapd
+pd_flags__ls_targets=yiapd
 
 
 pd_spc__ls_auto_targets="ls-auto-targets [ NAME ]..."
 # Gather targets that would apply by default for given named set(s)
 pd__ls_auto_targets()
 {
-  while test -n "$1"
+  while test $# -gt 0
   do
     note "Returning auto targets '$1' ($pd_prefix)"
     pd_autodetect $1
@@ -1177,11 +1178,11 @@ pd__ls_auto_targets()
   done | words_to_lines
 }
 pd_defargs__ls_auto_targets=pd_named_set_args
-pd_load__ls_auto_targets=diap
+pd_flags__ls_auto_targets=diap
 
 
 # List all paths; -dfl or with --tasks filters
-pd_load__list_paths=iO
+pd_flags__list_paths=iO
 pd__list_paths()
 {
   opt_args "$@"
@@ -1226,7 +1227,8 @@ pd_spc__loc='loc SRC-FILE...'
 # Count non-empty, non-comment lines from files
 pd__loc()
 {
-  while test -n "$1"
+  test $# -gt 0 || return
+  while test $# -gt 0
   do
     read_nix_style_file "$1"
     shift
@@ -1234,7 +1236,7 @@ pd__loc()
 }
 
 
-pd_load__src_report=iO
+pd_flags__src_report=iO
 pd__src_report()
 {
   pd__list_paths . --src | while read path
@@ -1261,7 +1263,7 @@ pd__versions()
 		| cut -f 2 | grep -v '{}' | grep '[0-9]*\.[0-9]*\.[0-9]*' \
     | sort --general-numeric-sort | while read ref; do basename $ref; done )
 }
-pd_load__versions=y
+pd_flags__versions=y
 
 
 pd_man_1__latest="Show latest version tag(s) (see pd-versions)"
@@ -1271,7 +1273,7 @@ pd__latest()
   test -n "$3" || set -- "$1" "$2" "1"
   pd__versions "$1" "$2" | tail -n $3
 }
-pd_load__latest=y
+pd_flags__latest=y
 
 
 pd_man_1__stashes="List "
@@ -1289,7 +1291,7 @@ pd__stashes()
   done
   cd $pd_realdir
 }
-pd_load__stashes=yp
+pd_flags__stashes=yp
 
 
 pd_man_1__exists='Path exists as dir with mechanism to handle local names.
@@ -1309,7 +1311,7 @@ pd__exists()
   #echo choice_unknown=$choice_unknown
   #echo "args:'$*'"
 }
-pd_load__exists=iao
+pd_flags__exists=iao
 pd_defargs__exists=opt_args
 pd_optsv__exists()
 {
@@ -1386,7 +1388,7 @@ pd__doctor()
 }
 
 
-pd_run__info=p
+pd_flags__info=p
 pd__info()
 {
   local
@@ -1435,7 +1437,7 @@ pd_preload()
       SCRIPT_ETC="$({ pd_init_etc || ignore_sigpipe $?; } | head -n 1)"
 }
 
-pd_load()
+pd_subcmd_load()
 {
   test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
   test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
@@ -1642,7 +1644,7 @@ pd_load()
 }
 
 # Close subcmd; move some of this to box.lib.sh eventually
-pd_unload()
+pd_subcmd_unload()
 {
   local subcmd_result=0
 
@@ -1761,7 +1763,7 @@ pd_main()
           echo XXX: box_lib $0 $scriptalias
           shift 1
 
-          pd_load "$@" || error "pd_load" $?
+          pd_subcmd_load "$@" || error "pd-subcmd-load" $?
 
           test -z "$arguments" -o ! -s "$arguments" || {
             std_info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
@@ -1770,7 +1772,7 @@ pd_main()
 
           $subcmd_func "$@" || r=$?
 
-          pd_unload || r=$?
+          pd_subcmd_unload || r=$?
 
           exit $r
         }

@@ -189,7 +189,7 @@ pd_package_meta()
   test -s .package.sh || return 2
   local value=
   eval $(cat .package.sh)
-  while test -n "$1"
+  while test $# -gt 0
   do
     value="$(eval echo "\$package_pd_meta_$1")"
     test -n "$value" && echo "$value" || return 1
@@ -198,7 +198,7 @@ pd_package_meta()
 }
 
 pd_defargs__env=pd_prefix_args
-pd_load__env=yiap
+pd_flags__env=yiap
 pd_spc__env="[ PREFIX ]..."
 # Show env for prefix[es]
 pd__env()
@@ -305,7 +305,7 @@ pd_update_record()
 
   local path=$1; shift; local values="$*"
 
-  { while test -n "$1"
+  { while test $# -gt 0
     do
       fnmatch "/*" "$1" && {
         error "Missing relative prefix on '$1'"
@@ -323,7 +323,7 @@ pd_update_records()
 {
   local kv=$1 states=
   shift
-  states="$( while test -n "$1"
+  states="$( while test $# -gt 0
   do
     echo $(normalize_relative "$1")/$kv
     shift
@@ -411,7 +411,7 @@ pd_debug()
   local debug=$1 target=$2 env_keys=$3 vars=
   shift 3
   set -- "$@" $(cat /tmp/env-keys/$env_keys | lines_to_words )
-  while test -n "$1"
+  while test $# -gt 0
   do
     vars="$vars $1=$(eval echo \$$1)"
     shift
@@ -442,7 +442,7 @@ pd_globstar_search()
   shift
   test -n "$1" && {
     note "Getting args for '$@' ($pd_trgtglob)"
-    while test -n "$1"
+    while test $# -gt 0
     do
       test -e "$1" && {
         echo $1
@@ -471,7 +471,7 @@ pd_globstar_names()
   shift
   test -n "$1" || set -- "*"
   note "Getting names '$@' ($pd_trgtglob)"
-  while test -n "$1"
+  while test $# -gt 0
   do
     set -f
     for glob in $pd_trgtglob
@@ -523,7 +523,7 @@ pd_autodetect()
   local named_sets= targets= func= target=
   test -n "$1" || set -- $(pd__ls_sets | lines_to_words )
 
-  while test -n "$1"; do
+  while test $# -gt 0; do
 
     targets="$(eval echo $(try_value sets $1) | words_to_lines)"
 
@@ -585,7 +585,7 @@ pd_prefix_filter_args()
       set -- "." # default arg in subdir
     }; }
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     for expanded_arg in $(echo $go_to_before/$1)
     do
@@ -607,7 +607,7 @@ pd_registered_prefix_target_spec="[ PREFIX | [:]TARGET ]..."
 pd_registered_prefix_target_args()
 {
 # FIXME: quoting possible?
-  #set -- $(while test -n "$1"
+  #set -- $( while test $# -gt 0
   #do
   #  #case "$1" in --registered ) ;; esac
   #  fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
@@ -623,7 +623,7 @@ pd_prefix_target_args()
 {
   test -n "$choice_reg" || choice_reg=0
   local states=""
-  while test -n "$1"
+  while test $# -gt 0
   do
     fnmatch "*:*" "$1" && {
       states="$states $1"
@@ -647,7 +647,7 @@ pd_prefix_target_args()
 
     test -z "$1" && set -- "$go_to_before"
 
-    while test -n "$1"
+    while test $# -gt 0
     do
       pd_prefix_arg="$(normalize_relative $1)"
       shift
@@ -672,7 +672,7 @@ pd_prefix_target_args()
 pd_options_v()
 {
   set -- "$(cat $options)"
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
       --stm-yaml ) format_stm_yaml=1 ;;
@@ -830,7 +830,7 @@ pd_run()
           eval local $(for io_name in $pd_inputs $pd_outputs; do
             printf -- " $io_name= "; done) $comp_env
 
-          subcmd=$comp pd_load "$args" || {
+          subcmd=$comp pd_subcmd_load "$args" || {
             error "Pd-load failed for '$1'"; echo "$1" >>$errored; return 1
           }
           test -e "$arguments" || {

@@ -54,7 +54,7 @@ htd__output_formats()
 
 
 htd_libs__info=package\ htd-package
-htd_run__info=lp
+htd_flags__info=lp
 htd__info()
 {
   test -n "$1" || set -- $(pwd -P)
@@ -74,7 +74,7 @@ Provide `dir` to use instead of CWD. With no arguments stdin is default.
 '
 htd_spc__expand='expand [--dir=] [--(,no-)expand-dir] [GLOBS | -]'
 htd_env__expand="dir="
-htd_run__expand=eiAO
+htd_flags__expand=eiAO
 htd__expand()
 {
   htd_expand "$@"
@@ -87,7 +87,7 @@ htd__edit_main()
 {
   htd_edit_main "$@"
 }
-htd_run__edit_main=piAO
+htd_flags__edit_main=piAO
 htd_als___XE=edit-main
 
 

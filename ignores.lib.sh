@@ -52,7 +52,7 @@ ignores_group_names()
 # TODO: extendable/customizable groups (list file paths)
 ignores_groups()
 {
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
       purge ) set -- "$@" local-purge global-purge ;;
@@ -102,7 +102,7 @@ ignores_groups_exist()
   set -- $(ignores_groups "$@" | lines_to_words ) # Remove options, resolve args
   note "Resolved ignores to '$*'"
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
 
@@ -129,7 +129,7 @@ ignores_cat()
   set -- $(ignores_groups "$@" | lines_to_words ) # Remove options, resolve args
   note "Resolved ignores source '$src_a' to files '$*'"
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
 

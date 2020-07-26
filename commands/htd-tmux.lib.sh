@@ -79,7 +79,7 @@ htd__tmux()
   esac
 
   # TODO: cleanup old tmux setup
-  #while test -n "$1"
+  #while test $# -gt 0
   #do
   #  func_exists "$func" && {
 

@@ -147,11 +147,9 @@ git_annex_unusedkeys_findlogs() # Key-List-File...
 {
   test -s "$1" || { error "git_annex_unusedkeys_findlogs File expected" ; return 1; }
   local x=0
-  while test -n "$1"
-    do
-    while read -r key rest
-    do
-      test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
+  while test $# -gt 0
+    do while read -r key rest
+      do test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
       x=$(( $x + 1 ))
       echo Key $x: $key
       test -e "$log" || git log --stat -S"$key" > "$log"
@@ -221,7 +219,7 @@ git_annex_unusedkeys_backupfiles() # Key-List-File
   #test -n "$target" || target=$HOME/htdocs/cabinet/.git/annex/
   test -n "$target" || target="/srv/$(readlink /srv/annex-local)/backup/.git/annex"
   path=
-  while test -n "$1"
+  while test $# -gt 0
   do
     while read -r key path
     do

@@ -1,4 +1,5 @@
 #!/bin/sh
+# Creates: 2018-11-11
 
   # TODO: incorporate global/other projects and get glboal host picture
   # local dirs="Desktop Downloads bin .conf" ; foreach pd check

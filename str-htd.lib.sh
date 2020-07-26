@@ -58,27 +58,38 @@ mkid() # Str Extra-Chars Substitute-Char
 # Produces ID's for env vars or maybe a issue tracker system.
 # TODO: introduce a snake+camel case variant for Pretty-Tags or Build_Vars?
 # For real pretty would want lookup for abbrev. Too complex so another function.
-mksid()
+mksid() # STR
 {
   test $# -gt 2 || set -- "${1-}" "${2-}" "_"
   mkid "$@" ; sid=$id ; unset id
 }
 
 # Variable-like ID for any series of chars, only alphanumerics and underscore
-# mkvid STR
-mkvid()
+mkvid() # STR
 {
   test $# -eq 1 -a -n "${1-}" || error "mkvid argument expected ($*)" 1
-  trueish "${upper-}" && {
+  local upper=${upper-"-1"}
+  test 1 -eq $upper && {
     vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
     return
   }
-  not_falseish "${upper-}" && {
-    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
-  } || {
+  test 0 -eq $upper && {
     vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'A-Z' 'a-z')
+    return
   }
+  vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
   # Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
+}
+
+# Simpler than mksid but no case-change
+mkcid()
+{
+  cid=$(echo "$1" | sed 's/\([^A-Za-z0-9-]\|\-\)/-/g')
+}
+
+mknameid()
+{
+  local id; upper=0 mkid "$1"; nameid="$(echo "$id" | tr -d '-')"
 }
 
 # A either args or stdin STR to lower-case pipeline element
@@ -184,7 +195,7 @@ fnmatch() # Glob Str
 words_to_lines()
 {
   test -n "${1-}" && {
-    while test -n "$1"
+    while test $# -gt 0
     do echo "$1"; shift; done
   } || {
     tr ' ' '\n'
@@ -194,7 +205,7 @@ words_to_lines()
 lines_to_words()
 {
   test -n "${1-}" && {
-    { while test -n "$1"
+    { while test $# -gt 0
       do test -e "$1" && cat "$1" || echo "$1"; shift; done
     } | tr '\n' ' '
   } || {
@@ -310,7 +321,7 @@ property() # PROPSFILE PREFIX SUBST KEYS...
   (
     . $tmpf
     rm $tmpf
-    while test -n "$1"
+    while test $# -gt 0
     do
       local __key= __value=
       test -n "$vid" && __key=${vid}$1 || __key=$1
@@ -347,7 +358,7 @@ varsfmt()
     CSV|TAB )        printf "# $*\n" ;;
     JS* )            printf "{" ;;
   esac
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$FMT" in
       SH )           printf -- "$1=\"$(eval echo "\$$1")\"" ;;

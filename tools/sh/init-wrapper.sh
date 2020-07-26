@@ -1,19 +1,13 @@
 #!/bin/sh
 
-test -n "$U_S" -a -d "$U_S" || . $scriptpath/tools/sh/parts/env-0-u_s.sh
-test -n "$U_S" -a -d "$U_S" || return
+test -n "${U_S-}" -a -d "${U_S-}" || . $scriptpath/tools/sh/parts/env-0-u_s.sh
+test -d "$U_S" || return
+
+test -n "${default_lib-}" ||
+      default_lib="os std sys str log shell stdio src main argv match vc std-ht"
 
 # Dev-Module for lib_loadXXX: cli wrapper, see init.sh
 . $U_S/src/sh/lib/lib.lib.sh
-
-
-lib_lib_load()
-{
-  test -n "${default_lib-}" ||
-      default_lib="os std sys str log shell stdio src main argv match vc std-ht"
-}
-
-
 . $U_S/src/sh/lib/lib-util.lib.sh
 
 

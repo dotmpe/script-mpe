@@ -59,7 +59,7 @@ htd__todotxt_edit()
   { basenames ".list" $released ; echo; } | column_layout
 }
 htd_als__tte=todotxt-edit
-#htd_run__todo=O
+#htd_flags__todo=O
 
 
 htd__todotxt()

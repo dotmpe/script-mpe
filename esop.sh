@@ -8,7 +8,7 @@ version=0.0.4-dev # script-mpe
 
 # See $scriptname help to get started
 
-esop_run__run=f
+esop_flags__run=f
 esop__run()
 {
   test -n "$1" || error "argument expected" 1

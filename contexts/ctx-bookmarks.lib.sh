@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ctx_bookmarks_lib_load()
 {
@@ -6,6 +6,11 @@ ctx_bookmarks_lib_load()
 }
 
 ctx_bookmarks_lib_init()
+{
+  true
+}
+
+@Bookmarks.list()
 {
   true
 }

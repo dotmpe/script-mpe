@@ -4,7 +4,7 @@ htd_man_1__vcflow='
 TODO: see also vc gitflow
 '
 htd_libs__vcflow=vcflow\ htd-vcflow
-htd_run__vcflow=fl
+htd_flags__vcflow=fl
 htd__vcflow()
 {
   test -n "$1" || set -- status

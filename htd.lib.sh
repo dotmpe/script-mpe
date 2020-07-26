@@ -1,5 +1,5 @@
-#id !/bin/sh
-
+#!/bin/sh
+# Created: 2016-01-09
 # Htd support lib, see also htd-* libs
 
 
@@ -88,7 +88,7 @@ htd_report()
   # leave htd_report_result to "highest" set value (where 1 is highest)
   htd_report_result=0
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
 
@@ -500,7 +500,7 @@ htd_rst_doc_create_update()
   # to skip use any sensical argument ie. no-title
   test -z "$title" -o -n "$1" || set -- title
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
 
@@ -657,8 +657,9 @@ htd_rst_doc_create_update()
 
 htd_edit_today()
 {
-  test -n "$EXT" || EXT=.rst
-  local pwd="$(normalize_relative "$go_to_before")" arg="$1"
+  set +uo pipefail # FIXME: make edit-today run more strict
+  test -n "${EXT-}" || EXT=.rst
+  local pwd="$(normalize_relative "$go_to_before")" arg=
 
   # Evaluate package env if local manifest is found
   test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" && {
@@ -669,9 +670,9 @@ htd_edit_today()
   }
 
   # Handle arguments wether log-file or cabinet-path/archive-dir
-  test -n "$1" || {
+  test $# -gt 0 || {
     # If no argument given start looking for standard LOG file/dir path
-    test -n "$log" && {
+    test -n "${log-}" && {
       # Default for local project
       set -- $log
     } || {
@@ -680,7 +681,7 @@ htd_edit_today()
       log="$JRNL_DIR"
     }
   }
-  fnmatch "*/" "$1" && {
+  fnmatch "*/" "${1-}" && {
     test -e "$1" || error "unknown dir $1" 1
     jrnldir="$(strip_trail "$1")"
     shift
@@ -689,6 +690,7 @@ htd_edit_today()
     # Look for here and in pwd, or create in pwd; if ext matches filename
     test -e "$1" || set -- "$pwd/$1"
     test -e "$1" || fnmatch "*$EXT" "$1"  && touch $1
+    arg="$1"
     # Test in htdir with ext
     test -e "$1" || set -- "$arg$EXT"
     # Test in pwd with ext
@@ -917,4 +919,4 @@ htd_init_etc()
   #test ! -e $UCONF/htd || echo $UCONF
 }
 
-
+# Id: script-mpe/0.0.4-dev ht.sh

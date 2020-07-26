@@ -117,7 +117,7 @@ See also
     diff-sh-lib [DIR=$scriptpath]
 '
 htd__function() { false; }
-htd_run__function=l
+htd_flags__function=l
 htd_libs__function=htd-function
 
 
@@ -211,7 +211,7 @@ htd__diff_function()
     expand_source_line "$3" $src2_line || error "expand-source-line 2" $?
   }
 }
-htd_run__diff_function=iAO
+htd_flags__diff_function=iAO
 
 
 htd_man_1__sync_function='Compare Sh functions using vimdiff. See diff-function,
@@ -223,7 +223,7 @@ htd__sync_function()
   export quiet=false copy_only=false edit=true
   htd__diff_function "$@"
 }
-htd_run__sync_function=iAO
+htd_flags__sync_function=iAO
 htd_als__sync_func=sync-function
 
 htd_man_1__diff_functions="List all functions in FILE, and compare with FILE|DIR
@@ -249,7 +249,7 @@ htd__diff_functions() # FILE FILE|DIR
         warn "Error on '$1:$func' <$2> ($?)" 1
   done
 }
-htd_run__diff_functions=iAO
+htd_flags__diff_functions=iAO
 
 
 htd_man_1__sync_functions='List and compare functions.
@@ -262,7 +262,7 @@ htd__sync_functions()
   export quiet=false copy_only=false edit=true
   htd__diff_functions "$@"
 }
-htd_run__sync_functions=iAO
+htd_flags__sync_functions=iAO
 
 
 htd_man_1__diff_sh_lib='Look for local *.lib files, compare to same file in DIR.
@@ -281,7 +281,7 @@ htd__diff_sh_lib()
     htd__sync_functions $lib $1 || continue
   done
 }
-htd_run__diff_sh_lib=iAO
+htd_flags__diff_sh_lib=iAO
 
 
 htd_man_1__find_function='Get function matching grep pattern from files

@@ -255,4 +255,4 @@ main-load
   test -n "$EDITOR" || EDITOR=vim
 
 main-epilogue
-# Id: script-mpe/0.0.4-dev ino
+# Id: script-mpe/0.0.4-dev ino                                ex:ft=bash:

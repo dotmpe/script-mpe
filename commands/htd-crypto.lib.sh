@@ -63,7 +63,7 @@ htd__crypto_mount_all()
     }
   done
 }
-htd_run__crypto=f
+htd_flags__crypto=f
 
 htd__crypto_mount() # Lvl VolumeId Prefix_Real Contexts
 {
