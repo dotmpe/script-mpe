@@ -29,7 +29,7 @@ def print_short_def(s, d=0, i=None, w=None):
         indent = (str(i+1)+'. ').ljust(d*INDENT)
     else:
         indent = (' '*INDENT*d)
-    log.stdout( indent + short_def(s, w=w) )
+    log.stdout( indent + short_def(s, w=w) + '{default}' )
 
 
 def print_word_tree(s, t=None, d=0, i=None, w=None):
@@ -54,7 +54,7 @@ def printcmd_word_trees(WORD, g):
     if g.head:
         if syn:
             WORD = wn_sense(WORD, syn)
-        log.stdout('{green}'+WORD+'{blue}')
+        log.stdout('{green}'+WORD+'{default}')
         d = 1
     for i, s in enumerate(syns):
         d_ = d
@@ -70,7 +70,7 @@ def printcmd_word_meanings(WORD, g):
     if g.head:
         if syn:
             WORD = wn_sense(WORD, syn)
-        log.stdout('{green}'+WORD+'{blue}')
+        log.stdout('{green}'+WORD+'{default}')
         d = 1
     for i, s in enumerate(syns):
         d_ = d

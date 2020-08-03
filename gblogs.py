@@ -1,7 +1,7 @@
 #!/usr/bin/env python
+# Created: 2015-12-27
+# Updated: 2020-07-30
 """
-:Created: 2015-12-27
-
 Usage:
     gblogs [options] [list]
 
@@ -18,7 +18,7 @@ import httplib2
 import os
 from pprint import pprint, pformat
 
-from apiclient import discovery
+from googleapiclient import discovery
 import oauth2client
 from oauth2client import client
 from oauth2client import tools

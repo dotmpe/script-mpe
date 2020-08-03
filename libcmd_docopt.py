@@ -16,9 +16,9 @@ import resource
 
 import docopt
 
-import lib
-import confparse
-import log
+from script_mpe import lib
+from script_mpe import confparse
+from script_mpe import log
 
 
 def defaults(opts, init={}):
@@ -172,7 +172,9 @@ def run_commands(commands, settings, opts):
     Take a nested dictionary with command names/handlers.
     Run the first and most specific one that matches names in opts.
 
-    Uses select_kwdargs to determine function arguments from settings and opts.
+    Uses select_kwdargs to resolve function arguments from settings and opts.
+    Note select_kwdargs_defaults defines 'g' as an alias for settings,
+
     """
 
     cmds = opts.cmds
@@ -217,10 +219,16 @@ def ret_(ret):
 
 
 def cmd_help(CMD):
+    """
+    Print usage help for options and commands.
+    """
     cmds = sys.modules['__main__'].commands
+    print(sys.modules['__main__'].__usage__.strip())
+    print("\nUsage:\n  hier.py help [ %s ]" % " | ".join(cmds.keys()))
+    print()
+    # Unknown Command prints only usage
     if CMD and CMD not in cmds:
-        print(sys.modules['__main__'].__doc__.strip())
-        print("\nUsage:\n  hier.py help [ %s ]" % " | ".join(cmds.keys()))
+        print("Use 'help' for a full usage listing with commands")
     else:
         for c, cmd in cmds.items():
             if CMD and c != CMD:
@@ -240,6 +248,9 @@ def cmd_help(CMD):
 
 
 def cmd_memdebug(settings):
+    """
+    Print info on resource usage, values in bytes.
+    """
     # peak memory usage (bytes on OS X, kilobytes on Linux)
     res_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     if os.uname()[0] == 'Linux':
@@ -247,12 +258,16 @@ def cmd_memdebug(settings):
     # XXX: http://stackoverflow.com/questions/938733/total-memory-used-by-python-process
     #res_usage /= resource.getpagesize()
 
-    db_size = os.path.getsize(os.path.realpath(settings.dbref[10:]))
-    for l, v in (
-            ( 'Storage Size', lib.human_readable_bytesize( db_size ) ),
-            ( 'Resource Usage', lib.human_readable_bytesize(res_usage) ),
+    if 'dbref' in settings:
+        db_size = os.path.getsize(os.path.realpath(settings.dbref[10:]))
+        for l, v in (
+                ( 'Storage Size', lib.human_readable_bytefloat( db_size ) ),
         ):
-            log.std('{green}%s{default}: {bwhite}%s{default}', l, v)
+            log.std('{green}%s{default}: {bwhite}%s{default} bytes', l, v)
+    for l, v in (
+            ( 'Resource Usage', lib.human_readable_bytefloat(res_usage) ),
+        ):
+            log.std('{green}%s{default}: {bwhite}%s{default} bytes', l, v)
 
 
 def init_config(path, defaults={}, overrides={}, persist=[]):
@@ -289,3 +304,8 @@ def static_vars_from_env(usage, *specs):
         if value is not default:
             usage = usage.replace( default, value )
     return usage
+
+command_handlers = dict(
+    help = cmd_help,
+    memdebug = cmd_memdebug
+)

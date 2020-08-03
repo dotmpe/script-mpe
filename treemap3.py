@@ -50,7 +50,7 @@ Options:
 __doc__ += __usage__
 
 from script_mpe.libhtd import *
-from script_mpe.lib import human_readable_float
+from script_mpe.lib import human_readable_bytefloat
 
 
 cmd_default_settings = dict(
@@ -474,7 +474,7 @@ def cmd_size(PATH, g, opts):
          #    treeinfo = fs_summarize(tree, g)
 
     if g.human_readable:
-        print(human_readable_float(size))
+        print(human_readable_bytefloat(size))
     else:
         print(size)
 

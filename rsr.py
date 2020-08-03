@@ -114,7 +114,7 @@ def rsr_update_metafiles(prog=None, volume=None, volumedb=None, opts=None):
             metafile.write()
             for k in metafile.data:
                 print('\t'+k+':', metafile.data[k])
-            print('\tSize: ', lib.human_readable_bytesize(
+            print('\tSize: ', lib.human_readable_bytefloat(
                 metafile.data['Content-Length'], suffix_as_separator=True))
         else:
             print('\tOK')

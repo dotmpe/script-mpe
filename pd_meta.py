@@ -38,7 +38,9 @@ Options:
                 server intance, and the result output and return code
                 returned to client. [default: /var/run/pd-serv.sock]
   --background  Turns script into socket server. This does not fork, detach
-                or do anything else but enter an infinite server loop.
+                or do anything else but enter an infinite server loop. Commands
+                are invoked the same way as with regular command-line arguments,
+                but written to the socket.
   -f PD, --file PD
                 Give custom path to projectdir document file
                 [default: ~/.conf/etc/projects.yaml]

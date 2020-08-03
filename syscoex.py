@@ -29,7 +29,7 @@ except:
 
 
 #from script_mpe import res
-from script_mpe.lib import human_readable_bytesize
+from script_mpe.lib import human_readable_bytefloat
 
 storage = {
         'a8c01c01': confparse.Values(dict(
@@ -95,10 +95,10 @@ def main( ):
     print(_1kblocks_used2, 'used2')
     print(fssttat.f_bfree*fact, 'free?')
     print
-    print(human_readable_bytesize(_1kblocks*1024, True, False, 0), 'in blocks')
-    print(human_readable_bytesize(_1kblocks_avail*1024, True, False, 0), 'in available blocks')
-    #print human_readable_bytesize(_1kblocks_used*1024, True, False, 0), 'in used blocks'
-    print(human_readable_bytesize(_1kblocks_used2*1024, True, False, 0), 'in used2 blocks')
+    print(human_readable_bytefloat(_1kblocks*1024, True, False, 0), 'in blocks')
+    print(human_readable_bytefloat(_1kblocks_avail*1024, True, False, 0), 'in available blocks')
+    #print human_readable_bytefloat(_1kblocks_used*1024, True, False, 0), 'in used blocks'
+    print(human_readable_bytefloat(_1kblocks_used2*1024, True, False, 0), 'in used2 blocks')
     print
 
     data.fs.inodes = fssttat.f_files

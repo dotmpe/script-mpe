@@ -1,7 +1,7 @@
 #!/usr/bin/env python
+# Created: 2015-12-27
+# Updated: 2020-07-30
 """
-:Created: 2015-12-27
-
 Usage:
     gbooks [options] [list] <q>
 
@@ -18,7 +18,7 @@ import httplib2
 import os
 from pprint import pprint, pformat
 
-from apiclient import discovery
+from googleapiclient import discovery
 import oauth2client
 from oauth2client import client
 from oauth2client import tools
@@ -106,8 +106,6 @@ for k, h in locals().items():
 
 
 def main(func=None, opts=None):
-    """Shows basic usage of the Google Books API.
-    """
     credentials = get_credentials(APPLICATION_NAME, opts.flags.secret,
             CRED_FILE, SCOPES)
     http = credentials.authorize(httplib2.Http())

@@ -188,7 +188,7 @@ def remote_proc(host, cmd):
     else:
         return proc.stdout.read().strip()
 
-def human_readable_float(value, suffix=True, suffix_as_separator=False,
+def human_readable_bytefloat(value, suffix=True, suffix_as_separator=False,
         sub=2):
     if suffix_as_separator:
         assert suffix

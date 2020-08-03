@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
 :created: 2017-12-26
+:updated: 2020-07-31
 
 Query Wordnet corpus with Python NLTK. Wordnet has hypernym, hyponym, antonym
 synonym relations, derived forms, examples and more.
@@ -103,7 +104,7 @@ def cmd_path(WORD, g):
     if g.head:
         if syn:
             WORD = wn_sense(WORD, syn)
-        log.stdout('{green}'+WORD+'{blue}')
+        log.stdout('{green}'+WORD+'{default}')
         d_ += 1
     for i, syn in enumerate(syns):
         print_short_def(syn, w=WORD, d=d_, i=i)
@@ -143,14 +144,14 @@ def cmd_examples(WORD, g):
     if not WORD: return 1
     syn, syns = syn_or_syns(WORD)
     if not syn and not syns:
-        log.stderr('{yellow}No results{blue}')
+        log.stderr('{yellow}No results{normal}')
         return 1
 
     d = 0
     if g.head:
         if syn:
             WORD = wn_sense(WORD, syn)
-        log.stdout('{green}'+WORD+'{blue}')
+        log.stdout('{green}'+WORD+'{default}')
         d = 1
     for i, s in enumerate(syns):
         if not s.examples(): continue
@@ -162,6 +163,7 @@ def cmd_examples(WORD, g):
 
         if i+1<len(syns):
             print()
+    log.stdout('{default}')
 
 
 ### Transform cmd_ function names to nested dict
@@ -175,7 +177,7 @@ commands.update(dict(
 
 ### Util functions to run above functions from cmdline
 
-def defaults(opts, init={}):
+def wordnet_defaults(opts, init={}):
     global cmd_default_settings
     libcmd_docopt.defaults(opts)
     opts.flags.update(cmd_default_settings)
@@ -184,7 +186,7 @@ def defaults(opts, init={}):
     ))
     return init
 
-def main(opts):
+def wordnet_main(opts):
 
     """
     Execute command.
@@ -198,7 +200,7 @@ def main(opts):
         libcmd_docopt.cmd_memdebug(settings)
     return ret
 
-def get_version():
+def wordnet_version():
     return 'wordnet.mpe/%s' % __version__
 
 
@@ -209,5 +211,5 @@ if __name__ == '__main__':
         log.formatting_enabled = False
 
     opts = libcmd_docopt.get_opts(__description__+'\n'+__usage__,
-            version=get_version(), defaults=defaults)
-    sys.exit(main(opts))
+            version=wordnet_version(), defaults=wordnet_defaults)
+    sys.exit(wordnet_main(opts))
