@@ -7,9 +7,7 @@ export_stage()
   test -n "${2:-}" || set -- "$1" "$(mkvid $1 && echo $vid)"
 
   export stage=$1 stage_id=$2 ${2}_ts="$($gdate +%s.%N)"
-  test -n "${ci_stages-}" &&
-      ci_stages="$ci_stages $stage_id" ||
-      ci_stages="$stage_id"
+  ci_stages="${ci_stages-}${ci_stages+" "}$stage_id"
 }
 
 announce_time()
@@ -17,10 +15,10 @@ announce_time()
   test -n "${travis_ci_timer_ts-}" && {
 
     deltamicro="$(echo "$1 - $travis_ci_timer_ts" | bc )"
-    print_yellow "$scriptname:$stage" "$deltamicro sec: $2"
+    print_yellow "$scriptname:$stage" "${deltamicro}s: $2"
   } || {
 
-    print_yellow "$scriptname:$stage" "??? sec: $2"
+    print_yellow "$scriptname:$stage" "???s: $2"
   }
 }
 
@@ -119,7 +117,8 @@ c-run()
 {
   test $# -ge 1 -a -n "${1:-}" || return 98
   : "${c_lbl:="Step"}"
-  test $verbosity -le 5 || print_yellow "" "Running $c_lbl $c_run '$1'..."
+  : "${c_run:="$SCRIPT_SHELL -c"}"
+  print_yellow "" "Running $c_lbl $c_run '$1'..."
 
   {
     $c_run "$@" | {

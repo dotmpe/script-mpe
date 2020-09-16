@@ -7,7 +7,7 @@ ci_stages="$ci_stages publish"
 
 ci_announce "Starting ci:publish"
 
-# FIXME: pubish
+# FIXME: publish
 lib_load git vc #os-htd git-htd vc-htd
 
 sh_include "report-times"

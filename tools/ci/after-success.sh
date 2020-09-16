@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# CI suite stage 6a. See .travis.yml
-set -eu
+
+# CI suite stage 6a.
+
 export_stage success && announce_stage
 
+export BUILD_STATUS=success
+sh_include publish
+
 close_stage
-set +eu
 # Sync: U-S:

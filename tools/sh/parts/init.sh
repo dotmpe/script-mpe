@@ -125,7 +125,7 @@ init-git-dep()
     git clone --quiet https://github.com/$1 "$VND_SRC_PREFIX/$1" || return
   }
 
-  cd "$VND_SRC_PREFIX/$1" && {
+  ( cd "$VND_SRC_PREFIX/$1" && {
     test -x "${DEBUG:-}" || pwd
     {
       git fetch --quiet "origin" &&
@@ -137,10 +137,10 @@ init-git-dep()
     git reset --quiet --hard origin/$2 || {
       $INIT_LOG "error" "$?" "Error resetting to $2" "$1"
     }
-  }
+  } )
 }
 
-init-basher-dep()
+init-basher-dep() # Repo Version-Ref
 {
   test $# -ge 1 -a $# -le 2 || return 98
   test -z "${2:-}" && {

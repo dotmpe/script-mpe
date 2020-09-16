@@ -79,6 +79,8 @@ docker_sh_c_create() # [Container] [Docker-Image]
   #echo "%supergroup  ALL=NOPASSWD:ALL" >.etc-sudoers.d-treebox-supergroup
   #  -v $PPWD/.etc-sudoers.d-treebox:/etc/sudoers.d/treebox-supergroup \
 
+      # -v $HOME/.docker/config.json:$home/.docker/config.json:ro \
+
   local user=treebox home=/home/treebox dut= volid_suff
 
   volid_suff=$(basename "$(realpath /srv/scm-git-local)"|cut -c8-)
@@ -91,7 +93,6 @@ docker_sh_c_create() # [Container] [Docker-Image]
       -v $(realpath /etc/localtime):/etc/localtime \
       -v $(realpath /srv/scm-git-local):/srv/scm-git$volid_suff \
       -v /var/run/docker.sock:/var/run/docker.sock \
-      -v $HOME/.docker/config.json:$home/.docker/config.json:ro \
       -di --name "$1" "$2" "$3" || return
 
   # TODO: one-time-init, maybe use init/service scripts inside container here

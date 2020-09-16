@@ -8,23 +8,29 @@ test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 true "${BIN:="$HOME/bin"}"
 test ! -e $BIN/.env.sh || . $BIN/.env.sh
 
-test -n "${U_S-}" ||
-  $LOG "error" "" "Expected U-S env" "" 1
-
-test -d $U_S/.git || {
-  test "${ENV_DEV-}" = "1" && {
-    {
-      test ! -d "$U_S" || rm -rf "$U_S"
-      git clone https://github.com/dotmpe/user-scripts.git $U_S
-    }
-    ( cd $U_S/ && git fetch --all &&
-        git checkout feature/docker-ci &&
-        git pull origin feature/docker-ci )
-  } ||
-      $LOG "error" "" "Expected U-S checkout" "" 1
-}
-
+: "${CS:="dark"}"
+export CS
 : "${CWD:="$PWD"}"
+: "${LOG:="$CWD/tools/sh/log.sh"}"
+
+# FIXME: handle various U-S setups, and make script.mpe completely dependent on
+# scripts in U-S, remove all but specific local tools
+# if test -z "${TRAVIS-}"
+# test -n "${U_S-}" ||
+#   $LOG "error" "" "Expected U-S env" "" 1
+#
+# test -d $U_S/.git || {
+#   test "${ENV_DEV-}" = "1" && {
+#     {
+#       test ! -d "$U_S" || rm -rf "$U_S"
+#       git clone https://github.com/dotmpe/user-scripts.git $U_S
+#     }
+#     ( cd $U_S/ && git fetch --all &&
+#         git checkout feature/docker-ci &&
+#         git pull origin feature/docker-ci )
+#   } ||
+#       $LOG "error" "" "Expected U-S checkout" "" 1
+# }
 test "${env_strict_-}" = "0" || {
   . "$CWD/tools/sh/parts/env-strict.sh" && env_strict_=$?; }
 . "$CWD/tools/sh/parts/env-init-log.sh"
@@ -49,7 +55,7 @@ sh_env_end_ts=$($gdate +"%s.%N")
 
 test -n "${ci_util_:-}" || {
 
-  . "${ci_tools:="$BIN/tools/ci"}/util.sh"
+  . "${ci_tools:="$CWD/tools/ci"}/util.sh"
 }
 
 test -n "${IS_BASH:-}" || $INIT_LOG error "Not OK" "Need to know shell dist" "" 1

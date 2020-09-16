@@ -20,11 +20,9 @@ spec() # Combine and execute var/cmd specs with test-shell ~ ...
 {
   test $# -gt 0 || set -- sh-baseline.tab
   test $# -gt 1 || set -- "$1" "*"
-  test $# -le 2 -a -f "$1" || return 98
+  test $# -eq 2 -a -f "$1" || return 98
 
   sh_include std-stack std-runner
-
-  : "${c_run:="$(basename "$SCRIPT_SHELL")-c"}"
 
   sh_spec "$1"|grep -v '^\s*\(#.*\|\s*\)$'|while read scriptline; do
 
@@ -117,12 +115,12 @@ run-suite() # Table Suite Prefix
 }
 
 # Run baselines from var/cmd-spec table
-run-baseline()
+run-baseline() # Spec
 {
   local r=
   c_lbl=Baseline spec sh-baseline.tab "$@" &&
-     print_green "OK" "Baselines '$*'" || { r=$?
-       print_red "Not OK: $?" "Baselines '$*'"
+     print_green "OK" "Baselines '${1:-*}'" || { r=$?
+       print_red "Not OK: $?" "Baselines '${1:-*}'"
        return $r
   }
 }
@@ -132,8 +130,8 @@ run-test()
 {
   local r=
   c_lbl="Project test" spec sh-project.tab "$@" &&
-     print_green "OK" "Project tests '$*'" || { r=$?
-       print_red "Not OK: $?" "Project tests '$*'"
+     print_green "OK" "Project tests '${2:-*}'" || { r=$?
+       print_red "Not OK: $?" "Project tests '${2:-*}'"
        return $r
   }
 }
@@ -144,20 +142,14 @@ run-ci()
   test $# -gt 0 || set -- sh-ci.tab
   local r=
   c_lbl="CI suite" spec "$@" &&
-     print_green "OK" "CI suite '$*'" || { r=$?
-       print_red "Not OK: $?" "CI suite '$*'"
+     print_green "OK" "CI suite '${2:-*}'" || { r=$?
+       print_red "Not OK: $?" "CI suite '${2:-*}'"
        return $r
   }
 }
 
 
 # Main: wrap/exec cmd or func matching first argument
-
-BASH_BIN=$(which bash)
-bash-c() # Bash -c helper ~ Command-Line...
-{
-  $BASH_BIN -c "$@"
-}
 
 case "$(basename -- "$0" .sh)" in
   -bash ) ;;

@@ -3,6 +3,7 @@
 # 0. Env:
 debug-exit                  013 013 013 013  013
 env-init-log                -   -   -   -    -  
+init-git                    010 010 010 010  010
 env-log-reinit              016 016 016 016  016
 std-ci-helper               -   -   020 020  020
 env-ucache                  020 -   020 020  020
@@ -42,7 +43,6 @@ check-all                   -   -   31  -    31
 # Parts                     Sh  U-S CI  Main Test                             #
 
 # 4. Script: build/test
-
 # FIXME: script & build, actual project lib testing
 . ./sh-main                 -   -   410 -    410
 run-baseline                -   -   420 -    420

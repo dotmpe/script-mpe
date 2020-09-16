@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# CI suite stage 5. See .travis.yml
-set -u
+
+# CI suite stage 5.
+
 export_stage before-cache before_cache && announce_stage
 
-sh_include before-cache
+test -z "${TRAVIS-}" ||
+  sh_include travis-before-cache
 
 close_stage
-set +u
 # Sync: U-S:

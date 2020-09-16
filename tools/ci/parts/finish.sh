@@ -6,7 +6,6 @@ test ${verbosity:=4} -le 5 || {
 
 pass_cnt=$(grep -v '^\s*\(#.*\|\s*\)$' "$passed"|wc -l|awk '{print $1}')
 fail_cnt=$(grep -v '^\s*\(#.*\|\s*\)$' "$failed"|wc -l|awk '{print $1}')
-TRAVIS_TEST_RESULT=$fail_cnt
 
 test $fail_cnt -eq 0 && {
 
@@ -36,7 +35,7 @@ test $fail_cnt -eq 0 && {
 }
 
 step_cnt=$(( $pass_cnt + $fail_cnt ))
-ci_announce "Finished CI session ($pass_cnt/$step_cnt) <$SESSION_ID>"
+ci_announce "Finished CI session ($pass_cnt/$step_cnt passed/total steps) <$SESSION_ID>"
 
 rm "$passed" "$failed"
 unset SESSION_ID

@@ -464,7 +464,7 @@ exec_arg_lines()
 # Execute arguments, or return on first failure, empty args, or no cmdlines
 exec_arg() # CMDLINE [ -- CMDLINE ]...
 {
-  test -n "$*" || return 2
+  test $# -gt 0 || return 98
   local execs=$(setup_tmpf .execs) execnr=0
   exec_arg_lines "$@" | while read -r execline
     do

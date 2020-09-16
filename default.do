@@ -70,6 +70,10 @@ default_do_main()
     build:* ) # build-ifchange .build.sh && ./.build.sh "$(echo "$1" | cut -c7- )"
       ;;
 
+    .build/tests/*.tap ) default_do_include \
+          "tools/redo/parts/_build_tests_*.tap.do" "$@"
+      ;;
+
 
     * ) print_err "error" "" "Unknown target, see '$package_build_tool help'" "$1"
         return 1

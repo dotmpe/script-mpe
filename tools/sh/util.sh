@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 test -z "${sh_util_:-}" && sh_util_=1 || return 198 # Recursion
 
-# XXX: enable for CI? info() { exit 123; }
 
 # TODO: move some of below to CI util.sh
 
-true "${BIN:="$HOME/bin"}"
-. $BIN/tools/sh/init-include.sh # Initialize sh_include
+. $CWD/tools/sh/init-include.sh # Initialize sh_include
 
 sh_include \
   str-bool str-id read exec \

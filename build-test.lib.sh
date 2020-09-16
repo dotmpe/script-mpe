@@ -63,10 +63,10 @@ build_test_init() # Specs...
       package_specs_ignore='*/_[a-z]* _[a-z]*'
 
   # Enable BATS 'load' helper
-  . $HOME/bin/test/init.bash
+  . $CWD/test/init.bash
   true "${TEST_ENV:="$_ENV"}"
   load_init
-  BATS_LIB_PATH=$BATS_LIB_PATH:$HOME/bin/test:$HOME/bin/test/helper
+  BATS_LIB_PATH=$BATS_LIB_PATH:$CWD/test:$CWD/test/helper
 
   build_test_init=ok
 }

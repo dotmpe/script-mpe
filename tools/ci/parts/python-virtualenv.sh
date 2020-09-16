@@ -10,7 +10,7 @@ test -n "${ci_parts_pyvenv:-}" || {
     $INIT_LOG info "tools/ci/env" "Using existing Python virtualenv"
   } || {
 
-    test -d ~/.pyvenv/htd || {
+    test -d ~/.pyvenv/htd -a -e ~/.pyvenv/htd/bin/activate || {
       virtualenv ~/.pyvenv/htd || return
     }
 

@@ -12,11 +12,11 @@
 #test -n "${CWD-}" || CWD="$PWD"
 test -n "${LOG-}" -a -x "${LOG-}" -o \
   "$(type -t "${LOG:-}" 2>/dev/null )" = "function" &&
-  LOG_ENV=1 INIT_LOG=$LOG || LOG_ENV=0 INIT_LOG=$HOME/bin/tools/sh/log.sh
+  LOG_ENV=1 INIT_LOG=$LOG || LOG_ENV=0 INIT_LOG=$CWD/tools/sh/log.sh
 # Sh-Sync: tools/sh/parts/env-init-log.sh
 
 # Must be set after U-s:load
-test -n "${U_S-}" -a -d "${U_S-}" || . $HOME/bin/tools/sh/parts/env-0-u_s.sh
+test -n "${U_S-}" -a -d "${U_S-}" || . $CWD/tools/sh/parts/env-0-u_s.sh
 test -n "${U_S-}" -a -d "${U_S-}" || $LOG "error" "" "Missing U-s" "$U_S" 1
 
 test -n "${sh_src_base-}" || sh_src_base=/src/sh/lib
@@ -25,7 +25,7 @@ test -n "${scriptname-}" || scriptname="`basename -- "$0"`"
 test -n "${sh_tools-}" || sh_tools="$U_S/tools/sh"
 
 # Must be started from script-package, or provide SCRIPTPATH
-test -n "${SCRIPTPATH-}" || . $HOME/bin/tools/sh/parts/env-scriptpath-deps.sh
+test -n "${SCRIPTPATH-}" || . $CWD/tools/sh/parts/env-scriptpath-deps.sh
 
 # Now include module with `lib_load`
 test -z "${DEBUG-}" || echo . $u_s_lib/lib.lib.sh >&2

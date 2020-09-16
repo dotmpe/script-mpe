@@ -5,17 +5,18 @@
 
 : "${BRANCH_NAME:="$(git rev-parse --abbrev-ref HEAD)"}"
 
-travis_ci_timer_ts=
-test -n "${TRAVIS_TIMER_START_TIME:-}" &&
-  travis_ci_timer_ts=$(echo "$TRAVIS_TIMER_START_TIME"|sed 's/\([0-9]\{9\}\)$/.\1/') ||
-    : "${TRAVIS_TIMER_START_TIME:=$($gdate +%s%N)}"
+test -n "${TRAVIS_TIMER_START_TIME:-}" ||
+  : "${TRAVIS_TIMER_START_TIME:=$($gdate +%s%N)}"
+
+travis_ci_timer_ts=$(echo "$TRAVIS_TIMER_START_TIME"|sed 's/\([0-9]\{9\}\)$/.\1/')
 
 : "${TRAVIS_BRANCH:=$BRANCH_NAME}"
 : "${TRAVIS_JOB_ID:=-1}"
 : "${TRAVIS_JOB_NUMBER:=-1}"
 : "${TRAVIS_BUILD_ID:=}"
 : "${GIT_COMMIT:="$(git rev-parse HEAD)"}"
-: "${TRAVIS_COMMIT_RANGE:=}"
+: "${TRAVIS_COMMIT:="$GIT_COMMIT"}"
+: "${TRAVIS_COMMIT_RANGE:="$COMMIT_RANGE"}"
 : "${BUILD:=".build"}" ; B=$BUILD
 
 : "${SHIPPABLE:=}"

@@ -7,18 +7,10 @@ test -n "${INIT_LOG-}" || return 109
 test -z "${SCRIPTPATH-}" ||
   $INIT_LOG "note" "env-scriptpath-deps" "Current SCRIPTPATH" "$SCRIPTPATH"
 
-type trueish >/dev/null 2>&1 || {
-  . $sh_tools/parts/trueish.sh
-}
-type remove_dupes >/dev/null 2>&1 || {
-  . $sh_tools/parts/remove-dupes.sh
-}
-type unique_paths >/dev/null 2>&1 || {
-  . $sh_tools/parts/unique-paths.sh
-}
-type script_package_include >/dev/null 2>&1 || {
-  . $sh_tools/parts/script-package-include.sh
-}
+for func_dep in fnmatch trueish remove_dupes unique_paths script_package_include
+do test "$(type -t $func_dep 2>/dev/null)" = function && continue
+  . $U_S/tools/sh/parts/${func_dep//_/-}.sh
+done
 
 test -n "${SH_EXT-}" || {
   test -n "${REAL_SHELL-}" ||
@@ -49,10 +41,6 @@ test -n "${VND_PATHS-}" || {
 # and basher ones.
 
 test -n "${PROJECT_DEPS:-}" || PROJECT_DEPS=$CWD/dependencies.txt
-test -e "${PROJECT_DEPS-}" || {
-  script_package_include $CWD ||
-    $INIT_LOG "error" "" "Error including script-package at" "$CWD" 30
-}
 
 # Look for deps at each VND_PATHS, source load.*sh file to let it setup SCRIPTPATH
 for supportlib in $(grep -h '^\(git\|dir\|basher\) ' $PROJECT_DEPS | cut -d' ' -f2);
@@ -91,6 +79,9 @@ do
 
   true
 done
+
+script_package_include $CWD ||
+  $INIT_LOG "error" "" "Error including script-package at" "$CWD" 30
 
 test -z "${SCRIPTPATH:-}" &&
     $INIT_LOG "error" "" "No SCRIPTPATH found" ||
