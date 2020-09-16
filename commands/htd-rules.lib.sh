@@ -4,14 +4,13 @@
 htd_rules_lib_load()
 {
   #2017-05-01
-  test -n "${htd_rules-}" || htd_rules=$UCONF/rules/$hostname.tab
+  test -n "${htd_rules-}" || htd_rules=$UCONF/user/rules/$hostname.tab
 }
 
 htd_man_1__rules='
-  edit
-    Edit the HtD rules file.
-  show
-    Resolve and show HtD rules with Id, Cwd and proper Ctx.
+  edit - Edit the HtD rules file.
+  show - Resolve and show HtD rules with Id, Cwd and proper Ctx.
+  table -
   status
     Show Id and last status for each rule.
   run [ Target-Grep [ Cmd-Grep ] ]
@@ -35,15 +34,16 @@ Development documentation in HT:Dev/Shell/Rules.rst
 TODO: proc rules, output log.
 TODO: Transform log to new rule states...
 '
+htd_rules__help() { std_help rules; }
 htd__rules()
 {
-  test -n "$htd_chatter" || htd_chatter=$verbosity
-  test -n "$htd_rule_chatter" || htd_rule_chatter=3
-  test -n "$1" || set -- table
+  test -n "${htd_chatter-}" || htd_chatter=$verbosity
+  test -n "${htd_rule_chatter-}" || htd_rule_chatter=3
+  test -n "${1-}" || set -- table
   case "$1" in
 
     edit )                        htd__edit_rules || return  ;;
-    table ) shift ;               raw=true htd__show_rules "$@" || return  ;;
+    table|tab|raw ) shift ;       raw=true htd__show_rules "$@" || return  ;;
     show ) shift ;                htd__show_rules "$@" || return  ;;
     status ) shift ;              htd__period_status_files "$@" || return ;;
     run ) shift ;                 htd__run_rules "$@" || return ;;
@@ -68,9 +68,9 @@ htd__rules()
           # Filter prop-lines by line-nr or by column values
           case " $* " in
             " "[0-9]" "|" "[0-9]*[0-9]" " ) grep "row_nr=$1\>" - ;;
-            * ) { test -n "$2" &&
+            * ) { test -n "${2-}" &&
                   grep '^.*\ CMD=\\".*'"$2"'.*\\"\ \ RT=.*$' - || cat -
-              } | { test -n "$1" &&
+              } | { test -n "${1-}" &&
                   grep '^.*\ TARGETS=\\".*'"$1"'.*\\"\ \ CTX=.*$' - || cat -
               } ;;
           esac
@@ -207,25 +207,27 @@ htd__rules()
       ;;
   esac
 }
+htd_libs__rules=table
+htd_flags__rules=lp
 
 # htdoc rules development documentation in htdocs:Dev/Shell/Rules.rst
-# pick up with config:rules/comp.json and build `htd comp` aggregate metadata
+# pick up with config:user/rules/comp.json and build `htd comp` aggregate metadata
 # and update statemachines.
 #
 htd__period_status_files()
 {
-  touch -t $(date %H%M) $(statusdir.sh file period 1min)
-  M=$(date +%M)
-  _5M=$(( $(( $M / 5 )) * 5 ))
-  touch -t $(date +%y%m%d%H${_5M}) $(statusdir.sh file period 5min)
-  touch -t $(date +%y%m%d%H00) $(statusdir.sh file period hourly)
-  H=$(date +%H)
-  _3H=$(printf "%02d" $(( $(( $H / 3 )) * 3 )))
-  touch -t $(date +%y%m%d${_3H}00) $(statusdir.sh file period 3hr)
-  touch -t $(date +%y%m%d0000) $(statusdir.sh file period daily)
-  ls -la $(statusdir.sh file period 3hr)
-  ls -la $(statusdir.sh file period 5min)
-  ls -la $(statusdir.sh file period hourly)
+  touch -t $(date +%H%M) $(statusdir.sh file period 1min)
+  #M=$(date +%M)
+  #_5M=$(( $(( $M / 5 )) * 5 ))
+  #touch -t $(date +%y%m%d%H${_5M}) $(statusdir.sh file period 5min)
+  #touch -t $(date +%y%m%d%H00) $(statusdir.sh file period hourly)
+  #H=$(date +%H)
+  #_3H=$(printf "%02d" $(( $(( $H / 3 )) * 3 )))
+  #touch -t $(date +%y%m%d${_3H}00) $(statusdir.sh file period 3hr)
+  #touch -t $(date +%y%m%d0000) $(statusdir.sh file period daily)
+  #ls -la $(statusdir.sh file period 3hr)
+  #ls -la $(statusdir.sh file period 5min)
+  #ls -la $(statusdir.sh file period hourly)
 }
 
 # Run either when arguments given match a targets, or if any of the linked
@@ -282,6 +284,7 @@ htd__show_rules()
   # TODO use optparse htd_host_arg
   upper=0 default_env out-fmt plain
   upper=0 default_env raw false
+  test -s "${htd_rules-}" || error "No rules found <${htd_rules-}>" 1
   trueish "$raw" && {
     test -z "$*" || error "Raw mode does not accept filter arguments" 1
     local cutf= fields="$(fixed_table_hd_ids "$htd_rules")"
@@ -291,7 +294,7 @@ htd__show_rules()
       csv )       out_fmt=csv   htd__table_reformat - ;;
       yml|yaml )  out_fmt=yml   htd__table_reformat - ;;
       json )      out_fmt=json  htd__table_reformat - ;;
-      * ) error "Unknown format '$out_fmt'" 1 ;;
+      * ) error "Unknown format '$out_fmt', use txt|plain|text,csv,yml|yaml or json" 1 ;;
     esac
   } || {
     local fields="Id Nr CMD RT TARGETS CWD CTX line"
@@ -359,12 +362,6 @@ htd__rule_target()
       ;;
 
   esac
-}
-
-
-rules__help()
-{
-  std_help rules
 }
 
 #

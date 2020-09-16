@@ -270,11 +270,16 @@ def timestamp_to_datetime(timestamp, epoch=EPOCH):
 
 
 def class_name(o):
-#    if hasattr(o, __class__):
-#        o = o.__class__
+    if hasattr(o, '__class__'):
+        o = o.__class__
     return o.__class__.__name__
 
 cn = class_name
+
+def type_ref(o):
+    if hasattr(o, '__class__'):
+        o = o.__class__
+    return o.__module__ +'.'+ o.__name__
 
 
 def tag_id(s):

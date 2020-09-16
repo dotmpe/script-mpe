@@ -221,7 +221,7 @@ ck_run_catalog()
 # Check keys from catalog corresponding to known checksum algorithms
 ck_run_catalogs()
 {
-  local cwd=$(pwd) dir= catalog= ret=0
+  local cwd=$PWD dir= catalog= ret=0
 
   note "Running over catalogs found in '$cwd'..."
   { htd_catalog_list_files || exit $?

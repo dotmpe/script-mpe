@@ -1,5 +1,6 @@
-#!/bin
+#!/bin/sh
 
+## Handle shell user aliases
 
 alias_exists()
 {
@@ -32,6 +33,7 @@ alias_set()
   }
 }
 
+# FIXME: use aliases, basenames; also get list of all alias files to grep
 # List aliases (for current script) TODO: should list subcmd aliases
 alias_list()
 {

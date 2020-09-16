@@ -13,7 +13,7 @@ htd_scripts_names()
   test -e "$PACKMETA_JS_MAIN" ||
       error "Pack-Meta-Js-Main '$PACKMETA_JS_MAIN' missing" 1
   jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts | sort -u | {
-    test -n "$1" && {
+    test -n "${1-}" && {
       while read name;do fnmatch "$1" "$name" || continue;echo "$name";done
     } || { cat - ; }
   }
@@ -67,7 +67,7 @@ htd_scripts_exec() # Script-Id
     run_scriptname="$1"
     shift
 
-    std_info "Starting '$run_scriptname' ($(pwd)) '$*'"
+    std_info "Starting '$run_scriptname' ($PWD) '$*'"
     package_js_script "$run_scriptname" | while read -r scriptline
     do
       export ln=$(( $ln + 1 ))

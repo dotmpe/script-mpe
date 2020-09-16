@@ -125,24 +125,6 @@ diskdoc__ids()
 
 # Generic subcmd's
 
-diskdoc_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-diskdoc_flags__help=f
-diskdoc_spc__help='-h|help [ID]'
-diskdoc__help()
-{
-  choice_global=1 std__help "$@"
-  rm_failed || return
-}
-diskdoc_als___h=help
-
-
-diskdoc_man_1__version="Version info"
-diskdoc__version()
-{
-  echo "script-mpe/$version"
-}
-diskdoc_als___V=version
-
 
 diskdoc__edit()
 {
@@ -153,8 +135,8 @@ diskdoc__edit()
 
 # Script main functions
 
-main_env INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
-  INIT_LIB="\$default_lib logger-theme main box src meta std stdio vc date match str-htd"
+main_init_env INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
+  INIT_LIB="\$default_lib logger-theme main box src meta std stdio vc date match str-htd ctx-main ctx-std"
 
 main_local \\
   scsep=__ bgd= \\
@@ -183,16 +165,16 @@ main_load_flags \
         diskdoc=projects.yaml \
  \
         # Find dir with metafile \
-        prerun=$(pwd) \
+        prerun=$PWD \
         prefix=$2 \
  \
         while test ! -e "$diskdoc" \
         do \
           test -n "$prefix" \\
-            && prefix="$(basename $(pwd))/$prefix" \\
-            || prefix="$(basename $(pwd))" \
+            && prefix="$(basename $PWD)/$prefix" \\
+            || prefix="$(basename $PWD)" \
           cd .. \
-          test "$(pwd)" = "/" && break \
+          test "$PWD" = "/" && break \
         done \
  \
         test -e "$diskdoc" || error "No projects file $diskdoc" 1 \

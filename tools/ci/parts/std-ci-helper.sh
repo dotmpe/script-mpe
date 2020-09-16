@@ -33,7 +33,7 @@ announce_stage()
   test -n "$2" || set -- "$1" "$1"
 
   local ts="$(eval echo \$${2}_ts)"
-  announce_time "$ts" "Starting stage..."
+  announce_time "$ts" "Starting stage... <$stage>"
 }
 
 close_stage()

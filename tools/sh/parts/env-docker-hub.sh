@@ -10,7 +10,7 @@ test ! -e ~/.local/etc/tokens.d/docker-hub-$DOCKER_NS.sh || {
 : "${DOCKER_USERNAME:="$DOCKER_NS"}"
 : "${INIT_LOG:="$PWD/tools/sh/log.sh"}"
 
-test -n "${DOCKER_HUB_PASSWD:-}" || {
+test -n "${DOCKER_PASSWORD:-}" || {
   $INIT_LOG "error" "" "Docker Hub password required" "" 1
 }
 

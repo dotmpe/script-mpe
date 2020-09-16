@@ -113,7 +113,6 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser_Old):
             if v.isdigit():
                 v = int(v)
             a[m.group(2)] = v
-
         self.attrs.update(a)
         return self.meta_r.sub('', t)
     def serialize_attrs(self):
@@ -170,14 +169,14 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser_Old):
         return self.attrs['_id']
     id = property(get_id)
     def __repr__(self):
-        return str(self)
-    def __str__(self):
         if '_id' in self.attrs:
             args = ( self.id, )
         else: args = ( "", )
         args += ( self.doc_id, "", #self.issue_id,
                 self.src_id, hash(self) )
         return "TodoTxtTaskParser:%s;%s;%s;%s;<#%x>" % args
+    def __str__(self):
+        return self.todotxt()
 
 
 class TodoTxtParser(UserDict):

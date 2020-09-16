@@ -1,11 +1,27 @@
+_box_update_and_run ()
+{
+  test $b.shc -nt $b.sh || {
+    make_echo=1 $b.sh > $b.shc
+    chmod +x $b.shc
+    $LOG "note" "" "Updated box" "$b.shc"
+  }
+  $b.shc "$@"
+}
+
 alias htd=htd.sh
-alias ht=ht.sh
-#alias statusdir=statusdir.sh
-#alias sd=statusdir.sh
+
+alias ht="b=$HOME/bin/ht _box_update_and_run"
+alias statusdir="b=$HOME/bin/statusdir _box_update_and_run"
+test "$(type -t sd)" || alias sd=statusdir # otherwise gives trouble with compo:sd.inc
 #alias vc=vc.sh TODO: rename scm
-alias box=box.sh
+alias vc="b=$HOME/bin/vc _box_update_and_run"
+alias box="b=$HOME/bin/box _box_update_and_run"
+alias docker-sh="b=$HOME/bin/docker-sh _docker-sh_update_and_run"
+alias dckr=docker-sh
+alias ino="b=$HOME/bin/ino _box_update_and_run"
+alias meta-sh="b=$HOME/bin/meta-sh _box_update_and_run"
+
 alias topic=topic.py
-alias dckr=docker-sh.sh
 alias tm=treemap.py
 alias lst=list.sh
 alias tb=treebox
@@ -18,7 +34,6 @@ alias dictdiff-yaml.php=dictdiff.php
 alias finfo-app.py=finfo.py
 alias jsotk=jsotk.py
 alias libcmd_stacked_test.py=libcmd_test.py
-alias meta-sh=meta-sh.sh
 alias pd=projectdir.sh
 alias projectdir-meta=pd_meta.py
 alias topics=topics.sh

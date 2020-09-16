@@ -28,9 +28,9 @@ htd_libs__urls='statusdir urlstat web'
 
 htd_man_1__urlstat='Build urlstat index
 
-  list [Glob]
+  list [Glob] [URLs.list]
     List entries
-  urllist ? [Stat-Tab]
+  urls [Glob] [Stat-Tab]
     List URI-Refs, see htd urls for other URL listing cmds.
   entry-exists URI-Ref [Stat-Tab]
   check [--update] [--process]
@@ -46,11 +46,11 @@ htd_man_1__urlstat='Build urlstat index
 htd__urlstat()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  subcmd_default=list urlstat_check_update=$update \
+  subcmd_default=list urlstat_check_update=${update-} \
       subcmd_prefs=urlstat_ try_subcmd_prefixes "$@"
 }
-htd_flags__urlstat=qliAO
-htd_libs__urlstat="stdio statusdir urlstat"
+htd_flags__urlstat=qiAO
+#htd_libs__urlstat="stdio statusdir urlstat"
 
 
 htd__save_url()

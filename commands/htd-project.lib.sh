@@ -86,7 +86,7 @@ return $?
 # Create new for current
 htd_project_create()
 {
-  test -n "$1" || set -- "$(basename $(pwd))"
+  test -n "$1" || set -- "$(basename $PWD)"
   htd_project_exists "$1" && {
     warn "Project '$1' already exists"
   } || true
@@ -106,7 +106,7 @@ htd_project_exists()
   test -n "$1" && name="$1" || {
     test -n "$package_id" && name="$package_id"
   }
-  test -n "$name" || name="$(basename "$(pwd)")"
+  test -n "$name" || name="$(basename "$PWD")"
 
   #pdoc=$HOME/project/.projects.yaml pd__meta_sq get-repo "$name" || return $?
   pdoc=$HOME/project/.projects.yaml pd meta-sq get-repo "$name" || return $?

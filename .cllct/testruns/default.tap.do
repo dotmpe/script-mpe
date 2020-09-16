@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -- "$@" "$REDO_PWD/$3" "$(basename "$1" .tap)"
 
 scriptpath=$REDO_BASE . $REDO_BASE/tools/sh/init.sh &&

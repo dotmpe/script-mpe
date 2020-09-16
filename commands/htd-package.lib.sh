@@ -39,6 +39,11 @@ Plumbing commands dealing with the local project package file. See package.rst.
 These do not auto-update intermediate artefacts, or load a specific package-id
 into env.
 '
+htd_package__help ()
+{
+  echo "$htd_man_1__package"
+}
+
 htd_flags__package=iAOlQ
 htd__package()
 {
@@ -50,13 +55,7 @@ htd__package()
     } || set -- debug
   subcmd_prefs=${base}_package__\ package_ try_subcmd_prefixes "$@"
 }
-htd_libs__package=date\ package\ htd-package
-
-
-htd_package__help ()
-{
-  echo "$htd_man_1__package"
-}
+htd_libs__package=date
 
 
 htd_package__list() { htd_package__list_ids; }

@@ -1,8 +1,8 @@
 #!/usr/bin/env make.sh
 # Twitter
 
+set -eu
 
-#Script subcmd's funcs and vars
 
 twitter__meta()
 {
@@ -44,23 +44,21 @@ twitter__lists()
 
 # Generic subcmd's
 
-twitter_man_1__help="Usage help. "
-twitter_spc__help="-h|help"
+twitter_als____version=version
+twitter_als___V=version
+twitter_grp__version=ctx-main\ ctx-std
+
+twitter_als____help=help
 twitter_als___h=help
-twitter__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
-}
-
-
+twitter_grp__help=ctx-main\ ctx-std
 
 
 # Script main functions
 
+#std log src match main stdio meta box date doc table remote logger-theme"
 MAKE-HERE
 INIT_ENV="init-log 0 0-src 0-u_s dev ucache scriptpath std box" \
-INIT_LIB="str sys os std shell log src match main stdio std meta box date doc table remote logger-theme"
+INIT_LIB="\\$default_lib"
 
 main-epilogue
 # Id: script-mpe/0.0.4-dev twitter.sh

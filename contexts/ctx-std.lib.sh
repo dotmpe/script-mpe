@@ -1,11 +1,7 @@
-#!/bin/sh
+#_f56eMnr !/bin/sh
 
-#ctx_std_lib_load
-
-ctx_std_lib_init() # Tags...
-{
-  test -z "${1-}" || note "std init: $*"
-}
+ctx_std_defines=@Std
+ctx_std_depends=@Base
 
 at_Std()
 {
@@ -15,18 +11,18 @@ at_Std()
 # Create std stat descriptor
 docstat_init_std_descr()
 {
-  test -z "$du_result" && status=- || status=$du_result
-  echo "$status"
+  echo "${status:="-"}"
   test -e "$docstat_src" && {
     filemtime "$docstat_src"
   } || echo -
 }
 
 # Parse stat descriptor
-docstat_parse_std_descr()
+docstat_parse_std_descr() # status mtime
 {
-  test -z "$1" || status=$1
-  test -z "$2" || mtime=$2
+  test $# -eq 2 || return 95
+  test -z "${1-}" || status=$1
+  test -z "${2-}" || mtime=$2
   export status mtime
 }
 
@@ -300,7 +296,7 @@ std_spc__help='-h|help [ID]'
 std_als___h=help
 std__help()
 {
-  test -n "$box_prefix" || box_prefix=$(mkvid $base; echo $vid)
+  true "${box_prefix:="$(echo "$baseids" | cut -d' ' -f1)"}"
 
   test -z "${1-}" && {
 
@@ -367,7 +363,7 @@ std__commands()
         test -e "$file" &&
             debug "std:commands File: $(basename "$file" .sh)" ||
             warn "std:commands No such file $file" 1
-        local_file="$($grealpath --relative-to="$(pwd)" "$file")"
+        local_file="$($grealpath --relative-to="$PWD" "$file")"
 
         # XXX: test -z "$local_id" && {
         #  # Global mode: list all commands
@@ -425,12 +421,16 @@ std__commands()
 }
 
 
+std_als____version=version
 std_als___V=version
 std_man_1__version="Version info"
 std_spc__version="-V|version"
 std__version()
 {
-  test -n "${scriptpath-}" || exit 11
   test -n "${version-}" || exit 157
-  echo "$(cat $scriptpath/.app-id)/$version"
+  test -e "${scriptpath:-$CWD}/.app-id" &&  {
+    echo "$(cat $scriptpath/.app-id)/$version"
+  } || {
+    echo "$scriptname/$version"
+  }
 }

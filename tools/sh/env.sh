@@ -4,14 +4,20 @@
 
 test -z "${sh_env_:-}" && sh_env_=1 || return 98 # Recursion
 
+test ${DEBUG:-0} -ne 0 || DEBUG=
 : "${CWD:="$PWD"}"
-. "$CWD/tools/sh/parts/env-strict.sh"
 
+test "${env_strict_-}" = "0" || {
+  . "$CWD/tools/sh/parts/env-strict.sh" && env_strict_=$?; }
+
+# FIXME: generate local static env
+true "${BIN:="$HOME/bin"}"
+test ! -e $BIN/.env.sh || . $BIN/.env.sh
+
+: "${SUITE:="Sh"}"
 : "${build_tab:="build.txt"}"
-
 : "${APP_LBL:="Script.mpe"}" # No-Sync
 : "${APP_ID:="script-mpe"}" # No-Sync
-: "${SUITE:="Sh"}"
 : "${sh_main_cmdl:="spec"}"
 : "${U_S:="/srv/project-local/user-scripts"}" # No-Sync
 export scriptname=${scriptname:-"`basename -- "$0"`"}
@@ -22,12 +28,10 @@ test -n "${sh_util_:-}" || {
 }
 
 sh_include \
+  env-init-log \
   env-0-1-lib-sys \
   print-color remove-dupes unique-paths \
   env-0-src
-
-test -z "${DEBUG:-}" -a -z "${CI:-}" ||
-  print_yellow "${SUITE} Env parts" "$(suite_from_table "${build_tab}" "Parts" "${SUITE}" 0|tr '\n' ' ')" >&2
 
 suite_source "${build_tab}" "${SUITE}" 0
 

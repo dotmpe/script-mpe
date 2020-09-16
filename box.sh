@@ -332,7 +332,7 @@ box__run()
     test -n "$choice_global" && {
       std_info "command $subbox_name completed"
     } || {
-      std_info "command $subbox_name in $(pwd) completed"
+      std_info "command $subbox_name in $PWD completed"
     }
   } || {
     r=$?
@@ -382,7 +382,7 @@ box__check_install()
   }
 }
 
-# TEST: box 
+# TEST: box
 
 box__log_demo()
 {
@@ -518,11 +518,6 @@ box_als___c=commands
 search="htd\ box\ insert\ sentinel"
 
 
-box__type()
-{ true
-}
-
-
 box__here()
 { true
 }
@@ -530,28 +525,28 @@ box__here()
 
 # Script main parts
 
-main_env \
+main-init-env \
   INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
-  INIT_LIB="\$default_lib str-htd logger-theme main box src-htd"
-main_local \\
+  INIT_LIB="\$default_lib str-htd logger-theme main box src-htd ctx-main ctx-std"
+main-local \\
   box_sock= box_lib=
-main_init box_sock=/tmp/box-serv.sock
+main-init box_sock=/tmp/box-serv.sock
 main-lib \
   box_lib_current_path \
   script_subcmd_name=$subcmd
 main-load box_name="${base}:${subcmd}" \
   sh_include_path_langs="htd main ci bash sh"
 main-load-flags \
-    l ) sh_include subcommand-libs || return ;; \
     f ) # failed: set/cleanup failed varname \
         export failed=$(setup_tmpf .failed) \
       ;; \
+    l ) sh_include subcommand-libs || return ;; \
       \
     * ) error "No load flag <$x>" 3 ;; \
 
-main_unload unset box_name \
-  sh_include_path_langs="htd main ci bash sh"
+main_unload unset box_name
 main_unload_flags \
+    f ) clean_failed || unload_ret=1 ;; \
     l ) ;; \
     * ) error "No unload flag <$x>" 3 ;; \
 

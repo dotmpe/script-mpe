@@ -63,33 +63,22 @@ redmine__db_stats()
 
 # Generic subcmd's
 
-redmine_man_1__help="Usage help. "
-redmine_spc__help="-h|help"
+
+redmine_als____help=help
 redmine_als___h=help
-redmine__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
-}
+redmine_grp__help=ctx-main\ ctx-std
 
 
 
+## Main parts
 
-# Script main functions
 
 MAKE-HERE
-
 INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
+INIT_LIB="\\$default_lib remote meta doc table date box"
 
 main-local
-failed=
-
-main-init
-
-main-lib
-  lib_load main meta box date doc table remote match std stdio || return
-  local __load_lib=1
-  INIT_LOG=$LOG lib_init || return
+failed= dry_run=
 
 main-load
   test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"

@@ -258,7 +258,7 @@ docker_sh_name_argv()
     # dont override without CLI args, only set
     test -n "$docker_name" && return 1;
   }
-  test -z "$1" && name=$(basename $(pwd)) || name=$1
+  test -z "$1" && name=$(basename $PWD) || name=$1
   docker_name=${pref}${name}
   test -n "$1" || std_info "Using dir for dckr-name: $docker_name"
 }

@@ -78,7 +78,7 @@ htd__gitremote()
 htd__git_init_local() # [ Repo ]
 {
   local remote=local
-  repo="$(basename "$(pwd)")"
+  repo="$(basename "$PWD")"
   [ -n "$repo" ] || error "Missing project ID" 1
 
   BARE=/srv/scm-git-local/$NS_NAME/$repo.git
@@ -371,14 +371,23 @@ htd__git()
 
 
 htd_libs__github=github
-htd_man_1__github='Github lib'
+htd_man_1__github='Github lib.
+
+    info
+    find
+'
+
 htd_flags__github=fl
 htd__github()
 {
   test -n "$1" || set -- help
-  subcmd_prefs=${base}_github_\ github_ try_subcmd_prefixes "$@"
+  subcmd_prefs=${base}_github__\ ${base}_github_\ github_ try_subcmd_prefixes "$@"
 }
 
+htd_github__help ()
+{
+  echo "$htd_man_1__github"
+}
 
 htd_man_1__find="Find file by name, or abort.
 

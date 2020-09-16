@@ -158,7 +158,7 @@ install_git_hooks()
         continue
       }
     }
-    test -d .git || error $(pwd)/.git 1
+    test -d .git || error $PWD/.git 1
     mkdir -p .git/hooks
     ( cd .git/hooks; ln -s ../../$t $script )
     echo "Installed GIT hook symlink: $script -> $t"
@@ -167,7 +167,7 @@ install_git_hooks()
 
 pd_regenerate()
 {
-  debug "pd-regenerate pwd=$(pwd) 1=$1"
+  debug "pd-regenerate pwd=$PWD 1=$1"
 
   # Regenerate .git/info/exclude
   vc.sh "$1" || echo "pd-regenerate:$1" 1>&6
@@ -347,7 +347,8 @@ pd_register()
   while test $# -gt 0
   do
     fnmatch "*$1*" "$pd_sets" || pd_sets="$pd_sets $1"
-    registry="$(echo_local sets $1)"
+    #main_var $(main_local pd $1 sets) pd $1 sets
+    registry="$(main_local pd $1 sets)"
     eval export $registry="\"\${$registry-} $mod\""
     shift
   done
@@ -529,7 +530,7 @@ pd_autodetect()
 
     for target in $targets; do
 
-      func=$(echo_local $target-autoconfig $1)
+      func=$(main_local pd $1 $target-autoconfig)
       try_func $func || continue
 
       (
@@ -779,15 +780,10 @@ pd_run()
         # Consume components and look for local function
         while true
         do
-          # Resolve aliases
-          while true
-          do
-            als=$(echo_local $comp als)
-            sh_isset $als || break
-            comp=$(try_value $comp als)
-          done
-
-          func=$(echo_local $comp "")
+          # Resolve alias
+          main_var comp pd als $comp $comp
+          # Get function name
+          func=$(main_local pd "" $comp)
 
           comp_idx=$(( $comp_idx + 1 ))
           ncomp="$(echo "$1" | cut -d ':' -f $comp_idx)"
@@ -796,7 +792,7 @@ pd_run()
           }
 
           try_func "$func" && {
-            try_func $(echo_local $comp:$ncomp "") || break
+            try_func $(main_local pd "" $comp:$ncomp) || break
           }
 
           comp="$comp:$ncomp"
@@ -821,7 +817,7 @@ pd_run()
           unset verbosity
           subcmd="$pd_prefix#$comp"
 
-          record_key="$(eval echo "\"\$$(echo_local "$comp" stat)\"")"
+          record_key="$(main_value pd stat "" $comp)"
           test -n "$record_key" \
             || record_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
           states= values=
@@ -868,14 +864,14 @@ pd_run()
 
         for io_name in $pd_outputs; do
           out=$(try_var ${io_name})
-          test ! -e $(setup_tmpd)/pd-*$sub_session_id.$io_name || {
-            cat $(setup_tmpd)/pd-*$sub_session_id.$io_name >> $out
-            rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+          test ! -e $sys_tmp/pd-*$sub_session_id.$io_name || {
+            cat $sys_tmp/pd-*$sub_session_id.$io_name >> $out
+            rm $sys_tmp/pd-*$sub_session_id.$io_name
           }
         done
         for io_name in $pd_inputs; do
-          test ! -e $(setup_tmpd)/pd-*$sub_session_id.$io_name \
-            || rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+          test ! -e $sys_tmp/pd-*$sub_session_id.$io_name \
+            || rm $sys_tmp/pd-*$sub_session_id.$io_name
         done
       ;;
 

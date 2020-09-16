@@ -1,10 +1,11 @@
+#!/usr/bin/env bash
+
 (
-  test -n "$scriptpath" ||
-      { util_mode=ext scriptpath=$REDO_BASE . $REDO_BASE/util.sh && lib_load; }
+  init_sh_libs="argv str-htd src package build-htd" \
+  CWD=$REDO_BASE . $REDO_BASE/tools/sh/init.sh &&
 
   scriptname="do:$REDO_PWD:$1"
   cd "$REDO_BASE" &&
-  lib_load build-htd &&
   build_init && build_doc_src_sh_calls_1_gv "$(basename "$1" -lib.calls-1.dot.gv)" >"$REDO_PWD/$3"
 )
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env make.sh
 # Created: 2015-12-14
 
+version=0.0.4-dev # script-mpe
+
 
 ### Sub-commands
 
@@ -50,6 +52,11 @@ gv__usage()
   echo "  $scriptname.sh <cmd> [<args>..]"
 }
 
+gv_grp__version="ctx-main ctx-std"
+gv_als____version=version
+gv_als___V=version
+
+
 gv__help()
 {
   gv__usage
@@ -60,16 +67,20 @@ gv__help()
   echo '  edit                             edit main script'
   echo '  meta                             call backend service with query'
   echo '  info                             query for info'
-  test -z "$1" || std__help "$@"
+  test -z "${1-}" || std__help "$@"
 }
-
+gv_als___h=help
+gv_als____help=help
 
 
 ### Main
 
 MAKE-HERE
 INIT_ENV="init-log 0 0-src 0-u_s dev ucache scriptpath std box" \
-INIT_LIB="os sys std stdio str shell logger-theme log match main graphviz date"
+INIT_LIB="\\$default_lib logger-theme graphviz date"
+
+main-bases
+graphviz gv main std
 
 main-local
 failed= box_prefix=gv
@@ -85,20 +96,28 @@ main-load
     touch -t $tdate $today
   }
 
-  box_lib $script $box_prefix
+  # box_lib $script $box_prefix
 
   # gv_parse_argv "$@" || {
   #   error "parse-argv" $?
   # }
 
   # shift $c
+  test -n "$subcmd_func" || {
+    error "subcmd-func required" $?
+  }
 
-  # test -n "$subcmd_func" || {
-  #   error "subcmd-func required" $?
-  # }
+main-load-flags
+    f ) # failed: set/cleanup failed varname
+        export failed=$(setup_tmpf .failed)
+      ;;
+    l ) sh_include subcommand-libs || return ;;
+    * ) error "No load flag <$x>" 3 ;;
 
-main-unload
-  clean_failed || unload_ret=1 ; unset failed
+main-unload-flags
+    f ) clean_failed || unload_ret=1 ;;
+    l ) ;;
+    * ) error "No unload flag <$x>" 3 ;;
 
 main-epilogue
 # Id: script-mpe/0.0.4-dev topics.sh

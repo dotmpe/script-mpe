@@ -68,7 +68,7 @@ mksid() # STR
 mkvid() # STR
 {
   test $# -eq 1 -a -n "${1-}" || error "mkvid argument expected ($*)" 1
-  local upper=${upper-"-1"}
+  local upper=${upper-"-1"} ; test -n "$upper" || upper=-1
   test 1 -eq $upper && {
     vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
     return
@@ -198,7 +198,7 @@ words_to_lines()
     while test $# -gt 0
     do echo "$1"; shift; done
   } || {
-    tr ' ' '\n'
+    tr -s '\n ' '\n'
   }
 }
 
@@ -209,7 +209,7 @@ lines_to_words()
       do test -e "$1" && cat "$1" || echo "$1"; shift; done
     } | tr '\n' ' '
   } || {
-    tr '\n' ' '
+    tr -s '\n ' ' '
   }
 }
 
@@ -310,7 +310,7 @@ sh_properties()
 }
 
 # A simple string based key-value lookup with some leniency and translation convenience
-property() # PROPSFILE PREFIX SUBST KEYS...
+property () # PROPSFILE PREFIX SUBST KEYS...
 {
   test -n "$1" || error "property expects props: '$*'" 1
   local props="$1" prefix="$2" subst="$3" vid=
@@ -325,7 +325,7 @@ property() # PROPSFILE PREFIX SUBST KEYS...
     do
       local __key= __value=
       test -n "$vid" && __key=${vid}$1 || __key=$1
-      __value="$(eval printf -- \'%s\' \"\$$__key\")"
+      __value="$(eval printf -- \'%s\' \"\${$__key-}\")"
       shift
       test -n "$__value" || continue
       print_var "$__key" "$__value"
@@ -442,7 +442,7 @@ strip_last_nchars() # Num
 # Normalize whitespace (replace newlines, tabs, subseq. spaces)
 normalize_ws()
 {
-  test -n "$1" || set -- '\n\t '
+  test -n "${1-}" || set -- '\n\t '
   tr -s "$1" ' ' | sed 's/\ *$//'
 }
 

@@ -56,7 +56,7 @@ htd__ck_torrent()
   test -s "$1" || error "Not existent torrent arg 1: $1" 1
   test -f "$1" || error "Not a torrent file arg 1: $1" 1
   test -z "$2" -o -d "$2" || error "Missing dir arg" 1
-  htwd=$(pwd)
+  htwd=$PWD
   dir=$2
   test "$dir" != "." && pushd $2 > /dev/null
   test "${dir: -1:1}" = "/" && dir="${dir:0: -1}"
@@ -65,8 +65,8 @@ htd__ck_torrent()
   #echo testing btshowmetainfo
   #btshowmetainfo $1
 
-  node $PREFIX/bin/btinfo.js "$1" > $(setup_tmpd)/htd-ck-torrent.sh
-  . $(setup_tmpd)/htd-ck-torrent.sh
+  node $PREFIX/bin/btinfo.js "$1" > $sys_tmp/htd-ck-torrent.sh
+  . $sys_tmpd/htd-ck-torrent.sh
   echo BTIH:$infoHash
 
   torrent-verify.py "$1" | while read line

@@ -1,5 +1,4 @@
-# Built artefacts etc. Keep during life of checkout, but cleanable once project
-# is to be discarded. But may be tracked?
+# Cleanable at any point in time, (most?) should be cleaned at end of session
 #.test
 #.cllct
 #*.meta

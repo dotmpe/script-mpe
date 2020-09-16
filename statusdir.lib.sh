@@ -11,8 +11,14 @@ statusdir_lib_load()
   fnmatch "*/" "$STATUSDIR_ROOT" || STATUSDIR_ROOT="$STATUSDIR_ROOT/"
   export STATUSDIR_ROOT
 
+  # Re-validate timestamps for status at most every minute
+  true "${STATUSDIR_CHECK_TTL:=60}"
+
+  # Re-validate checksums for status at most every hour
+  true "${STATUSDIR_VALID_TTL:=3600}"
+
   # Consider contents actual for 5 minutes after last update time by default
-  true "${STATUSDIR_EXPIRY_AGE:=3600}"
+  true "${STATUSDIR_EXPIRY_AGE:=300}"
 
   # Delete files 24hr after last access (by default) (ie. expiration age)
   true "${STATUSDIR_CLEAN_AGE:=86400}"
@@ -20,50 +26,26 @@ statusdir_lib_load()
 
 statusdir_lib_init()
 {
-  test "${statusdir_lib_init:-}" = "0" || {
+  test ${statusdir_lib_init:-1} -eq 0 || {
     test -n "$INIT_LOG" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
 
-    trueish "${choice_init-}" && {
-      statusdir_init &&
-      return $?
-    }
-    statusdir_check
+    test -d "${STATUSDIR_ROOT-}" &&
+    statusdir_lib_start || return
   }
 }
 
-statusdir_check()
+# Auto-detect backend, and load global settings. Already run by lib-load.
+statusdir_lib_start() #
 {
-  test -e "${STATUSDIR_ROOT}logs"  || return
-  test -e "${STATUSDIR_ROOT}index" || return
-  test -e "${STATUSDIR_ROOT}tree"  || return
-  test -e "${STATUSDIR_ROOT}cache"  || return
-}
-
-statusdir_init()
-{
-  test -e "${STATUSDIR_ROOT}logs"  || mkdir -p "${STATUSDIR_ROOT}logs"
-  test -e "${STATUSDIR_ROOT}index" || mkdir -p "${STATUSDIR_ROOT}index"
-  test -e "${STATUSDIR_ROOT}tree"  || mkdir -p "${STATUSDIR_ROOT}tree"
-  test -e "${STATUSDIR_ROOT}cache"  || mkdir -p "${STATUSDIR_ROOT}cache"
-}
-
-statusdir_index() # Local-Name [Exists]
-{
-  { not_falseish "${2-}" || test -e "${STATUSDIR_ROOT}index/$1"
-  } || {
-    $LOG error "" "No such index" "${STATUSDIR_ROOT}index/$1"
-    return 2
+  statusdir_settings || return
+  test -n "${sd_be:=""}" || {
+    statusdir_autodetect || return
   }
-  echo "${STATUSDIR_ROOT}index/$1"
 }
 
-# Load backend
-statusdir_lib_start()
+# Auto-detect backend
+statusdir_autodetect () #
 {
-  # Get temporary dir: XXX move to fsdir
-  test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
-  test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
-
   # Detect backend
   test -n "$sd_be" || {
     which redis-cli >/dev/null 2>&1 &&
@@ -72,15 +54,58 @@ statusdir_lib_start()
   }
 
   test -n "$sd_be" || {
-    which membash >/dev/null 2>&1 && sd_be=membash
+    which membash >/dev/null 2>&1 && sd_be=membash_f
   }
 
   # Set default be
   test -n "$sd_be" || sd_be=fsdir
+}
 
-  # Load backend
-  lib_load statusdir-$sd_be
-  test -n "$sd_be_name" && sd_be=$sd_be_name
+# statusdir-start: For simple way to boot for sd backend after lib-load
+statusdir_start () # [sd_be] ~ [Record-Key]
+{
+  local log_key="$scriptname:statusdir-start:${1-}"
+  true "${sd_be:="fsdir"}" &&
+  lib_require statusdir-$sd_be &&
+  lib_init statusdir-$sd_be || return
+  sd_be_h=sd_${sd_be}
+  test $# -eq 0 && return
+  local r=0
+  $sd_be_h load "$@" || r=$? # statusdir_run load "$@"
+  log_key=$log_key\
+      $LOG debug "" "Loaded backend '$sd_be' for" "$*"
+  return $r
+}
+
+statusdir_check ()
+{
+  trueish "${choice_init-}" && {
+    statusdir_run init || return $?
+  } || {
+    statusdir_run check || return $?
+  }
+}
+
+statusdir_lookup_path () #
+{
+  cwd_lookup_path .statusdir .meta/stat
+}
+
+statusdir_lookup () # Record-Type Record-Name
+{
+  local LUP=$(statusdir_lookup_path)
+  lookup_first=${lookup_first:-1} lookup_paths LUP $1/$2
+}
+
+# Defer to backend
+statusdir_run () # [sd_be] ~ [Backend-Cmd] [Backend-Cmd-Args...]
+{
+  local sd_be_h=sd_${sd_be} a="${1-"load"}" ; shift
+  local log_key="$scriptname:statusdir-run:$a"
+
+  log_key=$log_key\
+      $LOG debug "" "Trying backend '$sd_be:$a' handle..." "$*"
+  $sd_be_h $a "$@"
 }
 
 statusdir_assert() # <rtype> <idxname>
@@ -92,17 +117,15 @@ statusdir_assert() # <rtype> <idxname>
 }
 
 # Unload backend
-statusdir_lib_finish()
+statusdir_finish()
 {
-  test -n "$sd_tmp_dir" || error "sd_tmp_dir unload" 1
+  local sd_be_h=sd_${sd_be}
+  #test -n "$sd_tmp_dir" || error "sd_tmp_dir unload" 1
   # XXX: quick check for cruft. Is triggering on empty directories as well..
   #test "$(echo $sd_tmp_dir/*)" = "$sd_tmp_dir/*" \
   #  || warn "Leaving temp files in $sd_tmp_dir: $(echo $sd_tmp_dir/*)"
-}
-
-statusdir_list() #
-{
-  ls -la ${STATUSDIR_ROOT}{logs,index,tree}
+  $sd_be_h unload || r=$? # statusdir_run unload
+  $sd_be_h deinit || r=$? # statusdir_run deinit
 }
 
 # TODO: record status/id descriptor bits
@@ -127,14 +150,38 @@ statusdir_record()
   esac
 }
 
-# XXX: test "$(test -t "statusdir")" != alias || unalias statusdir
+statusdir_cache()
+{
+  sd_base=cache action=contents statusdir_mainnew "$@"
+}
+
+statusdir_cache_file()
+{
+  sd_base=cache action=file statusdir_mainnew"$@"
+}
+
+statusdir_cache_notify()
+{
+  sd_base=cache action=notify statusdir_mainnew "$@"
+}
+
+# Load global settings
+statusdir_settings() #
+{
+  test -e ${STATUSDIR_ROOT}meta.sh || return
+  source ${STATUSDIR_ROOT}meta.sh || return
+}
+
+statusdir_exec ()
+{ true
+}
 
 
 # Execute command or function and cache stdout, or return existing cache.
 # If the command errors, trash the result, keep quiet and return status.
 # See statusdir-index-spec comments on the argument and expiration logic.
 # TODO: combine with fsdir backend
-statusdir() # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>] ] [<Id>] [-- Cmd]
+statusdir_mainnew () # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>] ] [<Id>] [-- Cmd]
 {
   test -n "$sd_log" || return 103
   local age_sec= expire_sec= cache_id= cache_file is=0
@@ -245,17 +292,4 @@ statusdir() # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>] ] [<Id>]
   esac
 }
 
-statusdir_cache()
-{
-  sd_base=cache action=contents statusdir "$@"
-}
-
-statusdir_cache_file()
-{
-  sd_base=cache action=file statusdir "$@"
-}
-
-statusdir_cache_notify()
-{
-  sd_base=cache action=notify statusdir "$@"
-}
+# ID: statusdir.lib.sh

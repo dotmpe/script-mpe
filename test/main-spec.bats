@@ -89,7 +89,6 @@ setup()
 }
 
 #@test "$base: try_func" {
-#@test "$base: try_subcmd" {
 #@test "$base: std-help" {
 
 @test "$base: std-usage" {

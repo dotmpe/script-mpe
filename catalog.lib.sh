@@ -756,11 +756,11 @@ htd_catalog__update() # ~ [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key
 htd_catalog__from_annex() # ~ [Annex-Dir] [Annexed-Paths]
 {
   test -n "$1" || { shift ; set -- "." "$@" ; }
-  local jq_scr="$(pwd)/.cllct/annex-update.jq" r='' cwd="$(pwd)"
+  local jq_scr="$PWD/.cllct/annex-update.jq" r='' cwd="$PWD"
   mkdir -p .cllct ; rm -f "$jq_scr"
   # Change to Annex Dir and get metadata
   cd "$1" || error "Annex dir expected '$1'" 1
-  note "PWD: $(pwd)"
+  note "PWD: $PWD"
   shift
   note "Now building JQ update script <$jq_scr>..."
   annex_list $@ | metadata_keys=1 metadata_exists=1 annex_metadata |

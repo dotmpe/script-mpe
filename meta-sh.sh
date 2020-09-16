@@ -1,9 +1,7 @@
 #!/usr/bin/env make.sh
 # Using meta-sh (on Darwin)
 
-set -e
-
-
+set -eu
 
 version=0.0.4-dev # script-mpe
 
@@ -78,25 +76,13 @@ meta_sh__annex_update_video()
 
 # Generic subcmd's
 
-meta_sh_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-meta_sh_spc__help='-h|help [ID]'
-meta_sh__help()
-{
-  (
-    base=meta_sh \
-      choice_global=1 std__help "$@"
-  )
-}
-meta_sh_als___h=help
-
-
-meta_sh_man_1__version="Version info"
-meta_sh_spc__version="-V|version"
-meta_sh__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
+meta_sh_als____version=version
 meta_sh_als___V=version
+meta_sh_grp__version=ctx-main\ ctx-std
+
+meta_sh_als____help=help
+meta_sh_als___h=help
+meta_sh_grp__help=ctx-main\ ctx-std
 
 
 meta_sh_man_1__edit_main="Edit the main script file"
@@ -112,18 +98,17 @@ meta_sh_als___E=edit-main
 
 # Script main parts
 
-main_env \
+main-init-env \
   INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
-  INIT_LIB="\$default_lib main box meta std stdio logger-theme"
+INIT_LIB="\$default_lib main box meta std stdio logger-theme ctx-std"
 
-main_local \\
-  subcmd_default=info subcmd_func_pref=${base}__
+main-default info
 
-main_init \
+main-init \
   test -z "${BOX_INIT-}" || return 1 \
   test -n "$scriptpath" || return
 
-main_load \
+main-load \
   test -n "${UCONF-}" || UCONF=$HOME/.conf/ \
   test -n "${INO_CONF-}" || INO_CONF=$UCONF/meta_sh \
   test -n "${APP_DIR-}" || APP_DIR=/Applications \

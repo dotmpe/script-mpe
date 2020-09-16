@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
 
-ctx_bookmarks_lib_load()
-{
-  true
-}
-
-ctx_bookmarks_lib_init()
-{
-  true
-}
-
 @Bookmarks.list()
 {
   true
@@ -37,10 +27,10 @@ ctx__Bookmarks__check() # Update status bits
   # Check wether import locations are new, or within due-dates
 }
 
-ctx__Bookmarks__import() # Run importers
+ctx__Bookmarks__import() # ~ Tags... # Run importers
 {
   test -n "${1-}" || return
-  context_load "$@"
+  context_load "$@" || return
   local contex_meta_importers="$(echo " $rest "|sed 's/^.*\ import:\([^\ ]*\)\ .*$/\1/'|tr ',' ' ')"
 
   #lib_load str-htd urlstat

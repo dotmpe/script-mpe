@@ -1,4 +1,5 @@
-# Cleanable at any point in life? Or include in make clean while keeping gitignore-temp
+# Built artefacts etc. Keep during life of checkout, but cleanable once project
+# is to be discarded.
 /.coverage
 /htmlcov
 node_modules/
@@ -6,3 +7,4 @@ coverage_html_report/
 # TODO global cleanables
 .DS_Store
 .vagrant
+TAGS

@@ -2,11 +2,11 @@
 
 ctx_urls_lib_load()
 {
+  lib_require match-htd todotxt todotxt-uc || return
   to_trees_base=$HOME/Downloads
   to_trees_spec=tree-exported-*.tree
-
-  ls -la $to_trees_base/$to_trees_spec
-  to_trees to_read_tree
+  # echo "@URLs $(ls -la $to_trees_base/$to_trees_spec)"
+  # to_trees to_read_tree
 
   to_chrome_ext_id=eggkanocgddhmamlbiijnphhppkpkmkl
 
@@ -15,20 +15,20 @@ ctx_urls_lib_load()
   #tree ~/Library/Application\ Support/Google/Chrome/Default/Extensions/$chrome_ext_instance/1.4.134_0/backup
   #ls -la "/Users/berend/Library//Application Support/Google/Chrome/Default/Extensions/$chrome_ext_instance/1.4.134_0"
 
-  case "$uname" in
-      darwin ) to_leveldb="$HOME/Library/Application Support/Google/Chrome/Default/IndexedDB/chrome-extension_${chrome_ext_id}_0.indexeddb.leveldb" ;;
-      linux ) to_leveldb=$HOME/.config/google-chrome/Default/IndexedDB/chrome-extension_${chrome_ext_id}_0.indexeddb.leveldb ;;
-  esac
+  #case "$uname" in
+  #    darwin ) to_leveldb="$HOME/Library/Application Support/Google/Chrome/Default/IndexedDB/chrome-extension_${chrome_ext_id}_0.indexeddb.leveldb" ;;
+  #    linux ) to_leveldb=$HOME/.config/google-chrome/Default/IndexedDB/chrome-extension_${chrome_ext_id}_0.indexeddb.leveldb ;;
+  #esac
   #run $bin leveldb stream "$to_leveldb"
 }
 
 ctx_urls_lib_init()
 {
-  lib_require match-htd todotxt || return
-  trueish "$global" && {
-    urlstab=$(statusdir.sh root index urlstat.list)
-  } || {
+  test ${ctx_urls_lib_init-1} -eq 0 && return
+  trueish "${global-}" && {
     urlstab=$(statusdir.sh index urlstat.list)
+  } || {
+    urlstab=$(local=1 statusdir.sh index urlstat.list)
   }
 }
 
@@ -45,6 +45,7 @@ ctx_urls_lib_init()
 
 at_URLs__list()
 {
+  test $# -gt 0 || $LOG error "" "Tag names expected"
   todotxt_tagged "$urlstab" "$@"
 }
 

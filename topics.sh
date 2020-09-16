@@ -2,6 +2,7 @@
 
 version=0.0.4-dev # script-mpe
 
+set -eu
 
 # Script subcmd's funcs and vars
 
@@ -36,22 +37,13 @@ topics__read_list()
 
 # Generic subcmd's
 
-topics_man_1__help="Usage help. "
-topics_spc__help="-h|help"
-topics__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
-}
+topics_als____version=version
+topics_als___V=version
+topics_grp__version=ctx-main\ ctx-std
+
+topics_als____help=help
 topics_als___h=help
-
-
-topics_man_1__version="Version info"
-topics__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
-topics_als__V=version
+topics_grp__help=ctx-main\ ctx-std
 
 
 topics__edit()
@@ -70,10 +62,6 @@ INIT_LIB="os sys str log shell match main meta src box date doc table remote std
 
 main-local
 failed=
-
-main-lib
-  local __load_lib=1
-  INIT_LOG=$LOG lib_init || return
 
 main-load
   export TOPIC_DB=postgres://localhost:5432

@@ -34,25 +34,13 @@ tasks__update()
 
 # Generic subcmd's
 
-tasks_man_1__help="Usage help. "
-tasks_spc__help="-h|help"
-tasks__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
-}
-tasks_als___h=help
-tasks_als____help=help
-
-
-tasks_man_1__version="Version info"
-tasks__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
-tasks_als___V=version
 tasks_als____version=version
+tasks_als___V=version
+tasks_grp__version=ctx-main\ ctx-std
 
+tasks_als____help=help
+tasks_als___h=help
+tasks_grp__help=ctx-main\ ctx-std
 
 tasks__edit()
 {
@@ -61,16 +49,13 @@ tasks__edit()
 tasks_als___e=edit
 
 
-# Script main functions
+## Main parts
 
 MAKE-HERE
 INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
 INIT_LIB="os sys main str shell meta box date doc table remote tasks std stdio match log src src-htd"
 main-local
-failed= tasks_session_id
-main-lib
-  local __load_lib=1
-  INIT_LOG=$LOG lib_init || return
+failed= dry_run= tasks_session_id
 main-unload
   clean_failed || unload_ret=1 ; unset failed
 main-epilogue

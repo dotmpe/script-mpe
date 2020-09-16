@@ -35,7 +35,6 @@ test_main()
 
         #test -n "$scriptpath" || \
         #    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-        #    pwd=$(pwd -P) ppwd=$(pwd) spwd=.
 
         #test -n "$verbosity" || verbosity=5
 

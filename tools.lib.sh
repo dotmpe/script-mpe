@@ -53,9 +53,7 @@ tools_list()
 # Check if binary is available for tool
 installed()
 {
-  test -e "$1" || error installed-arg1 1
-  test -n "$2" || error installed-arg2 1
-  test -z "$3" || error "installed-args:$3" 1
+  test $# -eq 2 -a -e "$1" -a -n "$2" || return
 
   # Get one name if any
   local bin="$(jsotk.py -sq -O py path $1 tools/$2/bin)"
@@ -97,9 +95,7 @@ installed()
 
 install_bin()
 {
-  test -e "$1" || error install-bin-arg1 1
-  test -n "$2" || error install-bin-arg2 1
-  test -z "$3" || error "install-bin-args:$3" 1
+  test $# -eq 2 -a -e "$1" -a -n "$2" || return
 
   installed "$@" && return
 
@@ -160,9 +156,7 @@ install_bin()
 
 uninstall_bin()
 {
-  test -e "$1" || error uninstall-bin-arg1 1
-  test -n "$2" || error uninstall-bin-arg2 1
-  test -z "$3" || error uninstall-bin-args 1
+  test $# -eq 2 -a -e "$1" -a -n "$2" || return
 
   installed "$@" || return 0
 

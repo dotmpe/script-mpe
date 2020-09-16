@@ -1,6 +1,6 @@
 #!/usr/bin/env make.sh
 
-set -e
+set -eu
 
 
 
@@ -130,25 +130,9 @@ s/^([\ [:punct:]]+)\ ([0-9]+)\ ([A-Za-z0-9_]+)/\\033[34m\1\ \\033[33m\2\ \\033[3
 
 # Generic subcmd's
 
-script_sh_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-script_sh_spc__help='-h|help [ID]'
-script_sh__help()
-{
-  (
-    base=script_sh \
-      choice_global=1 std__help "$@"
-  )
-}
+script_sh_als____help=help
 script_sh_als___h=help
-
-
-script_sh_man_1__version="Version info"
-script_sh_spc__version="-V|version"
-script_sh__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
-script_sh_als___V=version
+script_sh_grp__help=ctx-main\ ctx-std
 
 
 script_sh_man_1__edit_main="Edit the main script file"
@@ -165,16 +149,12 @@ script_sh_als___E=edit-main
 
 # Script main parts
 
-main_env \
+main_init_env \
     INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
     INIT_LIB="\$default_lib logger-theme main box htd str-htd list ignores std stdio"
   #lib_load htd meta box date doc table disk remote ignores package
 
-main_local \\
-    subcmd_default=main-doc subcmd_func_pref=${base}__
-
-main-lib \
-  INIT_LOG=$LOG lib_init || return
+main-default main-doc
 
 main_load \
           # XXX: cleanup: box_lib script-sh script.sh || error "box-src-lib script-sh" 1 \

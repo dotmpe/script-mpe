@@ -15,7 +15,9 @@ keyring
 #mysql-connector==2.1.7
 mysql-connector==2.2.9
 nltk
+# TODO: nltk.download('wordnet')
 objectpath
+openpyxl
 pbPlist
 pydelicious
 pydot
@@ -39,5 +41,8 @@ zope.component
 zope.interface 
 gspread
 oauth2client
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
 google-cloud-vision
 todotxt-machine

@@ -77,27 +77,13 @@ srv__update_services()
 
 # Generic subcmd's
 
-srv_man_1__help="Usage help. "
-srv_spc__help="-h|help"
-srv__help()
-{
-  test -z "$dry_run" || stderr note " ** DRY-RUN ** " 0
-  (
-    choice_global=1 std__help "$@"
-  )
-}
-#srv_als__h=help
-# FIXME:
-#srv_als__help=help
+srv_als____version=version
+srv_als___V=version
+srv_grp__version=ctx-main\ ctx-std
 
-
-srv_man_1__version="Version info"
-srv__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
-#srv_als___V=version
-#srv_als____version=version
+srv_als____help=help
+srv_als___h=help
+srv_grp__help=ctx-main\ ctx-std
 
 
 srv__edit()
@@ -107,16 +93,16 @@ srv__edit()
 srv_als___e=edit
 
 
+## Main parts
+
 MAKE-HERE
 INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
-INIT_LIB="\\\$default_lib main meta box doc date table remote std stdio"
+INIT_LIB="\\$default_lib main meta box doc date table remote std stdio"
 main-local
-failed=
-main-init
+failed= dry_run=
 main-lib
   local __load_lib=1
   INIT_LOG=$LOG lib_init || return
-main-load
 main-unload
   clean_failed || unload_ret=$?
   unset failed

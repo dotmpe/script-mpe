@@ -1,9 +1,7 @@
 #!/bin/sh
 
-ctx_base_lib_load() #
-{
-  true
-}
+ctx_base_defines=@Base
+#ctx_base_root=@Base
 
 at_Base()
 {
@@ -13,8 +11,8 @@ at_Base()
 htd_ctx__base__current()
 {
   vc_getscm && {
-    spwd=. vc_unversioned || return $?
-    spwd=. vc_modified || return $?
+    vc_unversioned || return $?
+    vc_modified || return $?
   }
   test -d "$package_log" && {
     htd_log_current || return $?
@@ -62,7 +60,7 @@ htd_ctx__base__process()
 
 htd_ctx__base__status()
 {
-  local key=htd:status:$hostname:$(verbosity=0 htd__prefixes name $cwd)
+  local key=htd:status:$hostname:$(verbosity=0 htd__prefixes name $CWD)
   statusdir.sh exists $key 2>/dev/null || warn "No status recorded" 1
   statusdir.sh members $key | while read status_key
   do
@@ -72,11 +70,11 @@ htd_ctx__base__status()
 
 htd_ctx__base__build()
 {
-  rm -f $(setup_tmpd)/htd-out
+  rm -f $sys_tmp/htd-out
   htd__make build 2>1 | capture_and_clear
   echo Mixed output::
   echo
-  cat $(setup_tmpd)/htd-out | sed  's/^/    /'
+  cat $sys_tmp/htd-out | sed  's/^/    /'
 }
 
 htd_ctx__base__clean()
@@ -85,7 +83,7 @@ htd_ctx__base__clean()
   test -d "$1" || error "Dir expected '$?'" 1
   note "Checking $1 for things to cleanup.."
 
-  local pwd=$(pwd -P) ppwd=$(pwd) spwd=. scm= scmdir=
+  local pwd=$(pwd -P) ppwd=$PWD scm= scmdir=
 
   htd_clean_scm "$1"
 
@@ -123,6 +121,12 @@ htd_ctx__base__clean()
   done
 
   htd__clean_empty_dirs
+}
+
+at_Base__id ()
+{
+  test -n "$*" || set -- $(context_env_list tags | grep -v '^@Base$' )
+  func_exists=0 first_only=0 context_cmd_seq status "$@"
 }
 
 #

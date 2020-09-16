@@ -5,7 +5,7 @@
 
 main_lib_load()
 {
-  test -n "${subcmd_default-}" || subcmd_default=default
+  test -n "${subcmd_default-}" || subcmd_default=default-main
 }
 
 main_lib_init()
@@ -58,11 +58,13 @@ echo_help()
 echo_local() # Subcmd [ Property [ Base ] ]
 {
   test -n "${2-}" -o -n "${1-}" || return
-  # XXX: box-*
-  test -n "${box_prefix:-}" || box_prefix=$(upper=0 mkvid $base  && echo $vid)
-  test -n "${3-}" || set -- "${1-}" "${2-}" "$box_prefix"
-  test -z "$1" || set -- " :$1" "$2" "$3"
-  test -z "$2" || set -- "$1" "$2" "$3:"
+  test -n "${3-}" || {
+    # XXX: cleanup box-*
+    test -n "${box_prefix:-}" || box_prefix=$(upper=0 mkvid $base  && echo $vid)
+    set -- "${1-}" "${2-}" "$box_prefix"
+  }
+  test -z "$1" || set -- "__$1" "$2" "$3"
+  test -z "$2" || set -- "$1" "$2" "$3_"
   echo "$3$2$1" | tr '[:blank:][:punct:]' '_'
 }
 
@@ -107,140 +109,145 @@ try_local_func()
   try_func $(echo_local "$@") || return $?
 }
 
-main_local() # Base-Ids Attr-Id [Subs....]
+main_local () # Base-Ids [Attr-Id [Fields....]]
 {
-  local v baseids="$1" attrid="$2" local
-  shift 2
-  test $# -gt 0 && local=__$(echo "$*" | sed 's/ /__/g') || local=
+  test $# -gt 0 -a -n "${1-}" || return
+  local baseids="$1" attrid= local baseid; shift
+  test -z "${1-}" || attrid=_$1; shift
+  test $# -eq 0 && local= || local=$( while test $# -gt 0
+      do printf '__%s' "$1"; shift; done )
   for baseid in $baseids
   do
-    echo ${baseid}_${attrid}$local
-  done
+    echo ${baseid}${attrid}$local
+  done | tr '[:blank:][:punct:]' '_'
 }
 
-main_var() # Base-Ids Var-Name [Default [Local]]
+main_value () # Base-Ids Attr-Id [Default [Fields....]]
 {
-  local v baseids="$1" varid="$2" default="${3-"default"}" local
+  local baseids="$1" attrid="$2" default="${3-"default"}" local v
   test $# -gt 2 && shift 3 || shift 2
-  for local in $( main_local "$baseids" "$varid" "$@" )
+  for local in $( main_local "$baseids" "$attrid" "$@" )
   do
-    v="$(eval "echo \"\${$local-}\"")"
+    v=${!local-} || continue
     test -n "$v" || continue
-    #eval "$varid=\"$v\""
-    printf -v $varid "%s" "$v"
+    echo "$v"
     return
   done
-  printf -v $varid "%s" "$default"
+  test -z "$default" || echo "$default"
+  return 1
+}
+
+# Look for variable <base>[-<attr>]--<field[--field...]>
+main_var () # Var-Name Base-Ids Attr-Id [Default [Local]]
+{
+  local varid=$1 v; shift
+  v="$( main_value "$@" )" && {
+    printf -v $varid "%s" "$v"
+    return
+  }
+  printf -v $varid "%s" "$v"
+  return 1
+}
+
+# TODO: redesign @Dsgn
+try_var()
+{
+  local value=
+  eval "value=\"\$$1\"" >/dev/null 2>/dev/null
+  test -n "$value" || return 1
+  echo $value
+}
+
+# Get echo-local output, and return 1 on empty value. See echo-local spec.
+try_value()
+{
+  local value=
+  test $# -gt 1 && {
+    value="$(eval echo "\"\${$(echo_local "$@")-}\"" || return )"
+  } || {
+    value="$(eval echo \"\${${1-}-}\" || return )"
+  }
+  test -n "$value" || return 1
+  echo "$value"
+}
+
+# Look for function part <base>[-<attr>]--<field[--field...]>
+main_func () # Var-Name Base-Ids Attr-Name [Default [Local...]]
+{
+  local varname="$1" baseids="$2" attrid="$3" default="${4-"default"}" local
+  test $# -gt 3 && shift 4 || shift 3
+  for local in $( main_local "$baseids" "$attrid" "$@" )
+  do
+    test "$(type -t "$local")" = "function" || continue
+    printf -v $varname "%s" "$local"
+    return
+  done
+  printf -v $varname "%s" "$default"
   return 1
 }
 
 # Look for function part to main-*-run
-main_handle() # Base-Ids Handle-Name [Default [Local]]
+main_handle () # Base-Ids Handle-Name [Default [Local...]]
 {
-  local f baseids="$1" hndid="$2" default="${3-"default"}" local
-  test $# -gt 2 && shift 3 || shift 2
-  for local in $( main_local "$baseids" "$hndid" "$@" )
-  do
-    test "$(type -t "$local")" = "function" || continue
-    printf -v $hndid "%s" "$local"
-    return
-  done
-  printf -v $hndid "%s" "$default"
-  return 1
+  main_func "$2" "$@"
 }
 
-main_subcmd_func()
+# Subcmd_func after loading groups and resolving alias
+main_subcmd_func () # Subcmd
 {
-  # Get default subcmd for base
-  test -n "${1-}" || {
-    test -n "${subcmd-}" || {
-      # main_var "$baseids" subcmd default
-      try_local_var subcmd "" default || return 12
-    }
-    set -- "$subcmd"
+  main_subcmd_alias "$1" && { set -- $subcmd; }
+  true "${subcmd_group:="$( main_value "$baseids" "grp" "" "$1" )"}"
+  test -z "$subcmd_group" || {
+    main_subcmd_func_load $subcmd_group || return
+  }
+  main_func "subcmd_func" "$baseids" "" "" "$1"
+}
+
+main_subcmd_alias ()
+{
+  true "${subcmd_alias:="$( main_value "$baseids" "als" "" "$1" )"}"
+  test -z "$subcmd_alias" && return 1
+  $LOG debug "" "Resolved '$1' alias to '$subcmd_alias'"
+  subcmd=$subcmd_alias
+  subcmd_alias=$1
+}
+
+# Recursively load libraries for subcmds
+main_subcmd_func_load () # Groups
+{
+  main_groups_load $@ || {
+    $LOG error "" "Loading groups for '$1'" "$subcmd_group"
+    return 1
   }
 
-  test -n "$1" || error "get-subcmd-func $subcmd" 1
-
-  local subcmd_default= b=
-  # Try script base, but also std namespace for function
-  for b in $base std
+  local group supergroups
+  for group in $@
   do
-
-    # Look for subcmd ($1) in each namespace (or base, "$3").
-    # $2 (property) is empty, iot. select function itself.
-    # Set try_local_func args, see echo_local for sequence.
-    set -- "$1" "" "$b"
-
-    try_local_func "$@" || {
-
-      # Try command alias
-      try_local_var subcmd_alias $1 als $b && {
-        #$LOG warn "main.lib" "aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
-        note "main.lib: aliased '$subcmd' sub-command to '$subcmd_alias'"
-        test -n "$subcmd_alias" || error oops 1
-        subcmd="$(echo "$subcmd_alias" | cut -d ' ' -f 1)"
-        fnmatch "* *" "$subcmd_alias" &&
-            subcmd_args_pre="$(echo "$subcmd_alias" | cut -d ' ' -f 2-)" ||
-            subcmd_args_pre=""
-        test -z "${DEBUG-}" || warn "main.lib: alias prefix: '$subcmd' '$subcmd_args_pre ...'"
-        set -- "$(upper=0 mkvid "$subcmd" && echo $vid)" "" "$b"
-      }
-    }
-
-    load_groups $subcmd
-
-    # Break on first existing function
-    try_local_func "$@" && {
-
-      subcmd_func="$(echo_local "$@")"
-      #test "$base" = "$b" || base=$b
-      return
-    }
+      main_var supergroups "$baseids" "grp" "" "$1" || continue
+      main_subcmd_func_load $( for x in $supergroups; do
+        fnmatch "* $x *" " $lib_loaded " && continue; echo $x; done )
   done
-  return 1
 }
 
-# Set subcmd and see if $func exists
-try_subcmd()
+main_groups_load () # Groups...
 {
-  #test -z "$1" || {
-  #  main_subcmd_args "$@" || {
-  #    error "parsing args" $?
-  #  }
-  #}
-  test -z "$subcmd" && subcmd=$1
-
-  main_subcmd_func "$1" || {
-    e=$?
-    test -z "$subcmd" && {
-      ( try_local_func usage && $func_name ) \
-        || ( try_local_func usage '' std && $func_name )
-      error 'No command given, see "help"' 1
-    } || {
-      test "$e" = "1" -a -z "$func_exists" && {
-        ( try_local_func usage || try_local_func usage '' std ) && {
-          $func_name
-        }
-        error "No such command: $subcmd" 1
-      } || {
-        error "Command $subcmd returned $e" $e
-      }
-    }
-  }
+  local libs="$( for x in $@; do
+      test -e "$scriptpath/commands/$base-$x.lib.sh" &&
+          echo "$base-$x $x" || echo "$x" ; done )"
+  test -z "$libs" && return
+  lib_require $libs
 }
-
 
 # Execute first found subcmd handle
 try_subcmd_prefixes()
 {
   test -n "${subcmd_prefs-}" || return
-  test -n "$*" || set -- "${subcmd_default-help}"
+  test -n "$*" || set -- "${subcmd_default:-"help"}"
   local vid p cmd
   upper=0 mkvid "$1" ; shift ;
   for p in ${subcmd_prefs}
   do
-    func_exists ${p}$vid || continue
+    func_exists "${p}$vid" || continue
     cmd=${p}$vid
     $cmd "$@"
     return $?
@@ -266,7 +273,7 @@ try_context_actions()
   note "Ctxts: $ctxts"
   note "Args: $*"
 
-  test -n "$(eval echo \"\$package_scripts_${action}\$package_scripts_${action}__0\")" && {
+  test -n "$(eval echo \"\$\{package_scripts_${action}-}\$package_scripts_${action}__0\")" && {
     action=$action try_package_action "$@"
     return $?
   }
@@ -279,7 +286,6 @@ try_context_actions()
   done
   return 1
 }
-
 
 # Find shell script location with or without extension.
 # locate-name [ NAME || $scriptname ] [ .sh ]
@@ -311,12 +317,6 @@ parse_subcmd_valid_flags()
       create ) case $flag in i ) return;; esac ;;
   esac
   return 1
-}
-
-main_subcmd_alias() # Target-Var Cmd-Id
-{
-  try_local_var $1_alias $(echo "$2" | tr '-' '_') als \
-    || try_local_var $1_alias $(echo "$2" | tr '-' '_') als std
 }
 
 # Parse some random stuff, define vars for any short/long opt
@@ -374,322 +374,51 @@ parse_box_subcmd_opts()
   c=$(( $OPTIND -1 ))
 }
 
-# FIXME: this is getting a bit long. Split off box flags. Add subcmd opt parsing.
-main_subcmd_args()
-{
-  local sc=0 tc=$c opt=
+# TODO: cleanup
+#    test -z "$subcmd" && {
+#      $LOG error '' 'No command given' 1
+#    } || {
+#      $LOG error '' "No such command: '$scriptname:$subcmd'" 2
+#  test -z "${DEBUG-}" || debug "Base '$base $subcmd' loaded"
+#
+#  test -z "$dry_run" \
+#    && {
+#      test -z "${DEBUG-}" || debug "Executing '$scriptname:$subcmd'"
+#    } || std_info "** starting DRY RUN '$scriptname:$subcmd' **"
+#      error "Command '$scriptname:$subcmd' failed ($?)" 4
 
-  while test $# -gt 0
-  do case "$1" in
-    -|-- ) break ;; # Stop at first std '-' arg or '--' separator
-    FIXME-* )
-
-      # BUG: -ne wont work, -en will. Should always split flags here.
-
-      # Cut to single option '-X'
-      opt="$(expr_substr "$1" 1 2 )"
-      main_subcmd_alias subcmd "$opt" && {
-
-          # Shortopt is a sub-cmd alias
-          subcmd=$subcmd_alias
-          flag="$1"
-          shift 1
-          flags="-$(expr_substr "$flag" 3 ${#flag})"
-          test "$flags" = "-" && {
-            sc=$(( $sc + 1 ))
-            continue
-          } || {
-            set -- "-$(expr_substr "$flag" 3 ${#flag})" "${1+$@}"
-          }
-
-      } || {
-
-          # Shortop is not an sub-cmd alias, pass it on to subcmd
-          true
-      }
-
-      # parse_box_subcmd_opts $* && {
-      #  test $c -gt 0 && {
-      #    sc=$(( $c + $sc )); shift $c ; c=0;
-      #    continue
-      #  }
-      #} || { r=$?
-      #  test $r -eq 1 && continue
-      #  error "unparsable opt? $1 from '$*' returns '$r'"
-      #}
-      ;;
-
-    * )
-      test -z "$subcmd" && {
-
-        subcmd=$1
-
-      } || {
-          break
-
-        # XXX: make more flexible commands by scanning for more command name parts?
-      #  try_exec_func ${base}_init_args_$subcmd $* && {
-
-      #    test $c -gt 0 && {
-      #      sc=$(( $c + $sc )); shift $c ; c=0;
-      #      continue
-      #    }
-
-      #  } || {
-
-      #    # XXX note "subcmd should parse $*"
-      #    break
-      #  }
-      }
-      ;;
-
-    esac
-
-    sc=$(( $sc + 1 ))
-    shift
-
-  done
-
-  c=$tc
-  test $sc -eq 0 || {
-    c=$(( $c + $sc ))
-  }
-}
-
-get_cmd_func_name() # SUBCMD
-{
-  test $# -eq 1 -a -n "${1-}" || error "get_cmd_func_name:1:varname expected" 1
-  local cmd_name="$(eval echo "\$${1}")"
-
-  local cmd_alias=
-  get_cmd_alias $1
-
-  eval ${1}_func=$(echo "${func_pref}${cmd_name}${func_suf}" | tr '-' '_')
-}
-
-get_cmd_alias() # SUBCMD
-{
-  cmd_alias="$(try_value ${func_pref}als$(echo "_${cmd_name}" | tr '-' '_'))"
-  test -z "$cmd_alias" || {
-    $LOG warn "main.lib" "Aliased '$subcmd' sub-command to '$subcmd_alias'" >&2
-    cmd_name=$cmd_alias
-    eval ${1}_alias=$cmd_alias
-  }
-}
-
-# set ${1}_name to cmd-function
-get_cmd_func()
-{
-  local func_pref= func_suf= tag=
-
-  # get extra function name parts
-  for tag in pref suf; do
-    # allow empty setting
-    sh_isset ${1}_func_${tag} && {
-      eval func_${tag}=$(eval echo \$${1}_func_${tag})
-      debug "set func_${tag} for ${1} to $(eval echo \$func_${tag})"
-    }
-  done
-
-  # get cmd_name
-  test -n "$(try_value ${1} )" || eval ${1}=$(eval echo \$${1}_def)
-
-  get_cmd_func_name $1
-
-  test -z "${choice_debug-}" || {
-    eval echo "get_cmd_func @='\$@' "\
-      " ${1}_pref=\$${1}_pref "\
-      " ${1}_suf=\$${1}_suf " \
-      " ${1}_def=\$${1}_def " \
-      " ${1}_alias=\$${1}_alias " \
-      " ${1}=\$${1} "
-  }
-
-  unset func_pref func_suf tag
-}
-
-load_groups() # SUBCMD
-{
-  local grp="$(try_value "${1}" grp ${base})"
-  test ! -n "$grp" || load_group $grp
-}
-
-load_group()
-{
-  local libs="$(for x in "$@"; do
-    test -e $scriptpath/commands/$base-$x.lib.sh && echo $base-$x || echo $x ; done)"
-  lib_require $libs
-  # XXX: no lib_init $libs for htd cmd groups
-}
-
-
-# Run load routine, pass it subcmd args
-main_subcmd_load() #  Box-Prefix [Argv]
-{
-  test -n "$1" ||
-      error "main-subcmd-load Box-Prefix argument expected" 1
-  local box_prefix="$1"; shift
-
-  func_exists ${box_prefix}_subcmd_load || return 0
-  ${box_prefix}_subcmd_load "$@" || return
-  $LOG debug "" "Load $box_prefix OK"
-}
-
-# Run unload routine
-main_subcmd_unload() # Box-Prefix
-{
-  test -n "$1" ||
-      error "main-subcmd-unload Box-Prefix argument expected" 1
-
-  func_exists ${1}_subcmd_unload || return 0
-  ${1}_subcmd_unload || return
-  $LOG debug "" "Unload $1 OK"
-}
-
-main_run_subcmd()
-{
-  local e= c=0 \
-    subcmd= subcmd_alias= subcmd_func= \
-    dry_run= silence= choice_force= \
-    choice_all= choice_local= choice_global=
-
-  box_prefix="$base"
-  # true "${box_prefix:="$(mkvid $base; echo $vid)"}"
-
-  main_subcmd_args "$@" || {
-    error "parsing args" $?
-  }
-  test $c -gt 0 && shift $c ; c=0
-
-  #test -n "${box_lib-}" -o -z "${ENV_SRC-}" || box_lib="$(eval "echo $ENV_SRC")"
-  #box_lib="$(box_list_libs "$0")"
-
-  main_subcmd_func || {
-    $LOG debug '' "No such subcmd-func '$scriptname:$subcmd' <$subcmd_func> ($base)"
-    try_exec_func ${base}_main_usage || std__usage
-    test -z "$subcmd" && {
-      $LOG error '' 'No command given' 1
-    } || {
-      $LOG error '' "No such command: '$scriptname:$subcmd'" 2
-    }
-  }
-  test -z "${subcmd_args_pre-}" || set -- "$subcmd_args_pre" "$@"
-
-  # XXX: main_subcmd_load "$baseids" "$@" || return $?
-  main_subcmd_load $box_prefix "$@" || return $?
-  test -z "${DEBUG-}" || debug "Base '$base $subcmd' loaded"
-
-  test -z "$dry_run" \
-    && {
-      test -z "${DEBUG-}" || debug "Executing '$scriptname:$subcmd'"
-    } || std_info "** starting DRY RUN '$scriptname:$subcmd' **"
-
-  # Execute and exit
-  $subcmd_func "$@" && {
-    prev_subcmd=$subcmd
-    main_subcmd_unload "$box_prefix" && true || {
-      error "Command '$scriptname:$prev_subcmd' failed ($?)" 4
-    }
-
-  } || {
-    e=$?
-    prev_subcmd=$subcmd
-    main_subcmd_unload $box_prefix
-    error "Command '$scriptname:$prev_subcmd' returned $e" 3
-  }
-
-  test -z "$dry_run" \
-    && std_info "'$base-$subcmd' completed normally" 0 \
-    || std_info "'$base-$subcmd' dry-drun completed" 0
-}
-
-main_subcmd_run_init()
-{
-  func_exists ${1}_subcmd_unload || return 0
-  ${1}_subcmd_unload || return
-  $LOG debug "" "Unload $1 OK"
-}
+#dry_run= silence= choice_force= \
+#choice_all= choice_local= choice_global=
 
 main_subcmd_run ()
 {
-  local main=${main-"subcmd"} c r group
-  main_var "${baseids:="$base"}" group "" || true
+  local main=${main-"subcmd"} r group vid
+  : "${baseid:="$(mkvid $base && printf "$vid")"}"
+  : "${baseids:="$baseid main std"}"
 
-  # Pre-load env needed to bootstrap and run subcmd handler
-  main_handle "$baseids" run_init main_${main}_init || true
+  main_handle "$baseids" subcmd_load main_${main}_load || true
+  $subcmd_load "$@" || return
+  test -z "${subcmd_alias-}" || { shift; set -- $subcmd "$@" ; }
+  test ${c:-0} -gt 0 && shift $c ; c=0
 
-  local c= subcmd
-  $run_init "$@" || return
-
-  main_${main}_run_init "$baseids" "$@" || return
-  test $c -gt 0 && shift $c ; c=0
-
-  main_${main}_run_load "$baseids" "$@" || return
-
-  $subcmd_func "$@"
-
-  main_${main}_run_unload "$baseids" "$c"
-
-  echo 1: $make_main
-  echo 2: $baseids
-  echo 3: $group
-  return
-}
-
-# TODO: make main_subcmd_run load contexts?
-#xtestmake_subcmd_init()
-#xtest_subcmd_init()
-#std_subcmd_init()
-
-main_subcmd_init()
-{
-  test -n "${1-}" || set -- $subcmd_default
-  echo main_handle "$baseids" "$1" || return
-  main_local "$baseids" "$1" || return
-  main_handle "$baseids" "$1" || return
-  c=1
-  subcmd="$(eval echo \"\$$1\")"
-#
-#  try_local_func "$subcmd" && {
-#    subcmd_func="$(echo_local "$@")"
-#  } || return
-}
-
-main_subcmd_run_load()
-{
-  echo main_subcmd_run_load $*
-}
-
-main_subcmd_run_unload()
-{
-  echo main_subcmd_run_unload $*
-}
-
-# Take semi-bootstrapped shell and start executable script
-main_run_static () # Base(s) Argv...
-{
-  test -n "${1-}" || return
-
-  test $(test -t "lib_load") = function || {
-    U_S=/srv/project-local/user-scripts
-    . $U_S/src/sh/lib/lib.lib.sh
-    . $U_S/src/sh/lib/lib-util.lib.sh
+  test -n "${subcmd_func-}" || {
+    $LOG info "" "No subcommand '$subcmd' after subcmd-load" "$subcmd_load"
+    $LOG err "" "No such subcommand found '$subcmd'" "$baseids"
+    return 250
   }
-  test $(test -t "lib_load") = function || {
-    . $HOME/bin/str-htd.lib.sh && str_htd_lib_load && str_htd_lib_loaded=$?
-
+  func_exists "${subcmd_func-}" || {
+    $LOG crit "" "No such subcommand defined '$subcmd'" "$baseids"
+    return 249
+  }
+  $LOG note "" "Running '$scriptname:$subcmd'..."
+  $subcmd_func "$@" && r=0 || { r=$?
+    $LOG error "" "Command '$scriptname:$subcmd' failed" "$r"
   }
 
-  local base bases="$1" baseids main= main_run; shift;
-  baseids="$(for base in $bases;
-      do mknameid $base && echo $nameid ; done)"
+  main_handle "$baseids" subcmd_unload main_${main}_unload || true
+  $subcmd_unload
 
-  # Prepare to defer to main-*-run defined by <base>_main
-  main_var "$baseids" main subcmd || true
-  main_run="main_$(echo "$main" | tr '-' '_')_run"
-
-  local scriptname=$(basename "$0")
-  $main_run $*
+  return $r
 }
 
 daemon()
@@ -704,20 +433,10 @@ daemon()
   done
 }
 
-# Return path in statusdir metadata index
-setup_stat()
-{
-  test -n "$1" || set -- .json "$2" "$3"
-  test -n "$2" || set -- "$1" "${subcmd}" "$3"
-  test -n "$3" || set -- "$1" "$2" "${base}"
-  test -n "$1" -a -n "$2" -a -n "$3" || error "empty arg(s)" 1
-  statusdir.sh assert $2$1 $3 || return $?
-}
-
 stat_key()
 {
   test -n "$1" || set -- stat
-  mkvid "$(pwd)"
+  mkvid "$PWD"
   eval $1_key="$hnid:${base}-${subcmd}:$vid"
 }
 
@@ -781,7 +500,7 @@ run_check()
 #          rst2pseudoxml.py --report=4 --halt=4 --exit-status=2 $rst /dev/null;
 #        done
 
-#  local pwd="$(pwd -P)" ppwd="$(pwd)" spwd=. scm= scmdir=
+#  local pwd="$(pwd -P)" ppwd="$PWD" scm= scmdir=
 #  vc_getscm && {
 #    cd "$(dirname "$scmdir")"
 #    vc_clean "$(vc_dir)"

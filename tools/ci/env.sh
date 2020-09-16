@@ -4,11 +4,32 @@
 
 test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 
+# FIXME: generate local static env
+true "${BIN:="$HOME/bin"}"
+test ! -e $BIN/.env.sh || . $BIN/.env.sh
+
+test -n "${U_S-}" ||
+  $LOG "error" "" "Expected U-S env" "" 1
+
+test -d $U_S/.git || {
+  test "${ENV_DEV-}" = "1" && {
+    {
+      test ! -d "$U_S" || rm -rf "$U_S"
+      git clone https://github.com/dotmpe/user-scripts.git $U_S
+    }
+    ( cd $U_S/ && git fetch --all &&
+        git checkout feature/docker-ci &&
+        git pull origin feature/docker-ci )
+  } ||
+      $LOG "error" "" "Expected U-S checkout" "" 1
+}
+
 : "${CWD:="$PWD"}"
+test "${env_strict_-}" = "0" || {
+  . "$CWD/tools/sh/parts/env-strict.sh" && env_strict_=$?; }
 . "$CWD/tools/sh/parts/env-init-log.sh"
-. "$CWD/tools/sh/parts/env-strict.sh"
-. "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
 . "$CWD/tools/sh/parts/debug-exit.sh"
+. "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
 
 ci_env_ts=$($gdate +"%s.%N")
 ci_stages="${ci_stages:-} ci_env"
@@ -28,16 +49,19 @@ sh_env_end_ts=$($gdate +"%s.%N")
 
 test -n "${ci_util_:-}" || {
 
-  . "$ci_tools/util.sh"
+  . "${ci_tools:="$BIN/tools/ci"}/util.sh"
 }
 
 test -n "${IS_BASH:-}" || $INIT_LOG error "Not OK" "Need to know shell dist" "" 1
-lib_load build-htd env-deps web # No-Sync
+
+# XXX: lib_load build-htd env-deps web # No-Sync
 
 $INIT_LOG note "" "CI Env pre-load time: $(echo "$sh_env_ts - $ci_env_ts"|bc) seconds"
 ci_env_end_ts=$($gdate +"%s.%N")
 
 $INIT_LOG note "" "Sh Env load time: $(echo "$ci_env_end_ts - $ci_env_ts"|bc) seconds"
-print_yellow "ci:env" "Starting: $0 '$*'" >&2
+test ${verbosity:-${v:-3}} -lt 4 ||
+  print_yellow "ci:env:${SUITE}" "Starting: $0 ${_ENV-} #$#:'$*'" >&2
+
 # Sync: U-S:
 # Id: Script.mpe/0.0.4-dev tools/ci/env.sh

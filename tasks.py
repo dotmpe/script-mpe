@@ -143,7 +143,7 @@ import re
 import hashlib
 from pprint import pprint, pformat
 
-from script_mpe.lib import Prompt
+from script_mpe.lib import Prompt, type_ref
 from script_mpe import log
 from script_mpe import libcmd_docopt
 from script_mpe import res
@@ -347,7 +347,7 @@ def cmd_list_issues(settings, opts, tasks_file):
                 settings.tasks_file )
     for k in issues:
         v = issues[k]
-        print(k,type(v),v)
+        print("issue %s = (%s) '%s'" % (k, type_ref(v), v.text))
 
 def cmd_new_scan(settings, opts):
     """
@@ -458,7 +458,7 @@ def cmd_parse_list(settings, opts, TASKLIST):#='to/do.list'):
 
     prsr = res.TaskListParser()
     print(prsr.parse(TASKLIST))
-    print(prsr)
+    #print(prsr)
 
 
 ### Transform cmd_ function names to nested dict

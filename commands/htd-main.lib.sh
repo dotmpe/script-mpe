@@ -34,18 +34,10 @@ htd_ofq__output_formats='htd_output_formats_q'
 htd__output_formats()
 {
   test -n "$1" || set -- table-reformat
+  local alias output_formats
   # First resolve real command name if given an alias
-  als="$(try_value "$1" als htd )"
-  test -z "$als" || { shift; set -- "$als" "$@" ; }
-  {
-    upper= mkvid "$*"
-    # XXX: Retrieve and test for output-formats and quality factor
-    #try_func $(echo_local "$vid" "" htd) &&
-
-      # Print output format attribute value for field $*
-      output_formats="$(try_value "$vid" of htd )" &&
-        test -n "$output_formats"
-  } && {
+  main_var alias htd als "" "$1" && { shift; set -- $alias "$@"; }
+  main_var output_formats htd of "" "$@" && {
     echo $output_formats | tr ' ' '\n'
   } || {
     stderr error "No sub-command or output formats for '$*'" 1

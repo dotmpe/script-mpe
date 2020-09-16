@@ -67,10 +67,10 @@ newer_than() # FILE SECONDS
 # older-than FILE SECONDS, filemtime must be less-than Now - SECONDS
 older_than()
 {
-  test -n "$1" || error "older-than expected path" 1
+  test -n "${1-}" || error "older-than expected path" 1
   test -e "$1" || error "older-than expected existing path" 1
   test -n "$2" || error "older-than expected delta seconds argument" 1
-  test -z "$3" || error "older-than surplus arguments" 1
+  test -z "${3-}" || error "older-than surplus arguments" 1
   fnmatch "@*" "$2" || set -- "$1" "-$2"
   test $(date_epochsec "$2") -gt $(filemtime "$1")
   #test $(( $(date +%s) - $2 )) -gt $(filemtime "$1")
@@ -259,12 +259,15 @@ date_fmt_darwin() # TAGS DTFMT
 }
 
 # Allow some abbrev. from BSD/Darwin date util with GNU date
-bsd_gsed_pre(){
+bsd_date_tag ()
+{
   $gsed \
      -e 's/[0-9][0-9]*s\b/&ec/g' \
-     -e 's/[0-9][0-9]*m\b/&in/g' \
+     -e 's/[0-9][0-9]*M\b/&in/g' \
+     -e 's/[0-9][0-9]*[Hh]\b/&our/g' \
      -e 's/[0-9][0-9]*d\b/&ay/g' \
      -e 's/[0-9][0-9]*w\b/&eek/g' \
+     -e 's/[0-9][0-9]*m\b/&onth/g' \
      -e 's/[0-9][0-9]*y\b/&ear/g' \
      -e 's/\<7d\>/1week/g'
 }
@@ -329,13 +332,15 @@ sec_nomicro()
 # Output date at required resolution
 date_autores() # Date-Time-Str
 {
-  fnmatch "[0-9][0-9][0-9][0-9][0-9][0-9][0-9]*[0-9]" "$1" || {
-    # Convert date-str to timestamp
-    set -- "$( $gdate -d "$1" "+%s" )"
-  }
+  #fnmatch "[0-9][0-9][0-9][0-9][0-9][0-9][0-9]*[0-9]" "$1" || {
+  #  # Convert date-str to timestamp
+  #  set -- "$( $gdate -d "$1" "+%s" )"
+  #}
 
-  dt_iso="$(date_iso "$1" minutes)"
-  echo "$dt_iso" | sed \
+  # ${dateres:="minutes")
+  #dt_iso="$(date_iso "$1" minutes)"
+  #echo "$dt_iso" | sed \
+  echo "$1" | sed \
       -e 's/T00:00:00//' \
       -e 's/T00:00//' \
       -e 's/:00$//'
@@ -354,15 +359,15 @@ date_parse()
 }
 
 # Make ISO-8601 for given date or ts and remove all non-numeric chars except '-'
-date_id() {
-  test "$1" = "-" && echo "$1" || {
-      date_autores "$1" | tr -d ':-' | tr 'T' '-'
-  }
+date_id ()
+{
+  s= p= act=date_autores foreach_${foreach-"do"} "$@" | tr -d ':-' | tr 'T' '-'
 }
 
-# Parse compressed datetime ID format (Y-M-DTH:M:s)  to ISO datetime
-date_idp() {
-  echo "$1" | $gsed -E \
+# Parse compressed datetime spec (Y-M-DTHMs.ms+TZ) to ISO format
+date_idp ()
+{
+  foreach "$@" | $gsed -E \
       -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})([0-9]{2})/\1-\2-\3T\4:\5:\6/' \
       -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})/\1-\2-\3T\4:\5/' \
       -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})/\1-\2-\3T\4/' \

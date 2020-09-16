@@ -1,5 +1,7 @@
 Docstat
 =======
+:Created: 2018-11-11
+
 Track document ID and status records.
 
 Design
@@ -8,18 +10,18 @@ Statusfile for documents. Each entry records descriptor attributes and simple
 document outline in semi-TODO.txt line format.
 
 Document Ids generated from basename, so basenames need to be unique per
-project. See htd components.
+project. See also htd components.
+However ids are prefixed (see htd prefixes). So Ids need only to be unique per
+project or working dir. [PREFNAME]_
 
-Ids are prefixed, see htd prefixes. So Ids need only to be unique per project
-or working dir. [PREFNAME]_
-
+Format
+______
 To be as flexible as possibly with allowed characters, the line has two
 markers used for parsing. Allowing to split the line into three variable length
 parts:
 
 - The first is ``[^_A-Za-z]``, ie. the first part can be all numbers, any of
-  some helper chars. Only exception it can't have a variable/Id character.
-  [descriptor]_
+  some helper chars. [descriptor]_
 
 - The first context ``[@+]``\ ... marks the end of the document title/label/short descr.
   And also the primary context.

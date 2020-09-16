@@ -2,8 +2,7 @@
 
 htd_project_stats_lib_load()
 {
-  lib_assert date project-stats build-htd
-  # XXX: statusdir_init && package_lib_init && build_init && project_stats_init
+  lib_assert project-stats build-htd
 }
 
 htd_project_stats_stat()
@@ -25,6 +24,5 @@ htd_project_stats_list()
 
 htd_project_stats_build()
 {
-  project_stats_lib_size_lines &&
-    htd_project_stats_stat
+  project_stats_lib_size_lines && htd_project_stats_stat
 }

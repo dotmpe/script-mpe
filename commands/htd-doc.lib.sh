@@ -1,24 +1,76 @@
 #!/bin/sh
 
+htd_man_1__doc='Wrapper for documents modules (doc.lib and htd-doc.lib)
 
-# See also docstat-list XXX: see also doc-find, list from SCM etc.
-htd_doc_list()
+  list [Docstat-Glob] - run
+  count [Docstat-Glob] - run
+  new [Title|Descr|Tags...]
+
+See also docstat.lib
+'
+htd_flags__doc=fpql
+htd_libs__doc=doc\ htd-doc\ context\ ctx-base\ files
+htd__doc()
 {
-  doc_list_local
+  test $# -eq 1 -o -n "${1-}" || set -- main-files
+  subcmd_prefs=${base}_doc_\ doc_ try_subcmd_prefixes "$@"
 }
 
-# Get log env, test for and copy from package-log-dir
-req_logdir_env()
+htd_man_1__count="Look for doc and count. "
+htd_spc__count="count"
+htd__count()
 {
-  test -n "$log" || {
-    test -n "$package_name" || {
-        package_lib_set_local .
-        . "$PACKMETA_SH"
-        note "Package: $package_name #$package_id v$package_version"
-    }
-    log="$package_log_dir"
-  }
-  test -n "$log" -a -d "$log" || error "package log env expected ($log)" 1
+  test $# -eq 1 -a -n "${1-}" || set -- "" # return
+  doc_path_args
+
+  stderr info "Counting files with matching name '$1' ($paths)"
+  doc_find_name "$1" | wc -l
+
+  stderr info "Counting matched content '$1' ($paths)"
+  doc_grep_content "$1" | wc -l
+}
+htd_grp__count=doc\ htd-list
+htd_libs__count=list\ ignores\ package
+htd_flags__count=lq
+
+
+htd_man_1__find_doc="Look for document.
+
+TODO: get one document
+"
+htd_spc__find_doc="-F|find-doc (<path>|<localname> [<project>])"
+htd__find_doc()
+{
+  doc_find "$@"
+}
+htd_als___F=find-doc
+htd_flags__find_doc=lx
+htd_libs__find_doc=doc
+
+
+htd_man_1__find_docs='Find documents
+
+TODO: find doc-files, given local package metadata, rootdirs, and file-extensions
+XXX: see doc-find-name
+XXX: replace pwd basename strip with prefix compat routine
+'
+htd_spc__find_docs='find-docs [] [] [PROJECT]'
+htd__find_docs()
+{
+  doc_find_all "$@"
+}
+htd_flags__find_docs=pqlx
+htd_libs__find_docs=doc
+
+# See also docstat-list XXX: see also doc-find, list from SCM etc.
+htd_doc_list ()
+{
+  doc_list_local "$@"
+}
+
+htd_doc_count ()
+{
+  doc_list_local | count_lines
 }
 
 # Frontend for -htd-doc-query-or-create-or-edit, see htd-doc-new for info.
@@ -53,8 +105,8 @@ htd_doc_new() # Title-Descr...
 # this wraps htd-doc-file and doc-title-id for Title-Descr to doc-id.
 _htd_doc_query_or_create_or_edit() # [query=] [create=] [edit=] ~ [Title-Descr...]
 {
-  test -n "$title_fmt" || title_fmt="$package_log_doctitle_fmt"
-  test -z "$1" && {
+  test -n "${title_fmt-}" || title_fmt="$package_log_doctitle_fmt"
+  test -z "${1-}" && {
 
     # No filename for archive-path, build unique title/docid from calendar day
     test -n "$now" &&
@@ -88,8 +140,6 @@ htd_doc_file() # [date=now] [query=] [edit=] [create=] ~ [Title-Descr..]
 {
   test -n "$1" || error "Name-Id required" 1
   test -n "$htd_doc_init_fields" || htd_doc_init_fields="title created"
-
-  lib_load context ctx-base ctx-std
 
   #upper=0 mkvid "$package_permalog_method" ; method=$vid
   # doc_${method}_new "$@"
@@ -146,11 +196,11 @@ htd_doc_file() # [date=now] [query=] [edit=] [create=] ~ [Title-Descr..]
 }
 
 # Start EDITOR, after succesful exit cleanup generated files
-htd_edit_and_update()
+htd_edit_and_update() # [evoke_f] [cksums] ~ FILES...
 {
-  test -e "$1" || error htd-edit-and-update-file 1
+  test -e "${1-}" || error htd-edit-and-update-file 1
 
-  eval $EDITOR $evoke "$@" || return $?
+  eval $EDITOR $evoke_f "$@" || return $?
 
   htd_doc_cleanup_generated "$@"
 }
@@ -173,11 +223,97 @@ htd_doc_check()
   PREFNAME=
   doc_list_local | while read -r doc
     do
-        ext="$(filenameext "$doc")"
-        docstat_check "$doc"
+        # ext="$(filenamext "$doc")"
+        docstat_assert_entry "$doc"
     done
 }
 
+# Generate or update document file, and keep checksum for generated files.
+# XXX: this is getting a bit longish, should split up specific rst-doc fields
+# and allow them to be overriden.
+htd_rst_doc_create_update () # OUTFILE TITLE [PARTS... | "title"]
+{
+  test $# -gt 1 -a -n "${1-}" || error "htd-rst-doc-create-update" 12
+  local outf="$1" title="$2" ; shift 2
+  true "${new:="$( test -s "$outf" && printf 0 || printf 1 )"}"
+  test -z "$title" -o $# -gt 0 || set -- title
+
+  # XXX: fix title echo $outf $title $* >&2
+  while test $# -gt 0 ; do case "$1" in
+
+      # Title always starts file, but only if required.
+      title ) test $new -eq 0 && {
+              # TODO: update title
+              true
+              # test "$(head -n 1 "$outf"|tr -d '\n')" = "$title" ||
+
+            } || {
+
+              # Use the basedir for the file-entry path to generate title
+              test -n "$title" ||
+                  title="$(basename "$(dirname "$(realpath "$outf")")")"
+              echo "$title" >"$outf"
+              echo "$title" | tr -C '\n' '=' >>"$outf"
+            } ;;
+
+      # Other arguments indicate lines to add to newly generated file
+      created )  test $new -eq 1 &&
+            echo ":created: $(date +%Y-%m-%d)" >>"$outf" || true ;;
+
+      updated ) test $new -eq 1 && {
+            echo ":updated: $(date +%Y-%m-%d)" >>"$outf"
+          } || {
+            updated=":\1pdated: $(date +%Y-%m-%d)"
+            grep -qi '^\:[Uu]pdated\:.*$' $outf && {
+              sed -i.bak 's/^\:\([Uu]\)pdated\:.*$/'"$updated"'/g' "$outf"
+              rm "$outf.bak"
+            } || warn "Cannot update 'updated' field <$outf>"
+          }
+        ;;
+
+      # TODO: Read custom default include-mode per package, set to absolute
+      # global file or local name to look for. #ZrFk88Dd
+      include ) test $new -eq 1 && {
+            local relp="$($grealpath --relative-to=$(dirname "$outf") $rstinc)"
+            {
+              echo ; echo ; echo ".. insert:" ; echo ".. include:: $relp"
+            } >> $outf
+          }
+        ;;
+
+      default-rst ) test $new -eq 1 && {
+            test -n "${package_sh_rst_default_include-}" ||
+                package_sh_rst_default_include=.default.rst # FIXME: package pd-meta defaults elsewhere
+
+            # Use local package to set document include mode #H-ZHgcmF
+            test -e "$package_sh_rst_default_include" && {
+              local rstinc="$package_sh_rst_default_include"
+
+              #fnmatch "/*" "$rstinc" &&
+              #    rstinc=$($grealpath --relative-to=)
+
+              #fnmatch "/*" "$outf" &&
+              #  # FIXME: get common basepath and build rel if abs given
+              #  includedir="$(pwd -P)" ||
+              #  includedir="$(dirname $outf | sed 's/[^/]*/../g')"
+
+              local relp="$($grealpath --relative-to=$(dirname "$outf") $rstinc)"
+              {
+                echo ; echo ; echo ".. insert:" ; echo ".. include:: $relp"
+              } >> $outf
+            }
+
+            printf -- ".. footer::\n\n" >> $outf
+          } || true
+        ;;
+
+      link-stats )
+        ;;
+
+      * ) $LOG error "" "No such rst part '$1'"; return 1 ;;
+
+  esac ; shift ; done
+}
 
 htd_man_1__tpaths='List topic paths (nested dl terms) in document paths.
 
@@ -200,3 +336,19 @@ htd__tpaths()
   act=du_dl_term_paths foreach_do "$@"
 }
 htd_vars__tpaths="path rel_leaf root xml"
+
+htd_load__tpath_raw="xsl"
+htd__tpath_raw()
+{
+  test $# -gt 0 -a -n "$1" || error "document expected" 1
+  test -e "$1" || error "no such document '$1'" 1
+
+  test $# -gt 1 || {
+    du_dl_term_paths_raw "$1"
+    return $?
+  }
+
+  act=du_dl_term_paths_raw foreach_do "$@"
+}
+
+#

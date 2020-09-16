@@ -148,7 +148,7 @@ htd__build_todo_list()
   test -n "$2" || {
     test -s .app-id \
         && set -- "$1" "$(cat .app-id)" \
-        || set -- "$2" "$(basename "$(pwd)")"
+        || set -- "$2" "$(basename "$PWD")"
   }
 
   { for tag in FIXME TODO NOTE XXX # tasks:no-check
@@ -160,8 +160,8 @@ htd__build_todo_list()
       do
         tid="$(echo $line | sed -n 's/.*'$tag':\([a-z0-9\.\+_-]*\):.*/\1/p')"
         test -z "$tid" \
-            && echo "$(pwd);$2#$tag;$line" \
-            || echo "$(pwd);$2#$tag:$tid;$line";
+            && echo "$PWD;$2#$tag;$line" \
+            || echo "$PWD;$2#$tag:$tid;$line";
 
       done
   done; } | todo-meta.py import -

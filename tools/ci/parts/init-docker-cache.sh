@@ -5,21 +5,19 @@ ci_announce 'Initializing for build-stats and statusdir-cache'
 
 ci_announce "Logging into docker hub $DOCKER_USERNAME"
 # NOTE: use stdin to prevent user re-prompt; but cancel build on failure
-echo "$DOCKER_HUB_PASSWD" | \
+echo "$DOCKER_PASSWORD" | \
   ${dckr_pref}docker login --username $DOCKER_USERNAME --password-stdin
 
-mkdir -p ~/.statusdir/{logs,tree,index}
+mkdir -p ~/.statusdir/{log,tree,index}
 
 sh_include env-docker-cache
 
 # FIXME: U-S update later is too late for init-docker-cache
 ( cd $U_S && git pull origin feature/docker-ci )
-SCRIPTPATH=$SCRIPTPATH:$CWD/commands
-u_s_dckr_lib_loaded= lib_load u_s-ledge
-u_s_dckr_lib_loaded= lib_load u_s-dckr
+# SCRIPTPATH=$SCRIPTPATH:$CWD/commands
+lib_reload u_s-dckr u_s-ledge
 
 ci_announce "Looking for image at hub..."
-
 ledge_exists && {
 
   ci_announce "Found image, extracting build log."
@@ -52,5 +50,8 @@ ci_announce 'New builds log:'
 tail -n 1 "$builds_log"
 wc -l "$builds_log" || true
 
-ledge_pushlogs
+test ${announce:-0} -eq 0 || {
+
+  ledge_pushlogs
+}
 # Sync: U-S:

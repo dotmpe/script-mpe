@@ -5,13 +5,6 @@ version=0.0.4-dev # script-mpe
 
 main_xtest_default=version
 
-xtest__version()
-{
-  echo $version
-}
-x_test___V() { x_test__version; }
-x_test____version() { x_test__version; }
-
 
 x_test__test()
 {
@@ -21,7 +14,8 @@ x_test__test()
 
 ## Main parts
 
-main-bases x-test-make X-Test @Std
-main-env INIT_ENV="0-std"
+main-bases X-Test-Make X-Test Main Std
+main-init-env INIT_ENV="0-std" \
+INIT_LIB="\$default_lib ctx-std ctx-main"
 main-epilogue \
 # Id: script-mpe/0.0.4-dev x-test-make.sh ex:ft=bash:

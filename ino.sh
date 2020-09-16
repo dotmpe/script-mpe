@@ -4,20 +4,8 @@
 
 version=0.0.1 # script-mpe
 
+set -euo pipefail
 
-
-ino_als___V=version
-ino_man_1__version="Version info"
-ino_spc__version="-V|version"
-ino__version()
-{
-  # Script-version
-  echo "$(cat $PREFIX/bin/.app-id)/$version"
-  # Arduino version
-  app_version=$( basename $(readlink $APP_DIR/Arduino.app) | \
-    sed 's/.*Arduino-\([0-9\.]*\).app/\1/' )
-  echo "Arduino/$app_version"
-}
 
 node_tab=ino.tab
 
@@ -197,7 +185,7 @@ ino__read_fuses() # [chip=m328p [method=usbasp]]
 
 ino__esptool_install()
 {
-  pwd=$(pwd)
+  pwd=$PWD
   test -x esptool.py || {
     cd ~/project
     test -d esptool || git clone https://github.com/themadinventor/esptool.git
@@ -223,27 +211,40 @@ ino__esp_mcu_init()
     $1
 }
 
+ino_als____version=version
+ino_als___V=version
+ino_man_1__version="Version info"
+ino_spc__version="-V|version"
+ino__version()
+{
+  # Script-version
+  std__version
+  # Arduino version
+  app_version=$( basename $(readlink $APP_DIR/Arduino.app) | \
+    sed 's/.*Arduino-\([0-9\.]*\).app/\1/' )
+  echo "Arduino/$app_version"
+}
+
+ino_grp__version=ctx-main\ ctx-std
+
+ino_als____help=help
+ino_als___h=help
+ino_grp__help=ctx-main\ ctx-std
 
 
 ### Main
 
 MAKE-HERE
+main-bases
+    ino main std
+
 main-init
-  set -euo pipefail
   test -z "${BOX_INIT-}" || return 1
   test -n "$scriptpath" || return
-  CWD="$scriptpath"
-  INIT_LOG=$LOG
-  . $CWD/load.bash &&
-  . ${U_S:=/srv/project-local/user-scripts}/load.bash &&
-  . ${UCONF:=/srv/home-local/.conf}/load.bash &&
-  . ${HT:=/srv/home-local/htdocs}/load.bash &&
-  . $scriptpath/tools/sh/init.sh || return
 
 main-lib
   set -- main src htd std os-htd ctx-ino
-  lib_load "$@" &&
-      INIT_LOG=$LOG lib_init
+  lib_load "$@" && INIT_LOG=$LOG lib_init "$@"
 
 main-load
   test -n "${UCONF-}" || UCONF=$HOME/.conf/

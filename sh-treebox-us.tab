@@ -85,7 +85,7 @@ ENV_NAME=testing              . ./sh-treebox-ci
 #
 #  htd status
 #  htd rules
-#  htd run-rules ~/.conf/rules/boreas.tab
+#  htd run-rules ~/.conf/user/rules/boreas.tab
 #
 #  #  test sh -nt build.lib.sh
 #  #exec_watch_poll testme echo "\$foo" -- touch build.lib.sh

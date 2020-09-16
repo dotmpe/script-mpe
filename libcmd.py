@@ -638,6 +638,7 @@ class SimpleCommand(object):
         If set but path is non-existant, call self.INIT_RC if exists.
         """
         if self.INIT_RC and hasattr(self, self.INIT_RC):
+            log.note("Using config %r", self.INIT_RC)
             self.default_rc = getattr(self, self.INIT_RC)(prog, opts)
         else:
             self.default_rc = dict()
@@ -652,6 +653,7 @@ class SimpleCommand(object):
 
             prog.config_file = self.find_config_file(opts.config_file)
             self.load_config_( prog.config_file, opts )
+            log.info("Loaded config %r", prog.config_file)
             yield dict(settings=self.settings)
 
     def find_config_file(self, rc):

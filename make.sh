@@ -20,20 +20,21 @@ test ${main_make_lib_load-1} -eq 0 || {
   main_make_lib_load=$?
 }
 
-make_main()
+# Parse source script
+make_main ()
 {
-  local make_script make_scriptname make_scriptpath
+  local make_script make_scriptname make_scriptpath \
+      main_aliases
   make_script=$1
   make_scriptname=$(basename "$1" .sh)
   make_scriptpath=$(dirname "$1")
   #local vid; mkvid $make_scriptname; local base=$vid
   local $make_main_parts
 
-
   grep -q '^MAKE-HERE$' "$1" && {
-    make_here "$@" || exit
+    make_here "$@" || exit $?
   } || {
-    make_preproc "$@"
+    make_preproc "$@" || exit $?
   }
 
   shift
@@ -41,5 +42,7 @@ make_main()
   main_entry "$@"
 }
 
+# Start by parsing source script, then call main_make to define real shell
+# script.
 make_main "$@"
 # Id: script-mpe/0.0.4-dev make.sh

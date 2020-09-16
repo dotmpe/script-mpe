@@ -9,8 +9,6 @@
 # See <todo-at-Dsgn.list> for test tracking current specs
 # Other experimental generated in <todo-res>
 
-2017-04-03 TODO: deprecate move functionality to db_sa.py based store +Script.mpe uid:h2U_MT git:b7fc8a7f src_name:tag.py ~berend+dev.mpe
-# no dbm compatibility layer here. Removed ``tag.py``, started ``db.py`` [h2U_MT]
 2017-04-08 TODO: create item list from index, and vice versa uid:FEGl time:17:43Z <topic.py>
 # Moving tag list to topic list, and using Taxus backed ``tags.py`` iso old ``tag.py ~/.tags-script.db`` [h2U_MT] [17:43Z]
 (D) 2012-04-29 SCRIPT-MPE-3: reinvent rsr using script libs scr_name:Resourcer.rst +Script.mpe
@@ -44,11 +42,10 @@ x 2017-03-26 (D) @Dev 2017-03-25 +Script.mpe ``htd jrnl-times to-cal`` entered a
 2017-04-05 amanda, invidia, esop +Script.mpe
 2017-04-05 htd open/close? up/down? Rules. @refine +Script.mpe
 2017-04-05 pd enable unpack tgz @Dev +Script.mpe
-2017-04-05 diskdoc for Darwin +Script.mpe
 @Dev htd.sh interact with tmux.py open/close default or pre-defined sessions per project @tmux +node-sitefile
 +Esop - test runner
 2018-01-28  Also have a look at apiblueprint.org and perhaps variants
-#include::HOME:bin:todo-res.outline: +Script.mpe
+#include $HOME/bin/todo-res.outline +Script.mpe
 2018-10-01 SCRIPT-MPE-7: read, write, txt-line literal formats
 
 2018-10-22 FIXME: <test/env-pollution.sh>
@@ -60,10 +57,6 @@ x 2017-03-26 (D) @Dev 2017-03-25 +Script.mpe ``htd jrnl-times to-cal`` entered a
 
 2018-11-22 Boost Lib can do looped pre-proc +Script.mpe
 
-TODO: fix vc so it does blame for GIT submodule paths +Script.mpe
-
-gistify flow; add files, receive GIST id, record (mini) project. +Script.mpe
-
 have a gander at CSP +Script.mpe
 http://github.com/BlueFlo0d/CSP/wiki/Implementation-details
 <https://stackoverflow.com/questions/14401377/y-combinator-and-the-c-preprocessor>
@@ -71,7 +64,10 @@ http://github.com/BlueFlo0d/CSP/wiki/Implementation-details
 
 2019-01-03 TODO: merge ``sh*{tab,list}`` suites, but only once `sh-spec` generates more combinations @Dsgn @Build
 
-#include::HT:todo-mpe-7.txt: +Script.mpe
+2019-01-22 TODO: fix vc so it does blame for GIT submodule paths +Script.mpe
+2019-01-22 Gistify flow: add files, receive GIST id, record (mini) project. +Script.mpe
+
+#include HT:todo-mpe-7.txt +Script.mpe
 
 2020-03-07 Log build results uid:Jn7E results-log see also builds-log <build.rst#logging>
 

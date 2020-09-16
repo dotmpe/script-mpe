@@ -4,7 +4,7 @@
 
 
 # Initialize Project Build Scripts shell modules
-build_htd_lib_load()
+build_htd_lib_load ()
 {
   # XXX cleanup lib_load std stdio build-checks
 
@@ -13,6 +13,7 @@ build_htd_lib_load()
   test -n "${cllct_test_base-}" || cllct_test_base=.cllct/testruns
   test -n "${docbase-}" || docbase="doc/src/sh"
   test -n "${ggrep-}" || ggrep=grep
+  test -n "${gsed-}" || gsed=sed
 }
 
 #  lib_assert \
@@ -29,10 +30,10 @@ build_init()
   test -n "${src_stat-}" || src_stat="$PWD/$cllct_src_base"
 
   test -n "${sh_list-}" || sh_list="$src_stat/sh-files.list"
-  test -n "${sh_file_exts-}" || sh_file_exts="sh bash do"
-  test -n "${sh_shebang_re-}" || sh_shebang_re='^\#\!\/bin\/.*sh\>'
 
   test -n "${TAP_COLORIZE-}" || TAP_COLORIZE="$PWD/script-bats.sh colorize"
+
+  # DEBUG=${REDO_DEBUG-${DEBUG-0}}
 
   test -n "${project_scm_add_checks-}" ||
       project_scm_add_checks=project_scm_add_checks
@@ -87,7 +88,7 @@ build_srcfiles()
 {
   test -n "${1-}" || return 1
   test -n "${package_paths-}" || package_paths=vc_tracked
-  spwd=. $package_paths "$@"
+  $package_paths "$@"
 }
 
 # XXX: redo-ifchanged .cllct/specsets/$1.
@@ -116,7 +117,7 @@ expand_spec_ignores()
 
 build_modified()
 {
-  spwd=. vc_modified "$@"
+  vc_modified "$@"
 }
 
 # NOTE: direct build spec-set to listfile; not used except for dev,
@@ -209,31 +210,6 @@ list_builds()
           error "Last test $last_build_id failed $failed tests (passed $passed of $total)"
       }
   }
-}
-
-# List any /bin/*sh or non-empty .sh/.bash file, from everything checked into SCM
-list_sh_files()
-{
-  test -n "${build_init-}" || build_init
-  vc_tracked | while read -r path ; do
-
-# Cant do anything with empty file or dirs
-    test -s "$path" -a ! -d "$path" || continue
-
-# Scan name extension first
-    fnmatch "*.*" "$(basename "$path")" && {
-        for ext in $sh_file_exts
-        do
-            # XXX: some extensions ie .do accept other script-formats
-            case "$path" in *.$ext ) echo "$path" ; break ;; esac
-        done
-        continue
-    }
-
-# Or grep for sha-bang pattern
-    $ggrep -qm 1 $sh_shebang_re "$path" || continue
-    echo "$path"
-  done
 }
 
 # build-redo-static builds prereq but skips rebuild to speed up during dev.
@@ -339,17 +315,11 @@ build_components_id_path_map()
 # See <src-stat>/functions/<docid>/<func-name>.func-deps
 build_lib_func_deps_list()
 {
-  {
-    copy_function "$1" "$2" >/dev/null || {
-      error "sourcing $caller from '$lib'"
-      return 1
-    }
-
-    copy_function "$1" "$2" | list_sh_calls - || {
-      error "parsing callees from $caller '$lib'"
-      return 2
-    }
-  } | remove_dupes
+  { copy_function "$1" "$2" | list_sh_calls - | remove_dupes
+  } || {
+    error "parsing callees from $2 '$1'"
+    return 2
+  }
 }
 
 # Build function list for lib
@@ -363,7 +333,7 @@ build_sh_lookup_func_lib() # Func
 {
   test -n "$1" || return
   local listname= list=
-  list="$( ggrep -l '^'"$1"'$' "$src_stat"/functions/*.func-list )"
+  list="$( $ggrep -l '^'"$1"'$' "$src_stat"/functions/*.func-list )"
   listname=$(basename "$list" -lib.func-list)
   build_sh_lookup_lib "$listname"
 }
@@ -373,7 +343,7 @@ build_sh_lookup_lib() # Doc-Id
 {
   test -n "$1" || return
   build_redo $src_stat/sh-libs.list || return
-  ggrep '^'"$1"'\>	' "$src_stat/sh-libs.list" | gsed 's/^[^\t]*\t//g'
+  $ggrep '^'"$1"'\>	' "$src_stat/sh-libs.list" | $gsed 's/^[^\t]*\t//g'
 }
 
 # List func calls (src/dest-lib, caller/callee) for given lib
@@ -567,7 +537,7 @@ build_coverage()
     } || {
 
       docker run --security-opt seccomp=unconfined \
-          --workdir /dut -v $(pwd):/dut dotmpe/treebox:dev kcov "$@" || return
+          --workdir /dut -v $PWD:/dut dotmpe/treebox:dev kcov "$@" || return
     }
   }
 
@@ -576,3 +546,39 @@ build_coverage()
       --exclude-path='/usr/local,/dut/.cllct/kcov,/dut/.git,/dut/doc,/dut/vendor,/dut/node_modules,/tmp/' \
       .cllct/kcov "$@" || return
 }
+
+# Copy local statusdir index to local cache
+build_sd_cache () # Index-Name Prefix [Cache-Name]
+{
+  test $# -gt 2 || set -- "$1" "$2" "$1"
+  local index table="${2:-}${2+"-"}$1" verbose=${DEBUG+"v"}
+  index="$(statusdir_lookup index "$table")" || return
+  test -n "$index" || index=.meta/stat/index/"$table"
+  test -d .meta/cache/ || mkdir -p$verbose .meta/cache/ >&2
+  test -s "$index" || return 0
+  cat $index > .meta/cache/$3
+}
+
+build_sd_commit () # Cache-Name Prefix [Index-Name]
+{
+  test $# -gt 2 || set -- "$1" "$2" "$1"
+  local index table="${2:-}${2+"-"}$3" verbose=${DEBUG+"v"}
+  index="$(statusdir_lookup index "$table")" || return
+  test -n "$index" || index=.meta/stat/index/"$table"
+  test -d "$(dirname "$index")" || mkdir -p$verbose "$(dirname "$index")" >&2
+  # TODO: should merge with index, not overwrite
+  cat ".meta/cache/$1" >"$index"
+}
+
+build_conv_list () # Src-Exts Trgt-Ext [Src-Dir [Trgt-Dir ]] -- Paths...
+{ false
+}
+build_conv_table () # ...?
+{ false
+}
+
+build_context_to_index () # Context.list
+{ false
+}
+
+#

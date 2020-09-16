@@ -1,5 +1,10 @@
 #!/bin/sh
 
+docker_hub_lib_load()
+{
+  lib_require web
+}
+
 docker_hub_tags() # Ns/Name
 {
   test $# -eq 1 || return

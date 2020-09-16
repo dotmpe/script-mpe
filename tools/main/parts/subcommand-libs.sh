@@ -1,7 +1,9 @@
 #!/bin/sh
 
-subcommand_libs="$(try_value $subcmd libs $base)" || subcommand_libs=$subcmd
-test -n "$subcommand_libs" || return
-lib_require $subcommand_libs || return
-INIT_LOG=$LOG lib_init $subcommand_libs || return
+main_var libs "$baseids" libs "$subcmd" "$subcmd"
+test -n "$libs" && {
+  lib_require $libs || return
+  INIT_LOG=$LOG lib_init $libs || return
+}
+unset libs
 #

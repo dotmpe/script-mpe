@@ -1,3 +1,5 @@
+run_suite () # Run init, check, baselines or other part ~ Table Suite Prefix
+{
   test $# -ge 2 || return 98
   local parts= tab="$1" suite="$2" ; shift 2
   test -n "$tab" || tab=build.txt
@@ -10,5 +12,6 @@
 
   done ||
     suite_run "$tab" "$suite" $phase
+}
 
 # Sync: U-S: vim:ft=bash:

@@ -1,6 +1,5 @@
 #!/bin/sh
-
-# Htd ctx cleanup for OS wip: files, paths
+# Htd ctx cleanup for OS wip: files, paths.
 
 
 os_htd_lib_load()
@@ -91,12 +90,12 @@ basedir()
 
 dotname() # Path [Ext-to-Strip]
 {
-  echo $(dirname -- "$1")/.$(basename -- "$1" "$2")
+  echo $(dirname -- "$1")/.$(basename -- "$1" "${2-}")
 }
 
 short()
 {
-  test -n "$1" || set -- "$(pwd)"
+  test -n "$1" || set -- "$PWD"
   # XXX maybe replace python script. Only replaces home
   $HOME/bin/short-pwd.py -1 "$1"
 }
@@ -229,11 +228,11 @@ filemtime() # File
   do
     case "$uname" in
       darwin )
-          trueish "$file_names" && pat='%N %m' || pat='%m'
+          trueish "${file_names-}" && pat='%N %m' || pat='%m'
           stat -f "$pat" $flags "$1" || return 1
         ;;
       linux )
-          trueish "$file_names" && pat='%N %Y' || pat='%Y'
+          trueish "${file_names-}" && pat='%N %Y' || pat='%Y'
           stat -c "$pat" $flags "$1" || return 1
         ;;
       * ) error "filemtime: $1?" 1 ;;
@@ -247,12 +246,12 @@ filebtime() # File
   local flags=- ; file_stat_flags
   case "$uname" in
     darwin )
-        trueish "$file_names" && pat='%N %B' || pat='%B'
+        trueish "${file_names-}" && pat='%N %B' || pat='%B'
         stat -f "$pat" $flags "$1" || return 1
       ;;
     linux )
         # XXX: %N is deref-file
-        trueish "$file_names" && pat='%N %W' || pat='%W'
+        trueish "${file_names-}" && pat='%N %W' || pat='%W'
         stat -c "$pat" $flags "$1" || return 1
       ;;
     * ) error "filebtime: $1?" 1 ;;
@@ -262,15 +261,15 @@ filebtime() # File
 
 file_tool_flags()
 {
-  trueish "$file_names" && flags= || flags=b
-  falseish "$file_deref" || flags=${flags}L
+  trueish "${file_names-}" && flags= || flags=b
+  falseish "${file_deref-}" || flags=${flags}L
 }
 
 # FIXME: file-deref=0?
 file_stat_flags()
 {
   test -n "$flags" || flags=-
-  falseish "$file_deref" || flags=${flags}L
+  falseish "${file_deref-}" || flags=${flags}L
   test "$flags" != "-" || flags=
 }
 
@@ -326,15 +325,14 @@ foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject
 # indicators for data availble at stdin.
 foreach()
 {
-  local foreach_stdin= # tracks stdin is read [1] and been read and closed [0]
   {
     test -n "$*" && {
       while test $# -gt 0
       do
         test "$1" = "-" && {
-          foreach_stdin=1
+          # XXX: echo foreach_stdin=1
           cat -
-          foreach_stdin=0
+          # XXX: echo foreach_stdin=0
         } || {
           printf -- '%s\n' "$1"
         }
@@ -350,7 +348,9 @@ foreach()
 # unwrapped loop-var is _S.
 foreach_do()
 {
-  test -n "$act" || act="echo"
+  test -n "${p-}" || local p= # Prefix string
+  test -n "${s-}" || local s= # Suffix string
+  test -n "${act-}" || local act="echo"
   foreach "$@" | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
 }
 
@@ -358,7 +358,9 @@ foreach_do()
 # to line. See foreach-do for other details.
 foreach_addcol()
 {
-  test -n "$act" || act="echo"
+  test -n "${p-}" || local p= # Prefix string
+  test -n "${s-}" || local s= # Suffix string
+  test -n "${act-}" || local act="echo"
   foreach "$@" | while read -r _S
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
 }
@@ -366,7 +368,9 @@ foreach_addcol()
 # See -addcol and -do.
 foreach_inscol()
 {
-  test -n "$act" || act="echo"
+  test -n "${p-}" || local p= # Prefix string
+  test -n "${s-}" || local s= # Suffix string
+  test -n "${act-}" || local act="echo"
   foreach "$@" | while read -r _S
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
 }
@@ -376,7 +380,7 @@ foreach_inscol()
 # remove again. Listing most-recent modified file name/path first.
 sort_mtimes()
 {
-  p= s= act=filemtime foreach_addcol "$@" | sort -r -k 2 | cut -f 1
+  act=filemtime foreach_addcol "$@" | sort -r -k 2 | cut -f 1
 }
 
 
@@ -449,10 +453,14 @@ split_multipath()
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
 read_nix_style_file() # [cat_f=] ~ File [Grep-Filter]
 {
-  test $# -ge 1 -a -n "${1-}" || return 1
+  test $# -le 2 -a "${1:-"-"}" = - -o -e "${1-}" || return 98
+  test -n "${1-}" || set -- "-" "${2-}"
   test -n "${2-}" || set -- "$1" '^\s*(#.*|\s*)$'
-  test -z "${3-}" || $LOG error "os" "read-nix-style-file: surplus arguments '$2'" "" 1
-  cat ${cat_f-} "$1" | grep -Ev "$2" || return 1
+  test -z "${cat_f-}" && {
+    grep -Ev "$2" "$1" || return 1
+  } || {
+    cat $cat_f "$1" | grep -Ev "$2"
+  }
 }
 
 grep_nix_lines()
@@ -497,13 +505,16 @@ lines_slice() # [First-Line] [Last-Line] [-|File-Path]
   test -n "$1" && {
     test -n "$2" && { # Start - End: tail + head
       tail -n "+$1" "$3" | head -n $(( $2 - $1 + 1 ))
+      return $?
     } || { # Start - ... : tail
       tail -n "+$1" "$3"
+      return $?
     }
 
   } || {
     test -n "$2" && { # ... - End : head
       head -n "$2" "$3"
+      return $?
     } || { # Otherwise cat
       cat "$3"
     }
@@ -527,7 +538,7 @@ read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
   read_lines_while_inner()
   {
     local r=0
-    lines_slice "$3" "$4" "$1" | {
+    lines_slice "${3-}" "${4-}" "$1" | {
         lines_while "$2" || r=$? ; echo "$r $line_number"; }
   }
   stat="$(read_lines_while_inner "$@")"
@@ -547,8 +558,8 @@ go_to_dir_with()
   while true
   do
     test -e "$1" && break
-    go_to_before=$(basename -- "$(pwd)")/$go_to_before
-    test "$(pwd)" = "/" && break
+    go_to_before=$(basename -- "$PWD")/$go_to_before
+    test "$PWD" = "/" && break
     cd ..
   done
 
@@ -594,7 +605,7 @@ count_lines()
 }
 
 # Wrap wc but correct files with or w.o. trailing posix line-end
-line_count()
+line_count () # FILE
 {
   test -s "${1-}" || return 42
   test $(filesize "$1") -gt 0 || return 43
@@ -608,7 +619,7 @@ line_count()
 }
 
 # Count words
-count_words()
+count_words () # [FILE | -]...
 {
   test "${1:-"-"}" = "-" && {
     wc -w | awk '{print $1}'
@@ -623,7 +634,7 @@ count_words()
 }
 
 # Count every character
-count_chars()
+count_chars () # [FILE | -]...
 {
   test "${1:-"-"}" = "-" && {
     wc -w | awk '{print $1}'
@@ -638,7 +649,7 @@ count_chars()
 }
 
 # Count occurence of character each line
-count_char() # Char
+count_char () # CHAR
 {
   local ch="$1" ; shift
   awk -F$ch '{print NF-1}' |
@@ -702,16 +713,16 @@ get_uuid()
 #
 #pushd_cwdir()
 #{
-#  test -n "$CWDIR" -a "$CWDIR" != "$(pwd)" && {
-#    echo "pushd $CWDIR" "$(pwd)"
+#  test -n "$CWDIR" -a "$CWDIR" != "$PWD" && {
+#    echo "pushd $CWDIR" "$PWD"
 #    pushd $WDIR
 #  } || set --
 #}
 #
 #popd_cwdir()
 #{
-#  test -n "$CWDIR" -a "$CWDIR" = "$(pwd)" && {
-#    echo "popd $CWDIR" "$(pwd)"
+#  test -n "$CWDIR" -a "$CWDIR" = "$PWD" && {
+#    echo "popd $CWDIR" "$PWD"
 #    test "$(popd)" = "$CWDIR"
 #  } || set --
 #}
@@ -789,42 +800,30 @@ verify_lock()
 
 mkrlink()
 {
+  test $# -gt 1 -a -n "$1" || return
   # TODO: find shortest relative path
-  ln -vs "$(basename "$1")" "$2"
+  ln -vs "$(basename "$1")" "${2:-"$PWD/"}"
 }
 
-filter_dirs()
+
+filter_dir ()
 {
-  test "$1" = "-" && {
-    while read -r d
-    do
-      test -d "$d" || continue
-      echo "$d"
-    done
-  } || {
-    for d in "$@"
-    do
-      test -d "$d" || continue
-      echo "$d"
-    done
-  }
+  test -d "$1" && echo "$1"
 }
 
-filter_files()
+filter_dirs ()
 {
-  test "$1" = "-" && {
-    while read -r f
-    do
-      test -f "$f" || continue
-      echo "$f"
-    done
-  } || {
-    for f in "$@"
-    do
-      test -f "$f" || continue
-      echo "$f"
-    done
-  }
+  act=filter_dir s= p= foreach_do "$@"
+}
+
+filter_file ()
+{
+  test -f "$1" && echo "$1"
+}
+
+filter_files ()
+{
+  act=filter_file s= p= foreach_do "$@"
 }
 
 disk_usage()

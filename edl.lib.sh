@@ -1,31 +1,36 @@
 #!/bin/sh
+# Created: 2016-12-16
 
 # Edit Decision Lists
 
 
-# Resolve line span (start line - line count)
-edl_resolve_lines()
+# Echo selected file data lines by line span (start line - line count)
+edl_resolve_lines() # File Offset Length
 {
-  test -n "$3" || set -- "$1" "$2" "1"
-  head -n $2 "$1" | tail -n $3
+  test -n "${3-}" || set -- "$1" "$2" "1"
+  { tail -n "+$2" "$1" || ignore_sigpipe
+  } | head -n $3
 }
 
-resolve_line_range()
+# Echo selected file data by character span (offset - length)
+edl_resolve_chars() # File Offset Length
 {
-  resolve_lines "$1" "$2" "$(( $3 - $2 + 1 ))"
+  test -n "${3-}" || set -- "$1" "$2" "1"
+  { tail -c "+$2" "$1" || ignore_sigpipe
+  } | head -c $3
 }
 
-# Resolve character span
-resolve_chars()
+edl_resolve_line_range ()
 {
-  echo TODO edl.lib:resolve-chars
+  edl_resolve_lines "$1" "$2" "$(( $3 - $2 + 1 ))"
 }
 
 # Resolve character start to end pos
-resolve_char_range()
+edl_resolve_char_range()
 {
-  resolve_chars "$1" "$2" "$(( $3 - $2 + 1 ))"
+  edl_resolve_chars "$1" "$2" "$(( $3 - $2 + 1 ))"
 }
+
 
 resolve_line_chars()
 {
@@ -34,7 +39,7 @@ resolve_line_chars()
 
 resolve_line_char_range()
 {
-  resolve_line_chars "$1" "$2" "$(( $3 - $2 + 1 ))"
+  edl_resolve_line_chars "$1" "$2" "$(( $3 - $2 + 1 ))"
 }
 
 # <1-prefix>
@@ -44,7 +49,6 @@ resolve_line_char_range()
 # <5-descr-line-offset-span>
 # <6-cmnt-span>
 # <7-cmnt-line-offset-span>
-
-
-#radical.py --issue-format=full-sh vc.sh | grep -v '^\s*$' | tq.py vc.sh
-
+# <8-tag-span>
+# <9-slug-span>
+# <10-match>

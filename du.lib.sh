@@ -11,21 +11,24 @@ du_lib_load()
 
 du_proc()
 {
-  test -n "$warning" || warnings=-
+  test -n "${warnings-}" || warnings=-
   # 1: info 2: warning 3: error 4 severe 5: disable exit status
-  ~/project/docutils-ext-mpe/tools/proc-mpe \
+  ~/project/docutils-mpe/tools/proc-mpe \
       --exit-status=3 \
       --quiet \
-      --warnings="$warnings" "$1"
+      --warnings="$warnings" "$1" || { r=$?
+          $LOG error "" "du-proc" "$r"
+          return $r
+      }
 }
 
 du_getxml() # Process Du/rSt doc to XML ~ Du-Doc Xml-Doc
 {
-  test -n "$warnings" || warnings=-
-  test -n "$warning_level" || warning_level=3
-  test -n "$rst2xml" || error "rst2xml required" 1
+  test -n "${warnings-}" || warnings=-
+  test -n "${warning_level-}" || warning_level=3
+  test -n "${rst2xml-}" || error "rst2xml required" 1
   fnmatch '*.rst' $1 && {
-    test -n "$2" || set -- "$1" "$(setup_tmpd)/$(basename "$1" .rst).xml"
+    test -n "${2-}" || set -- "$1" "$sys_tmp/$(basename "$1" .rst).xml"
     test -e "$2" -a "$2" -nt "$1" || {
         std_info "rst2xml: $rst2xml $1 $2"
         $rst2xml \
@@ -36,13 +39,18 @@ du_getxml() # Process Du/rSt doc to XML ~ Du-Doc Xml-Doc
     }
     export xml="$2"
   }
+  test ! -s "$warnings" || error "Warnings during rst2xml <$warnings>"
   test -e "$2" || error "Need XML repr. for doc '$1'" 1
 }
 
-du_dl_terms_paths() # Wrapper to adapt to every found instance for htdocs
+# Wrapper to adapt to every found instance for htdocs
+du_dl_terms_paths () # RSt-Doc [Xml-Doc]
 {
   # FIXME: move to functions, output needs a bit cleaning up
-  htd tpaths "$1" | sed \
+  {
+    du_dl_term_paths "$@"
+    # htd tpaths "$1"
+  } | sed \
       -e 's/ /-/g' \
       -e 's/&gt;[-]*/>/g' \
       -e 's/&lt;/'"\\n"'</g' \
@@ -52,12 +60,15 @@ du_dl_terms_paths() # Wrapper to adapt to every found instance for htdocs
 
 du_dl_term_paths_raw() # Retrieve Du definition outline as a relative path ~ Du-Doc Xml-Doc
 {
-  du_getxml "$1" "$2" || return
-  test -n "$2" || set -- "$1" "$xml"
+  test -e "${2-}" || {
+    du_getxml "$1" "${2-}" || return
+    set -- "$1" "$xml"
+  }
 
     # std_info "File '$(basename "$1")' already in catalog"
   # Read multi-leaf relative path for each file
   {
+    test -n "${xsl_ver:-}" || htd_load_xsl
     case "$xsl_ver" in
 
       1 ) htd_xproc "$2" $scriptpath/rst-terms2path.xsl ;;
@@ -76,7 +87,7 @@ du_dl_term_paths_raw() # Retrieve Du definition outline as a relative path ~ Du-
 
 du_dl_term_paths() # Normalize relative path from dl-terms-paths-raw ~ Du-Doc Xml-Doc
 {
-  du_dl_term_paths_raw "$1" "$2" | while read -r rel_leaf
+  du_dl_term_paths_raw "$1" "${2-}" | while read -r rel_leaf
   do
     # FIXME: Assemble each leaf path onto its root, and normalize
     echo "$rel_leaf" | grep -q '^\.\.\/' && {
@@ -86,13 +97,15 @@ du_dl_term_paths() # Normalize relative path from dl-terms-paths-raw ~ Du-Doc Xm
     }
 
     # Columns to print
-    trueish "$print_baseid" && {
+    trueish "${print_baseid-}" && {
       filename_baseid "$1"
       printf -- "$id "
     }
-    trueish "$print_src" && {
+
+    trueish "${print_src-}" && {
       printf -- "$1 "
     }
+
     echo "$path"
 
   done

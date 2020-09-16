@@ -12,7 +12,7 @@
   environments:
     - dev
 
-  env: . ./tools/ci/env.sh
+  env: . "$HOME/bin/tools/ci/env.sh"
 
   urls:
     license:
@@ -31,6 +31,8 @@
     dandy.21-1: /srv/scm-git-21-1-dandy-mpe/dotmpe/script-mpe.git
 
   lists: # XXX: or name key copies/directives iso 'lists'
+    files: scm-all
+    documents: vc-exts-fnmatch
     specs:
       Sync: <Copy> <Derive> <Via> <Src> <Source> <Sync-{To,From}>
       Copy: <To> <From>
@@ -58,6 +60,11 @@
       id: script-mpe-2008a
     # TODO: group settings per extension package
 
+  log: DevLog.rst
+
+  rst:
+    default-include: .rst-global.rst
+
   pd-meta:
     # TODO: move run/test/build to projects package iso. pd-meta.
     run:
@@ -78,8 +85,6 @@
     # TODO: run tests at VM/... if available
     build: ":vagrant:tools/ci/vbox"
     #build: ":vagrant:tools/ci/vbox:ubuntu"
-
-    log: DevLog.rst
 
     tasks:
       hub: ~/htdocs/to
@@ -103,8 +108,6 @@
 
     init: "./install-dependencies.sh git:init"
     # FIXME: what about git annex pre-commit .
-    rst:
-      default-include: .rst-global.rst
 
   environment:
     development:
@@ -250,6 +253,8 @@
 
     build-docs: lib_load build-htd && build_docs "\$@"
     build-refdocs: lib_load build-htd && build_refdocs "\$@"
+
+    tags-update: ctags -e -R .
 
 
     # End of [0]/scripts

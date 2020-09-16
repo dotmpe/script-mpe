@@ -6,7 +6,7 @@
 
 
 test -n "$verbosity" || {
-  test -z "$v" || verbosity="$v"
+  case "${v-}" in [0-9] ) verbosity="$v";; esac
 }
 test -n "$verbosity" || {
   test -n "$DEBUG" && verbosity=7 || verbosity=6
@@ -76,7 +76,11 @@ log_src_id()
 }
 
 # left align first columnt at:
-test -n "$FIRSTTAB" || FIRSTTAB=24
+test -n "$FIRSTTAB" || {
+  # Set initial vl to 20% of screen width
+  FIRSTTAB=$(echo "$(tput cols) * 20 / 100" | bc)
+  FIRSTDBGTAB=$(echo "$(tput cols) * 40 / 100" | bc)
+}
 
 if [ -z "$CS" ]
 then
@@ -95,17 +99,29 @@ then
 
   normal="$(tput sgr0)"
 
+  c0="$(tput setaf 0)" # primary fg
+  c00="$(tput setab 0)" # primary bg
+
+  # teal
+  c6="$(tput setaf 6)" # primary fg
+  c60="$(tput setab 6)" # primary bg
+
+  c8="$(tput setaf 8)" # primary fg
+  c80="$(tput setab 8)" # primary bg
+
+  #c7="$(tput setaf 7)" # primary fg
+  c70="$(tput setab 7)" # primary bg
+
   if [ "$CS" = "light" ]
   then
-    # primary, black
-    c0="$(tput setaf 0)"
+    # primary fg, black
+
     # pale (inverted white)
     c7="$standout$(tput setaf 7)"
     # hard (bright black, ie. dark gray)
     c9="$bold$0"
   else
     # primary, pale white
-    c0="$(tput setaf 0)"
     # pale (normal white, ie. light gray)
     c7="$(tput setaf 7)"
     # hard (bold white)
@@ -195,8 +211,9 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
       targets=$(printf "$mk_title_blue_faint" "$targets")
       ;;
     debug )
-      targets="";
-      trgt_len=0
+     targets="$(printf "%s[%s%s%s]%s" "$c0" "$c8" "$targets" "$c0" "$normal")";
+        FIRSTTAB=$FIRSTDBGTAB
+        #trgt_len=5
         #$(printf "$mk_p_trgt_yellow_faint" "$targets")
       ;;
     verbose | warn*  )

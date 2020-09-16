@@ -3,7 +3,7 @@
 
 match_req_names_tab()
 {
-  local pwd="$(pwd)"
+  local pwd="$PWD"
 
   tabs="$(while test "$pwd" != '/'
       do
@@ -21,9 +21,9 @@ match_load_table()
 
   match_load_defs $scriptpath/table.$1
 
-  test "$scriptpath" = "$(cd "$(pwd)"; pwd -P)" || {
-    test -s "$(pwd)/table.$1" && {
-      match_load_defs "$(pwd)/table.$1" \
+  test "$scriptpath" = "$(cd "$PWD"; pwd -P)" || {
+    test -s "$PWD/table.$1" && {
+      match_load_defs "$PWD/table.$1" \
         || error "Error loading ./table.$1" 1
     } || true
   }
@@ -50,9 +50,10 @@ match_grep() # String
   echo "$1" | $gsed -E 's/([^A-Za-z0-9{}(),?!@+_])/\\\1/g'
 }
 
+#
 compile_glob()
 {
-  echo "$1" | node_globs2regex
+  printf -- "$1" | ${2:-"perl"}_globs2regex
 }
 
 # simple glob to regex
@@ -64,7 +65,7 @@ gsed_globs2regex()
     '
 }
 
-# extended glob to regex
+# extended glob to regex with some NPM module
 node_globs2regex()
 {
   ( cd ~/bin; node -e '
@@ -81,6 +82,7 @@ rl.on("line", function(line){
     ' )
 }
 
+# a working globs2regex with Perl
 perl_globs2regex()
 {
   perl -pe '

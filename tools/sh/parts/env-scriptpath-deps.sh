@@ -23,7 +23,8 @@ type script_package_include >/dev/null 2>&1 || {
 test -n "${SH_EXT-}" || {
   test -n "${REAL_SHELL-}" ||
     REAL_SHELL=$(ps --pid $$ --format cmd --no-headers | cut -d' ' -f1)
-  SH_EXT=$(basename "$REAL_SHELL")
+  fnmatch "-*" "$REAL_SHELL" &&
+    SH_EXT="${REAL_SHELL:1}" || SH_EXT=$(basename -- "$REAL_SHELL")
 }
 
 trueish "${ENV_DEV-}" && {
@@ -47,21 +48,32 @@ test -n "${VND_PATHS-}" || {
 # Use dependencies that include sources from dependencies.txt files, ie the git
 # and basher ones.
 
-test -n "${PROJECT_DEPS-}" || {
+test -n "${PROJECT_DEPS:-}" || PROJECT_DEPS=$CWD/dependencies.txt
+test -e "${PROJECT_DEPS-}" || {
   script_package_include $CWD ||
-    $INIT_LOG "error" "" "Error including script-package at $CWD" 1
+    $INIT_LOG "error" "" "Error including script-package at" "$CWD" 30
 }
 
-test -n "${PROJECT_DEPS:-}" || PROJECT_DEPS=$CWD/dependencies.txt
 # Look for deps at each VND_PATHS, source load.*sh file to let it setup SCRIPTPATH
-for supportlib in $(grep -h '^\(git\|basher\) ' $PROJECT_DEPS | cut -d' ' -f2);
+for supportlib in $(grep -h '^\(git\|dir\|basher\) ' $PROJECT_DEPS | cut -d' ' -f2);
 do
+  fnmatch "[/~]*" "$supportlib" && {
+    supportlib="$(eval "echo $supportlib")"
+
+    test -d "$supportlib" && {
+      script_package_include "$supportlib" && continue
+      $INIT_LOG "error" "" "Error including script-package at" "$supportlib"
+      continue
+    }
+  }
+
   # Override VND_PATHS in Dev-Mode with basenames from ~/project that match
   # dependency basename
   trueish "${ENV_DEV-}" && {
     test -d "$PROJECT_DIR/$(basename "$supportlib")" && {
       script_package_include "$PROJECT_DIR/$(basename "$supportlib")" && continue
-      $INIT_LOG "error" "" "Error including script-package at $PROJECT_DIR/$(basename "$supportlib")" 1
+      $INIT_LOG "error" "" "Error including script-package at" "$PROJECT_DIR/$(basename "$supportlib")" 31
+      continue
     }
   }
 
@@ -69,15 +81,21 @@ do
   for vnd_base in $VND_PATHS
   do
     test -d "$vnd_base/$supportlib" || continue
+    test "$vnd_base/$supportlib/*" != "$(echo "$vnd_base/$supportlib/"*)" ||
+      continue
+
     script_package_include "$vnd_base/$supportlib" && break
-    $INIT_LOG "error" "" "Error including script-package at $vnd_base/$supportlib" 1
+    $INIT_LOG "error" "" "Error including script-package at" "$vnd_base/$supportlib" 32
+    break
   done
+
+  true
 done
 
 test -z "${SCRIPTPATH:-}" &&
     $INIT_LOG "error" "" "No SCRIPTPATH found" ||
     $INIT_LOG "note" "" "New SCRIPTPATH from $PROJECT_DEPS" "$SCRIPTPATH"
-unset supportlib vnd_base lib_path
+unset supportlib vnd_base
 export SCRIPTPATH
 
 # Sync: U-S:

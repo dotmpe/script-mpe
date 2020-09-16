@@ -206,7 +206,7 @@ init() # ( 0 | 1 [~ [~ [~]]] )
 # Non-bats bootstrap to initialize access to test-helper libs with 'load'
 load_init() # [ 0 ]
 {
-  test "$1" = "0" || {
+  test "${1-}" = "0" || {
     test_env_init || return
   }
 

@@ -1,7 +1,9 @@
 #!/bin/sh
 
-
-date_journal()
+# Date journal period is either yearnr, monthnr, weeknr and always daynr
+# corresponding to the day nr of the year for a day or the say at the start of a
+# week/month/year period.
+date_journal () # Year [ 'w'Week | Month [ Day ]]
 {
   year=$1
   shift

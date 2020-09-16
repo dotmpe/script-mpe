@@ -204,14 +204,14 @@ command_handlers = dict(
 
 def cmd_count_all(g, PARENT_ID=None):
     PARENT_ID = clean_id_arg(PARENT_ID)
-    print(len(list(g.services.drive, g, PARENT_ID)))
+    print(len(gdrive_list(g.services.drive, g, PARENT_ID)))
 
 def cmd_list_all(g, PARENT_ID=None):
     PARENT_ID = clean_id_arg(PARENT_ID)
-    files = list(g.services.drive, g, PARENT_ID)
+    files = gdrive_list(g.services.drive, g, PARENT_ID)
     print('# Name, Id, MIME, parents')
     for file in files:
-        if 'parents' in folder:
+        if 'parents' in file:
             print('{}\t#{}\t{}\t#{}'.format(file['name'], file['id'],
                 file['mimeType'], '# '.join(file['parents'])))
         else:
@@ -226,7 +226,7 @@ def cmd_count_folders(g, PARENT_ID=None):
 def cmd_list_folders(g, PARENT_ID=None):
     PARENT_ID = clean_id_arg(PARENT_ID)
     folders = gdrive_list(g.services.drive, g, PARENT_ID,
-            'application/vnd.google-apps.folder')
+            'application/vnd.google-apps.folder', include_folders=True)
     for folder in folders:
         if 'parents' in folder:
             print('{}\t#{}\t#{}'.format(folder['name'], folder['id'],

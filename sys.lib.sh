@@ -10,6 +10,15 @@ sys_lib_load()
   test -n "${HOST-}" || HOST=$hostname
 }
 
+sys_lib_init()
+{
+  test "${sys_lib_init-}" = "0" || {
+
+    sys_tmp_init &&
+    $LOG debug "" "Initialized sys.lib" "$0"
+  }
+}
+
 # Sh var-based increment
 incr() # VAR [AMOUNT=1]
 {
@@ -42,7 +51,7 @@ trueish() # Str
 # No error on empty, or not trueish match
 not_trueish()
 {
-  test -n "$1" || return 0
+  test -n "${1-}" || return 0
   trueish "$1" && return 1 || return 0
 }
 
@@ -61,7 +70,7 @@ falseish()
 # No error on empty, or not-falseish match
 not_falseish() # Str
 {
-  test -n "$1" || return 0
+  test -n "${1-}" || return 0
   falseish "$1" && return 1 || return 0
 }
 
@@ -84,50 +93,46 @@ func_exists()
 try_exec_func()
 {
   test -n "$1" || return 97
-  func_exists $1 || return
+  func_exists "$1" || return
   local func=$1
   shift 1
   $func "$@" || return
 }
 
-# TODO: redesign @Dsgn
-try_var()
+# Check for RAM-fs or regular temporary directory, or set to given
+# directory which must also exist. Normally, TMPDIR will be set on Unix and
+# POSIX systems. If it does not exist then TMPDIR will be set to whatever
+# is given here or whichever exists of /dev/shm/tmp or $RAM_TMPDIR. But the
+# directory will not be created.
+sys_tmp_init () # DIR
 {
-  local value=
-  eval "value=\"\$$1\"" >/dev/null 2>/dev/null
-  test -n "$value" || return 1
-  echo $value
-}
-
-# Get echo-local output, and return 1 on empty value. See echo-local spec.
-try_value()
-{
-  local value=
-  test $# -gt 1 && {
-    value="$(eval echo "\"\${$(echo_local "$@")-}\"" || return )"
-  } || {
-    value="$(eval echo \"\${${1-}-}\" || return )"
-  }
-  test -n "$value" || return 1
-  echo "$value"
-}
-
-# setup-tmp [(RAM_)TMPDIR]
-setup_tmpd()
-{
-  test $# -le 2 || return
-  while test $# -lt 2 ; do set -- "$@" "" ; done
-  test -n "$1" || set -- "$base-$(get_uuid)" "$2"
   test -n "${RAM_TMPDIR-}" || {
+        # Set to Linux ramfs path
         test -w "/dev/shm" && RAM_TMPDIR=/dev/shm/tmp
       }
-  test -n "$2" -o -z "$RAM_TMPDIR" || set -- "$1" "$RAM_TMPDIR"
-  test -n "$2" -o -z "$TMPDIR" || set -- "$1" "$TMPDIR"
-  test -n "$2" ||
-        $LOG warn sys "No RAM tmpdir/No tmpdir settings found" "" 1
+  test -e "${1-}" -o -z "${RAM_TMPDIR-}" || set -- "$RAM_TMPDIR"
+  test -e "${1-}" -o -z "${TMPDIR-}" || set -- "$TMPDIR"
+  test -n "${1-}" && {
+    test -n "${TMPDIR-}" || export TMPDIR=$1
+  }
+  test -d "$1" || {
+    $LOG warn sys "No RAM tmpdir/No tmpdir settings found" "" 1
+  }
+  sys_tmp="$1"
+}
 
-  test -d $2/$1 || mkdir -p $2/$1
-  test -n "$2" -a -d "$2" || $LOG error sys "Not a dir: '$2'" "" 1
+# setup-tmpd [ SUBDIR [ (RAM_)TMPDIR ]]
+# Get (create) fresh subdir in TMPDIR or fail.
+setup_tmpd () # Unique-Name
+{
+  test $# -le 2 || return
+  test -n "${2-}" || set -- "${1-}" "$sys_tmp"
+  test -d "$2" ||
+    $LOG error sys "Need existing tmpdir, got: '$2'" "" 1
+  test -n "${1-}" || set -- "$base-$SH_SID" "${2-}"
+  test ! -e "$2/$1" ||
+    $LOG error sys "Unique tmpdir sub exists: '$2'" "" 1
+  mkdir -p $2/$1
   echo "$2/$1"
 }
 
@@ -143,18 +148,18 @@ setup_tmpf() # [Ext [UUID [TMPDIR]]]
   test -n "$2" || set -- $1 $(get_uuid) "$3"
   test -n "$1" -a -n "$2" || $LOG error sys "empty arg(s)" "" 1
 
-  test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
+  test -n "$3" || set -- "$1" "$2" "$sys_tmp"
   test -n "$3" -a -d "$3" || $LOG error sys "Not a dir: '$3'" "" 1
 
   test -n "$(dirname $3/$2$1)" -a "$(dirname $3/$2$1)" \
     || mkdir -p "$(dirname $3/$2$1)"
-  echo $3/$2$1
+  echo "$3/$2$1"
 }
 
 # sys-prompt PROMPT [VAR=returned]
 sys_prompt()
 {
-  test -n "$1" || $LOG error sys "sys-prompt: arg expected" "" 1
+  test -n "${1-}" || $LOG error sys "sys-prompt: arg expected" "" 1
   test -n "$2" || set -- "$1" returned
   test -z "$3" || $LOG error sys "surplus-args '$3'" "" 1
   echo $1
@@ -200,8 +205,9 @@ add_env_path() # Prepend-Value Append-Value
 # Add an entry to colon-separated paths, ie. PATH, CLASSPATH alike lookup paths
 add_env_path_lookup() # Var-Name Prepend-Value Append-Value
 {
+  test $# -ge 2 -a $# -le 3 || return
   local val="$(eval echo "\$$1")"
-  test -e "$2" -o -e "$3" || {
+  test -e "$2" -o -e "${3-}" || {
     echo "No such file or directory '$*'" >&2
     return 1
   }
@@ -221,13 +227,15 @@ add_env_path_lookup() # Var-Name Prepend-Value Append-Value
 }
 
 # List individual entries/paths in lookup path env-var (ie. PATH or CLASSPATH)
-lookup_path_list() # VAR-NAME
+lookup_path_list () # VAR-NAME
 {
-  test -n "$1" || error "lookup-path varname expected" 1
+  test $# -eq 1 -a -n "${1-}" || error "lookup-path varname expected" 1
   eval echo \"\$$1\" | tr ':' '\n'
 }
 
-path_exists()
+# Translate Lookup path element and given/local name to filesystempath,
+# or return err-stat.
+lookup_exists () # DIR NAME
 {
   test -e "$1/$2" && echo "$1/$2"
 }
@@ -235,16 +243,36 @@ path_exists()
 # lookup-path List existing local paths, or fail if second arg is not listed
 # lookup-test: command to test equality with, default test_exists
 # lookup-first: boolean setting to stop after first success
-lookup_path() # VAR-NAME LOCAL-PATH
+lookup_path () # VAR-NAME LOCAL-PATH
 {
-  test -n "$lookup_test" || lookup_test="path_exists"
+  test $# -eq 2 || return
+  test -n "${lookup_test-}" || local lookup_test="lookup_exists"
+  func_exists $lookup_test || {
+    $LOG error "" "No lookup-test handler" "$lookup_test"
+    return 1
+  }
 
-  lookup_path_list $1 | while read _PATH
-  do
-    eval $lookup_test \""$_PATH"\" \""$2"\" && {
-      trueish "$lookup_first" && return 0 || continue
-    } || continue
-  done
+  local path ; for path in $( lookup_path_list $1 )
+    do
+      eval $lookup_test \""$path"\" \""$2"\" && {
+        trueish "${lookup_first-}" && break || continue
+      } || continue
+    done
+}
+
+lookup_paths () # Var-Name Local-Paths...
+{
+  test $# -ge 2 || return
+  test -n "${lookup_test-}" || local lookup_test="lookup_exists"
+  local varname=$1 base path ; shift ; for base in $( lookup_path_list $varname )
+    do
+      for path in $@
+      do
+        eval $lookup_test \""$base"\" \""$path"\" && {
+          trueish "${lookup_first-}" && break || continue
+        } || continue
+      done
+    done
 }
 
 # Test if local path/name is overruled. Lists paths for hidden LOCAL instances.

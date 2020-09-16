@@ -3,9 +3,11 @@
 ctx_ino_lib_init()
 {
   test ${ctx_ino_lib_init:-1} -eq 0 && return
-  set -uo pipefail
   local ino="$(which arduino)"
-  test -x "$ino" || return
+  test -x "$ino" || {
+      $LOG error "" "No Arduino exec found" "$ino" 1 ;
+      return
+  }
   case "$ino" in
 
     /snap/bin/* ) true "${ARDUINODIR:="/snap/arduino/current"}" ;;
@@ -14,6 +16,7 @@ ctx_ino_lib_init()
     /Applications/Arduino.app/* ) # | $HOME/Applications/Arduino.app/* )
         true "${ARDUINODIR:="/Applications/Arduino.app/Contents/Resources/Java"}" ;;
 
+    * ) $LOG warn "" "Unknown Arduino dir" "$ino" ;;
   esac
 }
 

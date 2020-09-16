@@ -137,6 +137,13 @@ req_arg()
   }
 }
 
+match_als____version=version
+match_als___V=version
+match_grp__version=ctx-main\ ctx-std
+
+match_als____help=help
+match_als___h=help
+match_grp__help=ctx-main\ ctx-std
 
 
 ### Main

@@ -3,7 +3,7 @@
 
 project_stats_lib_load()
 {
-  lib_assert statusdir package
+  lib_assert date statusdir package
 }
 
 project_stats_lib_init()
@@ -17,17 +17,15 @@ project_stats_req()
 {
   test -n "${LIB_LINES_TAB-}" || error "No Lib-linecount report name" 1
   test -n "${LIB_LINES_COLS-}" || error "No Lib-linecount reports list name" 1
-  lib_assert package
 }
 
 project_stats_init()
 {
-  test -e "${STATUSDIR_ROOT}/logs" || mkdir -vp "${STATUSDIR_ROOT}/logs/"
   test -n "${LIB_LINES_TAB-}" || {
-    LIB_LINES_TAB="${STATUSDIR_ROOT}/logs/${package_name}-lib-lines.tab"
+    LIB_LINES_TAB="${STATUSDIR_ROOT}log/${package_name}-lib-lines.tab"
   }
   test -n "${LIB_LINES_COLS-}" || {
-    LIB_LINES_COLS="${STATUSDIR_ROOT}/logs/${package_name}-lib-lines.list"
+    LIB_LINES_COLS="${STATUSDIR_ROOT}log/${package_name}-lib-lines.list"
   }
 }
 

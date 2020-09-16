@@ -8,20 +8,20 @@ lst__inputs="arguments options paths files"
 lst__outputs="passed skipped errored failed"
 
 
-list_lib_load()
-{
-  lst_preload
-}
-
-lst_preload()
+list_lib_load ()
 {
   test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${archive_dt_strf-}" || archive_dt_strf=%Y-%M-%dT%H:%m:%S
   test -n "${lst_base-}" || lst_base=htd
-
   test -n "${EDITOR-}" || EDITOR=nano
-  test -n "${SCRIPT_ETC-}" || SCRIPT_ETC="$(lst_init_etc | head -n 1)"
+}
+
+list_lib_init ()
+{
+  test -n "${SCRIPT_ETC-}" || {
+      SCRIPT_ETC="$(lst_init_etc | head -n 1)" || ignore_sigpipe
+  }
 }
 
 lst_load()
@@ -47,7 +47,8 @@ lst_load()
   }
 
   # Selective per-subcmd init
-  for x in $(try_value "${subcmd}" load lst | sed 's/./&\ /g')
+  main_var flags "$baseids" flags "${flags_default-}" "$subcmd"
+  for x in $(echo $flags | sed 's/./&\ /g')
   do case "$x" in
 
     i ) # setup io files
@@ -56,7 +57,7 @@ lst_load()
       ;;
 
     #I ) # setup IO descriptors (requires i before)
-    #    req_vars $(echo_local outputs) $(echo_local inputs)
+    #    req_vars $(main_local "" outputs) $(main_local "" inputs)
     #    local fd_num=2 io_dev_path=$(io_dev_path)
     #    open_io_descrs
     #  ;;
@@ -67,7 +68,7 @@ lst_load()
 lst_init_etc()
 {
   test ! -e etc/htd || echo $PWD/etc
-  test -n "${1-}" || set -- $scriptpath
+  test -n "${1-}" || set -- "${scriptpath-}"
   test -n "$1" || set -- $(dirname "$0")
   test ! -e $1/etc/htd || echo $1/etc
   #XXX: test ! -e .conf || echo .conf
@@ -80,7 +81,8 @@ lst_unload()
 {
   local subcmd_result=0
 
-  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
+  main_var flags "$baseids" flags "${flags_default-}" "$subcmd"
+  for x in $(echo $flags | sed 's/./&\ /g')
   do case "$x" in
     i ) # remove named IO buffer files; set status vars
         clean_io_lists $lst__inputs $lst__outputs
@@ -89,7 +91,7 @@ lst_unload()
     I ) # Named io is numbered starting with outputs and at index 3
         local fd_num=2
         close_io_descrs
-        eval unset $(echo_local inputs) $(echo_local outputs)
+        eval unset $(main_local "" inputs) $(main_local "" outputs)
       ;;
   esac; done
 

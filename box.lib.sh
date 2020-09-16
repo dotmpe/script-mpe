@@ -17,7 +17,7 @@ box_lib_init()
   lib_assert src || return
 
   test -z "${DEBUG-}" || {
-    test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
+    test "$PWD" = "$(pwd -P)" || warn "current dir seems to be aliased"
   }
 
   test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
@@ -152,7 +152,7 @@ box_script_insert_point() # File Sub-Cmd Property Box-Prefix
       error "box-script-insert-point: file-arg required <$1>" 1
   local subcmd_func= grep_file=$1
   shift
-  local subcmd_func=$(echo_local "$@")
+  local subcmd_func=$(main_local "$3" "$2" "$1")
   local where_line= line_number= p='^'${subcmd_func}'()$'
   box_grep "$p" "$grep_file" || {
     error "box-script-insert-point: invalid $subcmd_func ($grep_file)" 1
@@ -325,7 +325,7 @@ box_bg_teardown()
 
 box_lib_current_path()
 {
-  # test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
+  # test "$PWD" = "$(pwd -P)" || warn "current dir seems to be aliased"
   set -- $( ( while true ; do pwd && cd .. ; test "$PWD" != '/' || break; done ) |
       while read -r path
       do

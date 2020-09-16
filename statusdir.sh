@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-#!/bin/sh
+#!/usr/bin/env make.sh
 
 # Statusdir - a property store for bash with lightweight backends
 
@@ -9,17 +8,6 @@
 set -eu
 
 version=0.0.4-dev # script-mpe
-
-
-statusdir_subcmd_load()
-{
-  statusdir_lib_start
-}
-
-statusdir_subcmd_unload()
-{
-  statusdir_lib_finish
-}
 
 
 # Subcommands
@@ -41,23 +29,24 @@ statusdir_man_1__root='Echo statusdir store location'
 statusdir__root()
 {
   test -n "$STATUSDIR_ROOT" || return 14
-  path=$STATUSDIR_ROOT
-  [ -e "$path" ] || mkdir -p $path
-  echo $path
+  echo "$STATUSDIR_ROOT"
 }
+statusdir_flags__root=-
 
 
 statusdir_man_1__backends='List backends available and online'
 statusdir__backends()
 {
+  local bn sd_be sd_be_h
   for bn in $scriptpath/statusdir-*.sh
   do
-    sd_be_name=$(basename $bn .lib.sh | cut -d '-' -f 2)
+    sd_be=$(basename $bn .lib.sh | cut -d '-' -f 2)
     . $bn
-    test -n "$sd_be_name" || error "Backend name expected ($(basename "$bn"))"
-    $sd_be_name ping && note "$sd_be_name found" || warn "No $sd_be_name backend"
+    sd_be_h=sd_${sd_be}
+    $sd_be_h ping && note "$sd_be found" || warn "No $sd_be backend"
   done
 }
+statusdir_flags__backends=-
 statusdir_als__bes=backends
 
 
@@ -65,7 +54,7 @@ statusdir_man_1__backend="Print current backend's name. See 'be' to invoke it
 directly. "
 statusdir__backend()
 {
-  $sd_be backend
+  statusdir_run backend
 }
 
 statusdir_man_1__assert="echos path. Default index is 'tree'."
@@ -92,14 +81,21 @@ statusdir__record()
   statusdir_record "$@"
 }
 
-statusdir__index()
+statusdir__status ()
 {
-  statusdir_index "$@"
+  statusdir_run status "$@"
 }
 
-statusdir__index_file()
+statusdir__index()
 {
-  statusdir_index_file "$@"
+  : "${fsd_rtype:="index"}"
+  statusdir_run index "$@"
+}
+
+statusdir__index_file() # [ Name | Path ]
+{
+  test -n "$*" || set -- "name"
+  statusdir_run $1 "$@"
 }
 
 # XXX: deprecate for index/index-file
@@ -107,7 +103,7 @@ statusdir__file()
 {
   test -n "$STATUSDIR_ROOT" || return 66
   tree="$(echo "$@" | tr ' ' '/')"
-  trueish "$assert_dir" && case "$tree" in */* ) ;;
+  trueish "${assert_dir-}" && case "$tree" in */* ) ;;
         * ) statusdir__assert_dir "$@" >/dev/null ;;
       esac
   echo $STATUSDIR_ROOT"index/$tree"
@@ -172,37 +168,36 @@ statusdir__cons_json()
   mv $tmpf $status_json
   echo $status_json
 }
+statusdir_flags__cons_json=-
 
 statusdir__ping()
 {
   test -z "$*" || error "unexpected arguments '$*'" 1
-  $sd_be ping || return $?
+  $sd_be_h ping || return $?
 }
 
-statusdir__load()
+statusdir__init()
 {
-  test -z "$*" || error "unexpected arguments '$*'" 1
-  $sd_be load || return $?
+  $sd_be_h init "$@" || return $?
 }
 
-statusdir__unload()
+statusdir__deinit()
 {
-  test -z "$*" || error "unexpected arguments '$*'" 1
-  $sd_be unload || return $?
+  $sd_be_h deinit "$@" || return $?
 }
 
 statusdir__list()
 {
   test -n "${1-}" || error "key expected" 1
   test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
-  $sd_be list $1 || return $?
+  $sd_be_h list $1 || return $?
 }
 
 statusdir__get()
 {
   test -n "${1-}" || error "key expected" 1
   test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
-  $sd_be get $1 || return $?
+  $sd_be_h get $1 || return $?
 }
 
 statusdir__set()
@@ -211,7 +206,7 @@ statusdir__set()
   test -n "${2-}" || error "value expected" 1
   test -n "${3-}" || set -- "$1" "$2" 0
   test $# -eq 3 -a -z "${4-}" || error "surplus arguments '$4'" 1
-  $sd_be set "$1" "$3" "$2" || return $?
+  $sd_be_h set "$1" "$3" "$2" || return $?
 }
 
 # FIXME: statusdir_als__delete=del
@@ -219,7 +214,7 @@ statusdir__del()
 {
   test -n "${1-}" || error "key expected" 1
   test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
-  $sd_be del $1 || return $?
+  $sd_be_h del $1 || return $?
 }
 
 statusdir__incr()
@@ -227,7 +222,7 @@ statusdir__incr()
   test -n "${1-}" || error "key expected" 1
   test -n "${2-}" || set -- "$1" 1
   test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
-  $sd_be incr $1 $2 || return $?
+  $sd_be_h incr $1 $2 || return $?
 }
 
 statusdir__decr()
@@ -235,26 +230,26 @@ statusdir__decr()
   test -n "${1-}" || error "key expected" 1
   test -n "${2-}" || set -- "$1" 1
   test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
-  $sd_be decr "$@" || return $?
+  $sd_be_h decr "$@" || return $?
 }
 
 statusdir__exists()
 {
   test -n "${1-}" || error "key expected" 1
   test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
-  $sd_be exists "$1" || return $?
+  $sd_be_h exists "$1" || return $?
 }
 
 statusdir__has()
 {
-  $sd_be has "$@" || return $?
+  $sd_be_h has "$@" || return $?
 }
 
 statusdir__members()
 {
   test -n "${1-}" || error "key expected" 1
   test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
-  $sd_be members "$1" || return $?
+  $sd_be_h members "$1" || return $?
 }
 
 statusdir__add()
@@ -262,7 +257,7 @@ statusdir__add()
   test -n "${1-}" || error "key expected" 1
   test -n "${2-}" || error "member expected" 1
   test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
-  $sd_be add "$@" || return $?
+  $sd_be_h add "$@" || return $?
 }
 
 statusdir__rem()
@@ -270,46 +265,33 @@ statusdir__rem()
   test -n "${1-}" || error "key expected" 1
   test -n "${2-}" || error "member expected" 1
   test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
-  $sd_be rem "$@" || return $?
+  $sd_be_h rem "$@" || return $?
 }
 
 
 statusdir__be()
 {
   test -n "${1-}" || error "cmd expected" 1
-  $sd_be "$@"
+  $sd_be_h "$@"
 }
 
 statusdir__x()
 {
   test -n "${1-}" || error "cmd expected" 1
-  $sd_be x "$@"
+  $sd_be_h x "$@"
 }
 
 
 # Generic subcmd's
 
-statusdir_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-statusdir_flags__help=f
-statusdir_spc__help='-h|help [ID]'
-statusdir__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  lib_require ctx-std || return
-  choice_global=1 std__help "$@"
-  rm_failed || return
-}
-statusdir_als___h=help
-statusdir_als__commands=help
 
-
-statusdir_man_1__version="Version info"
-statusdir__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
-statusdir_als___V=version
 statusdir_als____version=version
+statusdir_als___V=version
+statusdir_grp__version=ctx-main\ ctx-std
+
+statusdir_als____help=help
+statusdir_als___h=help
+statusdir_grp__help=ctx-main\ ctx-std
 
 
 statusdir_man_1__edit='Edit this script and files'
@@ -322,35 +304,6 @@ statusdir_als___e=edit
 
 
 
-# Script main functions
-
-### Main
-
-statusdir_main()
-{
-  test -n "${verbosity-}" || verbosity=5
-  local scriptname=$(basename $0 .sh) base=statusdir \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" subcmd=
-
-  INIT_LOG=$LOG
-  true "${script_util:="$scriptpath/tools/sh"}"
-  statusdir_main_init || exit $?
-  shell_lib_init || return
-  unset INIT_LOG
-
-  case "$scriptname" in $base | sd )
-
-        statusdir_main_lib || exit 2$?
-        statusdir_subcmd_load || exit 1$?
-        main_run_subcmd "$@" || exit 0$?
-      ;;
-
-    * )
-        error "$scriptname: not a frontend for $base"
-      ;;
-  esac
-}
-
 statusdir_main_usage()
 {
     cat <<EOM
@@ -362,39 +315,32 @@ Usage:
 EOM
 }
 
-statusdir_main_init()
-{
-  test -n "$script_util" || return 103 # NOTE: sanity
-  test -n "$scriptpath" || return
-  local scriptname_old=$scriptname; export scriptname=statusdir-main-init
 
-  true "${sd_be:="fsdir"}"
-  CWD=$scriptpath
 
-  #init-log\ ucache\ scriptpath\ std
-  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std" \
-  INIT_LIB=" os sys str src shell log logger-std logger-theme main meta shell str-htd std stdio" \
-      . $scriptpath/tools/main/init.sh || return
+# Script main functions
 
-  # -- statusdir box init sentinel --
-  export scriptname=$scriptname_old
-}
+main-bases statusdir sd main std
+main-local sd_be_h
+main-init-env \
+  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std" \\
+  INIT_LIB="\$default_lib date statusdir notify log logger-std logger-theme main meta shell str-htd std stdio ctx-std ctx-statusdir ctx-class"
 
-statusdir_main_lib()
-{
-  test -z "${__load_lib-}" || return 14
-  lib_load box date statusdir notify
-  # -- statusdir box lib sentinel --
-  set --
-}
+#main-init \
+  #test -n "${verbosity-}" || verbosity=${v:-5}
+  #export verbosity
 
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
+main-load \
+    test -n "$flags" || flags=b
 
-  # Ignore 'load-ext' sub-command
-  test "${1-}" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    statusdir_main "$@"
-  }
-;; esac
+#  statusdir_lib_start && statusdir_start
+main-load-flags \
+    - ) ;; \
+    b ) statusdir_start || return ;; \
+    * ) stderr error "No such flag (sub-command $subcmd): load $x" 1 ;;
+
+main-unload-flags \
+    - ) ;; \
+    b ) statusdir_finish ;; \
+    * ) stderr error "No such flag (sub-command $subcmd): unload $x" 1 ;;
+
+#

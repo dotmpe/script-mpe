@@ -269,7 +269,7 @@ git_annex_unusedkeys_backupfiles() # Key-List-File
 
 annex_contentexists() # Dir SHA256E-Key
 {
-  local cwd="$(pwd)"
+  local cwd="$PWD"
   content_location="$(cd "$1" && git annex contentlocation "$2" || true)"
   cd "$cwd"
   test -n "$content_location" -a -s "$1/$content_location" || return $?
@@ -277,7 +277,7 @@ annex_contentexists() # Dir SHA256E-Key
 
 annex_keyexists() # Dir SHA256E-Key
 {
-  local cwd="$(pwd)"
+  local cwd="$PWD"
   content_location="$(cd "$1" && git annex contentlocation "$2" || true)"
   cd "$cwd"
   stderr 0 "Content Location $content_location"
@@ -379,7 +379,7 @@ annexdir_get()
   #test -n "$1" || set -- .
   std_info "Annexdir get '$*'..."
   # From Annex/* dir, sync and an get all
-  for a in $(pwd)/*/
+  for a in $PWD/*/
   do
     echo "$a"
     test -e "$a/.git" || continue
@@ -508,7 +508,7 @@ annices_lookup_by_sha2()
 annices_scan_for_sha2()
 {
   test -n "$1" || stderr 0 "SHA2 expected" 1
-  local cwd="$(pwd)"
+  local cwd="$PWD"
   for annex in $content_annices
   do
     cd "$annex"

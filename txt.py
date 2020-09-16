@@ -55,6 +55,7 @@ cmd_default_settings = dict(
 
 
 def cmd_urllist(LIST, g):
+    global ctx
     prsr = res.lst.URLListParser()
     l = list(prsr.load_file(LIST))
     g.tp = 'locator'
@@ -63,6 +64,7 @@ def cmd_urllist(LIST, g):
     ctx.flush()
 
 def cmd_todolist(LIST, g):
+    global ctx
     # TODO: extend new res.txt2 parser base
     prsr = res.todo.TodoListParser()
     l = list(prsr.load_file(LIST))
@@ -76,8 +78,6 @@ def cmd_todotxt(TXT, g):
     TXT = TXT or 'todo.txt'
     list(prsr.load(TXT))
     for o in prsr.items():
-        #print(o.todotxt())
-        #print(res.js.dumps(prsr[k].attrs))
         ctx.out(o)
     ctx.flush()
 

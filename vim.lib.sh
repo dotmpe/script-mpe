@@ -1,4 +1,4 @@
-# Run VIM command with output on stdout. Hides stderr so make sure command
+# Run Vim command with output on stdout. Hides stderr so make sure command
 # works.
 vim_cmd_stdout () # Cmd
 {
@@ -40,3 +40,44 @@ vim_docpath ()
     echo $dir/doc
   done
 }
+
+# Write a VIM command file to configure editor on startup, to be used
+# like: vim -c 'source $sys_tmp/<Name-ID>.vimcmd'
+vim_prepare_session () # Name-ID Layout
+{
+  test $# -gt 0 -a -n "${1-}" || return 98
+  vim_panes_startupcmd "$2" > $sys_tmp/$1.vimcmd
+  printf -- '-c "source %s"' "$sys_tmp/$1.vimcmd"
+}
+
+# Output script to set a pane-layout with file arg-1 top-left, arg-2 to the right, etc.
+vim_panes_startupcmd () # Layout
+{
+  test -n "${1-}" || set -- "1.2-threepanes"
+
+  # modes of equal divs with 2, 3 or 4 editor buffers
+  case "$1" in
+
+    1-twopanes ) # Two columns
+        printf -- "+vs\nwincmd l\n:bn\n:wincmd h\n" ;;
+
+    2-twopanes ) # Two rows
+        printf -- ":sp\nwincmd j\n:bn\n:wincmd k\n" ;;
+
+    1.2-threepanes ) # Full height left and one h-split right
+        printf -- "+vs\nwincmd l\n:bn\n:sp\nwincmd j\n:bn\n"
+        printf -- ":wincmd h\n" ;; # move back to first buffer
+
+    3-fourpanes ) # Two columns, two h-splits each
+        printf -- \
+"+vs\n:sp\nwincmd j\n:bn\nwincmd l\n:bn\n:sp\n:bn\nwincmd j\n:bn\n:bn\n"
+        printf ":wincmd h\n:wincmd k\n" # Move back to first buffer
+      ;;
+
+    * ) $LOG error "" "No such Vim layout" "$1" 1 ;;
+  esac
+
+  printf ":wincmd =\n"  # Equalize col/rows
+}
+
+#

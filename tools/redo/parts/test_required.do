@@ -1,10 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 redo-always
-scriptpath=$REDO_BASE . $REDO_BASE/tools/sh/init.sh &&
-  lib_load &&
-  scriptname="do:$REDO_PWD:$1" &&
-  cd "$REDO_BASE" &&
-  lib_load build-test &&
-  build_test_init &&
+#scriptpath=$REDO_BASE . $REDO_BASE/tools/sh/init.sh &&
+#scriptname="do:$REDO_PWD:$1" &&
+#cd "$REDO_BASE" &&
+    lib_require src std package build-test build-htd
+
+build_init && build_test_init &&
+
   for dep in $package_specs_required
   do
       set -- "$1" "$2" "$3" "$cllct_test_base/$dep.tap"

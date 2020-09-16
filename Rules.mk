@@ -201,7 +201,7 @@ symlinks: $/.symlinks
 	@\
 	$(call log,header1,$@,Symlinking from,$^);\
 	#SCRIPT_MPE=/srv/project-mpe/script-mpe
-	SCRIPT_MPE=$(pwd) ./init-symlinks.sh .symlinks
+	SCRIPT_MPE=$PWD ./init-symlinks.sh .symlinks
 
 .PHONY: symlinks
 INSTALL += symlinks

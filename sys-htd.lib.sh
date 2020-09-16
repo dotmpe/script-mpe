@@ -52,7 +52,7 @@ sys_htd_lib_init()
 
 require_fs_casematch()
 {
-  local CWD="$(pwd)"
+  local CWD="$PWD"
   test -n "$1" && {
     cd "$1"
   }

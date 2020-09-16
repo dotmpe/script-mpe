@@ -12,23 +12,23 @@ build_test_lib_load()
 # Initialize build-test settings, set Test-Specs
 build_test_init() # Specs...
 {
-  test -n "$base" || base=build-test.lib
-  test -n "$build_init" || build_init
+  test -n "${base-}" || base=build-test.lib
+  test -n "${build_init-}" || build_init
 
   # Set function to retrieve test paths/names (all or those for given component)
-  test -n "$component_tests" || component_tests=component_testnames
+  test -n "${component_tests-}" || component_tests=component_testnames
 
   # Set function to resolve test path/name runner and execute
-  test -n "$component_test" || component_test=component_test_exec
+  test -n "${component_test-}" || component_test=component_test_exec
 
   # Set functions to run after test pass/fail/error/bail, or for components
   # without any test
-  test -n "$project_test_ok" || project_test_ok=project_test_ok
-  test -n "$project_test_nok" || project_test_nok=project_test_nok
-  test -n "$project_test_error" || project_test_error=project_test_error
-  test -n "$project_test_none" || project_test_none=project_test_none
+  test -n "${project_test_ok-}" || project_test_ok=project_test_ok
+  test -n "${project_test_nok-}" || project_test_nok=project_test_nok
+  test -n "${project_test_error-}" || project_test_error=project_test_error
+  test -n "${project_test_none-}" || project_test_none=project_test_none
   # Bail covers skipped and TODO tagged tests, but does not indicate error
-  test -n "$project_test_bail" || project_test_bail=project_test_bail
+  test -n "${project_test_bail-}" || project_test_bail=project_test_bail
   # Process files before adding to stage, or comitting. These should return 0
   # so can be used to abort git add/update or commit. (XXX: except there is no
   # pre-add or pre-update hook afaik so that only works through the build
@@ -36,33 +36,35 @@ build_test_init() # Specs...
 
   # XXX: TDD, lists, built-init
 
-  test -n "$project_watch_mode" || project_watch_mode=
-  test -n "$default_watch_poll_sleep" || default_watch_poll_sleep=5
+  test -n "${project_watch_mode-}" || project_watch_mode=
+  test -n "${default_watch_poll_sleep-}" || default_watch_poll_sleep=5
 
-  case "$component_map" in component_map_list )
-      test -n "$component_map_list" || component_map_list=$PWD/test-map.list
-  ;; esac
-  test -n "$component_map" || component_map=component_map_basenameid
+  test "${component_map-}" = component_map_list  && {
+      test -n "$component_map_list-}" || component_map_list=$PWD/test-map.list
+  }
+  test -n "${component_map-}" || component_map=component_map_basenameid
 
-  test -n "$package_build_unit_spec" || # XXX: renamed.
+  test -z "${package_build_unit_spec-}" || # XXX: renamed.
       package_specs_units=$package_build_unit_spec
-  test -n "$package_specs_units" ||
+
+  test -n "${package_specs_units-}" ||
       package_specs_units="test/py/\${id}.py test/\${id}-lib-spec.bats \
                            test/\${id}-spec.bats test/\${id}.bats"
-  test -n "$package_specs_features" || package_specs_features='${1}.feature'
-  test -n "$package_specs_tests_other" || package_specs_tests_other='${1}.do'
+  test -n "${package_specs_features-}" || package_specs_features='${1}.feature'
+  test -n "${package_specs_tests_other-}" || package_specs_tests_other='${1}.do'
 
-  test -n "$package_specs_baselines" ||
+  test -n "${package_specs_baselines-}" ||
       package_specs_baselines="test/\${id}-baseline.*"
 
-  test -n "$package_specs_tests_other" ||
+  test -n "${package_specs_tests_other-}" ||
       package_specs_tests_other="test/\${1}.do"
 
-  test -n "$package_specs_ignore" ||
+  test -n "${package_specs_ignore-}" ||
       package_specs_ignore='*/_[a-z]* _[a-z]*'
 
   # Enable BATS 'load' helper
   . $HOME/bin/test/init.bash
+  true "${TEST_ENV:="$_ENV"}"
   load_init
   BATS_LIB_PATH=$BATS_LIB_PATH:$HOME/bin/test:$HOME/bin/test/helper
 
@@ -154,7 +156,7 @@ test_shells()
     test -x "$(which $sh)" && {
       $sh -c "$@" || return
     } || {
-      docker run --workdir /dut -v $(pwd):/dut dotmpe/treebox:dev \
+      docker run --workdir /dut -v $PWD:/dut dotmpe/treebox:dev \
         $sh -c "$@" || return
     }
   done
@@ -490,12 +492,6 @@ any_component() # Spec-Set Comp-Id...
 }
 
 # TODO: revise test specset setup
-
-redo_deps()
-{
-  lib_load redo &&
-  redo_deps "$@"
-}
 
 tested()
 {

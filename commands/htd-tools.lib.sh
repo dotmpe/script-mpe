@@ -30,7 +30,7 @@ htd_tools_list()
 
 htd_tools_installed()
 {
-  test -n "$1" || set -- $(tools_list) ; test -n "$*" || return 2 ;
+  test -n "${1-}" || set -- $(tools_list) ; test -n "$*" || return 2 ;
   test "$out_fmt" = "yml" && echo "tools:" ; while test $# -gt 0
   do
     installed $B/tools.json "$1" && {
@@ -45,7 +45,6 @@ htd_tools_installed()
 
 htd_tools_install()
 {
-  local verbosity=6
   while test $# -gt 0
   do
     install_bin $B/tools.json $1 \
@@ -57,7 +56,6 @@ htd_tools_install()
 
 htd_tools_uninstall()
 {
-  local verbosity=6
   while test $# -gt 0
   do
     uninstall_bin $B/tools.json "$1" \

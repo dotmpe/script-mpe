@@ -169,17 +169,21 @@ diff_where() # Where/Line Where/Span Src-File
   echo
 }
 
-# List values for directive from file
+# List values for include-type pre-processor directives from file and all
+# included files.
 list_preproc() # Directive File
 {
   # Resolve all includes recursively
   for ref in $(grep_preproc "$@")
   do
-      fnmatch "[/~$]*" "$ref" || ref=$(dirname "$2")/$ref
-      file="$(eval echo "$ref")"
-      echo "$file"
-      test -e "$file" || continue
-      list_preproc $1 "$file"
+    fnmatch "[/~$]*" "$ref" && fileref=$ref || fileref=$(dirname "$2")/$ref # make abs path
+    file="$(eval echo "$fileref")" # expand vars, user
+    echo "$ref $file"
+    test -e "$file" || {
+      $LOG warn "" "Cannot resolve $1 file" "$ref"
+      continue
+    }
+    list_preproc $1 "$file"
   done
 }
 
@@ -195,10 +199,10 @@ expand_preproc() # Directive File
 {
   # Get include lines, reformat to sed commands, and execute sed-expr on input
   list_preproc "$@" |
-  while read -r include
+  while read -r includeref file
   do printf -- '/^#'$1'\ %s/r %s\n' \
-      "$(match_grep "$include")" \
-      "$(eval echo $include)"
+      "$(match_grep "$includeref")" \
+      "$file"
   done | $gsed -f - "$2"
 }
 

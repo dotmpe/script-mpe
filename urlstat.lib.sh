@@ -34,23 +34,21 @@ stattab_entry_update()
 }
 
 # List entries; first argument is glob, converted to (grep) line-regex
-urlstat_list() # Match-Line
+urlstat_list () # [Glob] [URLs.list]
 {
-  test -n "$2" || set -- "$1" "$URLSTAT_TAB"
-  test -n "$1" && {
-    grep_f=
-    re=$(compile_glob "$1")
-    $ggrep $grep_f "$re" "$2" || return
+  test -n "${2-}" || set -- "${1-}" "$URLSTAT_TAB"
+  test -n "${1-}" && {
+    test -n "${grep_f-}" || local grep_f=
+    $ggrep $grep_f "$(compile_glob "$1")" "$2" || return
   } || {
     read_nix_style_file "$2" || return
   }
 }
 
 # List URI-Ref's
-urlstat_urllist() # ? LIST
+urlstat_urls () # [Glob] [URLs.list]
 {
-  test -n "$2" || set -- "$1" "$URLSTAT_TAB"
-  read_nix_style_file "$2" | $gsed -E 's/^[0-9 +-]*([^ ]*).*$/\1/'
+  urlstat_list "$@" | $gsed -E 's/^[0-9 +-]*([^ ]*).*$/\1/'
 }
 
 # Generate line and append entry to statusdir index file
@@ -88,23 +86,6 @@ urlstat_init_fields() # URI-Ref [Init-Tags]
   #test -n "$urlstat_file" &&  {
   #    fnmatch "* <$urlstat_file> *" " $tags " || echo "<$urlstat_file>"
   #  }
-}
-
-date_pstat()
-{
-  test "$1" = "-" &&
-    echo "$1" || {
-    date_parse "$(echo "$1" | $gsed -E \
-      -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})([0-9]{2})/\1-\2-\3T\4:\5:\6/' \
-      -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})/\1-\2-\3T\4:\5/' \
-      -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})/\1-\2-\3T\4/' \
-      -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})$/\1-\2-\3/' \
-      -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})/\1-\2-\3T/' \
-      -e 's/T([+-])([0-9]{2})([0-9]{2})$/T\1\2:\3/' \
-      -e 's/T([+-])([0-9]{2})$/T\1\2:00/' \
-      -e 's/T([+-])/T00:00:00\1/' \
-    )"
-  }
 }
 
 # Get lines to initial stat descr for

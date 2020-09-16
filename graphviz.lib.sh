@@ -55,10 +55,11 @@ gv__load_subcmd()
   test -n "$subcmd" || subcmd=$def_subcmd
   test -n "$subcmd" || error "no cmd or default" 1
 
-  subcmd_func="$(echo_local "$subcmd")"
+  subcmd_func="$(main_local "$baseid" "" "$subcmd")"
 
+  main_var flags "$baseids" flags "${flags_default-}" "$subcmd"
   # Look for <base>_flags__<subcmd> variable
-  for x in $(try_value "$subcmd" flags gv | sed 's/./&\ /g')
+  for x in $(echo $flags | sed 's/./&\ /g')
   do case "$x" in
 
       a )
@@ -97,7 +98,7 @@ gv__load_subcmd()
 # Post-run: unset, cleanup
 gv_unload()
 {
-  for x in $(try_value "$subcmd" flags gv | sed 's/./&\ /g')
+  for x in $(echo $flags | sed 's/./&\ /g')
   do case "$x" in
 
       b )
@@ -113,8 +114,7 @@ gv_unload()
     esac
   done
 
-  unset subcmd subcmd_pref \
-          def_subcmd func_exists func
+  unset subcmd_pref def_subcmd func_exists func
 
   test -z "$failed" -o ! -e "$failed" || {
       rm $failed

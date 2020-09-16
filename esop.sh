@@ -9,7 +9,7 @@ version=0.0.4-dev # script-mpe
 # See $scriptname help to get started
 
 esop_flags__run=f
-esop__run()
+esop__run ()
 {
   test -n "$1" || error "argument expected" 1
   case "$1" in
@@ -53,19 +53,20 @@ esop__run()
 # Generic subcmd's
 
 esop_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-esop_load__help=f
+esop_flags__help=fl
 esop_spc__help='-h|help [ID]'
-esop__help()
+esop__help ()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   choice_global=1 std__help "$@"
-  rm_failed || return
 }
+esop_libs__help=ctx-std
 esop_als___h=help
+esop_als____help=help
 
 
 esop_man_1__version="Version info"
-esop__version()
+esop__version ()
 {
   echo "script-mpe:$scriptname/$version"
 }
@@ -73,25 +74,31 @@ esop_als___V=version
 esop_als____version=version
 
 
-esop__edit()
+esop__edit ()
 {
   $EDITOR $0 $(which $base.py) "$@"
 }
 esop_als___e=edit
 
 
-
-### Main
+### Main parts
 
 MAKE-HERE
-INIT_ENV="init-log 0 0-src dev init-log ucache scriptpath std box" \
-INIT_LIB="str sys os std log stdio main argv shell box src logger-theme"
+  INIT_ENV="init-log 0 0-src dev init-log ucache scriptpath std box" \
+INIT_LIB="str sys os std log stdio main argv shell box src logger-theme ctx-main"
 
 main-local
-failed=
+failed= dry_run=
 
-main-unload
-  clean_failed || unload_ret=1 ; unset failed
+main-load-flags
+    f ) failed=\$(setup_tmpf .failed) ;; \
+    l ) sh_include subcommand-libs || return ;; \
+    * ) stderr error "No such subcmd flag (\$subcmd): load \$x" 1 ;;
+
+main-unload-flags
+    f ) clean_failed || unload_ret=1 ;; \
+    l ) ;; \
+    * ) stderr error "No such subcmd flag (\$subcmd): unload \$x" 1 ;;
 
 main-epilogue
 # Id: script-mpe/0.0.4-dev esop.sh

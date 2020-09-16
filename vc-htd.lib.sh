@@ -12,7 +12,7 @@ vc_htd_lib_load()
 vc_htd_lib_init()
 {
   test ${vc_htd_lib_init-1} -eq 0 && return # Run once
-  lib_assert std
+  lib_assert std sys-htd
 }
 
 # See if path is in GIT checkout
@@ -30,13 +30,8 @@ vc_isgit()
 # Note this is the repo for the root checkout, not for submodules.
 vc_gitdir()
 {
-  test -n "${1-}" || set -- "."
-  test -e "$1" -a -d "$1" || set -- "$(dirname "$1")"
-  test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
-  test -z "${2-}" || error "vc-gitdir surplus arguments: '$2'" 1
+  test $# -eq 0 || { local oldpwd="$PWD"; cd "$1"; }
 
-  local pwd="$(pwd)"
-  cd "$1"
   repo=$(git rev-parse --git-dir 2>/dev/null)
   while fnmatch "*/.git/modules*" "$repo"
   do repo="$(dirname "$repo")" ; done
@@ -44,28 +39,24 @@ vc_gitdir()
   echo "$repo"
   #repo="$(git rev-parse --show-toplevel)"
   #echo $repo/.git
-  cd "$pwd"
+
+  test $# -eq 0 || cd "$oldpwd"
 }
 
 # Echo the repository dir for current checkout. Gives .git/modules sub-dir
 # for GIT submodules.
 vc_gitrepo()
 {
-  test -n "${1-}" || set -- "."
-  test -e "$1" -a -f "$1" || set -- "$(dirname "$1")"
-  test -d "$1" || error "vc-gitdir expected dir argument: '$1'" 1
-  test -z "$2" || error "vc-gitdir surplus arguments: '$2'" 1
+  test $# -eq 0 || { local oldpwd="$PWD"; cd "$1"; }
 
-  local pwd="$(pwd)"
-  cd "$1" || return
   git rev-parse --git-dir || return
-  cd "$pwd"
+  test $# -eq 0 || cd "$oldpwd"
 }
 
 vc_hgdir()
 {
   test -d "$1" || error "vc-hgdir expected dir argument: '$1'" 1
-  ( cd "$1" && go_to_dir_with .hg && echo "$(pwd)"/.hg || return 1 )
+  ( cd "$1" && go_to_dir_with .hg && echo "$PWD"/.hg || return 1 )
 }
 
 vc_issvn()
@@ -77,7 +68,7 @@ vc_issvn()
 vc_svndir()
 {
   test -d "$1" || error "vc-svndir expected dir argument: '$1'" 1
-  ( test -e "$1/.svn" && echo $(pwd)/.svn || return 1 )
+  ( test -e "$1/.svn" && echo $PWD/.svn || return 1 )
 }
 
 vc_bzrdir()
@@ -93,11 +84,11 @@ vc_bzrdir()
   return 1
 }
 
-# NOTE: scanning like this does not allow to nest in different repositories
-# except but one in order.
+# Auto-detect SCM system at directory, in order: GIT, BazaarNG, Subversion,
+# Mercurial. To start specific SCM directly call 'vc_<scmid>dir "$@"'.
 vc_dir()
 {
-  test -n "${1-}" || set -- "."
+  test -n "${1-}" || set -- $PWD
   test -d "$1" || error "vc-dir expected dir argument: '$1'" 1
   test -z "${2-}" || error "vc-dir surplus arguments: '$2'" 1
   vc_gitdir "$1" && return
@@ -123,7 +114,8 @@ vc_scmdir()
   vc_dir "$@" || error "can't find SCM-dir" 1
 }
 
-vc_getscm()
+# Lookup vc-dir
+vc_getscm() # [PWD]
 {
   scmdir="$(vc_dir "$@")"
   test -n "$scmdir" || return 1
@@ -163,7 +155,7 @@ vc_remotes_hg()
 vc_remotes() # DIR [NAME]
 {
   test -z "$3" || error "vc-remote surplus arguments" 1
-  local pwd=$(pwd) r=
+  local pwd=$PWD r=
   test -z "$1" || {
     cd "$1"
     vc_getscm
@@ -246,7 +238,7 @@ vc_remote()
   test -n "$2" || error "vc-remote expected remote name" 1
   test -z "$3" || error "vc-remote surplus arguments" 1
 
-  local pwd=$(pwd)
+  local pwd=$PWD
   cd "$1"
   vc_remote_$scm "$2"
   cd "$pwd"
@@ -257,9 +249,9 @@ vc_remote()
 # and that its the currently checked out version.
 vc_gitdiff()
 {
-  test -n "$1" || error "vc-gitdiff expected src" 1
-  test -n "$2" || error "vc-gitdiff expected trgt" 1
-  test -z "$3" || error "vc-gitdiff surplus arguments" 1
+  test -n "${1-}" || error "vc-gitdiff expected src" 98
+  test -n "${2-}" || error "vc-gitdiff expected trgt" 98
+  test -z "${3-}" || error "vc-gitdiff surplus arguments: '$3'" 98
   test -n "$GITDIR" || error "vc-gitdiff expected GITDIR env" 1
   test -d "$GITDIR" || error "vc-gitdiff GITDIR env is not a dir" 1
 
@@ -280,54 +272,55 @@ vc_gitdiff()
 
 vc_unversioned_git()
 {
-  git ls-files --others --exclude-standard --dir || return $?
+  git ls-files --others --exclude-standard --dir "$@"
 }
 
 vc_unversioned_bzr()
 {
-  bzr ls --unknown || return $?
+  bzr ls --unknown "$@"
 }
 
 vc_unversioned_svn()
 {
-  {
-    svn status | grep '^?' | sed 's/^?\ *//g'
-  } || return $?
+  svn status | grep '^?' | sed 's/^?\ *//g'
 }
 
 vc_unversioned_hg()
 {
-  hg status --unknown | cut -c3-
+  hg status --unknown "$@" | cut -c3-
 }
 
 # List untracked paths (excluding ignored files)
 vc_unversioned()
 {
-  test -n "${RCWD-}" || error spwd-13 13
+  pwd_p && push_pwd || pwd_init # Start tracking PWD on PWD_P stack.
+
+  test -n "${scm-}" || vc_getscm # Get scm-id/scm-dir
 
   # list paths not in git (including ignores)
-  vc_unversioned_$scm
+  vc_unversioned_$scm "$@"
 
   test "$scm" = "git" && {
 
     vc_git_submodules | while read prefix
     do
-      smpath="$PCWD/$prefix"
-      cd "$smpath"
-      ppwd="$smpath" spwd="$RCWD/$prefix" \
-        vc_unversioned \
-            | grep -Ev '^\s*(#.*|\s*)$' \
-            | sed 's#^#'"$prefix"'/#'
+      push_pwd $prefix
+
+      vc_unversioned "$@" \
+          | grep -Ev '^\s*(#.*|\s*)$' \
+          | sed 's#^#'"$prefix"'/#'
+
+      pop_pwd
     done
   }
 
-  cd "$PCWD"
+  pop_pwd || true
 }
 
 
 vc_untracked_bzr()
 {
-  bzr ls --ignored --unknown "$@" || return $?
+  bzr ls --ignored --unknown "$@"
 }
 
 vc_untracked_git()
@@ -349,7 +342,9 @@ vc_untracked_hg()
 # List any untracked paths (including ignored files)
 vc_untracked()
 {
-  test -n "$RCWD" || error spwd-12 12
+  pwd_p && push_pwd || pwd_init # Start tracking PWD on PWD_P stack.
+
+  test -n "${scm-}" || vc_getscm # Get scm-id/scm-dir
 
   vc_untracked_$scm "$@"
 
@@ -357,22 +352,21 @@ vc_untracked()
 
     vc_git_submodules | while read prefix
     do
-        echo "pref='$prefix'"
-      continue
-      echo 0.smpath="$PCWD/$prefix"
-      cd "$smpath"
-      echo 1.ppwd=$smpath spwd=$RCWD/$prefix \
-        vc_untracked "$@" \
-            | grep -Ev '^\s*(#.*|\s*)$' \
-            | sed 's#^#'"$prefix"'/#'
+      push_pwd $prefix
+
+      vc_untracked "$@" \
+          | grep -Ev '^\s*(#.*|\s*)$' \
+          | sed 's#^#'"$prefix"'/#'
+
+      pop_pwd
     done
   }
 
-  cd "$PCWD"
+  pop_pwd || true
 }
 
 
-vc_tracked_git()
+vc_tracked_git() # [REV] -- [PATH]
 {
   git ls-files "$@"
 }
@@ -397,9 +391,9 @@ vc_tracked_hg()
 # List file tracked in version
 vc_tracked()
 {
-  pwd_p && push_pwd || pwd_init
+  pwd_p && push_pwd || pwd_init # Start tracking PWD on PWD_P stack.
 
-  test -n "${scm-}" || vc_getscm
+  test -n "${scm-}" || vc_getscm # Get scm-id/scm-dir
 
   # list paths under version control
   vc_tracked_$scm "$@"
@@ -411,12 +405,9 @@ vc_tracked()
     do
       push_pwd $prefix
 
-      #smpath="$CWD/$prefix"
-      #cd "$smpath"
-      #ppwd="$smpath" spwd="$CWD/$prefix" \
-        vc_tracked_git "$@" \
-            | { grep -Ev '^\s*(#.*|\s*)$' || true; }\
-            | sed 's#^#'"$prefix"'/#'
+      vc_tracked_git "$@" \
+          | { grep -Ev '^\s*(#.*|\s*)$' || true; }\
+          | sed 's#^#'"$prefix"'/#'
 
       pop_pwd
     done
@@ -530,23 +521,17 @@ vc_list_all_branches()
 }
 
 
-vc_git_submodules() # [ppwd=.] ~
+vc_git_submodules() #
 {
-  pwd_p && push_pwd "${1-}" || pwd_init
-  test -n "${CWD-}" || local CWD=$PWD
-
   git submodule foreach | sed "s/.*'\(.*\)'.*/\1/" | while read prefix
   do
-    smpath=$CWD/$prefix
-    test -e $CWD/.git || {
+    test -e $PWD/.git || {
       warn "Not a submodule checkout '$prefix' ($CWD/$prefix)"
       continue
     }
     trueish "${quiet-}" || note "Submodule '$prefix' ($CWD/$prefix)"
     echo "$prefix"
   done
-
-  pop_pwd
 }
 
 
@@ -687,7 +672,7 @@ vc_check_git()
 # returns text to add to bash PS1 prompt (includes branch name)
 vc_flags_git()
 {
-  test -n "$1" || set -- "$(pwd)"
+  test -n "$1" || set -- "$PWD"
   g="$(vc_gitdir "$1")"
   test -e "$g" || return
 
@@ -697,8 +682,8 @@ vc_flags_git()
   }
 
   cd "$1"
-  local r
-  local b
+  local r b
+
   if [ -f "$g/rebase-merge/interactive" ]; then
     r="|REBASE-i"
     b="$(cat "$g/rebase-merge/head-name")"
@@ -781,7 +766,7 @@ vc_flags_git()
   staged="$i"
   stashed="$s"
   untracked="$u"
-  state="$r"
+  state="${r-}"
 
   x=
   rg=$g
@@ -797,10 +782,18 @@ vc_flags_git()
     x="$x annex"
   fi
 
-  test -n "${2-}" && fmt="$2" || fmt='(%s%s%s%s%s%s%s%s)'
-  printf "$fmt" "$c" "${b##refs/heads/}" "$w" "$i" "$s" "$u" "$r" "$x"
+  b="${b##refs/heads/}"
 
-  cd "$cwd"
+  test -n "${2-}" && fmt="$2" || fmt='(%s%s%s%s%s%s%s%s)'
+  printf "$fmt" "$c" "$b${b+ }" "$w" "$i" "$s" "$u" "${r-}" "$x"
+  #               |    |          |    |    |    |     |      extensions: annex
+  #               |    |          |    |    |    |   current-op
+  #               |    |          |    |    |  untracked
+  #               |    |          |    |   stash
+  #               |    |          |  stage
+  #               |    |      modified
+  #               |  branch-ref
+  #             repo-type
 }
 
 
@@ -1070,6 +1063,17 @@ vc_author_date() # Commit
   git show -s --format=%aI "$1"
 }
 
+# List 'commit-ref, ISO date and commit-oneline' for path(s), starting with most
+# recent.
+vc_commits () # Log-Args...
+{
+  git log --pretty='format:%C(auto)%h %ad %s' --date=short --follow "$@"
+}
+
+vc_list_paths_git () # [DIR]
+{
+  find ${1:-"."} -type d -iname .git -print -prune
+}
 
 # Boilerplate
 #vc_status_git()
@@ -1086,3 +1090,5 @@ vc_author_date() # Commit
 #  test -n "${scm-}" || vc_getscm
 #  vc_status_${scm}
 #}
+
+#

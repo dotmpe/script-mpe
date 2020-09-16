@@ -72,7 +72,7 @@ htd_tmux_init()
   test -n "$3" || {
     set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
   }
-  out=$(setup_tmpd)/htd-tmux-init-$$
+  out=$(setup_tmpf .out htd-tmux-init-$$)
   $tmux has-session -t "$1" >/dev/null 2>&1 && {
     logger "Session $1 exists"
     note "Session $1 exists"

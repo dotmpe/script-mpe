@@ -27,11 +27,10 @@ pd_test__git_autoconfig()
 pd_flags__git_status=i
 pd__git_status()
 {
-  local R=0 swpd= ppwd=
+  local R=0
   test -n "$1" || set -- .
   ( cd "$1"; vc__regenerate; )
   # TODO: cleanup vc internals
-  spwd=$1 ppwd=$(cd $1;pwd)
   pd_clean "$1" || R=$?
   case "$R" in
 

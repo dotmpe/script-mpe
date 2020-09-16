@@ -1,3 +1,5 @@
+:Created: 2017-10-03
+
 Radical scans files and directories for commented lines with TODO/FIXME/XXX or
 other tags.
 

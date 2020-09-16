@@ -2,16 +2,22 @@
 
 # Current tasks
 
-htd_tasks_lib_init()
+htd_tasks_lib_load ()
 {
   test -n "${TODOTXT_EDITOR-}" || {
     test -x "$(command -v todotxt-machine)" &&
       TODOTXT_EDITOR=todotxt-machine || TODOTXT_EDITOR=$EDITOR
   }
-  test -n "${tasks_hub-}" || {
-    eval $(map=package_pd_meta_ package_sh tasks_hub)
-    test -z "$tasks_hub" -o -e "$tasks_hub" || mkdir -p "$tasks_hub"
-  }
+}
+
+htd_tasks_lib_init ()
+{
+  test -n "${tasks_hub-}" -o -z "${PACKMETA-}" || htd_tasks_init
+}
+
+htd_tasks_init ()
+{
+  eval $(map=package_pd_meta_ package_sh tasks_hub)
 }
 
 htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".

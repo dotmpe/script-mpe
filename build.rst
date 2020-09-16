@@ -143,4 +143,8 @@ List all tags for image::
 
   docker-hub tags dotmpe/ledge
 
+- FIXME: GIT commit-amend and push-force lets travis rebuild correctly without
+  additional commit, however Travis still believes its git-commit-range starts
+  at the last known commit sha (which has been undone).
+
 ..

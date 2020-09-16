@@ -285,7 +285,7 @@ pd_man_1__disable_clean="drop clean checkouts and disable repository"
 pd__disable_clean()
 {
   test -z "$2" || error "Surplus arguments: $2" 1
-  pwd=$(pwd)
+  pwd=$PWD
   pd__meta list-prefixes "$1" | while read prefix
   do
     test ! -d $prefix || {
@@ -316,7 +316,7 @@ pd__regenerate()
   test -n "$pd_prefix" || error pd_prefix 1
   test -n "$1" || set -- .
   set -- "$(normalize_relative "$pd_prefix/$1")"
-  note "Regenerating meta files in '$1' ($(pwd))"
+  note "Regenerating meta files in '$1' ($PWD)"
   exec 6>$failed
   pd_regenerate "$1"
   exec 6<&-
@@ -330,7 +330,7 @@ pd__update()
 {
   test -n "$1" || set -- .
   set -- "$(normalize_relative "$pd_prefix/$1")"
-  local cwd=$(pwd)
+  local cwd=$PWD
 
   note "Regenerating in $1"
   exec 3>$failed
@@ -581,7 +581,7 @@ pd_flags__enable_all=ybf
 pd__enable_all()
 {
   test $# -gt 0 || return
-  pwd=$(pwd)
+  pwd=$PWD
   while test $# -gt 0
   do
     pd__enable "$1" || touch $failed
@@ -632,7 +632,7 @@ pd__enable()
 pd_flags__init_all=ybf
 pd__init_all()
 {
-  pwd=$(pwd)
+  pwd=$PWD
   while test $# -gt 0
   do
     pd__init "$1" || touch $failed
@@ -688,7 +688,7 @@ pd__set_remotes()
   test -z "$2" || error "Surplus arguments: $2" 1
 
   note "Syncing local remotes with $pdoc repository"
-  cwd=$(pwd)
+  cwd=$PWD
   pd__meta list-remotes "$1" | while read remote
   do
     cd "$cwd"
@@ -724,7 +724,7 @@ no_act()
 pd_flags__disable_all=ybf
 pd__disable_all()
 {
-  pwd=$(pwd)
+  pwd=$PWD
   while test $# -gt 0
   do
     pd__disable "$1" || touch $failed
@@ -844,7 +844,7 @@ pd__add_new()
 pd_flags__update_repo=f
 pd__update_repo()
 {
-  local cwd=$(pwd); prefix=$1; shift; local props="$@"
+  local cwd=$PWD; prefix=$1; shift; local props="$@"
 
   #test -d "$prefix/.git" || {
   #  trueish "$choice_enable" && {
@@ -1482,7 +1482,7 @@ pd_subcmd_load()
   do case "$x" in
     a )
         # Set default args or filter. Value can be literal or function.
-        local pd_default_args="$(eval echo "\"\$$(echo_local $subcmd defargs)\"")"
+        make_local pd_default_args $base defargs "" $subcmd
         pd_default_args "$pd_default_args" "$@"
       ;;
 
@@ -1518,7 +1518,7 @@ pd_subcmd_load()
     g )
         # Set default args based on file glob(s), or expand short-hand arguments
         # by looking through the globs for existing paths
-        pd_trgtglob="$(eval echo "\"\$$(echo_local $subcmd trgtglob)\"")"
+        make_var pd_trgtglob $htd trgtglob "" $subcmd
         pd_globstar_search "$pd_trgtglob" "$@"
       ;;
 
@@ -1570,8 +1570,8 @@ pd_subcmd_load()
       ;;
 
     o )
-        local pd_optsv="$(echo_local $subcmd optsv)"
-        func_exists $pd_optsv || pd_optsv="$(eval echo "\"\$$pd_optsv\"")"
+        local pd_optsv="$(make_local $base optsv "" $subcmd)"
+        func_exists "$pd_optsv" || pd_optsv="${!pd_optsv}"
         test -s "$options" && {
           $pd_optsv < $options
         } || true
@@ -1683,7 +1683,7 @@ pd_subcmd_unload()
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Leaving temp files $(echo $PD_TMPDIR/*)"
 
-  unset subcmd subcmd_pref \
+  unset subcmd_pref \
           def_subcmd func_exists func \
           PD_TMPDIR \
           pd_session_id

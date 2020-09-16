@@ -12,6 +12,7 @@ from sqlalchemy.ext.declarative import api
 from sqlalchemy.orm.exc import NoResultFound
 
 from script_mpe import log
+from script_mpe.lib import type_ref
 from .init import class_registry, SqlBase, get_session
 from . import iface
 
@@ -420,8 +421,7 @@ class ORMMixin(ScriptMixin, InstanceMixin, ModelMixin):
                 pass # XXX: look for transform?
             return doc
 
-        doc_class = type(doc)
-        mod_name = doc_class.__module__ +'.'+ doc_class.__name__
+        mod_name = type_ref(doc)
         if mod_name not in klass.doc_schemas \
         or len(klass.doc_schemas[mod_name]) < 1 \
         or not klass.doc_schemas[mod_name][0]:

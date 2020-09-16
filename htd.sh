@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#FIXME: !/bin/sh
 # Created: 2014-12-17
 #
 # Htdocs: work in progress 'daily' shell scripts
@@ -35,22 +34,21 @@ version=0.0.4-dev # script-mpe
 htd__inputs="arguments prefixes options"
 htd__outputs="passed skipped error failed"
 
-htd_subcmd_load()
+htd_subcmd_load ()
 {
   # -- htd box load insert sentinel --
   local scriptname_old=$scriptname; export scriptname=htd-load
 
+  main_subcmd_func "$subcmd"
+  c=1 ; shift
+
   # Default-Env upper-case: shell env constants
   local upper=1 title=
 
-  # TODO: reinstate htd.sh nounset
-  set -eo pipefail
-  #shopt -s globstar
-
-  CWD=$(pwd)
-  not_trueish "$DEBUG" || {
-    test "$CWD" = "$(pwd -P)" || warn "Current path seems to be aliased ($CWD)"
-  }
+  # XXX: cleanup; CWD=$PWD
+  #not_trueish "$DEBUG" || {
+  #  test "$CWD" = "$(pwd -P)" || warn "Current path seems to be aliased ($CWD)"
+  #}
 
   default_env EDITOR vim || debug "Using EDITOR '$EDITOR'"
   default_env FIRSTTAB 50
@@ -81,6 +79,7 @@ htd_subcmd_load()
     export localpath='' projdir=''
   }
 
+  local lpwd=$PWD
   # Find workspace super-project, and then move back to this script's CWD
   go_to_dir_with .cllct/local.id && {
 
@@ -98,11 +97,11 @@ htd_subcmd_load()
       }
       test "$verbosity" -ge 5 &&
       $htd_log info "htd:load" "Workspace '$workspace' -> Prefix '$prefix'" >&2
-      cd "$CWD"
+      cd "$lpwd"
     }
   } || {
     $htd_log warn "htd:load" "No local workspace" >&2
-    cd "$CWD"
+    cd "$lpwd"
   }
 
   # NOTE: other per-dir or project vars are loaded on a subcommand basis, e.g.
@@ -124,7 +123,7 @@ htd_subcmd_load()
   test -e table.sha1 && R_C_SHA3="$(wc -l < table.sha1)"
 
   stdio_type 0
-  test "$stdio_0_type" = "t" && {
+  test -t 0 && {
     rows=$(stty size|awk '{print $1}')
     cols=$(stty size|awk '{print $2}')
   } || {
@@ -132,7 +131,7 @@ htd_subcmd_load()
     cols=79
   }
 
-  test -n "${htd_tmp_dir-}" || htd_tmp_dir="$(setup_tmpd)"
+  test -n "${htd_tmp_dir-}" || htd_tmp_dir="$sys_tmp"
   test -n "$htd_tmp_dir" || stderr error "htd_tmp_dir load" 1
   main_isdevenv || {
     #rm -r "${htd_tmp_dir:?}"/*
@@ -147,9 +146,9 @@ htd_subcmd_load()
   # Sequence matters. Actions are predefined, or supplied using another subcmd
   # attribute. Action callbacks can be a first class function, or a string var
   # with the actual callback-function name.
-  local flags="$(try_value "${subcmd}" flags htd | sed 's/./&\ /g')"
+  main_var flags "$baseids" flags "${flags_default:=""}" "$subcmd"
   test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
-  for x in $flags
+  for x in $(echo $flags | sed 's/./&\ /g')
   do case "$x" in
 
     A ) # 'argsv' callback gets subcmd arguments, defaults to opt_arg.
@@ -157,8 +156,9 @@ htd_subcmd_load()
     # See 'i'. And htd_inputs/_outputs env.
         test -n "$options" -a -n "$arguments" ||
             stderr error "options/arguments env paths expected" 1
-        local htd_subcmd_argsv=$(echo_local $subcmd argsv)
-        func_exists $htd_subcmd_argsv || {
+        local htd_subcmd_argsv
+        main_var htd_subcmd_argsv $base "" argsv $subcmd
+        func_exists "$htd_subcmd_argsv" || {
           htd_subcmd_argsv="$(eval echo "\${$htd_subcmd_argsv-}")"
           # std. behaviour is a simmple for over the arguments that sorts
           # '-' (hyphen) prefixed words into $options, others into $arguments.
@@ -168,13 +168,15 @@ htd_subcmd_load()
       ;;
 
     a ) # trigger 'argsv' attr. as argument-process-code
-        local htd_args_handler="$(eval echo "\$$(echo_local $subcmd argsv)")"
+        local htd_args_handler
+        main_var htd_subcmd_argsv $base "" argsv $subcmd
         case "$htd_args_handler" in
 
           arg-groups* ) # Read in '--' separated argument groups, ltr/rtl
             test "$htd_args_handler" = arg-groups-r && dir=rtl || dir=ltr
 
-            local htd_arg_groups="$(eval echo "\$$(echo_local $subcmd arg-groups)")"
+            local htd_arg_groups
+            main_var htd_arg_groups $base "" arg-groups $subcmd
 
             # To read groups from the end instead,
             test $dir = ltr \
@@ -192,7 +194,8 @@ htd_subcmd_load()
                 shift
 
               test -s $arguments.$groups || {
-                local htd_defargs="$(eval echo "\$$(echo_local $subcmd defargs-$group)")"
+                local htd_defargs
+                main_var htd_defargs $base "" defargs-$group $subcmd
                 test -z "$htd_defargs" \
                   || { echo $htd_defargs | words_to_lines >>$arguments.$group; }
               }
@@ -204,7 +207,7 @@ htd_subcmd_load()
       ;; # /argv-handler
 
     e ) # env: default/clear for env
-        local htd_subcmd_env=$(try_value $subcmd env htd)
+        local htd_subcmd_env=$(main_value htd env "" $subcmd)
         test -n "$htd_subcmd_env" ||
           stderr error "run 'e': $subcmd env attr is empty" 1
         eval $htd_subcmd_env
@@ -247,8 +250,8 @@ htd_subcmd_load()
       ;;
 
     O ) # 'optsv' callback is expected to process $options from input(s)
-        local htd_subcmd_optsv=$(echo_local $subcmd optsv)
-        func_exists $htd_subcmd_optsv || {
+        local htd_subcmd_optsv=$(main_value htd optsv "" $subcmd)
+        func_exists "$htd_subcmd_optsv" || {
           htd_subcmd_optsv="$(eval echo "\"\${$htd_subcmd_optsv-}\"")"
         }
         test -n "$htd_subcmd_optsv" || htd_subcmd_optsv=htd_optsv
@@ -258,26 +261,35 @@ htd_subcmd_load()
       ;;
 
     P )
-        local prereq_func="$(eval echo "\"\$$(echo_local $subcmd pre)\"")"
-        test -z "$prereq_func" || $prereq_func $subcmd
+        local prereq_func
+        main_var prereq_func htd pre "" $subcmd && $prereq_func $subcmd
       ;;
 
     p ) # set package file and id, update. But don't require, see q.
         # Set to detected PACKMETA file, set main package-id, and verify var
         # caches are up to date. Don't load vars.
         # TODO: create var cache per package-id. store in redis etc.
-        { lib_require package && lib_init package
-        } || return
-        package_lib_init "$CWD"
+        test ${package_lib_loaded:-1} -eq 0 || {
+          lib_require package && lib_init package || return
+        }
+        package_lib_init "$PWD" || return
+
         test -n "$PACKMETA" -a -e "$PACKMETA" && {
-            package_lib_set_local "$CWD" && update_package $CWD
+            package_lib_set_local "$PWD" && update_package $PWD || return
             test -n "$package_id" && note "Found package '$package_id'"
 
         } || warn "No local package '$PACKMETA'"
       ;;
 
     q | Q ) # set if not set, don't update, eval package main env
-        package_lib_init "$CWD"
+        test ${package_lib_loaded:-1} -eq 0 || {
+          lib_require package || return
+        }
+        test ${package_lib_init:-1} -eq 0 || {
+          lib_init package || return
+        }
+        package_lib_init "$CWD" || return
+
         test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
             test -n "$PACKMETA" -a -e "$PACKMETA" && {
                 stderr note "Using package '$PACKMETA'"
@@ -294,7 +306,7 @@ htd_subcmd_load()
           . $PACKMETA_SH || stderr error "local package" 7
           test "$package_type" = "application/vnd.org.wtwta.project" ||
                   stderr error "Project package expected (not $package_type)" 4
-          test -n "$package_env" || export package_env=". $PACKMETA_SH"
+          # test -n "$package_env" || export package_env=". $PACKMETA_SH"
           $LOG debug "" "Found package '$package_id'"
         }
       ;;
@@ -323,7 +335,7 @@ htd_subcmd_load()
         htd_load_ignores
       ;;
 
-    *) stderr error "No such run option ($subcmd): $x" 1 ;;
+    * ) stderr error "No such run option ($subcmd): $x" 1 ;;
 
     esac
   done
@@ -337,11 +349,13 @@ htd_subcmd_load()
   scriptname=$scriptname_old
 }
 
-htd_subcmd_unload()
+htd_subcmd_unload ()
 {
   local scriptname_old=$scriptname; export scriptname=htd-unload
   local unload_ret=0
-  for x in $(try_value "$subcmd" flags htd | sed 's/./&\ /g')
+
+  test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
+  for x in $(echo $flags | sed 's/./&\ /g')
   do case "$x" in
 
     I )
@@ -362,8 +376,8 @@ htd_subcmd_unload()
       ;;
 
     P )
-        local postreq_func="$(eval echo "\"\$$(echo_local $subcmd post)\"")"
-        test -z "$postreq_func" || $postreq_func $subcmd
+        local postreq_func
+        main_var postreq_func htd post "" $subcmd && $postreq_func $subcmd
       ;;
 
     r )
@@ -566,7 +580,7 @@ htd__help_files()
   echo ""
   echo "    Config files"
   echo "  ~/.conf/etc/git/remotes/\$HTD_GIT_REMOTE.sh"
-  echo "  ~/.conf/rules/\$host.sh"
+  echo "  ~/.conf/user/rules/\$host.sh"
   echo ''
   echo 'See dckr for container commands and vc for GIT related. '
 }
@@ -599,14 +613,20 @@ htd_grp__libs=std
 htd_man_1__man='Access to built-in help strings
 
 Man sections:
-  1. (user) commands
-  2. System calls
-  3. Library Fuctions
+  1. (user) commands and tools
+  2. System calls: OS plumbing, ie. kernel entry points, see syscalls(2)
+  3. Library Fuctions: libc, libm, librt etc.
   4. Devices and special files
-  5. File formats and conventions
+  5. File formats, protocols, and corresponding structs
   6. Games, screensavers
-  7. Miscellenea (overview, conventions, misc.)
-  8. SysAdmin tools and Daemons
+  7. Miscellenea (overviews, conventions, charsets, file hierarchy, misc.)
+  8. SysAdmin and privileged commands and tools, daemons and isolated agents,
+     hardware related; emulation, virtualization
+
+  L. math library functions
+  N. tcl functions
+
+See also man-pages(7) and (linux.die.net)[https://linux.die.net/man/] on manual organization.
 '
 htd_spc__man='[Section] Id'
 htd__man()
@@ -624,11 +644,14 @@ htd__help()
   note "Listing all commands, see usage or composure"
 
   test -z "${1-}" || {
-    local cmd=$1 cmd_alias=
-    cmd_alias="$(eval echo \"\$${base}_als_$(echo "_${1}" | tr '-' '_')\")"
-    test -z "$cmd_alias" || cmd="$cmd_alias"
-    load_groups $cmd
+    # local cmd=$1 subcmd= subcmd_alias= subcmd_group=
+    main_subcmd_alias "$1" && { set -- $subcmd; }
+    helpcmd_group="$( main_value "$baseids" "grp" "" "$1" )"
+    test -z "$helpcmd_group" || {
+      main_subcmd_func_load $helpcmd_group || return
+    }
   }
+
   std_help "$@"
   stderr info "Listing all commands, see usage or composure"
 }
@@ -637,12 +660,7 @@ htd_als____help=help
 htd_grp__help=std
 
 
-htd_man_1__version="Version info"
-htd__version()
-{
-  echo "$package_id/$version ($scriptname)"
-}
-#htd_als___V=version
+htd_als___V=version
 htd_als____version=version
 htd_flags__version=p
 htd_grp__version=std
@@ -753,7 +771,7 @@ htd__ls_main_files()
       basename $scr
     done
   } | {
-    trueish "$columnize" && column_layout || cat
+    trueish "${columnize-}" && column_layout || cat
   }
 }
 
@@ -782,7 +800,7 @@ htd__edit_local()
       ;;
   esac
 
-  local paths=$(pwd)
+  local paths=$PWD
   #doc_path_args
 
   #find_paths="$(doc_find_name "$1")"
@@ -801,48 +819,6 @@ htd_als__edit=edit-local
 htd_als___e=edit-local
 
 
-htd_man_1__count="Look for doc and count. "
-htd_spc__count="count"
-htd__count()
-{
-  doc_path_args
-
-  stderr info "Counting files with matching name '$1' ($paths)"
-  doc_find_name "$1" | wc -l
-
-  stderr info "Counting matched content '$1' ($paths)"
-  doc_grep_content "$1" | wc -l
-}
-
-
-htd_man_1__find_doc="Look for document.
-
-TODO: get one document
-"
-htd_spc__find_doc="-F|find-doc (<path>|<localname> [<project>])"
-htd__find_doc()
-{
-  doc_find "$@"
-}
-htd_als___F=find-doc
-htd_flags__find_doc=lx
-htd_libs__find_doc=doc
-
-
-htd_man_1__find_docs='Find documents
-
-TODO: find doc-files, given local package metadata, rootdirs, and file-extensions
-XXX: see doc-find-name
-XXX: replace pwd basename strip with prefix compat routine
-'
-htd_spc__find_docs='find-docs [] [] [PROJECT]'
-htd__find_docs()
-{
-  doc_find_all "$@"
-}
-htd_flags__find_docs=pqlx
-htd_libs__find_docs=doc
-
 
 htd_man_1__volume='See htd volumes'
 htd_man_1__volumes='Volumes
@@ -857,10 +833,11 @@ htd_spc__volumes='volumes [--(,no-)catalog] [CMD]'
 htd_env__volumes="catalog=true"
 htd_of__volumes=list
 htd_flags__volumes=eiAO
+htd_grp__volumes=volume-htd\ disk\ sys-htd
 htd__volumes()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  test -n "$1" || set -- list
+  test -n "${1-}" || set -- list
   case "$1" in
 
     list ) shift ; htd_list_volumes "$@" ;;
@@ -885,7 +862,8 @@ htd_man_1__copy='Copy script from other project. '
 htd_spc__copy='copy Sub-To-Script [ From-Project-Checkout ]'
 htd__copy() # Sub-To-Script [ From-Project-Checkout ]
 {
-  test -n "$2" || set -- "$1" $HOME/bin
+  test $# -gt 0 -a -n "${1-}" || return
+  test -n "${2-}" || set -- "$1" $HOME/bin
   test -e "$2/$1" || {
     error "No Src $1 at $2" 1
   }
@@ -898,7 +876,7 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
     cp $2/$1 $1
     xsed_rewrite 's/Id:/From:/g' $1
     test ! -e .versioned-files.list || {
-      echo "# Id: $(basename "$(pwd)")/" >> $1
+      echo "# Id: $(basename "$PWD")/" >> $1
       grep -F "$1" .versioned-files.list ||
         echo $1 >> .versioned-files.list
       git-versioning update
@@ -913,7 +891,7 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
 
 
 htd_flags__current=fpql
-htd_libs__current=htd-list\ htd-tasks\ ctx-base
+htd_libs__current=sys-htd\ htd-list\ htd-tasks\ ctx-base
 htd__current()
 {
   htd_wf_ctx_sub current "$@"
@@ -950,7 +928,7 @@ htd__list()
   htd_wf_ctx_sub list "$@"
 }
 htd_flags__list=ql
-htd_libs__list=list\ htd-list
+htd_libs__list=list\ htd-list\ src-htd\ context
 
 
 htd_man_1__status='Quick context status
@@ -959,8 +937,8 @@ Per host, cwd info
 '
 htd_als__st=status
 htd_als__stat=status
-htd_flags__status=ql
-htd_libs__status=package\ sys-htd\ ctx-std\ htd-list\ htd-tasks\ ctx-base
+htd_flags__status=lq
+htd_libs__status=package\ sys-htd\ htd-list\ htd-tasks\ ctx-base\ htd-prefix
 htd__status()
 {
   htd_wf_ctx_sub status "$@"
@@ -1054,7 +1032,7 @@ htd_man_1__metadirs='TODO find packages, .meta dirs, DB client/query local-bg
 '
 htd__metadirs()
 {
-  test -n "$1" || set -- "$(pwd)"
+  test -n "$1" || set -- "$PWD"
   while test $# -gt 0
   do
     test -e $1/.meta && echo $1/.meta
@@ -1122,7 +1100,7 @@ htd__project()
     exists ) shift ; htd_project_exists "$@" ;;
 
     scm ) # Find local SCM references, add as remote for current/given project
-        shift ; test -n "$1" || set -- "$(pwd)"
+        shift ; test -n "$1" || set -- "$PWD"
         test -d "$1" || error "Project directory missing '$1'" 1
         local name="$(basename "$1")"
         (
@@ -1139,7 +1117,7 @@ htd__project()
         )
       ;;
 
-    check ) shift ; test -n "$1" || set -- "$(pwd)"
+    check ) shift ; test -n "$1" || set -- "$PWD"
         test -d "$1" || error "Directory expected '$1'" 1
         htd__srv check-volume "$1" || return 1
         htd__project exists "$1" || return 1
@@ -1237,6 +1215,8 @@ htd__validate()
 {
   htd_schema_validate "$@"
 }
+htd_grp__validate=schema
+
 
 htd_man_1__validate='Validate local package metadata aginst JSON-Schema '
 htd_flags__validate_package=p
@@ -1258,11 +1238,10 @@ htd_flags__tools=fl
 htd_spc__tools="tools (<action> [<args>...])"
 htd__tools()
 {
-  test -n "$1" || set -- list
+  test -n "${1-}" || set -- list
   subcmd_default=list subcmd_prefs=${base}_tools_ try_subcmd_prefixes "$@"
 }
-htd_grp__tools=htd-tools
-#htd_lib__tools="tools htd-tools"
+htd_grp__tools=tools
 
 # FIXME: htd_als__install="tools install"
 #htd_als__install=install-tool
@@ -1382,7 +1361,7 @@ htd__test_find_path_locals()
   htd_find_path_locals table.names $1
   echo path_locals=$path_locals
 
-  htd_find_path_locals table.names $1 $(pwd)
+  htd_find_path_locals table.names $1 $PWD
   echo path_locals=$path_locals
 }
 
@@ -1403,35 +1382,39 @@ htd__make_sys()
 }
 
 # show/get/add htd shell aliases
-htd__alias()
+htd__alias ()
 {
   htd_alias "$@"
 }
 htd_als__get_alias=alias
 htd_als__set_alias=alias
 htd_als__show_alias=alias
+htd_grp__alias=htd-u-s\ shell-alias
 
 
-htd_grp__edit_today=cabinet
-htd_als__vt=edit-today
-htd_grp__edit_week=cabinet
-htd_als__vw=edit-week
-htd_als__ew=edit-week
+htd_als__vt=journal\ edit-today
+htd_als__edit_entry=journal\ edit-entry
+htd_als__edit_week=journal\ edit-week
+
+htd_grp__today=cabinet
+
 htd_grp__week_nr=cabinet
-htd_grp__this_week=cabinet
-htd_als__week=this-week
+htd_als__week=week-nr
 htd_als__wknr=week-nr
-htd_grp__journal=cabinet
-htd_grp__journal=cabinet
+
+htd_grp__this_week=cabinet
+
+htd_grp__journal=journal
 htd_als__jrnl=journal
-htd_grp__journal_json=cabinet
+
+htd_grp__journal_json=journal
 htd_als__jrnl_json=journal-json
 htd_als__jrnl_j=journal-json
-htd_grp__journal_times=cabinet
+
+htd_grp__journal_times=journal
 htd_als__jrnl_times=journal-times
 htd_als__jrnl_t=journal-times
 htd_grp__archive_path=cabinet
-htd_grp__today=cabinet
 
 
 # TODO: use with edit-local
@@ -1619,7 +1602,7 @@ htd__wake()
   [ -z "$host" ] && {
     htd__wol_list_hosts
   } || {
-    local $(echo $(read_nix_style_file $wol_hwaddr))
+    local $(echo $(read_nix_style_file $wol_hwaddr|sed 's/ # .*$//g'))
     hwaddr=$(eval echo \$$host)
     [ -n "$hwaddr" ] || exit 4
     wakeonlan $hwaddr
@@ -2024,8 +2007,8 @@ htd__check_files()
 {
   log "Looking for unknown files.."
 
-  pwd=$(pwd)
-  cruft=$(setup_tmpd)/htd-$(echo $pwd|tr '/' '-')-cruft.list
+  pwd=$PWD
+  cruft=$sys_tmp/htd-$(echo $pwd|tr '/' '-')-cruft.list
   test ! -e "$cruft" || rm $cruft
   eval find . $find_ignores -o -print \
     | while read p
@@ -2147,7 +2130,7 @@ htd__fix_names()
   path_regex="$p_"
   match_name_tables "$path"
   #
-  htd_find_path_locals table.names $(pwd)
+  htd_find_path_locals table.names $PWD
   names_tables=$path_locals
   for names_table in $names_tables
   do
@@ -2362,19 +2345,7 @@ htd_flags__push_commit_all=iIAO
 htd_als__pcia=push-commit-all
 
 
-htd_spc__cabinet='cabinet [CMD ARGS..]'
-htd__cabinet()
-{
-  cabinet_req
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
-  subcmd_prefs=${base}_cabinet_\ cabinet_ try_subcmd_prefixes "$@"
-}
 htd_grp__cabinet=cabinet
-htd_flags__cabinet=ilAO
-htd_argsv__cabinet()
-{
-  opt_args "$@"
-}
 
 
 # Move paths into new dir
@@ -2519,7 +2490,8 @@ htd__topics()
   test -n "$1" || set -- list
   subcmd_prefs=${base}_topics_\ topics_ try_subcmd_prefixes "$@"
 }
-htd_flags__topics=iAOpx
+htd_flags__topics=liAOpx
+htd_libs__topics=list\ ignores\ package
 
 htd_man_1__list_topics='List topics'
 htd_als__list_topics="topics list"
@@ -2536,11 +2508,11 @@ htd_man_1__scripts='Action on local package "scripts".
     Run scripts from package
 
 '
-htd_flags__scripts=pfl
+htd_flags__scripts=lpf
 htd_libs__scripts='package htd-scripts'
 htd__scripts()
 {
-  test -n "$1" || set -- names
+  test -n "${1-}" || set -- names
   subcmd_prefs=${base}_scripts_ try_subcmd_prefixes "$@"
 }
 
@@ -2560,7 +2532,7 @@ htd_libs__run='htd-scripts'
 htd__run()
 {
   # List scriptnames when no args given
-  test -z "$1" && {
+  test -z "${1-}" && {
     note "Listing local script IDs:"
     htd__scripts names
     return 1
@@ -2579,22 +2551,22 @@ htd_flags__list_run=iAOql
 htd_libs__list_run='package htd-scripts'
 
 
-htd_grp__rules=rules
-htd_grp__edit_rules=rules
+htd_grp__rules=htd-rules
+htd_grp__edit_rules=htd-rules
 #htd_als__edit_rules='rules edit'
 #htd_als__id_rules='rules id'
 #htd_als__env_rules='rules id'
-htd_grp__period_status_files=rules
-htd_grp__run_rules=rules
-htd_grp__show_rules=rules
-htd_grp__rule_target=rules
+htd_grp__period_status_files=htd-rules
+htd_grp__run_rules=htd-rules
+htd_grp__show_rules=htd-rules
+htd_grp__rule_target=htd-rules
 
 
 htd_man_1__storage=''
 htd_spc__storage='storage TAG ACTION'
 htd__storage()
 {
-  test -n "$2" || set -- "$1" process
+  test -n "${2-}" || set -- "$1" process
   eval $(package_sh id lists_default)
   test -n "$*" || { set -- $lists_default; note "Setting default tag args '$*'"; }
   while test $# -gt 0
@@ -2608,13 +2580,13 @@ htd__storage()
 htd_flags__storage=plA
 htd_libs__storage=htd-tasks
 htd_argsv__storage=htd_argsv_tasks_session_start
-htd_grp__storage=rules
+htd_grp__storage=htd-rules
 
 
 htd__get_backend()
 {
-  test -n "$2" || set -- "$1" "store/" "$3"
-  test -n "$3" || set -- "$1" "$2" "stat"
+  test -n "${2-}" || set -- "${1-}" "store/" "${3-}"
+  test -n "${3-}" || set -- "$1" "$2" "stat"
   case "$1" in
     @* ) ctx=$(echo "$1" | cut -c2- ) ; be=at-$ctx
       ;;
@@ -2625,16 +2597,16 @@ htd__get_backend()
   mksid $be
   scr=$( htd__extensions $2$sid )
   test -n "$scr" || return 1
-  mkvid ${be}__${3} ; cb=${vid} ; . $scr ; func_exists $cb
+  mkvid ${be}__${3} ; cb=${vid} ; . $scr ; func_exists "$cb"
 }
-htd_grp__get_backend=rules
+htd_grp__get_backend=htd-rules
 
 
 htd__extensions()
 {
   lookup_test="test -x" lookup_path HTD_EXT $1.sh
 }
-htd_grp__extensions=rules
+htd_grp__extensions=htd-rules
 
 
 htd__tab2csv()
@@ -2919,21 +2891,14 @@ htd__getx() # Document XPath-Expr Document-XML
   rm "$3"
 }
 
+htd_grp__doc=doc
+htd_grp__count=doc
+htd_grp__find_doc=doc
+htd_grp__find_docs=doc
+htd_als__docs=doc\ list
+
 htd_grp__tpaths=doc
-
-htd_load__tpath_raw="xsl"
-htd__tpath_raw()
-{
-  test $# -gt 0 -a -n "$1" || error "document expected" 1
-  test -e "$1" || error "no such document '$1'" 1
-
-  test $# -gt 1 || {
-    du_dl_term_paths_raw "$1"
-    return $?
-  }
-
-  act=du_dl_term_paths_raw foreach_do "$@"
-}
+htd_grp__tpath_raw=doc
 
 
 htd_man_1__xproc='Process XML using xsltproc - XSLT 1.0'
@@ -2966,15 +2931,15 @@ list_host_disks()
 
   htd getx sysadmin/$hostname.rst \
     "//*/term[text()='Disk']/ancestor::definition_list_item/definition/definition_list" \
-    > $(setup_tmpd)/$hostname-disks.xml
+    > $sys_tmp/$hostname-disks.xml
 
-  test -s "$(setup_tmpd)/$hostname-disks.xml" || {
-    rm "$(setup_tmpd)/$hostname-disks.xml"
+  test -s "$sys_tmp/$hostname-disks.xml" || {
+    rm "$sys_tmp/$hostname-disks.xml"
     return
   }
 
   {
-    xsltproc - $(setup_tmpd)/$hostname-disks.xml <<EOM
+    xsltproc - $sys_tmp/$hostname-disks.xml <<EOM
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="definition_list_item">
 <xsl:value-of select="term"/> .
@@ -2995,9 +2960,9 @@ htd__check_disks()
       echo "Path for $label OK"
       xmllint --xpath \
           "//definition_list/definition_list_item/definition/bullet_list/list_item[contains(paragraph,'"$path"')]/ancestor::bullet_list" \
-          $(setup_tmpd)/$hostname-disks.xml > $(setup_tmpd)/$hostname-disk.xml;
+          $sys_tmp/$hostname-disks.xml > $sys_tmp/$hostname-disk.xml;
       {
-      xsltproc - $(setup_tmpd)/$hostname-disk.xml <<EOM
+      xsltproc - $sys_tmp/$hostname-disk.xml <<EOM
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 <xsl:template match="//bullet_list/list_item">
 <xsl:value-of select="paragraph/text()"/> .
@@ -3013,7 +2978,7 @@ EOM
       error "Missing $label $id <$path>" 1
     }
   done
-  rm $(setup_tmpd)/$hostname-disk.xml
+  rm $sys_tmp/$hostname-disk.xml
 }
 
 
@@ -3491,7 +3456,7 @@ htd__colorize()
   case "$1" in
 
     - )
-        set -- $(setup_tmpd)/htd-vim-colorize.out
+        set -- $sys_tmp/htd-vim-colorize.out
         #{ cat - > $1 ; }
         #exec 0<&-
         #  -R -E -s  \
@@ -3509,7 +3474,7 @@ htd__colorize()
           -
 
         open $1.xhtml
-        rm $(setup_tmpd)/htd-vim-colorize* $(setup_tmpd)/.htd-vim-colorize*
+        rm $sys_tmp/htd-vim-colorize* $sys_tmp/.htd-vim-colorize*
       ;;
 
     * )
@@ -4913,24 +4878,6 @@ htd__test_all()
 }
 
 
-htd_man_1__doc='Wrapper for documents modules (doc.lib and htd-doc.lib)
-
-  list [Docstat-Glob]
-  new [Title|Descr|Tags...]
-
-See also docstat.lib
-'
-htd_flags__doc=fpql
-htd_libs__doc=doc\ htd-doc
-htd__doc()
-{
-  test -n "$1" || set -- main-files
-  doc_lib_init
-  subcmd_prefs=${base}_doc_\ doc_ try_subcmd_prefixes "$@"
-}
-htd_als__docs=doc\ list
-
-
 htd__dangling_blobs()
 {
   git fsck | grep 'dangling blob' | cut -f 3 -d ' ' | while read sha1
@@ -4998,11 +4945,10 @@ htd__src()
 }
 
 
-htd_grp__docstat=docstat
+htd_grp__docstat=statusdir\ docstat
 
 
 htd_grp__context=context
-
 htd_als__ctx=context
 
 
@@ -5013,12 +4959,15 @@ htd__lists()
 }
 
 
-htd_grp__urlstat=urls
+htd_grp__urlstat=htd-urls\ statusdir\ urlstat
 
 htd_grp__scrtab=scrtab
 
 
-htd_man_1__redo=''
+htd_man_1__redo='
+    redo deps - List
+
+'
 htd__redo()
 {
   subcmd_default=list subcmd_prefs=redo_ try_subcmd_prefixes "$@"
@@ -5055,7 +5004,7 @@ htd__project_stats()
   subcmd_prefs=${base}_project_stats_\ project_stats_ try_subcmd_prefixes "$@"
 }
 htd_flags__project_stats=qilAO
-htd_libs__project_stats=date\ project-stats\ build-htd\ htd-project-stats
+htd_libs__project_stats=statusdir\ date\ project-stats\ build-htd\ htd-project-stats
 htd_argsv__project_stats=opt_args
 
 
@@ -5081,12 +5030,16 @@ htd_libs__user=user-scripts
 htd__user()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  echo subcmd_prefs=${base}_user_ try_subcmd_prefixes "$@"
   subcmd_prefs=${base}_user_ try_subcmd_prefixes "$@"
 }
 
 
 htd_grp__docker_hub=docker-hub
+
+
+htd_grp__draft=draft
+htd_grp__drafts=draft
+
 
 # -- htd box insert sentinel --
 
@@ -5094,13 +5047,14 @@ htd_grp__docker_hub=docker-hub
 
 # Script main functions
 
-htd_main()
+htd_main ()
 {
   local scriptname=htd base=$(basename "$0" .sh) \
     scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
     upper= r= \
     package_id= package_cwd= package_env= \
-    subcmd= subcmd_alias= subcmd_args_pre= \
+    subcmd=${1-} subcmd_alias= subcmd_args_pre= flags= \
+    dry_run= \
     arguments= subcmd_prefs= options= \
     passed= skipped= error= failed=
 
@@ -5109,33 +5063,18 @@ htd_main()
   test -n "${script_util-}" || script_util=$scriptpath/tools/sh
   test -n "${htd_log-}" || htd_log=$script_util/log.sh
   test -n "${verbosity-}" || verbosity=4
-
   htd_init || $htd_log error htd-main "During htd-init: $?" "$0" $? || return
 
   case "$base" in
 
     $scriptname )
-
-        # Default subcmd
-        test -n "$1" || {
-          test "$stdio_0_type" = "t" && {
-            set -- main-doc-edit
-          } || {
-            set -- status
-          }
+        test -n "${subcmd-}" || {
+          test -t 0 && set -- main-doc-edit || set -- status
         }
-
-        htd_lib "$@" || {
-          $htd_log error htd-main "During htd-lib" "" $? || return
-        }
-        main_run_subcmd "$@" || r=$?
-
-        # XXX: cleanup, run_subcommand with ingegrated modes?
-        #  test -z "$arguments" -o ! -s "$arguments" || {
-
-        #    stderr info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
-        #    set -f; set -- $(cat $arguments | lines_to_words) ; set +f
-        #  }
+        main_subcmd_run "$@" || return $?
+        test -z "$dry_run" \
+          && std_info "'$base-$subcmd' completed normally" 0 \
+          || std_info "'$base-$subcmd' dry-drun completed" 0
       ;;
 
     * )
@@ -5164,31 +5103,33 @@ htd_init()
 {
   local scriptname_old=$scriptname; export scriptname=htd-init
   test -n "$script_util" || return 103 # NOTE: sanity
-  # FIXME: instead going with hardcoded sequence for env-d like for lib.
 
+  init_sh_libs=os\ sys\ str\ log
+
+  set -euo pipefail
+  true "${CWD:="$scriptpath"}"
+  true "${SUITE:="Main"}"
+  true "${_ENV:="$scriptpath/.htd/tools/env.sh"}"
+  test ! -e $_ENV || source $_ENV
+
+  # FIXME: instead going with hardcoded sequence for env-d like for lib.
   LOG=$htd_log \
   INIT_ENV="init-log 0 dev ucache scriptpath std box" \
-  . ${CWD:="$scriptpath"}/tools/main/init.sh
+  INIT_LIB="os sys std log str match src main argv stdio vc std-ht"\
+" date str-htd logger-theme sys-htd vc-htd os-htd htd ctx-std" \
+. ${CWD:="$scriptpath"}/tools/main/init.sh || return
 
   # -- htd box init sentinel --
-  export scriptname=$scriptname_old
-}
-
-htd_lib()
-{
-  local scriptname_old=$scriptname; export scriptname=htd-lib
-  set -- match date str-htd logger-theme vc-htd os-htd htd ctx-std
-  lib_load "$@" && lib_init "$@"
-
-  # -- htd box lib sentinel --
   export scriptname=$scriptname_old
 }
 
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
 
+  set -euo pipefail
+
   # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
+  test "${1-}" != load-ext || __load_lib=1
   test -n "${__load_lib-}" || {
     htd_main "$@"
   }

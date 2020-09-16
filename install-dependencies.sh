@@ -180,7 +180,7 @@ install_pylib()
   # hack py lib here
   mkdir -vp $pylibdir
   test -e $pylibdir/script_mpe || {
-    cwd=$(pwd)/
+    cwd=$PWD/
     pushd $pylibdir
     pwd -P
     ln -s $cwd script_mpe
@@ -240,7 +240,7 @@ install_apenwarr_redo()
 
 install_script()
 {
-  cwd=$(pwd)
+  cwd=$PWD
   test -e $HOME/bin || ln -s $cwd $HOME/bin
 }
 

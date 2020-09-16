@@ -12,12 +12,14 @@ package_lib_load() # (env PACKMETA) [env out_fmt=py]
 
 package_lib_init()
 {
-  test "${package_lib_init-}" = "0" || return 0 # do nothing during lib-init
+  test "${package_lib_init-}" = "0" || {
+      test $# -eq 0 || return 99
+      return 0 # do nothing during lib-init
+  }
 
   # On subsequent calls:
   test -z "${package_id-}" -a  -z "${package_main-}" || {
     warn "Already initialized ($package_id/$package_main)"
-    return 1
   }
 
   test -n "${1-}" || set -- .
@@ -36,7 +38,7 @@ package_lib_init()
   } || PACKMETA_SRC=''
   PACKMETA="$(realpath --relative-to=$1 "$PACKMETA")"
 
-  package_init_env &&
+  package_init_env "$1" &&
       preprocess_package &&
       package_req_env || warn "Default package env"
 }
@@ -44,13 +46,16 @@ package_lib_init()
 # Preprocess YAML if needed
 preprocess_package()
 {
+  test $# -eq 0 || return 98
   # If actual source file different than package file setting
   test -e "$PACKMETA" -a -z "$PACKMETA_SRC" || {
     test -e "$PACKMETA_SRC" || return
     # And source file is newer
-    test -e "$PACKMETA" -a "$PACKMETA" -nt "$PACKMETA_SRC" || {
+    test -e "$PACKMETA" -a "$PACKMETA" -nt "$PACKMETA_SRC" &&
+      debug "Reprocessed package up-to-date <$PACKMETA>" || {
       # Process include-directives
       add_sentinels=1 expand_include_sentinels "$PACKMETA_SRC" > "$PACKMETA"
+      info "Re-processed package source <$PACKMETA_SRC>"
     }
   }
 }
@@ -58,6 +63,7 @@ preprocess_package()
 # Simply clear or default library env
 package_lib_reset()
 {
+  test $# -eq 0 || return 98
   default_package_id=
   default_package_shell=/bin/sh
   # :!grep -ho '\$package_[a-zA-Z0-9_]*' *.sh|sort -u|cut -c2-
@@ -72,6 +78,7 @@ package_lib_reset()
   package_description=
   package_doc_find=
   package_docs_find=
+  package_lists_documents=
   package_env=
   package_ext_make_files=
   #package_id=
@@ -102,8 +109,8 @@ package_lib_reset()
 # Process env and generate derived
 package_lib_set_local()
 {
-  test -n "$1" || error "package.lib set-local" 1
-  test -z "${default_package_id-}" || package_lib_reset
+  test -n "${1-}" || error "package.lib set-local" 1
+  package_lib_reset
   # Default package is entry named as main
   default_package_id=$(package_default_id "$1") || return
   test -n "${package_id-}" -a "${package_id-}" != "(main)" || {
@@ -127,7 +134,8 @@ package_lib_set_local()
 
 package_defaults()
 {
-  test -n "${package_main-}" || package_main="$package_id"
+  test $# -eq 0 || return 98
+  test -n "${package_main-}" || package_main="${package_id-}"
   test -n "${package_env_file-}" || package_env_file=$PACK_TOOLS/env.sh
   test -n "${package_log_dir-}" && {
       test -n "${package_log-}" || package_log="$package_log_dir"
@@ -144,6 +152,8 @@ package_defaults()
   test -n "${package_check_method-}" || package_check_method=
   test -n "${package_pd_meta_tests-}" || package_pd_meta_tests=
   test -n "${package_pd_meta_targets-}" || package_pd_meta_targets=
+  test -n "${package_lists_documents-}" ||
+      package_lists_documents=doc-list-files-exts-re
 }
 
 package_default_id()
@@ -213,9 +223,10 @@ jsotk_package_sh_defaults()
 # Setup either local or default package env. (generate derived files)
 package_init_env()
 {
+  test $# -eq 1 -a -n "${1:-}" || return 98
   test -n "${PACKMETA_SH-}" || {
-    note "Setting package lib env"
-    package_lib_set_local . || {
+    note "Setting package lib env <$1>"
+    package_lib_set_local "$1" || {
 
         warn "No local package config set"
         package_lib_reset && package_defaults
@@ -253,11 +264,10 @@ update_package_sh() # CWD
     note "Regenerating $metash from $metaf.."
 
     # Format Sh default env settings
-
-    test -n "$package_shell" || package_shell="$default_package_shell"
-    { echo "#!$package_shell" ; { jsotk_package_sh_defaults "$metaf" || {
-      test ! -e $metash || rm $metash
-    }; } | sort -u ; } > $metash
+    { echo "#!${package_shell:="$default_package_shell"}"; {
+        jsotk_package_sh_defaults "$metaf" || {
+        test ! -e $metash || rm $metash
+      }; } | sort -u ; } > $metash
 
     test -s "$metash" && {
       grep -q Exception $metash && rm $metash
@@ -297,8 +307,8 @@ update_package_sh() # CWD
 # In this case create a YAML elsewhere
 update_temp_package()
 {
-  test -n "$pdoc" || error pdoc 21
-  test -n "$ppwd" || ppwd=$(cd $1 && pwd)
+  test -n "${pdoc-}" || error pdoc 21
+  test -n "${ppwd-}" || local ppwd=$(cd $1 && pwd)
 
   mkvid "$ppwd"
   metaf=$(setup_tmpf .yml "-meta-$vid")
@@ -337,10 +347,10 @@ update_package() # Dir
       return 23
     }
   }
-  test -e "$metaf" || error "no such file ($(pwd), $1) PACKMETA='$PACKMETA'" 34
+  test -e "$metaf" || error "no such file ($PWD, $1) PACKMETA='$PACKMETA'" 34
   package_lib_set_local "$1"
 
-  std_info "Metafile: $metaf ($(pwd))"
+  std_info "Metafile: $metaf ($PWD)"
 
   # Package.sh is used by other scripts
   update_package_sh "$1" || { r=$?
@@ -436,11 +446,10 @@ package_sh_get() # PACKAGE-SH NAME-KEY
 
 # List shell profile scriptline(s), to initialize shell env with for 'scripts'
 # and other project tasks (sh routines, make, cron, CI/CD, etc.)
-package_sh_env()
+package_sh_env ()
 {
-  test -n "${PACKMETA_SH-}" || package_lib_set_local . || return
-  test -n "$package_shell" || package_shell="$default_package_shell"
-  echo "#!$package_shell"
+  test -n "${PACKMETA_SH-}" || return 90
+  echo "#!${package_shell:="$default_package_shell"}"
   test -n "$package_env" && {
     # Single line script
     echo "$package_env"
@@ -453,9 +462,9 @@ package_sh_env()
 # Compile env-init scriptlines to executable script
 package_sh_env_script() # [Path]
 {
+  test -n "${PACKMETA_SH-}" || return 90
   local script_out=
   test -n "${1-}" && script_out="$1" || script_out="$package_env_file"
-  test -n "${PACKMETA_SH-}" || package_lib_set_local . || return
   test -s $script_out -a $script_out -nt $PACKMETA && {
     std_info "Newest version of Env-Script $script_out exists"
   } || {
@@ -471,7 +480,9 @@ package_sh_env_script() # [Path]
 # package-sh-script SCRIPTNAME [JSOTKFILE]
 package_js_script()
 {
-  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)" || return
+  test -n "${PACKMETA_SH-}" || {
+      package_lib_set_local "$(pwd -P)" || return
+  }
   test -n "$2" || set -- "$1" $PACKMETA_JS_MAIN
   test -e "$2"
   jsotk.py path -O lines "$2" scripts/$1 || {
@@ -543,9 +554,7 @@ package_component_name()
 
 package_paths_io()
 {
-  local spwd=.
-
-  test "$stdio_0_type" = "t" -o \( -n "${1-}" -a "${1-}" != "-" \) && {
+  test -t 0 -o \( -n "${1-}" -a "${1-}" != "-" \) && {
 
 # ... retrieve using defined script or vc-tracked to fetch paths
     test -n "${package_paths-}" || package_paths=vc_tracked
@@ -585,12 +594,13 @@ package_component_roots()
 
 package_lists_contexts_map() #
 {
+  test $# -gt 0 || return 98
   local local_name="$1"
-  while test -z "$2"
+  while test -z "${2-}"
   do
     upper=0 mkvid "package_lists_contexts_map_$local_name" ;
-    set -- $( eval echo \"\$$vid\" )
-    test -z "$1" || echo "$1"
+    set -- $( eval echo \"\${$vid-}\" )
+    test -z "${1-}" || echo "$1"
     local_name="$(dirname "$local_name")"
     test "$local_name" != "/" -a "$local_name" != "." || break
   done

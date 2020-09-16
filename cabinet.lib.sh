@@ -11,10 +11,15 @@ cabinet_lib_load()
 cabinet_init()
 {
   test -e cabinet && {
-    title= upper=1 default_env Cabinet-Dir "$(pwd)/cabinet"
+    true "${CABINET_DIR:="$PWD/cabinet"}"
   } || {
-    title= upper=1 default_env Cabinet-Dir "$HTDIR/cabinet"
+    true "${CABINET_DIR:="$HTDIR/cabinet"}"
   }
+  # XXX: cleanup default-env
+  #  title= upper=1 default_env Cabinet-Dir "$PWD/cabinet"
+  #} || {
+  #  title= upper=1 default_env Cabinet-Dir "$HTDIR/cabinet"
+  #}
 }
 
 cabinet_req()

@@ -238,7 +238,7 @@ gotovolroot() # [Enable-Source]
 # Find volume disk-id and part-idx by looking for .volumes.sh at root
 get_cwd_volume_id() # [DIR] [SEP]
 {
-  local cwd=$(pwd) r=
+  local cwd=$PWD r=
   test -n "$2" || set -- "$1" "-"
   test -n "$1" || cd "$1"
   gotovolroot 1 &&

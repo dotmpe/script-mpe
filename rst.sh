@@ -43,12 +43,13 @@ rst__date()
 ### User help functions
 
 
+rst_als____version=version
+rst_als___V=version
+rst_grp__version=ctx-main\ ctx-std
+
+rst_als____help=help
 rst_als___h=help
-rst_spc__help='-h|help [ID]'
-rst__help()
-{
-  choice_global=1 std__help "$@"
-}
+rst_grp__help=ctx-main\ ctx-std
 
 
 rst_als___e=edit
@@ -59,23 +60,12 @@ rst__edit()
 }
 
 
-rst_man_1__version="Version info"
-rst__version()
-{
-  echo "box-rst/$version"
-}
-rst_als___V=version
-
-
 
 ### Main
 
 
 MAKE-HERE
-INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
-main-default
-version
-main-init
-main-lib
-  lib_load main box std stdio src-htd || return
-  INIT_LOG=$LOG lib_init || return
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box" \
+INIT_LIB="\\$default_lib box src-htd"
+main-local
+subcmd_default=version

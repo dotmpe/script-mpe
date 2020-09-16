@@ -1,12 +1,16 @@
 #!/bin/sh
 
-# Named basedirs
+## Named basedirs
 
 prefix_lib_load()
 {
+  test -n "${pathnames-}" || pathnames=user/pathnames.tab
+}
+
+prefix_lib_init()
+{
   lib_assert statusdir || return
   test -n "${UCONF-}" || UCONF=$HOME/.conf
-  test -n "${pathnames-}" || pathnames=user/pathnames.tab
   test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}/index/basedirs.tab
 }
 
@@ -62,7 +66,7 @@ prefix_require_names_index() # Pathnames-Table
 prefix_names()
 {
   # Build from tpl and cat file
-  test -n "$index" || local index=
+  test -n "${index-}" || local index=
   test -s "$index" || prefix_require_names_index || return
   read_nix_style_file $index | awk '{print $2}' | uniq
 }
@@ -71,7 +75,8 @@ prefix_names()
 # Return prefix:<localpath>
 prefix_resolve() # Local-Path
 {
-  test -n "$index" || local index=
+  test $# -eq 1 -a -n "${1-}" || return
+  test -n "${index-}" || local index=
   test -s "$index" || prefix_require_names_index || return
 
   # Set abs-path
@@ -99,7 +104,7 @@ prefix_resolve() # Local-Path
     test "$prefix_name" == ROOT && v=/
   }
   # Prefix with input path or output only result
-  trueish "$prefix_paths" &&
+  test ${prefix_paths:-0} -eq 1 &&
       echo "$path $prefix_name:$v" ||
       echo "$prefix_name:$v"
 }
@@ -107,7 +112,7 @@ prefix_resolve() # Local-Path
 # Echo each prefix:<localpath> after scanning paths-topic-names
 prefix_resolve_all() # (Local-Path..|-)
 {
-  test -n "$index" || local index=
+  test -n "${index-}" || local index=
   test -s "$index" || prefix_require_names_index || return
 
   test "$1" = "-" && {
@@ -139,7 +144,7 @@ prefix_expand() # Prefix
 # Print user or default prefix-name lookup table
 prefix_tab()
 {
-  test -n "$index" || local index=
+  test -n "${index-}" || local index=
   prefix_require_names_index || return
   test -s "$index" || return
   cat $index | sed 's/^[^\#]/'$(hostname -s)':&/g'

@@ -776,29 +776,6 @@ docker_sh__vbox()
 
 # Generic subcmd's
 
-docker_sh_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-docker_sh_flags__help=f
-docker_sh_spc__help='-h|help [ID]'
-docker_sh__help()
-{
-  (
-    base=docker_sh \
-    choice_global=1 \
-      std__help "$@"
-  )
-  rm_failed || return 0
-}
-#docker_sh_als___h=help
-
-
-docker_sh_man_1__version="Version info" # TODO: rewrite std__help to use try_value
-docker_sh_man_1__version="Version info"
-docker_sh__version()
-{
-  echo "$(cat $scriptpath/.app-id)/$version"
-}
-docker_sh_als__V=version
-
 
 docker_sh__commands()
 {
@@ -849,9 +826,9 @@ docker_sh__alias()
 }
 
 
-main-env \
+main-init-env \
   INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \\
-INIT_LIB="\$default_lib main box docker-sh logger logger-theme std stdio"
+INIT_LIB="\$default_lib main box docker-sh logger logger-theme std stdio ctx-main ctx-std"
 main-local failed=
 main-init \
   test -e /var/run/docker.sock -a -x "$(which docker)" && { \

@@ -233,50 +233,22 @@ ht__ssh()
 # -- ht box insert sentinel --
 
 
-# Script main functions
+### Main parts
 
 MAKE-HERE
 INIT_ENV="init-log 0 0-src dev init-log ucache scriptpath std box" \
-INIT_LIB="str sys os std log stdio main argv shell box src logger-theme"
+INIT_LIB="\\$default_lib box logger-theme ctx-main ctx-std"
 
-#os
-#os-htd
-#sys
-#sys-htd
-#std
-#std-ht
-#str
-#str-htd
-#log
-#match
-#main
+main-bases
+ht main std
 
 main-local
-    arguments= subcmd_prefs= options= \
-    passed= skipped= error= failed=
+arguments= subcmd_prefs= options= dry_run= \
+passed= skipped= error= failed=
 
 main-init
-  test -n "$script_util" || script_util=$scriptpath/tools/sh
-  test -n "$htd_log" || htd_log=$script_util/log.sh
-
-        # XXX Fast boot for simple or direct cmd function suffix
-        #type ht__$1 1>/dev/null 2>&1 && {
-        #    subcmd=$1
-        #    shift 1
-        #    ht__$subcmd "$@" || return $?
-        #} || {
-        #    main_subcmd_run "$@" || exit $?
-        #}
-
-  # NOTE: static init saves 100ms at 0.84s (12%)
-  #test -n "$ht_init_dyn" && {
-  #  ht_init_dyn || $LOG "error" "ERR:$?" "Ht dynamic init error" "" 1
-  #} || {
-  #  ht_init_static
-  #}
-
-main-lib
-  INIT_LOG=$LOG lib_init
+  test -n "${script_util-}" || script_util=$scriptpath/tools/sh
+  test -n "${htd_log-}" || htd_log=$script_util/log.sh
 
 main-epilogue
 # Id: script-mpe/0.0.4-dev ht.sh

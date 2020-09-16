@@ -1,9 +1,9 @@
-#!/usr/bin/env bash
-# FIXME? !/bin/sh
 #!/usr/bin/env make.sh
 # Created: 2017-02-25
 
 version=0.0.4-dev # script-mpe
+
+set -eu
 
 
 # Script subcmd's funcs and vars
@@ -139,7 +139,7 @@ vagrant_sh__info_raw()
   vagrant_sh__info "$1" | while read NAME STATUS qprov
   do
     PROVIDER="$(echo "$qprov"|tr -d '()' )"
-    DIRECTORY=$(pwd)
+    DIRECTORY=$PWD
     RDIRECTORY=$(pwd -P)
     # NOTE: pick some local vars per VM
     test -z "$PROVIDER_ID" || {
@@ -201,28 +201,15 @@ vagrant_sh__synced_folders()
 
 # Generic subcmd's
 
-vagrant_sh_man_1__help="Usage help. "
-vagrant_sh_spc__help="-h|help"
-vagrant_sh__help()
-{
-  test -z "$dry_run" || stderr note " ** DRY-RUN ** " 0
-  (
-    base=vagrant_sh \
-      choice_global=1 std__help "$@"
-  )
-}
-#vagrant_sh_als__h=help
-# FIXME:
-#vagrant_sh_als__help=help
+
+vagrant_sh_als____help=help
+vagrant_sh_als___h=help
+vagrant_sh_grp__help=ctx-main\ ctx-std
 
 
-vagrant_sh_man_1__version="Version info"
-vagrant_sh__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
-#vagrant_sh_als___V=version
-#vagrant_sh_als____version=version
+vagrant_sh_als____version=version
+vagrant_sh_als___V=version
+vagrant_sh_grp__version=ctx-main\ ctx-std
 
 
 vagrant_sh__edit()
@@ -234,38 +221,32 @@ vagrant_sh_als___e=edit
 
 # Script main functions
 
-CWD="$(dirname "$0")"
-. $CWD/main-defs.lib.sh
-. $HOME/.conf/script/str-uc.lib.sh
-. $HOME/.conf/script/util-min-uc.lib.sh
 
-INIT_ENV="init-log 0 0-src 0-u_s 0-std 0-1-lib-sys ucache scriptpath box" \
-INIT_LIB="\$default_lib main meta box doc date table remote std stdio"
-  main_define \
-    vagrant-sh \
-    'failed=' '
-  # Vagrant-Sh init
-' '
-  # Vagrant-Sh lib
-' '
-  # Vagrant-Sh load
-  local upper=1
-  default_env Vagrant-Home "$HOME/.vagrant"
-  default_env Vagrant-Home "default"
-' '
-  # Vagrant-Sh load-flags
-' '
-  # Vagrant-Sh unload
-  #    f )
-  #        clean_failed || unload_ret=1
-  clean_failed || unload_ret=$?
-  unset subcmd subcmd_pref \
-          def_subcmd func_exists func \
-          failed
-' '
-  # Vagrant-Sh unload-flags
-'
-
-main_entry "$@"
+#INIT_ENV="init-log 0 0-src 0-u_s 0-std 0-1-lib-sys ucache scriptpath box" \
+#INIT_LIB="\$default_lib main meta box doc date table remote std stdio"
+#  main_define \
+#    vagrant-sh \
+#    'failed=' '
+#  # Vagrant-Sh init
+#' '
+#  # Vagrant-Sh lib
+#' '
+#  # Vagrant-Sh load
+#  local upper=1
+#  default_env Vagrant-Home "$HOME/.vagrant"
+#  default_env Vagrant-Home "default"
+#' '
+#  # Vagrant-Sh load-flags
+#' '
+#  # Vagrant-Sh unload
+#  #    f )
+#  #        clean_failed || unload_ret=1
+#  clean_failed || unload_ret=$?
+#  unset subcmd_pref \
+#          def_subcmd func_exists func \
+#          failed
+#' '
+#  # Vagrant-Sh unload-flags
+#'
 
 # Id: script-mpe/0.0.4-dev vagrant-sh.sh

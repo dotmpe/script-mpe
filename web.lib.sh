@@ -51,7 +51,7 @@ htd_urls_args() # List ...
 # or <>-delimiters.
 htd_urls_list() # File
 {
-  local cwd=$(pwd) file=
+  local cwd=$PWD file=
   htd_urls_args "$@"
   read_nix_style_file "$file" |
       grep -o "$url_re" |
@@ -121,6 +121,47 @@ web_fetch() # URL [Output=-]
     curl ) curl -sSf "$1" -o $2 ;;
     wget ) wget -q "$1" -O $2 ;;
   esac
+}
+
+# Take an REST url and go request
+web_resolve_paged_json() # URL Num-Query Page-query
+{
+  test -n "$1" -a "$2" -a "$3" || return 100
+  local tmpd=/tmp/json page= page_size=
+  mkdir -p $tmpd
+  page_size=$(eval echo \$$2)
+  page=$(eval echo \$$3)
+  case "$1" in
+    *'?'* ) ;;
+    * ) set -- "$1?" "$2" "$3" ;;
+  esac
+
+  test -n "$page" || page=1
+  while true
+  do
+    note "Requesting '$1$2=$page_size&$3=$page'..."
+    out=$tmpd/page-$page.json
+    curl -sSf "$1$2=$page_size&$3=$page" > $out
+    json_list_has_objects "$out" || { rm "$out" ; break; }
+    std_info "Fetched $page <$out>"
+    page=$(( $page + 1 ))
+  done
+
+  note "Finished downloading"
+  test -e "$tmpd/page-1.json" || error "Initial page expected" 1
+  count="$( echo $tmpd/page-*.json | count_words )"
+  test "$count" = "1" && {
+    cat $tmpd/page-1.json
+  } || {
+    jsotk merge --pretty - $tmpd/page-*.json
+  }
+  rm -rf $tmpd/
+}
+
+json_list_has_objects()
+{
+  jsotk -sq path $out '0' --is-obj || return
+  # XXX: jq -e '.0' $out >>/dev/null || break
 }
 
 #

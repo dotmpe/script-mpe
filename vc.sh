@@ -41,7 +41,6 @@ vc__commands()
   echo '  print-all <path>   Dump some debug info on given (versioned) paths'
   echo '  ps1                Print PS1'
   echo '  screen             '
-  echo '  ls-errors          '
   echo '  mtime              '
   echo '  flush              '
   echo '  print-all          '
@@ -105,7 +104,7 @@ vc__help()
 {
   echo "$base/$version - Reports on SCM state, build short description. "
   echo
-  test -z "$1" && {
+  test -z "${1-}" && {
     vc_main_usage
     echo
     echo "Default command: "
@@ -144,14 +143,6 @@ vc__docs()
 }
 
 
-vc__version()
-{
-  echo $version
-}
-vc___V() { vc__version; }
-vc____version() { vc__version; }
-
-
 vc__edit()
 {
   [ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
@@ -159,7 +150,7 @@ vc__edit()
   [ -n "$fn" ] || error "Nothing to edit" 1
   ( __load_lib= $EDITOR $fn )
 }
-vc___e() { vc__edit; }
+vc_als___e=edit
 
 
 
@@ -273,7 +264,6 @@ __vc_status()
   else
     echo "$short"
   fi;fi;
-  cd "$cwd"
 }
 
 __vc_screen ()
@@ -411,12 +401,6 @@ __vc_gitrepo()
 }
 
 
-list_gitpaths()
-{
-  test -n "$1" && d=$1 || d=.
-  find $d -type d -iname .git -print -prune
-}
-
 # List checkouts below dir. Normally stops at any SCM root, unless recurse=true
 vc__ls_trees()
 {
@@ -467,32 +451,14 @@ vc__ls_nontree()
     \) -a -prune -o -print
 }
 
-vc__ls_errors()
-{
-  list_gitpaths $1 | while read gitpath
-  do
-    { ( cd "$(dirname $gitpath)" && git status > /dev/null ) || {
-        error "in info from $gitpath, see previous."
-      }
-    } || {
-      gitdir=$(vc_gitdir $(dirname $gitpath))
-      echo $gitdir | grep -v '.git\/modules' > /dev/null && {
-        # files should be gitlinks for submodules
-        warn "for  $gitpath, see previous. Broken gitlink?"
-        continue
-      }
-    }
-  done
-}
-
 
 ### Command Line handlers
 
 vc_flags__stat=f
 vc__stat()
 {
-  test -n "$1" || set -- . "$2"
-  test -n "$2" || set -- "$1" "%s%s%s%s%s%s%s%s"
+  test -n "${1-}" || set -- . "${2-}"
+  test -n "${2-}" || set -- "$1" "%s%s%s%s%s%s%s%s"
   local scm= scmdir=
   vc_getscm "$1"
   vc_flags_${scm} "$@" || return $?
@@ -511,13 +477,12 @@ vc__status()
 
 vc__bits()
 {
-  __vc_status || return $?
+  __vc_status
 }
-
 
 vc__flags()
 {
-  test -n "$1" || set -- "$(pwd)"
+  test -n "${1-}" || set -- "$PWD"
   scmdir="$(basename "$(vc_scmdir "$1")")"
   case "$scmdir" in
     .git )
@@ -588,12 +553,17 @@ vc__flush()
   done
 }
 
-# print all fuctions/results for paths in arguments
-vc__print_all()
+# Print --vc-sttus for every given PATH
+vc__print_all () # PATHS...
 {
+  test $# -gt 0 || return 98
+  local path scm
   for path in "$@"
   do
-    [ ! -e "$path" ] && continue
+    vc_getscm "$path" || {
+      warn "No SCM checkout at <$path>"
+      continue
+    }
     echo vc-status[$path]=\"$(__vc_status "$path")\"
   done
 }
@@ -619,7 +589,6 @@ vc__prompt_command()
 
 vc__list_submodules()
 {
-  test -n "$RCWD" || error spwd-12 12
   vc_git_submodules
 }
 
@@ -647,17 +616,17 @@ vc__gh()
   }
   test -e .git && {
     test -d .git && {
-      log "Adding submodule $giturl to $(pwd)/$prefix.."
+      log "Adding submodule $giturl to $PWD/$prefix.."
       ${git} submodule add $giturl $prefix
-      log "Added submodule $giturl to $(pwd)/$prefix"
+      log "Added submodule $giturl to $PWD/$prefix"
     } || {
       # TODO: find/print root. then go there. see vc.sh
       error "Please recede to root and use prefix to add submodule" 1
     }
   } || {
-    log "Cloning $giturl to $(pwd)/$prefix.."
+    log "Cloning $giturl to $PWD/$prefix.."
     ${git} clone "$giturl" "$prefix"
-    log "Cloned $giturl to $(pwd)/$prefix"
+    log "Cloned $giturl to $PWD/$prefix"
   }
 }
 
@@ -754,42 +723,40 @@ vc__cleanables() { eval read_nix_style_file $vc_clean_gl || return $?; }
 vc__cleanables_regex() { globlist_to_regex $vc_clean_gl || return $?; }
 
 
-vc__tracked() { vc__tracked_files "$@" ; }
+vc_als__tracked=tracked-files
 vc__tracked_files()
 {
-  test -z "$*" || error "unexpected arguments" 1
-
   local scm= scmdir=
   vc_getscm || return $?
-  vc_tracked
+  vc_tracked "$@"
 }
 
 
 # List unversioned files (including temp, cleanable and any excluded)
-vc__ufx() { vc__untracked_files "$@"; }
-vc__excluded() { vc__untracked_files "$@"; }
+vc_als__untracked=untracked-files
+vc_als__ufx=untracked-files
+vc_als__excludes=untracked-files
 vc__untracked_files()
 {
-  test -z "$*" || error "unexpected arguments" 1
-
   local scm= scmdir=
   vc_getscm || return $?
-  vc_untracked || return $?
+  vc_untracked "$@"
 }
 
 # List untracked paths. Unversioned files excluding ignored/excluded
-vc__uf() { vc__unversioned_files "$@"; }
+vc_als__unversioned=unversioned-files
+vc_als__uf=unversioned-files
 vc__unversioned_files()
 {
   test -z "$*" || error "unexpected arguments" 1
 
   local scm= scmdir=
   vc_getscm || return $?
-  vc_unversioned || return $?
+  vc_unversioned "$@"
 }
 
 # List (untracked) cleanable files
-vc__ufc() { vc__unversioned_cleanable_files ; }
+vc_als__ufc=unversioned-cleanable-files
 vc__unversioned_cleanable_files()
 {
   note "Listing unversioned cleanable paths"
@@ -939,7 +906,7 @@ vc__grep_file()
   shift 2
   test -n "$3" || error "Checkout path(s) required" 1
 
-  local cwd=$(pwd)
+  local cwd=$PWD
   for checkout in $3
   do
     (
@@ -963,7 +930,7 @@ vc__list_prefixes()
 # XXX: takes subdir, and should in case of being in a subdir act the same
 vc__list_subrepos()
 {
-  local cwd=$(pwd) prefixes=$(setup_tmpf .prefixes)
+  local cwd=$PWD prefixes=$(setup_tmpf .prefixes)
   basedir="$(dirname "$(vc_gitdir "$1")")"
   test -n "$1" || set -- "."
 
@@ -995,8 +962,7 @@ vc__projects()
 {
   test -f projects.sh || touch projects.sh
 
-  cwd=$(pwd)
-  pwd=$(pwd -P)
+  local cwd=$PWD pwd=$(pwd -P)
 
   for gitdir in */.git
   do
@@ -1016,7 +982,7 @@ vc__projects()
 vc__remotes() # [FMT] [DIR] []
 {
   # FIXME: vc-remote lib
-  test -n "$1" || set -- "$(pwd)" "$2"
+  test -n "$1" || set -- "$PWD" "$2"
   #test -n "$2" || set -- all
   vc_getscm "$1" || return $?
   vc_remotes "$@"
@@ -1025,13 +991,13 @@ vc__remotes() # [FMT] [DIR] []
 vc__remote()
 {
   #test -n "$1" || set -- all
-  vc_getscm "$(pwd)" || return $?
-  vc_remote "$(pwd)" "$@"
+  vc_getscm "$PWD" || return $?
+  vc_remote "$PWD" "$@"
 }
 
 vc__branch()
 {
-  local pwd=$(pwd)
+  local pwd=$PWD
   test -z "$1" || cd "$1"
   vc_getscm "." || return $?
   vc_branch
@@ -1041,7 +1007,7 @@ vc__branch()
 vc_als__branches=list-local-branches
 vc__list_local_branches()
 {
-  local pwd=$(pwd)
+  local pwd=$PWD
   test -z "$1" || cd "$1"
   vc_getscm "." || return $?
   vc_branches
@@ -1050,7 +1016,7 @@ vc__list_local_branches()
 
 vc__list_all_branches()
 {
-  local pwd=$(pwd)
+  local pwd=$PWD
   test -z "$1" || cd "$1"
   vc_getscm "." || return $?
   #vc_branches all | while read f ; do basename "$f"; done | sort -u
@@ -1084,7 +1050,7 @@ vc__branch_refs()
 vc__branches()
 {
   test -n "$1" || set -- all
-  vc_getscm "$(pwd)" || return $?
+  vc_getscm "$PWD" || return $?
   vc_branches "$@"
 }
 
@@ -1424,9 +1390,9 @@ vc_als__gf=gitflow
 #    basename $(git config --get remote.origin.url) .git
 #  } || {
 #    test "$(hostname -s)" = "jenkins" && {
-#      basename $(dirname $(pwd))
+#      basename $(dirname $PWD)
 #    } || {
-#      basename $(pwd)
+#      basename $PWD
 #    }
 #  }
 #}
@@ -1464,7 +1430,7 @@ vc_als__gf=gitflow
 #    done
 #  } || {
 #    # no argument: backup all GIT cleanable files
-#    vc__backup_unversioned_from_dir "$(pwd)" || return $?
+#    vc__backup_unversioned_from_dir "$PWD" || return $?
 #  }
 #}
 #
@@ -1475,7 +1441,7 @@ vc_als__gf=gitflow
 #  test -d "$(dirname $UNVERSIONED_FILES)" || error "No dir '$UNVERSIONED_FILES'" 1
 #  test -d "$UNVERSIONED_FILES" || mkdir $UNVERSIONED_FILES
 #
-#  pwd=$(pwd)
+#  pwd=$PWD
 #  cd $UNVERSIONED_FILES/..
 #  git annex unlock ./$project || error "projdir" 1
 #  cd "$pwd"
@@ -1798,191 +1764,108 @@ vc__down()
 
 # Script main functions
 
-vc_main()
-{
-  # Do something if script invoked as 'vc.sh'
-  local scriptname=vc base="$(basename "$0" .sh)" subcmd=$1
+# TODO: move vctmp.sh back in here/cleanup
 
-  case "$base" in $scriptname )
+main-init-env \
+  INIT_ENV= INIT_LIB=std\ sys\ sys-htd\ os\ str\ log\ match\ main\ vc\ vc-htd\ ctx-std
 
-        test -n "$scriptpath" || scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-        test -n "$script_util" || script_util=$scriptpath/tools/sh
-        test -n "$htd_log" || htd_log=$script_util/log.sh
-        test -z "$v" || verbosity=$v
-        test -n "$verbosity" || verbosity=4
-        export verbosity DEBUG=
-
-        # PWD, real PWD and relative 'short/symbolic' path
-        ppwd="$(pwd -P)" ppwd="$PWD" spwd=.
-
-        test -n "$LOG" -a \( -x "$LOG" -o "$(type -t $LOG)" = "function" \) ||
-            LOG=$scriptpath/tools/sh/log.sh
-
-        U_S=/srv/project-local/user-scripts
-
-        INIT_LOG=$LOG \
-        script_util=$scriptpath/tools/sh \
-            vc_env_load || return
-
-        #util_mode=boot . $scriptpath/tools/sh/init-wrapper.sh
-        #echo util_mode=boot . $scriptpath/tools/sh/init.sh
-        #util_mode=boot . $scriptpath/tools/sh/init.sh
-        . $scriptpath/tools/sh/init.sh || return $?
-
-        local func=$(echo vc__$subcmd | tr '-' '_') \
-            failed= \
-            ext_sh_sub=
-
-        lib_load main vc-htd || return
-
-        type $func >/dev/null 2>&1 && {
-          shift 1
-
-          lib_load sys-htd std std-ht date src package stdio &&
-          INIT_LOG=$LOG \
-          lib_init sys-htd std std-ht date src package stdio || return
-
-          vc_load || return
-          $func "$@" || return $?
-          vc_unload || return
-
-        } || {
-          R=$?
-          vc_load || return
-          # TODO: rewrite to use default command, proper error handler here
-          test -n "$1" && {
-            vc__print_all "$@"
-            exit $R
-          } || {
-            vc__print_all $(pwd)
-            exit 0
-          }
-        }
-
-      ;;
-
-    * )
-        echo "VC is not a frontend for $base ($scriptname)" 2>&1
-        exit 1
-      ;;
-
-  esac
-}
-
-
-# Set env and other per-specfile init
-vc_env_load()
-{
-  test -n "$script_util" || return 103 # NOTE: sanity
-  test -n "$scriptpath" || return
-  unset CWD
-
-  # FIXME: instead going with hardcoded sequence for env-d like for lib.
-  test -n "$htd_env_d_default" ||
-      htd_env_d_default=init-log\ ucache\ scriptpath\ std
-  #for env_d in 0 log-reinit init-log ucache scriptpath dev test
-
-  . $U_S/tools/sh/parts/include.sh
-
-  # FIXME: hardcoded sequence for env-d like for lib. Using lib-util-env-d-default
-  for env_d in $htd_env_d_default
-  do
-    #sh_include env-$env_d ||
-    . $script_util/parts/env-$env_d.sh
-  done
-
-  test -n "$base" || return 12 # NOTE: sanity
-  test -n "$INIT_LOG" || return 102 # NOTE: sanity
-  $INIT_LOG "info" "" "Env initialized from parts"
-}
-
+main-init \
+  init_sh_libs=os\ sys\ str\ log \
+  true "${CWD:="$scriptpath"}" \
+  true "${SUITE:="Main"}" \
+  true "${_ENV:="$scriptpath/.htd/tools/env.sh"}" \
+  test ! -e $_ENV || source $_ENV \
+  test ! -z "${SCRIPTPATH-}"
 
 main-load \
-  local __load_lib=1 cwd="$(pwd)"
-  # FIXME: sh autocompletion
-  #. ~/.conf/bash/git-completion.bash
-
-  test -n "${hnid-}" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')"
-  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  test -n "${vc_dir-}" || vc_dir=$scriptpath
-  test -n "${vc_br_def-}" || vc_br_def=master
-  test -n "${vc_rt_def-}" || vc_rt_def=origin
-  #statusdir.sh assert vc_status > /dev/null || error vc_status 1
-  gtd="$(vc_gitdir "$cwd")"
-
-  # See ignores.rst for info on Global/Purgeable,Cleanable and Droppable
-  test -n "$vc_clean_gl" || {
-    test -e .gitignore-clean && export vc_clean_gl=.gitignore-clean
-    test -e ~/.gitignore-clean-global \
-      && export vc_clean_gl="$vc_clean_gl $HOME/.gitignore-clean-global"
+  local __load_lib=1 cwd="$PWD" \
+  # FIXME: sh autocompletion \
+  #. ~/.conf/bash/git-completion.bash \
+ \
+  test -n "${hnid-}" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')" \
+  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')" \
+  test -n "${vc_dir-}" || vc_dir=$PWD \
+  test -n "${vc_dir-}" || vc_dir=$scriptpath \
+  test -n "${vc_br_def-}" || vc_br_def=master \
+  test -n "${vc_rt_def-}" || vc_rt_def=origin \
+  #statusdir.sh assert vc_status > /dev/null || error vc_status 1 \
+  gtd="$(vc_gitdir "$vc_dir")" \
+ \
+  # See ignores.rst for info on Global/Purgeable,Cleanable and Droppable \
+  test -n "${vc_clean_gl-}" || { \
+    test -e .gitignore-clean && export vc_clean_gl=.gitignore-clean \
+    test -e ~/.gitignore-clean-global \\
+      && export vc_clean_gl="${vc_clean_gl-}${vc_clean_gl+" "}$HOME/.gitignore-clean-global"  \
+  } \
+  test -n "${vc_temp_gl-}" || { \
+    test -e .gitignore-temp \\
+      && export vc_temp_gl=.gitignore-temp \
+    test -e ~/.gitignore-temp-global \\
+      && export vc_temp_gl="${vc_temp_gl-}${vc_temp_gl+" "}$HOME/.gitignore-temp-global" \
+  } \
+ \
+  # TODO: list of dirs (checkouts, annexes) to retrieve/store files \
+  test -n "${UNVERSIONED_FILES-}" || { \
+    #test -e /srv/annex-local \
+    UNVERSIONED_FILES=$( for dir in /srv/backup-local /srv/archive-local \\
+        /srv/archive-old-local /srv/htdocs-local; do \
+      test -e $dir && echo "$dir" || continue; done ) \
   }
-  test -n "$vc_temp_gl" || {
-    test -e .gitignore-temp \
-      && export vc_temp_gl=.gitignore-temp
-    test -e ~/.gitignore-temp-global \
-      && export vc_temp_gl="$vc_temp_gl $HOME/.gitignore-temp-global"
-  }
 
-  # TODO: list of dirs (checkouts, annexes) to retrieve/store files
-  test -n "$UNVERSIONED_FILES" || {
-    #test -e /srv/annex-local
-    UNVERSIONED_FILES=$( for dir in /srv/backup-local /srv/archive-local \
-        /srv/archive-old-local /srv/htdocs-local; do
-      test -e $dir && echo "$dir" || continue; done )
-  }
-
-main-load-flags
-    f )
-        # Preset name to subcmd failed file placeholder
-        failed=$(setup_tmpf .failed)
+main-load-flags \
+    f ) \
+        # Preset name to subcmd failed file placeholder \
+        failed=$(setup_tmpf .failed) \
+      ;; \
+ \
+    C ) \
+        # Return cached value. Validate based on timestamp. \
+        C= c= \
+        C_exptime=$(try_value ${subcmd} C_exptime) \
+        C_validate="$(try_value ${subcmd} C_validate)" \
+        stat_key C >/dev/null \
+        C="$(statusdir.sh get $C_key)" \
+        C_mtime= \
+        c_mtime=$(eval $C_validate 2>/dev/null) \
+        ( test -n "$c_mtime" && C_cached $c_mtime ) && { \
+          echo $C \
+          debug "cached" \
+          exit 0 \
+        } || debug "cache:$?" \
+      ;; \
+ \
+    q ) # set if not set, dont update and eval package main env \
+        test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" || { \
+            test -n "$PACKMETA" -a -e "$PACKMETA" && \
+                note "Using package '"'"\$PACKMETA"'"'" || \
+                error "No local package" 5 \
+            package_lib_set_local "$CWD" || \
+                error "Setting local package ($CWD)" 6 \
+        } \
+ \
+        # Evaluate package env \
+        . $PACKMETA_SH || error "local package" 7 \
+ \
+        test "$package_type" = "application/vnd.org.wtwta.project" || \
+                error "Project package expected (not $package_type)" 4 \
+        test -n "$package_env" || export package_env=". $PACKMETA_SH" \
+        debug "Found package '"'"\$package_id"'"'" \
       ;;
 
-    C )
-        # Return cached value. Validate based on timestamp.
-        C= c=
-        C_exptime=$(try_value ${subcmd} C_exptime)
-        C_validate="$(try_value ${subcmd} C_validate)"
-        stat_key C >/dev/null
-        C="$(statusdir.sh get $C_key)"
-        C_mtime=
-        c_mtime=$(eval $C_validate 2>/dev/null)
-        ( test -n "$c_mtime" && C_cached $c_mtime ) && {
-          echo $C
-          debug "cached"
-          exit 0
-        } || debug "cache:$?"
+main-unload-flags \
+ \
+    C ) \
+        # Update cached value \
+        test -z "$c" || { \
+          test "$C" = "$c" \\
+            || { \
+              statusdir.sh set $C_key "$c" $exptime 2>&1 >/dev/null \
+              statusdir.sh set $C_key:time $c_mtime $C_exptime 2>&1 >/dev/null \
+            } \
+          } \
       ;;
 
-    q ) # set if not set, don't update and eval package main env
-        test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" || {
-            test -n "$PACKMETA" -a -e "$PACKMETA" &&
-                note "Using package '$PACKMETA'" ||
-                error "No local package" 5
-            package_lib_set_local "$CWD" ||
-                error "Setting local package ($CWD)" 6
-        }
 
-        # Evaluate package env
-        . $PACKMETA_SH || error "local package" 7
 
-        test "$package_type" = "application/vnd.org.wtwta.project" ||
-                error "Project package expected (not $package_type)" 4
-        test -n "$package_env" || export package_env=". $PACKMETA_SH"
-        debug "Found package '$package_id'"
-      ;;
-
-main-unload-flags
-
-    C )
-        # Update cached value
-        test -z "$c" || {
-          test "$C" = "$c" \
-            || {
-              statusdir.sh set $C_key "$c" $exptime 2>&1 >/dev/null
-              statusdir.sh set $C_key:time $c_mtime $C_exptime 2>&1 >/dev/null
-            }
-          }
-      ;;
-
-main-epilogue
+main-epilogue \
 # Id: script-mpe/0.0.4-dev vc.sh

@@ -54,7 +54,7 @@ htd_test_unpacked() # ARCHIVE [DIR]
 
   set -- "$(cd "$(dirname "$1")"; pwd -P)/$archive" "$2"
 
-  local oldwd="$(pwd)" dirty=
+  local oldwd="$PWD" dirty=
   #"$(statusdir.sh file htd test-unpacked)"
   #test ! -e "$dirty" || rm "$dirty"
 
@@ -88,7 +88,7 @@ htd__clean_unpacked() # ARCHIVE [DIR]
   # Resolve symbolic parts:
   set -- "$(cd "$dir"; pwd -P)/$archive" "$2"
 
-  local oldwd="$(pwd)" \
+  local oldwd="$PWD" \
       cnt=$(setup_tmpf .cnt) \
       cleanup=$(setup_tmpf .cleanup) \
       dirty=$(setup_tmpf .dirty)
@@ -151,7 +151,7 @@ htd__note_unpacked() # ARCHIVE [DIR]
 
   set -- "$(cd "$(dirname "$1")"; pwd -P)/$archive" "$2"
 
-  local oldwd="$(pwd)" dirty="$(statusdir.sh file htd note-unpacked)"
+  local oldwd="$PWD" dirty="$(statusdir.sh file htd note-unpacked)"
   test ! -e "$dirty" || rm "$dirty"
 
   cd "$2"
@@ -163,7 +163,7 @@ htd__note_unpacked() # ARCHIVE [DIR]
       touch $dirty
       # check for changes?
     } || {
-      debug "No file $(pwd)/$file"
+      debug "No file $PWD/$file"
       continue
     }
   done

@@ -222,7 +222,8 @@ lst_als___e=edit
 # Script main functions
 
 MAKE-HERE
-INIT_ENV="init-log 0 0-src 0-u_s 0-std ucache scriptpath box"
+  INIT_ENV="init-log 0 0-src 0-u_s 0-std ucache scriptpath box" \
+INIT_LIB="\\$default_lib ctx-main ctx-std"
 main-lib
   lib_load box main str-htd src htd || return
 main-load

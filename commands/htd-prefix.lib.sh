@@ -76,10 +76,10 @@ cleaning up old trees and ctimes documents.
 '
 htd__prefixes()
 {
-  test -n "$index" || local index=
+  test -n "${index-}" || local index=
   test -s "$index" || prefix_require_names_index || return
 
-  test -n "$1" || set -- op
+  test -n "${1-}" || set -- op
   case "$1" in
 
     # Read from table

@@ -17,13 +17,20 @@ main_make_lib_load()
       . $HOME/.conf/script/util-min-uc.lib.sh
       #. $CWD/tools/sh/parts/func_exists.lib.sh
       #. $CWD/tools/sh/parts/trueish.lib.sh
+
+  test ${main_lib_loaded:-1} -eq 0 || {
+    . $CWD/main.lib.sh || exit
+    main_lib_load
+    main_lib_loaded=$?
+  }
+  return $main_lib_loaded
 }
 
 make_read_herescript()
 {
   local _ header
   make_scriptbody=
-  while IFS= read line
+  while IFS= read -r line
   do
     test "$line" = "MAKE-HERE" && break
     test -n "${header-}" || {
@@ -42,7 +49,7 @@ make_read_herescript()
     case "$line" in main[-_]* )
         f=$(echo $line | cut -c6- | tr '-' '_') ; continue ;; esac
     test -z "$f" && {
-      main_env="${main_env-}$line "
+      main_init_env="${main_init_env-}$line "
     } || {
       eval "test -n \"\${main_$f-}\" &&
         main_${f}=\"\${main_$f-}"$'\n'"\$line\" ||
@@ -102,7 +109,7 @@ make_preproc_script() # Make-Script ~ [Echo]
   done
 }
 
-make_main_parts='main_env main_local main_lib main_load main_unload main_load_flags main_unload_flags main_epilogue main_bases'
+make_main_parts='main_init_env main_local main_init main_lib main_load main_unload main_load_flags main_unload_flags main_epilogue main_bases'
 
 make_here()
 {
@@ -114,14 +121,17 @@ make_here()
 
   local make_scriptbody
   make_read_herescript < "$1"
+  test ${make_dump_vars:-0} -eq 0 || {
+      for p in $make_main_parts; do echo "$part: ${!part:-unset}"; done
+    return
+  }
   $make_pref "$(printf "$make_scriptbody")"
 
   main_script=$make_script
   main_base=$make_scriptname
   main_scriptpath="$(dirname "$make_script")"
 
-  eval "${main_env-} \
-    main_make $make_scriptname"
+  main_make $make_scriptname
 }
 
 make_preproc()
@@ -132,6 +142,7 @@ make_preproc()
           local make_pref=eval
       } || make_pref=echo
   }
+  # TODO: test ${make_dump_vars:-0} -eq 0 || {
   test ${make_echo-0} -eq 1 && {
       make_preproc_script 2 < "$1"
       eval "$( make_preproc_script 1 < "$1" )"
@@ -141,9 +152,8 @@ make_preproc()
   main_script=$make_script
   main_base=$make_scriptname
   main_scriptpath="$(dirname "$make_script")"
-  main_aliases=${aliases-$make_scriptname}
   # Create main parts but do not eval yet
-  eval "${main_env-} main_make $make_scriptname"
+  eval "main_make $make_scriptname"
 }
 
 # Id: script-mpe/0.0.4-dev main-make.lib.sh

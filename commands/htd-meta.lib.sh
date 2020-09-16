@@ -221,7 +221,7 @@ htd__ck_update()
       ck_update_file "$update_p" || return 4
       continue
     }
-    warn "Failed updating '$(pwd)/$update_p'"
+    warn "Failed updating '$PWD/$update_p'"
   done
   test -z "$1" || error "Aborted on missing path '$1'" 1
 }

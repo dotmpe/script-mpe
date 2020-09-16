@@ -80,7 +80,7 @@ htd_service_status()
 
   local serv_id=$1 serv_stat= serv_stat_msg=
   {
-    local VAGRANT_CWD= VAGRANT_NAME= pwd=$(pwd)
+    local VAGRANT_CWD= VAGRANT_NAME= pwd=$PWD
     cd "$3"
     test -z "$HTD_SERV_ENV" || eval $HTD_SERV_ENV
     case "$2" in

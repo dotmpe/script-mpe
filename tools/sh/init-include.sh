@@ -3,9 +3,10 @@
 # Initialize for ``sh-include PART..``
 
 true "${U_S:="/srv/project-local/user-scripts"}"
-sh_tools="$U_S/tools/sh"
-ci_tools="$U_S/tools/ci"
+true "${sh_tools:="$U_S/tools/sh"}"
 
 . "$sh_tools/parts/fnmatch.sh"
-. "$sh_tools/parts/include.sh"
-. "$ci_tools/parts/print-err.sh"
+. "$U_S/tools/sh/parts/include.sh"
+. "$U_S/tools/ci/parts/print-err.sh"
+
+# Sync: U-s

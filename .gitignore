@@ -52,3 +52,4 @@ _tmp
 *.tmp
 test/var/nix_comments.txt.header
 tags
+*.shc
