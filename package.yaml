@@ -1,312 +1,256 @@
-# package.y*ml project metadata
-
-- type: application/vnd.org.wtwta.project
-  main: script-2008b-mpe
+- environments:
+  - dev
+  tools:
+    redo:
+      parts:
+        bases:
+        - tools/\$package_build_tool/parts
+        - \$UCONF/tools/\$package_build_tool/parts
+      targets:
+        all: init check build test pack
+        main: help all init check build test pack dist
   id: script-2008b-mpe
-  name: Script.mpe
-  slug-id: BIN
-  version: 0.0.4-dev # script-mpe
-  vendor: dotmpe
-  distribution: public
-  license: GPL-3.0
-  environments:
-    - dev
-
-  env: . "$HOME/bin/tools/ci/env.sh"
-
-  urls:
-    license:
-      - https://www.gnu.org/licenses/gpl-3.0.txt
-      - https://choosealicense.com/licenses/gpl-3.0/
-      - https://opensource.org/licenses/gpl-license
-
-  repositories:
-    bb: git@bitbucket.org:dotmpe-personal/script-mpe.git
-    dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
-    github: git@github.com:dotmpe/script-mpe.git
-    #boreas.16-4: /srv/scm-git-16-4-boreas-brix/dotmpe/script-mpe.git
-    notus.24-2: /srv/scm-git-24-2-notus-brix/dotmpe/script-mpe.git
-    dandy.8-3: /srv/scm-git-8-3-dandy-mpe/dotmpe/script-mpe.git
-    dandy.9-1: /srv/scm-git-9-1-dandy-mpe/dotmpe/script-mpe.git
-    dandy.21-1: /srv/scm-git-21-1-dandy-mpe/dotmpe/script-mpe.git
-
-  lists: # XXX: or name key copies/directives iso 'lists'
-    files: scm-all
-    documents: vc-exts-fnmatch
-    specs:
-      Sync: <Copy> <Derive> <Via> <Src> <Source> <Sync-{To,From}>
-      Copy: <To> <From>
-      Derive: <Derive-{To,From}>
-      Sh: <Sh-Derive-{To,From}> <Sh-Copy-{To,From}> <Sh-Sync-{To,From}> <Sh-{To,From}>
-      Task: <Task-Derive-{To,From}> <Task-Copy-{To,From}> <Task-Sync-{To,From}> <Task-{To,From}>
-      Modeline-Derive-From: <Modeline-Derive> <Ml-Derive> <Ml-From>
-    contexts:
-      default: "@Std @Task @Dev +script-mpe +htdocs-mpe"
-      std: '@Doc'
-      map:
-        to: '@tasks-hub'
-        doc: '@Doc'
-        test: '@Dev'
-        taxus: '@Dev'
-
-    main: "@be.topic" # get the .list of topics for htdocs
-    index: "@be.src.files" # get the .list of names for htdocs
-    to:
-      do: "@Task"
-      src: "@be.src +htdocs-mpe" # get the .list of sei for htdocs
-
-  ext:
-    topics:
-      id: script-mpe-2008a
-    # TODO: group settings per extension package
-
-  log: DevLog.rst
-
-  rst:
-    default-include: .rst-global.rst
-
-  pd-meta:
-    # TODO: move run/test/build to projects package iso. pd-meta.
-    run:
-      behat: "./vendor/bin/behat--tags:~@skip"
-      behat-defs: "./vendor/bin/behat:-dl"
-
-      # NOTE: behat cannot display outline only
-      behat-specs: "./vendor/bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip"
-
-      # XXX: this would be nice, and is one way to do file watching for BDD
-      behat-watch: nodemon -x "./vendor/bin/behat test/\$1.feature" -w test/bootstrap/FeatureContext.php -w test/\$1.feature -w ./\$1.*
-    stats: unique-filelines unique-lines
-    # XXX: what if want to allow Sh here. Or use another project attr. for Sh
-    # scripts
-    checks: "names tasks-hub fsck vchk vcflow features specs vcstat"
-    # TODO: check for /tmp usage, force TMPDIR use
-    tests: ":vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats ./vendor/bin/behat:--tags:~@skip"
-    # TODO: run tests at VM/... if available
-    build: ":vagrant:tools/ci/vbox"
-    #build: ":vagrant:tools/ci/vbox:ubuntu"
-
-    tasks:
-      hub: ~/htdocs/to
-      document: todo.txt
-      done: .done.txt
-      grep: ./tools/sh/tags.sh
-      grep-filter: ./tools/sh/parts/tags-filter.sh
-      coops:
-        - HTD # tasks:no-check
-        - NODE-SITEFILE # tasks:no-check
-      tags:
-        - TODO # tasks:no-check
-        - XXX # tasks:no-check
-        - FIXME # tasks:no-check
-        - BUG # tasks:no-check
-        - NOTE # tasks:no-check
-
-    git-hooks:
-      pre-commit: ./tools/git-hooks/pre-commit.sh
-      pre-commit-script: htd check
-
-    init: "./install-dependencies.sh git:init"
-    # FIXME: what about git annex pre-commit .
-
   environment:
     development:
     - package_pd_meta_default=dev
-    - Build_Deps_Default_Paths=1 
+    - Build_Deps_Default_Paths=1
     - BOREAS_SKIP=1
     - DANDY_SKIP=1
     - VS1_SKIP=1
-
-  prefixes: {} # See ~/.cllct.rc finfo
-
-  build: redo "\$@"
+  log: DevLog.rst
   specs:
-    units: test/py/\$id.py test/py/mod_\$vid.py test/\$id-lib-spec.bats test/\$id-spec.bats test/\$id.bats
-    required: util 1_1-helper str sys os std stdio argv shell list match vc matchbox src main box box-cmd box-lib box-src pd-meta finfo table package
-
+    units: test/py/\$id.py test/py/mod_\$vid.py test/\$id-lib-spec.bats test/\$id-spec.bats
+      test/\$id.bats
+    required: util 1_1-helper str sys os std stdio argv shell list match vc matchbox
+      src main box box-cmd box-lib box-src pd-meta finfo table package
+  prefixes: {}
+  slug-id: BIN
+  version: 0.0.4-dev
+  build: redo "\$@"
+  env:
+  - . \$HOME/bin/.env.sh
+  - 'true "\${CWD:="\$(dirname \$(dirname \$(dirname \$0)))"}"'
+  - test -e \$CWD/.meta/attributes.sh -a \$CWD/.meta/attributes.sh -nt \$CWD/.attributes
+    || { compo eval "cd \$CWD && c-groups ht && ht-attributes"; }
+  - . \$CWD/.meta/attributes.sh
+  - '. "\$CWD/tools/\${TOOLS_SUITE:="sh"}/env.sh" || return'
+  main: script-2008b-mpe
+  type: application/vnd.org.wtwta.project
+  vendor: dotmpe
+  lists:
+    files: scm-all
+    index: '@be.src.files'
+    documents: vc-exts-fnmatch
+    contexts:
+      default: '@Std @Dev +script-mpe'
+      std: '@Doc'
+      map:
+        test: '@Dev'
+        to: '@tasks-hub'
+        taxus: '@Dev'
+        doc: '@Doc'
+    to:
+      do: '@Task'
+      src: '@be.src +htdocs-mpe'
+    main: '@be.topic'
+    specs:
+      Task: <Task-Derive-{To,From}> <Task-Copy-{To,From}> <Task-Sync-{To,From}> <Task-{To,From}>
+      Sync: <Copy> <Derive> <Via> <Src> <Source> <Sync-{To,From}>
+      Sh: <Sh-Derive-{To,From}> <Sh-Copy-{To,From}> <Sh-Sync-{To,From}> <Sh-{To,From}>
+      Derive: <Derive-{To,From}>
+      Modeline-Derive-From: <Modeline-Derive> <Ml-Derive> <Ml-From>
+      Copy: <To> <From>
   scripts:
-    get-env:
-      - EXIT_ON_ERROR=0 . ./.htd/tools/env.sh
-    list-scripts: lib_load build-htd && list_sh_files "\$@"
-    init:
-      - htd package update
-      - htd package write-scripts --no-eval init build install test get-env
-      - htd package remotes-reset
-      - vc regenerate
-      # XXX: interactve: python -c 'import nltk; nltk.download()'
-      - test -e Makefile || { rm Makefile ; ln -s /usr/share/mkdoc/Mkdoc-full.mk Makefile ; }
-      #- make symlinks
-      - scriptname="init"
-      #- lib_load build-htd
-      #- . ./tools/ci/parts/init.sh
-    host-init:
-      # Build scm-git remotes for volumes
-      - htd srv
-
-    db-deinit:
-      - db=htd-test db_root_passwd=\$BM_DB_PASS docker-sh.sh mysql drop-db
-    db-init:
-      - db=htd-test db_root_passwd=\$BM_DB_PASS docker-sh.sh mysql create-db
-      - db_sa.py --dbref=\$BM_DB init script_mpe.sa_migrate.bms.model
-
-    install:
-      - export SCR_SYS_SH=bash-sh
-      - scriptname="before-install"
-      - . ./tools/sh/init.sh
-      - . ./tools/sh/env.sh
-      - . ./tools/ci/parts/init.sh
-      - scriptname=install
-      - . ./tools/ci/parts/install.sh
-    reset-pyvenv:
-      - rm -rf ~/.pyvenv/htd
-      - htd run install-pyvenv
+    ci: lib_load build && list_builds \"\$@\"
+    test2:
+    - 'docker run --rm \ -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \ -e
+      LOG=/srv/docker-volumes-local/user-script/log.sh \ -e USER=treebox \ -e TMPDIR=/tmp
+      \ -e HOME=/home/treebox \ localhost:5000/ubuntu-user-script:build \ ''PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
+      ./htd.sh run test'''
+    features: lib_load build-test && any_feature "\$@"
     install-pyvenv:
-      - test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
-      - source ~/.pyvenv/htd/bin/activate ;
-        pip install -r requirements.txt ;
-        pip install -r test-requirements.txt
-    install-gv:
-      - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh git-versioning && rm -rf /src/git-versioning
-
-    check: true # TODO: htd project workflow
-
-    #build: pd build
-    build:
-      - export SCR_SYS_SH=bash-sh
-      - scriptname="init"
-      - . ./tools/sh/init.sh
-      - . ./tools/sh/env.sh
-      - . ./tools/ci/parts/init.sh
-      #- vagrant tools/ci/vbox
-      - scriptname=script
-      - . ./tools/ci/parts/build.sh
-
-    # Run main test-suite TODO: work at dependency
-    #test: pd test
-    test:
-      - lib_load build-test
-      - test -n "\$1" || before_test
-      - test -n "\$1" || set -- \$REQ_SPECS
-      - build_test \$@
-
-    # TODO: Run complete test-suite, including WIP
-    test-all:
-      - lib_load build-test
-      - test -n "\$1" || set -- \$REQ_SPECS \$TEST_SPECS
-      - project_test \$@
-
-    # Run unit & component tests
+    - test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
+    - source ~/.pyvenv/htd/bin/activate ; pip install -r requirements.txt ; pip install
+      -r test-requirements.txt
     project-test: lib_load build-test && project_test "\$@"
-
-    # List unit & component testfiles
-    list-tests: lib_load build-test && project_tests "\$@"
-
-    # Summarize
-    tests: lib_load build-test && test_status "\$@"
-
-    # Run test-cases, and re-run after change
+    build-docker:
+    - ( cd tools/ci/build && drone exec )
+    - 'docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build'
+    - 'docker push freyr/ubuntu-user-script:build'
+    - 'docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build'
+    totest: lib_load build-test && totest "\$@"
+    test-all:
+    - lib_load build-test
+    - test -n "\$1" || set -- \$REQ_SPECS \$TEST_SPECS
+    - project_test \$@
+    test-unit: lib_load build-test && test_any_unit "\$@"
+    check: true
+    reset-pyvenv:
+    - rm -rf ~/.pyvenv/htd
+    - htd run install-pyvenv
+    tags-update: ctags -e -R .
+    unique-filelines:
+    - vc tracked-files | while read f ; do test ! -h "\$f" || continue; grep -vF "\$f"
+      .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' \$f ; done | wc -l
+    install-gv:
+    - sudo Build_Deps_Default_Paths=1 SRC_PREFIX=/src PREFIX=/usr/local ./install-dependencies.sh
+      git-versioning && rm -rf /src/git-versioning
+    feature-defs: \$TEST_FEATURE_DEFS
+    init:
+    - htd package update
+    - htd package write-scripts --no-eval init build install test
+    - htd package remotes-reset
+    - vc regenerate
+    - test -e Makefile || { rm Makefile ; ln -s /usr/share/mkdoc/Mkdoc-full.mk Makefile
+      ; }
+    - scriptname="init"
+    feature-specs: \$TEST_FEATURE_BIN --dry-run
+    build:
+    - export SCR_SYS_SH=bash-sh
+    - scriptname="init"
+    - . ./tools/sh/init.sh
+    - . ./tools/sh/env.sh
+    - . ./tools/ci/parts/init.sh
+    - scriptname=script
+    - . ./tools/ci/parts/build.sh
+    tasks-list: tasks.py -t todo.txt list-issues
+    test:
+    - lib_load build-test
+    - test -n "\$1" || before_test
+    - test -n "\$1" || set -- \$REQ_SPECS
+    - build_test \$@
     tdd-scm: lib_load build-test && exec_watch_scm_paths "\$@"
-
-    # Keep testfiles and tested list, and keep running while one or more fails
-    # TODO: restart suite only after changes
+    tests: lib_load build-test && test_status "\$@"
+    db-init:
+    - db=htd-test db_root_passwd=\$BM_DB_PASS docker-sh.sh mysql create-db
+    - db_sa.py --dbref=\$BM_DB init script_mpe.sa_migrate.bms.model
+    list-scripts: lib_load build-htd && list_sh_files "\$@"
+    test-docker:
+    - drone exec
     retest: lib_load build-test && retest "\$@"
     tested: lib_load build-test && tested "\$@"
-    totest: lib_load build-test && totest "\$@"
-
-    # NOTE: the only thing missing with this tools/sh/env test-watch setup is
-    # a replay feature, and keep watching only failing specs. see htd
-    # resolve-modified too.
-    test-unit: lib_load build-test && test_any_unit "\$@"
-    features: lib_load build-test && any_feature "\$@"
-    test-feature: lib_load build-test && test_any_feature "\$@"
-    test-features: lib_load build-test && test_any_feature "\$@"
-    feature-defs: \$TEST_FEATURE_DEFS
-    # NOTE: behat cannot display outline only, but behave has problems with extended background syntax
-    feature-specs: \$TEST_FEATURE_BIN --dry-run # --no-multiline --no-expand
-
-    ci: lib_load build && list_builds \"\$@\"
-
-    unique-filelines:
-    - vc tracked-files | while read f ; do test ! -h "\$f" || continue; grep -vF "\$f" .cllct/ls-non-src.list || continue; grep -Ev '^\s\+$' \$f ; done | wc -l
-    unique-lines:
-    - vc tracked-files | while read f ; do test ! -h "\$f" || continue; grep -vF "\$f" .cllct/ls-non-src.list || continue; sort -u \$f ; done | sort -u | wc -l
-
-    tasks-list: tasks.py -t todo.txt list-issues
-    tasks-update: htd tasks --Check-All-Tags --Check-All-Files
-
-    build-docker:
-      - '( cd tools/ci/build && drone exec )'
-      - docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build
-      - docker push freyr/ubuntu-user-script:build
-      - docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build
-    test-docker:
-      - drone exec
-    test2:
-      - docker run --rm \
-           -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \
-           -e LOG=/srv/docker-volumes-local/user-script/log.sh \
-           -e USER=treebox \
-           -e TMPDIR=/tmp \
-           -e HOME=/home/treebox \
-           localhost:5000/ubuntu-user-script:build \
-           'PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/ ./htd.sh run test'
-
-    build-docs: lib_load build-htd && build_docs "\$@"
     build-refdocs: lib_load build-htd && build_refdocs "\$@"
-
-    tags-update: ctags -e -R .
-
-
-    # End of [0]/scripts
-
-  # For make data/*: or move to cllct.rc
+    build-docs: lib_load build-htd && build_docs "\$@"
+    unique-lines:
+    - vc tracked-files | while read f ; do test ! -h "\$f" || continue; grep -vF "\$f"
+      .cllct/ls-non-src.list || continue; sort -u \$f ; done | sort -u | wc -l
+    test-features: lib_load build-test && test_any_feature "\$@"
+    list-tests: lib_load build-test && project_tests "\$@"
+    tasks-update: htd tasks --Check-All-Tags --Check-All-Files
+    host-init:
+    - htd srv
+    db-deinit:
+    - db=htd-test db_root_passwd=\$BM_DB_PASS docker-sh.sh mysql drop-db
+    install:
+    - export SCR_SYS_SH=bash-sh
+    - scriptname="before-install"
+    - . ./tools/sh/init.sh
+    - . ./tools/sh/env.sh
+    - . ./tools/ci/parts/init.sh
+    - scriptname=install
+    - . ./tools/ci/parts/install.sh
+    test-feature: lib_load build-test && test_any_feature "\$@"
+  rst:
+    default-include: .rst-global.rst
   data:
     finfo:
-      handlers: # TODO: map to taxus.core.Node annotated/dynamic properties
-        - last_updated:mtime
-        - last_seen:atime
-        # taxus.web.Invariant.mediatype
-        - mime_type:lib...
-
+      handlers:
+      - 'last_updated:mtime'
+      - 'last_seen:atime'
+      - 'mime_type:lib...'
+  pd-meta:
+    tests: ':vchk sh:python:test/main.py :bats:specs :bats :bats:test/ubuntu-suite.bats
+      ./vendor/bin/behat:--tags:~@skip'
+    tasks:
+      coops:
+      - HTD
+      - NODE-SITEFILE
+      grep: ./tools/sh/tags.sh
+      hub: ~/htdocs/to
+      tags:
+      - TODO
+      - XXX
+      - FIXME
+      - BUG
+      - NOTE
+      grep-filter: ./tools/sh/parts/tags-filter.sh
+      done: .done.txt
+      document: todo.txt
+    stats: unique-filelines unique-lines
+    git-hooks:
+      pre-commit: ./tools/git-hooks/pre-commit.sh
+      pre-commit-script: htd check
+    init: './install-dependencies.sh git:init'
+    build: ':vagrant:tools/ci/vbox'
+    run:
+      behat-defs: './vendor/bin/behat:-dl'
+      behat-specs: './vendor/bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip'
+      behat-watch: nodemon -x "./vendor/bin/behat test/\$1.feature" -w test/bootstrap/FeatureContext.php
+        -w test/\$1.feature -w ./\$1.*
+      behat: './vendor/bin/behat--tags:~@skip'
+    checks: names tasks-hub fsck vchk vcflow features specs vcstat
+  name: Script.mpe
+  license: GPL-3.0
   default: dev
-
-# End of main
-
-
+  repositories:
+    github: 'git@github.com:dotmpe/script-mpe.git'
+    dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
+    dandy.21-1: /srv/scm-git-21-1-dandy-mpe/dotmpe/script-mpe.git
+    bb: 'git@bitbucket.org:dotmpe-personal/script-mpe.git'
+    dandy.9-1: /srv/scm-git-9-1-dandy-mpe/dotmpe/script-mpe.git
+    notus.24-2: /srv/scm-git-24-2-notus-brix/dotmpe/script-mpe.git
+    dandy.8-3: /srv/scm-git-8-3-dandy-mpe/dotmpe/script-mpe.git
+  ext:
+    topics:
+      id: script-mpe-2008a
+  urls:
+    license:
+    - 'https://www.gnu.org/licenses/gpl-3.0.txt'
+    - 'https://choosealicense.com/licenses/gpl-3.0/'
+    - 'https://opensource.org/licenses/gpl-license'
+  distribution: public
 - type: application/vnd.org.wtwta.symlinks
   id: script-mpe-symlinks
   file: .symlinks.tab
   attrs: SRC DEST
-
-
-- vagrant_scripts: &vagrant_scripts
+- type: application/vnd.org.wtwta.yaml-fragment
+  vagrant_scripts:
     info:
-     - echo VBOX_DOMAIN=$VBOX_DOMAIN VBOX_LOCAL=$VBOX_LOCAL
-     - vagrant status
-    init:
-     - vagrant up --provision
-    start:
-     - vagrant start
+    - echo VBOX_DOMAIN=$VBOX_DOMAIN VBOX_LOCAL=$VBOX_LOCAL
+    - vagrant status
     status:
-     - vagrant status
-    ssh:
-     - vagrant ssh </dev/tty
-    save:
-     - vagrant suspend
-    upgrade: 
-     - vagrant halt && vagrant up --provision
+    - vagrant status
+    upgrade:
+    - vagrant halt && vagrant up --provision
     deinit:
-     - vagrant destroy -f
-
-  type: application/vnd.org.wtwta.yaml-fragment
+    - vagrant destroy -f
+    start:
+    - vagrant start
+    init:
+    - vagrant up --provision
+    ssh:
+    - vagrant ssh </dev/tty
+    save:
+    - vagrant suspend
   id: package-vagrant-scripts
-
-
-- type: application/vnd.org.wtwta.environment
+- scripts:
+    info:
+    - echo VBOX_DOMAIN=$VBOX_DOMAIN VBOX_LOCAL=$VBOX_LOCAL
+    - vagrant status
+    status:
+    - vagrant status
+    upgrade:
+    - vagrant halt && vagrant up --provision
+    deinit:
+    - vagrant destroy -f
+    start:
+    - vagrant start
+    init:
+    - vagrant up --provision
+    ssh:
+    - vagrant ssh </dev/tty
+    save:
+    - vagrant suspend
+  type: application/vnd.org.wtwta.environment
   id: script-mpe-test-vbox
-  cwd: 'test/vagrant'
-  # XXX: env: '. ./env.sh'
-  scripts:
-    <<: *vagrant_scripts
-
-# End of package.y*ml project metadata
+  cwd: test/vagrant

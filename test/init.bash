@@ -15,11 +15,11 @@ log_level_name() # Level-Num
       6 ) echo info ;;
       7 ) echo debug ;;
 
-      5.1 ) echo ok ;;
-      4.2 ) echo fail ;;
-      3.3 ) echo err ;;
-      6.4 ) echo skip ;;
       2.5 ) echo bail ;;
+      3.3 ) echo err ;;
+      4.2 ) echo fail ;;
+      5.1 ) echo ok ;;
+      6.4 ) echo skip ;;
       7.6 ) echo diag ;;
 
       * ) return 1 ;;
@@ -88,14 +88,18 @@ test_env_load()
   test -n "$DEBUG" || DEBUG=
   test -n "$INIT_LOG" || INIT_LOG=err_
 
+  . ~/bin/.env.sh
+
   true "${U_S:="/srv/project-local/user-scripts"}"
   . $U_S/tools/sh/parts/include.sh
 
-  SCRIPTPATH=
-  sh_include \
-      print-err unique-paths remove-dupes \
-      env-scriptpath-deps
-  export SCRIPTPATH=$HOME/bin:$SCRIPTPATH
+  test -n "${SCRIPTPATH:-}" || {
+    SCRIPTPATH=
+    sh_include \
+        print-err unique-paths remove-dupes \
+        env-scriptpath-deps
+    export SCRIPTPATH=$HOME/bin:$SCRIPTPATH
+  }
 
   sh_include env-strict
   #sh_include debug-exit
@@ -165,41 +169,43 @@ init() # ( 0 | 1 [~ [~ [~]]] )
   script_util=$sh_tools
   test -n "$ci_tools" || ci_tools=$CWD/tools/ci
   test -d "$sh_tools" || return 103 # NOTE: sanity
-  test_env_load || return
-  test_env_init || return
 
-  # Get lib-load, and optional libs/boot script/helperj
+  # Get lib-load, and optional libs/boot script/helper
   while test $# -lt 4 ; do set -- "$@" "" ; done
   test -n "$1" || set -- "1" "$2" "$3" "$4"
   test -n "$2" || set -- "$1" "$1" "$3" "$4"
   test -n "$3" || set -- "$1" "$2" "$2" "$4"
   test -n "$4" || set -- "$1" "$2" "$3" "$3"
 
+  # Set scriptname, bin and base vars for testsuite
+  test_env_init || return
+
+  # Setup new Bats load() helper and include path
+  load_init_bats
+  load() { load_override "$@"; }
+
+  test "$1" = "0" && return
+
+  # Load tools/*/parts bits
+  test_env_load || return
+
+  # Set variables for init.sh script
   init_sh_libs="$2"
   init_sh_boot="$3"
 
-  test "$1" = "0" || {
+  test "$2" != "1" -o \( -n "$3" -a "$3" != "0" \) || init_sh_boot="null"
 
-    test "$2" != "1" -o \( -n "$3" -a "$3" != "0" \) || init_sh_boot="null"
-
-    test "$init_sh_boot" = "1" && {
-      test "$3" = "0" || init_sh_boot='std test'
-      test "$4" = "0" || init_sh_boot=$init_sh_boot' script'
-    }
-
-    true
+  test "$init_sh_boot" = "1" && {
+    test "$3" = "0" || init_sh_boot='std test'
+    test "$4" = "0" || init_sh_boot=$init_sh_boot' script'
   }
 
-  load_init_bats
-
-  test "$1" = "0" || {
 # FIXME: deal with sub-envs wanting to know about lib-envs exported by parent
 # ie. something around ENV_NAME, ENV_STACK. Renamed ENV_SRC to LIB_SRC for now
 # and dealing only with current env, testing lib-load and tools, user-scripts.
-    LIB_SRC=
-    . $U_S/tools/sh/init.sh
-    #. $u_s_util/init.sh
-  }
+  LIB_SRC=
+  . $U_S/tools/sh/init.sh
+  #. $u_s_util/init.sh
 }
 
 
@@ -246,8 +252,8 @@ bats_autosetup_common_includes()
   test ! -d $BASHER_PACKAGES ||
     BATS_LIB_PATH_DEFAULTS="$BATS_LIB_PATH_DEFAULTS $BASHER_PACKAGES"
 
-  test -e /src/ &&
-    : "${VND_SRC_PREFIX:="/src/github.com"}" ||
+  test -e /src/local &&
+    : "${VND_SRC_PREFIX:="/src/local"}" ||
     : "${VND_SRC_PREFIX:="$HOME/build"}"
 
   : "${VENDORS:="google.com github.com bitbucket.org"}"

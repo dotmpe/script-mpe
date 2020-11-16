@@ -1,9 +1,10 @@
+# Alias box scripts and refresh compiled scripts behind alias automatically
 _box_update_and_run ()
 {
   test $b.shc -nt $b.sh || {
     make_echo=1 $b.sh > $b.shc
-    chmod +x $b.shc
-    $LOG "note" "" "Updated box" "$b.shc"
+    test -x $b.shc || chmod +x $b.shc
+    $LOG "note" "" "Updated box script, regenerated" "$b.shc"
   }
   $b.shc "$@"
 }

@@ -16,7 +16,7 @@ detasec=$(echo "$report_times_ts - $ci_env_ts"|bc)
 $LOG "info" "" "CI run-time since start: $detasec seconds"
 
 
-$LOG "note" "" "Reporting CI phase event times ($TEST_ENV, $ENV_NAME, $SUITE):"
+$LOG "note" "" "Reporting CI phase event times (Env:${_ENV-}, $ENV_NAME, Suite:$SUITE):"
 for event in $ci_stages
 do
   ts="$(eval echo \$${event}_ts)" || continue

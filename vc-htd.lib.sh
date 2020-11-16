@@ -846,10 +846,10 @@ EOM
 vc_info()
 {
   test -n "${1-}" || set -- "." "  "
-  test -n "${PACKMETA_SH-}" -a -s "${PACKMETA_SH-}" && {
+  test -n "${PACK_SH-}" -a -s "${PACK_SH-}" && {
 
-    note "Sourcing '$PACKMETA_SH'..."
-    . "$PACKMETA_SH"
+    note "Sourcing '$PACK_SH'..."
+    . "$PACK_SH"
     cat <<EOM
 $2spec: $package_id/$package_version
 $2id: $package_id

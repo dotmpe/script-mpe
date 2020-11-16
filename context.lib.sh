@@ -42,7 +42,7 @@ context_files()
 }
 
 # Echo table after preproc
-context_tab()
+context_tab ()
 {
   test -n "${context_tab-}" || local context_tab="$CTX_TAB"
 
@@ -196,22 +196,21 @@ context_exists () # [case_match=1] [match_sub=0] ~ Tag
 # Compile and match grep for tag with Ctx-Table
 context_exists_tag () # Tag
 {
-  test $# -eq 1 -a -n "${1-}" || return 98
-  test "unset" != "${grep_f-"unset"}" || local grep_f=-q
-  context_tab | $ggrep $grep_f "^[0-9 -]*[^:]*\b$(match_grep "$1"):\?\\ "
+  generator=context_tab stattab_exists "$@"
 }
 
 # Compile and match grep for tag in Ctx-Table, case insensitive
-context_exists_tagi() # Tag
+context_exists_tagi () # Tag
 {
   grep_f=-qi context_exists_tag "$@"
 }
 
 # Compile and match grep for sub-tag in Ctx-Table
-context_exists_subtagi()
+context_exists_subtagi ()
 {
-  p_="$(match_grep "$1")" ; grep_fl=-qi
-  context_tab | $ggrep $grep_fl "^[0-9a-z -]*\b[^ ]*\/$p_:\?\\ "
+  test "unset" != "${grep_f-"unset"}" || local grep_f=-qi
+  match_grep_arg "$1"
+  context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^ ]*\/$p_:\?\\ "
 }
 
 # Return record for given ctx tag-id
@@ -219,8 +218,9 @@ context_tag_entry () # TAG
 {
   test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
   test -n "${NS:-}" || local NS=$CTX_DEF_NS
-  p_="$(match_grep "$1")"
-  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b\\($NS:\\)\\?$p_:\\?\\ "
+  test "unset" != "${grep_f-"unset"}" || local grep_f=-nm1
+  match_grep_arg "$1"
+  context_tab | $ggrep $grep_f "^[0-9a-z -]*\b\\($NS:\\)\\?$p_:\\?\\ "
 }
 
 # XXX: Return record for given ../subtag.
@@ -228,16 +228,26 @@ context_subtag_entries () # SUBTAG
 {
   test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
   #test -n "${NS:-}" || local NS=$CTX_DEF_NS
-  p_="$(match_grep "$1")"
-  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b[^ ]*\/$p_:\?\\ "
+  test "unset" != "${grep_f-"unset"}" || local grep_f=-nm1
+  match_grep_arg "$1"
+  context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^ ]*\/$p_:\?\\ "
 }
 
 # Fetch exactly one record with given URL attribute
 context_url_entry () # URL
 {
   test $# -eq 1 -a -n "$1" || error "arg1:URL expected" 1 || return
-  p_="$(match_grep "$1")"
-  context_tab | $ggrep -n -m 1 "^[0-9a-z -]*\b[^:]*:\\? .* <$p_>\( \|$\)"
+  test "unset" != "${grep_f-"unset"}" || local grep_f=-nm1
+  match_grep_arg "$1"
+  context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^:]*:\\? .* <$p_>\( \|$\)"
+}
+
+context_literalid_entry () # STR
+{
+  test $# -eq 1 -a -n "$1" || error "arg1:URL expected" 1 || return
+  test "unset" != "${grep_f-"unset"}" || local grep_f=-nm1
+  match_grep_arg "$1"
+  context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^:]*:\\?\( .*\)\\? \`\`$p_\`\`\( \|$\)"
 }
 
 # TODO: Return tagged entries
@@ -267,10 +277,10 @@ context_parse()
   #done
 
   # Split Ids from description
-  ids="$(echo "$rest" | sed 's/:\ .*$//')"
+  ids="$(echo "$rest" | sed 's/\(:\| \).*$//')"
+  rest="$(echo "$rest" | sed 's#^'"$ids"':\?\ ##')"
+  # rest="$(echo "$rest" | cut -d ' ' -f 2-)"
   tagid="$(echo "$ids" | cut -d ' ' -f 1)"
-  cid="$(echo "$ids" | sed 's/^.*\ //')"
-  rest="$(echo "$rest" | sed 's/^.*:\ //')"
 
   # Parse NS: from tag if present
   fnmatch "*:*" "$tagid" && {
@@ -286,10 +296,26 @@ context_parse()
 }
 
 # Echo last context-parse values
-context_echo ()
+context_echo () # [FMT]
 {
-  printf -- "line: $line\nstat: $stat\nids: $ids\ntagid: $tagid\ncid: $cid\n"\
+  case "${1:-"debug"}" in
+
+    entry )
+        echo "${stat}"
+        echo "${ids:-$tagid}:"
+        echo "${rest}"
+      ;;
+
+    debug )
+        printf -- "line: $line\nstat: $stat\nids: $ids\ntagid: $tagid\ncid: $cid\n"\
 "tagns: $tagns\nrest: $rest\n"
+      ;;
+
+    * ) $LOG error "" "context-echo:${1-}?"
+        return 1
+      ;;
+
+  esac
 }
 
 # Retrieve tag record and parse, see context-parse.
@@ -304,11 +330,19 @@ context_subtag_env () # SUBTAG
   context_parse "$( context_subtag_entries "$1" )"
 }
 
-# TODO: docs
-context_tag_init()
+context_tag_init ()
 {
-  context_tag_fields_init | normalize_ws >> "$CTX_TAB"
+  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
+  context_echo entry | normalize_ws >>"$context_tab"
 }
+
+# TODO: docs
+context_tag_new ()
+{
+  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
+  context_tag_fields_init | normalize_ws >>"$context_tab"
+}
+
 context_tag_fields_init()
 {
   date +'%Y-%m-%d'
@@ -353,12 +387,14 @@ contexttab_load_entry()
   context_tag_env "$primctx_id"
 }
 
-# Look for filename/path as context, or as URL attribute to one
+# Look for filename/path as context, or as URL attribute to one.
+# , or if
+# matching glob literalid
 context_find_fileref () # FILE
 {
   test $# -eq 1 -a -n "${1-}" || return 98
   context_tag_entry "$1" && return
-  context_url_entry "$1"
+  context_url_entry "$1" && return
 }
 
 context_fileref_env () # FILE

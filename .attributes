@@ -5,4 +5,6 @@ App-Version: 0.0.4-dev # Script.mpe
 
 VFS-Map: TODO.* shadow-tasks
 
+Components-Txt: .components.txt
+
 # Id: Script.mpe/0.0.4-dev .attributes                     vim:ft=asis:nowrap:

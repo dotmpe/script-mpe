@@ -4,8 +4,8 @@
 
 export_stage install && announce_stage
 
-$LOG note "" "Running install steps" "$(suite_from_table "${build_tab}" Parts $SUITE 2 | tr '\n' ';')"
-suite_run "${build_tab}" $SUITE 2
+$LOG note "" "Running install steps" "$(suite_from_table "${build_txt}" Parts $SUITE 2 | tr '\n' ';')"
+suite_run "${build_txt}" $SUITE 2
 
 ci_announce "Sourcing env (II)..."
 $INIT_LOG "info" "" "1. Stages:" "$ci_stages"

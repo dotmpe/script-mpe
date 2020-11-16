@@ -1,14 +1,15 @@
-#!/h usr/bin/env bats
+#!/usr/bin/env bats
 
 base=setup-sh-tpl.lib
 load init
 
 setup()
 {
-  init 0 &&
-  lib_load std setup-sh-tpl &&
-  load assert
+  init 1 0 &&
+  lib_load log std date setup-sh-tpl &&
+  load stdtest extra assert
 }
+
 
 @test "$base: setup-sh-tpl: simple files: 1. parts" {
 
@@ -16,7 +17,6 @@ setup()
   test_ok_nonempty "setup_sh_tpl_1_" || stdfail 1.1.1
 
   # Test template part and setup-sh-tpl functions
-  verbosity=3
   . $SHT_PWD/var/build-lib/setup-sh-tpl-1.sh
 
   run setup_sh_tpl_name_index "File Name" setup_sh_tpl_
@@ -57,7 +57,7 @@ setup()
 
   # Test entire templae
   run setup_sh_tpl "$SHT_PWD/var/build-lib/setup-sh-tpl-1.sh" setup_sh_tpl_ "$tmpd"
-  test_ok_nonempty || stdfail 2.
+  test_ok_empty || stdfail 2.
   assert_file_exist "$tmpd/File Name"
   assert_file_exist "$tmpd/Other Path/File Name"
 

@@ -118,7 +118,7 @@ ht__run()
 
   # Evaluate package env
   package_lib_set_local "$CWD" || error "Setting local package ($CWD)" 6
-  . $PACKMETA_SH || error "local package" 7
+  . $PACK_SH || error "local package" 7
   test "$package_type" = "application/vnd.org.wtwta.project" ||
                 error "Project package expected (not $package_type)" 4
 

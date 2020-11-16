@@ -26,14 +26,31 @@ htd__urls()
 htd_libs__urls='statusdir urlstat web'
 
 
+htd_urls_list ()
+{
+  local cwd=$PWD file=
+  htd_urls_args_req "$@" && urls_list $file
+}
+
+
+htd_urls_args_req ()
+{
+  test -n "${1-}" && file=$1 || file=urls.list
+  test -e "$file" || error "urls-list-file '$file'"  1
+}
+
 htd_man_1__urlstat='Build urlstat index
 
-  list [Glob] [URLs.list]
+  tab [Glob] [URLs.list]
     List entries
-  urls [Glob] [Stat-Tab]
+  list [Glob] [Stat-Tab]
     List URI-Refs, see htd urls for other URL listing cmds.
-  entry-exists URI-Ref [Stat-Tab]
-  check [--update] [--process]
+  exists URI-Ref [Stat-Tab]
+    Test for entry
+  grep URI-Ref [Stat-Tab]
+    Grep for entry
+
+  check [--update] [--process] URI-Ref [Tags]
     Add missing entries, update only if default stats changed. To update stat
     or other descriptor fields, or (re)process for new field values set option.
   checkall [-|URI-Refs]...
@@ -45,9 +62,11 @@ htd_man_1__urlstat='Build urlstat index
 '
 htd__urlstat()
 {
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
+  local old_lk=${log_key-} r; export log_key=$CTX_PID:$scriptname:urlstat:${1-}/$$
+  # FIXME: eval '', eval set -- $(lines_to_args "$arguments") # Remove options from args
   subcmd_default=list urlstat_check_update=${update-} \
-      subcmd_prefs=urlstat_ try_subcmd_prefixes "$@"
+      subcmd_prefs=urlstat_ try_subcmd_prefixes "$@" || r=$?
+  export log_key=$old_lk; return ${r-}
 }
 htd_flags__urlstat=qiAO
 #htd_libs__urlstat="stdio statusdir urlstat"

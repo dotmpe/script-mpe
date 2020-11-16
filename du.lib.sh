@@ -110,3 +110,10 @@ du_dl_term_paths() # Normalize relative path from dl-terms-paths-raw ~ Du-Doc Xm
 
   done
 }
+
+# Get metadata that is either expressed as docinfo, or part of mode-line
+# comment.
+# Id|Version|Language|Tags
+du_get_param () #
+{
+}

@@ -7,7 +7,7 @@
 type fail >/dev/null 2>&1 || {
   fail()
   {
-    test -n "$1" && echo "Reason: $1" >>"$BATS_OUT"
+    test -n "${1-}" && echo "Reason: $1" >>"$BATS_OUT"
     exit 1
   }
 }
@@ -16,16 +16,18 @@ type diag >/dev/null 2>&1 || {
   # Note: without failing test, output will not show up in std Bats install
   diag()
   {
-    BATS_TEST_DIAGNOSTICS=1
-    echo "$1" >>"$BATS_OUT"
+    #BATS_TEST_DIAGNOSTICS=1
+    #echo "$1" >>"$BATS_OUT"
+    # XXX: since Bats 1.2.0?
+    echo "# $1" >&3
   }
 }
 
 type TODO >/dev/null 2>&1 || { # tasks:no-check
   TODO() # tasks:no-check
   {
-    test -n "$TODO_IS_FAILURE" && {
-      ( 
+    test ${TODO_IS_FAILURE:-0} -eq 1 && {
+      (
           test -z "$1" &&
               "TODO ($BATS_TEST_DESCRIPTION)" || echo "TODO: $1"  # tasks:no-check
       )>> $BATS_OUT
@@ -42,7 +44,7 @@ type TODO >/dev/null 2>&1 || { # tasks:no-check
 type stdfail >/dev/null 2>&1 || {
   stdfail()
   {
-    test -n "$1" || set -- "Unexpected. Status"
+    test -n "${1-}" || set -- "Unexpected. Status"
     diag "$1: $status, output(${#lines[@]}) was:"
     printf "  %s\n" "${lines[@]}" >>"$BATS_OUT"
     exit 1
@@ -112,7 +114,7 @@ type test_nok_nonempty >/dev/null 2>&1 || {
   }
 }
 
-#type test_lines >/dev/null 2>&1 || {
+type test_lines >/dev/null 2>&1 || {
   test_lines()
   {
     # Each match must be present on a line (given arg order is not significant)
@@ -129,7 +131,7 @@ type test_nok_nonempty >/dev/null 2>&1 || {
       }
     done
   }
-#}
+}
 
 type test_ok_lines >/dev/null 2>&1 || {
   test_ok_lines()

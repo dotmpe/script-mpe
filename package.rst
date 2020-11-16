@@ -47,7 +47,7 @@ User commands via ``htd``, see help. Eg::
 Other subcommands can use ``package.lib.sh`` and access JSON and Shell script
 variant generated from the main ``package.{y*ml,json}``.
 
-The variants are re-written by ``update``, and stored at ``$PWD/.htd/package*``.
+The variants are re-written by ``update``, and stored at ``$PWD/.meta/package/*``.
 
 Pre-processing is done on ``#include NAME`` directives. If found, lines like
 these are substituted by the file contents retrieved at `NAME`.
@@ -97,7 +97,7 @@ env
   nothing else is sourced yet. If a cmd line or script is provided, it should
   update (load/modify/execute) the env setup for the other package scripts.
 
-  If not given, the default is effectively ``. $PACKMETA_SH``, to make all of
+  If not given, the default is effectively ``. $PACK_SH``, to make all of
   the package's main settings available under ``package_*=...``.
 
 scripts

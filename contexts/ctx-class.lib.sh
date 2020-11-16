@@ -20,6 +20,7 @@ class.exec () # Msg-Name Args...
   done
 }
 
+# Constructor: start at class.Type.init
 class.init () # Var Type Constructor-Args...
 {
   test $# -ge 2 || return
@@ -30,7 +31,8 @@ class.init () # Var Type Constructor-Args...
 
 class.Class.init () #
 {
-  declare -g -A Class__instances=()
+  fnmatch "declare -A Class__instances" "$( declare -p Class__instances )" ||
+      declare -g -A Class__instances=()
 }
 
 class.Class () # Instance-Id Message-Name Arguments...

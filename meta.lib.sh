@@ -1,6 +1,11 @@
 #!/bin/sh
 
 
+meta_lib_load ()
+{
+  test -n "${META_DIR-}" || META_DIR=.meta
+}
+
 # Return mime-type (from BSD/GNU file) on Linux and Darwin
 file_mime()
 {

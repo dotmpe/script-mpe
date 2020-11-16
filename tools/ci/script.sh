@@ -4,9 +4,9 @@
 
 export_stage script && announce_stage
 
-$LOG note "" "Running main steps" "$(suite_from_table "${build_tab}" Parts $SUITE 4 | tr '\n' ';')"
+$LOG note "" "Running main steps" "$(suite_from_table "${build_txt}" Parts $SUITE 4 | tr '\n' ';')"
 sh_include start
-suite_run "${build_tab}" $SUITE 4
+suite_run "${build_txt}" $SUITE 4
 sh_include finish
 
 close_stage && ci_announce "Done"

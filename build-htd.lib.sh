@@ -324,9 +324,12 @@ build_lib_func_deps_list()
 
 # Build function list for lib
 # See <src-stat>/functions/<docid>.func-list
-build_lib_func_list()
+build_lib_func_list() # FILE [FILTER-OUT] [STRIP]
 {
-  list_functions "$1" | sed 's/().*$//' | grep -v '^\s*$'
+  test -e "${1-}" || return 98
+  test -n "${2-}" || set -- "$1" '^\s*$' "${3-}"
+  test -n "${3-}" || set -- "$1" "$2" '().*$'
+  list_functions "$1" | grep -v "$2" | sed 's/'"$3"'//'
 }
 
 build_sh_lookup_func_lib() # Func

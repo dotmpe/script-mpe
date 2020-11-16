@@ -200,17 +200,19 @@ pwd_init()
 
 push_pwd() # [Dir]
 {
-  test -z "${1-}" || cd $1
-  case "$PWD_P" in *:$PWD ) return ;; esac
+  test -z "${1-}" || { cd $1 || return; }
+  case "$PWD_P" in *":$PWD" ) return ;; esac
   PWD_P=${PWD_P}:$PWD
 }
 
 pop_pwd()
 {
-  test -n "${PWD_D-}" || return 0
-  local pwd="$(echo "$PWD_D" | cut -d':' -f1)"
-  PWD_D="$(echo "$PWD_D" | cut -d':' -f2-)"
-  test -n "$PWD_D" || unset PWD_D
+  test -n "${PWD_P-}" || return 0
+  PWD_P="${PWD_P%:*}"
+  local pwd="${PWD_P//*:}"
+  #local pwd="$(echo "$PWD_P" | cut -d':' -f1)"
+  #PWD_P="$(echo "$PWD_P" | cut -d':' -f2- --output-delimiter=':')"
+  test -n "$PWD_P" || unset PWD_P
   cd "$pwd"
 }
 

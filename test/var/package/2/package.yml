@@ -2,6 +2,6 @@
 # No ID and only one section, but main given. Main is used as ID.
 
 - type: application/vnd.org.wtwta.project
-  main: this-is-the-id
+  main: script-bvb-test-2-this-is-the-id
 
 

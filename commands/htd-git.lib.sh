@@ -13,7 +13,7 @@ git__help ()
 # XXX: get at some compiled info for /src
 htd_git_info()
 {
-  test -n "$info_doc" || info_doc=$STATUSDIR_ROOT/index/git-src.list
+  test -n "$info_doc" || info_doc=${STATUSDIR_ROOT}index/git-src.list
   #test "$info_doc" -nt
   git_src_info >"$info_doc"
 

@@ -34,6 +34,8 @@ htd__journal()
   test -n "${1-}" || set -- status
   case "$1" in
 
+    update-folder ) shift; htd_jrnl_update_folder "$@" ;;
+    #edit-folder ) shift; htd_jrnl_edit_folder "$@" ;;
     edit-entry ) shift; htd_jrnl_edit_entry "$@" ;;
 
     edit ) shift; local entry log
@@ -299,6 +301,10 @@ htd_jrnl_update_folder () # Journal-Dir
 {
   test -d "${1-}" || return 98
   $LOG info "" "Updating symbolic links" "$1"
+  test -n "${log-}" || {
+    local $htd_log_keys
+    htd_log_base_spec "${2-}" || return
+  }
 
   # Prepare todays' day-links (including weekday and next/prev week, month, year)
   htd_jrnl_day_links "$1" || return
@@ -444,8 +450,10 @@ htd_jrnl_edit_entry () # [Entry] [Base]
   local pwd="$(normalize_relative "$go_to_before")" \
       arg rst_default_include evoke_f
 
-  local $htd_log_keys
-  htd_log_base_spec "${2-}"
+  test -n "${log-}" || {
+    local $htd_log_keys
+    htd_log_base_spec "${2-}" || return
+  }
   set -- "${1-}" "$log"
   eval $(map=package_: package_sh rst_default_include)
   # Handle arguments wether log_dir-file or cabinet-path/archive-dir
@@ -599,11 +607,11 @@ htd_log_env=""
 htd_log_base_spec () # ~ [SPEC | PATH YSEP MSEP EXT # PARTS... ]
 {
   # XXX: maybe use defaults if no pacakge is found
-  # test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" && {
+  # test -n "${PACK_SH-}" -a -e "${PACK_SH-}" && {
   # Default to local log, or user's journal-dir setting
   #true ${log:="${log_dir:=$JRNL_DIR}/"}
 
-  test -n "${1-}" && log="$1" || eval $(map=package_: package_sh log)
+  test -n "${1-}" && log="$1" || eval "$(map=package_: package_sh log)"
   set -- $log
   test $# -gt 0 || return
   test $# -gt 1 && {

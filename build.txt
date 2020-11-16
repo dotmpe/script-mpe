@@ -1,11 +1,11 @@
 # Parts                     Sh  U-S CI  Main Test                             #
 
 # 0. Env:
-debug-exit                  013 013 013 013  013
-env-init-log                -   -   -   -    -  
-init-git                    010 010 010 010  010
+init-git                    010 011 010 010  010
+debug-exit                  013 013 013 013  -
+env-init-log                -   015 -   -    -  
 env-log-reinit              016 016 016 016  016
-std-ci-helper               -   -   020 020  020
+std-ci-helper               -   -   020 020  -
 env-ucache                  020 -   020 020  020
 env-dev                     020 -   020 020  020
 unique-paths                020 -   020 -    020
@@ -13,12 +13,12 @@ remove-dupes                020 -   020 -    020
 env-ci                      020 -   020 020  025
 env-0                       020 -   020 020  026
 env-0-u_s                   -   030 -   -    030
-env-docker-hub              -   -   030 -    030
+env-docker-hub              -   -   030 -    -
 env-test-bats               030 -   030 -    030
 env-test                    030 -   030 -    030
 init-user-script            -   -   040 -    -   # Checkout U-S. No-Sync
 python-virtualenv           050 -   050 -    -
-env-scriptpath-deps         060 -   060 -    060
+env-scriptpath-deps         060 -   060 -    -
 lib-load                    070 -   070 070  -
 
 # 1. Init:

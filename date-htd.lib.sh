@@ -64,6 +64,16 @@ newer_than() # FILE SECONDS
   #test $(( $(date +%s) - $2 )) -lt $(filemtime "$1")
 }
 
+newer_than_all () # (REFFILE|TIMESTAMP) PATHS...
+{
+  local ref path
+  test -e "$1" && ref=$(filemtime "$1") || ref=$1
+  shift
+  for path in $@
+  do test $(filemtime "$path") -lt $ref
+  done
+}
+
 # older-than FILE SECONDS, filemtime must be less-than Now - SECONDS
 older_than()
 {
@@ -83,7 +93,7 @@ date_ts()
 
 date_epochsec()
 {
-  test -e "$1" && {
+  test -e "${1-}" && {
       filemtime "$1"
       return $?
     } || {
@@ -312,7 +322,7 @@ datelink() # Date Format Target-Path
 }
 
 # Print ISO-8601 datetime with minutes precision
-datet_isomin() { date_iso "$1" minutes; }
+datet_isomin() { date_iso "${1-}" minutes; }
 
 # Print ISO-8601 datetime with nanosecond precision
 datet_isons() { date_iso "$1" ns; }
@@ -332,14 +342,10 @@ sec_nomicro()
 # Output date at required resolution
 date_autores() # Date-Time-Str
 {
-  #fnmatch "[0-9][0-9][0-9][0-9][0-9][0-9][0-9]*[0-9]" "$1" || {
-  #  # Convert date-str to timestamp
-  #  set -- "$( $gdate -d "$1" "+%s" )"
-  #}
-
-  # ${dateres:="minutes")
-  #dt_iso="$(date_iso "$1" minutes)"
-  #echo "$dt_iso" | sed \
+  fnmatch "@*" "$1" && {
+    true ${dateres:="minutes"}
+    set -- "$(date_iso "${1:1}" minutes)"
+  }
   echo "$1" | sed \
       -e 's/T00:00:00//' \
       -e 's/T00:00//' \
@@ -348,7 +354,7 @@ date_autores() # Date-Time-Str
 
 date_parse()
 {
-  test -n "$2" || set -- "$1" "%s"
+  test -n "${2-}" || set -- "$1" "%s"
   fnmatch "[0-9][0-9][0-9][0-9][0-9]*[0-9]" "$1" && {
     $gdate -d "@$1" +"$2"
     return $?
@@ -359,13 +365,13 @@ date_parse()
 }
 
 # Make ISO-8601 for given date or ts and remove all non-numeric chars except '-'
-date_id ()
+date_id () # <Datetime-Str>
 {
   s= p= act=date_autores foreach_${foreach-"do"} "$@" | tr -d ':-' | tr 'T' '-'
 }
 
 # Parse compressed datetime spec (Y-M-DTHMs.ms+TZ) to ISO format
-date_idp ()
+date_idp () # <Date-Id>
 {
   foreach "$@" | $gsed -E \
       -e 's/^([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})([0-9]{2})/\1-\2-\3T\4:\5:\6/' \
@@ -378,7 +384,7 @@ date_idp ()
 }
 
 # Take compressed date-tstat format and parse to ISO-8601 again, local time
-date_pstat() {
+date_pstat () {
   test "$1" = "-" && echo "$1" || date_parse "$(date_idp "$1")"
 }
 

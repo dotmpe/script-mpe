@@ -4,20 +4,17 @@ test -d .build/tests || mkdir .build/tests
 set -- "$@" test/$(basename -- "$1" .tap).bats
 test -e "$4" || exit 20
 
-#echo 3:$3 >&2
-if test ${build_ci_tests_quiet:-${quiet-0}} -eq 1
-then
-    bats "$4" > "$3"
-else
-    bats "$4" | tee "$3" | ./tools/sh/bats-colorize.sh >&2
-fi
-
+local r
 {
-  ls -la "$3"
-  wc -l "$3"
-} >&2
+  bats "$4"  || r=$?
+} |
+if test ${build_ci_tests_quiet:-${quiet-0}} -eq 1
+then cat >"$3"
+else tee "$3" | ./tools/sh/bats-colorize.sh >&2; fi
 
 build-stamp <"$3"
+
+return ${r:-}
 # TODO: handle test<->component and dependency mapping somewhere in buildsys
 #CWD=$REDO_BASE . $REDO_BASE/tools/sh/init.sh &&
 #  lib_load &&
@@ -31,4 +28,4 @@ build-stamp <"$3"
 #  redo-ifchange $paths || exit $?
 #}
 #build_test "$5" >"$4"
-#
+# Sync: U-S:

@@ -26,6 +26,7 @@ htd__scrtab()
   subcmd_default=list subcmd_prefs=scrtab_\ htd_scrtab_ try_subcmd_prefixes "$@"
 }
 htd_flags__scrtab=qliAO
+htd_libs__scrtab=date-htd
 
 
 scrtab__help()

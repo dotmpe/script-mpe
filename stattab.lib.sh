@@ -6,23 +6,25 @@
 stattab_lib_load()
 {
   lib_assert statusdir || return
-  test -n "${STTAB-}" || STTAB=$(statusdir_index stattab.list 0)
+  test -n "${STTAB-}" || STTAB=$(statusdir_lookup stattab.list index)
 }
 
 stattab_lib_init()
 {
   test "${stattab_lib_init-}" = "0" && return
   test -e "$STTAB" || {
-    mkdir -p "$(dirname "$STTAB")" && touch "$STTAB"
+    mkdir -p "$(dirname "$STTAB")" && touch "$STTAB" || return
   }
   sttab_id=
 }
 
-stattab_load()
+# Prepare env for Stat-Id
+stattab_env_prep () # St
 {
-  stattab_entry_env && stattab_entry_init "$1" && {
+  stattab_entry_env_reset &&
+  stattab_entry_init "$1" && {
     test -z "$1" || shift
-  } && stattab_entry_defaults "$@"
+  } # XXX: && stattab_entry_defaults "$@"
 }
 
 stattab_init()
@@ -46,30 +48,30 @@ stattab_entry_update()
 }
 
 # List entries; first argument is glob, converted to (grep) line-regex
-stattab_list() # Match-Line
+stattab_tab () # Match-Line
 {
   test -n "$2" || set -- "$1" "$STTAB"
+  test "$1" != "*" || set -- "" "$2"
   test -n "$1" && {
-    grep_f=
-    re=$(compile_glob "$1")
-    $ggrep $grep_f "$re" "$2" || return
+    test -n "${grep_f-}" || local grep_f=-P
+    $ggrep $grep_f "$(compile_glob "$1")" "$2" || return
   } || {
     read_nix_style_file "$2" || return
   }
 }
 
-# TODO: List ST-Id's
-stattab_statlist() # ? LIST
+# List ST-Id's
+stattab_list () # ? LIST
 {
   test -n "$2" || set -- "$1" "$STTAB"
-  read_nix_style_file "$2" | $gsed -E 's/^[0-9 +-]*([^ ]*).*$/\1/'
+  stattab_tab "$@" | $gsed -E 's/^[0-9 +-]*([^ ]*).*$/\1/'
 }
 
 # Generate line and append entry to statusdir index file
-stattab_init() # ST-Id [Init-Tags]
+stattab_init () # ST-Id [Init-Tags]
 {
   note "Initializing $1"
-  test -n "$sttab_id" || stattab_load "$1"
+  test -n "$sttab_id" || stattab_env_prep "$1"
   stattab_entry_update &&
   stattab_init_show
 }
@@ -86,7 +88,7 @@ stattab_init_show() #
 stattab_entry_fields() # ST-Id [Init-Tags]
 {
   note "Init fields '$*'"
-  test -n "$sttab_id" || stattab_load "$1"
+  test -n "$sttab_id" || stattab_env_prep "$1"
   test -z "$1" || shift
 
   # Output
@@ -123,18 +125,65 @@ stattab_update()
   false
 }
 
-# Quietly check wether entry exists, don't capture output
-stattab_entry_exists() # Entry-Id [Tab]
+stattab_grep () # <Sttab-Id> [<Entry-Type>] [<Stat-Tab>]
 {
-  test -n "$sttab_id" || stattab_load "$1"
-  test -n "$2" || set -- "$1" "$STTAB"
-  $ggrep -q '^[0-9 +-]*\b'"$sttab_id"'\b\ ' "$2"
+  test $# -ge 1 -a -n "${1-}" -a $# -le 3 || return 98
+  test "unset" != "${generator-"unset"}" || local generator=stattab_tab
+  { #test ! -t 0 || {
+      $generator "" "${3-}" || ignore_sigpipe
+    #}
+    return $?
+  } | {
+    test "unset" != "${grep_f-"unset"}" || local grep_f=-m1
+    local p_; match_grep_arg "$1"
+    case "${2:-"local"}" in
+      id )
+          $ggrep $grep_f "^[0-9 +-]*$p_:\\?\\(\\ \\|\$\\)" ;;
+      local )
+          $ggrep $grep_f "^[0-9 +-]* [^:]*:$p_:\?\(\\ \|\$\)" ;;
+      sub )
+          $ggrep $grep_f "^[0-9 +-]* [^ ]*\/$p_:\?\(\\ \|\$\)" ;;
+      url )
+          $ggrep $grep_f "^[0-9 +-]* [^:]*:\? .* <$p_>\( \|\$\)" ;;
+      literalid )
+          $ggrep $grep_f "^[0-9 +-]* [^:]*:\?\( .*\)\? ``'$p_\`\`\( \|\$\)" ;;
+    esac
+  }
+}
+
+stattab_exists () # <Stat-Id> [<Stat-Tab>] [<Entry-Type>]
+{
+  grep_f=-q stattab_grep "$@"
+}
+
+stattab_foreach () # <Stat-Id> [<Tags>]
+{
+  test -n "${sttab_act:-}" || return 90
+  test "unset" != "${sttab_base-"unset"}" || local sttab_base=sttab
+  ${sttab_base}_fetch "$@" | {
+      local r=
+      while read -r stattab_line
+      do
+        ${sttab_base}_entry_parse "_:${stattab_line}" || return
+        ${sttab_base}_parse_std_descr $stat || return
+        $sttab_act || return
+      done
+      return $r
+  }
+}
+
+# Quietly check wether entry exists, don't capture output
+stattab_entry_exists () # [<Entry-Id> [<Tab>]]
+{
+  test -n "${1-}" && { stattab_env_prep "$1" || return 94; }
+  test -n "${sttab_id-}" || return 93
+# XXX: $ggrep -q '^[0-9 +-]*\b'"$sttab_id"'\b\ ' "$2"
 }
 
 # Quietly fetch and parse entry
 stattab_entry() # Entry-Id [Tab]
 {
-  test -n "$sttab_id" || stattab_load "$1"
+  test -n "$sttab_id" || stattab_env_prep "$1"
   test -n "$2" || set -- "$1" "$STTAB"
   sttab_re="$(match_grep "$1")"
   stattab_entry="$( $ggrep -m 1 -n "^[0-9 +-]*\b$sttab_re\\ " "$2" )" || return $?
@@ -177,12 +226,12 @@ stattab_parse_std_descr()
   test -z "$3" || sttab_mtime=$(date_pstat "$3")
 }
 
-stattab_entry_fetch() # ST-Ref
+stattab_entry_fetch () # ST-Ref
 {
   false
 }
 
-stattab_entry_env()
+stattab_entry_env_reset ()
 {
   sttab_id=
   sttab_vid=
@@ -208,6 +257,15 @@ stattab_entry_defaults() # Tags
   #}
 
   true
+}
+
+# Debug env
+sttab_env_vars ()
+{
+  for x in ${!sttab_*}
+  do
+    echo "$x=${!x}"
+  done
 }
 
 stattab_checkall()

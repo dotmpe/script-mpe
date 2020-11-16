@@ -170,43 +170,6 @@ htd_doc_cleanup_generated()
     }
 }
 
-# Get first line if second line is all title adoration.
-# FIXME: this misses rSt with non-content stuff required before title, ie.
-# replacement roles, includes for roles, refs etc.
-rst_doc_title()
-{
-  head -n 2 "$1" | tail -n 1 | $ggrep -qe "^[=\"\'-]\+$" || return 1
-  head -n 1 "$1"
-}
-
-rst_docinfo() # Document Fieldname
-{
-  # Get field value (including any ':'), w.o. leading space.
-  # No further normalization.
-  $ggrep -m 1 -i '^\:'"$2"'\:.*$' "$1" | cut -d ':' -f 3- | cut -c2-
-}
-
-rst_docinfo_date() # Document Fieldname
-{
-  local dt="$(rst_docinfo "$@" | normalize_ws_str)"
-  test -n "$dt" || return 1
-  fnmatch "* *" "$dt" && {
-    # TODO: parse various date formats
-    error "Single datetime str required at '$1': '$dt'"
-    return 1
-  }
-  echo "$dt"
-}
-
-rst_doc_date_fields() # Document Fields...
-{
-  local rst_doc="$1" ; shift
-  rst_docinfo_inner() {
-    rst_docinfo_date "$rst_doc" "$1" || echo "-"
-  }
-  act=rst_docinfo_inner foreach_do "$@"
-}
-
 # Double-join args Var_Id-Var_Id, remove ws. Convert each argument to name ID,
 # and concatenate as a string-id.
 args_to_filename() # Title-Descr
@@ -259,3 +222,5 @@ doc_title_id() # Title-Descr...
   note "Doc-Title-Id: Tags: $tags"
   doc_title="$(args_to_title "$@")"
 }
+
+#

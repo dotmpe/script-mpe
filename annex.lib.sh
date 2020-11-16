@@ -345,7 +345,8 @@ annexdir_update()
         warn "No package for '$x'"
         continue
       }
-      test .htd/tools/env.sh -nt "$metaf" &&
+      # XXX: which env to load? TOOLS_SUITE=main?
+      test .meta/package/envs/main.sh -nt "$metaf" &&
         note "Package up-to-date for $x" || {
 
           package_sh_list_exists "init" && {

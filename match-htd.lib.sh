@@ -181,3 +181,12 @@ globlist_to_regex()
     shift
   done
 }
+
+# Convert argument to regex string for grep, unless is-grep is set then take
+# argument as grep regex.
+match_grep_arg ()
+{
+  test ${is_grep:-0} -eq 1 && p_=$1 || p_="$(match_grep "$1")"
+}
+
+#

@@ -25,7 +25,7 @@ pipeline:
      - SCR_SYS_SH=bash-sh
      - export LOG=/srv/docker-volumes-local/user-script/log.sh
      - cd /srv/docker-volumes-local/user-script ;
-       EXIT_ON_ERROR=0 . ./.htd/tools/env.sh ;
+       . "${_ENV:=".meta/package/envs/main.sh"}" ;
        scriptname="before-install" ;
        . ./tools/sh/init.sh ;
        . ./tools/sh/env.sh ;

@@ -56,7 +56,7 @@ treebox()
   . "./commands/u_s-dckr.lib.sh" || return
   docker_image=$sh_treebox_img dckr_load || return
 
-  test $# -gt 0 || set -- run-parts $build_tab "$SUITE"
+  test $# -gt 0 || set -- run-parts $build_txt "$SUITE"
   test ! -e "$1" -o -x "$1" -o -e "${2:-}" || {
     specfile="$1"; shift
     set -- "$(ci_file_exec "$specfile")" "$specfile" "$@"

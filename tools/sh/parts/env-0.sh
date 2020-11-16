@@ -20,8 +20,6 @@ TAB_C="	"
 #: "${TAB_C:="`printf '\t'`"}"
 #: "${NL_C:="`printf '\r\n'`"}"
 
-test -n "${DEBUG:-}" && : "${keep_going:=false}" || : "${keep_going:=true}"
-
 : "${USER:="$(whoami)"}"
 
 : "${NS_NAME:="dotmpe"}"

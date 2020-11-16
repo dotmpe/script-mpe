@@ -44,4 +44,5 @@
     Scenario: Project settings from package metadata
         
        Given   package env
-    
+
+#                                                                               vim:cc=13

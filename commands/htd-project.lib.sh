@@ -7,7 +7,7 @@ project_lib_load()
 
 htd_project_releases()
 {
-  . $PACKMETA_SH || true
+  . $PACK_SH || true
 
   local ns_name=$package_vendor app_id=$package_id
 

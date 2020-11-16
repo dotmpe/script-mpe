@@ -17,8 +17,8 @@ ci_env_1_end_ts=$ci_env_end_ts
 # Set timestamps for each stage start/end XXX: and stack
 export_stage before-install before_install && announce_stage
 
-$LOG note "" "Sourcing init parts" "$(suite_from_table "$build_tab" Parts $SUITE 1 | tr '\n' ' ')"
-suite_source "$build_tab" $SUITE 1
+$LOG note "" "Sourcing init parts" "$(suite_from_table "$build_txt" Parts $SUITE 1 | tr '\n' ' ')"
+suite_source "$build_txt" $SUITE 1
 test $SKIP_CI -eq 0 || {
     $LOG "warn" "" "Abort requested by SKIP-CI"
     exit 0

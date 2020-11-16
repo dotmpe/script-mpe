@@ -1089,8 +1089,9 @@ vc__local_branch_exists()
 # items are added again grouped at each source path
 vc__regenerate()
 {
-  local gitdir="$(vc_gitrepo "$1")"
-  local excludes=$gitdir/info/exclude
+  local gitdir excludes
+  gitdir="$(vc_gitrepo ${1-})" || return
+  excludes=$gitdir/info/exclude
 
   test -e $excludes.header -o ! -e $excludes || backup_header_comment $excludes
 
@@ -1708,7 +1709,7 @@ vc_flags__dist=q
 vc__dist() # [Remotes]
 {
   test -n "$1" || set -- $package_dist
-  test -n "$1" || set -- $( package_sh_list "$PACKMETA_SH" "dist" )
+  test -n "$1" || set -- $( package_sh_list "$PACK_SH" "dist" )
   test -n "$1" || set -- $(vc__remotes | lines_to_words)
 
   note "distributing to '$*'..."
@@ -1767,15 +1768,15 @@ vc__down()
 # TODO: move vctmp.sh back in here/cleanup
 
 main-init-env \
-  INIT_ENV= INIT_LIB=std\ sys\ sys-htd\ os\ str\ log\ match\ main\ vc\ vc-htd\ ctx-std
+  INIT_ENV= INIT_LIB=std\ sys\ src\ sys-htd\ os\ str\ log\ match\ main\ vc\ vc-htd\ ctx-std
 
 main-init \
   init_sh_libs=os\ sys\ str\ log \
   true "${CWD:="$scriptpath"}" \
   true "${SUITE:="Main"}" \
-  true "${_ENV:="$scriptpath/.htd/tools/env.sh"}" \
-  test ! -e $_ENV || source $_ENV \
-  test ! -z "${SCRIPTPATH-}"
+  true "${_ENV:="$scriptpath/.meta/package/envs/main.sh"}" \
+  test ! -e $_ENV || { source $_ENV || return; }\
+  test ! -z "${SCRIPTPATH-}" || return
 
 main-load \
   local __load_lib=1 cwd="$PWD" \
@@ -1835,7 +1836,7 @@ main-load-flags \
       ;; \
  \
     q ) # set if not set, dont update and eval package main env \
-        test -n "${PACKMETA_SH-}" -a -e "${PACKMETA_SH-}" || { \
+        test -n "${PACK_SH-}" -a -e "${PACK_SH-}" || { \
             test -n "$PACKMETA" -a -e "$PACKMETA" && \
                 note "Using package '"'"\$PACKMETA"'"'" || \
                 error "No local package" 5 \
@@ -1844,11 +1845,11 @@ main-load-flags \
         } \
  \
         # Evaluate package env \
-        . $PACKMETA_SH || error "local package" 7 \
+        . $PACK_SH || error "local package" 7 \
  \
         test "$package_type" = "application/vnd.org.wtwta.project" || \
                 error "Project package expected (not $package_type)" 4 \
-        test -n "$package_env" || export package_env=". $PACKMETA_SH" \
+        test -n "$package_env" || export package_env=". $PACK_SH" \
         debug "Found package '"'"\$package_id"'"'" \
       ;;
 

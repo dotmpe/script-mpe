@@ -5,6 +5,7 @@ urlstat_lib_load()
 {
   lib_assert statusdir || return
   test -n "${URLSTAT_TAB-}" || URLSTAT_TAB=${STATUSDIR_ROOT}index/urlstat.list
+  test -n "${urlstat_invalid-}" || urlstat_invalid="!@Invalid !@Template"
 }
 
 urlstat_lib_init()
@@ -28,27 +29,69 @@ urlstat_entry_init() # URL
   urlstat_src="$1"
 }
 
-stattab_entry_update()
+urlstat_entry_update()
 {
-  false
+  false # TODO:
 }
 
 # List entries; first argument is glob, converted to (grep) line-regex
-urlstat_list () # [Glob] [URLs.list]
+urlstat_tab () # [<Glob>] [<URL-List>]
 {
   test -n "${2-}" || set -- "${1-}" "$URLSTAT_TAB"
-  test -n "${1-}" && {
-    test -n "${grep_f-}" || local grep_f=
-    $ggrep $grep_f "$(compile_glob "$1")" "$2" || return
-  } || {
-    read_nix_style_file "$2" || return
-  }
+  stattab_tab "$@"
 }
 
 # List URI-Ref's
-urlstat_urls () # [Glob] [URLs.list]
+urlstat_list () # [<Glob>] [<URL-List>]
 {
-  urlstat_list "$@" | $gsed -E 's/^[0-9 +-]*([^ ]*).*$/\1/'
+  test -n "${2-}" || set -- "${1-}" "$URLSTAT_TAB"
+  stattab_list "$@"
+}
+
+urlstat_grep () # <URI-Ref> [<URL-List>]
+{
+  test -n "${2-}" || set -- "$1" "$URLSTAT_TAB"
+  stattab_grep "$1" id "$2"
+}
+
+urlstat_fetch ()  # [ <URI-Ref> | <Glob> ] [<Tags>]
+{
+  local ref glob
+  { test ${is_grep:-0} -eq 0 -a \( $# -eq 0 -o -z "${1-}" \) || fnmatch "*\**" "$1"
+  } && glob="${1:-"*"}" || ref="$1"
+  test $# -eq 0 || shift
+  {
+    test -n "${ref-}" && {
+      urlstat_grep "$ref" || return
+    } || {
+      urlstat_tab "$glob" || return
+    }
+  } | { test $# -gt 0 && {
+        urlstat_filter "$@" || return
+      } || cat
+  }
+}
+
+urlstat_filter () # <Tags>...
+{
+  local pl; while test $# -gt 0
+  do
+    case "$1" in
+        "@"* ) pl="${pl-}${pl:+" | "}grep ' $1\\( \\|$\\)'" ;;
+        "!@"* ) pl="${pl-}${pl:+" | "}grep -v ' ${1:1}\\( \\|$\\)'" ;;
+        * ) return 98 ;;
+    esac
+    shift
+  done
+  test -n "${pl-}" || return 99
+  eval $pl
+}
+
+urlstat_exists () # <URI-Ref> [<URL-List>]
+{
+  local r=; grep_f=-q urlstat_grep "$@" || { r=$?
+    $LOG "error" "" "No such urlstat reference" "$*"; return $r
+  }
 }
 
 # Generate line and append entry to statusdir index file
@@ -133,7 +176,10 @@ urlstat_process()
       http|https )
 
           status=$(curl -sSo/dev/null -m10 "$urlstat_src" --write-out %{http_code})
-          test "$status" = "000" && status=2
+          fnmatch "1*" "$status" && status=1
+          test "$status" = "200" && status=0 || {
+            fnmatch "2*" "$status" && status=2
+          }
           fnmatch "3*" "$status" && status=3
           fnmatch "4*" "$status" && status=4
           fnmatch "5*" "$status" && status=5
@@ -144,7 +190,7 @@ urlstat_process()
   esac
 }
 
-# Replace urlid line with freshly generated data. This will re-use existing
+# Replace uriref line with freshly generated data. This will re-use existing
 # urlstat-entry env
 urlstat_update() # URI-Ref [Tags]
 {
@@ -191,7 +237,7 @@ urlstat_update() # URI-Ref [Tags]
   note "Updated $urlstat_src entry (at line $lineno)"
 }
 
-urlstat_entry_exists() # URI-Ref [LIST]
+urlstat_entry_exists () # URI-Ref [LIST]
 {
   test -n "$urlstat_src" || urlstat_entry_init "$1"
   test -n "$2" || set -- "$1" "$URLSTAT_TAB"
@@ -220,31 +266,31 @@ urlstat_entry_parse() # Tab-Entry
   export lineno entry
 
   # Split rest into three parts (see urlstat format), first stat descriptor part
-  stat="$(echo "$entry" | grep -o '^[^_A-Za-z]*' )"
+  stat="$(echo "$entry" | grep -o '^[0-9 +-]*' )"
   record="$(echo "$entry" | sed 's/^[^_A-Za-z]*//' )"
   debug "Parsing descriptor '$stat' and record '$record'"
 
   # Then ID and title, and rest
 
-  urlid="$(echo "$record"|cut -d' ' -f1)"
+  uriref="$(echo "$record"|cut -d' ' -f1)"
   title="$(echo "$record"|cut -d' ' -f2-|$gsed 's/^\([^[+@<]*\).*$/\1/'|normalize_ws)"
   tags_raw="$(echo "$record"|cut -d' ' -f2-|$gsed 's/^[^\[+@<]*//'|normalize_ws)"
   tags="$(echo "$tags_raw"|$ggrep -o '^[^+@]*'|normalize_ws)"
 
-  export stat record urlid title tags
+  export stat record uriref title tags
 }
 
 urlstat_parse_std_descr()
 {
-  test -z "$1" || status=$1
-  test -z "$2" || ctime=$(date_pstat $2)
-  test -z "$3" || btime=$(date_pstat $3)
-  test -z "$4" || ltime=$(date_pstat $4)
-  test -z "$5" || mtime=$(date_pstat $5)
+  status=${1:-"-"}
+  test -z "${2-}" || ctime=$(date_pstat $2)
+  test -z "${3-}" || btime=$(date_pstat $3)
+  test -z "${4-}" || ltime=$(date_pstat $4)
+  test -z "${5-}" || mtime=$(date_pstat $5)
   export status ctime btime ltime mtime
 }
 
-urlstat_entry_fetch() # URI-Ref
+urlstat_entry_fetch() # <URI-Ref>
 {
   { urlstat_entry "$1" && test -n "$status"
   } || error "Error parsing" 1
@@ -261,7 +307,7 @@ urlstat_entry_env()
   mtime=
   ltime=
   record=
-  urlid=
+  uriref=
   title=
   tags=
 }
@@ -271,14 +317,57 @@ urlstat_entry_defaults()
   false
 }
 
-urlstat_check() # URI-Ref [Tags]
+urlstat_entry_status () #
 {
-  test -n "$urlstat_src" || urlstat_entry_init "$1"
-  test -n "$1" || set -- "$urlstat_src"
+  case "${status:-}" in -|0 ) true ;; * ) false ;; esac || { r=$?
+    test ${quiet:-0} -eq 1 ||
+        $LOG "fail" "" "Status: $status" "$uriref"
+    test ${keep_going:-0} -eq 1 || return $r
+  }
+}
+
+urlstat_entry_validate ()
+{
+  uriref-cli.py -sq absolute "$uriref" || { r=$?
+    test ${quiet:-0} -eq 1 ||
+        $LOG "fail" "" "Invalid reference" "$uriref"
+    test ${keep_going:-0} -eq 1 || return $r
+  }
+}
+
+urlstat_foreach () # <URI-Ref> [<Tags>]
+{
+  sttab_act=$urlstat_act stattab_foreach "$@"
+}
+
+# See that entry exists, and show status.
+urlstat_status () # <URI-Ref> [<Tags>]
+{
+  urlstat_act=urlstat_entry_status urlstat_foreach "$@"
+}
+
+urlstat_validate ()
+{
+  test $# -gt 0 || set -- "" $urlstat_invalid
+  urlstat_act=urlstat_entry_validate urlstat_foreach "$@"
+}
+
+urlstat_check () # <URI-Ref> [<Tags>]
+{
+  test $# -gt 0 || set -- "" $urlstat_invalid
+  $LOG error "" "TODO" "" 1
+  return
+  urlstat_fetch "$@"
+
+  test -n "${1-}" && {
+    urlstat_entry_init "$1" || return 97
+  } || set -- "$urlstat_src"
+  test -n "$1" || return 98
+
   urlstat_entry_exists "$1" && {
 
     urlstat_entry_fetch "$1" || return $?
-    note "Found $urlid"
+    note "Found $uriref"
 
     test -z "$update" -o -n "$urlstat_check_update" || urlstat_check_update=$update
     test -z "$process" -o -n "$urlstat_update_process" || urlstat_update_process=$process

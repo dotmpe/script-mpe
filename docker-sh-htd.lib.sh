@@ -85,8 +85,11 @@ docker_sh_c_create() # [Container] [Docker-Image]
 
   volid_suff=$(basename "$(realpath /srv/scm-git-local)"|cut -c8-)
 
+  test -n "${docker_hostname:-}" || local docker_hostname=$1
+
   dut=$home/test/$repo_slug
   ${dckr_pref-} docker run \
+      --hostname $docker_hostname \
       -v $CWD:$dut \
       -v ~/.ssh:$home/.ssh:ro \
       -v $(realpath ~/.local/etc/tokens.d):$home/.local/etc/tokens.d \

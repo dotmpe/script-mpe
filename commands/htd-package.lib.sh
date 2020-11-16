@@ -44,7 +44,7 @@ htd_package__help ()
   echo "$htd_man_1__package"
 }
 
-htd_flags__package=iAOlQ
+htd_flags__package=iAOlq
 htd__package()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
@@ -69,20 +69,23 @@ htd_package__list_ids()
 htd_package__update()
 {
   test $# -le 1 || return
-  test $# -eq 1 || set -- .
-  update_package $1
+  # XXX: cleanup package_update;
+  package_update_json
+  package_update_sh
+  # TODO: write selected env(s), scripts
 }
 
 
 htd_package__debug()
 {
+  lib_require shell && lib_init shell
   #test -z "$1" || export package_id=$1
   package_lib_set_local "$(pwd -P)"
-  test -n "$1" && {
+  test -n "${1-}" && {
     # Turn args into var-ids
     _p_extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
     _p_lookup() {
-      . $PACKMETA_SH
+      . $PACK_SH
       # See if lists are requested, and defer
       for k in $@; do
         package_sh_list_exists "$k" || continue
@@ -95,9 +98,9 @@ htd_package__debug()
     echo "$(_p_lookup $(_p_extra "$@"))"
 
   } || {
-    read_nix_style_file $PACKMETA_SH | while IFS='=' read key value
+    read_nix_style_file $PACK_SH | while IFS='=' read key value
     do
-      eval $LOG header2 "$(kvsep=' ' pretty_print_var "$key" "$value")"
+      eval $LOG header2 $(kvsep=' ' pretty_print_var "$key" "$value")
     done
   }
 }
@@ -105,7 +108,7 @@ htd_package__debug()
 # List strings at main package 'urls' key
 htd_package__urls()
 {
-  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
+  test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
   test -e "${PACKMETA_JS_MAIN-}" || error "No '$PACKMETA_JS_MAIN' file" 1
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" urls
 }
@@ -113,8 +116,8 @@ htd_package__urls()
 htd_package__open_url()
 {
   test -n "${1-}" || error "name expected" 1
-  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
-  . $PACKMETA_SH
+  test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
+  . $PACK_SH
   url=$( upper=0 mkvid "$1" && eval echo \$package_urls_$vid )
   test -n "$url" || error "no url for name '$1'" 1
   note "Opening '$1': <$url>"
@@ -125,7 +128,7 @@ htd_package__open_url()
 # remote repository or adding/updating each name/URL.
 htd_package__remotes_init()
 {
-  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
+  test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
   test -e "${PACKMETA_JS_MAIN-}" || error "No '$PACKMETA_JS_MAIN' file" 1
   vc_getscm
   jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
@@ -148,7 +151,9 @@ htd_package__remotes_init()
 
 htd_package__remotes_reset()
 {
-  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
+  # TODO: bind to PWD; see update; test -n "${PACK_SH-}" ||
+  package_id=
+  package_lib_reset && package_lib_init "${1:-.}" &&
   git remote | while read -r remote
   do
       git remote remove $remote && std_info "Removed '$remote'"
@@ -161,13 +166,13 @@ htd_package__write_script() # [env script_out=.htd/scripts/NAME] : NAME
 {
   test -n "${1-}" || set -- "init"
   test -n "${script_out-}" || script_out=.htd/scripts/$1.sh
-  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
+  #test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
 
   test -s $script_out -a $script_out -nt $PACKMETA && {
     note "Newest version of $script_out exists"
 
   } || {
-    . "$PACKMETA_SH"
+    . "$PACK_SH"
     upper=0 mkvid "$1"
     test -n "$package_shell" || package_shell="$default_package_shell"
     mkdir -vp "$(dirname "$script_out")" &&
@@ -175,10 +180,10 @@ htd_package__write_script() # [env script_out=.htd/scripts/NAME] : NAME
         {
             echo "#!$package_shell"
             package_sh_list_exists "scripts_$vid" && {
-                package_sh_list "$PACKMETA_SH" "scripts_$vid"
+                package_sh_list "$PACK_SH" "scripts_$vid"
             } || {
                 package_sh_name_exists "scripts_$vid" && {
-                    package_sh_get "$PACKMETA_SH" "scripts_$vid"
+                    package_sh_get "$PACK_SH" "scripts_$vid"
                 } || {
                     rm "$script_out"
                     error "No multi-line script '$1'" 1
@@ -189,7 +194,7 @@ htd_package__write_script() # [env script_out=.htd/scripts/NAME] : NAME
     #  { echo "#!$package_shell" ;
 
     #      package_sh_name_exists && {
-    #        package_sh_get "$PACKMETA_SH" "scripts_$vid"
+    #        package_sh_get "$PACK_SH" "scripts_$vid"
     #      } || {
     #        rm "$script_out"
     #        error "No script line '$1'" 1
@@ -204,15 +209,18 @@ htd_package__write_script() # [env script_out=.htd/scripts/NAME] : NAME
 htd_package__write_scripts() # NAMES...
 {
   # Init env, update package if stale, if not set yet
-  test -n "${PACKMETA_SH-}" || package_lib_set_local "$(pwd -P)"
+  package_id=
+  package_lib_reset && package_lib_init "$(pwd -P)" &&
+  #test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
+
   # Handle options
-  test -z "$no_eval" || eval=0
-  test -z "$eval" || show_eval=$eval
+  test -z "${no_eval-}" || eval=0
+  test -z "${eval-}" || show_eval=$eval
   # Source package if not set and start
-  test -n "$package_main" || . $PACKMETA_SH
+  test -n "$package_main" || . $PACK_SH
 
   # Create/update shell profile script
-  package_sh_env_script
+  package_sh_env_script || return
 
   while test $# -gt 0
   do

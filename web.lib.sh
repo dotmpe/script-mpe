@@ -3,9 +3,9 @@
 
 web_lib_load()
 {
-  # URL-Ref-or-Scheme-Path
-  url_re='\(<[_a-zA-z][_a-zA-z0-9-]\+:[^> ]\+>\|[_a-zA-z][_a-zA-z0-9-]\+:\/[^ ]\+\)'
-  url_bare_re='[_a-zA-z][_a-zA-z0-9-]\+:\/[^> ]\+'
+  # Match Ref-in-Angle-brachets or URL-Ref-Scheme-Path
+  url_re='\(<[_a-zA-Z][_a-zA-Z0-9-]\+:[^> ]\+>\|\(\ \|^\)[_a-zA-Z][_a-zA-Z0-9-]\+:\/\/[^ ]\+\)'
+  url_bare_re='[_a-zA-Z][_a-zA-Z0-9-]\+:\/[^>\ ]\+'
   test -x "$(which curl)" && bin_http=curl || {
     test -x "$(which wget)" && bin_http=wget || return
   }
@@ -40,32 +40,45 @@ htd_urls_decode()
   p= s= act=urldecode foreach_do "$@"
 }
 
-htd_urls_args() # List ...
+urls_grep () # [SRC|-]
 {
-  test -n "$1" && file=$1 || file=urls.list
-  test -e "$file" || error "urls-list-file '$file'"  1
+  grep -io "$url_re" "$@" | tr -d '<>"''"' # Remove angle brackets or double quotes
 }
 
 # Scan for URLs in file. This scans both <>-enclosed and bare URL refs. To
-# avoid match on simple <q>:<name> pairs the std regex requires at (net)path
-# or <>-delimiters.
-htd_urls_list() # File
+# avoid match on simple <q>:<name> pairs the std regex requires (net)path,
+# or use <>-delimiters.
+urls_list () # <Path>
 {
-  local cwd=$PWD file=
-  htd_urls_args "$@"
-  read_nix_style_file "$file" |
-      grep -o "$url_re" |
-      sed 's/^<\(.*\)>/\1/' |
-      while read -r url
-  do
-    fnmatch "*:*" "$url" && {
-      echo "$url"
-    } || {
-      #test -n "$fn" || fn="$(basename "$url")"
-      test -e "$url" ||
-      warn "No file '$url'"
-    }
-  done
+  test $# -eq 1 || return 98
+  urls_grep "$1"
+  #| while read -r url
+  #do
+  #  fnmatch "*:*" "$url" && {
+  #    echo "$url"
+  #  } || {
+  #    #test -n "$fn" || fn="$(basename "$url")"
+  #    test -e "$url" || warn "No file '$url'"
+  #  }
+  #done
+}
+
+ext_to_format ()
+{
+  echo "$1"
+}
+
+urls_clean_meta ()
+{
+  tr -d ' {}()<>"'"'"
+}
+
+urls_list_clean ()
+{
+  test $# -eq 1 || return 98
+  local format=$(ext_to_format "$(filenamext "$1")")
+  func_exists urls_clean_$format || format=meta
+  urls_list "$1" | urls_clean_$format
 }
 
 # Download urls

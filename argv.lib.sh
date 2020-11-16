@@ -205,19 +205,19 @@ opt_args()
 # Parse arguments as options
 # -o123 --opt=123 --any-opt --no-opt
 # o=123 op=123 any_opt=1 opt=0
-define_var_from_opt()
+define_var_from_opt () # Option [Var-Name-Pref]
 {
   case "$1" in
     --*=* )
         key="$(str_strip_rx '=.*$' "$(echo "$1" | cut -c3-)")"
         value="$(str_strip_rx '^[^=]*=' "$1")"
-        eval $(echo "$key" | tr '-' '_')="$value"
+        eval ${2-}$(echo "$key" | tr '-' '_')="$value"
       ;;
     --no-* )
-        eval $(echo "$1" | cut -c6- | tr '-' '_')=0
+        eval ${2-}$(echo "$1" | cut -c6- | tr '-' '_')=0
       ;;
     --* )
-        eval $(echo "$1" | cut -c3- | tr '-' '_')=1
+        eval ${2-}$(echo "$1" | cut -c3- | tr '-' '_')=1
       ;;
 
     - ) ;;
@@ -226,10 +226,10 @@ define_var_from_opt()
     -* )
         key="$(echo "$1" | cut -c2)"
         value="$(echo "$1" | cut -c3- )"
-        eval $(echo "$key" | tr '-' '_')="$value"
+        eval ${2-}$(echo "$key" | tr '-' '_')="$value"
       ;;
     -* )
-        eval $(echo "$1" | cut -c2- | tr '-' '_')=1
+        eval ${2-}$(echo "$1" | cut -c2- | tr '-' '_')=1
       ;;
 
     * ) error "Not an option '$1'" 1 ;;

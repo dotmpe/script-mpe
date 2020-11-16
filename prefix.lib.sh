@@ -11,7 +11,7 @@ prefix_lib_init()
 {
   lib_assert statusdir || return
   test -n "${UCONF-}" || UCONF=$HOME/.conf
-  test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}/index/basedirs.tab
+  test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}index/basedirs.tab
 }
 
 prefix_init()
@@ -25,7 +25,7 @@ prefix_init()
 # Build a table of paths to env-varnames, to rebuild/shorten paths using variable names
 prefix_pathnames_tab()
 {
-  test -n "$1" || set -- "$UCONF/$pathnames" "$2"
+  test -n "${1-}" || set -- "$UCONF/$pathnames" "${2-}"
 
   { test -n "$1" -a -s "$1" && {
 
@@ -54,7 +54,7 @@ prefix_require_names_index() # Pathnames-Table
   test $# -eq 2 || return
   test -f "$1" || return
 
-  test -n "$index" || export index=$2
+  test -n "${index-}" || index=$2
   test -s "$index" -a "$index" -nt "$1" || {
     std_info "Building $index from '$1'"
     #{ prefix_pathnames_tab "$1" || return $? ; }> "$index"

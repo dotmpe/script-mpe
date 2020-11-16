@@ -86,7 +86,7 @@ htd_context_new()
   }
   context_exists "$1" && return 1
   context_parse "0: - $1"
-  context_tag_init
+  context_tag_new
 }
 
 # Other context actions

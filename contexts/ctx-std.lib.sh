@@ -205,7 +205,7 @@ $(vc_stats . "        ")" || return 1
 
   # TODO: Per project static code analysis
   #package_lib_set_local "."
-  #. $PACKMETA_SH
+  #. $PACK_SH
 
   #for name in $package_pd_meta_stats
   #do
@@ -355,6 +355,7 @@ std__commands()
   test -z "${choice_debug-}" || echo "local_id=$local_id"
   list_functions_foreach "$@" | while read line
   do
+    file=
     # Check sentinel for new file-name
     test "$(expr_substr "$line" 1 1)" = "#" && {
       test "$(expr_substr "$line" 1 7)" = "# file=" && {

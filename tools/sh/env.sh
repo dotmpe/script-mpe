@@ -13,9 +13,10 @@ test "${env_strict_-}" = "0" || {
 # FIXME: generate local static env
 true "${BIN:="$HOME/bin"}"
 test ! -e $BIN/.env.sh || . $BIN/.env.sh
+test ! -e $CWD/.htd/meta.sh || . $CWD/.htd/meta.sh
 
 : "${SUITE:="Sh"}"
-: "${build_tab:="build.txt"}"
+: "${build_txt:="build.txt"}"
 : "${APP_LBL:="Script.mpe"}" # No-Sync
 : "${APP_ID:="script-mpe"}" # No-Sync
 : "${sh_main_cmdl:="spec"}"
@@ -33,7 +34,8 @@ sh_include \
   print-color remove-dupes unique-paths \
   env-0-src
 
-suite_source "${build_tab}" "${SUITE}" 0
+# echo suite_source "${build_txt}" "${SUITE}" 0
+suite_source "${build_txt}" "${SUITE}" 0
 
 test -z "${DEBUG:-}" || print_green "" "Finished sh:env ${SUITE} <$0>"
 

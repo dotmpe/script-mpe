@@ -265,48 +265,33 @@ htd_subcmd_load ()
         main_var prereq_func htd pre "" $subcmd && $prereq_func $subcmd
       ;;
 
-    p ) # set package file and id, update. But don't require, see q.
-        # Set to detected PACKMETA file, set main package-id, and verify var
-        # caches are up to date. Don't load vars.
-        # TODO: create var cache per package-id. store in redis etc.
-        test ${package_lib_loaded:-1} -eq 0 || {
-          lib_require package && lib_init package || return
-        }
-        package_lib_init "$PWD" || return
+    p ) # set (p)ackage -
+        # Set package file and id, update. But don't require, see q.
+        package_lib_auto=0
 
-        test -n "$PACKMETA" -a -e "$PACKMETA" && {
-            package_lib_set_local "$PWD" && update_package $PWD || return
-            test -n "$package_id" && note "Found package '$package_id'"
-
-        } || warn "No local package '$PACKMETA'"
-      ;;
-
-    q | Q ) # set if not set, don't update, eval package main env
-        test ${package_lib_loaded:-1} -eq 0 || {
-          lib_require package || return
-        }
         test ${package_lib_init:-1} -eq 0 || {
+          test ${package_lib_loaded:-1} -eq 0 || {
+            lib_require package || return
+          }
           lib_init package || return
         }
-        package_lib_init "$CWD" || return
+      ;;
 
-        test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" || {
-            test -n "$PACKMETA" -a -e "$PACKMETA" && {
-                stderr note "Using package '$PACKMETA'"
-                package_lib_set_local "$CWD" ||
-                    stderr error "Setting local package ($CWD:$?)" 6
-            } || {
-                    test "$x" = "q" || stderr error "No local package" 5
-                }
+    q | Q ) # re(q)uire package
+        # Update and include, but return on error
+        test "$x" = "Q" && package_lib_auto=2 || package_lib_auto=1
+
+        test ${package_lib_init:-1} -eq 0 || {
+          test ${package_lib_loaded:-1} -eq 0 || {
+            lib_require package || return
+          }
+          lib_init package || return
         }
 
         # Evaluate package env
-        test ! -e "$PACKMETA_SH" -a "$x" = "q" || {
+        test ! -e "$PACK_SH" -a "$x" = "q" || {
 
-          . $PACKMETA_SH || stderr error "local package" 7
-          test "$package_type" = "application/vnd.org.wtwta.project" ||
-                  stderr error "Project package expected (not $package_type)" 4
-          # test -n "$package_env" || export package_env=". $PACKMETA_SH"
+          . $PACK_SH || stderr error "local package ($?)" 7
           $LOG debug "" "Found package '$package_id'"
         }
       ;;
@@ -1842,7 +1827,8 @@ htd_grp__gtask_title=gtasks
 htd_grp__done=gtasks
 
 
-htd_grp__urls=urls
+htd_grp__urlstat=htd-urls\ statusdir\ urlstat\ stattab\ match-htd\ date-htd
+htd_grp__urls=htd-urls
 htd_grp__save_url=urls
 
 
@@ -4693,7 +4679,7 @@ htd_argsv__checkout()
 {
   (
     package_id=$symlinks_id
-    package_file && update_package
+    package_file && package_update
   )
   package_id=$symlinks_id package_lib_load
   eval $(map=package_:symlinks_ package_sh id file attrs)
@@ -4959,8 +4945,6 @@ htd__lists()
 }
 
 
-htd_grp__urlstat=htd-urls\ statusdir\ urlstat
-
 htd_grp__scrtab=scrtab
 
 
@@ -5041,6 +5025,9 @@ htd_grp__draft=draft
 htd_grp__drafts=draft
 
 
+htd_grp__eval=htd-eval
+
+
 # -- htd box insert sentinel --
 
 
@@ -5104,19 +5091,18 @@ htd_init()
   local scriptname_old=$scriptname; export scriptname=htd-init
   test -n "$script_util" || return 103 # NOTE: sanity
 
-  init_sh_libs=os\ sys\ str\ log
-
   set -euo pipefail
+  init_sh_libs=os\ sys\ str\ log
   true "${CWD:="$scriptpath"}"
   true "${SUITE:="Main"}"
-  true "${_ENV:="$scriptpath/.htd/tools/env.sh"}"
-  test ! -e $_ENV || source $_ENV
+  true "${_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
+  test ! -e $_ENV || { source $_ENV || return; }
 
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
   LOG=$htd_log \
   INIT_ENV="init-log 0 dev ucache scriptpath std box" \
   INIT_LIB="os sys std log str match src main argv stdio vc std-ht"\
-" date str-htd logger-theme sys-htd vc-htd os-htd htd ctx-std" \
+" date str-htd logger-theme sys-htd vc-htd statusdir os-htd htd ctx-std" \
 . ${CWD:="$scriptpath"}/tools/main/init.sh || return
 
   # -- htd box init sentinel --

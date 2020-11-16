@@ -34,7 +34,7 @@ htd_scripts_list()
 htd_scripts_id_exist_grep()
 {
   upper=0 mkvid "$1" ; set -- scripts_${vid} "$2"
-  test -n "$2" || set -- "$1" "$PACKMETA_SH"
+  test -n "$2" || set -- "$1" "$PACK_SH"
   grep -q '^\<\(package_'"${1}"'\|package_'"${1}"'__0\)\>=' "$2"
 }
 

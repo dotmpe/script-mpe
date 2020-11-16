@@ -443,7 +443,7 @@ strip_last_nchars() # Num
 normalize_ws()
 {
   test -n "${1-}" || set -- '\n\t '
-  tr -s "$1" ' ' | sed 's/\ *$//'
+  tr -s "$1" ' ' # | sed 's/\ *$//'
 }
 
 # Normalize string ws. for one line (stripping trailing newline first)

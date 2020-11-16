@@ -647,7 +647,7 @@ htd_tasks_hub() # ~ [group]
         for buffer in $tasks_hub/*.*
         do
             urlstat_file="$buffer"
-            htd_urls_list "$urlstat_file" | Init_Tags="$*" urlstat_checkall
+            urls_list "$urlstat_file" | Init_Tags="$*" urlstat_checkall
         done
       ;;
 

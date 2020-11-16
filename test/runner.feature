@@ -13,3 +13,4 @@
         Then  `opts` key `debug_command` equals 'on'
          And  `opts` key `debug_stderr` equals 'on'
 
+#                                                                               vim:cc=13

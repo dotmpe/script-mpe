@@ -329,7 +329,7 @@ main_options_v()
       --interactive ) choice_interactive=1 ;;
       --non-interactive ) choice_interactive=0 ;;
       * ) trueish "$define_all" && {
-          define_var_from_opt "$1"
+          define_var_from_opt "$1" ${main_opts_var_name_pref:="choice_"}
         } || {
           error "unknown option '$1'" 1
         };;

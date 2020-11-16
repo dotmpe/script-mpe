@@ -72,7 +72,7 @@ setup()
 @test "$base: update entry" {
   stattab_entry_env
   sttab_src=none
-  stattab_load test-me
+  stattab_env_prep test-me
   TODO
   #run sttab_tags "@Std"
   #test_ok_nonempty || stdfail

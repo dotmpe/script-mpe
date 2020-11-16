@@ -18,10 +18,10 @@ scrtab_tpl_b__3__contents='
   id: scrtab-tpl-2
 '
 
-scrtab_tpl_b__4__name='.htd/package.json'
+scrtab_tpl_b__4__name='.meta/package/main.json'
 scrtab_tpl_b__4__contents='[{"main": "scrtab-tpl-2", "type": "application/vnd.org.wtwta.project", "id": "scrtab-tpl-2"}]'
 
-scrtab_tpl_b__5__name='.htd/package.sh'
+scrtab_tpl_b__5__name='.meta/package/main.sh'
 scrtab_tpl_b__5__contents='#!/bin/sh
 package_id=scrtab-tpl-2
 package_main=scrtab-tpl-2

@@ -76,7 +76,7 @@ not_falseish() # Str
 
 cmd_exists()
 {
-  test -n "$1" || return
+  test -n "${1-}" || return
 
   set -- "$1" "$(which "$1")" || return
 
@@ -92,7 +92,7 @@ func_exists()
 
 try_exec_func()
 {
-  test -n "$1" || return 97
+  test -n "${1-}" || return 97
   func_exists "$1" || return
   local func=$1
   shift 1
@@ -235,9 +235,19 @@ lookup_path_list () # VAR-NAME
 
 # Translate Lookup path element and given/local name to filesystempath,
 # or return err-stat.
-lookup_exists () # DIR NAME
+lookup_exists () # NAME DIRS...
 {
-  test -e "$1/$2" && echo "$1/$2"
+  local name="$1" r=1
+  shift
+  while test $# -gt 0
+  do
+    test -e "$1/$name" && {
+      echo "$1/$name"
+      test ${lookup_first:-1} -eq 1 && return || r=0
+    }
+    shift
+  done
+  return $r
 }
 
 # lookup-path List existing local paths, or fail if second arg is not listed
@@ -245,31 +255,31 @@ lookup_exists () # DIR NAME
 # lookup-first: boolean setting to stop after first success
 lookup_path () # VAR-NAME LOCAL-PATH
 {
-  test $# -eq 2 || return
+  test $# -eq 2 || return 98
   test -n "${lookup_test-}" || local lookup_test="lookup_exists"
-  func_exists $lookup_test || {
+  func_exists "$lookup_test" || {
     $LOG error "" "No lookup-test handler" "$lookup_test"
     return 1
   }
 
   local path ; for path in $( lookup_path_list $1 )
     do
-      eval $lookup_test \""$path"\" \""$2"\" && {
-        trueish "${lookup_first-}" && break || continue
+      eval $lookup_test \""$2"\" \""$path"\" && {
+        test ${lookup_first:-1} -eq 1 && break || continue
       } || continue
     done
 }
 
 lookup_paths () # Var-Name Local-Paths...
 {
-  test $# -ge 2 || return
+  test $# -ge 2 || return 98
   test -n "${lookup_test-}" || local lookup_test="lookup_exists"
   local varname=$1 base path ; shift ; for base in $( lookup_path_list $varname )
     do
       for path in $@
       do
-        eval $lookup_test \""$base"\" \""$path"\" && {
-          trueish "${lookup_first-}" && break || continue
+        eval $lookup_test \""$path"\" \""$base"\" && {
+          test ${lookup_first:-1} -eq 1 && break || continue
         } || continue
       done
     done

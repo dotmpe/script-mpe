@@ -11,3 +11,7 @@
 [submodule "tools/chrome/htdocs"]
 	path = tools/chrome/htdocs
 	url = git@github.com:dotmpe/google-chrome-htdocs.git
+[submodule "gherkin-assert"]
+	path = lib/gherkin-assert
+	url = git@github.com:dotmpe/gherkin-assert.git
+	branch = master

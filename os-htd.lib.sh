@@ -104,7 +104,7 @@ short()
 # Get basename(s) for all given exts of each path. The first argument is handled
 # dynamically. Unless exts env is provided, if first argument is not an existing
 # and starts with a period '.' it is used as the value for exts.
-basenames()
+basenames () # [exts=] ~ [ .EXTS ] PATH...
 {
   test -n "${exts-}" || {
     fnmatch ".*" "$1" || return
@@ -457,7 +457,7 @@ read_nix_style_file() # [cat_f=] ~ File [Grep-Filter]
   test -n "${1-}" || set -- "-" "${2-}"
   test -n "${2-}" || set -- "$1" '^\s*(#.*|\s*)$'
   test -z "${cat_f-}" && {
-    grep -Ev "$2" "$1" || return 1
+    grep -Ev "$2" "$1" || return $?
   } || {
     cat $cat_f "$1" | grep -Ev "$2"
   }
@@ -1023,5 +1023,18 @@ diff_files() # File-Path Path-Name...
   done
 }
 # Sh-Copy: HT:tools/u-s/parts/diff-files.inc.sh vim:ft=bash:
+
+symlink_assert () # <Symlink-Path> <Target>
+{
+  test -d "$1" -a ! -h "$1" &&
+      set -- "$1" "$2" "$1/$(basename -- "$2")" || set -- "$1" "$2" "$1"
+  test -h "$3" && {
+    local target="$(readlink "$3")"
+    test "$target" = "$2" && return
+    rm "$3"
+  }
+  local v=; test $verbosity -lt 7 || v=v
+  ln -s$v "$2" "$3"
+}
 
 # Sync: U-S:src/sh/lib/os.lib.sh

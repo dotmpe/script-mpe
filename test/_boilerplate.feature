@@ -2,12 +2,10 @@
 
      Feature: Boilerplate for a component test
 
-  Background: a description about component, included before each scenario. This
-contains basic settings for the user shell script runner, see `lib.feature` for
-a good outline illustrating its various steps and usage of the runner.
+  Background: a description about component, included before each scenario. This contains basic settings for the user shell script runner, see `lib.feature` for a good outline illustrating its various steps and usage of the runner.
 
 # Setup scriptpath env
-       Given the current script directory
+       Given the current commandpath and project
 
 # Set runner options/override runner opts from env
       #Given `opts` key `debug_output` 'on'
@@ -38,4 +36,6 @@ a good outline illustrating its various steps and usage of the runner.
         Then  test `echo foo 4.2`
         Then  tests `echo foo 5.4.1` ok
         Then  test `echo foo 5.4.2` ok
-    #   #   #   #
+        #   #   #   #
+
+#                                                                               vim:cc=13

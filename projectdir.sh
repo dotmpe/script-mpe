@@ -1076,7 +1076,7 @@ pd__show()
       }
 
       local metaf=
-      update_package "$1" && {
+      package_update "$1" && {
         test -n "$metaf" || error "metaf" 1
         test -e "$metaf" || error "metaf: $metaf" 1
 
@@ -1580,10 +1580,10 @@ pd_subcmd_load()
     P )
         package_lib_set_local "$pd_root/$pd_prefix"
         pd__meta_sq get-repo "$pd_prefix" && {
-          echo update_package "$pd_prefix"
+          echo package_update "$pd_prefix"
 
-          update_package "$pd_prefix" || { r=$?
-            test  $r -eq 1 || error "update_package" $r
+          package_update "$pd_prefix" || { r=$?
+            test  $r -eq 1 || error "package_update" $r
             continue
           }
         } || warn "No repo for '$pd_prefix'"
@@ -1610,7 +1610,7 @@ pd_subcmd_load()
         local pref=
         for pref in $pd_prefixes; do
           pd__meta_sq get-repo "$pref" && {
-              update_package "$pref" || warn "No repo for '$pref'"
+              package_update "$pref" || warn "No repo for '$pref'"
             }
         done
         unset pref
@@ -1618,8 +1618,8 @@ pd_subcmd_load()
 
     q )
         # Evaluate package env
-        test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
-            . $PACKMETA_SH || error "No package Sh" 1
+        test -n "$PACK_SH" -a -e "$PACK_SH" && {
+            . $PACK_SH || error "No package Sh" 1
         } ||
             error "Pd: No local package" 8
       ;;

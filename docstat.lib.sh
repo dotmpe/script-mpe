@@ -9,7 +9,6 @@ docstat_lib_load()
 
   test -n "${DOCSTAT_TAB-}" || DOCSTAT_TAB=${STATUSDIR_ROOT}index/docstat.list
   test -n "${DOCSTAT-}" || DOCSTAT=${STATUSDIR_ROOT}tree/docstat
-  test -d "$DOCSTAT" || mkdir "$DOCSTAT"
   test -n "${DOCSTAT_PREF-}" || DOCSTAT_PREF=$DOCSTAT/
 }
 
@@ -20,9 +19,7 @@ docstat_lib_init()
     mkdir -p "$UCACHE/htd-docstat"
   }
   test -e "$DOCSTAT_TAB" || {
-    mkdir -p "$(dirname "$DOCSTAT_TAB")" || return
-    touch "$DOCSTAT_TAB" || return
-    mkdir -p "$DOCSTAT" || return
+    mkdir -p "$(dirname "$DOCSTAT_TAB")" && touch "$DOCSTAT_TAB" || return
   }
 }
 
@@ -349,7 +346,7 @@ docstat_addall () # ~ [Doc-Path... | -- Glob]
 
 
 # Prepare new entry for filename and title
-docstat_new() # Title-Descr...
+docstat_new () # Title-Descr...
 {
   {
     docstat_descr
