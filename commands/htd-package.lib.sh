@@ -73,6 +73,7 @@ htd_package__update()
   package_update_json
   package_update_sh
   # TODO: write selected env(s), scripts
+  package_sh_env_script
 }
 
 

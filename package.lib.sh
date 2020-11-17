@@ -3,14 +3,14 @@
 # Deal with package metadata files
 
 
-package_lib_load() # (env PACKMETA) [env out_fmt=py]
+package_lib_load () # (env PACKMETA) [env out_fmt=py]
 {
   lib_require sys os os-htd src || return
   test -n "${out_fmt-}" || out_fmt=py
   test -n "${META_DIR-}" || META_DIR=.meta
 }
 
-package_lib_init()
+package_lib_init () #
 {
   test "${package_lib_init-}" = "0" && return # One time init
   ENV_LIBS="${ENV_LIBS:-}${ENV_LIBS+" "}package"
@@ -37,12 +37,12 @@ package_lib_env () #
   done
 }
 
-package_lib_unset ()
+package_lib_unset () #
 {
   unset -v $PACK_CACHE
 }
 
-package_init ()
+package_init () # [Package-Dir] [Package-Lib-Auto] [Package-Id]
 {
   test $# -gt 0 || set -- .
   test $# -gt 1 || set -- "$1" "${package_lib_auto-}"
@@ -58,13 +58,8 @@ package_init ()
   package_env_reset && package_lib_set_local "$@"
 }
 
-package_exists () # Dir Package-Glob
-{
-  test -e "$PACKMETA"
-}
-
 # Detect package format and set PACKMETA
-package_detect ()
+package_detect () # [Package-Dir]
 {
   test $# -gt 0 || set -- $package_dir
   local ext
@@ -80,7 +75,7 @@ package_detect ()
 }
 
 # Require sh package env. (but don't prepare)
-package_req_env()
+package_env_req () #
 {
   local r
   test -n "${PACK_SH-}" -a -f "${PACK_SH-}" && {
@@ -92,7 +87,7 @@ package_req_env()
 }
 
 # Preprocess source if needed
-package_preproc ()
+package_preproc () #
 {
   test $# -eq 0 || return 98
   # If actual source file different than package file setting
@@ -109,7 +104,7 @@ package_preproc ()
 }
 
 # Reset package_* vars (clear or default)
-package_env_reset ()
+package_env_reset () #
 {
   test $# -eq 0 || return 98
 
@@ -161,6 +156,7 @@ package_env_unset ()
 }
 
 # Setup env to process package from YAML to JSON, and Sh
+# TODO: require-level
 # 0):
 #   - do not return any error (ie. for missing files, empty env)
 #   - allow static init if
@@ -244,19 +240,16 @@ package_defaults()
   tasks_package_defaults
 }
 
-# Look for package with main attribute; shoul be looking for entry of type as
-# well..
+# Look for package with main attribute
 package_default_id () # [Package-Type] [Package-JSON]
 {
   test -n "${1-}" || set -- "${package_type:-"application/vnd.org.wtwta.project"}"
-  #jsotk.py -I yaml -O py objectpath $1/$PACKMETA "$.*[@.main is not None].main"
   jq -r 'map(select(.type=="'"$1"'" and .main)) | .[] | (.main,.id)' $PACKAGE_JSON | tail -n 1
 }
 
 package_id () # Package-Id [Package-Type]
 {
   test -n "${2-}" || set -- "$1" "${package_type:="application/vnd.org.wtwta.project"}"
-  #jsotk.py -I yaml -O py objectpath $1/$PACKAGE_JSON "$.*[@.main is not None].main"
   jq -r 'map(select(.type=="'"$2"'" and .id=="'"$1"'")) | .[].id' $PACKAGE_JSON
 }
 
@@ -296,8 +289,8 @@ package_lib_update_json () # FILE SRC
   test $# -eq 2 || return 98
 
   case "$1" in
-      *.sh ) grep '^[^]*=' "$1" | jsotk.py dump -I fkv - "$2" ;; # FIXME: jsotk.py dump -I fkv
-      *.yml | *.yaml ) jsotk.py yaml2json "$1" "$2" ;;
+      *.sh ) grep '^[^]*=' "$1" | jsotk.py dump -I fkv - "$2" || return ;; # FIXME: jsotk.py dump -I fkv
+      *.yml | *.yaml ) jsotk.py yaml2json "$1" "$2" || return ;;
       * ) return 99;
   esac
 }
@@ -312,16 +305,12 @@ package_update_json ()
 
   stderr debug "$1 is newer than $2"
   note "Regenerating $2 from $1.."
-  jq 'map(select(.id=="'"$package_id"'" or .main=="'"$package_id"'")) | .[0]' $1 >"$2"
-  grep -qv '^null$' "$2" ||
+  jq 'map(select(.id=="'"$package_id"'" or .main=="'"$package_id"'")) | .[0]' \
+      $1 >"$2" || return
+  grep -qv '^null$' "$2" || {
+    rm "$2"
     error "Failed reading package '$package_id' from $1 ($?)" 1
-
-# XXX: cleanup
-  #{ jsotk.py -I yaml objectpath $1 '$.*[@.id is "'$package_id'"]' || {
-  #  warn "Failed reading package '$package_id' from $1 ($?)"
-  #  test -z "$2" -o ! -e "$2" || rm "$2"
-  #  return 17
-  #}; }  >"$metamain"
+  }
 }
 
 
@@ -560,9 +549,11 @@ package_sh_env_script() # [Path]
 {
   test -n "${PACK_SH-}" || return 90
 
+  . "$PACK_SH"
+  package_defaults
+
   local script_out=
   test -n "${1-}" && script_out="$1" || {
-    test -d "$PACK_ENVD" || mkdir -p "$PACK_ENVD"
     script_out="$PACK_ENVD/$package_env_name.sh"
   }
 
@@ -570,7 +561,6 @@ package_sh_env_script() # [Path]
     std_info "Newest version of Env-Script $script_out exists"
   } || {
     mkdir -vp "$(dirname "$script_out")" &&
-    . "$PACK_SH" &&
     package_sh_env > "$script_out" &&
     note "Updated Env-Script <$script_out>"
   }

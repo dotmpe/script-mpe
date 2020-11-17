@@ -278,7 +278,7 @@ build_sh_idx()
 # Build all graphs
 build_graphs()
 {
-  package_init_env ; package_req_env || return
+  package_env_req || return
 
   _inner()
   {
@@ -299,14 +299,14 @@ build_graphs()
 
 build_package_script_lib_list()
 {
-  # XXX: package_init_env ; package_req_env || return
+  # XXX: package_env_req || return
   expand_spec_src script_libs |
       p= s= act=$package_component_name foreach_inscol
 }
 
 build_components_id_path_map()
 {
-  # package_init_env ; package_req_env || return
+  # package_env_req || return
 
   $package_components "$@"
 }
