@@ -26,6 +26,6 @@ fi
 # Travis executes one after hook: either 'after', or one of 'after-{failure,success}'
 # . "tools/ci/after.sh"
 
-ci_announce "$scriptname OK"
+test ${sh_ci_script_status:-0} -eq 0 && ci_announce "$scriptname OK" || exit 1
 # Sync: U-S:
 # Id: Script.mpe/ sh-ci                                     ex:ft=bash:nowrap:

@@ -1,7 +1,9 @@
 # Parts                     Sh  U-S CI  Main Test                             #
 
 # 0. Env:
+init-ctx                    009 009 009 009  009
 init-git                    010 011 010 010  010
+init-statusdir              012 012 012 012  012
 debug-exit                  013 013 013 013  -
 env-init-log                -   015 -   -    -  
 env-log-reinit              016 016 016 016  016

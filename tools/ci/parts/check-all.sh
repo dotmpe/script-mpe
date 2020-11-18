@@ -22,13 +22,14 @@ test -x $(which basher) || $LOG error "" "No basher" 1
 
 git-versioning check
 
-travis version && {
+{ travis version  && test -e "$GITHUB_TOKEN"
+} && {
   test -n "GITHUB_TOKEN" || $LOG error "" "Empty GITHUB_TOKEN" 1
   travis login --github-token "$GITHUB_TOKEN" &&
     travis history -r dotmpe/script-mpe
 }
 
-
+# XXX: cleanup
 #not_falseish "$SHIPPABLE" && {
 #
 #  perl ~/.basher/cellar/bin/tap-to-junit-xml --help || test $? -eq 1

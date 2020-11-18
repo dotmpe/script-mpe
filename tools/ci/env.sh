@@ -13,29 +13,37 @@ export CS
 : "${CWD:="$PWD"}"
 : "${LOG:="$CWD/tools/sh/log.sh"}"
 
-# FIXME: handle various U-S setups, and make script.mpe completely dependent on
-# scripts in U-S, remove all but specific local tools
-# if test -z "${TRAVIS-}"
-# test -n "${U_S-}" ||
-#   $LOG "error" "" "Expected U-S env" "" 1
-#
-# test -d $U_S/.git || {
-#   test "${ENV_DEV-}" = "1" && {
-#     {
-#       test ! -d "$U_S" || rm -rf "$U_S"
-#       git clone https://github.com/dotmpe/user-scripts.git $U_S
-#     }
-#     ( cd $U_S/ && git fetch --all &&
-#         git checkout feature/docker-ci &&
-#         git pull origin feature/docker-ci )
-#   } ||
-#       $LOG "error" "" "Expected U-S checkout" "" 1
-# }
 test "${env_strict_-}" = "0" || {
   . "$CWD/tools/sh/parts/env-strict.sh" && env_strict_=$?; }
 . "$CWD/tools/sh/parts/env-init-log.sh"
 . "$CWD/tools/sh/parts/debug-exit.sh"
 . "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
+
+# NOTE: lets require U-s for CI/build process, to reduce script copies.
+
+# FIXME: handle various U-S setups, and make script.mpe completely dependent on
+# scripts in U-S, remove all but specific local tools
+
+test -n "${U_S-}" || {
+  $LOG "error" "" "Expected U-S env" "" 1 || return
+}
+
+test -d $U_S/.git || {
+  test -n "${TRAVIS-}" -o -n "${CIRCLECI-}" ||
+    $LOG "error" "" "Unexpected CI env" "$HOST:$HOME" 1
+
+  test ${ENV_DEV:-0} -eq 1 && {
+    {
+      test ! -d "$U_S" || rm -rf "$U_S"
+      git clone https://github.com/dotmpe/user-scripts.git $U_S
+    }
+    ( cd $U_S/ && git fetch --all &&
+        git checkout feature/docker-ci &&
+        git pull origin feature/docker-ci )
+  } || {
+      $LOG "error" "" "Expected U-S checkout" "" 1 || return
+  }
+}
 
 ci_env_ts=$($gdate +"%s.%N")
 ci_stages="${ci_stages:-} ci_env"
