@@ -10,7 +10,6 @@ build:
     pull: true
 
   ci:
-    - export TERM=xterm U_S=$HOME/build/dotmpe/user-scripts \
-      ; ./sh-ci
+    - export TERM=xterm U_S=$HOME/build/dotmpe/user-scripts; ./sh-ci
 
 # Sync: U-S:shippable.yml

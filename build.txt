@@ -18,7 +18,6 @@ env-0-u_s                   -   030 -   -    030
 env-docker-hub              -   -   030 -    -
 env-test-bats               030 -   030 -    030
 env-test                    030 -   030 -    030
-init-user-script            -   -   040 -    -   # Checkout U-S. No-Sync
 python-virtualenv           050 -   050 -    -
 env-scriptpath-deps         060 -   060 -    -
 lib-load                    070 -   070 070  -
