@@ -29,8 +29,12 @@ test -n "${U_S-}" || {
 }
 
 test -d $U_S/.git || {
-  test -n "${TRAVIS-}" -o -n "${CIRCLECI-}" ||
+  test -n "${TRAVIS-}" -o \
+    -n "${CIRCLECI-}" -o \
+    -n "${SHIPPABLE-}" || {
     $LOG "error" "" "Unexpected CI env" "$HOST:$HOME" 1
+    env
+  }
 
   test ${ENV_DEV:-0} -eq 1 && {
     {
