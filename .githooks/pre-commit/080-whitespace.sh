@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 test ${SHLVL:-0} -le ${lib_lvl:-0} && status=return || { lib_lvl=$SHLVL && set -euo pipefail -o posix && status=exit ; } # Inherit shell or init new
 
+# TODO: this is part of mpe-common, but keep this working and in the future see
+# a better native shell git-hooks is a possibility
+
 test -z "${scm_nok:-}" || $status $scm_nok
 
 : "${LOG:="/srv/project-local/user-scripts/tools/sh/log.sh"}"

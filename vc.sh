@@ -760,6 +760,8 @@ vc_als__ufc=unversioned-cleanable-files
 vc__unversioned_cleanable_files()
 {
   note "Listing unversioned cleanable paths"
+  test -d .git || return
+  test -d .git/info || mkdir .git/info
   vc__cleanables_regex > .git/info/exclude-clean.regex || return $?
   vc__untracked_files | grep -f .git/info/exclude-clean.regex || {
     warn "No cleanable files"
@@ -771,6 +773,8 @@ vc__uft() { vc__unversioned_temporary_files ; }
 vc__unversioned_temporary_files()
 {
   note "Listing unversioned temporary paths"
+  test -d .git || return
+  test -d .git/info || mkdir .git/info
   vc__temp_patterns_regex > .git/info/exclude-temp.regex || return $?
   vc__untracked_files | grep -f .git/info/exclude-temp.regex || {
     warn "No temporary files"
@@ -782,6 +786,8 @@ vc__ufu() { vc__unversioned_uncleanable_files ; }
 vc__unversioned_uncleanable_files()
 {
   note "Listing unversioned, uncleanable paths"
+  test -d .git || return
+  test -d .git/info || mkdir .git/info
   {
     vc__cleanables_regex
     vc__temp_patterns_regex
@@ -1091,6 +1097,8 @@ vc__regenerate()
 {
   local gitdir excludes
   gitdir="$(vc_gitrepo ${1-})" || return
+  test -d $gitdir || return
+  test -d $gitdir/info || mkdir $gitdir/info
   excludes=$gitdir/info/exclude
 
   test -e $excludes.header -o ! -e $excludes || backup_header_comment $excludes
