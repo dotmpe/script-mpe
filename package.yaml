@@ -195,11 +195,12 @@
   repositories:
     github: 'git@github.com:dotmpe/script-mpe.git'
     dotmpe.origin: domains/dotmpe.com/htdocs/git/script-mpe.git
-    dandy.21-1: /srv/scm-git-21-1-dandy-mpe/dotmpe/script-mpe.git
+    dandy.21-1: /srv/scm-git-21-1-dandy-mpe/script-mpe.git
     bb: 'git@bitbucket.org:dotmpe-personal/script-mpe.git'
-    dandy.9-1: /srv/scm-git-9-1-dandy-mpe/dotmpe/script-mpe.git
-    notus.24-2: /srv/scm-git-24-2-notus-brix/dotmpe/script-mpe.git
-    dandy.8-3: /srv/scm-git-8-3-dandy-mpe/dotmpe/script-mpe.git
+    dandy.9-1: /srv/scm-git-9-1-dandy-mpe/script-mpe.git
+    notus.24-2: /srv/scm-git-24-2-notus-brix/script-mpe.git
+    dandy.8-3: /srv/scm-git-8-3-dandy-mpe/script-mpe.git
+    t460s.25-5-bare: /srv/scm-git-25-5-t460s-mpe/script-mpe.git
   ext:
     topics:
       id: script-mpe-2008a
