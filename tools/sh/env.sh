@@ -34,7 +34,6 @@ sh_include \
   print-color remove-dupes unique-paths \
   env-0-src
 
-# echo suite_source "${build_txt}" "${SUITE}" 0
 suite_source "${build_txt}" "${SUITE}" 0
 
 test -z "${DEBUG:-}" || print_green "" "Finished sh:env ${SUITE} <$0>"

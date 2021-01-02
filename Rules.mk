@@ -134,7 +134,7 @@ test_other_bats_$d::
 # Make SA do a test on the repo
 DB_SQLITE_TEST=.test/db.sqlite
 
-DB_SQLITE_DEV=/home/berend/.bookmarks.sqlite
+DB_SQLITE_DEV=$(HOME)/.bookmarks.sqlite
 test_sa_$d::
 	@$(call log_line,info,$@,Testing SQLAlchemy repository..)
 	@\

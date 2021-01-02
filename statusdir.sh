@@ -81,6 +81,16 @@ statusdir__record()
   statusdir_record "$@"
 }
 
+statusdir__run ()
+{
+  statusdir_run "$@"
+}
+
+statusdir__stat ()
+{
+  statusdir_run stat "$@"
+}
+
 statusdir__status ()
 {
   statusdir_run status "$@"
@@ -98,7 +108,7 @@ statusdir__index_file() # [ Name | Path ]
   statusdir_run $1 "$@"
 }
 
-# XXX: deprecate for index/index-file
+# TODO: deprecate for index/index-file
 statusdir__file()
 {
   test -n "$STATUSDIR_ROOT" || return 66
@@ -112,7 +122,6 @@ statusdir__file()
 # Create and cat properties file ($format $1)
 statusdir__properties()
 {
-    echo statusdir__properties
   (
     props=$(statusdir__file "$1.properties")
     # XXX: initialize file sd_be=properties

@@ -303,11 +303,9 @@ std__help()
     lib_load functions || return
 
     # Generic help (no args)
-    #try_exec_func ${box_prefix}__usage || { std__usage; echo ; }
-
-    try_exec_func ${box_prefix}__commands || { std__commands ; echo ; }
-    return
-    #try_exec_func ${box_prefix}__docs || true
+    try_exec_func ${box_prefix}__usage || std__usage
+    try_exec_func ${box_prefix}__commands || std__commands
+    try_exec_func ${box_prefix}__docs || true
 
   } || {
 
@@ -353,72 +351,73 @@ std__commands()
   lib_load functions || return
 
   test -z "${choice_debug-}" || echo "local_id=$local_id"
-  list_functions_foreach "$@" | while read line
-  do
-    file=
-    # Check sentinel for new file-name
-    test "$(expr_substr "$line" 1 1)" = "#" && {
-      test "$(expr_substr "$line" 1 7)" = "# file=" && {
+  list_functions_foreach "$@" | { local file
+    while read line
+    do
+      # Check sentinel for new file-name
+      test "$(expr_substr "$line" 1 1)" = "#" && {
+        test "$(expr_substr "$line" 1 7)" = "# file=" && {
 
-        file="$(expr_substr "$line" 8 ${#line})"
-        test -e "$file" &&
-            debug "std:commands File: $(basename "$file" .sh)" ||
-            warn "std:commands No such file $file" 1
-        local_file="$($grealpath --relative-to="$PWD" "$file")"
+          file="$(expr_substr "$line" 8 ${#line})"
+          test -e "$file" &&
+              debug "std:commands File: $(basename "$file" .sh)" ||
+              warn "std:commands No such file $file" 1
+          local_file="$($grealpath --relative-to="$PWD" "$file")"
 
-        # XXX: test -z "$local_id" && {
-        #  # Global mode: list all commands
-        #    test "$BOX_DIR/$base/$local_file" = "$file" && {
-        #    echo "Commands: ($local_file) "
-        #  } || {
-        #    echo "Commands: ($file) "
-        #  }
-        #} || {
-        #  # Local mode: list local commands only
-        #  test "$local_file" = "${local_id}.sh" && cont= || cont=true
-        #}
-      } || continue
-    } || true
-
-    local subcmd_func_pref=${base}_
-    if trueish "${cont-}"; then continue; fi
-
-    func=$(echo $line | grep '^'${subcmd_func_pref}_ | sed 's/()//')
-    test -n "$func" || continue
-
-    func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'_//')"
-    spc=
-
-    if test "$(expr_substr "$func_name" 1 7)" = "local__"
-    then
-      lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
-      lcmd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\2/' | tr '_' '-')"
-      test -n "$lcmd" || lcmd="-"
-      #spc="* $lcmd ($lcwd)"
-      spc="* $lcmd "
-      descr="$(try_value ${subcmd_func_pref}man_1__$func_name)"
-    else
-      spc="$(try_value ${subcmd_func_pref}spc__$func_name)"
-      descr="$(try_value ${subcmd_func_pref}man_1__$func_name)"
-    fi
-    test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
-
-    test -n "$descr" || {
-      grep -q "^${subcmd_func_pref}${func_name}()" "$file" && {
-        descr="$(func_comment "$subcmd_func_pref$func_name" "$file")"
+          # XXX: test -z "$local_id" && {
+          #  # Global mode: list all commands
+          #    test "$BOX_DIR/$base/$local_file" = "$file" && {
+          #    echo "Commands: ($local_file) "
+          #  } || {
+          #    echo "Commands: ($file) "
+          #  }
+          #} || {
+          #  # Local mode: list local commands only
+          #  test "$local_file" = "${local_id}.sh" && cont= || cont=true
+          #}
+        } || continue
       } || true
-    }
-    test -n "$descr" || descr=".." #  TODO: $func_name description"
 
-	  fnmatch *?"\n"?* "$descr" &&
-	    descr="$(printf -- "$descr" | head -n 1)"
+      local subcmd_func_pref=${base}_
+      if trueish "${cont-}"; then continue; fi
 
-    test ${#spc} -gt 20 && {
-      printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
-    } || {
-      printf "  %-18s  %-50s\n" "$spc" "$descr"
-    }
-  done
+      func=$(echo $line | grep '^'${subcmd_func_pref}_ | sed 's/()//')
+      test -n "$func" || continue
+
+      func_name="$(echo "$func"| sed 's/'${subcmd_func_pref}'_//')"
+      spc=
+
+      if test "$(expr_substr "$func_name" 1 7)" = "local__"
+      then
+        lcwd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\1/' | tr '_' '-')"
+        lcmd="$(echo $func_name | sed 's/local__\(.*\)__\(.*\)$/\2/' | tr '_' '-')"
+        test -n "$lcmd" || lcmd="-"
+        #spc="* $lcmd ($lcwd)"
+        spc="* $lcmd "
+        descr="$(try_value ${subcmd_func_pref}man_1__$func_name)"
+      else
+        spc="$(try_value ${subcmd_func_pref}spc__$func_name)"
+        descr="$(try_value ${subcmd_func_pref}man_1__$func_name)"
+      fi
+      test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
+
+      test -n "$descr" || {
+        grep -q "^${subcmd_func_pref}${func_name}()" "$file" && {
+          descr="$(func_comment "$subcmd_func_pref$func_name" "$file")"
+        } || true
+      }
+      test -n "$descr" || descr=".." #  TODO: $func_name description"
+
+        fnmatch *?"\n"?* "$descr" &&
+          descr="$(printf -- "$descr" | head -n 1)"
+
+      test ${#spc} -gt 20 && {
+        printf "  %-18s\n                      %-50s\n" "$spc" "$descr"
+      } || {
+        printf "  %-18s  %-50s\n" "$spc" "$descr"
+      }
+    done
+  }
 }
 
 

@@ -18,6 +18,7 @@ composure_run () {
     test "${interactive:-0}" = 0 || shell_f=i
     test "${login:-0}" = 0 || shell_f=${shell_f-}l
   }
+  $LOG note "" "composure-inc:" "$COMPO_CMD $*"
   ${shell:-"bash"} -${shell_f-}c "$COMPO_CMD" composure-inc: "$@"
 }
 

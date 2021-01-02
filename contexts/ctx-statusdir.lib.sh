@@ -4,24 +4,41 @@ ctx_statusdir_lib_load ()
 {
   : "${ctx_class_types:="${ctx_class_types-}${ctx_class_types+" "}Statusdir"}"
 }
+ctx_statusdir_depends=@Shell
 
 ctx_statusdir_lib_init ()
 {
-  true
+  lib_require date &&
+  class.Statusdir.init
+}
+
+at_Statusdir__init ()
+{
+  true "${INIT_LOG:="$LOG"}" && lib_init statusdir ctx-statusdir
 }
 
 # XXX: at_Statusdir__include=statusdir.lib.sh
 
 # Store result of command in statusdir
-at_Statusdir__report_var () # [Record-Type [Record-Name]] [@Tags...] -- Command...
+at_Statusdir__report_var () # Format [Record-Type [Record-Name]] [@Tags...] -- Command...
 {
-  local type name tags c index log_key=$scriptname:report-var@Statusdir/$$
+  local format type name tags c index log_key=$scriptname:report-var@Statusdir/$$
   ctx_shell_report_var_args "$@" || return
   test -z "${c-}" || shift $c
+  test -n "${sd_be:-}" || local sd_be=fsdir
 
   sd_be=fsdir statusdir_start
   # fsd_rtype=$type sd_be=fsdir statusdir_start "$name"
-  log_key=$log_key $LOG "info" "" "Started SD for '${report-$type}'" "$type:$name"
+  log_key=$log_key $LOG "info" "" "Started SD for" "$type:$name"
+
+  echo name=$name >&2
+  return
+
+  # sd load: set variables for entry in backend
+  local outfile
+  outfile="$(fsd_rtype=$type sd_be=fsdir statusdir_run load $name -- $type)"
+  test -n "$outfile" ||
+      error "Expected output file for <$type $name>" 1
 
   local ttl ttlvar
   ttl=$( func_exists=0 first_only=1 context_cmd_seq time_period seconds -- $tags )
@@ -30,13 +47,11 @@ at_Statusdir__report_var () # [Record-Type [Record-Name]] [@Tags...] -- Command.
     ttl=${!ttlvar-"$STATUSDIR_EXPIRY_AGE"}
   }
 
-  local outfile statvar=${name}_ret
-
   # Update or create file if needed
-  outfile="$(fsd_rtype=$type sd_be=fsdir statusdir_run load $name -- index)"
   test -e "$outfile" ||
       log_key=$log_key $LOG warn "" "No such file" "$outfile"
 
+  local statvar=${name}_ret
   { test -s "${outfile}" &&
       newer_than $outfile $ttl &&
       test ${!statvar-0} -eq 0
@@ -46,13 +61,14 @@ at_Statusdir__report_var () # [Record-Type [Record-Name]] [@Tags...] -- Command.
     #fsd_rtype=$type sd_be=fsdir statusdir_run exec "$name" -- "$@" \;
 
   # Echo as requested
-  case "${report-$type}" in
+  case "$format" in
+      summary ) echo "$type:$(basename "${outfile}"):$(count_lines $outfile)" ;;
       count ) count_lines $outfile ;;
       index | log ) cat $outfile ;;
-      names ) echo "$type/$(basename "${outfile}")" ;;
+      names ) echo "$type:$(basename "${outfile}")" ;;
       paths ) echo "${outfile}" ;;
 
-      * ) echo "@Shell:report-var:${report-$type}?" >&2; return 1
+      * ) echo "@Shell:report-var:format:${format}?" >&2; return 1
           ;;
   esac
 }

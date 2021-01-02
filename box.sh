@@ -12,22 +12,24 @@ box_spc__stat="-S|stat"
 box_als___S=stat
 box__stat()
 {
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  test -n "$box_file" || error "no box for '$box_name'" 1
-
-  $box_file status
-
-  return $?
-
-#  FIXME: this is more like a info list. need something more actual for stat. think about keeping state in files.."
+  test -z "${dry_run-}" || note " ** DRY-RUN ** " 0
+  test -n "${box_file-}" || error "no box for '$box_name'" 1
 
   local_file=$BOX_DIR/$(hostname -s | tr 'A-Z' 'a-z')/${nid_cwd}.sh
 
-  test -n "$local_file" && {
+  test -s "$local_file" && {
     subcmd_func_pref=c_$(hostname -s | tr 'A-Z' 'a-z')__ choice_all=1 \
       std__commands $local_file
+    return $?
   } || {
-    error "No local file" 1
+    error "No local file"
+  }
+
+  test -s "$box_file" && {
+    echo $box_file >&2
+    return $?
+  } || {
+    error "No box file" 1
   }
 }
 
@@ -38,7 +40,7 @@ box__edit()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
-  box_init_args $@
+  box_init_args "$@"; shift 2
   test $c -eq 0 || shift $c ; c=0
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
@@ -64,7 +66,7 @@ box__edit()
       -c "'"wincmd h"'
   }
 
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "files='$files'"
     debug "evoke='$evoke'"
     std_info "** DRY RUN ends **" 0
@@ -82,14 +84,14 @@ box__edit_main()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
-  box_init_args $@
+  box_init_args "$@"; shift 2
   test $c -eq 0 || shift $c ; c=0
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
   local files="$fn $script_files"
   local evoke="$EDITOR -O2"
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "files='$files'"
     debug "evoke='$evoke'"
     std_info "** DRY RUN ends **" 0
@@ -111,15 +113,15 @@ box__init()
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
-  box_init_args $@
-  test $c -eq 0 || shift $c ; c=0
+  box_init_args "$@"; shift 2
+  #test $c -eq 0 || shift $c ; c=0
   box_init_local 2 || error "error during box-init-local" $?
 
   script_subcmd_func=$(echo $script_subcmd_name | tr '/-' '__')
   global_func_name=c_${script_name}__${script_subcmd_func}
   local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_func}
 
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "script_subcmd_func=$script_subcmd_func"
     debug "global_func_name='$global_func_name'"
     debug "local_func_name='$local_func_name'"
@@ -204,7 +206,7 @@ box__new()
   local script=$BOX_BIN_DIR/$name
   test -e $script || box_init_script $script
   local func="${nid_cwd}_${name}_${cmd}"
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "script='$script'"
     debug "func='$func'"
     std_info "** DRY RUN ends **" 0
@@ -240,13 +242,12 @@ box_man_1__list="."
 box_spc__list="list <Name>"
 box__list()
 {
-  test -z "$dry_run" || {
-    debug "nid_cwd='$nid_cwd'"
-    debug "'$BOX_BIN_DIR/*'"
-    std_info "** DRY RUN ends **" 0
-  }
-  std_info "TODO box list: get script names for local box command"
-  grep -srI ${nid_cwd} $BOX_BIN_DIR/*
+  local c=0 script_name= \
+    local_script= named_script= uconf_script=
+  box_init_args "$@"; shift 2
+  box_init_local || return
+  lib_require functions || return
+  list_functions_foreach $named_script $BOX_DIR/$script_name/*.sh
 }
 box_als___l=list
 
@@ -255,10 +256,9 @@ box_man_1__list_libs="List includes for script."
 box_spc__list_libs="list-libs"
 box__list_libs()
 {
-  local c=0 script_files= \
+  local script_files= \
     local_script= named_script= uconf_script=
-  box_init_args $@
-  test $c -eq 0 || shift $c ; c=0
+  box_init_args "$@"; shift 2
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
@@ -288,15 +288,11 @@ box_spc__run='-r|run [<cmd>=run [<name>=$hostname]]'
 box__run()
 {
   local c=0 \
-    global_func_name= local_func_name= \
+    global_func_name= local_func_name= func_name= scope= \
     local_script= named_script= uconf_script=
 
-  test -n "$script_name" || script_name=${base}
-  named_script=$PREFIX/bin/box
-  local_script=$BOX_DIR/$(hostname -s | tr 'A-Z' 'a-z')/${nid_cwd}.sh
+  box_init_args "$@"; shift 2
 
-  #box_init_args $@
-  test $c -eq 0 || shift $c ; c=0
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
@@ -304,39 +300,36 @@ box__run()
   global_func_name=c_${script_name}__${script_subcmd_func}
   local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_func}
 
-  test -n "$choice_global" && {
-    func_name=$global_func_name scope=global
-    note "Using **global** scope"
-  } || {
+  grep -q "$local_func_name" "$local_script" && {
     func_name=$local_func_name scope=local
+  } || {
+    grep -q "$global_func_name" "$named_script" && {
+      func_name=$global_func_name scope=global
+    } || {
+      error "no $script_subcmd_name command $subbox_name"
+    }
   }
 
-  test -z "$dry_run" || {
-    debug "box_name=$box_name"
+  test -z "${dry_run-}" || {
     debug "subbox_name=$subbox_name"
+    debug "named_script=$named_script"
+    debug "local_script=$local_script box_lib=$box_lib"
+    debug "uconf_script=$uconf_script"
     debug "func_name=$func_name"
     debug "scope=$scope"
-    debug "box_src=$box_src box_lib=$box_lib"
     std_info "** DRY RUN ends **" 0
-  }
-
-  # test for function
-  type $func_name 2> /dev/null 1> /dev/null || {
-    r=$?
-    error "no $scope command $subbox_name"
-    return $r
   }
 
   # run function
   $func_name $@ && {
-    test -n "$choice_global" && {
+    test global = "$scope" && {
       std_info "command $subbox_name completed"
     } || {
       std_info "command $subbox_name in $PWD completed"
     }
   } || {
     r=$?
-    error "running $scope command $box_name"
+    error "running $scope $subbox_name command"
     return $r
   }
 }
@@ -534,8 +527,9 @@ main-init box_sock=/tmp/box-serv.sock
 main-lib \
   box_lib_current_path \
   script_subcmd_name=$subcmd
-main-load box_name="${base}:${subcmd}" \
-  sh_include_path_langs="htd main ci bash sh"
+main-load \
+  sh_include_path_langs="htd main ci bash sh" \
+
 main-load-flags \
     f ) # failed: set/cleanup failed varname \
         export failed=$(setup_tmpf .failed) \

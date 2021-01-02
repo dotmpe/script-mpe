@@ -4,7 +4,7 @@ sd_fsdir()
 {
   local types="${fsd_types-"log index tree cache"}"
   local rtype="${fsd_rtype-"tree"}"
-  local l g c r p= k="${2-}" ttl="${3-}" v="${4-}" time=$(date +'%s')
+  local l g c r p= k="${2-}" ttl= v="${4-}" time=$(date +'%s')
   sd_fsdir_settings &&
   local pref name suff ext new init &&
   sd_fsdir_inner "$@"
@@ -30,11 +30,6 @@ sd_fsdir_help='
   assert
   input NAME
     Read stdin to file.
-  exec NAMES... [ CAPTURE ] -- CMDLINE...
-    TODO: Execute and capture output, store stdout and optionally stderr or other
-    streams or logs at names.
-  commit
-    TODO: store updated metadata
   ping
     A quick alternative to "check", no output and 0-return status if in order.
 '
@@ -53,6 +48,16 @@ sd_fsdir_inner()
           sd_fsdir_check_$act
         ;;
 
+      stat ) has_no_arg "$@" || break
+          sd_fsdir_check sd_fsdir_status -le 1 && {
+            test $sd_fsdir_status -eq 0 &&
+              $LOG ok "" "Status OK, age: $(file_modification_age "$g")" ||
+              $LOG done "" "Status $sd_fsdir_status, age: $(file_modification_age "$g")"
+          } || {
+            $LOG fail "" "Stale status $sd_fsdir_status, age: $(file_modification_age "$g")"
+          }
+        ;;
+
       status ) has_no_arg "$@" || break
           sd_fsdir_check sd_fsdir_status -le 1 && {
             test $sd_fsdir_status -eq 0 &&
@@ -66,14 +71,21 @@ sd_fsdir_inner()
             }
             # Now add arguments to this command: all names, and run
             set -- $( sd_fsdir_inner list-all ) -- "$@"
+            local entry_cnt=0 invalid_cnt=0
             while has_next_arg "$@"
-            do sd_fsdir_entry_load "$1" && sd_fsdir_entry_validate || r=$?; shift
-            done ; sd_fsdir_status=$r ; unset r
+            do incr entry_cnt; sd_fsdir_entry_load "$1" && {
+                    sd_fsdir_entry_validate || { r=$?
+                        test $r -le ${sd_fsdir_status:-0} || sd_fsdir_status=$r
+                        incr invalid_cnt
+                    }
+                }
+                shift
+            done ; unset r
             local max_age="$( shell_cached \
                 fmtdate_relative "" "${!varttl:-$STATUSDIR_CHECK_TTL}" "")"
             test $sd_fsdir_status -eq 0 &&
-              $LOG ok "" "Status OK, just refreshed (max-age $max_age)" ||
-              $LOG done "" "Status $sd_fsdir_status, just refreshed (max-age $max_age)"
+              $LOG ok "" "Status OK, just refreshed from $entry_cnt entries (max-age $max_age)" ||
+              $LOG done "" "Status $sd_fsdir_status, just refreshed from $entry_cnt entries, $invalid_cnt failed (max-age $max_age)"
           }
           r=$sd_fsdir_status
         ;;
@@ -119,7 +131,7 @@ sd_fsdir_inner()
         ;;
 
       load ) # NAME [TTL [META]]
-          sd_fsdir_entry_load "$@"
+          sd_fsdir_entry_load "$@" || return
           shift $c
           unset c
         ;;
@@ -210,10 +222,6 @@ sd_fsdir_inner()
           echo $p/$k
           shift
         ;;
-      exec )
-          echo "args '$*' v='$v' p='$p' pref='${pref-}' k='$k' ext='${ext-}' suff='${suff-}'" >&2
-        ;;
-
       index ) # [prefvar=$1_name_prefix] [extvar=$1_extension] ~ Local-Name [Exists]
           { not_falseish "${2-}" || test -e "${STATUSDIR_ROOT}$rtype/$k"
           } || {
@@ -221,7 +229,8 @@ sd_fsdir_inner()
             return 2
           }
 
-          test ${local:-0} -eq 1 && {
+          # Normally report local entry
+          test ${local:-1} -eq 1 && {
             lookup_first=${lookup_first:-1} lookup_path LUP $rtype/$k
             return $?
           }
@@ -233,6 +242,26 @@ sd_fsdir_inner()
       log )
           type=log statusdir_run index "$@"
           shift
+        ;;
+
+      path )
+          echo "${STATUSDIR_ROOT}$rtype/$k"
+        ;;
+
+      attr ) has_next_arg "$@" || return
+          sd_fsdir_attr "$@" || return
+          while has_next_arg "$@"; do shift; done
+        ;;
+
+      exec )
+          has_next_arg "$@" && {
+            rtype=$1; shift; c=0
+            sd_fsdir_entry_load "$@" || return
+            shift $c
+          }
+          has_next_seq "$@" && shift || true
+          sd_fsdir_exec "$@" || return
+          while has_next_arg "$@"; do shift; done
         ;;
 
       commit ) has_no_arg "$@" || break
@@ -264,6 +293,7 @@ sd_fsdir_inner()
   return $r
 }
 
+# Load meta for all types?
 sd_fsdir_settings ()
 {
   g=${STATUSDIR_ROOT}meta.sh
@@ -273,46 +303,43 @@ sd_fsdir_settings ()
   done
 }
 
-sd_fsdir_entry_load ()
+sd_fsdir_entry_load () # NAME [TTL [META]]
 {
-  local n=$#
-  name=$1
-  shift; has_next_arg "$@" && { ttl=$1; shift; }
+  test $# -gt 0 || return 98
+  local n=$#; name=$1; shift
+  has_next_arg "$@" && { ttl=$1; shift; }
   while has_next_arg "$@"
   do meta="${meta-}${meta+ }$1"; shift
   done
   c=$(( $n - $# ))
+
   sd_fsdir_load "$name" "${ttl-}" "${meta-}" || return
   p=$STATUSDIR_ROOT$rtype
   l=$p/.meta.sh
   k=$pref$name$suff.$ext
 }
 
-sd_fsdir_load () # TNAME [TTL [META]]
+sd_fsdir_load () # NAME [TTL [META]]
 {
-  ttl= ; new= ; p= ; k= ; rtype= ; pref= ; suff=
+  new= ; p= ; k= ; pref= ; suff=
   sd_fsdir_existing "$1" || {
-    $LOG error "" "New" "$1"
+    test ${init:-0} -eq 1 && {
+      $LOG note "" "New" "$1"
+    } || {
+      $LOG error "" "cannot create" "$1"
+      return 1
+    }
+    test -n "$ttl" || ttl="\$_1DAY"
     sd_fsdir_new "$1" || {
       $LOG error "" "cannot create" "$1"
       return 1
-    }; }
-  test ${new:-0} -eq 0 -o ${init:-0} -eq 0 || {
-    true "${rtype:="shell"}"
-    l=$STATUSDIR_ROOT$rtype/.meta.sh
-    $LOG note "" "New" "$rtype/$pref$name$suff.$ext"
-    touch $STATUSDIR_ROOT$rtype/$pref$name$suff.$ext
-    sd_fsdir_set ext $name $ext
-    #test -z "$pref" || sd_fsdir_set $name pref ${pref:1}
-    #test -z "$suff" || sd_fsdir_set $name suff ${suff:1}
-    test -z "$2" || sd_fsdir_set ttl $name "$2"
-    test -z "$3" || sd_fsdir_set meta $name "$3"
+    }
     init=
-    return
   }
 
   test $# -lt 3 && return
   shift 2
+  test ${new:-0} -eq 0 || return 0
   local meta_var=${name}_meta meta
   meta=${!meta_var-}
   test $# -eq 0 -o -z "$1" || {
@@ -346,7 +373,6 @@ sd_fsdir_existing () # Name TTL Meta
     new=0
     return
   } || {
-    rtype=
     new=1
     return 1
   }
@@ -360,6 +386,17 @@ sd_fsdir_check_init () {
   done
 }
 
+sd_fsdir_attr ()
+{
+  local varname
+  while has_next_arg "$@"
+  do
+    varname=${name}_$1
+    echo ${!varname}
+    shift
+  done
+}
+
 sd_fsdir_new () # Name
 {
   name=$(filestripext "$1" | tr -cd 'a-z0-9')
@@ -370,7 +407,16 @@ sd_fsdir_new () # Name
   suff="${!suffvar-}"
   test -z "$suff" || suff=-${suff}
   ext="${!extvar:-"tab"}"
-  new=1
+
+  true "${rtype:="shell"}"
+  l=$STATUSDIR_ROOT$rtype/.meta.sh
+  $LOG note "" "New" "$rtype/$pref$name$suff.$ext"
+  touch $STATUSDIR_ROOT$rtype/$pref$name$suff.$ext
+  sd_fsdir_set ext $name $ext
+  #test -z "$pref" || sd_fsdir_set $name pref ${pref:1}
+  #test -z "$suff" || sd_fsdir_set $name suff ${suff:1}
+  test -z "${ttl-}" || sd_fsdir_set ttl $name "$ttl"
+  test -z "${meta-}" || sd_fsdir_set meta $name "$meta"
 }
 
 # Test if entry exists and set rtype
@@ -386,7 +432,6 @@ sd_fsdir_entry_validate ()
   test -e "$p/$k" && {
     ttl=${ttl:-$STATUSDIR_EXPIRY_AGE}
     local ttl_str mtime=$(filemtime $p/$k) mtime_str
-    ttl_str=$( shell_cached fmtdate_relative "" $ttl "" )
     mtime_str=$( shell_cached fmtdate_relative "$mtime" "" "" )
     newer_than "$p/$k" "$ttl" && {
 
@@ -400,6 +445,7 @@ sd_fsdir_entry_validate ()
       #filemtime $p/$k;
       $LOG ok "" "Up-to-date" "$k: $mtime_str"
     } || {
+      ttl_str=$( shell_cached fmtdate_relative "" $ttl "" )
       $LOG error "" "Stale file" "$k: $mtime_str > $ttl_str"
       return 1
     }
@@ -410,7 +456,32 @@ sd_fsdir_entry_validate ()
   }
 }
 
-sd_fsdir_deinit() # Record-Type
+sd_fsdir_exec () # [Cmd-Line]
+{
+  local outf cmdl execdir ret
+  cmdl=$(sd_fsdir_attr cmd 2>/dev/null)
+  test ${new:-0} -eq 0 && {
+    test $# -eq 0 -o "$*" = "$cmdl" || cmdl="$*"
+  } ||
+    cmdl="$*"
+  execdir=$(sd_fsdir_attr pwd 2>/dev/null)
+  test -n "$execdir" || execdir="$PWD"
+  test -n "$rtype" || return 11
+  outf="${STATUSDIR_ROOT}$rtype/$k"
+
+  { ( cd "$execdir" && eval "$cmdl" ) || ret=$?
+  } > "$outf.stdout" 2> "$outf.stderr"
+
+  sd_fsdir_set cmd "$name" "$cmdl"
+  sd_fsdir_set ret "$name" "$ret"
+  test ! -s "$outf.stderr" || cat "$outf.stderr"
+  test ${ret:0} -ne 0 || {
+    sd_fsdir_${rtype}_update "$outf.stdout" || return
+  }
+  rm "$outf.stdout" "$outf.stderr"
+}
+
+sd_fsdir_deinit () # Record-Type
 {
   test -d "$STATUSDIR_ROOT" || {
     $LOG "warn" "" "Statusdir is not initialized" ""
@@ -431,7 +502,7 @@ sd_fsdir_deinit() # Record-Type
 }
 
 # Set metadata
-sd_fsdir_set () # ATTR NAME VAL
+sd_fsdir_set () # ATTR [NAME] VAL
 {
   test $# -eq 3 && {
     fnmatch "* *" "$3" && set -- $1 $2 "\"$3\""
@@ -453,7 +524,7 @@ sd_fsdir_set () # ATTR NAME VAL
   }
 }
 
-# Check global rtype metadata
+# Check with global fsdir metadata mtime (g: ~/.statusdir/meta.sh)
 sd_fsdir_check () # NAME VAL
 {
   local varname=$1 varttl=${1}_ttl
@@ -463,8 +534,25 @@ sd_fsdir_check () # NAME VAL
   }
 }
 
-statusdir_fsdir_lib_load ()
+# TODO: auto-merge files
+sd_fsdir_index_update ()
+{ true
+}
+
+sd_fsdir_log_update ()
+{ true
+}
+
+sd_fsdir_cache_update ()
+{ true
+}
+
+statusdir_fsdir_lib_init ()
 {
+  #test ${ctx_statusdir_lib_init:-1} -eq 0 ||
+  #test ${ctx_class_lib_init:-1} -eq 0 ||
+  #    error "StatusDir:FSDir requires @Statusdir@Class" 1
+
   Statusdir__backend_types["fsdir"]=FSDir
   true "${statusdir_fsdirs:=".meta/stat .statusdir"}"
   LUP=$(cwd_lookup_path $statusdir_fsdirs)
@@ -510,6 +598,11 @@ has_next_arg ()
 has_no_arg ()
 {
   test $# -eq 0 -o "${1-}" = "--"
+}
+
+has_next_seq ()
+{
+  test "${1-}" = "--"
 }
 
 #

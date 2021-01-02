@@ -19,14 +19,14 @@ at_Google__login() #
 at_Google__reportlines () # ( [count] | names )
 {
   x-gdrive.py login --valid && {
-    echo "index quotas @Google @Drive -- x-gdrive.py -o csv about quotas"
+    echo "\$format index quotas @Google @Drive -- x-gdrive.py -o csv about quotas"
   } ||
       $LOG warn "" "No active login" x-gdrive
 
   x-gspread.py login --valid && {
-    echo "log sheets @Google @SpreadSheets -- x-gspread.py -n100 --all list"
-    echo "log folders @Google @SpreadSheets -- x-gspread.py -n100 --all list-folders"
-    echo "log files @Google @Drive -- x-gspread.py -n250 --all list-all"
+    echo "\$format log sheets @Google @SpreadSheets -- x-gspread.py -n100 --all list"
+    echo "\$format log folders @Google @SpreadSheets -- x-gspread.py -n100 --all list-folders"
+    echo "\$format log files @Google @Drive -- x-gspread.py -n250 --all list-all"
   } ||
       $LOG warn "" "No active login" x-gspread
 

@@ -123,10 +123,10 @@ htd_ctx__base__clean()
   htd__clean_empty_dirs
 }
 
-at_Base__id ()
-{
-  test -n "$*" || set -- $(context_env_list tags | grep -v '^@Base$' )
-  func_exists=0 first_only=0 context_cmd_seq status "$@"
-}
+#at_Base__id ()
+#{
+#  test -n "$*" || set -- $(context_env_list tags | grep -v '^@Base$' )
+#  func_exists=0 first_only=0 context_cmd_seq status "$@"
+#}
 
 #

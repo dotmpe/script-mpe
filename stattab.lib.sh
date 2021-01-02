@@ -12,7 +12,15 @@ stattab_lib_load()
 stattab_lib_init()
 {
   test "${stattab_lib_init-}" = "0" && return
+  test -n "${STTAB-}" || {
+    $LOG error "" "Expected STTAB" "$STTAB"
+    return 1
+  }
   test -e "$STTAB" || {
+    test ${init:-0} -eq 0 && {
+        $LOG error "" "Expected STTAB" "$STTAB"
+        return 1
+      }
     mkdir -p "$(dirname "$STTAB")" && touch "$STTAB" || return
   }
   sttab_id=
@@ -60,7 +68,7 @@ stattab_tab () # Match-Line
   }
 }
 
-# List ST-Id's
+# List ST-Id's only from tab output
 stattab_list () # ? LIST
 {
   test -n "$2" || set -- "$1" "$STTAB"
@@ -125,6 +133,7 @@ stattab_update()
   false
 }
 
+# Take tab output and perform some sort of grep
 stattab_grep () # <Sttab-Id> [<Entry-Type>] [<Stat-Tab>]
 {
   test $# -ge 1 -a -n "${1-}" -a $# -le 3 || return 98
@@ -156,6 +165,7 @@ stattab_exists () # <Stat-Id> [<Stat-Tab>] [<Entry-Type>]
   grep_f=-q stattab_grep "$@"
 }
 
+# Helper for other stattab-base; runs stattab-act on every parsed entry
 stattab_foreach () # <Stat-Id> [<Tags>]
 {
   test -n "${sttab_act:-}" || return 90
@@ -193,6 +203,8 @@ stattab_entry() # Entry-Id [Tab]
 # Parse statusdir index file line
 stattab_entry_parse() # Tab-Grep
 {
+  test "unset" != "${sttab_base-"unset"}" || local sttab_base=sttab
+
   # Split grep-line number from rest
   lineno="$(echo "$1" | cut -d ':' -f 1)"
   sttab_entry="$(echo "$1" | cut -d ':' -f 2-)"
@@ -202,28 +214,34 @@ stattab_entry_parse() # Tab-Grep
   sttab_record="$(echo "$sttab_entry" | sed 's/^[^_A-Za-z]*//' )"
   debug "Parsing descriptor '$sttab_stat' and record '$sttab_record'"
 
-  stattab_parse_std_descr $sttab_stat
+  # Split stat, normally a status bit and two dates
+  ${stattab_entry_parse_stat:-"${sttab_base}_parse_std_descr"} $sttab_stat
 
-  # Then ID and sttab_short, and rest
-  sttab_scrid="$(echo "$sttab_record"|cut -d' ' -f1)"
-  sttab_scrid="$(echo "$sttab_record"|cut -d' ' -f1)"
-  sttab_short="$(echo "$sttab_record"|cut -d' ' -f2-|$gsed 's/^\([^[+@<]*\).*$/\1/'|normalize_ws)"
+  # Now split Id(s) from rest of record with description
+  sttab_idspec="$(echo "$sttab_record"|cut -d':' -f1)"
+  ${stattab_entry_parse_ids:-"${sttab_base}_parse_std_ids"} $sttab_idspec
 
-  debug "Id: '$sttab_scrid'"
+  sttab_rest="$(echo "${sttab_record:$(( ${#sttab_idspec} + 1 ))}")"
+  sttab_short="$(echo "${sttab_rest}"|$gsed 's/^\([^[+@<]*\).*$/\1/'|normalize_ws)"
+  debug "Id: '$sttab_id'"
   debug "Short: '$sttab_short'"
 
-  sttab_tags_raw="$(echo "$sttab_record"|cut -d' ' -f2-|$gsed 's/^[^\[+@<]*//'|normalize_ws)"
+  sttab_tags_raw="$(echo "$sttab_rest"|$gsed 's/^[^\[+@<]*//'|normalize_ws)"
   sttab_tags="$(echo "$sttab_tags_raw"|$ggrep -o '[+@][^ ]*'|normalize_ws)"
-
   std_info "Tags: '$sttab_tags'"
   std_info "Tags-Raw: '$sttab_tags_raw'"
 }
 
 stattab_parse_std_descr()
 {
-  test -z "$1" || sttab_status=$1
-  test -z "$2" || sttab_ctime=$(date_pstat "$2")
-  test -z "$3" || sttab_mtime=$(date_pstat "$3")
+  test -z "${1-}" || sttab_status=$1
+  test -z "${2-}" || sttab_ctime=$(date_pstat "$2")
+  test -z "${3-}" || sttab_mtime=$(date_pstat "$3")
+}
+
+stattab_parse_std_ids ()
+{
+  test -z "${1-}" || sttab_id=$1
 }
 
 stattab_entry_fetch () # ST-Ref

@@ -5,7 +5,7 @@
 
 context_lib_load()
 {
-  lib_load statusdir ctx-base contextdefs &&
+  lib_load statusdir ctx-base contextdefs match-htd stattab &&
   true "${CTX:=""}" &&
   true "${PCTX:=""}" &&
   true "${CTX_DEF_NS:="HT"}" &&

@@ -5,7 +5,7 @@
 disktab_lib_load()
 {
   lib_assert statusdir || return
-  test -n "${DTAB-}" || DTAB=$(statusdir_index disk.list 0)
+  test -n "${DTAB-}" || DTAB=$(statusdir_run index disk.list 0)
 }
 
 disktab_lib_init()

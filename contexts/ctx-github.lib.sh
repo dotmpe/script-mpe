@@ -7,7 +7,7 @@ ctx_github_lib_load ()
 
 @Github.reportlines()
 {
-  echo "index repositories @Github -- @Github.list"
+  echo "\$format index repositories @Github -- @Github.list"
 }
 
 @Github.list ()

@@ -47,14 +47,13 @@ vc-meta.py
 sh_switch.py
 jsotk.py
 tools/sh/tags.sh
-tools/sh/tags-filter.sh
+tools/sh/parts/tags-filter.sh
 tools/sh/init-here.sh
 tools/sh/init.sh
 tools/sh/env.sh
 tools/ci/parts/build.sh
 tools/ci/parts/check-all.sh
 tools/ci/parts/db-log-announce.sh
-tools/ci/parts/init-information.sh
 tools/ci/parts/publish.sh
 box-instance.sh
 script-bats.sh

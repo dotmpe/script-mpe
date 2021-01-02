@@ -30,7 +30,7 @@ at_Playerctl__medialog ()
 
 at_Playerctl__reportlines ()
 {
-  echo "log medialog @Playerctl @MPRIS -- at_Playerctl__medialog"
+  echo "$format log medialog @Playerctl @MPRIS -- at_Playerctl__medialog"
 }
 
 at_Playerctl__players ()

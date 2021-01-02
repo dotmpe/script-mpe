@@ -3,7 +3,7 @@
 # Statusdir - key-value storage, service wrappers
 
 
-statusdir_lib_load()
+statusdir_lib_load ()
 {
   # Setup static STATUSDIR_ROOT env to directory (including trailing-/)
   true "${STATUSDIR_DEFAULT="$HOME/.statusdir"}"
@@ -71,7 +71,7 @@ statusdir_start () # [sd_be] ~ [Record-Key]
   sd_be_h=sd_${sd_be}
   test $# -eq 0 && return
   local r=0
-  $sd_be_h load "$@" || r=$? # statusdir_run load "$@"
+  $sd_be_h load "$@" || r=$? # Idem. to statusdir_run load "$@"
   log_key=$log_key\
       $LOG debug "" "Loaded backend '$sd_be' for" "$*"
   return $r
@@ -128,7 +128,8 @@ statusdir_finish()
   $sd_be_h deinit || r=$? # statusdir_run deinit
 }
 
-# TODO: record status/id descriptor bits
+# TODO: record status/... descriptor bits
+# TODO: display ext/ttl/prefix/meta descriptor bits
 statusdir_record()
 {
   # Won't track or can't track
@@ -170,10 +171,6 @@ statusdir_settings() #
 {
   test -e ${STATUSDIR_ROOT}meta.sh || return
   source ${STATUSDIR_ROOT}meta.sh || return
-}
-
-statusdir_exec ()
-{ true
 }
 
 

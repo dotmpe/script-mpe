@@ -31,7 +31,8 @@ class.init () # Var Type Constructor-Args...
 
 class.Class.init () #
 {
-  fnmatch "declare -A Class__instances" "$( declare -p Class__instances )" ||
+  fnmatch "declare -A Class__instances" \
+      "$( declare -p Class__instances 2>/dev/null )" ||
       declare -g -A Class__instances=()
 }
 

@@ -110,8 +110,8 @@ htd_package__debug()
 htd_package__urls()
 {
   test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
-  test -e "${PACKMETA_JS_MAIN-}" || error "No '$PACKMETA_JS_MAIN' file" 1
-  jsotk.py path -O pkv "$PACKMETA_JS_MAIN" urls
+  test -e "${PACK_JSON-}" || error "No '$PACK_JSON' file" 1
+  jsotk.py path -O pkv "$PACK_JSON" urls
 }
 
 htd_package__open_url()
@@ -129,10 +129,9 @@ htd_package__open_url()
 # remote repository or adding/updating each name/URL.
 htd_package__remotes_init()
 {
-  test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
-  test -e "${PACKMETA_JS_MAIN-}" || error "No '$PACKMETA_JS_MAIN' file" 1
-  vc_getscm
-  jsotk.py path -O pkv "$PACKMETA_JS_MAIN" repositories |
+  test -e "${PACK_JSON-}" || error "No '$PACK_JSON' file" 1
+  vc_getscm || return
+  jsotk.py path -O pkv "$PACK_JSON" repositories |
       tr '=' ' ' | while read -r remote url
   do
     # Get rid of quotes, but don't interpolate ie. expand home?
@@ -152,9 +151,6 @@ htd_package__remotes_init()
 
 htd_package__remotes_reset()
 {
-  # TODO: bind to PWD; see update; test -n "${PACK_SH-}" ||
-  package_id=
-  package_lib_reset && package_lib_init "${1:-.}" &&
   git remote | while read -r remote
   do
       git remote remove $remote && std_info "Removed '$remote'"
@@ -167,7 +163,6 @@ htd_package__write_script() # [env script_out=.htd/scripts/NAME] : NAME
 {
   test -n "${1-}" || set -- "init"
   test -n "${script_out-}" || script_out=.htd/scripts/$1.sh
-  #test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
 
   test -s $script_out -a $script_out -nt $PACKMETA && {
     note "Newest version of $script_out exists"

@@ -25,7 +25,7 @@
       src main box box-cmd box-lib box-src pd-meta finfo table package
   prefixes: {}
   slug-id: BIN
-  version: 0.0.4-dev
+  version: 0.0.4-dev # Script.mpe
   build: redo "\$@"
   env:
   - . \$HOME/bin/.env.sh
@@ -33,7 +33,7 @@
   - test -e \$CWD/.meta/attributes.sh -a \$CWD/.meta/attributes.sh -nt \$CWD/.attributes
     || { compo eval "cd \$CWD && c-groups ht && ht-attributes"; }
   - . \$CWD/.meta/attributes.sh
-  - '. "\$CWD/tools/\${TOOLS_SUITE:="sh"}/env.sh" || return'
+  #- '. "\$CWD/tools/\${TOOLS_SUITE:="sh"}/env.sh" || return'
   main: script-2008b-mpe
   type: application/vnd.org.wtwta.project
   vendor: dotmpe

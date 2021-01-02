@@ -28,6 +28,7 @@ pd__edit()
 pd_als___e=edit
 
 
+pd_man_1__new='FIXME: setup new project at prefix'
 pd_flags__new=y
 pd__new()
 {
@@ -102,10 +103,10 @@ pd__status()
   do
     test -f "$checkout" -o -h "$checkout" && {
       echo "pd:status:$pd_prefix" >$failed
-      stderr note "Not a checkout path at $checkout"
+      note "Not a checkout path at $checkout"
       continue
     }
-    stderr note "pd-prefix=$pd_prefix ($CWD)"
+    note "pd-prefix=$pd_prefix ($CWD)"
     trueish "$format_yaml" && {
 
       {
@@ -126,7 +127,7 @@ pd__status()
 
     }
     trueish "$format_stm_yaml" && {
-      stderr note "TODO"
+      note "TODO"
     }
 
   done < $prefixes
@@ -175,9 +176,9 @@ pd__status_old()
     done
   }
 
-  #stderr note "Getting status for checkouts in '$prefix_args'"
-  #stderr info "Prefixes: $(echo "$prefixes" | unique_words)"
-  #stderr debug "Registered: $(echo "$registered" | unique_words)"
+  #note "Getting status for checkouts in '$prefix_args'"
+  #std_info "Prefixes: $(echo "$prefixes" | unique_words)"
+  #debug "Registered: $(echo "$registered" | unique_words)"
   #local union="$(echo "$prefixes $registered" | words_to_unique_lines )"
   for checkout in $prefixes
     # XXX union
@@ -573,8 +574,8 @@ pd__sync()
   test $remote_cnt -gt 0 || echo 'remotes:0' >>$failed
 
   test -s "$failed" \
-    && { stderr error "Not in sync: $prefix" ; return 1; }\
-    || stderr info "In sync with at least one remote: $prefix";
+    && { error "Not in sync: $prefix" ; return 1; }\
+    || std_info "In sync with at least one remote: $prefix";
 }
 
 pd_flags__enable_all=ybf
@@ -1195,7 +1196,7 @@ pd__list_paths()
   find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
   find_ignores="-path \"*/.svn\" -prune -o $find_ignores "
 
-  stderr debug "Find ignores: $find_ignores"
+  debug "Find ignores: $find_ignores"
   eval find $path $find_ignores -o -path . -o -print
 }
 pd__list_paths_opts()
@@ -1410,8 +1411,11 @@ pd__usage()
 
 pd__help()
 {
-  test -z "$1" && {
+  test $# -le 1 || return 98
+  test -z "${1-}" && {
+    lib_require ctx-std || return
     choice_global=1 std__help "$@"
+    return $?
   } || {
     echo_help $1 || {
       for func_id in "$1" "${base}__$1" "$base-$1"
@@ -1428,7 +1432,9 @@ pd__help()
 pd_preload()
 {
   scriptpath="$(dirname "$(realpath "$0")")"
+  true "${_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
   CWD="$scriptpath"
+  test ! -e $_ENV || { source $_ENV || return; }
   test -n "${LOG-}" -a -x "${LOG-}" || export LOG=$CWD/tools/sh/log.sh
   test -n "${EDITOR-}" || EDITOR=nano
   test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
@@ -1439,8 +1445,16 @@ pd_preload()
 
 pd_subcmd_load()
 {
+  local scriptname_old=$scriptname; export scriptname=pd-subcmd-load
+
+  test -n "${subcmd_func-}" || {
+    main_subcmd_func "$subcmd"
+    c=1
+  }
+
+  main_var flags "$baseids" flags "${flags_default-}" "$subcmd"
+
   test -x "$(which sponge)" || warn "dep 'sponge' missing, install 'moreutils'"
-  test -n "$PD_SYNC_AGE" || export PD_SYNC_AGE=$_3HOUR
   # FIXME: test with this enabled
   #test "$(echo $PD_TMPDIR/*)" = "$PD_TMPDIR/*" \
   #  || warn "Stale temp files $(echo $PD_TMPDIR/*)"
@@ -1476,9 +1490,8 @@ pd_subcmd_load()
   SCR_SYS_SH=bash-sh
 
   # Selective per-subcmd init
-  verbosity=7
-  stderr debug "Loading subcmd '$subcmd', flags: $(try_value "${subcmd}" load | sed 's/./&\ /g')"
-  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
+  debug "Loading subcmd '$subcmd', flags: $flags"
+  for x in $(echo $flags | sed 's/./&\ /g')
   do case "$x" in
     a )
         # Set default args or filter. Value can be literal or function.
@@ -1530,7 +1543,7 @@ pd_subcmd_load()
           fd_num=$(( $fd_num + 1 ))
           # TODO: only one descriptor set per proc, incl. subshell. So useless?
           test -e "$io_dev_path/$fd_num" || {
-            stderr debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"
+            debug "exec $(eval echo $fd_num\\\>$(eval echo \$$fd_name))"
             eval exec $fd_num\>$(eval echo \$$fd_name)
           }
         done
@@ -1632,7 +1645,7 @@ pd_subcmd_load()
         test -n "${pd_root-}" || pd_finddoc
       ;;
 
-  esac; stderr debug "'$subcmd' flag '$x' loaded"; done
+  esac; debug "'$subcmd' flag '$x' loaded"; done
 
   local tdy="$(try_value "${subcmd}" today)"
   test -z "$tdy" || {
@@ -1694,6 +1707,7 @@ pd_subcmd_unload()
 pd_init()
 {
   pd_preload || exit $?
+  . $scriptpath/tools/sh/parts/env-0-1-lib-sys.sh
   . $scriptpath/tools/sh/init.sh || return
   lib_load str sys os std stdio src match main argv str-htd std-ht sys-htd htd
   # XXX: . $scriptpath/tools/sh/box.env.sh
@@ -1721,7 +1735,7 @@ pd_lib()
   test -n "$scriptpath" || return 11
   lib_load box meta list match date doc table ignores vc-htd projectdir \
       package
-  . $scriptpath/vc.sh
+  #. $scriptpath/vc.sh
   # -- pd box lib sentinel --
 }
 
@@ -1735,7 +1749,7 @@ pd_main()
     base="$(basename "$0" .sh)" scriptpath=
 
   pd_init || exit $?
-  stderr debug "Initialized for '$base'..."
+  debug "Initialized for '$base'..."
 
   case "$base" in
 
@@ -1757,25 +1771,26 @@ pd_main()
 
         pd_lib "$@" || error pd_lib $?
 
-        try_subcmd "$@" && {
+        main_subcmd_run "$@" || exit $?
+        #try_subcmd "$@" && {
 
-          #record_env_keys pd-subcmd pd-env
-          echo XXX: box_lib $0 $scriptalias
-          shift 1
+        #  #record_env_keys pd-subcmd pd-env
+        #  echo XXX: box_lib $0 $scriptalias >&2
+        #  shift 1
 
-          pd_subcmd_load "$@" || error "pd-subcmd-load" $?
+        #  pd_subcmd_load "$@" || error "pd-subcmd-load" $?
 
-          test -z "$arguments" -o ! -s "$arguments" || {
-            std_info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
-            set -f; set -- $(cat $arguments | lines_to_words) ; set +f
-          }
+        #  test -z "$arguments" -o ! -s "$arguments" || {
+        #    std_info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
+        #    set -f; set -- $(cat $arguments | lines_to_words) ; set +f
+        #  }
 
-          $subcmd_func "$@" || r=$?
+        #  $subcmd_func "$@" || r=$?
 
-          pd_subcmd_unload || r=$?
+        #  pd_subcmd_unload || r=$?
 
-          exit $r
-        }
+        #  exit $r
+        #}
 
       ;;
 
@@ -1792,6 +1807,8 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   test -z "$__load_lib" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
+
+      set -euo pipefail
 
       pd_main "$@"
     ;;

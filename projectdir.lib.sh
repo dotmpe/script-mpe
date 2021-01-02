@@ -1,29 +1,35 @@
 #!/bin/sh
 
 
-projectdir_lib_load()
+projectdir_lib_load ()
 {
-  projectdir_lib_parts_load || return
   # Local pdoc name, used by most command to determine pdir
   test -n "${UCONF-}" || UCONF=$HOME/.conf
   test -n "${pdoc-}" || pdoc=$UCONF/etc/projects.yaml
-  test -n "${PD_SYNC_AGE-}" || export PD_SYNC_AGE=$_3HOUR
   test -n "${PD_TMPDIR-}" || PD_TMPDIR=$(setup_tmpd $base)
   test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
+}
+
+projectdir_lib_init ()
+{
+  lib_assert main date || return
+  test -n "${PD_SYNC_AGE-}" || export PD_SYNC_AGE=$_3HOUR
+  true "${SCRIPT_MPE:=$HOME/bin}"
+  projectdir_lib_parts_load || return
 }
 
 # Load support includes
 projectdir_lib_parts_load()
 {
-  . $CWD/projectdir-fs.inc.sh &&
-  . $CWD/projectdir-git.inc.sh &&
-  . $CWD/projectdir-git-versioning.inc.sh &&
-  . $CWD/projectdir-grunt.inc.sh &&
-  . $CWD/projectdir-npm.inc.sh &&
-  . $CWD/projectdir-make.inc.sh &&
-  . $CWD/projectdir-lizard.inc.sh &&
-  . $CWD/projectdir-vagrant.inc.sh &&
-  . $CWD/projectdir-bats.inc.sh
+  . $SCRIPT_MPE/projectdir-fs.inc.sh
+  . $SCRIPT_MPE/projectdir-git.inc.sh &&
+  . $SCRIPT_MPE/projectdir-git-versioning.inc.sh &&
+  . $SCRIPT_MPE/projectdir-grunt.inc.sh &&
+  . $SCRIPT_MPE/projectdir-npm.inc.sh &&
+  . $SCRIPT_MPE/projectdir-make.inc.sh &&
+  . $SCRIPT_MPE/projectdir-lizard.inc.sh &&
+  . $SCRIPT_MPE/projectdir-vagrant.inc.sh &&
+  . $SCRIPT_MPE/projectdir-bats.inc.sh
 }
 
 no_act()
@@ -348,7 +354,10 @@ pd_register()
   do
     fnmatch "*$1*" "$pd_sets" || pd_sets="$pd_sets $1"
     #main_var $(main_local pd $1 sets) pd $1 sets
-    registry="$(main_local pd $1 sets)"
+    registry="$(main_local pd $1 sets)" || {
+        $LOG error "" "Cannot register Pd" "$1"
+        return 1
+    }
     eval export $registry="\"\${$registry-} $mod\""
     shift
   done

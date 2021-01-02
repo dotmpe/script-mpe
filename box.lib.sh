@@ -45,7 +45,7 @@ box_find_localscript()
 
 box_find_namedscript()
 {
-  test -n "$named_script" || named_script=$BOX_BIN_DIR/$script_name
+  test -n "${named_script-}" || named_script=$BOX_BIN_DIR/$script_name
   test -e "$named_script" && return || {
     warn "No named_script for $script_name"
     return 1
@@ -65,7 +65,7 @@ box_req_files_localscript()
   box_find_namedscript && {
     log "Including named-script $named_script"
     . $named_script
-    script_files="$script_files $named_script"
+    script_files="${script_files:-}${script_files:+" "}$named_script"
   } || r=$(( $r + 1 ))
 
   test -e "$uconf_script" && {
@@ -192,22 +192,23 @@ box_run_cwd()
   $func "$*"
 }
 
-box_init_args()
+box_init_args () # [Sub-Cmd | "run"] [Script-Name | hostname]
 {
   # subcmd-name
   test -n "${1-}" && {
-    subcmd="$1" ; c=$(( $c + 1 ))
-  } || subcmd=run
+    script_subcmd_name="$1"
+  }
+
   # script-name
   test -n "${2-}" && {
-    script_name="$2" ; c=$(( $c + 1 ))
+    script_name="$2"
   } || {
     script_name="${hostname}"
   }
 }
 
 # Extract source lines from {base}-load routine in frontend script
-box_list_libs() # Scrip-File Box-Prefix
+box_list_libs() # Script-File Box-Prefix
 {
   test -n "${1-}" || error "Script-File required" 1
   test -n "${2-}" || error "Box-Prefix required" 1
@@ -224,7 +225,7 @@ box_list_libs() # Scrip-File Box-Prefix
   fnmatch "-*" "$line_diff" &&
     error "box-list-libs: negative line_diff: $line_diff" 1 || true
 
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "named_script='$1'"
     debug "scan after line $line_offset"
     debug "scan up to line $line_number"

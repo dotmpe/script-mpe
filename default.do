@@ -20,7 +20,10 @@ default_do_main ()
     htd package update && htd package write-scripts
   }
   ENV_NAME=redo . ./.meta/package/envs/main.sh || return
-  # XXX: . "${_ENV:="tools/redo/env.sh"}" || return
+  # XXX:
+  test -n "${build_parts_bases:-}" || {
+    . "${_ENV:="tools/redo/env.sh"}" || return
+  }
 
   # Keep short build sequences in this file (below in the case/easc), but move
   # larger build-scripts to separate files to prevent unnecessary builds from

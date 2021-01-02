@@ -54,12 +54,15 @@ urlstat_grep () # <URI-Ref> [<URL-List>]
   stattab_grep "$1" id "$2"
 }
 
+# Return matching record(s); filter by tags
 urlstat_fetch ()  # [ <URI-Ref> | <Glob> ] [<Tags>]
 {
   local ref glob
+  # Proc first arg: either ref or glob
   { test ${is_grep:-0} -eq 0 -a \( $# -eq 0 -o -z "${1-}" \) || fnmatch "*\**" "$1"
   } && glob="${1:-"*"}" || ref="$1"
   test $# -eq 0 || shift
+
   {
     test -n "${ref-}" && {
       urlstat_grep "$ref" || return

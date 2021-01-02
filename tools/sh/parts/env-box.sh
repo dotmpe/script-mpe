@@ -32,6 +32,6 @@ box_run_sh_test()
   }
 }
 
-$INIT_LOG info "box.env" "Loaded, bootstrapping env" "$0 $_ENV"
+$INIT_LOG info "box.env" "Loaded, bootstrapping env" "$0 ${_ENV-}"
 
 # Sync: U-S:
