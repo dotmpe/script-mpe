@@ -1773,8 +1773,6 @@ vc__down()
 
 # Script main functions
 
-# TODO: move vctmp.sh back in here/cleanup
-
 main-init-env \
   INIT_ENV= INIT_LIB=std\ sys\ src\ sys-htd\ os\ str\ log\ match\ main\ vc\ vc-htd\ ctx-std
 

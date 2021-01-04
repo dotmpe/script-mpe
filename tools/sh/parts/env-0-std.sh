@@ -1,6 +1,7 @@
 test -n "${verbosity-}" || verbosity=5
 
-grn=;purple=;yellow=;red=;blue=
+# FIXME: make (ANSI) palette nice and loadable; null colors here:
+grn=;purple=;ylw=;yellow=;red=;blue=
 darkyellow=
 drgrey=;grey=;norm=;default=
 bld=

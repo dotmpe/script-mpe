@@ -420,12 +420,12 @@ str_title()
 {
   # Other ideas to test as ucwords:
   # https://stackoverflow.com/questions/12420317/first-character-of-a-variable-in-a-shell-script-to-uppercase
-  trueish "$bin_php" && {
-    trueish "$first_word_only" &&
+  test ${bin_php:-0} -eq 1 && {
+    test ${first_word_only:-1} -eq 1 &&
       php -r "echo ucfirst('$1');" ||
       php -r "echo ucwords('$1');"
   } || {
-    trueish "$first_word_only" && {
+    test ${first_word_only:-1} -eq 1 && {
       echo "$1" | awk '{ print toupper(substr($0, 1, 1)) substr($0, 2) }'
     } || {
       first_word_only=1 str_title "$(echo "$1" | tr ' ' '\n')" | tr '\n' ' '

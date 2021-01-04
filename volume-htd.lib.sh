@@ -64,10 +64,12 @@ htd_list_volumes()
 htd_check_volumes()
 {
   trueish "$catalog" && {
-    os_disk_list | while read dev
+    local r=
+
+    os_disk_list | { local r=; while read dev
     do
       prefix=$(disk.sh prefix $dev 2>/dev/null)
-      test -n "$prefix" || {
+      test -n "$prefix" || { r=1
         warn "No prefix found for <$dev>"
         continue
       }
@@ -91,14 +93,14 @@ htd_check_volumes()
       for volume in /mnt/$prefix-*
       do
         test -e $volume/.volumes.sh || continue
-        eval $(sed 's/^volumes_main_/vol_/' $volume/.volumes.sh)
+        eval $(sed 's/^volumes_main_//' $volume/.volumes.sh)
 
-        test "$vol_prefix" = "$prefix" \
-          || error "Prefix mismatch '$vol_prefix' != '$prefix' ($volume)" 1
+        test "$prefix" = "$prefix" \
+          || error "Prefix mismatch '$prefix' != '$prefix' ($volume)" 1
 
         # Check for unknown service roots
-        test -n "$vol_export_all" || vol_export_all=1
-        trueish "$vol_export_all" && {
+        test -n "$export_all" || export_all=1
+        trueish "$export_all" && {
           echo $volume/* | tr ' ' '\n' | while read vroot
           do
             test -n "$vroot" || continue
@@ -110,11 +112,11 @@ htd_check_volumes()
         }
 
         # TODO: check all aliases, and all mapping aliases
-        test -n "$vol_aliases__1" \
+        test -n "$aliases__1" \
           || error "Expected one aliases ($volume)"
 
-        test -e "/srv/$vol_aliases__1"  || {
-          error "Missing volume alias '$vol_aliases__1' ($volume)" 1
+        test -e "/srv/$aliases__1"  || {
+          error "Missing volume alias '$aliases__1' ($volume)" 1
         }
 
         # Go over known services
@@ -132,54 +134,68 @@ htd_check_volumes()
           }
         done
 
-        note "Volumes OK: $disk_index.$vol_part_index $volume"
+        note "Volumes OK: $disk_index.$part_index $volume"
 
         unset srv \
-          vol_prefix \
-          vol_aliases__1 \
-          vol_export_all
+          prefix \
+          aliases__1 \
+          export_all
 
       done
       note "Disk OK: $disk_index. $prefix"
-    done
-    return $?
-  }
+    done; return $r; } || r=$?
 
-  trueish "$catalog" && {
     note "Listing volumes for current mounts"
-    disk_mounts | while read mount_point
+    disk_mounts | { local r=; while read mount_point
     do
-      source_mount_catalog $mount_point
-      _volume_symlink
+      test -r "$mount_point" || { r=1
+        warn "No read permission <$mount_point>"
+        continue
+      }
+      source_mount_catalog $mount_point || { r=$?
+        error "Sourcing catalog for <$mount_point>"
+        continue
+      }
+      _volume_symlink || { r=$?
+        error "Building volume symlink for <$mount_point>"
+        continue
+      }
       test -e /srv/$sym && {
-        std_info "Found volume-$disk_index-$vol_part_index-$suffix"
+        std_info "Found volume-$disk_index-$part_index-$suffix"
         continue
       }
       echo ln -s $mount_point /srv/$sym
-      note "New volume-$disk_index-$vol_part_index-$suffix"
-    done
+      note "New volume-$disk_index-$part_index-$suffix"
+    done; return $r; } || r=$?
+
     return $?
   }
 }
 
 source_mount_catalog()
 {
+  local r=
   test -e $mount_point/.volumes.sh || {
     warn "No volume dotfile on $mount_point" ; return
   }
+
   # TODO: should sync marker file with catalog
   # Get data from online marker file
-  eval $(sed 's/^volumes_main/vol/g' $mount_point/.volumes.sh)
+  eval "$(grep '^volumes_main_' $mount_point/.volumes.sh |
+      sed 's/^volumes_main_//g' )"
+
   # Get data from catalog
-  . $DISK_CATALOG/disk/$vol_disk_id.sh
+  . $DISK_CATALOG/disk/$disk_id.sh
 }
 
 _volume_symlink()
 {
-  test -n "$disk_domain" &&
-      suffix="$(echo "$disk_host-$disk_domain" | tr 'A-Z' 'a-z')" ||
-      suffix="$(echo "$disk_host" | tr 'A-Z' 'a-z')"
-  sym=volume-$disk_index-$vol_part_index-$suffix
+  test -n "${disk_domain-}" && {
+    suffix="$(echo "$disk_host-$disk_domain" | tr 'A-Z' 'a-z')" || return
+  } || {
+    suffix="$(echo "$disk_host" | tr 'A-Z' 'a-z')" || return
+  }
+  sym=volume-$disk_index-$part_index-$suffix
 }
 
 # Give pathname.tab for use with htd prefixes
@@ -193,10 +209,10 @@ htd_path_names()
     _volume_symlink
     # anyway...
     rd="$(cd "$mount_point" && pwd -P)"
-    echo /srv/$sym/ $vol_prefix
-    test "$mount_point" = "$rd" || echo $rd/ $vol_prefix
+    echo /srv/$sym/ $prefix
+    test "$mount_point" = "$rd" || echo $rd/ $prefix
     fnmatch "*/" $mount_point || mount_point=$mount_point/
-    echo $mount_point $vol_prefix
+    echo $mount_point $prefix
   done
   return $?
 }

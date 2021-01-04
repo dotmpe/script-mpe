@@ -193,7 +193,7 @@ disk_size()
 
 disk_tabletype()
 {
-  case "$(uname)" in
+  case "$uname" in
 
     linux ) req_parted disk-tabletype || return
         req_parted disk-tabletype || return
@@ -274,17 +274,20 @@ disk_local_all()
 
 
 # List (local) disks by mount point
-disk_mounts()
+disk_mounts() # [TYPES]
 {
+  test $# -gt 0 || set -- vfat ntfs ext2 ext3 ext4
   case "$uname" in
 
-    darwin )
-        mount |
-            grep 'on\ ' |
+    darwin | linux )
+        mount | {
+          test $# -eq 0 && {
+            grep 'on\ ' || return
+          } ||
+            grep 'on\ .*\ type\ \('"$(printf "%s\|" "$@")"'nosuchtype\)'
+        } |
             sed 's/^.*\ on\ //g' | cut -d ' ' -f 1
       ;;
-
-    #linux ) ;;
 
     * ) error "Disk-Mounts not supported on: $uname" 1 ;;
   esac
@@ -316,8 +319,8 @@ os_disk_list()
 disk_list_part_local()
 {
   local glob=
-  test -n "$1" || error no-disk-list-part-local-args 1
-  test -z "$2" || error "disk-list-part-local surplus args '$2'" 1
+  test $# -gt 0 -a -n "${1-}" || error "Device or disk-id required" 1
+  test $# -eq 1 || return 64
   case "$uname" in
     linux )
         test -z "$1" && glob=/dev/sd*[a-z]*[0-9] \
@@ -403,8 +406,8 @@ is_mounted()
 # Get mount point for device path
 find_mount()
 {
-  test -n "$1" || error "Device or disk-id required" 1
-  test -z "$2" || error "surplus arguments '$2'" 1
+  test $# -gt 0 -a -n "${1-}" || error "Device or disk-id required" 1
+  test $# -eq 1 || return 64
   {
     # NOTE: docker adds a mount for the same device already mounted, first line ..
     mount | grep '^'$1 | head -n 1 | cut -d ' ' -f 3
@@ -598,15 +601,15 @@ disk_report()
   do
     case "$1" in
 
-      unknown )     test $unknown_count -eq 0     || stderr warn "            Unkown: ${bnrml}$unknown_count${grey}  ($unknown_abbrev)" ;;
-      uncataloged ) test $uncataloged_count -eq 0 || stderr warn "       Uncataloged: ${bnrml}$uncataloged_count${grey}  ($uncataloged_abbrev)" ;;
+      unknown )     test $unknown_count -eq 0     || stderr warn "            Unkown: ${bdefault}$unknown_count${grey}  ($unknown_abbrev)" ;;
+      uncataloged ) test $uncataloged_count -eq 0 || stderr warn "       Uncataloged: ${bdefault}$uncataloged_count${grey}  ($uncataloged_abbrev)" ;;
 
-      ext )         test $ext_count -eq 0         || stderr info "         Extended tables: ${bnrml}$ext_count${grey}  ($ext_abbrev)" ;;
-      swap )        test $swap_count -eq 0        || stderr info "                    Swap: ${bnrml}$swap_count${grey}  ($swap_abbrev)" ;;
-      volume )      test $volume_count -eq 0      || stderr note "                 ${grn}Volumes: ${bnrml}$volume_count${grey}  ($volume_abbrev)" ;;
-      disk )        test $disk_count -eq 0        || stderr note "             Disks total: ${bnrml}$disk_count${grey}  ($disk_abbrev)" ;;
+      ext )         test $ext_count -eq 0         || stderr info "         Extended tables: ${bdefault}$ext_count${grey}  ($ext_abbrev)" ;;
+      swap )        test $swap_count -eq 0        || stderr info "                    Swap: ${bdefault}$swap_count${grey}  ($swap_abbrev)" ;;
+      volume )      test $volume_count -eq 0      || stderr note "                 ${grn}Volumes: ${bdefault}$volume_count${grey}  ($volume_abbrev)" ;;
+      disk )        test $disk_count -eq 0        || stderr note "             Disks total: ${bdefault}$disk_count${grey}  ($disk_abbrev)" ;;
 
-      list )        test $list_count -eq 0        || stderr note "           Entries total: ${bnrml}$list_count${grey}"
+      list )        test $list_count -eq 0        || stderr note "           Entries total: ${bdefault}$list_count${grey}"
 
         ;;
 
@@ -632,30 +635,36 @@ EOM
 
 disk_smartctl_attrs()
 {
-  smartctl -A "$1" -f old | tail -n +8 | while \
+  ${smart_pref} smartctl -A "$1" -f old | tail -n +8 | {
+    local IFS=$' \t\n'
+    while \
       read id attr flag value worst thresh type updated when_failed raw_value
     do
         test -n "$attr" || continue
         printf "%s " "$(printf "$attr" | tr -cs 'A-Za-z_' '_')_Raw=\"$raw_value\""
         printf "%s " "$(printf "$attr" | tr -cs 'A-Za-z_' '_')=\"$value\""
     done
+  }
 }
 
 # Getting disk0 runtime (days)
-disk_runtime()
+disk_runtime () # DEV
 {
   eval local $(disk_smartctl_attrs $1)
-  python -c "print $Power_On_Hours_Raw / 24.0"
-  #echo "$Power_On_Hours_Raw / 24.0" | bc
+  #python -c "print $Power_On_Hours_Raw / 24.0"
+  echo "$Power_On_Hours_Raw hours"
+  echo "$(echo "$Power_On_Hours_Raw / 24" | bc) days"
   #echo "$Power_On_Hours"
 }
 
-disk_bootnumber()
+disk_bootnumber () # DEV
 {
   note "TODO: Getting disk0 boot count-crash count..."
-  eval local $(disk_smartctl_attrs disk0)
-  echo "$Power_Cycle_Count_Raw-$Power_Off_Retract_Count_Raw"
-  echo "$Power_Cycle_Count-$Power_Off_Retract_Count"
+  eval local $(disk_smartctl_attrs $1)
+  test -z "${Power_Cycle_Count-}" ||
+      echo "$Power_Cycle_Count-$Power_Cycle_Count_Raw"
+  test -z "${Power_Off_Retract_Count-}" ||
+      echo "$Power_Off_Retract_Count-$Power_Off_Retract_Count_Raw"
 }
 
 # Load into env or print on dry-run columns from lsblk output line

@@ -20,6 +20,7 @@ alias vc="b=$HOME/bin/vc _shc_update_and_run"
 alias box="b=$HOME/bin/box _shc_update_and_run"
 alias docker-sh="b=$HOME/bin/docker-sh _docker-sh_update_and_run"
 alias dckr=docker-sh
+alias disk="b=$HOME/bin/disk _shc_update_and_run"
 alias ino="b=$HOME/bin/ino _shc_update_and_run"
 alias meta-sh="b=$HOME/bin/meta-sh _shc_update_and_run"
 

@@ -12,8 +12,6 @@ build_htd_lib_load ()
   test -n "${cllct_src_base-}" || cllct_src_base=.cllct/src
   test -n "${cllct_test_base-}" || cllct_test_base=.cllct/testruns
   test -n "${docbase-}" || docbase="doc/src/sh"
-  test -n "${ggrep-}" || ggrep=grep
-  test -n "${gsed-}" || gsed=sed
 }
 
 #  lib_assert \

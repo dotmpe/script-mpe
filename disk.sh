@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2016-02-22
 
 
@@ -21,7 +21,7 @@ disk__status()
     test -e $dev || error "No such device? $dev" 1
     echo "$dev" >>$disk
     mnts="$(echo $(find_mount $dev))"
-    stderr ok "${grey}[$disk_id_] Disk #$num: $(echo $mnts | count_words) known partition(s) (${nrml}$size ${grey}$dev)"
+    stderr ok "${grey}[$disk_id_] Disk #$num: $(echo $mnts | count_words) known partition(s) (${default}$size ${grey}$dev)"
     disk_list_part_local $dev | while read vol_dev
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
@@ -41,7 +41,7 @@ disk__status()
         * )
           test -n "$mount" \
             && {
-              std_info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
+              std_info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bdefault}$vol_id${grey} ($vsize ${bdefault}$vusg%% ${grey}$fstype $vol_dev)"
               test -e "$mount/.volumes.sh" && {
                 echo "$vol_dev" >>$volume
                 echo "$num.$vol_idx: $vol_id: $vol_dev $vsize $vusg ($fstype) [$disk_id]" >>$list
@@ -158,7 +158,7 @@ disk__info()
 disk_man_1__local="Show disk info TODO: test this works at every platform"
 disk__local()
 {
-  test -n "$1" || set -- $(os_disk_list)
+  test $# -gt 0 -a -n "${1-}" || set -- $(os_disk_list)
   std_info "Devices: '$*'"
   {
     echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
@@ -431,16 +431,6 @@ disk__update_all()
 
 # Generic subcmd's
 
-disk_man_1__help="Usage help. "
-disk_spc__help="-h|help"
-disk_als___h=help
-disk__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
-}
-
-
 disk_man_1__edit="Edit $base script file plus arguments. "
 disk_spc__edit="-e|edit \[<file>..]"
 disk__edit()
@@ -457,174 +447,93 @@ disk__edit()
 disk_als___e=edit
 
 
+# ----
 
 # Script main functions
 
-disk_main()
-{
-  local \
-      scriptname=disk \
-      scriptalias=disk \
-      base=$(basename $0 .sh) \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      subcmd=
+main-init-env \
+  INIT_ENV=dev\ 0-std INIT_LIB="\$default_lib disk date str-htd sys-htd os-htd table darwin remote ctx-std std stdio main"
 
-  case "$base" in
+main-default status
 
-    $scriptname )
+main-init \
+  set -euo pipefail \
+  true "${SUITE:="Main"}" \
+  true "${CWD:="$scriptpath"}" \
+  . ~/bin/.env.sh
 
-        # invoke with function name first argument,
-        local scsep=__ bgd= \
-          subcmd_pref=${scriptname} \
-          disk_default=status \
-          disk_log="${LOG-}" \
-          func_exists= \
-          func= \
-          sock= \
-          c=0
-
-        test -n "$disk_log" || disk_log=$scriptpath/tools/sh/log.sh
-
-        $disk_log info "" "1/3 disk.sh init"
-        disk_init "$@" || $disk_log error "" "init failed" "" $?
-        shift $c
-
-        $disk_log info "" "2/3 disk.sh lib"
-        disk_lib "$@" || $disk_log error "" "lib failed" "" $?
-
-        std_info "3/3 disk.sh run"
-        main_subcmd_run "$@" || exit $?
-      ;;
-
-    * )
-        echo "$scriptname: not a frontend for $base" >&2
-        exit 1
-      ;;
-
-  esac
-}
-
-### Main init, libs
-
-disk_init()
-{
-  util_mode=ext . $scriptpath/tools/sh/init-wrapper.sh || return
-  #. $scriptpath/tools/sh/init.sh || return
-  # -- disk box init sentinel --
-}
-
-disk_lib()
-{
-  set -- disk date str-htd sys-htd os-htd table darwin remote std stdio main
-
-  INIT_LOG=$LOG lib_load "$@" || return
-  INIT_LOG=$LOG lib_init "$@" || return
-  # -- disk box lib sentinel --
-}
-
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-disk_subcmd_load()
-{
-  #test -x "/sbin/parted" || error "parted required" 1
-  #test -x "/sbin/fdisk" || error "fdisk required" 1
-  test -n "$disk_session_id" || disk_session_id=$(get_uuid)
-  disk__inputs="arguments options"
-  disk__outputs="errored failed"
-
-  test -n "$choice_interactive" || {
-    # By default look at TERM
-    test -z "$TERM" || {
-      # may want to look at stdio t(ty) vs. f(ile) and p(ipe)
-      # here we trigger by non-tty stderr
-      test "$stdio_2_type" = "t" &&
-        choice_interactive=1 || choice_interactive=0
-    }
+main-load \
+  #test -x "/sbin/parted" || error "parted required" 1 \
+  #test -x "/sbin/fdisk" || error "fdisk required" 1 \
+  test -n "${disk_session_id-}" || disk_session_id=$(get_uuid) \
+  disk__inputs="arguments options" \
+  disk__outputs="errored failed" \
+ \
+  test -n "${choice_interactive-}" || { \
+    # By default look at TERM \
+    test -z "$TERM" || { \
+      # may want to look at stdio t(ty) vs. f(ile) and p(ipe) \
+      # here we trigger by non-tty stdout \
+      test -t 1 && \
+        choice_interactive=1 || choice_interactive=0 \
+    } \
   }
 
-  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
-  do case "$x" in
-
-    R ) # Device read access
-        test -n "$dev_pref" || {
-          ( for device in $(os_disk_list)
-          do
-            test -r "$device" && {
-              stderr ok "Read/Write at $device"
-            } || {
-              exit 1
-            }
-          done
-          ) || {
-            dev_pref="sudo"
-            sudo echo >/dev/null || {
-              note "Got r00t? (need sudo for /dev/* read-access)"
-              sudo printf "Got it."
-            }
-          }
-        }
+main-load-flags \
+    R ) # Device read access \
+        test -n "$dev_pref" || { \
+          ( for device in $(os_disk_list) \
+          do \
+            test -r "$device" && { \
+              stderr ok "Read/Write at $device" \
+            } || { \
+              exit 1 \
+            } \
+          done \
+          ) || { \
+            dev_pref="sudo" \
+            sudo echo >/dev/null || { \
+              note "Got r00t? (need sudo for /dev/* read-access)" \
+              sudo printf "Got it." \
+            } \
+          } \
+        } \
+      ;; \
+ \
+    f ) \
+        failed=$(setup_tmpf .failed) \
+      ;; \
+ \
+    i ) # io-setup: set all requested io varnames with temp.paths \
+        setup_io_paths $subcmd-${disk_session_id} \
+        # XXX: inherit? export $disk__inputs $disk__outputs \
+      ;; \
+ \
+    o ) # \
+        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")" \
+        test -n "$subcmd_outf" || error "List of output names expected" 1 \
+        disk__inputs= disk__outputs="$subcmd_outf" \\
+          setup_io_paths $subcmd-${disk_session_id} \
+        export $subcmd_outf \
       ;;
 
-    f )
-        failed=$(setup_tmpf .failed)
+main-unload-flags \
+    R ) ;; \
+    f ) \
+        clean_failed || unload_ret=1 \
+      ;; \
+ \
+    i ) # remove named IO buffer files; set status vars \
+        clean_io_lists $disk__inputs $disk__outputs \
+        disk_report $disk__inputs $disk__outputs || subcmd_result=$? \
+      ;; \
+ \
+    o ) # idem. but for subcmd \
+        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")" \
+        test -n "$subcmd_outf" || error "List of output names expected" 1 \
+        clean_io_lists $subcmd_outf \
+        disk_report $subcmd_outf || subcmd_result=$? \
       ;;
 
-    i ) # io-setup: set all requested io varnames with temp.paths
-        setup_io_paths $subcmd-${disk_session_id}
-        # XXX: inherit? export $disk__inputs $disk__outputs
-      ;;
-
-    o ) #
-        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")"
-        test -n "$subcmd_outf" || error "List of output names expected" 1
-        disk__inputs= disk__outputs="$subcmd_outf" \
-          setup_io_paths $subcmd-${disk_session_id}
-        export $subcmd_outf
-      ;;
-
-    esac
-  done
-}
-
-disk_subcmd_unload()
-{
-  local unload_ret=0
-  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
-  do case "$x" in
-
-    i ) # remove named IO buffer files; set status vars
-        clean_io_lists $disk__inputs $disk__outputs
-        disk_report $disk__inputs $disk__outputs || subcmd_result=$?
-      ;;
-
-    o ) # idem. but for subcmd
-        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")"
-        test -n "$subcmd_outf" || error "List of output names expected" 1
-        clean_io_lists $subcmd_outf
-        disk_report $subcmd_outf || subcmd_result=$?
-      ;;
-
-  esac; done
-  clean_failed || unload_ret=1
-  unset subcmd_pref \
-          def_subcmd func_exists func
-  return $unload_ret
-}
-
-
-# Main entry - bootstrap script if requested
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
-    set -eu
-    disk_main "$@"
-  }
-;; esac
-
+main-epilogue \
 # Id: script-mpe/0.0.4-dev disk.sh
