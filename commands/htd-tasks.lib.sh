@@ -12,12 +12,13 @@ htd_tasks_lib_load ()
 
 htd_tasks_lib_init ()
 {
-  test -n "${tasks_hub-}" -o -z "${PACKMETA-}" || htd_tasks_init
+  test -n "${tasks_hub-}" -o -z "${PACKMETA-}" || htd_tasks_init || return
 }
 
 htd_tasks_init ()
 {
-  eval $(map=package_pd_meta_ package_sh tasks_hub)
+  eval $(map=package_pd_meta_ package_sh tasks_hub) || return
+  test -z "${echo-}" || tasks_echo=$echo
 }
 
 htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
@@ -67,9 +68,32 @@ htd_man_1__tasks='More context for todo.txt files - see also "htd help todo".
   See also package.rst docs.
   The first two arguments TODO/DONE.TXT default to tags-document and tags-done.
 '
-htd_flags__tasks=itAOlQ
-htd_libs__tasks=package\ htd-tasks\ tasks
-# lib_load os str std list vc tasks todo
+
+htd__tasks ()
+{
+  test $# -gt 0 || set -- list
+
+  case "$1" in @* )
+      set -- tagged "$(for tagref in $@ ; do echo ${tagref:1}; done)" ;; esac
+
+  case "$1" in
+
+      scan ) shift; sh_run package-req package-init &&
+            htd_tasks_scan "$@" || return
+          ;;
+
+      list ) htd__txt todotxt-list || return ;;
+
+      tagged ) shift; lib_require todotxt || return
+              for fn in $todo.txt
+              do
+                  todotxt_tagged $fn $@
+              done
+          ;;
+
+      * ) error "htd:tasks: $1?" 1 ;;
+  esac
+}
 
 
 htd_man_1__tasks_edit='Edit local todo/done.txt generated from to/do-{at,in}*
@@ -171,7 +195,7 @@ htd__tasks_process()
   for tag in $tags
   do
     scr="$(htd_tasks_buffers "$tag" | grep '\.sh$' | head -n 1)"
-    test -n "$scr" -a -e "$scr" || continue
+    test -n "${scr-}" -a -e "${scr-}" || continue
     test -x "$scr" || { warn "Disabled: $scr"; continue; }
 
     echo tag=$tag scr=$scr
@@ -197,8 +221,8 @@ htd__tasks_buffers()
 {
   htd_tasks_buffers "$@"
 }
-htd_flags__tasks_buffers=l
-htd_libs__tasks_buffers=htd-tasks
+htd_flags__tasks_buffers=lp
+htd_libs__tasks_buffers=htd-tasks\ context
 
 
 htd_man_1__tasks_session_start='Starts an editing session for TODO.txt lines.
@@ -240,7 +264,7 @@ htd__tasks_session_start()
 
 htd__tasks__src__exists()
 {
-  test -n "$2" || {
+  test -n "${2-}" || {
     echo
   }
   echo grep -srIq $1 $all $TASK_DIR/
@@ -266,60 +290,58 @@ htd_tasks__help ()
   echo "$htd_man_1__tasks"
 }
 
-htd__tasks()
+htd__tasks_info ()
 {
-  eval set -- $(lines_to_args "$arguments") # Remove options from args
-  test -z "${echo-}" || tasks_echo=$echo
+  htd_tasks_load
+  note "$(var2tags  todo_slug todo_document todo_done )"
+}
 
-  case "$1" in
+htd__tasks_be_src()
+{
+  #eval set -- $(lines_to_args "$arguments") # Remove options from args
 
-# Read-only
+  local cmdid; mkvid "$1" ; cmid=$vid
+  . ./to/be-src.sh ; shift 1
+  htd__tasks__src__${cmid} "$@"
+}
 
-    info )
-        htd_tasks_load
-        note "$(var2tags  todo_slug todo_document todo_done )"
-      ;;
+htd__tasks_be()
+{
+  be=$(printf -- "$1" | cut -c4- )
+  test -n "${be-}" || error "No default tasks backend" 1
+  mksid "$1" '' ''; ctxid=$sid
+  test -e ./to/$sid.sh || error "No tasks backend '$1' ($be)" 1
+  . ./to/$ctxid.sh ;
+  mkvid "$be" ; beid=$vid
+  mkvid "$2" ; cmid=$vid
+  . ./to/$ctxid.sh ; shift 2
+  htd__tasks__${beid}__${cmid} "$@"
+}
 
-    be.src )
-        mkvid "$2" ; cmid=$vid
-        . ./to/be-src.sh ; shift 2
-        htd__tasks__src__${cmid} "$@"
-      ;;
+htd__tasks_scan()
+{
+  htd_tasks_scan "$@"
+}
+htd_flags__tasks_scan=p
 
-    be* )
-        be=$(printf -- "$1" | cut -c4- )
-        test -n "$be" || error "No default tasks backend" 1
-        mksid "$1" '' ''; ctxid=$sid
-        test -e ./to/$sid.sh || error "No tasks backend '$1' ($be)" 1
-        . ./to/$ctxid.sh ;
-        mkvid "$be" ; beid=$vid
-        mkvid "$2" ; cmid=$vid
-        . ./to/$ctxid.sh ; shift 2
-        htd__tasks__${beid}__${cmid} "$@"
-      ;;
+htd__tasks_tags()
+{
+  htd_tasks_tags "$@"
+}
+htd_flags__tasks_tags=p
 
-    tags ) shift ;  htd_tasks_tags "$@" ;;
+htd__tasks_add_dates ()
+{
+  req_fcontent_arg "$1" &&
+      tasks_add_dates_from_scm_or_def "$1"  "$2"
+}
 
-    "" ) shift || true ; htd_tasks_scan "$@" ;;
-
-# Modify/proc/update list
-
-    add-dates ) req_fcontent_arg "$2"
-        tasks_add_dates_from_scm_or_def "$2"  "$3"
-      ;;
-
-  sync ) req_fcontent_arg "$2"
-        # TODO: req_clean_content_arg "$3"
-        req_fcontent_arg "$3"
-        tasks_sync_from_to "$2" "$3"
-      ;;
-
-# Default
-
-    * )
-        subcmd_prefs=${base}_tasks__\ ${base}_tasks_ try_subcmd_prefixes "$@"
-      ;;
-  esac
+htd__tasks_sync ()
+{
+  req_fcontent_arg "$1"
+  # TODO: req_clean_content_arg "$2"
+  req_fcontent_arg "$2"
+  tasks_sync_from_to "$1" "$2"
 }
 
 # htd_flags__tasks_session_start=epqiA
@@ -370,7 +392,7 @@ htd_tasks_session_end()
 # Load from pd-meta.tasks.{document,done} [ todo_slug todo-document todo-done ]
 htd_tasks_load()
 {
-  test -n "$1" || set -- init
+  test -n "${1-}" || set -- init
   while test $# -gt 0 ; do case "$1" in
 
     init )
@@ -379,7 +401,7 @@ htd_tasks_load()
   test -n "$todo_done" ||
     todo_done=$(pathname "$todo_document" $TASK_EXTS)-done.$TASK_EXT
   assert_files $todo_document $todo_done
-  test -n "$todo_slug" || {
+  test -n "${todo_slug-}" || {
     # XXX local not accepted by osh $(map=package_ package_sh  id  )
     eval $(map=package_ package_sh  id  )
     test -n "$id" && {
@@ -517,17 +539,19 @@ htd_tasks_scan() # tasks-scan [ --interactive ] [ --Check-All-Tags ] [ --Check-A
   test -s "$todo_done" || rm "$todo_done"
 }
 
-# Use the preferred local way of creating the local todo grep list
+# Use the preferred local way of creating the local todo grep list, ignore status
 htd_tasks_local() # tasks-local [ --Check-All-Tags ] [ --Check-All-Files ]
 {
   local tasks_grep=
   eval $(map=package_pd_meta_:htd_ package_sh tasks_grep)
-  test -n "$htd_tasks_grep" && {
-    Check_All_Tags=1 Check_All_Files=1  \
-    $htd_tasks_grep
+  test -n "${htd_tasks_grep-}" && {
+    verbose=$(test 4 -le $verbosity && printf 1 || printf 0) \
+    Check_All_Tags=1 Check_All_Files=1 \
+        $htd_tasks_grep
     return 0
   } || {
     htd_tasks_grep
+    return 0
   }
 }
 
@@ -590,8 +614,8 @@ htd_tasks_edit()
 
 htd_tasks_hub() # ~ [group]
 {
-  test -n "$1" || set -- be
-  htd_tasks_load init $subcmd
+  test -n "${1-}" || set -- be
+  htd_tasks_load init $subcmd || return
   case "$1" in
 
     init )
@@ -617,6 +641,7 @@ htd_tasks_hub() # ~ [group]
 
     be )
         note "Listing local backend configs"
+        echo "# backend"
         for be in $tasks_hub/*.sh
         do
           echo "@be.$(basename "$be" .sh | cut -c4-)"
@@ -658,9 +683,9 @@ htd_tasks_hub() # ~ [group]
 # List tags from task files (default to those from todo/done docs).
 htd_tasks_tags() # List tags from task files ~ [Task-Docs...]
 {
-  test -n "$1" || {
+  test -n "${1-}" || {
     htd_tasks_load
-    test -n "$2" || set -- $todo_done "$@"
+    test -n "${2-}" || set -- $todo_done "$@"
     set -- $todo_document "$@"
   }
   assert_files $1 $2
@@ -670,7 +695,7 @@ htd_tasks_tags() # List tags from task files ~ [Task-Docs...]
 
 htd_tasks_buffers()
 {
-  test -n "$1" || set -- $package_lists_contexts_default
+  test -n "${1-}" || set -- $package_lists_contexts_default
 
   for tag in "$@"
   do
@@ -679,28 +704,28 @@ htd_tasks_buffers()
           echo $tasks_hubbe-$be.sh
         ;;
       +* ) prj=$(echo $tag | cut -c2- )
-          echo $tasks_hubdo-in-$prj.list
+          echo $tasks_hub/do-in-$prj.list
           echo cabinet/done-in-$prj.list
-          echo $tasks_hubdo-in-$prj.list
+          echo $tasks_hub/do-in-$prj.list
           echo cabinet/done-in-$prj.list
-          echo $tasks_hubdo-in-$prj.sh
+          echo $tasks_hub/do-in-$prj.sh
         ;;
       @* ) ctx=$(echo $tag | cut -c2- )
-          echo $tasks_hubdo-at-$ctx.list
+          echo $tasks_hub/do-at-$ctx.list
           echo cabinet/done-at-$ctx.list
-          echo $tasks_hubdo-at-$ctx.list
+          echo $tasks_hub/do-at-$ctx.list
           echo cabinet/done-at-$ctx.list
-          echo $tasks_hubdo-at-$ctx.sh
+          echo $tasks_hub/do-at-$ctx.sh
           echo store/at-$ctx.sh
           echo store/at-$ctx.yml
           echo store/at-$ctx.yaml
         ;;
       '*' )
           echo \
-              $tasks_hubdo-in-*.list \
-              $tasks_hubdo-in-*.sh \
-              $tasks_hubdo-at-*.list \
-              $tasks_hubdo-at-*.sh \
+              $tasks_hub/do-in-*.list \
+              $tasks_hub/do-in-*.sh \
+              $tasks_hub/do-at-*.list \
+              $tasks_hub/do-at-*.sh \
               cabinet/done-in-*.list \
               cabinet/done-in-*.sh \
               cabinet/done-at-*.list \

@@ -39,7 +39,7 @@ htd_subcmd_load ()
   # -- htd box load insert sentinel --
   local scriptname_old=$scriptname; export scriptname=htd-load
 
-  main_subcmd_func "$subcmd"
+  main_subcmd_func "$subcmd" || true # Ignore, check for function later
   c=1 ; shift
 
   # Default-Env upper-case: shell env constants
@@ -267,33 +267,17 @@ htd_subcmd_load ()
 
     p ) # set (p)ackage -
         # Set package file and id, update. But don't require, see q.
-        package_lib_auto=0
-
-        test ${package_lib_init:-1} -eq 0 || {
-          test ${package_lib_loaded:-1} -eq 0 || {
-            lib_require package || return
-          }
-          lib_init package || return
-        }
+        package_lib_auto=0 sh_run package-init
       ;;
 
     q | Q ) # re(q)uire package
         # Update and include, but return on error
-        test "$x" = "Q" && package_lib_auto=2 || package_lib_auto=1
-
-        test ${package_lib_init:-1} -eq 0 || {
-          test ${package_lib_loaded:-1} -eq 0 || {
-            lib_require package || return
-          }
-          lib_init package || return
+        test "$x" = "Q" && package_lib_auto=2 || { # test "$x" = "q"
+            package_lib_auto=1
+            package_require=0
         }
 
-        # Evaluate package env
-        test ! -e "$PACK_SH" -a "$x" = "q" || {
-
-          . $PACK_SH || stderr error "local package ($?)" 7
-          $LOG debug "" "Found package '$package_id'"
-        }
+        sh_run package-require package-init
       ;;
 
     r ) # register package - requires 'p' first. Sets PROJECT Id and manages
@@ -658,6 +642,7 @@ htd_grp__show=env
 htd_grp__home=env
 
 
+#htd__diagnostics
 htd_man_1__doctor='Diagnose setup for deeper problems'
 htd__doctor()
 {
@@ -1782,8 +1767,12 @@ htd_man_1__txt='todo.txt/list.txt util
 '
 htd__txt()
 {
-  test -n "$1" || set --
+  test $# -gt 0 || set -- ""
   case "$1" in
+
+    todotxt-list ) shift
+        txt.py todolist todo.txt
+      ;;
 
     to-json ) shift
         txt.py meta-to-json "$1"
@@ -1811,14 +1800,17 @@ htd_grp__tasks_edit=tasks
 htd_grp__tasks_hub=tasks
 htd_grp__tasks_process=tasks
 htd_grp__tasks_buffers=tasks
+htd_grp__tasks_scan=tasks
+htd_grp__tasks_tags=tasks
+htd_grp__tasks_add_dates=tasks
 
-
+# Todo.txt stuff
 htd_grp__todo=todo
 htd_grp__todotxt=todo
 htd_grp__todo_gtasks=todo
 htd_grp__build_todo_list=todo
 
-
+# Google tasks
 htd_grp__gtasks_lists=gtasks
 htd_grp__gtasks=gtasks
 htd_grp__new_task=gtasks
@@ -4511,14 +4503,6 @@ htd__make()
 }
 htd_flags__make=f
 
-
-htd_man_1__todo='
-tasks
-box, composure
-
-help-commands is hard-coded and more documented but getting stale.
-commands is a long, long listing is generated en-passant from the source
-'
 
 htd_grp__composure=main
 

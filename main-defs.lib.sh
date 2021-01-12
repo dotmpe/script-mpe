@@ -125,7 +125,7 @@ ${main_id}_subcmd_load()
 
 ${main_preload-}
   test -n "\${subcmd_func-}" || {
-    main_subcmd_func "\$subcmd"
+    main_subcmd_func "\$subcmd" || true; # Ignore, check for func later
     c=1
   }
 

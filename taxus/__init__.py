@@ -131,6 +131,9 @@ class OutputMixin(object):
         elif of in ('str',):
             d = str(d)
 
+        else:
+            raise Exception("No such output-format %r" % of)
+
         self.output_buffer.append(d)
 
     def flush(self):

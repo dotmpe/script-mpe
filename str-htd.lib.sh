@@ -261,9 +261,9 @@ remove_dupes() # ~
 # Try to turn given variable names into a more "terse", human readble string seq
 var2tags()
 {
-  echo $(for varname in $@
+  echo $(local varname; for varname in $@
   do
-    local value="$(eval printf \"\$$varname\")"
+    local value="${!varname-}"
     test -n "$value" || continue
     pretty_print_var "$varname" "$value"
   done)

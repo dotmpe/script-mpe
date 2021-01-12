@@ -67,7 +67,7 @@ http://github.com/BlueFlo0d/CSP/wiki/Implementation-details
 2019-01-22 TODO: fix vc so it does blame for GIT submodule paths +Script.mpe
 2019-01-22 Gistify flow: add files, receive GIST id, record (mini) project. +Script.mpe
 
-#include HT:todo-mpe-7.txt +Script.mpe
+# #include HT:todo-mpe-7.txt +Script.mpe
 
 2020-03-07 Log build results uid:Jn7E results-log see also builds-log <build.rst#logging>
 

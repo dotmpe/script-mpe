@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+
+
 htd_man_1__todo='Edit and mange todo.txt/done files.
 
 (todo is an alias for tasks-edit, see help tasks-edit for command usage)
@@ -19,7 +22,10 @@ Other commands:
   htd build-todo-list
 '
 
-htd_als__todo=tasks-edit
+htd_flags__todo=p
+htd__todo() { htd__todotxt list-all; }
+#htd_als__todo=todotxt\ list-all
+#htd_als__todo=tasks-edit
 
 
 htd_man_1__todotxt_edit='Edit local todo/done.txt
@@ -62,6 +68,7 @@ htd_als__tte=todotxt-edit
 #htd_flags__todo=O
 
 
+htd_run__todotxt=p
 htd__todotxt()
 {
   test -n "${UCONF-}" || error UCONF 15
@@ -73,7 +80,8 @@ htd__todotxt()
       ;;
 
     list|list-all )
-        for fn in $UCONF/todotxtm/*.ttxtm $UCONF/todotxtm/project/*.ttxtm
+        lib_init todo
+        for fn in $package_todotxtm_src
         do
           fnmatch "*done*" "$fn" && continue
           test -s "$fn" && {
@@ -86,12 +94,11 @@ htd__todotxt()
 
     count|count-all )
         # List paths below current (proj/dirs with txtm files)
-        { for fn in $UCONF/todotxtm/*.ttxtm $UCONF/todotxtm/project/*.ttxtm
+        for fn in $package_todotxtm_src
           do
             fnmatch "*done*" "$fn" && continue
             cat $fn
-          done
-        } | wc -l
+        done | wc -l
       ;;
 
     edit ) htd__todotxt_edit "$2" "$3" ;;

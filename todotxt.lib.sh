@@ -16,7 +16,7 @@ todotxt_env_init()
   }
 }
 
-todotxt_tagged() # [File] Tag-Names...
+todotxt_tagged () # [File] Tag-Names...
 {
   local p_ grep_a
   test -t 0 && {

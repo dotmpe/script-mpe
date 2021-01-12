@@ -76,10 +76,11 @@ def cmd_todolist(LIST, g):
 def cmd_todotxt(TXT, g):
     prsr = res.todo.TodoTxtParser()
     TXT = TXT or 'todo.txt'
-    list(prsr.load(TXT))
-    for o in prsr.items():
-        ctx.out(o)
-    ctx.flush()
+    items = list(prsr.load(TXT))
+    for o in items:
+        print(o)
+        #ctx.out(o)
+    #ctx.flush()
 
 def cmd_proc(LIST, g):
     prsr = res.lst.ListTxtParser()

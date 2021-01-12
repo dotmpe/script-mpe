@@ -20,6 +20,7 @@ context_lib_load()
 context_lib_init()
 {
   test "${context_lib_init-}" = "0" && return
+  test -n "${package_lists_contexts_default-}" || package_lists_contexts_default=@Std
   true "${CTX_TAB:="${STATUSDIR_ROOT}index/context.list"}"
   test -e "$CTX_TAB" || {
     touch "$CTX_TAB" || return $?
@@ -372,7 +373,6 @@ context_tag_order() # Tag
 # Prep/parse (primary) context given or default
 contexttab_init()
 {
-  test -n "${package_lists_contexts_default-}" || package_lists_contexts_default=@Std
   test -n "${1-}" || set -- $package_lists_contexts_default
   ctx="$1"
   primctx="$(echo "$1" | cut -f 1 -d ' ')"

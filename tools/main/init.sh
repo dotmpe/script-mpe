@@ -5,7 +5,13 @@ test -n "${script_util-}" || script_util=$CWD/tools/sh
 
 for env_d in ${INIT_ENV-}
 do
-  . $script_util/parts/env-$env_d.sh || return 121
+  test -e $script_util/parts/env-$env_d.sh && {
+    . $script_util/parts/env-$env_d.sh || return 121
+  } || {
+      test -d "${U_S-}" || {
+        $LOG error "" "Cannot find include" $env_d; return 1; }
+    . $U_S/tools/sh/parts/env-$env_d.sh || return 121
+  }
 done
 unset env_d
 

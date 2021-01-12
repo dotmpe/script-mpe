@@ -113,7 +113,7 @@
     - . ./tools/ci/parts/init.sh
     - scriptname=script
     - . ./tools/ci/parts/build.sh
-    tasks-list: tasks.py -t todo.txt list-issues
+    tasks-list: tasks.py -t \$package_pd_meta_tasks_document list-issues
     test:
     - lib_load build-test
     - test -n "\$1" || before_test
