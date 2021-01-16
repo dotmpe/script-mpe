@@ -380,13 +380,17 @@ disk__check_all()
     while read dev
     do
       mount_point="$(disk_mountpoint $dev)"
+
+      echo "$dev"
+      #$mount_point
+      continue
       test -e "$mount_point/.volumes.sh" && {
         volume_meta="$mount_point/.volumes.sh"
         echo "Found root-file"
       } || {
         echo "Trying by mounted prefix"
         volume_cat=$(grep -l "^disk_prefix=$(basename $mount_point)"
-              "$DISKDOC/disk/*.sh") || {
+              "$DISK_CATALOG/disk/*.sh") || {
           echo "Trying by partition IDs"
           #for uuid in $(disk_partition_uuids "$dev")
           #do
@@ -394,11 +398,7 @@ disk__check_all()
           #        "$DISKDOC/disk/*.sh") && break
           #done
         }
-
-        echo $dev $mount_point
       }
-
-      continue
 
       # Get disk meta
       disk_id=$(disk_id $dev)
