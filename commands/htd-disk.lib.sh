@@ -63,7 +63,7 @@ htd__disk_doc()
 
       update ) ;;
       sync )  shift
-           os_disk_list | while read dev
+           disk_list | while read dev
            do
              {
                disk_local "$dev" NUM DISK_ID || continue
@@ -154,7 +154,7 @@ htd_disk_ids()
 {
   true "${dev_pref:=sudo}"
   echo "# device, serial-id, fdisk-id, disk-model, disk-size"
-  for dev in $(os_disk_list)
+  for dev in $(disk_list)
   do
       echo "$dev,$(disk_serial_id $dev),$(disk_fdisk_id $dev),$(disk_model $dev),$(disk_size $dev)"
   done

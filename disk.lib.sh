@@ -216,64 +216,28 @@ disk_tabletype()
   esac
 }
 
-disk_local_inner()
+disk_info ()
 {
   local disk=$1; shift
   debug "disk-local-inner disk='$disk'"
   while test $# -gt 0
   do
     case $(str_lower $1) in
-      num ) disk_info "$disk" disk_index || echo -1 ;;
+      num ) disk_catalog_field "$disk" disk_index || echo -1 ;;
       dev ) printf -- "$disk " || return $?;;
       disk_id ) disk_id $disk || return $?;;
       disk_model ) disk_model $disk | tr ' ' '-';;
       size ) disk_size $disk || return $?;;
       table_type ) disk_tabletype $disk || return $?;;
-      mnt_c ) find_mount $disk | count_words ;;
+      mnt_c ) disk_mountpoint $disk | count_words ;;
       * ) error "inner $1?" 1 ;;
     esac
     shift
-  done
-}
-
-# Print tab for lcal disk
-#NUM DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT
-disk_local()
-{
-  test -n "$1" || error disk-local 1
-
-  echo $( disk_local_inner "$@" || {
-    #return 1
-    echo "disk-local:$1:$2">>$failed
-  } )
-
-  test ! -e "$failed" -o ! -s "$failed" || return 1
-
-  # XXX:
-  #echo $first $(disk_id $1) $(disk_model $1 | tr ' ' '-') $(disk_size $1) \
-  #  $(disk_tabletype $1) $(find_mount $1 | count_words)
+  done | tr -s '\n' ' '
 }
 
 
-disk_local_all()
-{
-  test -n "$*" || set -- $(os_disk_list)
-  std_info "Devices: '$*'"
-  {
-    echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
-    {
-      while test $# -gt 0
-      do
-        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C ||
-          echo "disk:local:$1" >&2 # >$failed
-        shift
-      done
-    } | sort -n
-  } | column -tc 3
-}
-
-
-# List (local) disks by mount point
+# List disks with mountpoint and type
 disk_mounts() # [TYPES]
 {
   test $# -gt 0 || set -- vfat ntfs ext2 ext3 ext4
@@ -282,19 +246,70 @@ disk_mounts() # [TYPES]
     darwin | linux )
         mount | {
           test $# -eq 0 && {
-            grep 'on\ ' || return
+            grep '\ on\ ' || return
           } ||
-            grep 'on\ .*\ type\ \('"$(printf "%s\|" "$@")"'nosuchtype\)'
-        } |
-            sed 's/^.*\ on\ //g' | cut -d ' ' -f 1
+            grep '\ on\ .*\ type\ \('"$(printf "%s\|" "$@")"'nosuchtype\)'
+        } | cut -d' ' -f1,3,5
       ;;
 
     * ) error "Disk-Mounts not supported on: $uname" 1 ;;
   esac
 }
 
+# List block-device driver numbers and ids
+disk_numbers ()
+{
+  local IFS=$'\n' blockdevs
+  for line in $(cat /proc/devices)
+  do
+    test ${blockdevs:-0} -eq 1 && {
+      test "$line" = "" && break;
+      IFS=$' \t\n' # Restore IFS to remove spaces on echo
+      echo $line
+    }
+    test "$line" = "Block devices:" || continue
+    blockdevs=1
+  done
+}
+
+# List (local) disks (indicated major-type block devices from /dev, mounted or not)
+disk_list_by_nr () # [List-Partitions] [Major-Types]
+{
+  local partitions=${1:-0}
+  test $# -gt 0 && shift
+  test $# -gt 0 ||
+    set -- $(disk_numbers |
+      grep -v '\(loop\|ramdisk\|device-mapper\)$' | cut -d' ' -f1)
+    #set -- $(disk_numbers | grep '\(sd\|fd\|sr\|md\)$' | cut -d' ' -f1)
+
+  local dev numbrs
+  eval 'disk_list_filter ()
+  {
+    case "$1" in
+      '"$(  test $partitions -ge 1 &&
+                printf '%i:[1-9]* ) true ;; ' $@
+            test $partitions -eq 0 -o $partitions -eq 2 &&
+                printf '%i:0 ) true ;; ' $@ )"'
+        * ) false ;;
+    esac
+  }'
+
+  for dev in /dev/*
+  do
+    test -b "$dev" || continue
+    numbrs=$(mountpoint -x "$dev")
+    disk_list_filter "$numbrs" || continue
+
+    case "${out_fmt:-fields}" in
+
+      fields ) echo "$dev $numbrs" | tr ':' ' ' ;;
+      devs ) echo "$dev" ;;
+    esac
+  done
+}
+
 # List (local) disks (from /dev, mounted or not)
-os_disk_list()
+disk_list()
 {
   case "$uname" in
 
@@ -316,27 +331,18 @@ os_disk_list()
 }
 
 # List all local disk partitions
-disk_list_part_local()
+disk_list_part_local ()
 {
-  local glob=
-  test $# -gt 0 -a -n "${1-}" || error "Device or disk-id required" 1
   test $# -eq 1 || return 64
-  case "$uname" in
-    linux )
-        test -z "$1" && glob=/dev/sd*[a-z]*[0-9] \
-          || glob=$1[0-9]
-      ;;
-    darwin )
-        # FIXME: deal with system_profiler plist datatypes
-        # This only uses first disk to avoid complexity
-        test -z "$1" && glob=/dev/disk0s*[0-9] \
-          || glob=$1[0-9]
-      ;;
-    * ) error "Disk-List-Part-Local: $uname" 1 ;;
-  esac
+  disk_list 1 | {
+    while read dev maj min
+    do fnmatch "$1*" "$dev" || continue
+      case "${out_fmt:-fields}" in
 
-  test "$(echo $glob)" = "$glob" || {
-    echo $glob | tr ' ' '\n'
+        fields ) echo "$dev $maj $min" ;;
+        devs ) echo "$dev" ;;
+      esac
+    done
   }
 }
 
@@ -404,13 +410,13 @@ is_mounted()
 
 # TODO: Get mount point for dev/disk-id
 # Get mount point for device path
-find_mount()
+disk_mountpoint ()
 {
   test $# -gt 0 -a -n "${1-}" || error "Device or disk-id required" 1
   test $# -eq 1 || return 64
   {
     # NOTE: docker adds a mount for the same device already mounted, first line ..
-    mount | grep '^'$1 | head -n 1 | cut -d ' ' -f 3
+    mount | grep '^'$1 | sed 's/\ on\ \(.*\)\ type\ .*$/ \1/'
   } || return $?
 }
 
@@ -446,7 +452,7 @@ copy_fs()
 
 ### Disk Catalog functions
 
-disk_info()
+disk_catalog_field ()
 {
   test -n "${1-}" || error "disk-info disk-device" 1
   test -n "${2-}" || set -- "$1" "prefix"

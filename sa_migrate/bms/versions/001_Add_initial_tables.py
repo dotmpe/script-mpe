@@ -3,9 +3,9 @@ from migrate import *
 
 
 
-meta = MetaData()
+mig_001_meta = MetaData()
 
-accs = Table('accs', meta,
+mig_001_mig_001_accs = Table('accs', mig_001_meta,
 	Column('number', INTEGER, primary_key=True, nullable=False),
 	Column('balance', INTEGER),
 	Column('name', VARCHAR),
@@ -16,7 +16,7 @@ accs = Table('accs', meta,
 	Column('date_deleted', DATETIME),
 )
 
-bm = Table('bm', meta,
+mig_001_bm = Table('bm', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('name', VARCHAR(length=255)),
 	Column('extended', TEXT),
@@ -24,7 +24,7 @@ bm = Table('bm', meta,
 	Column('tags', TEXT),
 )
 
-ccnt = Table('ccnt', meta,
+mig_001_ccnt = Table('ccnt', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('cid', VARCHAR(length=255)),
 	Column('size', INTEGER, nullable=False),
@@ -35,7 +35,7 @@ ccnt = Table('ccnt', meta,
 	Column('encodings', VARCHAR(length=255)),
 )
 
-chks = Table('chks', meta,
+mig_001_chks = Table('chks', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('date_added', DATETIME, nullable=False),
 	Column('deleted', BOOLEAN),
@@ -43,80 +43,80 @@ chks = Table('chks', meta,
 	Column('digest_type', VARCHAR(length=50)),
 )
 
-chks_md5 = Table('chks_md5', meta,
+mig_001_chks_md5 = Table('chks_md5', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('digest', VARCHAR(length=32), nullable=False),
 )
 
-chks_sha1 = Table('chks_sha1', meta,
+mig_001_chks_sha1 = Table('chks_sha1', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('digest', VARCHAR(length=40), nullable=False),
 )
 
-comments = Table('comments', meta,
+mig_001_comments = Table('comments', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('annotated_node', INTEGER),
 	Column('comment', TEXT),
 )
 
-devices = Table('devices', meta,
+mig_001_devices = Table('devices', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-dirs = Table('dirs', meta,
+mig_001_dirs = Table('dirs', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-disks = Table('disks', meta,
+mig_001_disks = Table('disks', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-doc_root_element = Table('doc_root_element', meta,
+mig_001_doc_root_element = Table('doc_root_element', mig_001_meta,
 	Column('inode_id', INTEGER, primary_key=True, nullable=False),
 	Column('lctr_id', INTEGER, primary_key=True, nullable=False),
 )
 
-docs = Table('docs', meta,
+mig_001_docs = Table('docs', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('title_id', INTEGER),
 )
 
-domains = Table('domains', meta,
+mig_001_domains = Table('domains', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-fifos = Table('fifos', meta,
+mig_001_fifos = Table('fifos', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-files = Table('files', meta,
+mig_001_files = Table('files', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-folders = Table('folders', meta,
+mig_001_folders = Table('folders', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('title_id', INTEGER),
 )
 
-frags = Table('frags', meta,
+mig_001_frags = Table('frags', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-groupnode_node = Table('groupnode_node', meta,
+mig_001_groupnode_node = Table('groupnode_node', mig_001_meta,
 	Column('groupnode_id', INTEGER, primary_key=True, nullable=False),
 	Column('node_id', INTEGER, primary_key=True, nullable=False),
 )
 
-groupnodes = Table('groupnodes', meta,
+mig_001_groupnodes = Table('groupnodes', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('root', BOOLEAN),
 )
 
-hosts = Table('hosts', meta,
+mig_001_hosts = Table('hosts', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-ids = Table('ids', meta,
+mig_001_ids = Table('ids', mig_001_meta,
 	Column('deleted', BOOLEAN),
 	Column('date_added', DATETIME, nullable=False),
 	Column('date_deleted', DATETIME),
@@ -126,7 +126,7 @@ ids = Table('ids', meta,
 	Column('global_id', VARCHAR(length=255), nullable=False),
 )
 
-ids_lctr = Table('ids_lctr', meta,
+mig_001_ids_lctr = Table('ids_lctr', mig_001_meta,
 	Column('deleted', BOOLEAN),
 	Column('date_added', DATETIME, nullable=False),
 	Column('date_deleted', DATETIME),
@@ -139,45 +139,45 @@ ids_lctr = Table('ids_lctr', meta,
 	Column('ref_sha1_id', INTEGER),
 )
 
-ids_lctr_localname = Table('ids_lctr_localname', meta,
+mig_001_ids_lctr_localname = Table('ids_lctr_localname', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('name', VARCHAR(length=255), nullable=False),
 )
 
-inode_locator = Table('inode_locator', meta,
+mig_001_inode_locator = Table('inode_locator', mig_001_meta,
 	Column('inode_id', INTEGER, primary_key=True, nullable=False),
 	Column('lctr_id', INTEGER, primary_key=True, nullable=False),
 )
 
-inodes = Table('inodes', meta,
+mig_001_inodes = Table('inodes', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('date_created', DATETIME),
 	Column('date_accessed', DATETIME, nullable=False),
 	Column('date_modified', DATETIME, nullable=False),
 )
 
-ivres = Table('ivres', meta,
+mig_001_ivres = Table('ivres', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('content_id', INTEGER),
 	Column('language', VARCHAR(length=255)),
 	Column('mediatype', VARCHAR(length=255)),
 )
 
-locators_checksums = Table('locators_checksums', meta,
+mig_001_locators_checksums = Table('locators_checksums', mig_001_meta,
 	Column('locators_ida', INTEGER),
 	Column('chk_idb', INTEGER),
 )
 
-locators_tags = Table('locators_tags', meta,
+mig_001_locators_tags = Table('locators_tags', mig_001_meta,
 	Column('locator_ida', INTEGER),
 	Column('tags_idb', INTEGER),
 )
 
-mounts = Table('mounts', meta,
+mig_001_mounts = Table('mounts', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-muts = Table('muts', meta,
+mig_001_muts = Table('muts', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('date', DATETIME, nullable=False),
 	Column('from_account_nr', INTEGER, nullable=False),
@@ -188,24 +188,24 @@ muts = Table('muts', meta,
 	Column('amount', FLOAT),
 )
 
-names = Table('names', meta,
+mig_001_names = Table('names', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('name', VARCHAR(length=255), nullable=False),
 )
 
-names_tag = Table('names_tag', meta,
+mig_001_names_tag = Table('names_tag', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('label', VARCHAR(length=255)),
 	Column('description', TEXT),
 )
 
-names_tags_stat = Table('names_tags_stat', meta,
+mig_001_names_tags_stat = Table('names_tags_stat', mig_001_meta,
 	Column('tag_id', INTEGER, primary_key=True, nullable=False),
 	Column('node_type', VARCHAR(length=36), primary_key=True, nullable=False),
 	Column('frequency', INTEGER),
 )
 
-names_topic = Table('names_topic', meta,
+mig_001_names_topic = Table('names_topic', mig_001_meta,
 	Column('deleted', BOOLEAN),
 	Column('date_added', DATETIME, nullable=False),
 	Column('date_deleted', DATETIME),
@@ -220,7 +220,7 @@ names_topic = Table('names_topic', meta,
 	Column('plural', VARCHAR(length=255)),
 )
 
-nodes = Table('nodes', meta,
+mig_001_nodes = Table('nodes', mig_001_meta,
 	Column('deleted', BOOLEAN),
 	Column('date_added', DATETIME, nullable=False),
 	Column('date_deleted', DATETIME),
@@ -230,22 +230,22 @@ nodes = Table('nodes', meta,
 	Column('space_id', INTEGER),
 )
 
-ns = Table('ns', meta,
+mig_001_ns = Table('ns', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-outline_bookmarks = Table('outline_bookmarks', meta,
+mig_001_outline_bookmarks = Table('outline_bookmarks', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('description', VARCHAR(length=50), nullable=False),
 	Column('href', VARCHAR(length=255)),
 )
 
-outline_folders = Table('outline_folders', meta,
+mig_001_outline_folders = Table('outline_folders', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('name', VARCHAR(length=50), nullable=False),
 )
 
-outlines = Table('outlines', meta,
+mig_001_outlines = Table('outlines', mig_001_meta,
 	Column('deleted', BOOLEAN),
 	Column('date_added', DATETIME, nullable=False),
 	Column('date_deleted', DATETIME),
@@ -255,12 +255,12 @@ outlines = Table('outlines', meta,
 	Column('ntype', VARCHAR(length=36), nullable=False),
 )
 
-paths = Table('paths', meta,
+mig_001_paths = Table('paths', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('path', VARCHAR(length=500), nullable=False),
 )
 
-photos = Table('photos', meta,
+mig_001_photos = Table('photos', mig_001_meta,
 	Column('deleted', BOOLEAN),
 	Column('date_added', DATETIME, nullable=False),
 	Column('date_deleted', DATETIME),
@@ -268,7 +268,7 @@ photos = Table('photos', meta,
 	Column('id', VARCHAR, primary_key=True, nullable=False),
 )
 
-projects = Table('projects', meta,
+mig_001_projects = Table('projects', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('name', VARCHAR(length=255), nullable=False),
 	Column('date_added', DATETIME, nullable=False),
@@ -276,32 +276,32 @@ projects = Table('projects', meta,
 	Column('date_deleted', DATETIME),
 )
 
-projects_hosts = Table('projects_hosts', meta,
+mig_001_projects_hosts = Table('projects_hosts', mig_001_meta,
 	Column('proj_id', INTEGER, primary_key=True, nullable=False),
 	Column('host_id', INTEGER, primary_key=True, nullable=False),
 )
 
-projects_vcs = Table('projects_vcs', meta,
+mig_001_projects_vcs = Table('projects_vcs', mig_001_meta,
 	Column('proj_id', INTEGER, primary_key=True, nullable=False),
 	Column('vc_id', INTEGER, primary_key=True, nullable=False),
 )
 
-protocols = Table('protocols', meta,
+mig_001_protocols = Table('protocols', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-rcres = Table('rcres', meta,
+mig_001_rcres = Table('rcres', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('rcres_type_id', INTEGER),
 )
 
-relocated = Table('relocated', meta,
+mig_001_relocated = Table('relocated', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('refnew_id', INTEGER),
 	Column('temporary', BOOLEAN),
 )
 
-res = Table('res', meta,
+mig_001_res = Table('res', mig_001_meta,
 	Column('deleted', BOOLEAN),
 	Column('date_added', DATETIME, nullable=False),
 	Column('date_deleted', DATETIME),
@@ -315,20 +315,20 @@ res = Table('res', meta,
 	Column('allow', VARCHAR(length=255)),
 )
 
-schemes = Table('schemes', meta,
+mig_001_schemes = Table('schemes', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-sockets = Table('sockets', meta,
+mig_001_sockets = Table('sockets', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-spaces = Table('spaces', meta,
+mig_001_spaces = Table('spaces', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('classes', VARCHAR(length=255)),
 )
 
-status = Table('status', meta,
+mig_001_status = Table('status', mig_001_meta,
 	Column('deleted', BOOLEAN),
 	Column('date_added', DATETIME, nullable=False),
 	Column('date_deleted', DATETIME),
@@ -340,29 +340,29 @@ status = Table('status', meta,
 	Column('ref_id', INTEGER),
 )
 
-stk = Table('stk', meta,
+mig_001_stk = Table('stk', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('value', TEXT(length=65535)),
 )
 
-symlinks = Table('symlinks', meta,
+mig_001_symlinks = Table('symlinks', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-tag_context = Table('tag_context', meta,
+mig_001_tag_context = Table('tag_context', mig_001_meta,
 	Column('tag_id', INTEGER, primary_key=True, nullable=False),
 	Column('ctx_id', INTEGER, primary_key=True, nullable=False),
 	Column('role', VARCHAR(length=32)),
 )
 
-tagnames = Table('tagnames', meta,
+mig_001_tagnames = Table('tagnames', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('tag', VARCHAR(length=255), nullable=False),
 	Column('short_description', TEXT),
 	Column('description', TEXT),
 )
 
-tagnames_topic = Table('tagnames_topic', meta,
+mig_001_tagnames_topic = Table('tagnames_topic', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('super_id', INTEGER),
 	Column('explanation', TEXT(length=65535)),
@@ -372,63 +372,61 @@ tagnames_topic = Table('tagnames_topic', meta,
 	Column('plural', VARCHAR(length=255)),
 )
 
-tnodes = Table('tnodes', meta,
+mig_001_tnodes = Table('tnodes', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-token_locator = Table('token_locator', meta,
+mig_001_token_locator = Table('token_locator', mig_001_meta,
 	Column('left_id', INTEGER, primary_key=True, nullable=False),
 	Column('right_id', INTEGER, primary_key=True, nullable=False),
 )
 
-topic_tag = Table('topic_tag', meta,
+mig_001_topic_tag = Table('topic_tag', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('topic_id', INTEGER, primary_key=True, nullable=False),
 	Column('tag_id', INTEGER, primary_key=True, nullable=False),
 )
 
-vcs = Table('vcs', meta,
+mig_001_vcs = Table('vcs', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('vc_type', VARCHAR(length=10), nullable=False),
 	Column('host_id', INTEGER, nullable=False),
 	Column('path', VARCHAR(length=255), nullable=False),
 )
 
-volumes = Table('volumes', meta,
+mig_001_volumes = Table('volumes', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 	Column('root_node_id', INTEGER),
 )
 
-vres = Table('vres', meta,
+mig_001_vres = Table('vres', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
-workset_locator = Table('workset_locator', meta,
+mig_001_workset_locator = Table('workset_locator', mig_001_meta,
 	Column('left_id', INTEGER, primary_key=True, nullable=False),
 	Column('right_id', INTEGER, primary_key=True, nullable=False),
 )
 
-ws = Table('ws', meta,
+mig_001_ws = Table('ws', mig_001_meta,
 	Column('id', INTEGER, primary_key=True, nullable=False),
 )
 
 
 
-tables = [
-		accs, bm, ccnt, chks, chks_md5, chks_sha1, comments, devices, dirs, disks, doc_root_element, docs, domains, fifos, files, folders, frags, groupnode_node, groupnodes, hosts, ids, ids_lctr, ids_lctr_localname, inode_locator, inodes, ivres, locators_checksums, locators_tags, mounts, muts, names, names_tag, names_tags_stat, names_topic, nodes, ns, outline_bookmarks, outline_folders, outlines, paths, photos, projects, projects_hosts, projects_vcs, protocols, rcres, relocated, res, schemes, sockets, spaces, status, stk, symlinks, tag_context, tagnames, tagnames_topic, tnodes, token_locator, topic_tag, vcs, volumes, vres, workset_locator, ws
-	]
+tables = [ mig_001_accs, mig_001_bm, mig_001_ccnt, mig_001_chks, mig_001_chks_md5, mig_001_chks_sha1, mig_001_comments, mig_001_devices, mig_001_dirs, mig_001_disks, mig_001_doc_root_element, mig_001_docs, mig_001_domains, mig_001_fifos, mig_001_files, mig_001_folders, mig_001_frags, mig_001_groupnode_node, mig_001_groupnodes, mig_001_hosts, mig_001_ids, mig_001_ids_lctr, mig_001_ids_lctr_localname, mig_001_inode_locator, mig_001_inodes, mig_001_ivres, mig_001_locators_checksums, mig_001_locators_tags, mig_001_mounts, mig_001_muts, mig_001_names, mig_001_names_tag, mig_001_names_tags_stat, mig_001_names_topic, mig_001_nodes, mig_001_ns, mig_001_outline_bookmarks, mig_001_outline_folders, mig_001_outlines, mig_001_paths, mig_001_photos, mig_001_projects, mig_001_projects_hosts, mig_001_projects_vcs, mig_001_protocols, mig_001_rcres, mig_001_relocated, mig_001_res, mig_001_schemes, mig_001_sockets, mig_001_spaces, mig_001_status, mig_001_stk, mig_001_symlinks, mig_001_tag_context, mig_001_tagnames, mig_001_tagnames_topic, mig_001_tnodes, mig_001_token_locator, mig_001_topic_tag, mig_001_vcs, mig_001_volumes, mig_001_vres, mig_001_workset_locator, mig_001_ws ]
 
 def upgrade(migrate_engine):
 	# Upgrade operations go here. Don't create your own engine; bind
 	# migrate_engine to your metadata
-	meta.bind = migrate_engine
+	mig_001_meta.bind = migrate_engine
 	for table in tables:
 		if not table.exists():
 			table.create()
 
 def downgrade(migrate_engine):
 	# Operations to reverse the above upgrade go here.
-	meta.bind = migrate_engine
+	mig_001_meta.bind = migrate_engine
 	for table in tables:
 		if table.exists():
 			table.drop()

@@ -19,13 +19,13 @@ disk__status()
     disk_id_=$(printf "%-19s\n" $disk_id)
     num_=$(printf "%4s\n" $num)
     test -e $dev || error "No such device? $dev" 1
-    echo "$dev" >>$disk
-    mnts="$(echo $(find_mount $dev))"
+    #echo "$dev" >>$disk
+    mnts="$(echo $(disk_mountpoint $dev))"
     stderr ok "${grey}[$disk_id_] Disk #$num: $(echo $mnts | count_words) known partition(s) (${default}$size ${grey}$dev)"
-    disk_list_part_local $dev | while read vol_dev
+    out_fmt=dev disk_list_part_local $dev | while read vol_dev
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
-      mount=$(find_mount $vol_dev)
+      mount=$(disk_mountpoint $vol_dev)
       # FIXME: shomehow fstype is not showing up. Also, want part size/free
       fstype="$(disk_partition_type "$vol_dev")"
       vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
@@ -33,11 +33,13 @@ disk__status()
       vsize=$(disk_partition_size $vol_dev)
       vusg=$(disk_partition_usage $vol_dev)
       case "$fstype" in
+
         swap* )
           std_info "[$disk_id_] $num_.$vol_idx: swap space ($vsize $vusg%% $fstype $vol_dev)"
-          echo "$vol_dev" >>$swap
+          #echo "$vol_dev" >>$swap
           echo "$num.$vol_idx: $vol_dev swap $vsize $vusg ($fstype) [$disk_id]" >>$list
           ;;
+
         * )
           test -n "$mount" \
             && {
@@ -144,21 +146,21 @@ disk_spc__prefix="prefix DEV"
 disk__prefix()
 {
   test -n "$1" || error "disk expected" 1
-  disk_info $1 prefix
+  disk_catalog_field $1 prefix
 }
 
 
 disk_man_1__info="Get single attribute from catalog disk record by DISK_ID KEY"
-disk__info()
+disk__metadata ()
 {
-  disk_info "$@"
+  disk_catalog_field "$@"
 }
 
 
-disk_man_1__local="Show disk info TODO: test this works at every platform"
+disk_man_1__local="Loop over local block devices and tabulate some disk info"
 disk__local()
 {
-  test $# -gt 0 -a -n "${1-}" || set -- $(os_disk_list)
+  test $# -gt 0 -a -n "${1-}" || set -- $(disk_list)
   std_info "Devices: '$*'"
   {
     echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
@@ -166,7 +168,7 @@ disk__local()
       while test $# -gt 0
       do
         test -n "$1" || continue
-        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C ||
+        disk_info "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C ||
           echo "disk:local:$1" >>$failed
         shift
       done
@@ -176,25 +178,21 @@ disk__local()
 disk_flags__local=f
 
 
-disk_man_1__list_local="Tabulate disk info for local disks (e.g. from /dev/)"
-disk_spc__list_local=list-local
-disk__list_local()
-{
-  disk__local || return && echo "# Disks at $(hostname), $(date_iso)"
-}
-disk_flags__list_local=f
+disk_man_1__list='List local block devices or partitions
 
-
-disk_man_1__list='List local devices'
-disk__local_devices()
+Pass 1 as `list` argument to list partitions instead of disks, or 3 for both.
+For numbers see disk_numbers and /proc/devices.'
+disk__list_devices () # [List] [Major-Number]
 {
-  os_disk_list
+  disk_list "$@"
 }
+
 
 disk__mounts()
 {
-  disk_mounts
+  disk_mounts "$@"
 }
+
 
 # FIXME: can get at Darwin LVM (physical) ID, but not at osxfuse sshfs mounts
 # Need to skip/alternate some steps ie. for Htd ls-volumes
@@ -207,11 +205,11 @@ disk__x_local()
     darwin_disk_table
 
   } || {
-    test -n "$1" || set -- $(os_disk_list)
+    test -n "$1" || set -- $(disk_list)
     while test $# -gt 0
     do
       test -n "$1" || continue
-      disk_local "$1" DISK_ID
+      disk_info "$1" DISK_ID
       shift
     done
     return
@@ -350,10 +348,19 @@ disk__copy_fs()
   note "Copied '$2' to '$3'"
 }
 
-disk_man_1__check="
-Return wether disk catalog looks up to date;
-ie. wether current catalog matches with available disks
-"
+disk_man_1__check='TODO: Report on local disks, update if interactive.
+
+1. Check for ``.volumes.sh`` root file on partition if mounted, use prefix to retrieve catalog entry. Or
+2. Use mountpoint basename to query for and retrieve catalog entry.
+3. and if not interactive, look for matching volume ID (using ``/dev/disk/by-uuid/*``)
+
+Then stop there if non-interactive, returning failure or success status.
+Otherwise if no entry was retrieved get root with sudo, and query for disk serial and partition checksum (part-UUID).
+Create an entry if none exists, asking for prefix and domain.
+Otherwise if interactive/sudo: check values for serial and part-UUID.
+If non-interactive: check values for volume UUIDs
+
+'
 disk__check()
 {
   {
@@ -368,55 +375,78 @@ Sort of wizard, check/init vol(s) interactively for current disks
 "
 disk__check_all()
 {
-  os_disk_list | while read dev
-  do
-    # Get disk meta
+  disk_list | {
+    local dev mount_point
+    while read dev
+    do
+      mount_point="$(disk_mountpoint $dev)"
+      test -e "$mount_point/.volumes.sh" && {
+        volume_meta="$mount_point/.volumes.sh"
+        echo "Found root-file"
+      } || {
+        echo "Trying by mounted prefix"
+        volume_cat=$(grep -l "^disk_prefix=$(basename $mount_point)"
+              "$DISKDOC/disk/*.sh") || {
+          echo "Trying by partition IDs"
+          #for uuid in $(disk_partition_uuids "$dev")
+          #do
+          #  volume_cat=$(grep -l "^disk_prefix=$(basename $mount_point)"
+          #        "$DISKDOC/disk/*.sh") && break
+          #done
+        }
 
-    disk_id=$(disk_id $dev)
-    test "$disk_id" = "" && {
-      error "Unknown type or unreadable partition table on disk '$dev'" 1
-    } || {
-      echo "$disk_id $dev $(disk_tabletype $dev) "
+        echo $dev $mount_point
+      }
 
-    }
+      continue
 
-    #}
-    #  # Get partition meta
+      # Get disk meta
+      disk_id=$(disk_id $dev)
+      test "$disk_id" = "" && {
+        error "Unknown type or unreadable partition table on disk '$dev'" 1
+      } || {
+        echo "$disk_id $dev $(disk_tabletype $dev) "
 
-    #  fstype=$(disk_partition_type $dev)
-    #  is_mounted $dev && {
+      }
 
-    #    mount=$(find_mount $dev)
-    #    disk_catalog_import $mount/.volumes.sh && {
+      #}
+      #  # Get partition meta
 
-    #      # Note: disk_id is set in preceeding look
-    #      #. $DISK_CATALOG/$disk_id-.sh
+      #  fstype=$(disk_partition_type $dev)
+      #  is_mounted $dev && {
 
-    #      stderr ok "$mount ($fstype at $dev)"
+      #    mount=$(disk_mountpoint $dev)
+      #    disk_catalog_import $mount/.volumes.sh && {
 
-    #    } || {
+      #      # Note: disk_id is set in preceeding look
+      #      #. $DISK_CATALOG/$disk_id-.sh
 
-    #      stderr ok "$mount ($fstype at $dev)"
-    #    }
+      #      stderr ok "$mount ($fstype at $dev)"
 
-    #  } || {
+      #    } || {
 
-    #    # FIXME: get proper way of detecting supported fs types
-    #    case "$fstype" in
-    #      ext* | vfat | ntfs | iso9660 )
-    #          note "TODO: $fstype copy_fs $dev '.package.{y*ml,sh}'"
-    #        ;;
-    #      '' | swap )
-    #          info "Ignored partition $dev ($fstype)";;
-    #      * )
-    #          error "Unhandled fs type '$fstype'"
-    #        ;;
-    #    esac
-    #  }
+      #      stderr ok "$mount ($fstype at $dev)"
+      #    }
 
-    #} || {
+      #  } || {
 
-  done
+      #    # FIXME: get proper way of detecting supported fs types
+      #    case "$fstype" in
+      #      ext* | vfat | ntfs | iso9660 )
+      #          note "TODO: $fstype copy_fs $dev '.package.{y*ml,sh}'"
+      #        ;;
+      #      '' | swap )
+      #          info "Ignored partition $dev ($fstype)";;
+      #      * )
+      #          error "Unhandled fs type '$fstype'"
+      #        ;;
+      #    esac
+      #  }
+
+      #} || {
+
+    done
+  }
 
   echo
 }
@@ -431,7 +461,7 @@ disk__update_all()
 
 # Generic subcmd's
 
-disk_man_1__edit="Edit $base script file plus arguments. "
+disk_man_1__edit="Edit disk script file plus arguments. "
 disk_spc__edit="-e|edit \[<file>..]"
 disk__edit()
 {
@@ -482,7 +512,7 @@ main-load \
 main-load-flags \
     R ) # Device read access \
         test -n "$dev_pref" || { \
-          ( for device in $(os_disk_list) \
+          ( for device in $(disk_list) \
           do \
             test -r "$device" && { \
               stderr ok "Read/Write at $device" \

@@ -4,7 +4,6 @@
 # TODO: other SCMs, BZR, HG, SVN (but never need them so..)
 #
 #HELP="vc - version-control helper functions "
-set -eu
 
 version=0.0.4-dev # script-mpe
 

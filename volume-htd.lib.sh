@@ -27,7 +27,7 @@ htd_list_volumes()
   trueish "$scan_dir" && {
 
     note "Listing volumes from catalog for $hostname"
-    os_disk_list | while read dev
+    disk_list | while read dev
     do
       source_device_catalog "$dev" "$hostname" || continue
       test -n "$disk_volumes" || exit 123
@@ -66,7 +66,7 @@ htd_check_volumes()
   trueish "$catalog" && {
     local r=
 
-    os_disk_list | { local r=; while read dev
+    disk_list | { local r=; while read dev
     do
       prefix=$(disk.sh prefix $dev 2>/dev/null)
       test -n "$prefix" || { r=1

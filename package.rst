@@ -1,5 +1,5 @@
 ``package.y*ml``: YAML file for project metadata
-=================================================
+================================================
 
 Root level is a list, with at least one object.
 TODO: if no ``main`` attribute is given it is equal to the current checkout dirs

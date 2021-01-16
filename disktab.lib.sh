@@ -111,7 +111,7 @@ disktab_new() # NR DEV...
 {
   local nr dev
   test -n "${1-}" || return
-  test -n "${2-}" || set -- "$1" "$(os_disk_list | head -n 1)"
+  test -n "${2-}" || set -- "$1" "$(disk_list | head -n 1)"
   nr="$1" dev="$2"
   disk_lsblk_load $dev MODEL TRAN SIZE
 
