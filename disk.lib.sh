@@ -331,20 +331,30 @@ disk_list()
 }
 
 # List all local disk partitions
-disk_list_part_local ()
+disk_list_part_local()
 {
+  local glob=
+  test $# -gt 0 -a -n "${1-}" || error "Device or disk-id required" 1
   test $# -eq 1 || return 64
-  disk_list 1 | {
-    while read dev maj min
-    do fnmatch "$1*" "$dev" || continue
-      case "${out_fmt:-fields}" in
+  case "$uname" in
+    linux )
+        test -z "$1" && glob=/dev/sd*[a-z]*[0-9] \
+          || glob=$1[0-9]
+      ;;
+    darwin )
+        # FIXME: deal with system_profiler plist datatypes
+        # This only uses first disk to avoid complexity
+        test -z "$1" && glob=/dev/disk0s*[0-9] \
+          || glob=$1[0-9]
+      ;;
+    * ) error "Disk-List-Part-Local: $uname" 1 ;;
+  esac
 
-        fields ) echo "$dev $maj $min" ;;
-        devs ) echo "$dev" ;;
-      esac
-    done
+  test "$(echo $glob)" = "$glob" || {
+    echo $glob | tr ' ' '\n'
   }
 }
+
 
 disk_partition_type()
 {
