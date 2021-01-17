@@ -683,44 +683,48 @@ disk_bootnumber () # DEV
       echo "$Power_Off_Retract_Count-$Power_Off_Retract_Count_Raw"
 }
 
-# Load into env or print on dry-run columns from lsblk output line
-disk_lsblk_type_load() # Device Type Columns...
+# Load into env or print on dry-run properties from lsblk output line
+disk_lsblk_type_load () # Device Type Columns...
 {
-  local dev type lsblk colidx vid
+  local dev type data
   dev=$1 type=$2; shift 2
-  lsblk="$(lsblk -o TYPE,$(echo $* | tr ' ' ',') $dev | grep -m 1 '^'$type' ' )" ||
+  data="$(lsblk -P -o TYPE,$(echo $* | tr ' ' ',') $dev | grep -m 1 '^TYPE="'"$type"'"' )" ||
       return
-  for colidx in $(seq 2 $(( 1 + $# )) )
-  do
-    upper=1 mkvid $1
-    test $# -gt 1 || colidx=$colidx- # Use all remaining fiels as value for last column
-    trueish "${dry_run-}" &&
-        echo "$vid=\"$(echo $lsblk | cut -d' ' -f$colidx)\"" ||
-        eval "$vid=\"$(echo $lsblk | cut -d' ' -f$colidx)\""
-    shift
-  done
+  trueish "${dry_run-}" && {
+      echo "$data"
+      return
+  } || eval "$data"
 }
 
-# Load into env columns from lsblk for disk devices
-disk_lsblk_load() # Device Columns...
+# Load into env properties from lsblk for disk devices
+disk_lsblk_load () # Device Columns...
 {
-  local dev
-  dev=$1 ; shift
+  local dev=$1 ; shift
   test $# -gt 0 || set -- KNAME TRAN RM SIZE SERIAL REV VENDOR MODEL WWN
   disk_lsblk_type_load "$dev" disk "$@"
 }
 
-# Load into env columns from lsblk for partition devices
-disk_partition_lsblk_load() # Device Columns...
+# Load into env properties from lsblk for partition devices
+disk_partition_lsblk_load () # Device Columns...
 {
-  local dev
-  dev=$1 ; shift
+  local dev=$1 ; shift
   test $# -gt 0 || set -- KNAME PARTTYPE PARTLABEL PARTUUID MOUNTPOINT FSTYPE
   disk_lsblk_type_load "$dev" part "$@"
 }
 
-# Print columns from lsblk for disk devices
-disk_lsblk_show() # Device Columns
+# Print properties from lsblk for disk devices
+disk_lsblk_show () # Device Columns
 {
   dry_run=1 disk_lsblk_load "$@"
+}
+
+# Read partition UUIDs (given disk dev or part dev) without sudo
+disk_partition_uuids ()
+{
+  local uuid dev
+  for uuid in /dev/disk/by-uuid/*
+  do dev="$(realpath "$(readlink "$uuid")")"
+    case "$dev" in "$1*" ) basename $uuid
+    esac
+  done
 }

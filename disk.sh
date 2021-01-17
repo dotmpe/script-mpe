@@ -363,42 +363,44 @@ If non-interactive: check values for volume UUIDs
 '
 disk__check()
 {
-  {
-    disk__check_all \
-      || return $?
-  } > ~/.conf/disk/$hostname.txt
-}
+  disk_lsblk_load
 
-disk_man_1__check_all="
-FIXME: check only, see init/update
-Sort of wizard, check/init vol(s) interactively for current disks
-"
-disk__check_all()
-{
+  lsblk --list --all --output NAME,VENDOR,MODEL,REV,SERIAL,TYPE,MOUNTPOINT,LABEL,UUID,PTUUID,PTTYPE,PARTUUID,PARTTYPE
+  return
   disk_list | {
-    local dev mount_point
-    while read dev
-    do
-      mount_point="$(disk_mountpoint $dev)"
 
-      echo "$dev"
-      #$mount_point
-      continue
-      test -e "$mount_point/.volumes.sh" && {
-        volume_meta="$mount_point/.volumes.sh"
-        echo "Found root-file"
-      } || {
-        echo "Trying by mounted prefix"
-        volume_cat=$(grep -l "^disk_prefix=$(basename $mount_point)"
-              "$DISK_CATALOG/disk/*.sh") || {
-          echo "Trying by partition IDs"
-          #for uuid in $(disk_partition_uuids "$dev")
-          #do
-          #  volume_cat=$(grep -l "^disk_prefix=$(basename $mount_point)"
-          #        "$DISKDOC/disk/*.sh") && break
-          #done
+    local dev parts
+    while read dev
+    do parts="$(disk_list_part_local "$dev")"
+      local partdev mount_point volume_meta disk_cat
+
+      for partdev in $parts
+      do
+        mount_point="$(disk_mountpoint $partdev|cut -d' ' -f2)"
+        test -n "$mount_point" && {
+
+          test -e "$mount_point/.volumes.sh" && {
+            volume_meta="$mount_point/.volumes.sh"
+            #echo "Found root-file for $partdev"
+          } || {
+            #echo "Trying by mounted prefix"
+            disk_prefix=$(basename $mount_point | sed 's/-[0-9]\+$//')
+            disk_cat=$(grep -l "^disk_prefix=\"\?$mount_point\"\?$" "$DISK_CATALOG"/disk/*.sh) || {
+                true
+                #echo "No catalog entry"
+            }
+          }
+        } || {
+          #echo "Trying by partition IDs"
+          for uuid in $(disk_partition_uuids "$dev")
+          do
+            disk_cat=$(grep -l "^partition_[0-9]*_id=\"\?$uuid\"\?$" "$DISK_CATALOG"/disk/*.sh) && break
+          done
         }
-      }
+        echo $dev $partdev $mount_point ${disk_cat-}
+      done
+
+      continue
 
       # Get disk meta
       disk_id=$(disk_id $dev)
