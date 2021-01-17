@@ -100,7 +100,7 @@ statusdir_lookup () # Record-Type Record-Name
 # Defer to backend
 statusdir_run () # [sd_be] ~ [Backend-Cmd] [Backend-Cmd-Args...]
 {
-  local sd_be_h=sd_${sd_be} a="${1-"load"}" ; shift
+  local sd_be_h=sd_${sd_be:=fsdir} a="${1-"load"}" ; shift
   local log_key="$scriptname:statusdir-run:$a"
 
   log_key=$log_key\

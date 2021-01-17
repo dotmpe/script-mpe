@@ -32,7 +32,9 @@ the device names, which we get from expanding a glob. This way partition numbers
   /dev/disk[0-9]p[0-9]
   /dev/mmcblk[0-9]p[0-9]
 
-To identify the disk, several property values can be read from the device using ``fdisk``, ``parted`` or ``blkid``. These usually require sudo, so to verify disk identity in batch scripts some other way is needed.
+To identify the disk, several property values can be read from the device using ``fdisk``, ``parted`` or ``blkid``.
+These usually require sudo, so to verify disk identity in batch scripts some other way is needed.
+Update: ``lsblk`` can display all kinds of data and does not need sudo.
 
 But more importantly the value to use for identification can be invalid or in case of an bridge or adapter card unreachable. For SD-cards serial numbers can only be retrieved through a MMC block device, not when using an USB adapter. Besides, some OEM SD cards may have duplicate serial numbers. Other values like ``fdisk``'s disk-Id are really checksums of the partition table. So these can be used to identify certain images, but these will change after resizing procedures. For the same reason adding a metadata file to a filesystem is sometimes not desirable.
 

@@ -706,7 +706,7 @@ disk_lsblk_load() # Device Columns...
 {
   local dev
   dev=$1 ; shift
-  test $# -gt 0 || set -- KNAME TYPE TRAN RM SIZE SERIAL REV VENDOR MODEL
+  test $# -gt 0 || set -- KNAME TRAN RM SIZE SERIAL REV VENDOR MODEL WWN
   disk_lsblk_type_load "$dev" disk "$@"
 }
 
@@ -715,6 +715,7 @@ disk_partition_lsblk_load() # Device Columns...
 {
   local dev
   dev=$1 ; shift
+  test $# -gt 0 || set -- KNAME PARTTYPE PARTLABEL PARTUUID MOUNTPOINT FSTYPE
   disk_lsblk_type_load "$dev" part "$@"
 }
 
