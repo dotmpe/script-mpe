@@ -7,7 +7,7 @@ jobs:
       - image: cimg/base:2020.01
     steps:
 
-    - run: sudo apt-get update && sudo apt-get install -y bc rhash tidy tree uuid-runtime moreutils curl renameutils virtualenv
+    - run: sudo apt-get update && sudo apt-get install -y bc rhash tidy tree uuid-runtime moreutils curl renameutils virtualenv python python-pip
 
     - checkout
     - run:
