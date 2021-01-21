@@ -24,7 +24,7 @@ package_lib_init () #
   test -n "${PACK_SCRIPTS-}" || PACK_SCRIPTS=$PACK_DIR/scripts
 
   # Clear to skip auto-load, or set to give local require-level
-  test -z "${package_lib_auto=0}" && return
+  test -z "${package_lib_auto=0}" && return || true
   package_init
 }
 
@@ -55,7 +55,8 @@ package_init () # [Package-Dir] [Package-Lib-Auto] [Package-Id]
   test -d "$1/$PACK_ENVD" || mkdir -p "$1/$PACK_ENVD"
   test -d "$1/$PACK_SCRIPTS" || mkdir -p "$1/$PACK_SCRIPTS"
 
-  package_env_reset && package_lib_set_local "$@"
+  package_env_reset &&
+  package_lib_set_local "$@" || true
 }
 
 # Detect package format and set PACKMETA
@@ -69,8 +70,7 @@ package_detect () # [Package-Dir]
     package_fmt=$ext
     break
   done
-  test -n "$package_fmt" || return
-
+  test -n "${package_fmt-}" || return
   PACKMETA="package.$package_fmt"
 }
 

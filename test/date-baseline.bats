@@ -2,10 +2,12 @@
 
 base=date.lib
 load init
+init
 
 setup()
 {
-  init && lib_load date
+  load stdtest extra &&
+  lib_require date
 }
 
 

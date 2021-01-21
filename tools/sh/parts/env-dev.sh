@@ -33,7 +33,7 @@ sh_include env-0-src env-std env-ucache
 
 sh_include env-0-1-lib-sys env-0-2-lib-os
 
-sh_include env-0-6-lib-git env-0-7-lib-vc env-0-1-lib-shell
+sh_include env-0-6-lib-git env-0-1-lib-shell
 
 sh_include trueish
 
