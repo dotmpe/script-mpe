@@ -484,4 +484,18 @@ exec_arg() # CMDLINE [ -- CMDLINE ]...
   test $execnr -gt 0 || return 1
 }
 
+env_var_mapping_update ()
+{
+  local IFS=$'\n' from to; for mapping in ${!1}
+  do
+    IFS=$' \t\n'; to="${mapping// *}"; from="${mapping//* }"
+    test "${!to-}" = "$(echo ${!from})" || {
+      test -n "${!to-}" &&
+        echo "${!to} != ${!from}" ||
+          echo "${to}=\"$(echo ${!from})\""
+      eval "${to}=\"$(echo ${!from})\""
+    }
+  done
+}
+
 # Sync: U-S:src/sh/lib

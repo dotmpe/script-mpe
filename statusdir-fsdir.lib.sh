@@ -231,6 +231,7 @@ sd_fsdir_inner()
 
           # Normally report local entry
           test ${local:-1} -eq 1 && {
+            local LUP=$(statusdir_lookup_path)
             lookup_first=${lookup_first:-1} lookup_path LUP $rtype/$k
             return $?
           }

@@ -363,10 +363,6 @@ If non-interactive: check values for volume UUIDs
 '
 disk__check()
 {
-  disk_lsblk_load
-
-  lsblk --list --all --output NAME,VENDOR,MODEL,REV,SERIAL,TYPE,MOUNTPOINT,LABEL,UUID,PTUUID,PTTYPE,PARTUUID,PARTTYPE
-  return
   disk_list | {
 
     local dev parts

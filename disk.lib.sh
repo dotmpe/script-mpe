@@ -10,6 +10,33 @@ disk_lib_load()
   test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
 
   test -n "${DISK_CATALOG-}" || DISK_CATALOG=$HOME/.diskdoc
+
+  disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ WWN
+  disk_partition_lsblk_keys=KNAME\ PARTTYPE\ PARTLABEL\ PARTUUID\ MOUNTPOINT\ FSTYPE\ PTUUID\ PTTYPE\ UUID
+
+  disk_keys=disk_id\ disk_index\ disk_description\ disk_host\ disk_domain\
+\ disk_prefix\ disk_model\ disk_vendor\ disk_revision\ disk_serial\ disk_size\
+\ disk_volumes__0\ disk_volumes__1\ disk_volumes__2\
+\ disk_volumes__4\ disk_volumes__5\ disk_volumes__6
+
+  disk_keys_map=\
+'disk_model MODEL
+disk_size SIZE
+disk_vendor VENDOR
+disk_revision REV
+disk_serial SERIAL'
+
+  disk_partition_keys=disk_partition_type\ volume_uuid\ volume_partuuid\
+\ volume_prefix\ volume_partition_index
+
+  disk_partition_keys_map=\
+'volume_uuid UUID
+volume_partuuid PARTUUID
+disk_partition_type PTTYPE
+volume_parttype PARTTYPE'
+
+  disk_prefix_defaults='{VENDOR}-{MODEL}-{disk_index}-{disk_size}'
+  disk_volume_defaults='{disk_prefix}-{part_index}-{part_size}'
 }
 
 disk_lib_init()
@@ -700,7 +727,7 @@ disk_lsblk_type_load () # Device Type Columns...
 disk_lsblk_load () # Device Columns...
 {
   local dev=$1 ; shift
-  test $# -gt 0 || set -- KNAME TRAN RM SIZE SERIAL REV VENDOR MODEL WWN
+  test $# -gt 0 || set -- $disk_lsblk_keys
   disk_lsblk_type_load "$dev" disk "$@"
 }
 
@@ -708,7 +735,7 @@ disk_lsblk_load () # Device Columns...
 disk_partition_lsblk_load () # Device Columns...
 {
   local dev=$1 ; shift
-  test $# -gt 0 || set -- KNAME PARTTYPE PARTLABEL PARTUUID MOUNTPOINT FSTYPE
+  test $# -gt 0 || set -- $disk_partition_lsblk_keys
   disk_lsblk_type_load "$dev" part "$@"
 }
 
@@ -723,8 +750,8 @@ disk_partition_uuids ()
 {
   local uuid dev
   for uuid in /dev/disk/by-uuid/*
-  do dev="$(realpath "$(readlink "$uuid")")"
-    case "$dev" in "$1*" ) basename $uuid
+  do dev="$(realpath "$uuid")"
+    case "$dev" in "$1"* ) basename $uuid
     esac
   done
 }

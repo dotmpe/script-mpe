@@ -30,7 +30,7 @@ statusdir_lib_init()
     test -n "$INIT_LOG" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
 
     test -d "${STATUSDIR_ROOT-}" &&
-    statusdir_lib_start || return
+        statusdir_lib_start || return
   }
 }
 
