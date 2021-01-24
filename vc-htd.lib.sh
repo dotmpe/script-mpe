@@ -861,9 +861,9 @@ $2    document: $package_pd_meta_tasks_document
 $2    done: $package_pd_meta_tasks_done
 EOM
 
-    test -e "$PACKMETA_JS_MAIN" || error "Expected package main JSON" 1
-    note "Checking '$PACKMETA_JS_MAIN'..."
-    jsotk.py -sq path --is-new $PACKMETA_JS_MAIN 'urls' || {
+    test -e "$PACK_JSON" || error "Expected package main JSON" 1
+    note "Checking '$PACK_JSON'..."
+    jsotk.py -sq path --is-new $PACK_JSON 'urls' || {
       printf "$2urls:\n"
       htd_package_urls | grep -v '^\s*$' | sed 's/^\([^=]*\)=/'"$2"'  \1: /'
     }

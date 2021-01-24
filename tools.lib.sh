@@ -1,31 +1,32 @@
 #!/bin/sh
 
-# Named deps
+## Named deps
 
-tools_lib_load()
+tools_lib_load ()
 {
   #upper=0 default_env out-fmt tty
   test -n "${out_fmt-}" || export out_fmt=tty
 
   # default_env Htd-ToolsFile "$CWD/tools.yml"
-  test -n "${HTD_TOOLSFILE-}" || export HTD_TOOLSFILE="$CWD"/tools.yml
+  test -n "${HTD_TOOLSFILE-}" || export HTD_TOOLSFILE="$PWD"/tools.yml
 
   # default_env Htd-BuildDir .build
-  test -n "${HTD_BUILDDIR-}" || export HTD_BUILDDIR="$CWD/.build"
+  test -n "${HTD_BUILDDIR-}" || export HTD_BUILDDIR="$PWD/.build"
   export B="$HTD_BUILDDIR"
 
   # default_env Htd-ToolsDir "$HOME/.htd-tools"
   test -n "${HTD_TOOLSDIR-}" || export HTD_TOOLSDIR=$HOME/.htd-tools
 }
 
-tools_lib_init()
+tools_lib_init () # [B] ~
 {
   test -d $B || mkdir -p $B
+  default_env Htd-ToolsSchemaFile ~/bin/schema/tools.yml
   tools_json
 }
 
 # Create $B/tools.json from HTD_TOOLSFILE yaml
-tools_json()
+tools_json () # [HTD_TOOLSFILE] [B] ~
 {
   test -e $HTD_TOOLSFILE || return $?
   test $HTD_TOOLSFILE -ot $B/tools.json \
@@ -35,15 +36,14 @@ tools_json()
   }
 }
 
-tools_json_schema()
+tools_json_schema () # [B] [HTD_TOOLSSCHEMAFILE]
 {
-  default_env Htd-ToolsSchemaFile ~/bin/schema/tools.yml
   test -e $HTD_TOOLSSCHEMAFILE || return $?
   test $HTD_TOOLSSCHEMAFILE -ot $B/tools-schema.json \
     || jsotk.py yaml2json $HTD_TOOLSSCHEMAFILE $B/tools-schema.json
 }
 
-tools_list()
+tools_list () # [B] ~
 {
   echo $(
       jsotk.py -O lines keys $B/tools.json tools || return $?
@@ -51,7 +51,7 @@ tools_list()
 }
 
 # Check if binary is available for tool
-installed()
+tools_installed () # ~ Tools-JSON Tool-Id
 {
   test $# -eq 2 -a -e "$1" -a -n "$2" || return
 
@@ -93,92 +93,179 @@ installed()
   return 1;
 }
 
-install_bin()
+tools_install () # ~ Tools-JSON Tool-Id
 {
   test $# -eq 2 -a -e "$1" -a -n "$2" || return
 
-  installed "$@" && return
+  tools_installed "$@" && return
 
   # Look for installer
   installer="$(jsotk.py -N -O py path $1 tools/$2/installer)"
-  test -n "$installer" || return 3
-  test -n "$installer" && {
-    id="$(jsotk.py -N -O py path $1 tools/$2/id)"
-    test -n "$id" || id="$2"
-    debug "installer=$installer id=$id"
-    case "$installer" in
-
-      brew )
-          brew install $id || return 2
-          brew link $id || return 2
-        ;;
-
-      npm )
-          npm install -g $id || return 2
-        ;;
-
-      pip )
-          pip install --user $id || return 2
-        ;;
-
-      git )
-          url="$(jsotk.py -N -O py path $1 tools/$2/url)"
-          test -d $HOME/.htd-tools/cellar/$id || (
-            git clone $url $HOME/.htd-tools/cellar/$id
-          )
-          (
-            cd $HOME/.htd-tools/cellar/$id
-            git pull origin master
-          )
-          bin="$(jsotk.py -N -O py path $1 tools/$2/bin)"
-          src="$(jsotk.py -N -O py path $1 tools/$2/src)"
-          test -n "$src" || src=$bin
-          (
-            cd $HOME/.htd-tools/bin
-            test ! -e $bin || rm $bin
-            ln -s $HOME/.htd-tools/cellar/$id/$src $bin
-          )
-        ;;
-
-      * ) error "No installer '$installer'" 1 ;;
-    esac
-  } || {
-    jsotk.py objectpath $1 '$.tools.'$2'.install'
-  }
-
-  jsotk.py items $1 tools/$2/post-install | while read scriptline
-  do
-    scr=$(echo $scriptline | cut -c2-$(( ${#scriptline} - 1 )) )
-    note "Running '$scr'.."
-    eval $scr || exit $?
-  done
+  true "${installer:=sh}"
+  id="$(jsotk.py -N -O py path $1 tools/$2/id)"
+  test -n "$id" || id="$2"
+  debug "installer=$installer id=$id"
+  func_exists tools_${installer^^}_install ||
+    error "No installer '$installer'" 1
+  tools_${installer^^}_install "$@"
+  eval "$(jsotk.py -O lines items $1 tools/$2/post-install)"
+  # XXX: cleanup
+  #jsotk.py items $1 tools/$2/post-install | while read scriptline
+  #do
+  #  scr=$(echo $scriptline | cut -c2-$(( ${#scriptline} - 1 )) )
+  #  note "Running '$scr'.."
+  #  eval $scr || exit $?
+  #done
 }
 
-uninstall_bin()
+tools_SH_install ()
+{
+  eval "$(jsotk.py -O lines items $1 tools/$2/install)"
+}
+
+tools_BREW_install ()
+{
+  brew install $id &&
+  brew link $id
+}
+
+tools_NPM_install ()
+{
+  npm install -g $id
+}
+
+tools_PIP_install ()
+{
+  pip install --user $id
+}
+
+tools_GIT_install ()
+{
+  url="$(jsotk.py -N -O py path $1 tools/$2/url)"
+  test -d $HOME/.htd-tools/cellar/$id || (
+    git clone $url $HOME/.htd-tools/cellar/$id
+  )
+  (
+    cd $HOME/.htd-tools/cellar/$id
+    git pull origin master
+  )
+  bin="$(jsotk.py -N -O py path $1 tools/$2/bin)"
+  src="$(jsotk.py -N -O py path $1 tools/$2/src)"
+  test -n "$src" || src=$bin
+  (
+    cd $HOME/.htd-tools/bin
+    test ! -e $bin || rm $bin
+    ln -s $HOME/.htd-tools/cellar/$id/$src $bin
+  )
+}
+
+
+tools_uninstall () # ~ Tools-JSON Tool-Id
 {
   test $# -eq 2 -a -e "$1" -a -n "$2" || return
-
-  installed "$@" || return 0
-
+  tools_installed "$@" || return 0
   installer="$(jsotk.py -N -O py path $1 tools/$2/installer)"
-  test -n "$installer" || return 3
-  test -n "$installer" && {
-    id="$(jsotk.py -N -O py path $1 tools/$2/id)"
-    debug "installer=$installer id=$id"
-    test -n "$id" || id=$2
-    case "$installer" in
-      npm )
-          npm uninstall -g $id || return 2
-        ;;
-      pip )
-          pip uninstall $id || return 2
-        ;;
-    esac
-  }
-
+  true "${installer:=sh}"
+  id="$(jsotk.py -N -O py path $1 tools/$2/id)"
+  test -n "$id" || id=$2
+  debug "uninstall installer=$installer id=$id"
+  func_exists tools_${installer^^}_uninstall ||
+    error "No uninstaller '$installer'" 1
+  tools_${installer^^}_uninstall "$@"
   jsotk.py items $1 tools/$2/post-uninstall | while read scriptline
   do
     note "Running '$scriptline'.."
     eval $scriptline || exit $?
   done
+}
+
+tools_SH_uninstall ()
+{
+  eval "$(jsotk.py -O lines items $1 tools/$2/uninstall)"
+}
+
+tools_BASHER_uninstall ()
+{
+  basher uninstall $id
+}
+
+tools_NPM_uninstall ()
+{
+  npm uninstall -g $id
+}
+
+tools_PIP_uninstall ()
+{
+  pip uninstall --user $id
+}
+
+tools_generate_script () # ~ Tools-JSON Tool-Id
+{
+  local installer
+  installer="$(jsotk.py -N -O py path $1 tools/$2/installer)"
+  true "${installer:=sh}"
+  id="$(jsotk.py -N -O py path $1 tools/$2/id)"
+  test -n "$id" || id=$2
+  func_exists tools_${installer^^}_generate_script ||
+    error "No generate-script '$installer'" 1
+  tools_${installer^^}_generate_script "$@"
+}
+
+tools_SH_generate_script ()
+{
+  local vid ; mkvid "$id"
+  for script in install uninstall
+  do
+    cat <<EOM
+${script}_${vid} ()
+{
+$( jsotk.py -O lines items $1 tools/$2/$script | sed 's/^/  /')
+$( jsotk.py -O lines items $1 tools/$2/post-$script | sed 's/^/  /')
+}
+EOM
+  done
+}
+
+tools_BASHER_generate_script ()
+{
+  local vid ; mkvid "$id"
+  cat <<EOM
+install_${vid} ()
+{
+  basher install $id
+$( jsotk.py -O lines items $1 tools/$2/post-install | sed 's/^/  /')
+}
+
+uninstall_${vid} ()
+{
+  basher uninstall $id
+$( jsotk.py -O lines items $1 tools/$2/post-uninstall | sed 's/^/  /')
+}
+EOM
+}
+
+tools_PIP_generate_script ()
+{
+  local vid ; mkvid "$id"
+  cat <<EOM
+install_${vid} ()
+{
+  pip install $id
+$( jsotk.py -O lines items $1 tools/$2/post-install | sed 's/^/  /')
+}
+
+uninstall_${vid} ()
+{
+  pip uninstall $id
+$( jsotk.py -O lines items $1 tools/$2/post-uninstall | sed 's/^/  /')
+}
+EOM
+}
+
+tools_depends () # ~ Tools-JSON Tool-Id
+{
+  test $# -eq 2 -a -e "$1" -a -n "$2" || return
+  installer="$(jsotk.py -N -O py path $1 tools/$2/installer)"
+  test "${installer:-"sh"}" = "sh" || echo "$installer"
+  jsotk.py -N -O py path $1 tools/$2/depends | tr ' ' '\n'
 }

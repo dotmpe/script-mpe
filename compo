@@ -4,9 +4,6 @@
 # a shell. Sourced as well by ~/.alias to use this function for the alias, so
 # the implementation is exactly the same.
 
-# XXX: include main.inc to let root-functions use c-main-group
-#composure_load='. ~/.local/composure/Composure/main.inc && . ~/.local/composure/Composure/load.inc && c-load'
-
 composure_load='. ~/.local/composure/Composure/load.inc && c-load'
 
 # Define main handler func

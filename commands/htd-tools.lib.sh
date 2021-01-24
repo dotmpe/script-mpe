@@ -33,7 +33,7 @@ htd_tools_installed()
   test -n "${1-}" || set -- $(tools_list) ; test -n "$*" || return 2 ;
   test "$out_fmt" = "yml" && echo "tools:" ; while test $# -gt 0
   do
-    installed $B/tools.json "$1" && {
+    tools_installed $B/tools.json "$1" && {
       note "Tool '$1' is present"
       test "$out_fmt" != "yml" || printf "  $1:\n    installed: true\n"
     } || {
@@ -47,7 +47,7 @@ htd_tools_install()
 {
   while test $# -gt 0
   do
-    install_bin $B/tools.json $1 \
+    tools_install $B/tools.json $1 \
       && std_info "Tool $1 is installed" \
       || std_info "Tool $1 install error: $?"
     shift
@@ -58,7 +58,7 @@ htd_tools_uninstall()
 {
   while test $# -gt 0
   do
-    uninstall_bin $B/tools.json "$1" \
+    tools_uninstall $B/tools.json "$1" \
       && std_info "Tool $1 is not installed" \
       || { r=$?;
         test $r -eq 1 \
@@ -100,4 +100,16 @@ EOM
 } > $B/tools-outline-pug-options.json
   pug -E xml --out $B/ \
     -O $B/tools-outline-pug-options.json var/tpl/pug/tools-outline.pug
+}
+
+htd_tools_generate()
+{
+  test $# -eq 1 -a -n "${1-}" || return 64
+  tools_generate_script $B/tools.json "$1"
+}
+
+htd_tools_depends()
+{
+  test $# -eq 1 -a -n "${1-}" || return 64
+  tools_depends $B/tools.json "$1"
 }

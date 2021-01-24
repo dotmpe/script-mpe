@@ -130,7 +130,7 @@ ht__run()
       note "Moving to '$package_cwd'"
       cd $package_cwd
     }
-    . $CWD/$package_env_file &&
+    . "$PACK_ENVD/$package_env_name.sh" &&
     . $CWD/$PACK_SCRIPTS/$1.sh
   )
   return $?

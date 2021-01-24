@@ -10,9 +10,9 @@
 
 htd_scripts_names()
 {
-  test -e "$PACKMETA_JS_MAIN" ||
-      error "Pack-Meta-Js-Main '$PACKMETA_JS_MAIN' missing" 1
-  jsotk.py keys -O lines $PACKMETA_JS_MAIN scripts | sort -u | {
+  test -e "$PACK_JSON" ||
+      error "Pack-Json-Main '$PACK_JSON' missing" 1
+  jsotk.py keys -O lines $PACK_JSON scripts | sort -u | {
     test -n "${1-}" && {
       while read name;do fnmatch "$1" "$name" || continue;echo "$name";done
     } || { cat - ; }
@@ -31,22 +31,22 @@ htd_scripts_list()
 
 # Determine wether package script exists even without having it loaded. Takes
 # a few milisec more than using env.
-htd_scripts_id_exist_grep()
+htd_scripts_id_exist_grep () # Name-ID
 {
-  upper=0 mkvid "$1" ; set -- scripts_${vid} "$2"
+  local vid; upper=0 mkvid "$1" ; set -- scripts_${vid} "${2-}"
   test -n "$2" || set -- "$1" "$PACK_SH"
   grep -q '^\<\(package_'"${1}"'\|package_'"${1}"'__0\)\>=' "$2"
 }
 
 # Determine wether package script exists while pacakge.sh is loaded into env
-htd_scripts_id_exist_env()
+htd_scripts_id_exist_env ()
 {
-  upper=0 mkvid "$1" ; set -- scripts_${vid}
+  local vid; upper=0 mkvid "$1" ; set -- scripts_${vid}
   package_sh_list_exists "$1" || package_sh_key_exists "$1"
 }
 
 # Execute script with given ID
-htd_scripts_exec() # Script-Id
+htd_scripts_exec () # Script-Id
 {
   # Execute env and script-lines in subshell
   (
@@ -59,7 +59,7 @@ htd_scripts_exec() # Script-Id
     }
 
     # Initialize shell from profile script
-    . $PWD/$package_env_file
+    . "$PACK_ENVD/$package_env_name.sh"
 
     # Write scriptline with expanded vars
     std_info "Expanded '$(eval echo \"$@\")'"
@@ -73,7 +73,7 @@ htd_scripts_exec() # Script-Id
       export ln=$(( $ln + 1 ))
 
       # Header or verbose output
-      not_trueish "$verbose_no_exec" && {
+      not_trueish "${verbose_no_exec-}" && {
         std_info "Scriptline: '$scriptline'"
       } || {
         printf -- "\t$scriptline\n"
@@ -88,7 +88,7 @@ htd_scripts_exec() # Script-Id
       # NOTE: execute scriptline with args only once
       set --
     done
-    trueish "$verbose_no_exec" || stderr notice "'$run_scriptname' completed"
+    trueish "${verbose_no_exec-}" || stderr notice "'$run_scriptname' completed"
   )
 }
 
@@ -107,7 +107,7 @@ htd_scripts_exec_compiled()
   )
 }
 
-htd_scripts_run()
+htd_scripts_run () # Name-ID
 {
   # Execute compiled variant if not turned off
   { test -e "$PACK_SCRIPTS/$1.sh" && not_falseish "$use_cache"

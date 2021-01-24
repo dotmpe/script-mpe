@@ -70,7 +70,7 @@ tools:
     url: 'https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5'
     
   jolt:
-    id: jolt
+    id: bazaarvoice/jolt
     bin: jolt
     installer: basher
     description: "Transforms for JSON (Java)"
@@ -113,4 +113,5 @@ tools:
     id: github.com/genuinetools/bane
 
   x11docker:
+    installer: url
     url: https://raw.githubusercontent.com/mviereck/x11docker/master/x11docker

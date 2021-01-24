@@ -574,8 +574,8 @@ package_js_script()
   test -n "${PACK_SH-}" || {
     package_lib_set_local "$(pwd -P)" || return
   }
-  test -n "$2" || set -- "$1" $PACK_JSON
-  test -e "$2"
+  test -n "${2-}" || set -- "$1" $PACK_JSON
+  test -e "$2" || error "missing package main JSON '$2'" 1
   jsotk.py path -O lines "$2" scripts/$1 || {
 
     error "error getting lines for '$1'"

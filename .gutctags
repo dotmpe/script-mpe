@@ -1,0 +1,6 @@
+-R
+-f .tags
+--exclude=.git
+--exclude=node_modules
+--exclude=tools/chrome/htdocs/components
+--exclude=tools/chrome/htdocs/google-chrome-htdocs/components
