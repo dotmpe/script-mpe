@@ -1102,6 +1102,13 @@ def plain_text_flavor(peek, source):
     except UnicodeDecodeError as e:
         pass
 
+def unicode_text_flavor(peek, source):
+    try:
+        peek.decode('utf-8')
+        return True
+    except UnicodeDecodeError as e:
+        pass
+
 def get_peek(source):
     try:
         filesize = os.path.getsize(source)
@@ -1504,8 +1511,8 @@ class Radical(rsr.Rsr):
                 log.err("Error reading %s" % source)
                 continue
 
-            if not plain_text_flavor(peek, source):
-                log.warn("Ignored non-ascii %s" % source)
+            if not plain_text_flavor(peek, source) and not unicode_text_flavor(peek, source):
+                log.warn("Ignored non-ascii/non-unicode text at %s" % source)
                 continue
 
             yield source

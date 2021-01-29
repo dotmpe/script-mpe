@@ -412,11 +412,12 @@ class Dir(INode):
                     filepath = klass.decode_path(filepath, opts)
                     if not opts.files: # XXX other types
                         continue
-                    #try:
-                    #    filepath.encode('ascii')
-                    #except UnicodeEncodeError, e:
-                    #    log.err("Ignored non-ascii/illegal filename %s", filepath)
-                    #    continue
+                    try:
+                        filepath.encode('ascii')
+                    except UnicodeDecodeError, e:
+                        log.err("Warning: non-ascii/unicode filename %r", filepath)
+                        #log.err("Ignored non-ascii/unicode filename %r", filepath)
+                        #continue
                     yield filepath
 
     @classmethod
