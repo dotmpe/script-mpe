@@ -171,6 +171,9 @@ class File(INode):
             if name is p or fnmatch(name, p):
                 return True
 
+    def is_empty(self):
+        return not os.path.getsize(self.path)
+
 
 pathdepth = lambda s: s.strip('/').count('/')
 
@@ -272,7 +275,7 @@ class Dir(INode):
         return v is 1
 
     @classmethod
-    def check_ignored(klass, filepath, opts):
+    def Check_ignored(klass, filepath, opts):
         #if os.path.islink(filepath) or not os.path.isfile(filepath):
         if os.path.islink(filepath) or ( not os.path.isfile(filepath) and not os.path.isdir(filepath)) :
             log.warn("Ignored non-regular path %r", filepath)
@@ -327,7 +330,7 @@ class Dir(INode):
         return opts_
 
     @classmethod
-    def walk(klass, path, opts={}, filters=(None,None)):
+    def Walk(klass, path, opts={}, filters=(None,None)):
         """
         Build on os.walk, this goes over all directories and other paths
         non-recursively.
@@ -366,7 +369,7 @@ class Dir(INode):
                         log.err("Error: reported non existant node %s", dirpath)
                         if node in dirs: dirs.remove(node)
                         continue
-                    elif klass.check_ignored(dirpath, opts):
+                    elif klass.Check_ignored(dirpath, opts):
                         if node in dirs: dirs.remove(node)
                         continue
                     elif not klass.check_recurse(dirpath, opts):
@@ -377,18 +380,13 @@ class Dir(INode):
 #                    continue # exception to rule excluded == no yield
 # caller can sort out wether they want entries to subpaths at this level
                     assert isinstance(dirpath, basestring)
-                    try:
-                        dirpath = unicode(dirpath)
-                    except UnicodeDecodeError, e:
-                        log.err("Ignored non-ascii/illegal filename %s", dirpath)
-                        continue
+                    dirpath = klass.decode_path(dirpath, opts)
+                    if not dirpath: continue
                     assert isinstance(dirpath, unicode)
                     try:
                         dirpath.encode('ascii')
                     except UnicodeDecodeError, e:
-                        log.err("Ignored non-ascii filename %s", dirpath)
-                        continue
-                    dirpath = klass.decode_path(dirpath, opts)
+                        log.err("Warning: non-ascii dirname %s", dirpath)
                     yield dirpath
 
                 for leaf in list(files):
@@ -405,24 +403,27 @@ class Dir(INode):
                         else:
                             files.remove(leaf)
                         continue
-                    elif klass.check_ignored(filepath, opts):
+                    elif klass.Check_ignored(filepath, opts):
                         log.info("Ignored file %r", filepath)
                         files.remove(leaf)
                         continue
                     filepath = klass.decode_path(filepath, opts)
+                    if not dirpath: continue
                     if not opts.files: # XXX other types
                         continue
                     try:
                         filepath.encode('ascii')
                     except UnicodeDecodeError, e:
-                        log.err("Warning: non-ascii/unicode filename %r", filepath)
-                        #log.err("Ignored non-ascii/unicode filename %r", filepath)
-                        #continue
+                        log.err("Warning: non-ascii filename %s", filepath)
                     yield filepath
+
+    # XXX: made instance entry, but all options (e.g ignores) are static still
+    def walk(self, opts={}, filters=(None,None)):
+        return self.__class__.Walk(self.path, opts, filters)
 
     @classmethod
     def walkRoot(klass, path, opts=walk_opts, filters=(None, None)):
-        "Walks rootward; ie. dirs only. "
+        "Walks rootward; dirs only. "
         "Yields dirs rootward along a single path, unless resolve links"
         paths = [path]
         while paths:

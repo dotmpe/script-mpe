@@ -151,7 +151,7 @@ class Workdir(Workspace):
         Dir.ignore_names = Dir.ignore_names + (
                 'requirements*.txt', 'vendor', 'node_modules' )
         # Return generator
-        for p in Dir.walk(path, dict(recurse=True, files=True), (file_fltrs, None)):
+        for p in Dir.Walk(path, dict(recurse=True, files=True), (file_fltrs, None)):
             yield p
 
     def find_scmdirs(self, cwd=None, s=False):

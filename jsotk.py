@@ -404,7 +404,8 @@ def H_path(ctx):
     if not ctx.opts.flags.quiet:
         res += [ stdout_data( data, ctx, outf=outfile ) ]
 
-    return max(res)
+    if res:
+        return max(res)
 
 
 def H_keys(ctx):
@@ -640,6 +641,7 @@ if __name__ == '__main__':
     try:
         sys.exit( main( ctx.opts.cmds[0], ctx ) )
     except Exception as err:
+        print(err)
         if not ctx.opts.flags.quiet:
             if ctx.opts.flags.stacktrace:
                 tbstr = traceback.format_exc()

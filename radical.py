@@ -1109,7 +1109,7 @@ def unicode_text_flavor(peek, source):
     except UnicodeDecodeError as e:
         pass
 
-def get_peek(source):
+def take_peek(source):
     try:
         filesize = os.path.getsize(source)
         bytes = 1024
@@ -1164,6 +1164,7 @@ def append_comment_scan(option, value, parser):
 def append_ignored_scan(option, value, parser):
     log.stderr("TODO append_ignored_scan ", (option, value, parser))
     return -1
+
 
 # Static metadata
 
@@ -1390,6 +1391,18 @@ class Radical(rsr.Rsr):
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
                 #(('-r', '--recurse'),{'action':'store_true', 'default': True,
                 #    'help': 'Recurse into directory paths (default: %default)'}),
+                p(('-X', '--add-excluded-path'),{
+                    'action': 'append',
+                    'metavar': 'PATH',
+                    'dest': 'excluded_paths',
+                    'help': "Filter out these paths" }),
+
+                p(('-N', '--add-excluded-name',),{
+                    'action': 'append',
+                    'metavar': 'NAME',
+                    'dest': 'excluded_names',
+                    'help': "Filter out these filenames" }),
+
             )
 
     def init_config_defaults(self, prog, opts):
@@ -1496,17 +1509,19 @@ class Radical(rsr.Rsr):
     def walk_paths(self, paths, ignore_empty=False):
         # Recurse dirs, return all file paths
         sources = []
-        for p in paths:
-            if ignore_empty and os.path.isfile(p) and not os.path.getsize(p):
+        for p_ in paths:
+            p = res.fs.INode.factory(p_)
+            if ignore_empty and p.implements == 'file' and p.is_empty():
                 continue
-            elif not os.path.isdir(p):
-                sources.append(p)
+            elif p.implements != 'dir':
+                sources.append(p.path)
             else:
-                for p2 in res.fs.Dir.walk(p, opts=dict(recurse=True, files=True)):
-                    sources.append(p2)
+                for s in p.walk(opts=dict(recurse=True, files=True)):
+                    sources.append(s)
 
+        # Yield on paths with plain-text sources
         for source in sources:
-            peek = get_peek(source)
+            peek = take_peek(source)
             if not peek:
                 log.err("Error reading %s" % source)
                 continue
@@ -1533,6 +1548,7 @@ class Radical(rsr.Rsr):
         """
         if not paths:
             raise Exception("Pathname argument(s) expected")
+        self.update_static_ignores(opts)
 
         ret = 0
 
@@ -1637,6 +1653,19 @@ class Radical(rsr.Rsr):
         else:
             # TODO: look at rsr session info handlers and get those in here
             log.stdout('Radical info: %r %r', prog, sa)
+
+    def update_static_ignores(self, opts):
+        ignore_names = [ opts.todotxt_store ]
+        if opts.excluded_names:
+            ignore_names.extend(opts.excluded_names)
+        for name in ignore_names:
+            res.fs.File.ignore_names += ( name, )
+
+        if opts.excluded_paths:
+            for name in opts.excluded_paths:
+                res.fs.Dir.ignore_paths += ( name, )
+            for name in opts.excluded_paths:
+                res.fs.File.ignore_paths += ( name, )
 
 
 if __name__ == '__main__':

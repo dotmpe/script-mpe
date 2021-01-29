@@ -80,7 +80,7 @@ if __name__ == '__main__':
     ))
 
     cnt = 0
-    for f in Dir.walk( path, walk_opts ):
+    for f in Dir.Walk( path, walk_opts ):
         if os.path.isdir( f ):
             continue
         if os.path.getsize( f ) > size_threshold:

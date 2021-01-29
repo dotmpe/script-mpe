@@ -111,7 +111,7 @@ class Cmd(libcmd.StackedCommand):
 
         for source in source_paths:
             print(source)
-            for path in res.fs.Dir.walk( source ):
+            for path in res.fs.Dir.Walk( source ):
                 # assert real-path never in target path
                 print("\t", path)
 

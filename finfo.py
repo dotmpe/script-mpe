@@ -293,7 +293,7 @@ class FileInfoApp(rsr.Rsr):
         if len(paths) > 1:
             assert opts.interactive
             for path in paths:
-                for subpath in res.fs.Dir.walk(paths, opts):#dict(recurse=True)):
+                for subpath in res.fs.Dir.Walk(paths, opts):#dict(recurse=True)):
                     print(subpath)
         elif not opts.interactive:
             path = paths[0]
@@ -316,7 +316,7 @@ class FileInfoApp(rsr.Rsr):
 
     def file_info(self, args=None, sa=None):
         for p in args:
-            for p in res.fs.Dir.walk(p):
+            for p in res.fs.Dir.Walk(p):
                 format_description = lib.cmd('file -bs "%s"', p).strip()
                 mediatype = lib.cmd('file -bi "%s"', p).strip()
                 print(':path:', p, format_description)

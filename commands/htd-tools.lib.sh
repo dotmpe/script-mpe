@@ -23,9 +23,14 @@ htd_tools_help ()
   echo "$htd_man_1__tools"
 }
 
-htd_tools_list()
+htd_tools_list ()
 {
   tools_list
+}
+
+htd_tools_list_all ()
+{
+  tools_list_all
 }
 
 htd_tools_installed()

@@ -76,7 +76,7 @@ See update_metafiles
         - If any of above mentioned and at least one Digest field is not present.
 
     """
-    for path in res.Dir.walk(prog.pwd):
+    for path in res.Dir.Walk(prog.pwd):
         if not os.path.isfile(path):
             continue
         mf = res.Metafile(path)

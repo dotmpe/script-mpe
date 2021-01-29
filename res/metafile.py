@@ -427,7 +427,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 
     @classmethod
     def walk(self, path, max_depth=-1):
-        # XXX: maybe rewrite to Dir.walk
+        # XXX: maybe rewrite to Dir.Walk
         """
         Walk all files that may have a metafile, and notice any metafile(-like)
         neighbors?
@@ -731,7 +731,7 @@ class Metadir(object):
         file_fltrs = [ lambda name: fnmatch(os.path.basename(name), g) ]
         if basedir: p = os.path.normpath(basedir)
         else: p = self.path
-        for p in fs.Dir.walk(p, dict(recurse=True, files=True), (file_fltrs, None)):
+        for p in fs.Dir.Walk(p, dict(recurse=True, files=True), (file_fltrs, None)):
             yield p
 
 

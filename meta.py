@@ -52,7 +52,7 @@ if __name__ == '__main__':
     else:
 
         #meta.dir.walk()
-        #for fn in Dir.walk('.'):
+        #for fn in Dir.Walk('.'):
         #    print(Metafile(fn))
 
         mf = Metafile(File('meta.py'))
