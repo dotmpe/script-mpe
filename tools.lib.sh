@@ -43,21 +43,28 @@ tools_json_schema () # [B] [HTD_TOOLSSCHEMAFILE]
     || jsotk.py yaml2json $HTD_TOOLSSCHEMAFILE $B/tools-schema.json
 }
 
-tools_list () # [B] ~
+# List all installable tool Ids
+tools_list () # [B] ~ [tools.json]
 {
+  test $# -le 1 || return 64
+  test -n "${1-}" || set -- $B/tools.json
   # 'required' indicates entries dont provide an installer but indicate a prerequisite
-  jq -r '.tools | to_entries[] | select(.value.required!=true) | .key' $B/tools.json
+  jq -r '.tools | to_entries[] | select(.value.required==null) | .key' "$1"
 }
 
-tools_list_all () # [B] ~
+# List every tool Id, including prerequisites
+tools_list_all () # [B] ~ [tools.json]
 {
-  jsotk.py -O lines keys $B/tools.json tools || return $?
+  test $# -le 1 || return 64
+  test -n "${1-}" || set -- $B/tools.json
+  jsotk.py -O lines keys "$1" tools
 }
 
 # Check if binary is available for tool
-tools_installed () # ~ Tools-JSON Tool-Id
+tools_installed () # [B] ~ [Tools-JSON] Tool-Id
 {
-  test $# -eq 2 -a -e "$1" -a -n "$2" || return
+  test $# -le 2 -a -n "${2-}" || return 64
+  test -n "${1-}" || set -- $B/tools.json "$2"
 
   # Get one name if any
   local bin="$(jsotk.py -sq -O py path $1 tools/$2/bin)"

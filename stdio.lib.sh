@@ -60,7 +60,7 @@ close_io_descrs()
 clean_failed()
 {
   test -z "$failed" -o ! -e "$failed" && return || {
-    test -n "$1" || set -- "Failed: "
+    test -n "${1-}" || set -- "Failed: "
     test -s "$failed" && {
       count="$(sort -u $failed | wc -l | awk '{print $1}')"
       test "$count" -gt 2 && {

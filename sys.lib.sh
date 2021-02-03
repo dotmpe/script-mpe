@@ -274,7 +274,7 @@ lookup_paths () # Var-Name Local-Paths...
       for path in $@
       do
         eval $lookup_test \""$path"\" \""$base"\" && {
-          test ${lookup_first:-1} -eq 1 && break || continue
+          test ${lookup_first:-1} -eq 1 && break 2 || continue
         } || continue
       done
     done
@@ -283,6 +283,7 @@ lookup_paths () # Var-Name Local-Paths...
 # Test if local path/name is overruled. Lists paths for hidden LOCAL instances.
 lookup_path_shadows() # VAR-NAME LOCAL
 {
+  test $# -eq 2 || return 64
   local r=
   tmpf=$(setup_tmpf .lookup-shadows)
   lookup_first=false lookup_path "$@" >$tmpf

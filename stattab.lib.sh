@@ -6,7 +6,7 @@
 stattab_lib_load()
 {
   lib_assert statusdir || return
-  test -n "${STTAB-}" || STTAB=$(statusdir_lookup stattab.list index)
+  test -n "${STTAB-}" || STTAB=$(out_fmt= statusdir_lookup stattab.list index)
 }
 
 stattab_lib_init()

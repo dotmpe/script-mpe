@@ -88,7 +88,7 @@ htd_scripts_exec () # Script-Id
       # NOTE: execute scriptline with args only once
       set --
     done
-    trueish "${verbose_no_exec-}" || stderr notice "'$run_scriptname' completed"
+    trueish "${verbose_no_exec-}" || note "'$run_scriptname' completed"
   )
 }
 

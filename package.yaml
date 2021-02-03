@@ -113,7 +113,6 @@
     - . ./tools/ci/parts/init.sh
     - scriptname=script
     - . ./tools/ci/parts/build.sh
-    tasks-list: tasks.py -t \$package_pd_meta_tasks_document list-issues
     test:
     - lib_load build-test
     - test -n "\$1" || before_test
@@ -137,6 +136,8 @@
     test-features: lib_load build-test && test_any_feature "\$@"
     list-tests: lib_load build-test && project_tests "\$@"
     tasks-update: htd tasks --Check-All-Tags --Check-All-Files
+    tasks-list: tasks.py -t \$package_pd_meta_tasks_document list-issues
+    tasks: radical.py -u todo.txt --ignore-empty --exclude .git/info/exclude -X './tools/chrome/htdocs/*' .
     host-init:
     - htd srv
     db-deinit:
@@ -150,6 +151,7 @@
     - scriptname=install
     - . ./tools/ci/parts/install.sh
     test-feature: lib_load build-test && test_any_feature "\$@"
+
   rst:
     default-include: .rst-global.rst
   data:

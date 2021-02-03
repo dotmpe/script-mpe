@@ -86,13 +86,17 @@ statusdir_check ()
   }
 }
 
+# Generate local PWD path for statusdir folder/file lookup
 statusdir_lookup_path () #
 {
   cwd_lookup_path .statusdir .meta/stat
 }
 
-statusdir_lookup () # Record-Type Record-Name
+# Lookup statusdir folders/files on local PWD path
+statusdir_lookup () # Record-Type [Record-Name]
 {
+  test $# -ge 1 -a $# -le 2 -a -n "${1-}" || return 64
+  test $# -gt 1 || set -- "$1" ""
   local LUP=$(statusdir_lookup_path)
   lookup_first=${lookup_first:-1} lookup_paths LUP $1/$2
 }

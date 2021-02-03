@@ -23,11 +23,18 @@ composure_run_seq () {
   composure_run c-main-seq "$@"
 }
 
+composure_eval ()
+{
+  COMPO_CMD="$composure_load;"' eval "$@"' composure_run "$@"
+}
+
 # Execute
 case "$0" in
 
     */compo-seq ) v=${v=4} composure_run_seq "$@" ;;
 
     */compo ) v=${v=4} composure_run "$@" ;;
+
+    */compo-eval ) v=${v=4} composure_eval "$@" ;;
 
 esac

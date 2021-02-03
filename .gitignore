@@ -53,3 +53,4 @@ _tmp
 test/var/nix_comments.txt.header
 tags
 *.shc
+.env.sh

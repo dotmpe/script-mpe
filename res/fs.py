@@ -145,17 +145,12 @@ class File(INode):
             '.crdownload',
             '.DS_Store',
             '*.sw[pon]',
-            '*.r[0-9]*[0-9]',
             '*.pyc',
             '*~',
             '*.tmp',
             '*.part',
             '*.crdownload',
-            '*.incomplete',
-            '*.torrent',
-            '*.uriref',
-            '*.meta',
-            '.symlinks'
+            '*.incomplete'
         )
 
     @classmethod
@@ -172,7 +167,7 @@ class File(INode):
                 return True
 
     def is_empty(self):
-        return not os.path.getsize(self.path)
+        return os.path.getsize(self.path) < 1
 
 
 pathdepth = lambda s: s.strip('/').count('/')
@@ -214,22 +209,14 @@ class Dir(INode):
     ignore_paths = File.ignore_paths
 
     ignore_names = (
-            '.metadata',
-            '.conf',
             'RECYCLER',
             '.TemporaryItems',
             '.Trash*',
-            '.build',
-            'build',
-            '.cllct',
             '.git',
             '.svn',
             '.hg',
             '.bzr',
-            '.vim',
             '.cache',
-            #'vendor',
-            #'node_modules',
             'System Volume Information',
             '*com.docker.docker'
         )
@@ -370,6 +357,7 @@ class Dir(INode):
                         if node in dirs: dirs.remove(node)
                         continue
                     elif klass.Check_ignored(dirpath, opts):
+                        log.info("Ignored dir: %s", dirpath)
                         if node in dirs: dirs.remove(node)
                         continue
                     elif not klass.check_recurse(dirpath, opts):
@@ -393,6 +381,7 @@ class Dir(INode):
                     filepath = join(root, leaf)
                     if file_filters:
                         if not File.filter(filepath, *file_filters):
+                            log.info("Filtered file %r", filepath)
                             files.remove(leaf)
                             continue
                     if not os.path.exists(filepath):
@@ -408,7 +397,7 @@ class Dir(INode):
                         files.remove(leaf)
                         continue
                     filepath = klass.decode_path(filepath, opts)
-                    if not dirpath: continue
+                    if not filepath: continue
                     if not opts.files: # XXX other types
                         continue
                     try:

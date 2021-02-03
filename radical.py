@@ -1395,14 +1395,19 @@ class Radical(rsr.Rsr):
                     'action': 'append',
                     'metavar': 'PATH',
                     'dest': 'excluded_paths',
-                    'help': "Filter out these paths" }),
+                    'help': "Filter out these paths (or path globs)" }),
+
+                p(('--excludes',),{
+                    'action': 'append',
+                    'metavar': 'GLOBFILE',
+                    'dest': 'excludes',
+                    'help': "Add lines to excluded-path" }),
 
                 p(('-N', '--add-excluded-name',),{
                     'action': 'append',
                     'metavar': 'NAME',
                     'dest': 'excluded_names',
-                    'help': "Filter out these filenames" }),
-
+                    'help': "Filter out these filenames/globs" }),
             )
 
     def init_config_defaults(self, prog, opts):
@@ -1516,7 +1521,10 @@ class Radical(rsr.Rsr):
             elif p.implements != 'dir':
                 sources.append(p.path)
             else:
+                log.debug("Walking dir: %s", p.path)
                 for s in p.walk(opts=dict(recurse=True, files=True)):
+                    if ignore_empty and os.path.getsize(s) < 1:
+                        log.debug("Ignore empty file: %s", s)
                     sources.append(s)
 
         # Yield on paths with plain-text sources
@@ -1548,15 +1556,13 @@ class Radical(rsr.Rsr):
         """
         if not paths:
             raise Exception("Pathname argument(s) expected")
+
         self.update_static_ignores(opts)
-
         ret = 0
-
         # TODO: make ascii peek optional, charset configurable
         # TODO: implement contexts, ref per source
         context = ''
         source_iter = self.walk_paths(paths, opts.ignore_empty)
-
         # pre-compile patterns XXX: per context
         matchbox = compile_rdc_matchbox(self.rc)
         taskdocs = {}
@@ -1566,6 +1572,7 @@ class Radical(rsr.Rsr):
         #for embedded in find_files_with_tag(sa, matchbox, paths):
 
         for source in source_iter:
+            log.debug("Scanning source: %s", source)
             data = open(source).read()
             lines = get_lines(data)
 
@@ -1655,6 +1662,9 @@ class Radical(rsr.Rsr):
             log.stdout('Radical info: %r %r', prog, sa)
 
     def update_static_ignores(self, opts):
+        """
+        Load ignore names/globs from options onto fs.INode subclasses.
+        """
         ignore_names = [ opts.todotxt_store ]
         if opts.excluded_names:
             ignore_names.extend(opts.excluded_names)
@@ -1666,6 +1676,22 @@ class Radical(rsr.Rsr):
                 res.fs.Dir.ignore_paths += ( name, )
             for name in opts.excluded_paths:
                 res.fs.File.ignore_paths += ( name, )
+
+        if opts.excludes:
+            for globfile in opts.excludes:
+                log.debug("Reading excludes from: %s", globfile)
+                for name in open(globfile).readlines():
+                    name = name.strip()
+                    if name.endswith(os.sep):
+                        name += '*'
+                        if not name.startswith(os.sep):
+                            name = '*/'+name
+                    if name.startswith(os.sep):
+                        name = '.'+name
+                    if os.sep in name:
+                        res.fs.Dir.ignore_paths += ( name, )
+                    else:
+                        res.fs.Dir.ignore_names += ( name, )
 
 
 if __name__ == '__main__':
