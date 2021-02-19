@@ -112,7 +112,7 @@ htd_urls_todotxt() # File [1|ext]
 htd_urls_urlstat() # Text-File [Init-Tags]
 {
   setup_io_paths -$subcmd-${htd_session_id}
-  export ${htd__inputs?} ${htd__outputs?}
+  export ${htd_inputs?} ${htd_outputs?}
   opt_args "$@"
   htd_optsv $(lines_to_words $options)
   set -- $(lines_to_words $arguments)

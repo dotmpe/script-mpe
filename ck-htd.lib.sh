@@ -82,87 +82,113 @@ ck_run() # CkTable
 }
 
 # Read checksums from catalog.yml.
-ck_read_catalog()
+ck_read_catalog () # ~ CATALOG [CK-KEYS..]
 {
-  test -e "$1" || error ck_read_catalog 1
-  local l=0 basedir="$(dirname "$1")" fname= name= host= fkv= keys= \
+  test -e "$1" || error "ck_read_catalog: No such catalog '$1'" 1
+  local l=-1 cat="$1" basedir="$(dirname "$1")" fname= name= host= fkv= keys= \
       catalog_sh="$(dotname "$(pathname "$1" .yaml .yml)")"
 
   fkv="$( jsotk.py --output-prefix=catalog to-flat-kv "$1")" || return $?
-  trueish "$all_keys" && {
+  shift 1
+  test $# -eq 0 && {
+    test ${all_keys:-0} -eq 1 && {
       keys="$( echo "$fkv" | grep '[0-9]*_keys_' | sed 's/^catalog__[0-9]*_keys_\([^=]*\)=.*/\1/' | sort -u)"
-  } || {
+    } || {
       keys="$( echo $ck_exts | tr '-' '_' )"
-  }
-  eval "$fkv" || return $?
+    }
+  } || keys="$*"
 
-  note "Scanning '$(lines_to_words "$keys")' in $1.."
+  note "Scanning '$(lines_to_words "$keys")' in $cat.."
+  eval "$fkv" || return $?
+  local var
   while true
   do
-    host="$(eval echo \"\$catalog__${l}_host\")"
-    # TODO canon="$(canon_host '' "$host" || echo "$host")"
-    test -z "$host" -o "$hostname" = "$host" || {
-        warn "Not on host? $host $l" ; l=$(( $l + 1)) ; continue
-    }
-
-    name="$(eval echo \"\$catalog__${l}_name\")"
-    fname="$(eval echo \"\$catalog__${l}_path\")"
+    l=$(( $l + 1))
+    var=catalog__${l}_name
+    name="${!var:-}"
+    var=catalog__${l}_path
+    fname="${!var:-}"
     test -n "$name" -o -n "$fname" || {
        # No more entries, either path or name is required
        break
     }
-
     test -n "$fname" && name="$(basename "$fname")" || {
-        test -n "$name" && fname="$(find_one . "$name")"
+      test -n "$name" && fname="$(find_one . "$name")"
     }
 
-    #test -n "$fname" -a -e "$fname" || {
-    #    warn "Missing name/path for entry $l. $name" ; return 1; }
+    var=catalog__${l}_exists
+    falseish "${!var:-true}" && {
+      debug "Skipped missing '$name'"
+      continue
+    }
+    var=catalog__${l}_contexts__0
+    test -z "${!var:-}" || {
+      debug "Skipped contained '$name'"
+      continue
+    }
 
-    #test -f "$fname" && {
-      for ck in $keys
-      do
-        key="$(eval echo \"\$catalog__${l}_keys_${ck}\")"
-        test -n "$key" || continue
+    var=catalog__${l}_host
+    host="${!var:-}"
+    # TODO canon="$(canon_host '' "$host" || echo "$host")"
+    test -z "$host" -o "$hostname" = "$host" || {
+      warn "Not on host? $host entry #$l '$name'" ; l=$(( $l + 1)) ; continue
+    }
 
-        fnmatch "* *" "$key" && key="$(echo "$key" | sed 's/\ /\\ /g')"
-        fnmatch "* *" "$fname" && fname="$(echo "$fname" | sed 's/\ /\\ /g')"
-        echo "$key $ck $fname"
-      done
-    #}
+    true "${fname:="$name"}"
+    fnmatch "* *" "$fname" && fname="$(echo "$fname" | sed 's/\ /\\ /g')"
+    for ck in $keys
+    do
+      var=catalog__${l}_keys_${ck}
+      key="${!var:-}"
+      test -n "$key" || continue
+      fnmatch "* *" "$key" && key="$(echo "$key" | sed 's/\ /\\ /g')"
+      echo "$key $ck $fname"
+    done
 
-    l=$(( $l + 1))
   done
-  std_info "Done reading checksums from catalog '$1'"
+  std_info "Done reading checksums from catalog '$cat'"
 }
 
-ck_run_catalog()
+ck_run_catalog () # ~ CATALOG [CK-KEYS]
 {
-  local r=0 ret=0 dir="$(dirname "$1")" keys="$ck_exts"
-  cd "$cwd"
-  test -d "$dir" || { warn "Missing dir '$1'" ; continue ; }
-  test -f "$1" || { warn "Missing file '$1'" ; continue ; }
+  local cat="$1" dir="$(dirname "$1")"
+  test -d "$dir" || { warn "Missing dir '$cat'" 1; }
+  test -f "$cat" || { warn "Missing file '$cat'" 1; }
 
-  cd "$dir"
   {
-    ck_read_catalog "$(basename "$1")"
-    test 0 -eq $? || { ret=1; break; }
+    ck_read_catalog "$@"
   } | {
+    cd "$dir"
+    local key ck name namecnt=0 failcnt=0 keycnt=0 ret=0 r names=
     while read key ck name ; do
+      fnmatch "*:$name:*" ":$names:" && {
+        test ${choice_all:-0} -eq 1 && {
+          true
+        } || {
+          continue
+        }
+      } || namecnt=$(( $namecnt + 1 ))
+      keycnt=$(( $keycnt + 1 ))
 
-      debug "Key: '$key' CK: $ck Name: '$name'"
-      test -e "$name" || { error "No file '$name'" ; return 1 ; }
-      case "$ck" in
+      r=0
+      debug "Key $keycnt:'$key' CK:$ck Name:'$name'"
+      test -e "$name" || { r=$?
+        failcnt=$(( $failcnt + 1 ))
+        echo "NOT OK file $name"
+        error "No file '$name' for $ck:$key"
+      }
+      test -e "$name" && case "$ck" in
 
           # Special case SHA-2
           sha2* | sha3* | sha5* )
                 l=$(echo $ck | cut -c4-)
-                echo "$key  $name" | { r=0
+                echo "$key  $name" | {
                     test "$l" != "2" || l=256
-                    shasum -s -a $l -c - || r=$?
-                    test 0 -eq $r && echo "$name: ${ck} OK" || {
+                    shasum -s -a $l -c - ; r=$?
+                    test 0 -eq $r && echo "OK $ck $name" || {
+                        failcnt=$(( $failcnt + 1 ))
+                        echo "NOT OK $ck $name"
                         warn "Failed $ck '$key' for '$name'"
-                        return $r
                     }
                 }
               ;;
@@ -172,49 +198,62 @@ ck_run_catalog()
                 cks=$(echo "$key" | cut -f 1 -d ' ')
                 sz=$(echo "$key" | cut -f 2 -d ' ')
                 SZ="$(filesize "$name")"
-                test "$SZ" = "$sz" || { error "File-size mismatch on '$p'"; return 1; }
-                test $ck = ck && {
-                  CKS="$(cksum "$name" | awk '{print $1}')"
-                } || {
-                  test $ck != crc32 || ck=rhash-crc32
-                  CKS="$(cksum.py -a $ck "$name" | awk '{print $1}')"
+                test "$SZ" = "$sz" && {
+                  test $ck = ck && {
+                    CKS="$(cksum "$name" | awk '{print $1}')"
+                  } || {
+                    test $ck != crc32 || ck=rhash-crc32
+                    CKS="$(cksum.py -a $ck "$name" | awk '{print $1}')"
+                  }
+                  test "$CKS" = "$cks" && echo "OK $ck $name" || { r=$?
+                    failcnt=$(( $failcnt + 1 ))
+                    echo "NOT OK $ck $name"
+                    warn "Checksum mismatch on $PWD '$ck:$name'"
+                  }
+                } || { r=$?
+                  failcnt=$(( $failcnt + 1 ))
+                  echo "NOT OK $ck $name"
+                  warn "File-size mismatch on '$ck:$name'";
                 }
-                test "$CKS" = "$cks" || { error "Checksum mismatch on '$p'"; return 1; }
-                echo "$name: ${ck} OK"
               ;;
 
           git | rhash-* )
-                echo "$key  $name" | { r=0
-                    cksum.py -a $ck -c - || r=$?
-                    test 0 -eq $r && echo "$name: ${ck} OK" || {
+                echo "$key  $name" | {
+                    cksum.py -a $ck -c -; r=$?
+                    test 0 -eq $r && echo "OK $ck $name" || {
+                        failcnt=$(( $failcnt + 1 ))
+                        echo "NOT OK $ck $name"
                         warn "Failed $ck '$key' for '$name'"
-                        return $r
                     }
                 }
               ;;
 
           # Default to generic <ck>sum CLI tools
           * )
-                echo "$key  $name" | { r=0
-                    ${ck}sum -s -c - || r=$?
-                    test 0 -eq $r && echo "$name: ${ck} OK" || {
+                echo "$key  $name" | {
+                    ${ck}sum --status -c -; r=$?
+                    test 0 -eq $r && echo "OK $ck $name" || {
+                        failcnt=$(( $failcnt + 1 ))
+                        echo "NOT OK $ck $name"
                         warn "Failed $ck '$key' for '$name'"
-                        return $r
                     }
                 }
               ;;
       esac
-
-      test 0 -eq $? || {
-        return 1
-      }
+      names=$names:$name
+      test $r -eq 0 || ret=$r
     done
 
-  } || r=$?
-
-  test 0 -eq $r -a $ret -eq 0 || {
-    error "failure in '$1' ($r, $ret)"
-    return 1
+    test $keycnt -gt 0 || {
+      error "No keys found"
+      ret=4
+    }
+    test $ret -eq 0 && {
+      note "Checked $namecnt names, $keycnt keys ($cat) OK"
+    } || {
+      warn "Checked $namecnt names, $keycnt keys: $failcnt failures ($cat)"
+      return $ret
+    }
   }
 }
 

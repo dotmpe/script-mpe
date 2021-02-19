@@ -235,3 +235,20 @@ define_var_from_opt () # Option [Var-Name-Pref]
     * ) error "Not an option '$1'" 1 ;;
   esac
 }
+
+argv_has_next ()
+{
+  test $# -gt 0 -a "${1-}" != "--"
+}
+
+argv_has_none ()
+{
+  test $# -eq 0 -o "${1-}" = "--"
+}
+
+argv_is_seq ()
+{
+  test "${1-}" = "--"
+}
+
+#

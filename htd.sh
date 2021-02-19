@@ -31,8 +31,8 @@ version=0.0.4-dev # script-mpe
 
 # Generic load/unload for subcmd
 
-htd__inputs="arguments prefixes options"
-htd__outputs="passed skipped error failed"
+htd_inputs="arguments prefixes options"
+htd_outputs="passed skipped error failed"
 
 htd_subcmd_load ()
 {
@@ -222,7 +222,7 @@ htd_subcmd_load ()
       ;;
 
     I ) # setup (numbered) IO descriptors for htd-input/outputs (requires i before)
-        req_vars $htd_inputs $htd_outputs
+        req_vars $htd_inputs $htd_outputs || return
         local fd_num=2 io_dev_path=$(io_dev_path)
         for fd_name in $htd_outputs $htd_inputs
         do
@@ -236,9 +236,9 @@ htd_subcmd_load ()
       ;;
 
     i ) # io-setup: set all requested io varnames with temp.paths
-        $LOG debug "" "Exporting inputs '$(try_value inputs "" htd)' and outputs '$(try_value outputs "" htd)'"
+        #inputs=$(try_value "" inputs htd)
+        $LOG debug "" "Exporting inputs '$htd_inputs' and outputs '$htd_outputs'"
         setup_io_paths -$subcmd-${htd_session_id}
-        export ${htd__inputs?} ${htd__outputs?}
       ;;
 
     l ) sh_include subcommand-libs || return ;;
@@ -340,8 +340,8 @@ htd_subcmd_unload ()
       ;;
 
     i ) # remove named IO buffer files; set status vars
-        clean_io_lists $htd__inputs $htd__outputs
-        htd_report $htd__outputs || unload_ret=$?
+        clean_io_lists $htd_inputs $htd_outputs
+        htd_report $htd_outputs || unload_ret=$?
       ;;
 
     P )
@@ -369,7 +369,9 @@ htd_subcmd_unload ()
 
   esac; done
 
-  clean_failed || unload_ret=1
+  test -e "${failed:-}" && {
+    clean_failed || unload_ret=1
+  }
 
   for var in $(try_value "${subcmd}" vars htd)
   do
@@ -1945,7 +1947,7 @@ htd__find_empty()
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
   stderr info "Compiling ignores..."
-  local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+  local find_ignores="$(ignores_find $IGNORE_GLOBFILE)"
   test -n "$find_ignores" || fail "Cannot compile find-ignores"
   eval find $1 -false $find_ignores -o -empty -a -print
 }
@@ -1955,7 +1957,7 @@ htd__find_empty_dirs()
   test -n "$1" || set -- .
   test -d "$1" || error "Dir expected '$?'" 1
   stderr info "Compiling ignores..."
-  local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+  local find_ignores="$(ignores_find $IGNORE_GLOBFILE)"
   test -n "$find_ignores" || fail "Cannot compile find-ignores"
   eval find $1 -false $find_ignores -o -empty -a -type d -a -print
 }
@@ -2082,7 +2084,7 @@ htd_load__check_names="ignores"
 htd__check_names()
 {
   test -n "$IGNORE_GLOBFILE" || error "IGNORE_GLOBFILE" 1
-  local find_ignores="$(find_ignores $IGNORE_GLOBFILE.names | lines_to_words)"
+  local find_ignores="$(ignores_find $IGNORE_GLOBFILE.names | lines_to_words)"
   test -z "$find_ignores" || find_ignores="-false $find_ignores -o"
 
   test -z "$1" && d="." || { d="$1"; shift 1; }

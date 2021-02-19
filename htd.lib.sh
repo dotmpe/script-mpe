@@ -376,7 +376,7 @@ htd_function_help()
 htd_find() # Dir [ Namespec ]
 {
   test -n "${find_match-}" || local find_match="-type f -o -type l"
-  test -n "${find_ignores-}" || local find_ignores="-false $(find_ignores $IGNORE_GLOBFILE)"
+  test -n "${find_ignores-}" || local find_ignores="-false $(ignores_find $IGNORE_GLOBFILE)"
   test -n "$1" || set -- "$PWD"
   match_grep_pattern_test "$1"
   {

@@ -73,7 +73,7 @@ format=[properties|sh]
     Formatter for properties (output)
 
 - status
-- index - see statusdir-index-spec unittest.
+- record - see statusdir-record-spec unittest.
 
 - logs TODO
 - tree TODO

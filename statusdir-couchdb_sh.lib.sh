@@ -2,9 +2,9 @@
 
 sd_couchdb_sh()
 {
-  test -n "$sd_be_timeout" || sd_be_timeout=3
-  test -n "$ccurl_f" || ccurl_f=--connect-timeout\ $sd_be_timeout
-  #test -n "$sd_be_maxtime" || sd_be_maxtime=15
+  test -n "${sd_be_timeout-}" || sd_be_timeout=3
+  test -n "${ccurl_f-}" || ccurl_f=--connect-timeout\ $sd_be_timeout
+  #test -n "${sd_be_maxtime-}" || sd_be_maxtime=15
   #test -n "$ccurl_f" || ccurl_f=--max-time\ 7\ --connect-timeout\ 3
 
   curl="curl -sf $ccurl_f"
@@ -57,6 +57,7 @@ sd_couchdb_sh()
             return $?
       ;;
     ping )
+        test -n "${COUCH_URL-}" -a -n "${COUCH_DB-}" || return
         $curl -So/dev/null "$COUCH_URL/$COUCH_DB" || return
       ;;
     list ) error "TODO couchdb $@" 1

@@ -331,6 +331,7 @@ std__usage()
   } || {
     printf "$scriptname $1: "
   }
+  return 64
 }
 
 std__commands()

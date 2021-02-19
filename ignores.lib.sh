@@ -163,7 +163,7 @@ glob_to_find_prune()
 }
 
 # Return find ignore flags for given exclude pattern file
-find_ignores()
+ignores_find ()
 {
   for a in $@
   do

@@ -62,7 +62,7 @@ err_() # [type] [cat] [msg] [tags] [status]
   test $# -gt 1 || set -- "$@" "" "" "" ""
   test -z "${verbosity:-}" -a -z "${DEBUG:-}" && return
   test -n "$2" || set -- "$1" "$base" "$3" "${4:-}" "${5:-}"
-  test -z "$verbosity" -a -n "$DEBUG" || {
+  test -z "${verbosity:-}" -a -n "${DEBUG:-}" || {
 
     case "$1" in [0-9]* ) true ;; * ) false ;; esac && {
       lvl=$(log_level_name "$1")
@@ -85,13 +85,18 @@ err_() # [type] [cat] [msg] [tags] [status]
 test_env_load()
 {
   test -n "$sh_tools" || return 103 # NOTE: sanity
-  test -n "$DEBUG" || DEBUG=
-  test -n "$INIT_LOG" || INIT_LOG=err_
+  test -n "${DEBUG-}" || DEBUG=
+  test -n "${INIT_LOG-}" || INIT_LOG=err_
 
   . ~/bin/.env.sh
 
   true "${U_S:="/srv/project-local/user-scripts"}"
-  . $U_S/tools/sh/parts/include.sh
+  . "$sh_tools/parts/fnmatch.sh"
+  . "$U_S/tools/sh/parts/include.sh"
+  . "$U_S/tools/ci/parts/print-err.sh"
+
+  . "$U_S/contexts/ctx-ctx.lib.sh" &&
+  ctx_lib_load
 
   test -n "${SCRIPTPATH:-}" || {
     SCRIPTPATH=
@@ -138,9 +143,15 @@ test_env_load()
 # Set env and other per-specfile init
 test_env_init()
 {
-  test "$TEST_ENV" = "test" &&
+  set -euo pipefail
+
+  test "${TEST_ENV:-"test"}" = "test" &&
       export scriptname=test:$base ||
       export scriptname=$TEST_ENV:test:$base
+
+  # For bats internals
+  test_number_in_suite=
+
   #test -n "$scriptname" && {
   #  test -z "$scriptname_d" && {
   #    scriptname_d="$scriptname test:$TEST_ENV"
@@ -200,12 +211,8 @@ init() # ( 0 | 1 [~ [~ [~]]] )
     test "$4" = "0" || init_sh_boot=$init_sh_boot' script'
   }
 
-# FIXME: deal with sub-envs wanting to know about lib-envs exported by parent
-# ie. something around ENV_NAME, ENV_STACK. Renamed ENV_SRC to LIB_SRC for now
-# and dealing only with current env, testing lib-load and tools, user-scripts.
-  LIB_SRC=
   . $U_S/tools/sh/init.sh
-  #. $u_s_util/init.sh
+# XXX: use dep U-S . $u_s_util/init.sh
 }
 
 

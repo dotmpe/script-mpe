@@ -79,7 +79,7 @@ main_make () # Script-Name
   # Declare an entry point for base unless main-bases is given
   { type_exists ${main_id}_main
   } || {
-    main_main "$1" "${main_default:-'help'}" "${main_aliases-}"
+    main_main "$1" "${main_default:-'usage'}" "${main_aliases-}"
   }
 
   type_exists ${main_id}_init ||

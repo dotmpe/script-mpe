@@ -69,7 +69,7 @@ doc_find_name()
   std_info "IGNORE_GLOBFILE=$IGNORE_GLOBFILE"
   local find_ignores="" find_=""
 
-  find_ignores="-false $(find_ignores $IGNORE_GLOBFILE | tr '\n' ' ')"
+  find_ignores="-false $(ignores_find $IGNORE_GLOBFILE | tr '\n' ' ')"
   find_="-false $(for ext in $DOC_EXTS ; do printf -- " -o -iname '*$ext'" ; done )"
 
   # XXX: doc-find_path_args

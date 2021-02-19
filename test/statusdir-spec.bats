@@ -6,12 +6,14 @@ init
 
 setup()
 {
+  load stdtest extra &&
   export \
     COUCH_DB=test \
     MC_PORT=11211
 }
 
 @test "statusdir.sh" "default no-args" {
+  # Default equals std__usage
   run $bin
   test_nok_nonempty || stdfail
 }
@@ -48,9 +50,9 @@ setup()
   run $bin backends
   test_ok_lines \
       "*fsdir found*" \
-      "*redis found*" \
-      "*membash_f found*" \
-      "*couchdb_sh found*" \
+      "*redis *" \
+      "*membash *" \
+      "*couchdb_sh *" \
       || stdfail
 }
 

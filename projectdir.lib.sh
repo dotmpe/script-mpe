@@ -913,7 +913,7 @@ pd_find_ignores()
   test -n "${IGNORE_GLOBFILE-}" -a -e "${IGNORE_GLOBFILE-}" && {
     #mv $a.merged $a.tmp
     #sort -u $a.tmp > $a.merged
-    find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+    find_ignores="$(ignores_find $IGNORE_GLOBFILE)"
   } || warn "Missing or empty IGNORE_GLOBFILE '$IGNORE_GLOBFILE'"
 
   find_ignores="-path \"*/.git\" -prune $find_ignores "

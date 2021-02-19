@@ -35,7 +35,7 @@ context_file ()
 }
 
 # List includes. Reference and path names.
-context_files()
+context_files () # ~
 {
   test -n "${context_tab-}" || local context_tab="$CTX_TAB"
   echo "$context_tab $context_tab"
@@ -43,7 +43,7 @@ context_files()
 }
 
 # Echo table after preproc
-context_tab ()
+context_tab () # ~
 {
   test -n "${context_tab-}" || local context_tab="$CTX_TAB"
 
@@ -57,13 +57,13 @@ context_tab ()
 }
 
 # List name IDs only
-context_tag_list()
+context_tag_list () # ~
 {
-  context_tab | cut -d' ' -f3 | cut -d':' -f1
+  context_tab | cut -d' ' -f3- | cut -d':' -f1
 }
 
 # List current context envs (CTX/CTXP and others)
-context_env_list() # [FMT]
+context_env_list () # ~ [FMT]
 {
   test $# -ge 1 || set -- env
   case "${1-}" in
@@ -182,6 +182,10 @@ context_check_inner()
 # Setting case-match / match-sub to 0 / 1 resp. makes those return 0.
 context_exists () # [case_match=1] [match_sub=0] ~ Tag
 {
+  true "${match_alias:=0}"
+  context_exists_alias "$1" && {
+    trueish "$match_alias " && return 0 || return 4
+  }
   true "${match_sub:=0}"
   context_exists_subtagi "$1" && {
     trueish "$match_sub" && return 0 || return 3
@@ -195,23 +199,29 @@ context_exists () # [case_match=1] [match_sub=0] ~ Tag
 }
 
 # Compile and match grep for tag with Ctx-Table
-context_exists_tag () # Tag
+context_exists_tag () # Tag [Grep-Fmt]
 {
+  test -n "${2-}" || set -- "$1" "${grep_fmt:-"id"}"
   generator=context_tab stattab_exists "$@"
 }
 
 # Compile and match grep for tag in Ctx-Table, case insensitive
-context_exists_tagi () # Tag
+context_exists_tagi () # Tag [Grep-Fmt]
 {
-  grep_f=-qi context_exists_tag "$@"
+  grep_f=${grep_f:-"-qi"} context_exists_tag "$@"
 }
 
 # Compile and match grep for sub-tag in Ctx-Table
 context_exists_subtagi ()
 {
-  test "unset" != "${grep_f-"unset"}" || local grep_f=-qi
-  match_grep_arg "$1"
-  context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^ ]*\/$p_:\?\\ "
+  #match_grep_arg "$1"
+  #context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^ ]*\/$p_:\?\\ "
+  generator=context_tab stattab_exists "$1" sub
+}
+
+context_exists_alias () # TAG
+{
+  generator=context_tab stattab_exists "$1" alias
 }
 
 # Return record for given ctx tag-id

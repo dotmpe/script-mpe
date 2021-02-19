@@ -5,6 +5,7 @@ sd_ramdir()
   # Get temporary dir: XXX move to ramdir
   test -n "$sd_tmp_dir" || sd_tmp_dir=$(setup_tmpd $base)
   test -n "$sd_tmp_dir" -a -d "$sd_tmp_dir" || error "sd_tmp_dir load" 1
+  local rtype="${fsd_rtype-"tree"}"
   local p=$sd_tmp_dir/$rtype k="${2-}" tlt="${3-}" v="${4-}"
 
   case "$1" in
@@ -25,7 +26,7 @@ sd_ramdir()
     del | \
     file | \
     ping | \
-    assert ) sd_ramdir=$sd_ramdir sd_ramdir "$@" ;;
+    assert ) false ;;
     * )
         echo "Error $0: $1 ($2)"
         exit 101

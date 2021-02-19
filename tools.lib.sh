@@ -66,14 +66,13 @@ tools_installed () # [B] ~ [Tools-JSON] Tool-Id
   test $# -le 2 -a -n "${2-}" || return 64
   test -n "${1-}" || set -- $B/tools.json "$2"
 
-  # Get one name if any
-  local bin="$(jsotk.py -sq -O py path $1 tools/$2/bin)"
-  test -z "$bin" -o "$bin" = "True" && bin="$2"
-  test -n "$bin" || {
-    warn "Not installed '$2' (bin/$bin)"
+  tools_exists "$1" "$2" || {
+    warn "No installable '$2' ($1)"
     return 1
   }
+  local bin="$(tools_bin "$1" "$2")"
 
+  # FIXME: can bin be a list? Nah...
   case "$bin" in
     "["*"]" )
         local k="htd:installed:$1:$2"
@@ -168,7 +167,7 @@ tools_GIT_install ()
 }
 
 # FIXME: cleanup
-tools_BIN_install ()
+tools_BIN_install () # ~ Tools-JSON Tool-Id
 {
   # TODO: move to git+bin?
   bin="$(jsotk.py -N -O py path $1 tools/$2/bin)"
@@ -202,33 +201,36 @@ tools_uninstall () # ~ Tools-JSON Tool-Id
   done
 }
 
-tools_SH_uninstall ()
+tools_SH_uninstall () # ~ Tools-JSON Tool-Id
 {
   eval "$(jsotk.py -O lines items $1 tools/$2/uninstall)"
 }
 
-tools_BASHER_uninstall ()
+tools_BASHER_uninstall () # id ~
 {
   basher uninstall $id
 }
 
-tools_NPM_uninstall ()
+tools_NPM_uninstall () # id ~
 {
   npm uninstall -g $id
 }
 
-tools_PIP_uninstall ()
+tools_PIP_uninstall () # id ~
 {
   pip uninstall --user $id
 }
 
 tools_generate_script () # ~ Tools-JSON Tool-Id
 {
+  #tools_exists "$1" "$2" || {
+  #  warn "No installable '$2' ($1)"
+  #  return 1
+  #}
   local installer id="$2" toolid; mkvid "$id"; toolid=$vid
   installer="$(jsotk.py -N -O py path $1 tools/$2/installer 2>/dev/null)"
   required="$(jsotk.py path --is-bool $1 tools/$2/required 2>/dev/null)"
-  bin="$(jsotk.py -N -O py path $1 tools/$2/bin 2>/dev/null)"
-  test -n "$bin" || bin=${2,,}
+  bin="$(tools_bin $1 $2)"
 
   test -z "$installer" -a ${required:-false} = "true" && {
     jsotk.py -qs path $1 tools/$2/depends && return
@@ -244,7 +246,7 @@ EOM
   tools_${installerid^^}_generate_script "$@"
 }
 
-tools_generate_script_function ()
+tools_generate_script_function () # >body ~ Func-Name
 {
   cat <<EOM
 $1 ()
@@ -256,7 +258,7 @@ $(cat -)
 EOM
 }
 
-tools_generate_script_function_post ()
+tools_generate_script_function_post () # ~ Tools-JSON Tool-Id
 {
   # FIXME: jsotk.py -qs path --is-new $1 tools/$2/post-$3 && return
   { jsotk.py -qs path --is-str $1 tools/$2/post-$3 && {
@@ -266,8 +268,9 @@ tools_generate_script_function_post ()
   }; } | sed 's/^/  /'
 }
 
-tools_SH_generate_script ()
+tools_SH_generate_script () # toolid ~ Tools-JSON Tool-Id
 {
+  local script
   for script in install uninstall
   do
     jsotk.py -qs path $1 tools/$2/$script || continue
@@ -278,7 +281,7 @@ EOM
   done
 }
 
-tools_BASHER_generate_script ()
+tools_BASHER_generate_script () # toolid ~ Tools-JSON Tool-Id
 {
   local package="$(jsotk.py -N -O py path $1 tools/$2/package 2>/dev/null)"
   test -n "$package" || package=$id
@@ -294,7 +297,7 @@ $(tools_generate_script_function_post "$@" uninstall)
 EOM
 }
 
-tools_PIP_generate_script ()
+tools_PIP_generate_script () # toolid ~
 {
   tools_generate_script_function install_${toolid} <<EOM
   pip install $id
@@ -307,7 +310,7 @@ $(tools_generate_script_function_post "$@" uninstall)
 EOM
 }
 
-tools_GIT_generate_script ()
+tools_GIT_generate_script () # toolid ~
 {
   tools_generate_script_function install_${toolid} <<EOM
   test -n "\${${toolid^^}_REPO-}" || ${toolid^^}_REPO=$( jsotk.py -N -O py path $1 tools/$2/repo )
@@ -334,7 +337,7 @@ $(tools_generate_script_function_post "$@" uninstall)
 EOM
 }
 
-tools_CURL_SH_generate_script ()
+tools_CURL_SH_generate_script () # toolid ~
 {
   tools_generate_script_function install_${toolid} <<EOM
   test -n "\${${toolid^^}_SH_URL-}" || ${toolid^^}_SH_URL=$( jsotk.py -N -O py path $1 tools/$2/url )
@@ -342,6 +345,19 @@ tools_CURL_SH_generate_script ()
 $(tools_generate_script_function_post "$@" install)
 EOM
   # TODO: uninstall URL
+}
+
+tools_exists () # ~ Tools-JSON Tool-Id
+{
+  jsotk.py path --is-obj "$1" "tools/$2"
+}
+
+tools_bin () # ~ Tools-JSON Tool-Id
+{
+  local bin="$(jsotk.py -N -O py path "$1" "tools/$2/bin" 2>/dev/null)"
+  test -z "$bin" && return 1
+  test "$bin" = "True" && bin="${2,,}"
+  echo "$bin"
 }
 
 tools_depends () # ~ Tools-JSON Tool-Id

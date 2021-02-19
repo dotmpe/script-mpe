@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+sd_scm () {
+  case "${1-}" in
+    ping ) true ;;
+  esac
+}
+
 statusdir_scm_lib_load ()
 {
   Statusdir__backend_types["scm"]=SCM

@@ -10,9 +10,9 @@ Objectives
 ----------
 Track contents, and annotate with name, descriptions wrt. type, format, etc.
 
-Keep one unqiue name per distinct file (stream/contents), or group several files
+Keep one unique name per distinct file (stream/contents), or group several files
 under one. |---|
-Ie. force contents to appear only once, wether as a unique basename or
+Ie. force contents to appear only once, whether as a unique basename or
 full-path. Implies other appearances of those exact contents can only be either
 an alias (sym/hardlink) or within another file. (and maybe also on/through other
 device/special files but those are too undefined for purposes here)
@@ -106,8 +106,56 @@ See schema/catalog, basicly a list with simple objects. Important keys:
 Use cases
 ---------
 
-Tracking existing and unavailable file name/metadata
+Track files by combination of basename and checksums
 ____________________________________________________
+- Multiple checksums can be tracked tracked, ie. CRC, MD5, SHA1.
+- Can de-duplicate filetree if all checksums of certain type have been calculated.
+- Having all known checksums makes finding any given file very easy given one or more catalogs.
+- Makes tracking older filenames less important.
+
+::
+
+  - name: .empty
+    exists: false
+    format: empty
+    mediatype: inode/x-empty; charset=binary
+    keys:
+      ck: 4294967295 0
+      crc32: 0 0
+      md5: d41d8cd98f00b204e9800998ecf8427e
+      sha1: da39a3ee5e6b4b0d3255bfef95601890afd80709
+      sha2: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+      git: e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+
+Track folders or groups
+_______________________
+- Folders or groups have no one natural order and therefor no checksums.
+- Not all files need to be tracked in individual entries, some may exist as part
+  of folders or maybe groups only.
+
+::
+
+  - name: My-Folder/
+    contains:
+    - index.html
+
+  - name: Group
+    members:
+    - My-Folder
+
+Recording original name, or previous and alternative names
+__________________________________________________________
+::
+
+    - name: X-Series.S01E01.tar.bz2
+      contains:
+      - X-Series.S01E01.tar
+      contexts:
+      - media/video/series/
+      - shared/torrent/complete/X-Series - grp - cam - 768.tar.bz2
+
+Tracking archives, and unavailable files
+________________________________________
 ::
 
     - name: X-Series.S01E01.tar.bz2
@@ -124,19 +172,6 @@ ____________________________________________________
       - X-Series.S01E01/
       contexts:
       - X-Series.S01E01.tar.bz2
-
-Recording original name, or previous names
-___________________________________________
-::
-
-    - name: X-Series.S01E01.tar.bz2
-      contains:
-      - X-Series.S01E01.tar
-      contexts:
-      - media/video/series/
-      - shared/torrent/complete/X-Series - grp - cam - 768.tar.bz2
-
-
 
 Tracking files with non-unique names, and archives
 __________________________________________________
@@ -162,7 +197,8 @@ __________________________________________________
       - X-Series.S01E01.tar
 
 
-This gets quite verbose, but is adequate. Some space could be saved by encoding
+This gets quite verbose, but is adequate.
+Some space could be saved by encoding
 the dirpath prefix for 'dir/' to './' in contents (and ofcourse otherwise
 forbidding this).
 

@@ -4,7 +4,7 @@ sd_fsdir()
 {
   local types="${fsd_types-"log index tree cache"}"
   local rtype="${fsd_rtype-"tree"}"
-  local l g c r p= k="${2-}" ttl= v="${4-}" time=$(date +'%s')
+  local l g c r p= k= ttl= v= time=$(date +'%s')
   sd_fsdir_settings &&
   local pref name suff ext new init &&
   sd_fsdir_inner "$@"
@@ -24,6 +24,7 @@ sd_fsdir_help='
     Echo raw data
   set NAME [TTL] VALUE [TYPE [META]]
   incr
+  index NAME [TTL] VALUE
   del
   list
   list-all
@@ -32,6 +33,8 @@ sd_fsdir_help='
     Read stdin to file.
   ping
     A quick alternative to "check", no output and 0-return status if in order.
+
+  exec [RTYPE [NAME]] [-- CMD]
 '
 
 sd_fsdir_inner()
@@ -43,12 +46,12 @@ sd_fsdir_inner()
     $LOG debug "" "FSDir running '$act', rest ($#):" "$*"
     case "$act" in
 
-      check ) local act=init ; has_next_arg "$@" && { act=$1; shift; }
-          has_no_arg "$@" || break
+      check ) local act=init ; argv_has_next "$@" && { act=$1; shift; }
+          argv_has_none "$@" || break
           sd_fsdir_check_$act
         ;;
 
-      stat ) has_no_arg "$@" || break
+      stat ) argv_has_none "$@" || break
           sd_fsdir_check sd_fsdir_status -le 1 && {
             test $sd_fsdir_status -eq 0 &&
               $LOG ok "" "Status OK, age: $(file_modification_age "$g")" ||
@@ -58,7 +61,7 @@ sd_fsdir_inner()
           }
         ;;
 
-      status ) has_no_arg "$@" || break
+      status ) argv_has_none "$@" || break
           sd_fsdir_check sd_fsdir_status -le 1 && {
             test $sd_fsdir_status -eq 0 &&
               $LOG ok "" "Status OK, age: $(file_modification_age "$g")" ||
@@ -72,7 +75,7 @@ sd_fsdir_inner()
             # Now add arguments to this command: all names, and run
             set -- $( sd_fsdir_inner list-all ) -- "$@"
             local entry_cnt=0 invalid_cnt=0
-            while has_next_arg "$@"
+            while argv_has_next "$@"
             do incr entry_cnt; sd_fsdir_entry_load "$1" && {
                     sd_fsdir_entry_validate || { r=$?
                         test $r -le ${sd_fsdir_status:-0} || sd_fsdir_status=$r
@@ -91,13 +94,13 @@ sd_fsdir_inner()
         ;;
 
       status-files )
-          has_next_arg "$@" && break
+          argv_has_next "$@" && break
           set -- status $( sd_fsdir_inner list-all-files )
           continue
         ;;
 
       validate )
-          while has_next_arg "$@"
+          while argv_has_next "$@"
           do sd_fsdir_entry_load "$1" && sd_fsdir_entry_validate || r=$?; shift
           done
         ;;
@@ -152,7 +155,7 @@ sd_fsdir_inner()
           done
         ;;
       get ) # NAME
-          test -n "$p" || { has_next_arg "$@" || return
+          test -n "$p" || { argv_has_next "$@" || return
             set -- load "$1" -- $act "$@"; continue; }
           shift 1
           test -e "$p/$k" && echo "$(cat "$p/$k")" || return
@@ -165,7 +168,7 @@ sd_fsdir_inner()
           } || {
             local type=${4:-data} meta=
             test $# -gt 3 && shift 4 || shift 3
-            while has_next_arg "$@"
+            while argv_has_next "$@"
             do meta="$meta${meta+ }$1"; shift
             done
             init=1
@@ -175,7 +178,7 @@ sd_fsdir_inner()
         ;;
       append )
           local v=
-          while has_next_arg "$@"
+          while argv_has_next "$@"
           do v="$v${v+ }$1"; shift
           done
           echo "$v" >> "$p/$k"
@@ -219,53 +222,56 @@ sd_fsdir_inner()
         ;;
       assert )
           test -d $p || mkdir -vp $p
-          echo $p/$k
+          echo $p/$1
           shift
         ;;
       index ) # [prefvar=$1_name_prefix] [extvar=$1_extension] ~ Local-Name [Exists]
-          { not_falseish "${2-}" || test -e "${STATUSDIR_ROOT}$rtype/$k"
+          { not_falseish "${2-}" || test -e "${STATUSDIR_ROOT}$rtype/$1"
           } || {
-            $LOG error "" "No such $rtype '$1'" "${STATUSDIR_ROOT}$rtype/$k"
+            $LOG error "" "No such $rtype '$act'" "${STATUSDIR_ROOT}$rtype/$1"
             return 2
           }
+          k="$1" && shift
 
           # Normally report local entry
-          test ${local:-1} -eq 1 && {
+          if test ${local:-1} -eq 1
+          then
             local LUP=$(statusdir_lookup_path)
-            lookup_first=${lookup_first:-1} lookup_path LUP $rtype/$k
-            return $?
-          }
+            lookup_test= lookup_first=${lookup_first:-1} lookup_path LUP $rtype/$k
 
-          echo "${STATUSDIR_ROOT}$rtype/$k"
-          shift
+          else
+            echo "${STATUSDIR_ROOT}$rtype/$k"
+          fi
+          argv_has_next "$@" && shift || true
         ;;
 
-      log )
-          type=log statusdir_run index "$@"
-          shift
+      log ) set -- index "$@"
         ;;
 
       path )
+          argv_has_next "$@" && { k="$1" && shift; }
           echo "${STATUSDIR_ROOT}$rtype/$k"
         ;;
 
-      attr ) has_next_arg "$@" || return
+      attr ) argv_has_next "$@" || return
           sd_fsdir_attr "$@" || return
-          while has_next_arg "$@"; do shift; done
+          while argv_has_next "$@"; do shift; done
         ;;
 
       exec )
-          has_next_arg "$@" && {
+          argv_has_next "$@" && {
             rtype=$1; shift; c=0
             sd_fsdir_entry_load "$@" || return
             shift $c
           }
-          has_next_seq "$@" && shift || true
+          argv_is_seq "$@" && shift || true
+          echo A name=${name-} k=${k-} rtype=${rtype-} c:$*
           sd_fsdir_exec "$@" || return
-          while has_next_arg "$@"; do shift; done
+
+          while argv_has_next "$@"; do shift; done
         ;;
 
-      commit ) has_no_arg "$@" || break
+      commit ) argv_has_none "$@" || break
           grep -q "^sd_fsdir_status=$sd_fsdir_status\$" "$g" && touch "$g" || {
             sd_fsdir_set sd_fsdir_status "$sd_fsdir_status"
             $LOG "info" "" "Updated sd-fsdir-status" "$sd_fsdir_status"
@@ -308,8 +314,8 @@ sd_fsdir_entry_load () # NAME [TTL [META]]
 {
   test $# -gt 0 || return 98
   local n=$#; name=$1; shift
-  has_next_arg "$@" && { ttl=$1; shift; }
-  while has_next_arg "$@"
+  argv_has_next "$@" && { ttl=$1; shift; }
+  while argv_has_next "$@"
   do meta="${meta-}${meta+ }$1"; shift
   done
   c=$(( $n - $# ))
@@ -327,7 +333,7 @@ sd_fsdir_load () # NAME [TTL [META]]
     test ${init:-0} -eq 1 && {
       $LOG note "" "New" "$1"
     } || {
-      $LOG error "" "cannot create" "$1"
+      $LOG error "" "no such" "$1"
       return 1
     }
     test -n "$ttl" || ttl="\$_1DAY"
@@ -390,7 +396,7 @@ sd_fsdir_check_init () {
 sd_fsdir_attr ()
 {
   local varname
-  while has_next_arg "$@"
+  while argv_has_next "$@"
   do
     varname=${name}_$1
     echo ${!varname}
@@ -460,15 +466,17 @@ sd_fsdir_entry_validate ()
 sd_fsdir_exec () # [Cmd-Line]
 {
   local outf cmdl execdir ret
-  cmdl=$(sd_fsdir_attr cmd 2>/dev/null)
   test ${new:-0} -eq 0 && {
+    cmdl=$(sd_fsdir_attr cmd 2>/dev/null)
+    # override existing record cmdline if different
     test $# -eq 0 -o "$*" = "$cmdl" || cmdl="$*"
   } ||
     cmdl="$*"
   execdir=$(sd_fsdir_attr pwd 2>/dev/null)
   test -n "$execdir" || execdir="$PWD"
+  test -n "${name-}" || return 10
   test -n "$rtype" || return 11
-  outf="${STATUSDIR_ROOT}$rtype/$k"
+  outf="${STATUSDIR_ROOT}$rtype/$name"
 
   { ( cd "$execdir" && eval "$cmdl" ) || ret=$?
   } > "$outf.stdout" 2> "$outf.stderr"
@@ -548,6 +556,11 @@ sd_fsdir_cache_update ()
 { true
 }
 
+statusdir_fsdir_lib_load ()
+{
+  lib_assert argv || return
+}
+
 statusdir_fsdir_lib_init ()
 {
   #test ${ctx_statusdir_lib_init:-1} -eq 0 ||
@@ -589,21 +602,6 @@ class.Statusdir.FSDir () # Instance-Id Message-Name Arguments...
         $LOG error "" "No such endpoint '$m' on" "$($self.info)" 1
       ;;
   esac
-}
-
-has_next_arg ()
-{
-  test $# -gt 0 -a "${1-}" != "--"
-}
-
-has_no_arg ()
-{
-  test $# -eq 0 -o "${1-}" = "--"
-}
-
-has_next_seq ()
-{
-  test "${1-}" = "--"
 }
 
 #

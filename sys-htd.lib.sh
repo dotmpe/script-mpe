@@ -88,7 +88,7 @@ req_vars()
 {
   while test $# -gt 0
   do
-    sh_isset "$1" || return 1
+    sh_isset "$1" || { $LOG error "" "Missing variable" "$1"; return 1; }
     shift
   done
 }

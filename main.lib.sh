@@ -410,7 +410,9 @@ main_subcmd_run ()
     $LOG crit "" "No such subcommand defined '$subcmd'" "$baseids"
     return 249
   }
-  $LOG note "" "Running '$scriptname:$subcmd'..."
+  test $verbosity -gt 5 &&
+    $LOG note "" "Running '$scriptname:$subcmd'..."  "$subcmd_func" ||
+    $LOG note "" "Running '$scriptname:$subcmd'..."
   $subcmd_func "$@" && r=0 || { r=$?
     $LOG error "" "Command '$scriptname:$subcmd' failed" "$r"
   }
@@ -480,6 +482,7 @@ run_check()
   s= p= subcmd_prefs=${base}_check_ try_subcmd_prefixes "$1"
 
   return $?
+# XXX: cleanup
 
 #    check:
 #      # - htd vcflow check-doc

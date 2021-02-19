@@ -65,7 +65,7 @@ EOM
   complete -F __box_ac_${base} $1.sh $1
 }
 
-script_load str-uc std-uc &&
+uc_lib_load str-uc std-uc &&
 
 for box in box diskdoc docker-sh esop graphviz htd htd ino list match meta-sh \
     redmine rst script-sh srv tasks topics twitter vagrant-sh vc x-test

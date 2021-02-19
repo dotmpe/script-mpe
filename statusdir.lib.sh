@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Statusdir - key-value storage, service wrappers
+## Key-value storage/service wrappers
 
 
 statusdir_lib_load ()
@@ -134,7 +134,7 @@ statusdir_finish()
 
 # TODO: record status/... descriptor bits
 # TODO: display ext/ttl/prefix/meta descriptor bits
-statusdir_record()
+statusdir_record () #
 {
   # Won't track or can't track
   true "${keep_track:=1}"
@@ -155,21 +155,6 @@ statusdir_record()
   esac
 }
 
-statusdir_cache()
-{
-  sd_base=cache action=contents statusdir_mainnew "$@"
-}
-
-statusdir_cache_file()
-{
-  sd_base=cache action=file statusdir_mainnew"$@"
-}
-
-statusdir_cache_notify()
-{
-  sd_base=cache action=notify statusdir_mainnew "$@"
-}
-
 # Load global settings
 statusdir_settings() #
 {
@@ -180,9 +165,9 @@ statusdir_settings() #
 
 # Execute command or function and cache stdout, or return existing cache.
 # If the command errors, trash the result, keep quiet and return status.
-# See statusdir-index-spec comments on the argument and expiration logic.
+# See statusdir-record-spec comments on the argument and expiration logic.
 # TODO: combine with fsdir backend
-statusdir_mainnew () # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>] ] [<Id>] [-- Cmd]
+statusdir_record () # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>] ] [<Id>] [-- Cmd]
 {
   test -n "$sd_log" || return 103
   local age_sec= expire_sec= cache_id= cache_file is=0
@@ -192,19 +177,19 @@ statusdir_mainnew () # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>]
       test "$1" == "--" && break
       fnmatch "[@0-9]*" "$1" && {
         test -z "$age_sec" && age_sec=$1 || {
-          test -z "$expire_sec" && expire_sec=$1 || return 98
+          test -z "$expire_sec" && expire_sec=$1 || return 64
         }
       } || {
-        test -z "$cache_id" && cache_id=$1 || return 98
+        test -z "$cache_id" && cache_id=$1 || return 64
       }
       shift
     done
+  test "$1" == "--" || return 64
+  shift
+
   test -n "$cache_id" || cache_id=$(mkvid "$*" && echo "$vid")
   test -n "$age_sec" || age_sec=$STATUSDIR_EXPIRY_AGE
   test -n "$expire_sec" || expire_sec=$STATUSDIR_CLEAN_AGE
-
-  test "$1" == "--" || return 98
-  shift
 
   #test $# -gt 3 && {
   #    statusdir_record init "$@" || return
@@ -267,18 +252,13 @@ statusdir_mainnew () # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>]
 
       file ) echo "$cache_file" ;;
 
-      file-contents )
-          sd_file_update "$@"
-          echo "$cache_file"
-          return $is
-        ;;
-
       contents )
           sd_file_update "$@"
           sd_file_contents || return
         ;;
 
       notify )
+          # TODO: fork
           sd_file_update "$@"
           sd_notify
         ;;

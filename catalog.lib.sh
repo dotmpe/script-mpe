@@ -143,7 +143,7 @@ catalog_listdir()
 htd_catalog__listtree() # List untracked or find all unignored ~ Path
 {
   test -n "$1" || set -- "."
-  local scm='' ; trueish "$use_find" || vc_getscm "$1"
+  local scm='' ; test ${use_find:-0} -eq 1 || vc_getscm "$1"
   { test -n "$scm" && {
     std_info "SCM: $scm (listing untracked/ignored only)"
     req_cons_scm
@@ -152,12 +152,12 @@ htd_catalog__listtree() # List untracked or find all unignored ~ Path
       { vc.sh ufx || error "Listing with from SCM" 1; } ; } ||
       { vc.sh uf || error "Listing from SCM" 1; };
   } || {
-    trueish "$use_find" &&
+    test ${use_find:-0} -eq 1 &&
       std_info "Override SCM, tracking files directly ($Catalog_Ignores)" ||
       std_info "No SCM, tracking files directly ($Catalog_Ignores)"
     { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY
     } || htd_catalog__update_ignores
-    local find_ignores="-false $(find_ignores "$Catalog_Ignores") "\
+    local find_ignores="-false $(ignores_find "$Catalog_Ignores") "\
 " -o -exec test ! \"{}\" = \"$1\" -a -e \"{}/$CATALOG_DEFAULT\" ';' -a -prune "\
 " -o -exec test -e \"{}/$CATALOG_IGNORE_DIR\" ';' -a -prune "\
 " -o -exec test ! -d \"{}\" ';' "
@@ -235,32 +235,32 @@ htd_catalog__organize() # ~ Path
 }
 
 # Read (echo) checksums from catalog
-htd_catalog__ck() # CATALOG
+htd_catalog__ck () # ~ CATALOG
 {
-  test -n "$1" -a -e "$1" || error "catalog filename arguments expected" 1
+  test -n "${1-}" || set -- $CATALOG
   ck_read_catalog "$1"
 }
 
-# Run all checksums from catalog
-htd_catalog__fsck()
+# Run all checksums from catalog (recalc from file and compare)
+htd_catalog__fsck () # ~ CATALOG
 {
-  test -n "$1" || set -- $CATALOG
+  test -n "${1-}" || set -- $CATALOG
   ck_run_catalog "$@"
 }
 
 # Run all checksums for all catalogs
-htd_catalog__fsck_all()
+htd_catalog__fsck_all ()
 {
   ck_run_catalogs
 }
 
-
-# Update status (validate doc, set full=1 to check filetree index and checksums)
+# Update status (validate doc, set --full=1 to check filetree index and checksums)
 htd_catalog__check()
 {
-  test ! -e $Catalog_Status -o "$(filesize $Catalog_Status)" != "0" ||
-    rm "$Catalog_Status"
+  # Clean empty status-file
+  test ! -e "$Catalog_Status" -o -s "$Catalog_Status" || rm "$Catalog_Status"
 
+  # Renew status-file if older than catalog
   test -e $Catalog_Status -a $CATALOG -ot $Catalog_Status || {
     {
         ( htd_catalog__validate "$CATALOG" >/dev/null
@@ -269,7 +269,7 @@ htd_catalog__check()
         ( htd_catalog__index "$CATALOG" >/dev/null
         ) && echo index=0 || echo index=$?
 
-        trueish "$full" && {
+        test ${choice_full:-0} -eq 1 && {
 
           ( htd_catalog__fsck "$CATALOG" >/dev/null
           ) && echo fsck=0 || echo fsck=$?
@@ -303,7 +303,7 @@ req_catalog_status()
 # Set full to fsck subsequently.
 htd_catalog__status()
 {
-  trueish "$global" && {
+  test ${choice_global:-0} -eq 1 && {
 
     htd_catalog__req_global | sed 's/\.ya\?ml$//' | while read catalog; do
         #htd_catalog__check || return

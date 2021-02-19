@@ -400,7 +400,7 @@ htd__find()
   test -z "$2" || error "surplus argumets '$2'" 1
 
   note "Compiling ignores..."
-  local find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+  local find_ignores="$(ignores_find $IGNORE_GLOBFILE)"
 
   test -n "$FINDPATH" || {
     note "Looking in all volumes"

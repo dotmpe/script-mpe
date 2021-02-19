@@ -12,7 +12,7 @@ sd_redis()
     incr ) redis-cli INCR "$2" || return ;;
     decr ) redis-cli DECR "$2" || return ;;
     del ) redis-cli DEL "$2" || return ;;
-    ping ) redis-cli PING 2>&1 >/dev/null || return ;;
+    ping ) redis-cli PING >/dev/null 2>&1 || return ;;
 
     scan|list )
         test -n "$2" || set -- "$1" 0

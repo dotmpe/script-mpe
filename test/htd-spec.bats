@@ -355,12 +355,12 @@ setup() {
   # paths for additional output streams.
   run htd_eval iAO arguments
   test_ok_nonempty "/*arguments*" || stdfail inputs.1
-  run htd_eval iAO htd__inputs
+  run htd_eval iAO htd_inputs
   test_ok_nonempty "arguments prefixes options" || stdfail inputs.2
 
   run htd_eval iAO passed
   test_ok_nonempty || stdfail outputs.1
-  run htd_eval iAO htd__outputs
+  run htd_eval iAO htd_outputs
   test_ok_nonempty "passed skipped error failed" || stdfail outputs.2
 }
 

@@ -167,7 +167,7 @@ lst__list_paths()
   set -- "$(cat $arguments)"
   req_cdir_arg "$@"
   shift 1; test -z "$@" || error surplus-arguments 1
-  local find_ignores="$(find_ignores $IGNORE_GLOBFILE) $(lst__list_paths_opts)"
+  local find_ignores="$(ignores_find $IGNORE_GLOBFILE) $(lst__list_paths_opts)"
   # FIXME: some nice way to get these added in certain contexts
   find_ignores="-path \"*/.git\" -prune $find_ignores "
   find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "

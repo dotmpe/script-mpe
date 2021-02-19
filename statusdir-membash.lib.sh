@@ -1,11 +1,12 @@
 #!/bin/sh
 
 # Memcache client in Bash. See tools.yml.
-sd_membash_f()
+sd_membash ()
 {
   case "$1" in
     ping )
-        test -n "$(membash stats)"
+        test -x "$(which membash)" || return
+        test -n "$(membash stats)" || return
       ;;
     list )
         membash list_all_keys || return
@@ -28,7 +29,7 @@ sd_membash_f()
         membash "$@" || return
       ;;
     * )
-        echo "Error $0: $1 ($2)"
+        echo "Error $0: $1 ($*)"
         exit 101
       ;;
   esac

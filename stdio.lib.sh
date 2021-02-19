@@ -14,11 +14,11 @@ stdio_lib_init()
 
 
 # setup-io-paths: helper names all temp. IO files (setup_tmpf)
-setup_io_paths() # Tmp-Prefix Base
+setup_io_paths () # ~ Tmp-Prefix Base
 {
-  test -n "$1" || error "Unique prefix for proc expected" 1
+  test -n "${1-}" || error "Unique prefix for proc expected" 1
   fnmatch "*/*" "$1" && error "Illegal chars" 12
-  for io_name in $(try_value inputs "" $base) $(try_value outputs "" $base)
+  for io_name in $(try_value "" inputs $base) $(try_value "" outputs $base)
   do
     tmpname=$(setup_tmpf .$io_name $1)
     touch $tmpname

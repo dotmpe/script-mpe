@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+sd_archive () {
+  case "${1-}" in
+    ping ) true ;;
+  esac
+}
+
 statusdir_archive_lib_load ()
 {
   Statusdir__backend_types["archive"]=Archive

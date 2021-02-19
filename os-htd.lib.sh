@@ -843,15 +843,16 @@ isnonemptydir()
   test -d "$1" -a "$(echo $1/*)" != "$1/*"
 }
 
-find_one()
+find_one () # ~ DIR NAME
 {
-  find_num "$@"
+  test $# -eq 2 || return 64
+  find_num "$@" 1
 }
 
-find_num()
+find_num () # ~ DIR NAME [NUM]
 {
-  test -n "$1" -a -n "$2" || error "find-num '$*'" 1
-  test -n "$3" || set -- "$@" 1
+  test -n "${1-}" -a -n "${2-}" || error "find-num '$*'" 1
+  test -n "${3-}" || set -- "$@" 1
   local c=0
   find "$1" -iname "$2" | while read -r path
   do

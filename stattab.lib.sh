@@ -147,7 +147,9 @@ stattab_grep () # <Sttab-Id> [<Entry-Type>] [<Stat-Tab>]
     local p_; match_grep_arg "$1"
     case "${2:-"local"}" in
       id )
-          $ggrep $grep_f "^[0-9 +-]*$p_:\\?\\(\\ \\|\$\\)" ;;
+          $ggrep $grep_f "^[0-9 +-]* $p_:\\?\\(\\ \\|\$\\)" ;;
+      alias|ids )
+          $ggrep $grep_f "^[0-9 +-]* \\([^:]\+\\ \\)\?$p_\\(\\ [^:]\+\\)\?:\\(\\ \\|\$\\)" ;;
       local )
           $ggrep $grep_f "^[0-9 +-]* [^:]*:$p_:\?\(\\ \|\$\)" ;;
       sub )
@@ -162,7 +164,7 @@ stattab_grep () # <Sttab-Id> [<Entry-Type>] [<Stat-Tab>]
 
 stattab_exists () # <Stat-Id> [<Stat-Tab>] [<Entry-Type>]
 {
-  grep_f=-q stattab_grep "$@"
+  grep_f=${grep_f:-"-q"} stattab_grep "$@"
 }
 
 # Helper for other stattab-base; runs stattab-act on every parsed entry

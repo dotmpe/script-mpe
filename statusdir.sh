@@ -256,38 +256,54 @@ statusdir__has()
 
 statusdir__members()
 {
-  test -n "${1-}" || error "key expected" 1
+  test -n "${1-}" || error "key expected" 64
   test $# -eq 1 -a -z "${2-}" || error "surplus arguments '$2'" 1
   $sd_be_h members "$1" || return $?
 }
 
 statusdir__add()
 {
-  test -n "${1-}" || error "key expected" 1
-  test -n "${2-}" || error "member expected" 1
+  test -n "${1-}" || error "key expected" 64
+  test -n "${2-}" || error "member expected" 64
   test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
   $sd_be_h add "$@" || return $?
 }
 
 statusdir__rem()
 {
-  test -n "${1-}" || error "key expected" 1
-  test -n "${2-}" || error "member expected" 1
+  test -n "${1-}" || error "key expected" 64
+  test -n "${2-}" || error "member expected" 64
   test $# -eq 2 -a -z "${3-}" || error "surplus arguments '$3'" 1
   $sd_be_h rem "$@" || return $?
 }
 
-
 statusdir__be()
 {
-  test -n "${1-}" || error "cmd expected" 1
+  test -n "${1-}" || error "cmd expected" 64
   $sd_be_h "$@"
 }
 
 statusdir__x()
 {
-  test -n "${1-}" || error "cmd expected" 1
+  test -n "${1-}" || error "cmd expected" 64
   $sd_be_h x "$@"
+}
+
+statusdir_man_1__record='
+Examples:
+
+  sd record --contents -- ls -la
+  sd record --file -- ls -la
+  sd record --notify -- ls -la
+'
+statusdir__record ()
+{
+  local action
+  test ${choice_contents:-0} -eq 1 && action=contents
+  test ${choice_file:-0} -eq 1 && action=file
+  test ${choice_notify:-0} -eq 1 && action=notify
+  true "${action:="contents"}"
+  sd_base=cache statusdir_record "$@"
 }
 
 
@@ -307,23 +323,9 @@ statusdir_man_1__edit='Edit this script and files'
 statusdir_spc__edit='-e|edit [FILES]'
 statusdir__edit()
 {
-  $EDITOR $0 $(which $base.sh) "$@"
+  $EDITOR $0 $script $(lib_path statusdir)
 }
 statusdir_als___e=edit
-
-
-
-statusdir_main_usage()
-{
-    cat <<EOM
-statusdir.sh - Wrapper for simple access to memory store and DB services.
-
-Usage:
-    statusdir <cmd> [<args>..]
-
-EOM
-}
-
 
 
 # Script main functions
@@ -339,16 +341,16 @@ main-init-env \
   #export verbosity
 
 main-load \
-    test -n "$flags" || flags=b
+  test -n "$flags" || flags=b
+  CWD=$PWD && . $U_S/tools/sh/init-include.sh &&
+    sh_include debug-exit
 
 #  statusdir_lib_start && statusdir_start
 main-load-flags \
-    - ) ;; \
     b ) statusdir_start || return ;; \
     * ) stderr error "No such flag (sub-command $subcmd): load $x" 1 ;;
 
 main-unload-flags \
-    - ) ;; \
     b ) statusdir_finish ;; \
     * ) stderr error "No such flag (sub-command $subcmd): unload $x" 1 ;;
 
