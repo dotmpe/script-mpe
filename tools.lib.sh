@@ -48,7 +48,7 @@ tools_list () # [B] ~ [tools.json]
 {
   test $# -le 1 || return 64
   test -n "${1-}" || set -- $B/tools.json
-  # 'required' indicates entries dont provide an installer but indicate a prerequisite
+  # 'required' entries dont have an installer option itself
   jq -r '.tools | to_entries[] | select(.value.required==null) | .key' "$1"
 }
 
@@ -232,13 +232,15 @@ tools_generate_script () # ~ Tools-JSON Tool-Id
   required="$(jsotk.py path --is-bool $1 tools/$2/required 2>/dev/null)"
   bin="$(tools_bin $1 $2)"
 
-  test -z "$installer" -a ${required:-false} = "true" && {
-    jsotk.py -qs path $1 tools/$2/depends && return
-    tools_generate_script_function install_${toolid} <<EOM
-  test -x "\$(which $bin)" || stderr_ "Sorry, $2 is required" 1
-EOM
-    return
-  }
+#  # Special case for non-installable targets
+#  test -z "$installer" -a ${required:-false} = "true" && {
+#    jsotk.py -qs path $1 tools/$2/depends && return
+#    tools_generate_script_function install_${toolid} <<EOM
+#  test -x "\$(which $bin)" || stderr_ "Sorry, $2 is required" 1
+#EOM
+#    return
+#  }
+
   true "${installer:=sh}"
   local vid installerid; mkvid "$installer"; installerid=$vid
   func_exists tools_${installerid^^}_generate_script ||
@@ -258,14 +260,19 @@ $(cat -)
 EOM
 }
 
-tools_generate_script_function_post () # ~ Tools-JSON Tool-Id
+tools_generate_script_function_from_json () # ~ Tools-JSON Tool-Id Key
 {
   # FIXME: jsotk.py -qs path --is-new $1 tools/$2/post-$3 && return
-  { jsotk.py -qs path --is-str $1 tools/$2/post-$3 && {
-    jsotk.py -O py path $1 tools/$2/post-$3
+  { jsotk.py -qs path --is-str $1 tools/$2/$3 && {
+    jsotk.py -O py path $1 tools/$2/$3
   } || {
-    jsotk.py -O lines items $1 tools/$2/post-$3
+    jsotk.py -O lines items $1 tools/$2/$3
   }; } | sed 's/^/  /'
+}
+
+tools_generate_script_function_post () # ~ Tools-JSON Tool-Id
+{
+  tools_generate_script_function_from_json "$1" "$2" post-$3
 }
 
 tools_SH_generate_script () # toolid ~ Tools-JSON Tool-Id
@@ -276,7 +283,7 @@ tools_SH_generate_script () # toolid ~ Tools-JSON Tool-Id
     jsotk.py -qs path $1 tools/$2/$script || continue
     tools_generate_script_function ${script}_${toolid} <<EOM
   test \$# -eq 0 || return 64
-$( jsotk.py -O lines items $1 tools/$2/$script | sed 's/^/  /')
+$( tools_generate_script_function_from_json "$1" "$2" $script | sed 's/^/  /')
 EOM
   done
 }
@@ -310,15 +317,29 @@ $(tools_generate_script_function_post "$@" uninstall)
 EOM
 }
 
-tools_GIT_generate_script () # toolid ~
+tools_APT_generate_script () # toolid ~
 {
   tools_generate_script_function install_${toolid} <<EOM
-  test -n "\${${toolid^^}_REPO-}" || ${toolid^^}_REPO=$( jsotk.py -N -O py path $1 tools/$2/repo )
+  apt install $id
+$(tools_generate_script_function_post "$@" install)
+EOM
+
+  tools_generate_script_function uninstall_${toolid} <<EOM
+  apt uninstall $id
+$(tools_generate_script_function_post "$@" uninstall)
+EOM
+}
+
+tools_GIT_generate_script () # toolid ~
+{
+  local repo="$( jsotk.py -N -O py path $1 tools/$2/repo )"
+  local base=$( jsotk.py -N -O py path $1 tools/$2/base 2>/dev/null )
+  test -n "$base" || base="\$SRC_PREFIX/$2"
+
+  tools_generate_script_function install_${toolid} <<EOM
+  test -n "\${${toolid^^}_REPO-}" || ${toolid^^}_REPO=$repo
   test -n "\${${toolid^^}_BRANCH-}" || ${toolid^^}_BRANCH=$( jsotk.py -N -O py path $1 tools/$2/branch 2>/dev/null || echo master )
-  test -n "\${${toolid^^}_BASE-}" || ${toolid^^}_BASE=$( jsotk.py -N -O py path $1 tools/$2/base 2>/dev/null )
-  test -n "\$${toolid^^}_BASE" || {
-    ${toolid^^}_BASE="\$SRC_PREFIX/\$(basename "\$(dirname "\$${toolid^^}_REPO")")/\$(basename "\$${toolid^^}_REPO" .git)"
-  }
+  test -n "\${${toolid^^}_BASE-}" || ${toolid^^}_BASE=$base
 
   test -d "\$${toolid^^}_BASE" || {
     git clone "\$${toolid^^}_REPO" "\$${toolid^^}_BASE" || return
@@ -331,7 +352,7 @@ $(tools_generate_script_function_post "$@" install)
 EOM
 
   tools_generate_script_function uninstall_${toolid} <<EOM
-  test -n "\${${toolid^^}_BASE-}" || ${toolid^^}_BASE=$( jsotk.py -N -O py path $1 tools/$2/base 2>/dev/null )
+  test -n "\${${toolid^^}_BASE-}" || ${toolid^^}_BASE=$base
   rm -rf "\$${toolid^^}_BASE"
 $(tools_generate_script_function_post "$@" uninstall)
 EOM
@@ -352,11 +373,18 @@ tools_exists () # ~ Tools-JSON Tool-Id
   jsotk.py path --is-obj "$1" "tools/$2"
 }
 
+tools_required () # ~ Tools-JSON Tool-Id
+{
+  local required="$(jsotk.py -O py path "$1" "tools/$2/required" 2>/dev/null)"
+  test "$bin" != "False"
+}
+
 tools_bin () # ~ Tools-JSON Tool-Id
 {
-  local bin="$(jsotk.py -N -O py path "$1" "tools/$2/bin" 2>/dev/null)"
-  test -z "$bin" && return 1
-  test "$bin" = "True" && bin="${2,,}"
+  local bin="$(jsotk.py -O py path "$1" "tools/$2/bin" 2>/dev/null)"
+  test "$bin" = "False" && return 1
+  test "$bin" = "True" && bin=
+  test -z "$bin" && bin="${2,,}"
   echo "$bin"
 }
 
@@ -368,7 +396,12 @@ tools_depends () # ~ Tools-JSON Tool-Id
     tools_depends $1 $installer
     echo "$installer"
   }
-  jsotk.py -N -O py path $1 tools/$2/depends 2>/dev/null |
+  {
+    jsotk.py -qs path --is-list $1 tools/$2/depends && {
+      jsotk.py -O lines items $1 tools/$2/depends
+    } || {
+      jsotk.py -O py path $1 tools/$2/depends 2>/dev/null
+  }; } |
     tr ' ' '\n' | while read dep
       do
         tools_depends $1 $dep

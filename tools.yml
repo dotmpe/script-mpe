@@ -1,5 +1,7 @@
 id: "#"
 description: Named prerequisite packages and metadata on provisioning. See tools.rst
+scriptpath: .
+libs:
 
 tools:
 # XXX: cleanup

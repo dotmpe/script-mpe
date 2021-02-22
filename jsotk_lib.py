@@ -865,6 +865,8 @@ typemap = {
 def maptype(typestr):
     if typestr == 'null':
         return type(None)
+    if typestr == 'list':
+        return list
     if typestr in typemap:
         return locate(typemap[typestr])
     return locate(typestr)

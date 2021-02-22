@@ -60,6 +60,7 @@
       Derive: <Derive-{To,From}>
       Modeline-Derive-From: <Modeline-Derive> <Ml-Derive> <Ml-From>
       Copy: <To> <From>
+  # Usage `htd scripts run <script>`
   scripts:
     ci: lib_load build && list_builds \"\$@\"
     test2:
@@ -113,6 +114,8 @@
     - . ./tools/ci/parts/init.sh
     - scriptname=script
     - . ./tools/ci/parts/build.sh
+    #build:
+    #  - compo-seq c-groups tools -- tools-main generate > install-dependencies.sh
     test:
     - lib_load build-test
     - test -n "\$1" || before_test
