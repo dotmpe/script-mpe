@@ -26,13 +26,15 @@ env_face=cosmike
 test -n "$vlock_screen" || vlock_screen=minimal
 test -z "$1" || vlock_screen=$1
 
+HISTNUM="$(wc -l ~/.bash_history | awk '{print $1}')"
+
 case "$vlock_screen" in
 
     minimal )
             eval $vpadd $vpadd $vpadd
             printf -- "$esc[0;35m"
             figlet -c -w$cols -f big $(date +%H:%M)
-            figlet -c -w$cols -f term $(date +"%y.$(( 1 + $(date +"%U") )) %A")
+            figlet -c -w$cols -f term $(date +"%V'%y %A")
             eval \
                 $vpadd\
                 $vpadd
