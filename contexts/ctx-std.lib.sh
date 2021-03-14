@@ -1,4 +1,4 @@
-#_f56eMnr !/bin/sh
+#!/bin/sh
 
 ctx_std_defines=@Std
 ctx_std_depends=@Base
@@ -435,3 +435,23 @@ std__version()
     echo "$scriptname/$version"
   }
 }
+
+at_Std__at_Rules__trigger='*min *hours *days *weeks *months'
+at_Std__at_Rules__trigger () # Id Spec
+{
+  test $# -eq 2 || return 64
+  local seconds=
+  case "$2" in
+    *sec )    seconds=${2//sec/} ;;
+    *min )    seconds=$(( 60 * ${2//min/} )) ;;
+    *hours )  seconds=$(( 60 * 60 * ${2//hours/} )) ;;
+    *days )   seconds=$(( 24 * 60 * 60 * ${2//days/} )) ;;
+    *weeks )  seconds=$(( 7 * 24 * 60 * 60 * ${2//weeks/} )) ;;
+    *months ) seconds=$(( 4 * 7 * 24 * 60 * 60 * ${2//months/} )) ;;
+  esac
+
+  test -s "$stat" || return 0
+  newer_than "$out" "$seconds" && return 1 || return 0
+}
+
+#

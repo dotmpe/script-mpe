@@ -2,7 +2,7 @@
 # Cols: Target-Name Target-Type Target-Value...
 init alias install check
 install alias install-deps
-check alias lint tools-check
+check alias lint
 build alias check src-sh manual
 test alias test/baselines test/required
 pack alias

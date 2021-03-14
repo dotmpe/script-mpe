@@ -4,11 +4,12 @@ set -euo pipefail
 redo-ifchange "sh-files.list" "$REDO_BASE/package.yaml"
 
 (
+  CWD=$REDO_BASE &&
   . $REDO_BASE/tools/redo/env.sh &&
   scriptname="do:$REDO_PWD:$1"
   U_S=$REDO_BASE \
   init_sh_libs="$init_sh_libs build-htd match src std sys-htd vc-htd package main" \
-  util_mode=boot CWD=$REDO_BASE \
+  util_mode=boot \
     . $REDO_BASE/tools/sh/init.sh
 
   cd "$REDO_BASE" &&

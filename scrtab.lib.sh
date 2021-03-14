@@ -22,7 +22,7 @@ scrtab_lib_init()
 }
 
 # Prepare env for Scr-Id
-scrtab_env_prep() # Scr
+scrtab_env_prep () # Scr
 {
   scrtab_entry_env_reset && scrtab_entry_init "$@" && {
       test -z "$1" || shift
@@ -322,15 +322,14 @@ scrtab_id_nr () # SCR-Name [LIST]
   stderr info "New Id: $scr_id"
 }
 
-# Parse statusdir index file line for {PREFNAME}$id (from env, see scrtab-file-env)
-# Provide ctx arg to parse descriptor iso. primary context (if func exists)
-scrtab_entry() # SCR-Id
+# Parse statusdir index file line
+scrtab_entry() # ~ SCR-Id
 {
-  test -n "$scr_src" || { scrtab_env_prep "$1" || return; }
+  test -n "${scr_src:-}" || { scrtab_env_prep "$1" || return; }
   test -n "${2-}" || set -- "${1-}" "$SCRTAB"
   scr_re="$(match_grep "$1")"
   scrtab_entry="$(
-  scrtab_tab | $ggrep -m 1 -n "^[0-9 +-]*\b$scr_re\\ " "$2" )" || return $?
+    scrtab_list | $ggrep -m 1 -n "^[0-9 +-]*\b$scr_re\\ " "$2" )" || return $?
 }
 
 # Parse statusdir index file line

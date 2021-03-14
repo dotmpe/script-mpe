@@ -16,5 +16,5 @@ export quiet="${quiet:=${q:-0}}"
 
 . ${CWD:="$PWD"}/tools/ci/env.sh
 
-$LOG "info" "" "Started redo env" "$_ENV"
+$LOG "info" "" "Started redo env" "${CWD}/tools/ci/env.sh"
 # Sync: U-S:

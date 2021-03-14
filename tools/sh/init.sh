@@ -48,11 +48,15 @@ test "${init_sh_libs-}" = "0" || {
 
   type sh_include >/dev/null 2>&1 || . "$U_S/tools/sh/parts/include.sh"
 
-  lib_load $init_sh_libs ||
-    $INIT_LOG "error" "$scriptname:init.sh" "Failed loading libs: $?" "$init_sh_libs" 1
+  lib_load $init_sh_libs || {
+    $INIT_LOG "error" "$scriptname:init.sh" "Failed loading libs: $?" "$init_sh_libs"
+    return 1
+  }
 
-  lib_init $init_sh_libs ||
-    $INIT_LOG "error" "$scriptname:init.sh" "Failed init'ing libs: $?" "$init_sh_libs" 1
+  lib_init $init_sh_libs || {
+    $INIT_LOG "error" "$scriptname:init.sh" "Failed init'ing libs: $?" "$init_sh_libs"
+    return 1
+  }
 }
 
 test "$(type -f scripts_init 2>/dev/null)" = function && {
@@ -62,7 +66,7 @@ test "$(type -f scripts_init 2>/dev/null)" = function && {
   test -z "${DEBUG-}" || echo sh_tools=$sh_tools scripts_init $init_sh_boot >&2
   scripts_init $init_sh_boot || {
     $INIT_LOG "error" "$scriptname:init.sh" "Failed at bootstrap '$init_sh_boot'" $? 1
-    return $?
+    return 1
   }
 
 } ||

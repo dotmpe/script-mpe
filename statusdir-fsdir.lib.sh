@@ -84,8 +84,9 @@ sd_fsdir_inner()
                 }
                 shift
             done ; unset r
+            test -n "${varttl-}" && ttl=${!varttl-} || ttl=
             local max_age="$( shell_cached \
-                fmtdate_relative "" "${!varttl:-$STATUSDIR_CHECK_TTL}" "")"
+                fmtdate_relative "" "${ttl:-$STATUSDIR_CHECK_TTL}" "")"
             test $sd_fsdir_status -eq 0 &&
               $LOG ok "" "Status OK, just refreshed from $entry_cnt entries (max-age $max_age)" ||
               $LOG done "" "Status $sd_fsdir_status, just refreshed from $entry_cnt entries, $invalid_cnt failed (max-age $max_age)"

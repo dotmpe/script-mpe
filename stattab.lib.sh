@@ -11,14 +11,15 @@ stattab_lib_load()
 
 stattab_lib_init()
 {
+  return
   test "${stattab_lib_init-}" = "0" && return
   test -n "${STTAB-}" || {
-    $LOG error "" "Expected STTAB" "$STTAB"
+    $LOG error "stattab.lib:init" "Expected STTAB" "$STTAB"
     return 1
   }
   test -e "$STTAB" || {
     test ${init:-0} -eq 0 && {
-        $LOG error "" "Expected STTAB" "$STTAB"
+        $LOG error "stattab.lib:init" "Expected existing STTAB" "$STTAB"
         return 1
       }
     mkdir -p "$(dirname "$STTAB")" && touch "$STTAB" || return

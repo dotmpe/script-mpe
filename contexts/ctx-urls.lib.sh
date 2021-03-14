@@ -25,11 +25,7 @@ ctx_urls_lib_load()
 ctx_urls_lib_init()
 {
   test ${ctx_urls_lib_init-1} -eq 0 && return
-  trueish "${global-}" && {
-    urlstab=$(statusdir.sh index urlstat.list)
-  } || {
-    urlstab=$(local=1 statusdir.sh index urlstat.list)
-  }
+  urlstab=$(statusdir_lookup index urlstat.list)
 }
 
 @URLs.list()
