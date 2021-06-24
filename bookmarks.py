@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 :Created: 2013-12-30
 :Updated: 2018-03-09
@@ -138,12 +138,12 @@ Options:
 import sys
 import hashlib
 import urllib
-import urllib2
+# import urllib2 TODO: rewrite to Py3
 from datetime import datetime, timedelta
 
 import uriref
-from pydelicious import dlcs_parse_xml
-import BeautifulSoup
+from pydelicious_xml import dlcs_parse_xml
+import bs4 as BeautifulSoup
 
 from script_mpe.libhtd import *
 from script_mpe.bookmarks_model import *
@@ -1465,8 +1465,10 @@ def get_version():
 
 
 if __name__ == '__main__':
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
+    #from importlib import reload
+    #reload(sys)
+    # sys.setdefaultencoding('utf-8') FIXME: see 'why we should not use ...'
+
     usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
             libcmd_docopt.static_vars_from_env(__usage__,
         ( 'BM_DB', __db__ ),

@@ -27,7 +27,7 @@ __version__ = '0.0.4-dev' # script-mpe
 
 import os
 
-from script_mpe import rsr, libcmd
+from script_mpe import rsr
 from script_mpe.taxus import core
 from script_mpe.res import Journal
 
@@ -60,6 +60,9 @@ class Jrnl(rsr.Rsr):
                 )
 
     def jrnl_session(self, prog, opts, sa, volume, workspace):
+        if not volume:
+            print("jrnl_session(%s, %s, %s, %s, %s)" % (prog, opts, sa, volume, workspace))
+            return
         print(volume.guid)
         return
         journal = Journal()

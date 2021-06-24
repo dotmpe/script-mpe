@@ -8,7 +8,7 @@ import zope.interface
 from couchdb.mapping import Document
 from sqlalchemy import func, text
 from sqlalchemy.ext import declarative
-from sqlalchemy.ext.declarative import api
+#from sqlalchemy.ext.declarative import api # XXX: Py2
 from sqlalchemy.orm.exc import NoResultFound
 
 from script_mpe import log
@@ -483,8 +483,8 @@ class ORMMixin(ScriptMixin, InstanceMixin, ModelMixin):
 
 
 
+@zope.interface.implementer(iface.INodeSet)
 class NodeSet(object):
-    zope.interface.implements(iface.INodeSet)
     def __init__(self, iterable):
         self.nodes = iterable
 
@@ -598,4 +598,3 @@ def sql_like_val(field, value, g):
     if invert:
         return ~ filter
     return filter
-

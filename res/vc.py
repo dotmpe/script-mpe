@@ -8,7 +8,7 @@ extracted by a shell script function.
 import os
 
 from script_mpe import lib, log
-from fs import Dir
+from .fs import Dir
 
 
 class Repo(Dir):

@@ -5,25 +5,25 @@ from pprint import pprint, pformat
 from docutils.nodes import make_id
 from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, Text, \
         Table, create_engine, or_
-from sqlalchemy.orm import relationship, backref, joinedload_all
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 import zope.interface
 import zope.component
 
-import res
-import res.bm
-import res.d
-import res.doc
-import res.iface
-import res.js
-import res.lst
-import res.task
-import res.todo
-import res.txt
-import res.txt2
+from . import res
+from .res import bm
+from .res import d
+from .res import doc
+from .res import iface
+from .res import js
+from .res import lst
+from .res import task
+from .res import todo
+from .res import txt
+from .res import txt2
 from .res import mb, d
 from .res.d import get_default, default
-from res import Repo, rabomut, ledger
+from .res import Repo, rabomut, ledger
 
 from .lib import Prompt
 from .res import Volumedir, Homedir, Workdir

@@ -7,7 +7,7 @@
 type fail >/dev/null 2>&1 || {
   fail()
   {
-    test -n "${1-}" && echo "Reason: $1" >>"$BATS_OUT"
+    test -n "${1-}" && diag "Reason: $1"
     exit 1
   }
 }

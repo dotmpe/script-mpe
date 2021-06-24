@@ -1,8 +1,8 @@
-from metafile import Metadir
+from .metafile import Metadir
 
 # local
-import task
-import txt
+from . import task
+from . import txt
 
 
 class JournalTxtManifestEntryParser(txt.AbstractTxtRecordParser_Old):

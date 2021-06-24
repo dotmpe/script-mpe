@@ -13,11 +13,11 @@ Issues
 """
 import re
 from script_mpe import log, confparse
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 from . import js
 from .dt import parse_chrome_microsecondstamp, iso8601_from_stamp
-from .. import lib
+from script_mpe import lib
 from ..taxus.model import Bookmark
 from ..taxus.core import Tag, Name
 from ..taxus.net import Locator, Domain
@@ -92,12 +92,14 @@ def rst_print(bm, l=0):
     """
     Print MozJSONExport as a rSt-reminiscent nested list
     """
-    print l*'  ', '-', '`'+bm.name + ('url' in bm and ' <'+bm.url+'>`_' or '`')
+    print("".join(
+            l*'  ', '-', '`'+bm.name + ('url' in bm and ' <'+bm.url+'>`_' or '`')
+            ))
     if 'children' in bm and bm.children: # type==folder
-        print
+        print()
         for sb in bm.children:
             rst_print(confparse.Values(sb), l+1)
-        print
+        print()
 
 
 def repr_print(bm, l=0):
@@ -105,7 +107,7 @@ def repr_print(bm, l=0):
         for sb in bm.children:
             repr_print(confparse.Values(sb), l+1)
     elif bm.type == 'url':
-        print repr(bm.todict())
+        print(repr(bm.todict()))
 
 
 def outline_print(bm, l=0, groups=[]):
@@ -113,7 +115,7 @@ def outline_print(bm, l=0, groups=[]):
     Print URLs JSON folder outline only.
     """
     if 'children' in bm and bm.children: # type==folder
-        print '  '*l, bm.name
+        print("".join('  '*l, bm.name))
         for sb in bm.children:
             outline_print(confparse.Values(sb), l+1)
 

@@ -4,15 +4,13 @@ File parser for todo.txt format.
 import re
 import os
 import base64
-from UserDict import UserDict
+from collections import UserDict
 import uriref
 
-
-# local
-import mb
-import task
-import txt
-import txt2
+from . import mb
+from . import task
+from . import txt
+from . import txt2
 
 
 

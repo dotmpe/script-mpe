@@ -28,7 +28,7 @@ access to global state. Workdir should represent an adapter to the current
 or selected basedir, while Basedir maybe is recursive and includes checkouts.
 """
 import os
-import anydbm
+import dbm #import anydbm Py2
 import shelve
 
 from script_mpe.confparse import Values, YAMLValues
@@ -109,7 +109,7 @@ class Workspace(AbstractYamlDocs, Metadir):
         for name in self.__class__.index_specs:
             ref = self.idxref(name)
             if ref.endswith('.db'):
-                idx = anydbm.open(ref, flag)
+                idx = dbm.open(ref, flag)
             elif ref.endswith('.shelve'):
                 idx = shelve.open(ref, flag)
             idcs[name] = idx

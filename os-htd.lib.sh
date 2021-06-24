@@ -862,12 +862,18 @@ find_num () # ~ DIR NAME [NUM]
   done
 }
 
-find_broken_symlinks()
+find_broken_symlinks () # ~ DIR
 {
-  test -n "$1" || set -- .
-  #test "$uname" = "darwin" && find=gfind
-  #$find "$1" -type l -xtype l || return $?
+  test $# -gt 0 || set -- .
+  test $# -eq 1 || return 64
   find "$1" -type l ! -exec test -e {} \; -print
+}
+
+find_filter_broken_symlinks () # ~ DIR
+{
+  test $# -gt 0 || set -- .
+  test $# -eq 1 || return 64
+  find "$1" -type l -exec test -e {} \; -print
 }
 
 abbrev_rename()

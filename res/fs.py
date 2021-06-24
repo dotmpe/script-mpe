@@ -15,19 +15,18 @@ from script_mpe import confparse
 from script_mpe import lib
 from script_mpe import log
 from script_mpe.lib import Prompt
-from script_mpe.res import iface, dt
+from . import iface, dt
 
 
 PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")
 
 
+@zope.interface.implementer(iface.Node)
 class INode(object):
 
     """
     Represents an inode on the filesystem.
     """
-
-    zope.interface.implements(iface.Node)
 
     def __init__(self, path):
         self.path = path
@@ -71,7 +70,7 @@ class INode(object):
         try:
             path = unicode(path, 'utf-8')
             #path = path.decode('utf-8')
-        except UnicodeDecodeError, e:
+        except UnicodeDecodeError as e:
             log.warn("Ignored non-unicode path %s", path)
         finally:
             assert isinstance(path, unicode)
@@ -130,8 +129,8 @@ def __register__():
     gsm.registerAdapter(getService, [iface.Node], iface.ILocalNodeService)
 
 
+@zope.interface.implementer(iface.Node, iface.ILeaf)
 class File(INode):
-    zope.interface.implements(iface.Node, iface.ILeaf)
     implements = 'file'
 
     ignore_paths = (
@@ -202,8 +201,8 @@ def exclusive ( opts, filters ):
                 opts[n] = True
 
 
+@zope.interface.implementer(iface.Node, iface.ITree)
 class Dir(INode):
-    zope.interface.implements(iface.Node, iface.ITree)
     implements = 'dir'
 
     ignore_paths = File.ignore_paths
@@ -249,17 +248,17 @@ class Dir(INode):
     @classmethod
     def prompt_recurse(klass, opts):
         v = Prompt.query("Recurse dir?", ("Yes", "No", "All"))
-        if v is 2:
+        if v == 2:
             opts.recurse = True
             return True
-        elif v is 0:
+        elif v == 0:
             return True
         return False
 
     @classmethod
     def prompt_ignore(klass, opts):
         v = Prompt.query("Ignore dir?", ["No", "Yes"])
-        return v is 1
+        return v == 1
 
     @classmethod
     def Check_ignored(klass, filepath, opts):
@@ -373,7 +372,7 @@ class Dir(INode):
                     assert isinstance(dirpath, unicode)
                     try:
                         dirpath.encode('ascii')
-                    except UnicodeDecodeError, e:
+                    except UnicodeDecodeError as e:
                         log.err("Warning: non-ascii dirname %s", dirpath)
                     yield dirpath
 
@@ -402,7 +401,7 @@ class Dir(INode):
                         continue
                     try:
                         filepath.encode('ascii')
-                    except UnicodeDecodeError, e:
+                    except UnicodeDecodeError as e:
                         log.err("Warning: non-ascii filename %s", filepath)
                     yield filepath
 

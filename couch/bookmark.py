@@ -9,8 +9,8 @@ from script_mpe.taxus import iface
 # NOTE: annotating CouchDB's document is no use, need to call after Class.load
 zope.interface.classImplements(Document, iface.IPyDict)
 
+@zope.interface.implementer(iface.IPyDict)
 class Bookmark(Document):
-    zope.interface.implements(iface.IPyDict)
 
     date_added = DateTimeField()
     date_deleted = DateTimeField()

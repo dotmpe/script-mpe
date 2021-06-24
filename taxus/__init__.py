@@ -18,7 +18,7 @@ from script_mpe.res.ws import AbstractYamlDocs
 
 
 from . import iface
-from iface import registry as reg, gsm
+from .iface import registry as reg, gsm
 from . import init
 from . import util
 from . import out

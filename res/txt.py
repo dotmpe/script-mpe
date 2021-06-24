@@ -5,10 +5,10 @@
 import re
 from collections import OrderedDict
 
-from .. import log, confparse
+from script_mpe import log, confparse
 
-import mb
-import task
+from . import mb
+from . import task
 
 
 
@@ -213,7 +213,7 @@ class AbstractRecordIdStrategy_Old(AbstractTxtLineParser_Old):
                 setattr(self, tag, m.group(2))
                 return t[sum(m.span()):]
             else:
-                print 'Missing ID', t
+                print('Missing ID %s' % t)
         return t
 
 
@@ -275,7 +275,7 @@ class AbstractTxtListParser_Old(object):
                 self.proc_backends( ctx, it )
     def load(self):
         for store_name, store in self.be.items():
-            print store_name
+            print(store_name)
     def load_file(self, fn):
         "Parse items from a file, yielding %s instances"
         line = 0

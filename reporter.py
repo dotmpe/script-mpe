@@ -33,9 +33,8 @@ class AbstractReport(object):
         return self.text()
 
 
+@zope.interface.implementer(taxus.iface.IReport)
 class StageReport(AbstractReport):
-
-    zope.interface.implements(taxus.iface.IReport)
 
     def __init__(self, meta):
         self.meta = meta

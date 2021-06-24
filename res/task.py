@@ -2,13 +2,12 @@ import os
 import re
 import base64
 
-
 import redis
 import uriref
 from hashids import Hashids
 import shortuuid
 
-import mb
+from . import mb
 
 
 hashids = Hashids(salt="this is my salt")
@@ -74,14 +73,14 @@ class TaskListParser(object):
 
             if re_scheme.match(fields[0]):
                 uri = fields[0]
-                print uriref.URIRef(uri)
+                print(uriref.URIRef(uri))
                 #print base64.b64encode(uri)
 
             elif re_numpath.match(fields[0]):
                 nums = map(int, fields[0].strip('.').split('.'))
                 id = hashids.encode(*nums)
                 numbers = hashids.decode(id)
-                print id, fields[0]
+                print(str((id, fields[0])))
                 #print base64.b64encode(fields[0])
 
             else:

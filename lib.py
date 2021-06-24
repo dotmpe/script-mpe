@@ -114,7 +114,7 @@ def is_scmdir(dirpath):
 
 def cmd(cmd, cwd=None, allowempty=False, allowerrors=False, allow=[]):
     "Simple wrapper for subprocess.Popen"
-    if isinstance(cmd, basestring):
+    if isinstance(cmd, str):
         cmd = [ cmd ]
     assert isinstance(cmd, list)
     proc = subprocess.Popen( cmd ,

@@ -48,6 +48,7 @@ from confparse import Values
 import collections
 
 
+#@zope.interface.implementer(iface.IProgramHandlerResultProcessor)
 class HandlerReturnAdapter(object):
     """
     Adapter return value/generator from handler back to program.
@@ -62,7 +63,6 @@ class HandlerReturnAdapter(object):
             {first,last,all}-key{,s}
 
     """
-    #zope.interface.implements(iface.IProgramHandlerResultProcessor)
     def __init__(self, globaldict):
         self.globaldict = globaldict
         self.generated = []
@@ -94,11 +94,11 @@ class HandlerReturnAdapter(object):
                     self.generated = res
 
 
+@zope.interface.implementer(iface.IReporter)
+#@zope.interface.implementer(iface.IFormatted)
 class ResultFormatter(object):
-    zope.interface.implements(iface.IReporter)
     __used_for__ = iface.IReportable
 
-    #zope.interface.implements(iface.IFormatted)
     #__used_for__ = iface.IReportable, iface.
 
     def append(self, res):

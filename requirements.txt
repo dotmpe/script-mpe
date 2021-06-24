@@ -19,12 +19,12 @@ nltk
 objectpath
 openpyxl
 pbPlist
-pydelicious
+#pydelicious
 pydot
 #py-mhash@1.2 malloc problems
 pytz
 redis
-ruamel.yaml<=0.15
+ruamel.yaml==0.10.8
 requests-oauthlib
 sadisplay
 setuptools 

@@ -16,17 +16,16 @@ and lists.
 """
 import os
 import re
-from UserDict import UserDict
-from UserList import UserList
+from collections import UserDict, UserList
 
 import zope.interface
-from zope.interface import Interface, Attribute, implements, classImplements
+from zope.interface import Interface, Attribute, implementer, classImplements
 
 from script_mpe import log
-import tp
-import dt
-import mb
-import task
+from . import tp
+from . import dt
+from . import mb
+from . import task
 
 
 
@@ -175,6 +174,7 @@ class AbstractTxtLineParser(object):
 
 ### Concrete example on line-parser base
 
+@implementer(ITxtLineParser)
 class ConcreteTxtLineParser(AbstractTxtLineParser):
 
     """
@@ -185,8 +185,6 @@ class ConcreteTxtLineParser(AbstractTxtLineParser):
     It has for a restrictive 1-part field-spec but with fall back to
     a default parse_field pass-through function for missing field handlers.
     """
-
-    implements(ITxtLineParser)
 
     def run_field_parse(self, text, onto, method):
         return self.run_or_default(method, text, onto)

@@ -83,6 +83,7 @@ locators_tags = Table('locators_tags', SqlBase.metadata,
 
 
 #class Locator(core.ID):
+@zope.interface.implementer(iface.IID)
 class Locator(SqlBase, CardMixin, ORMMixin):
 
     """
@@ -96,7 +97,6 @@ class Locator(SqlBase, CardMixin, ORMMixin):
     core.Scheme and subtypes are used to manage instances of protocols,
     and other htdocs sub-schemes.
     """
-    zope.interface.implements(iface.IID)
 
     __tablename__ = 'ids_lctr'
     lctr_id = Column('id', Integer, primary_key=True)

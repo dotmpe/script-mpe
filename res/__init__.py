@@ -52,18 +52,18 @@ TODO:
 - Combine with or harves cllct, and existing rsr and taxus projects.
 """
 
-from fs import File, Dir
-from mimemsg import MIMEHeader
-from metafile import Metafile, Metadir, Meta, SHA1Sum
-from jrnl import Journal
-from vc import Repo
-from js import AbstractYamlDocs
-from ws import Workspace, Homedir, Workdir, Volumedir
-import task
-from task import Task, TaskListParser, RedisSEIStore
-import todo
-from todo import TodoTxtParser
-from disk import Diskdoc
-from pfx import Prefixes
+from .fs import File, Dir
+from .mimemsg import MIMEHeader
+from .metafile import Metafile, Metadir, Meta, SHA1Sum
+from .jrnl import Journal
+from .vc import Repo
+from .js import AbstractYamlDocs
+from .ws import Workspace, Homedir, Workdir, Volumedir
+from . import task
+from .task import Task, TaskListParser, RedisSEIStore
+from . import todo
+from .todo import TodoTxtParser
+from .disk import Diskdoc
+from .pfx import Prefixes
 
-import iface
+from . import iface

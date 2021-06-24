@@ -263,7 +263,7 @@ ck_run_catalogs()
   local cwd=$PWD dir= catalog= ret=0
 
   note "Running over catalogs found in '$cwd'..."
-  { htd_catalog_list_files || exit $?
+  { htd_catalog__list_files || exit $?
   } | {
     while read catalog
     do

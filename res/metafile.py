@@ -13,8 +13,7 @@ from fnmatch import fnmatch
 import calendar
 
 from script_mpe import lib, log, confparse
-from script_mpe.res import fs
-
+from . import fs
 from .persistence import PersistedMetaObject
 
 
@@ -36,11 +35,11 @@ class MetaProperty(object):
     def applies(self, props, path, opts):
         return 0
     def __get__(self, obj, type=None):
-        print 'MP get', obj, type
+        print('MP get %s %s' % (obj, type))
     def __set__(self, obj, value):
-        print 'MP set', obj, value
+        print('MP set %s %v' % (obj, value))
     def __delete__(self, obj):
-        print 'MP delete', obj
+        print('MP delete %s' % obj)
 
 # MP may test for extraction and fail
 # MP may be extractor and/or provide classnames for (possible) extractors
@@ -157,11 +156,11 @@ class MetaResolver(object):
         if not spec:
             return
         specs = [ s.strip().split('=') for s in spec.split(';') if s.trim() ]
-        print 'TODO load MP\'s from spec', specs
+        print('TODO load MP\'s from spec %r' % specs)
 
     def list(self):
         "List current meta properties. "
-        print 'MetaResolver.list', self.data.keys()
+        print('MetaResolver.list %s' % self.data.keys())
 
     def persist(self):
         "Write X-Meta-Feature header. "
@@ -175,7 +174,7 @@ class MetaResolver(object):
 #            return
         try:
             self.data[mp.cname] = mp.extract(self.data, path, opts)
-        except Exception, e:
+        except Exception as e:
             log.err('Failed getting %s for %s: %s', mp.cname, path, e)
 
     def discover(self, path, opts):
@@ -382,18 +381,18 @@ class MetafileFile(object): # XXX: Metalink syntax
             if not i2:
                 continue
             if i1 == 0:
-                print '\tNew Metafile'
+                print('\tNew Metafile')
             elif i1 == 1:
-                print '\tUpdated file'
+                print('\tUpdated file')
             elif i1 == 7:
-                print '\tFile changed size'
+                print('\tFile changed size')
             else:
-                print '\tNew attribute', attr[i1-2]
+                print('\tNew attribute %s' % attr[i1-2])
         # /xxx:chatter
 
         needs_update = updates != []
         if needs_update:
-            print "\t",len(updates), 'updates'
+            print("\t %i updates" % len(updates))
             return needs_update
 
     #
@@ -482,7 +481,7 @@ class MetafileFile(object): # XXX: Metalink syntax
 
                 try:
                     value = handler(self.path)
-                except Exception, e:
+                except Exception as e:
                     traceback.print_exc()
                     log.err("%s: %s", header, e)
                     continue
@@ -768,14 +767,14 @@ class Meta(object):
         mf = Metafile(path)
         mff = MetafileFile(path)
         if mf.exists() or mff.exists():
-            print 'TODO Meta.exists', mf.exists(), mff.exists()
+            print('TODO Meta.exists %s %s' % (mf.exists(), mff.exists()))
             return True
 
     def clean(self, path):
         """
         Determine wether there are dirty properties and return False if so.
         """
-        print 'TODO Meta.clean', self.volume, path
+        print('TODO Meta.clean %s %s' % (self.volume, path))
 
 # XXX: todo operations on stage index
     def add(self, name, prog, opts):
@@ -793,7 +792,7 @@ class Meta(object):
             data = self.stage.get(path)
         resolver = MetaResolver(self, data)
         resolver.discover(path, opts)
-        print 'todo add', resolver.data
+        print('todo add %s' % resolver.data)
 
     def update(self, path, opts):
         pass
@@ -811,7 +810,7 @@ class Meta(object):
 
 if __name__ == '__main__':
     import os
-    print Metadir.find(os.getcwd())
+    print(Metadir.find(os.getcwd()))
 
     #import shelve
     #path = '/Volumes/archive-7/media/text/US-patent/US2482773.pdf'

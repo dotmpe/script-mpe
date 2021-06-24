@@ -88,7 +88,7 @@ htd__ck()
   test -z "$*" && {
     exts="$ck_exts"
   }
-  test -e "$1" && {
+  test -e "${1-}" && {
       ck_files="$*"
   } || {
     exts="$( for a in "$@" ; do \

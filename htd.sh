@@ -685,7 +685,7 @@ htd_man_1__fsck='Check file contents with locally found checksum manifests
 
 Besides ck-validate and annex-fsck, look for local catalog.yml to validate too.
 '
-htd_flags__fsck=i
+htd_flags__fsck=il
 htd__fsck()
 {
   note "Running: ck_tab='*' htd ck..."
@@ -713,6 +713,7 @@ htd__fsck()
     } || true
   }
 }
+htd_libs__fsck=ck-htd\ htd-meta\ catalog
 htd_als__file_check=fsck
 
 
@@ -3498,30 +3499,19 @@ htd_grp__munin_check=munin
 htd_grp__munin_export=munin
 
 
-htd_man_1__count_files='Count files under dir(s)'
-htd_spc__count_files='count-files DIR [DIR..]'
-htd__count_files()
-{
-  for p in "$@"
-  do
-    test -d "$p" || {
-      continue
-    }
-    note "$p: $(find $p -type f | wc -l)"
-  done
-}
-
-
 htd_man_1__find_broken_symlinks='Find broken symlinks'
 htd__find_broken_symlinks()
 {
+  lib_require os-htd || return
   find_broken_symlinks "$@"
 }
+
 
 htd_man_1__find_skip_broken_symlinks='Find except broken symlinks'
 htd__find_skip_broken_symlinks()
 {
-  find . -type l -exec file {} + | grep -v broken
+  lib_require os-htd || return
+  find_filter_broken_symlinks "$@"
 }
 
 
@@ -3667,7 +3657,8 @@ htd__annex()
         test -e "$srcinfo" && note "Leaving localdir $srcinfo" || rm -r $tmpd
       ;;
 
-    metadata ) htd_annex_files "$@" | annex_metadata ;;
+    metadata ) lib_require annex
+        htd_annex_files "$@" | annex_metadata ;;
 
     git-deleted )
         git ls-files -d | while read -r fn;
@@ -4629,6 +4620,7 @@ htd_grp__drafts=draft
 
 
 htd_grp__eval=htd-eval
+
 
 
 # -- htd box insert sentinel --
