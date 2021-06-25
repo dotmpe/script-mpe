@@ -81,7 +81,7 @@ def fs_treesize( root, tree, files_as_nodes=True ):
 
     Size is cumulative.
     """
-    assert isinstance(root, basestring) and isdir(root), repr(root)
+    assert isinstance(root, str) and isdir(root), repr(root)
     assert isinstance(tree, Node)
 
     if not tree.size:

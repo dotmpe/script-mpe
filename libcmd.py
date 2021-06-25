@@ -518,7 +518,7 @@ class SimpleCommand(object):
             raise e
         # XXX:
         result_adapter = HandlerReturnAdapter( self.globaldict )
-        #if isinstance( result_adapter, basestring ):
+        #if isinstance( result_adapter, str ):
         #    result_adapter = getUtility(IResultAdapter, name=result_adapter)
         if return_mode:
             result_adapter.set_return_mode( return_mode )
@@ -614,7 +614,7 @@ class SimpleCommand(object):
 
     def parse_options( self, prog ):
         # XXX
-        #if optionparser and isinstance( optionparser, basestring ):
+        #if optionparser and isinstance( optionparser, str ):
         #    parser = getUtility(IOptionParser, name=optionparser)
         #elif optionparser:
         #    #assert provides IOptionParser
@@ -695,7 +695,7 @@ class SimpleCommand(object):
     def prepare_output( self, prog, opts ):
 # XXX
         default_reporter = ResultFormatter()
-        #if isinstance( default_reporter, basestring ):
+        #if isinstance( default_reporter, str ):
         #    self.globaldict.prog.default_reporter_name = default_reporter
         #    default_reporter = getUtility(IReporter)
         #elif not default_reporter:

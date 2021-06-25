@@ -66,7 +66,7 @@ class INode(object):
     def decode_path( klass, path, opts ):
         return path
         # XXX: decode from opts.fs_enc
-        assert isinstance(path, basestring)
+        assert isinstance(path, str)
         try:
             path = unicode(path, 'utf-8')
             #path = path.decode('utf-8')
@@ -87,7 +87,7 @@ class INode(object):
 
     @classmethod
     def stat(self, path):
-        if not isinstance(path, basestring) and hasattr(path, 'path'):
+        if not isinstance(path, str) and hasattr(path, 'path'):
             path = path.path
         st = os.stat(path)
         d = {
@@ -327,7 +327,7 @@ class Dir(INode):
         # XXX if not opts.descend:
         #    return self.walkRoot( path, opts=opts, filters=filters )
 
-        assert isinstance(path, basestring), (path, path.__class__)
+        assert isinstance(path, str), (path, path.__class__)
         opts = klass.get_walk_opts(**opts)
         file_filters, dir_filters = filters
 
@@ -366,7 +366,7 @@ class Dir(INode):
                         continue
 #                    continue # exception to rule excluded == no yield
 # caller can sort out wether they want entries to subpaths at this level
-                    assert isinstance(dirpath, basestring)
+                    assert isinstance(dirpath, str)
                     dirpath = klass.decode_path(dirpath, opts)
                     if not dirpath: continue
                     assert isinstance(dirpath, unicode)

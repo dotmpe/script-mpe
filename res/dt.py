@@ -19,7 +19,7 @@ def iso8601_from_stamp(ts):
     """
     Go from (UTC) timestamp to formatted date time.
     """
-    if isinstance(ts, basestring):
+    if isinstance(ts, str):
         assert ts.isdigit()
         ts = int(ts)
     dt = datetime.fromtimestamp(ts)
@@ -108,7 +108,7 @@ def human_time_period(spec, specs=human_time_period_specs):
     unit = re.match(M, spec).group(2)
 
     while unit in specs:
-        if isinstance(specs[unit], basestring):
+        if isinstance(specs[unit], str):
             unit = specs[unit]
             continue
 
@@ -129,7 +129,7 @@ def older_than(dt, pspec):
     return dt < shift('-'+pspec)
 
 def modified_before(p, pspec):
-    if isinstance(pspec, basestring):
+    if isinstance(pspec, str):
         dt_m = datetime.fromtimestamp(os.path.getmtime(p))
         return older_than( dt_m, pspec )
     else:

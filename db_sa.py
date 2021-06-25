@@ -158,7 +158,7 @@ def cmd_info(g, sa=None):
     if not sa:
         sa = schema.get_session(g.dbref, 'default')
 
-    if g.database_tables:
+    if hasattr(g, 'database_tables') and g.database_tables:
         reload_metadata(g)
         log.std("{yellow}Loaded tables from DB{default}")
 

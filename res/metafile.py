@@ -242,7 +242,7 @@ class Metafile(PersistedMetaObject):
 
     def __init__(self, path, storage=None, context=None, auto_populate=True):
         #if not issubclass(type(path), INode):
-        if isinstance(path, basestring):
+        if isinstance(path, str):
             path = fs.INode.factory(path)
         self.path = path
         if not context:

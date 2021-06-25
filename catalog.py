@@ -114,7 +114,7 @@ def cmd_importcks(TABLES, opts):
         else:
             opts.catalog.add_name(fname, opts)
         for algo, ck in new_cks[fname].items():
-            if not isinstance(ck, basestring):
+            if not isinstance(ck, str):
                 ck = " ".join(map(str, ck))
             opts.catalog.data[-1]['keys'][algo] = ck
 

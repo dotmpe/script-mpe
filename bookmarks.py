@@ -302,7 +302,7 @@ class bookmarks(rsr.Rsr):
     def add_lctr_ref_md5(self, opts=None, sa=None, *refs):
         "Add locator and ref_md5 attr for Locators"
         if refs:
-            if isinstance( refs[0], basestring ):
+            if isinstance( refs[0], str ):
                 opts.ref_md5 = True
                 lctrs = [ ret['lctr'] for ret in self.add_lctrs(sa, opts, *refs) ]
                 return
@@ -655,6 +655,8 @@ def cmd__urls(REF, g, opts):
         cnt = ctx.sa_session.query(Locator).filter(*filters).count()
         log.std("Records matched: %s", cnt)
         return
+
+    rs = Bookmark.all(filters=filters)
     if not rs:
         log.stdout("{yellow}Nothing found{default}")
         if g.strict: return 1
@@ -675,6 +677,8 @@ def cmd__list(NAME, g, opts):
     global ctx
 
     filters = ctx.opts_to_filters(Bookmark)
+    for f in filters:
+        print(f)
     if g.tags:
         filters += tuple([ sql_like_val(Bookmark.tags, T) for T in g.tags ])
     if NAME:
@@ -1310,7 +1314,7 @@ def cmd__couch_update(g):
                 elif 'tags' in doc:
                     u += 1
                     tags = doc['tags']
-                    assert isinstance(tags, basestring), tags
+                    assert isinstance(tags, str), tags
                     assert ', ' in tags, tags
                     doc['tag_list'] = tags.split(', ')
                     del doc['tags']
@@ -1404,6 +1408,10 @@ def cmd__shaarli_sync(NAME, opts, g):
     """
     TODO: Update Shaarli bookmark-type documents from SQL.
     """
+
+
+def cmd__stats(g):
+    cmd__sql_stats(g)
 
 
 ### Transform cmd__ function names to nested dict

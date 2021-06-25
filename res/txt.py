@@ -285,7 +285,7 @@ class AbstractTxtListParser_Old(object):
         else:
             self.doc_name = fn
             lines = open( fn ).readlines()
-        assert isinstance(self.doc_name, basestring), self.doc_name
+        assert isinstance(self.doc_name, str), self.doc_name
         for itraw_str in lines:
             itraw = itraw_str.decode('utf-8')
             line += 1

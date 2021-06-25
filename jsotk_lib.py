@@ -129,7 +129,7 @@ class AbstractKVParser(object):
         """
 
         # Maybe want to allow other parsers too, ie YAML values
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             if value and value[0] + value[-1] in ["''", '""']:
                 value = value[1:-1]
             # Default value if empty is string
@@ -365,7 +365,7 @@ class AbstractKVSerializer(object):
         elif isinstance(data, dict):
             r.extend(self.ser_dict(data, prefix))
         else:
-            if isinstance(data, basestring) and re_non_escaped.search(data):
+            if isinstance(data, str) and re_non_escaped.search(data):
                 r.append( "%s=\"%s\"" % ( prefix, data.replace('"', '\\"' )))
             else:
                 r.append( "%s=%s" % ( prefix, data ))
@@ -656,7 +656,7 @@ def get_src_dest(ctx):
 
 def set_format(tokey, fromkey, opts):
     file = getattr(opts.args, "%sfile" % fromkey)
-    if file and isinstance(file, basestring):
+    if file and isinstance(file, str):
         fmt = get_format_for_fileext(file, fromkey)
         if fmt:
             setattr(opts.flags, "%s_format" % tokey, fmt)
@@ -733,8 +733,8 @@ def deep_update(dicts, ctx):
                     data[k] = deep_union( [ data[k], v ], ctx )
                 else:
                     if not ctx.opts.flags.no_strict_types and ( not isinstance(data[k], type(v)) and not (
-                        isinstance(data[k], basestring) and
-                        isinstance(v, basestring)
+                        isinstance(data[k], str) and
+                        isinstance(v, str)
                     )):
                         raise ValueError("Expected %s but got %s" % (
                                 type(data[k]), type(v)))
@@ -859,7 +859,7 @@ def data_check_path(ctx, infile):
 
 
 typemap = {
-    'str': 'basestring',
+    'str': 'str',
     'obj': 'dict',
 }
 def maptype(typestr):

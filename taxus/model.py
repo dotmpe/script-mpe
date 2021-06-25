@@ -138,7 +138,7 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
             q = q.filter(*filters).distinct()
         rs = q.all()
         for r in rs:
-            assert isinstance(r.tags, basestring), r.tags
+            assert isinstance(r.tags, str), r.tags
             tags = tags.union(r.tags.split(', '))
         return tags
 
@@ -159,7 +159,7 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
     def to_struct(self, d={}):
         "Turn into struct for JSON or Couch doc use"
         d = web.Resource.to_dict(self, d=d)
-        assert isinstance(d['tags'], basestring), d['tags']
+        assert isinstance(d['tags'], str), d['tags']
         d.update(dict(
             location=self.location.to_struct(),
             tags_list=d['tags'].split(', ')
@@ -169,7 +169,7 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
     def to_dict(self, d={}):
         "Turn into flat struct with simple and date/time types only, for JSON or Couch doc use"
         d = web.Resource.to_dict(self, d=d)
-        assert isinstance(d['tags'], basestring), d['tags']
+        assert isinstance(d['tags'], str), d['tags']
         d.update(dict(
             href=self.location.href,
             tags_list=d['tags'].split(', ')
@@ -179,7 +179,7 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
     def update_from(self, *docs, **kwds):
         updated = web.Resource.update_from(self, *docs, **kwds)
         if updated:
-            assert isinstance(self.tags, basestring), self.tags
+            assert isinstance(self.tags, str), self.tags
             # self.tags = ', '.join( self.tags )
         return updated
 

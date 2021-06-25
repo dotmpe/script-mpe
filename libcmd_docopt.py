@@ -70,7 +70,7 @@ def get_optvalues(opts, handlers={}):
             if v:
                 cmds.append(k)
             continue
-        if isinstance(v, basestring) and v and '=' in v[0]:
+        if isinstance(v, str) and v and '=' in v[0]:
             # allo access to subkey, value container for certain key
             d[k] = confparse.Values({ })
             for a in v:

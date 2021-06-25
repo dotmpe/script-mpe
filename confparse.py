@@ -49,7 +49,7 @@ def yaml_loads(*args, **kwds):
 
 def yaml_load(fl, *args, **kwds):
     if not hasattr(fl, 'read'):
-        assert isinstance(fl, basestring)
+        assert isinstance(fl, str)
         fp = open(fl, 'r')
     else:
         fp = fl
@@ -133,7 +133,7 @@ def yaml_dump(fl, *args, **kwds):
     First argument is file path or stream.
     """
     if not hasattr(fl, 'write'):
-        assert isinstance(fl, basestring)
+        assert isinstance(fl, str)
         fp = open(fl, 'w+')
     else:
         fp = fl
@@ -241,7 +241,7 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
     flexibility which usually equals the abilitiy to match both hidden and
     non-hidden filenames, and to match any set of giving filename extensions.
     """
-    assert isinstance(markerleaf, basestring), markerleaf
+    assert isinstance(markerleaf, str), markerleaf
     if path:
         paths.append(path)
     elif not paths:
@@ -469,8 +469,10 @@ class Values(dict):
     def __getattr__(self, name):
         if name in self.__dict__:
             return self.__dict__[name]
-        else:
+        elif name in self:
             return dict.__getitem__(self, name)
+        else:
+            raise AttributeError(name)
 
     def path(self):
         """
