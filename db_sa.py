@@ -54,7 +54,7 @@ from pprint import pformat
 
 import zope.interface
 import zope.component
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData, Table, func, select
 from sqlalchemy.schema import CreateTable
 import sadisplay
 
@@ -173,7 +173,7 @@ def cmd_info(g, sa=None):
     empty = []
     for t in metadata.tables:
         try:
-            cnt = sa.query(metadata.tables[t].count()).all()[0][0]
+            cnt = sa.execute(select(func.count()).select_from(metadata.tables[t])).scalars().one()
             if cnt:
                 log.std("  {blue}%s{default}: {bwhite}%s{default}", t, cnt)
             else:
