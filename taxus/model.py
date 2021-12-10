@@ -58,6 +58,7 @@ class Volume(core.Scheme):
             primaryjoin=root_node_id == core.Node.node_id)
 
 
+# class Bookmark(web.Variant):
 class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
 
     """
@@ -78,6 +79,9 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
     tags = Column(Text)# XXX: text param NA for postgres (10240))
     "Comma-separated list of all tags. "
 
+    #folder_id = Column(ForeignKey('folders.id'), index=True)
+    #folder = relationship(core.Folder, primaryjoin=folder_id == core.Folder.folder_id)
+
     @staticmethod
     def keyid(*a):
         "Return Couch doc key"
@@ -91,6 +95,7 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
 
     @staticmethod
     def forge(REF, NAME, TAGS, g, sa=None, seed=None):
+        "Helper to create new or re-use existing locator/bookmark records"
         if not sa: sa = Bookmark.get_session(g.session_name, g.dbref)
 
         lctr = net.Locator.fetch((net.Locator.ref == REF,), exists=False)
@@ -120,6 +125,9 @@ class Bookmark(web.Resource):#SqlBase, CardMixin, ORMMixin):#core.Node):
 
     @classmethod
     def unique_tags(klass, NAME, g, ctx):
+        """
+        List all tags or those associated with each NAME (inclusive)
+        """
         tags = set()
         q = ctx.sa_session.query(Bookmark.tags)
         filters = ()

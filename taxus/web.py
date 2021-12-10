@@ -59,13 +59,27 @@ class Status(SqlBase, CardMixin, ORMMixin):
 class Resource(SqlBase, CardMixin, ResourceMixin, ORMMixin):
 
     """
-    A generic resource description. A (web) document.
-    Normally a subclass should be used for instances, choose between Invariant
-    if the document ought not to change,
-    or choose Variant to indicate a more dynamic resource.
-    Invariant resources are generally non-negotiated, but sometimes
-    a specific representation may be retrieved through negotiation on
+    A generic resource description. A (web) document, work, or some other
+    abstraction of value.
+    Normally a specific subclass should be used for instances.
+
+    Choose subclass Invariant if the resource at the URL is static
+    (ie. of a fixed MIME type, including any parameters),
+    and Variant to indicate a dynamic resource.
+    Invariant resources are non-negotiated.
+    A specific representation may be retrieved through negotiation on
     an associated Variant resource.
+
+    The RESTful way is Invariant content resources having URLs,
+    however far more client friendly (or specific) URLs can transparently
+    negotiate different representations of the content and/or may represent more abstract concepts.
+    In the simplest case, a resource is a file  ie. a static resource.
+    And depending on the web server handler this file may be parsed and
+    processed and can consequently vary.
+
+    Generally new types of resources will subtype Variant while they are
+    under the user or programs control. In which case generating
+    associated Invariant URLs is dynamic and elsewhere as well.
     """
 
     __tablename__ = 'res'

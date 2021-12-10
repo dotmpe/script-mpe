@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 jsotk
 =====
@@ -418,7 +418,7 @@ def H_keys(ctx):
     if not data:
         return 1
     if isinstance(data, dict):
-        return stdout_data( data.keys(), ctx, outf=outfile )
+        return stdout_data( list(data.keys()), ctx, outf=outfile )
     elif isinstance(data, list):
         return stdout_data( range(0, len(data)), ctx, outf=outfile )
     else:
@@ -561,7 +561,7 @@ def H_version(ctx):
 
 
 handlers = {}
-for k, h in locals().items():
+for k, h in list(locals().items()):
     if not k.startswith('H_'):
         continue
     handlers[k[2:].replace('_', '-')] = h

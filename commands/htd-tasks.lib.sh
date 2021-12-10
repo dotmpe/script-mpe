@@ -85,7 +85,7 @@ htd__tasks ()
       list ) htd__txt todotxt-list || return ;;
 
       tagged ) shift; lib_require todotxt || return
-              for fn in $todo.txt
+              for fn in $todo_txt
               do
                   todotxt_tagged $fn $@
               done

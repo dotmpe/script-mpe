@@ -437,7 +437,7 @@ def parse_primitive(value):
     elif re_float.match(value):
         return float(value)
     elif value.lower() in ["true", "false"]:
-        return value is 'true'
+        return value == 'true'
     else:
         return value
 
@@ -515,7 +515,8 @@ def json_writer(data, file, ctx):
     if ctx.opts.flags.pretty:
         kwds.update(dict(indent=2))
     data = output_prefix(data, ctx.opts)
-    data = obj_serialize_datetime(data, ctx)
+    # FIXME: handle datetimes
+    # data = obj_serialize_datetime(data, ctx)
     if not data and ctx.opts.flags.empty_null:
         file.write('\n')
     else:

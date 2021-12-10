@@ -435,7 +435,7 @@ def cmd__html_groups(HTML, g):
     for lbl, attr in items:
         if 'href' in attr: continue
         if 'parent' in attr:
-            path = attr['parent'] +"/"+ lbl
+            path = attr['parent'] +" / "+ lbl
         else:
             path = lbl
         if path in paths: continue

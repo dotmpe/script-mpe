@@ -274,7 +274,7 @@ class TxtBmOutline(object):
             if h3:
                 if stack:
                     h3.attrs['parent'] = stack[-1]
-                    stack.append( stack[-1] + "/" + h3.text )
+                    stack.append( stack[-1] + " / " + h3.text )
                 else:
                     stack.append( h3.text )
                 new_f = folder_f(h3.text, dict(h3.attrs))
