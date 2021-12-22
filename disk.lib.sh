@@ -158,6 +158,16 @@ disk_id() # DEVICE
   disk_serial_id "$@"
 }
 
+disk_lsblk_field() # DEVICE FIELD
+{
+  lsblk "$1" -no "$2"
+}
+
+disk_lsblk_partnr()
+{
+  disk_lsblk_field "$1" MAJ:MIN | cut -d':' -f2
+}
+
 disk_id_for_dev()
 {
   local dev="$1" ;
@@ -167,7 +177,7 @@ disk_id_for_dev()
   echo "$disk_id"
 }
 
-disk_model()
+disk_model() # DEVICE
 {
   case "$uname" in
 
@@ -175,7 +185,7 @@ disk_model()
 
         req_parted disk-model || return
         {
-          $parted -s $1 print || {
+          $parted -s $1 print 2>/dev/null || {
             error "disk-model at '$1'"
             return $?
           }
@@ -460,12 +470,22 @@ disk_mountpoint ()
 # Get device for mount point
 get_device()
 {
-  test -n "$1" || error "Mount point argument expected" 1
-  mountpoint "$1" >/dev/null || error "Mount point expected" 1
-  test -z "$2" || error "surplus arguments '$2'" 1
+  test $# -eq 1 -a -n "${1-}" || stderr_ "Mount point argument expected" 1
+  mountpoint -q "$1" || error "Mount point expected" 1
   {
-    mount | grep 'on\ '"$1" | cut -d ' ' -f 1
+    mount | grep 'on\ '"$1"' ' | cut -d ' ' -f 1
   } || return $?
+}
+
+disk_find_mountpoint() # PATH
+{
+	local p="$1"
+	while test "$p" != "/"
+	do
+		mountpoint -q "$p" && break
+		p="$(dirname "$p")"
+	done
+	echo "$p"
 }
 
 copy_fs()

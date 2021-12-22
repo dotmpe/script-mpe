@@ -302,6 +302,11 @@ EOM
   basher uninstall $package
 $(tools_generate_script_function_post "$@" uninstall)
 EOM
+
+  tools_generate_script_function update_${toolid} <<EOM
+  basher upgrade $package
+$(tools_generate_script_function_post "$@" update)
+EOM
 }
 
 tools_PIP_generate_script () # toolid ~
@@ -327,6 +332,11 @@ EOM
   tools_generate_script_function uninstall_${toolid} <<EOM
   apt uninstall $id
 $(tools_generate_script_function_post "$@" uninstall)
+EOM
+
+  tools_generate_script_function update_${toolid} <<EOM
+  apt upgrade -y $id
+$(tools_generate_script_function_post "$@" update)
 EOM
 }
 
@@ -356,6 +366,16 @@ EOM
   rm -rf "\$${toolid^^}_BASE"
 $(tools_generate_script_function_post "$@" uninstall)
 EOM
+
+  tools_generate_script_function update_${toolid} <<EOM
+  test -n "\${${toolid^^}_BASE-}" || ${toolid^^}_BASE=$base
+  test -n "\${${toolid^^}_BRANCH-}" || ${toolid^^}_BRANCH=$( jsotk.py -N -O py path $1 tools/$2/branch 2>/dev/null || echo master )
+  (
+    cd "\$${toolid^^}_BASE" &&
+    git pull origin "\$${toolid^^}_BRANCH"
+  ) || return
+$(tools_generate_script_function_post "$@" update)
+EOM
 }
 
 tools_CURL_SH_generate_script () # toolid ~
@@ -365,7 +385,7 @@ tools_CURL_SH_generate_script () # toolid ~
   curl -sf "\$${toolid^^}_SH_URL" | bash -
 $(tools_generate_script_function_post "$@" install)
 EOM
-  # TODO: uninstall URL
+  # TODO: uninstall/update URL?
 }
 
 tools_exists () # ~ Tools-JSON Tool-Id
