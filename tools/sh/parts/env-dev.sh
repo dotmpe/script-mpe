@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-test -n "${U_S-}" -a -d "${U_S-}" ||
-    source $scriptpath/tools/sh/parts/env-0-u_s.sh # No-Sync
+test -n "${U_S-}" || . ~/bin/.env.sh # XXX: static shell config
+test -d "${U_S-}" || { $LOG error "" "U-S dir missing"; exit 1; }
 
 ENV_DEV=1
 
