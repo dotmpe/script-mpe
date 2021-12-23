@@ -34,7 +34,8 @@ six
 sqlalchemy
 sqlalchemy-migrate
 twisted
-uriref
+# uriref # FIXME: install Py3 version from repo
+# docopt-mpe # FIXME: remove docopt first
 wheezy.template
 xattr
 zope.component
