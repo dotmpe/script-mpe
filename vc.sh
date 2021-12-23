@@ -206,7 +206,8 @@ __vc_status()
   local w short repo sub realcwd
 
   realcwd="$(cd "$1"; pwd -P)"
-  short="$(realpath "$1")"
+  #short="$(realpath "$1")"
+  short="${1/#$HOME/\~}"
   test -n "$short" || err "homepath" 1
 
   local git="$(vc_gitdir "$realcwd")"
@@ -236,7 +237,7 @@ __vc_status()
     }
 
     short="${short%$sub}"
-    echo "$short" $(vc_flags_git "$realcwd" "[git:%s%s%s%s%s%s%s%s $rev]")"$sub"
+    echo "$short $(vc_flags_git "$realcwd" "[git:%s%s%s%s%s%s%s%s $rev]")$sub"
 
   else if [ -n "$bzr" ]; then
     #if [ "$bzr" = "." ];then bzr="./"; fi
