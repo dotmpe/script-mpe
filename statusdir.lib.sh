@@ -158,7 +158,10 @@ statusdir_record () #
 # Load global settings
 statusdir_settings() #
 {
-  test -e ${STATUSDIR_ROOT}meta.sh || return
+  test -e ${STATUSDIR_ROOT}meta.sh || {
+    $sd_log  "error" "" "Cannot load root settings"
+    return 1
+  }
   source ${STATUSDIR_ROOT}meta.sh || return
 }
 
