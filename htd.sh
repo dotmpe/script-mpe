@@ -1571,10 +1571,10 @@ htd_grp__wol_list_hosts=box
 
 htd__wake()
 {
-  host=$1
-  [ -z "$host" ] && {
+  [ -z "${1-}" ] && {
     htd__wol_list_hosts
   } || {
+    local host=$1
     local $(echo $(read_nix_style_file $wol_hwaddr|sed 's/ # .*$//g'))
     hwaddr=$(eval echo \$$host)
     [ -n "$hwaddr" ] || exit 4
