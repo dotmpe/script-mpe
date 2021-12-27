@@ -606,12 +606,13 @@ htd_log_env=""
 
 htd_log_base_spec () # ~ [SPEC | PATH YSEP MSEP EXT # PARTS... ]
 {
-  # XXX: maybe use defaults if no pacakge is found
+  # XXX: maybe use defaults if no package is found
   # test -n "${PACK_SH-}" -a -e "${PACK_SH-}" && {
   # Default to local log, or user's journal-dir setting
   #true ${log:="${log_dir:=$JRNL_DIR}/"}
 
   test -n "${1-}" && log="$1" || eval "$(map=package_: package_sh log)"
+  test -n "${log-}" || { $LOG "error" "" "Expected package log"; return 1; }
   set -- $log
   test $# -gt 0 || return
   test $# -gt 1 && {
