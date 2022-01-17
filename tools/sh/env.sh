@@ -12,7 +12,7 @@ test "${env_strict_-}" = "0" || {
 
 # FIXME: generate local static env
 true "${BIN:="$HOME/bin"}"
-test ! -e $BIN/.env.sh || . $BIN/.env.sh
+test ! -e $HOME/.local/etc/profile.d/_local.sh || . $HOME/.local/etc/profile.d/_local.sh
 test ! -e $CWD/.htd/meta.sh || . $CWD/.htd/meta.sh
 
 : "${SUITE:="Sh"}"

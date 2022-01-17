@@ -17,7 +17,8 @@ test -n "$verbosity" || {
 log_level_name() # Level-Num
 {
   case "$1" in
-      1 ) echo emerg ;;
+      0 ) echo emerg ;;
+      1 ) echo alert ;;
       2 ) echo crit ;;
       3 ) echo error ;;
       4 ) echo warn ;;
@@ -39,8 +40,9 @@ log_level_name() # Level-Num
 log_level_num() # Level-Name
 {
   case "$1" in
-      emerg ) echo 1 ;;
-      crit  | bail ) echo 2 ;;
+      emerg ) echo 0 ;;
+      crit | FIXME ) echo 1 ;;
+      alert | bail | TODO ) echo 2 ;;
       error | err ) echo 3 ;;
       warn  | fail ) echo 4 ;;
       note  | notice | ok ) echo 5 ;;

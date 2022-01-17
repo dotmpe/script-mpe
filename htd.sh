@@ -4693,8 +4693,9 @@ htd_init()
   true "${_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
   test ! -e $_ENV || { source $_ENV || return; }
 
+  LOG=$htd_log
+
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
-  LOG=$htd_log \
   INIT_ENV="init-log 0 dev ucache scriptpath std box" \
   INIT_LIB="os sys std log str match src main argv stdio vc std-ht shell"\
 " date str-htd logger-theme sys-htd vc-htd statusdir os-htd htd ctx-std" \

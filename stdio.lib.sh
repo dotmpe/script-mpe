@@ -8,8 +8,8 @@ stdio_lib_init()
   test "${stdio_lib_init-}" = "0" && return
   lib_assert log || return
 
-  local log=; req_init_log
-  $log info "" "Loaded stdio.lib" "$0"
+  local us_log=; req_init_log
+  $us_log info "" "Loaded stdio.lib" "$0"
 }
 
 
@@ -92,7 +92,7 @@ rm_failed()
 clean_io_lists()
 {
   local count= path=
-  test -z "$DEBUG" || $LOG debug "" "clean-io-lists" "$*"
+  test -z "$DEBUG" || $us_log debug "" "clean-io-lists" "$*"
   while test $# -gt 0
   do
     count=0 path="$(eval echo \$$1)"
@@ -119,7 +119,7 @@ clean_io_lists()
     eval ${1}_count="$count"
     shift
   done
-  test -z "$DEBUG" || $LOG info "$0" "clean-io-lists OK" "$*"
+  test -z "$DEBUG" || $us_log info "$0" "clean-io-lists OK" "$*"
 }
 
 

@@ -20,6 +20,8 @@ test -n "${U_S-}" -a -d "${U_S-}" || . $CWD/tools/sh/parts/env-0-u_s.sh
 test -n "${U_S-}" -a -d "${U_S-}" || $LOG "error" "" "Missing U-s" "$U_S" 1
 
 test -n "${sh_src_base-}" || sh_src_base=/src/sh/lib
+
+#echo "U_S=${U_S-} u_s_lib=${u_s_lib-}" >&2
 test -n "${u_s_lib-}" || u_s_lib="$U_S$sh_src_base"
 test -n "${scriptname-}" || scriptname="`basename -- "$0"`"
 test -n "${sh_tools-}" || sh_tools="$U_S/tools/sh"

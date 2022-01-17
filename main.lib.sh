@@ -12,8 +12,8 @@ main_lib_init()
 {
   test "${main_lib_init-}" = "0" && return
 
-  local log=; req_init_log || return
-  $log info "" "Loaded main.lib" "$0"
+  local us_log=; req_init_log || return
+  $us_log info "" "Loaded main.lib" "$0"
 }
 
 main_lib_log() { req_init_log; }
@@ -104,7 +104,7 @@ try_func()
 try_local_func()
 {
   test -z "${DEBUG-}" || {
-    $LOG debug "" "try-local-func '$*' ($(echo_local "$@"))"
+    $us_log debug "" "try-local-func '$*' ($(echo_local "$@"))"
   }
   try_func $(echo_local "$@") || return $?
 }
@@ -207,7 +207,7 @@ main_subcmd_alias ()
 {
   true "${subcmd_alias:="$( main_value "$baseids" "als" "" "$1" )"}"
   test -z "$subcmd_alias" && return 1
-  $LOG debug "" "Resolved '$1' alias to '$subcmd_alias'"
+  $us_log debug "" "Resolved '$1' alias to '$subcmd_alias'"
   subcmd=$subcmd_alias
   subcmd_alias=$1
 }
@@ -216,7 +216,7 @@ main_subcmd_alias ()
 main_subcmd_func_load () # Groups
 {
   main_groups_load $@ || {
-    $LOG error "" "Loading groups for '$1'" "$subcmd_group"
+    $us_log error "" "Loading groups for '$1'" "$subcmd_group"
     return 1
   }
 
@@ -376,9 +376,9 @@ parse_box_subcmd_opts()
 
 # TODO: cleanup
 #    test -z "$subcmd" && {
-#      $LOG error '' 'No command given' 1
+#      $us_log error '' 'No command given' 1
 #    } || {
-#      $LOG error '' "No such command: '$scriptname:$subcmd'" 2
+#      $us_log error '' "No such command: '$scriptname:$subcmd'" 2
 #  test -z "${DEBUG-}" || debug "Base '$base $subcmd' loaded"
 #
 #  test -z "$dry_run" \
@@ -402,19 +402,19 @@ main_subcmd_run ()
   test ${c:-0} -gt 0 && shift $c ; c=0
 
   test -n "${subcmd_func-}" || {
-    $LOG info "" "No subcommand '$subcmd' after subcmd-load" "$subcmd_load"
-    $LOG err "" "No such subcommand found '$subcmd'" "$baseids"
+    $us_log info "" "No subcommand '$subcmd' after subcmd-load" "$subcmd_load"
+    $us_log err "" "No such subcommand found '$subcmd'" "$baseids"
     return 250
   }
   func_exists "${subcmd_func-}" || {
-    $LOG crit "" "No such subcommand defined '$subcmd'" "$baseids"
+    $us_log crit "" "No such subcommand defined '$subcmd'" "$baseids"
     return 249
   }
   test ${verbosity:-${v:-5}} -gt 5 &&
-    $LOG note "" "Running '$scriptname:$subcmd'..."  "$subcmd_func" ||
-    $LOG note "" "Running '$scriptname:$subcmd'..."
+    $us_log note "" "Running '$scriptname:$subcmd'..."  "$subcmd_func" ||
+    $us_log note "" "Running '$scriptname:$subcmd'..."
   $subcmd_func "$@" && r=0 || { r=$?
-    $LOG error "" "Command '$scriptname:$subcmd' failed" "$r"
+    $us_log error "" "Command '$scriptname:$subcmd' failed" "$r"
   }
 
   main_handle "$baseids" subcmd_unload main_${main}_unload || true

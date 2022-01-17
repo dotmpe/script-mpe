@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-test -n "${U_S-}" || . ~/bin/.env.sh # XXX: static shell config
+test -n "${U_S-}" || . ~/.local/etc/profile.d/_local.sh # Static user config
 test -d "${U_S-}" || { $LOG error "" "U-S dir missing"; exit 1; }
 
 ENV_DEV=1

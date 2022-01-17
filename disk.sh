@@ -488,7 +488,7 @@ main-init \
   set -euo pipefail \
   true "${SUITE:="Main"}" \
   true "${CWD:="$scriptpath"}" \
-  . ~/bin/.env.sh
+  . ~/.local/etc/profile.d/_local.sh
 
 main-load \
   #test -x "/sbin/parted" || error "parted required" 1 \

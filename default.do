@@ -9,8 +9,10 @@ version="Script.mpe/0.1-alpha"
 default_do_include () # Build-Part Target-File Target-Name Temporary
 {
   export scriptname=default:include:$2 build_part=$1
+  $LOG "info" "" "Building include" "$*"
   build-ifchange "$build_part"
   shift
+  $LOG "debug" "" "Sourcing include" "$*"
   source "$build_part"
 }
 
@@ -19,11 +21,22 @@ default_do_main ()
   test -e ./.meta/package/envs/main.sh || {
     htd package update && htd package write-scripts
   }
+
   ENV_NAME=redo . ./.meta/package/envs/main.sh || return
+
   # XXX:
+  . "${_LOCAL:="${UCONF:-"$HOME/.conf"}/etc/profile.d/_local.sh"}" || return
+
   test -n "${build_parts_bases:-}" || {
     . "${_ENV:="tools/redo/env.sh"}" || return
   }
+
+  export UC_QUIET=1
+  export UC_SYSLOG_OFF=1
+  export UC_LOG_BASE="redo[$$]"
+  #STD_SYSLOG_LEVEL=${v:-5}
+  export v=${v:-3}
+
 
   # Keep short build sequences in this file (below in the case/easc), but move
   # larger build-scripts to separate files to prevent unnecessary builds from
@@ -56,9 +69,19 @@ default_do_main ()
 
 
     # Integrate other script targets or build other components by name,
-    # without additional redo files.
-    * ) build-ifchange $components_txt || return
+    # without additional redo files (using components-txt and build-component).
+    # See U-s:build.lib.sh
+    * )
+
+        test "$1" != "${components_txt-}" -a -s "${components_txt-}" || {
+          $LOG alert ":default:build-component" \
+            "Cannot build from table w/o table" "${components_txt-null}" 1
+          return
+        }
+
+        build-ifchange $components_txt || return
         build_component_exists "$1" && {
+          $LOG "notice" "" "Found component " "$1"
           lib_require match &&
           build_component "$@"
           return $?

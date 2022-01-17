@@ -3,6 +3,11 @@ set -euo pipefail
 
 # TODO: clean up other envs and let redo use CI or build or main env?
 
+#test "$PWD" != "." || {
+#  ${LOG:-$U_S/tools/sh/log.sh} \
+#    alert "" "Unknown CWD" "$PWD $CWD $0 $*" 1
+#}
+
 : "${SUITE:="Main"}"
 true "${package_build_tool:="redo"}"
 true "${init_sh_libs:="os sys str log shell script $package_build_tool build"}"

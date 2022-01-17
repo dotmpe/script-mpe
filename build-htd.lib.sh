@@ -297,7 +297,10 @@ build_graphs()
 
 build_package_script_lib_list()
 {
-  # XXX: package_env_req || return
+  test -n "${package_component_name-}" || { package_env_req || return; }
+  test -n "$package_component_name" ||
+    $LOG alert "" "Expeccted mapping function" "" 1
+
   expand_spec_src script_libs |
       p= s= act=$package_component_name foreach_inscol
 }

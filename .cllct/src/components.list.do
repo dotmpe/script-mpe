@@ -5,7 +5,7 @@ redo-ifchange "scm-status"
 (
   CWD=$REDO_BASE &&
   true "${package_build_tool:="redo"}"
-  . ~/bin/.env.sh &&
+  . ~/.local/etc/profile.d/_local.sh &&
   init_sh_libs="$init_sh_libs build-htd" \
     unit_mode=boot . $REDO_BASE/tools/sh/init.sh
 

@@ -88,7 +88,7 @@ test_env_load()
   test -n "${DEBUG-}" || DEBUG=
   test -n "${INIT_LOG-}" || INIT_LOG=err_
 
-  . ~/bin/.env.sh
+  . ~/.local/etc/profile.d/_local.sh
 
   true "${U_S:="/srv/project-local/user-scripts"}"
   . "$sh_tools/parts/fnmatch.sh"

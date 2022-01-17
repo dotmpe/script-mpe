@@ -36,7 +36,7 @@ def main(pwd):
             sorted[count] = []
         sorted[count].append(root)
 
-    values = sorted.keys()
+    values = list(sorted.keys())
     values.sort()
     width = len(str(values[-1])) + 1
     for count in values:
@@ -45,7 +45,7 @@ def main(pwd):
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    if '-h' in args:
+    if '-h' in args or ( len(args) and not sys.path.exists( args[0] )):
         print(__doc__)
         sys.exit(0)
     main( sys.argv[1:] or '.' )

@@ -6,7 +6,7 @@ test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 
 # FIXME: generate local static env
 true "${BIN:="$HOME/bin"}"
-test ! -e $BIN/.env.sh || . $BIN/.env.sh
+test ! -e $HOME/.local/etc/profile.d/_local.sh || . $HOME/.local/etc/profile.d/_local.sh
 
 : "${CS:="dark"}"
 export CS

@@ -1,5 +1,16 @@
 #!/bin/sh
 
-# Select group from uptime output: 1: days/hours up; 2: users; 3: load avgs
-# TODO: move to shell profile export, test with tmux
-echo $(uptime | sed 's/^.*\(up .*\),\ *\([0-9]*\ user[s]*\).*load[^0-9]*\(.*\)$/\'$1'/')
+case "$1" in
+
+  p )
+      echo $(uptime -p | sed 's/^.*up \([^,]*\),\ *.*$/\1/')
+    ;;
+
+  g | group )
+      # Select group from uptime output: 1: days/hours up; 2: users; 3: load avgs
+      # TODO: move to shell profile export, test with tmux
+      echo $(uptime | sed 's/^.*\(up .*\),\ *\([0-9]*\ user[s]*\).*load[^0-9]*\(.*\)$/\'$2'/')
+    ;;
+
+  * ) echo "No such function '$1'" >&2; return 1 ;;
+esac

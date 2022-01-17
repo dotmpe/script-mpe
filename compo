@@ -6,6 +6,8 @@
 
 composure_load='. ~/.local/composure/Composure/load.inc && c-load'
 
+test -n "${LOG?Missing logger}"
+
 # Define main handler func
 COMPO_CMD="$composure_load;"' "$@"'
 composure_run () {
@@ -23,8 +25,7 @@ composure_run_seq () {
   composure_run c-main-seq "$@"
 }
 
-composure_eval ()
-{
+composure_eval () {
   COMPO_CMD="$composure_load;"' eval "$@"' composure_run "$@"
 }
 
