@@ -1827,27 +1827,27 @@ htd_grp__urls=htd-urls
 htd_grp__save_url=urls
 
 
-htd_grp__find=code
+htd_grp__find=htd-code
 htd_als___f=find
 
-htd_grp__github=code
+htd_grp__github=htd-code
 
-htd_grp__src=code
+htd_grp__src=htd-code
 
-htd_grp__git=code
-htd_grp__gitremote=code
-htd_grp__git_init_local=code
-htd_grp__git_init_remote=code
-htd_grp__git_drop_remote=code
-htd_grp__git_init_version=code
-htd_grp__git_missing=code
-htd_grp__git_init_src=code
-htd_grp__git_list=code
-htd_grp__git_files=code
-htd_grp__git_grep=code
-htd_grp__gitrepo=code
-htd_grp__git_import=code
-htd_grp__github=code
+htd_grp__git=htd-code
+htd_grp__gitremote=htd-code
+htd_grp__git_init_local=htd-code
+htd_grp__git_init_remote=htd-code
+htd_grp__git_drop_remote=htd-code
+htd_grp__git_init_version=htd-code
+htd_grp__git_missing=htd-code
+htd_grp__git_init_src=htd-code
+htd_grp__git_list=htd-code
+htd_grp__git_files=htd-code
+htd_grp__git_grep=htd-code
+htd_grp__gitrepo=htd-code
+htd_grp__git_import=htd-code
+htd_grp__github=htd-code
 
 
 htd_man_1__file='TODO: Look for name and content at path; then store and cleanup.

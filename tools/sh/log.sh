@@ -167,7 +167,7 @@ mk_p_trgt_purple="$c5[$c7%s$c5]$c51"
 
 __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
 {
-  test -n "$2" || {
+  test -n "${2-}" || {
     test -n "${log_key:-}" || log_src_id_key_var
     test -n "$2" || set -- "$1" "$(log_src_id)" "$3" "$4" "$5"
     test -n "$2" || set -- "$1" "$0" "$3" "$4" "$5"
