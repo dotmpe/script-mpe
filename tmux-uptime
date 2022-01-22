@@ -2,11 +2,16 @@
 
 case "$1" in
 
-  p )
+  p ) # get the largest (first) pretty-uptime part
       echo $(uptime -p | sed 's/^.*up \([^,]*\),\ *.*$/\1/')
     ;;
 
-  g | group )
+  l ) # get the requested loadavg, default 5min avg
+      test $# -gt 1 || set -- "$1" 1
+      echo $(uptime | sed 's/^.* load average: //' | tr -d ',' | cut -d' ' -f$2)
+    ;;
+
+  g )
       # Select group from uptime output: 1: days/hours up; 2: users; 3: load avgs
       # TODO: move to shell profile export, test with tmux
       echo $(uptime | sed 's/^.*\(up .*\),\ *\([0-9]*\ user[s]*\).*load[^0-9]*\(.*\)$/\'$2'/')
