@@ -187,7 +187,7 @@ x_re()
 # Easy matching for strings based on glob pattern, without adding a Bash
 # dependency (keep it vanilla Bourne-style shell). Quote arguments with '*',
 # to prevent accidental expansion to local PWD filenames.
-fnmatch() # Glob Str
+fnmatch () # PATTERN STRING
 {
   case "$2" in $1 ) return 0 ;; * ) return 1 ;; esac
 }
@@ -464,3 +464,86 @@ str_slice() # Str start [len] [relend] [end]
   #set -- "$1" "$2" "$3" "$4" "$5"
   echo "$1" | cut -c$2-$end
 }
+
+str_padd () # ~ LEN [PAD [INPUT [PAD]]]
+{
+  local padding="${3-}" p1="${2-" "}" p2="${4-""}"
+  while [ ${#padding} -lt $1 ]; do padding="${p1}$padding${p2}"; done
+  printf '%s' "$padding"
+}
+
+str_padd_left () # ~ LEN [PAD [INPUT]]
+{
+  str_padd "$1" "$2" "$3"
+}
+
+str_padd_right () # ~ LEN [PAD [INPUT]]
+{
+  str_padd "$1" "" "$3" "$2"
+}
+
+# Treat text as ASCII with other codes, only count ASCII codes.
+# Note this may still contain (parts of?) ANSI escaped codes.
+str_ascii_len ()
+{
+  local str
+  str="$(echo "$1" | tr -cd "[:print:]")"
+  printf '%i' ${#str}
+}
+
+# Remove ANSI as best as possible in a single sed-regex
+ansi_clean ()
+{
+  echo "$1" | perl -e '
+while (<>) {
+  s/ \e[ #%()*+\-.\/]. |
+    \r | # Remove extra carriage returns also
+    (?:\e\[|\x9b) [ -?]* [@-~] | # CSI ... Cmd
+    (?:\e\]|\x9d) .*? (?:\e\\|[\a\x9c]) | # OSC ... (ST|BEL)
+    (?:\e[P^_]|[\x90\x9e\x9f]) .*? (?:\e\\|\x9c) | # (DCS|PM|APC) ... ST
+    \e.|[\x80-\x9f] //xg;
+    1 while s/[^\b][\b]//g;  # remove all non-backspace followed by backspace
+  print;
+}'
+	return
+
+	#XXX: I'm not sure what the differences are, or how to change the script even @Regex @Perl
+  echo "$1" | perl -e '
+#!/usr/bin/env perl
+## uncolor — remove terminal escape sequences such as color changes
+while (<>) {
+    s/ \e[ #%()*+\-.\/]. |
+       \e\[ [ -?]* [@-~] | # CSI ... Cmd
+       \e\] .*? (?:\e\\|[\a\x9c]) | # OSC ... (ST|BEL)
+       \e[P^_] .*? (?:\e\\|\x9c) | # (DCS|PM|APC) ... ST
+       \e. //xg;
+    print;
+}'
+}
+
+# XXX:
+str_sh_clean ()
+{
+	ansi_clean "$1" | sed -e 's/\(\\\(\[\|\]\)\)//g' | tr -d '\n\r'
+}
+
+# Get the length of the string counting the number of visible characters
+# Strips ANSI codes and delimiter escapes (for Bash PS1) before count
+str_sh_len ()
+{
+  local str
+  str="$(str_sh_clean "$1")"
+  printf '%i' ${#str}
+}
+
+# Treat text as ASCII with Bash-escaped ANSI codes.
+# Does not correct for double-byte chars ie. unicode, NERD/Powerline font symbols etc.
+str_sh_padd () # ~ LEN [PAD [INPUT [PAD]]]
+{
+  local raw="${3-}" p1="${2-" "}" p2="${4-""}" invis
+  invis=$(( ${#raw} - $(str_sh_len "$raw") ))
+  while [ $(( ${#raw} - $invis )) -lt $1 ]; do raw="${p1}$raw${p2}"; done
+  printf '%s' "$raw"
+}
+
+#
