@@ -251,4 +251,26 @@ argv_is_seq ()
   test "${1-}" = "--"
 }
 
+# Read arguments until --, set argv_more to that list and argv_more_cnt
+# eventually to the amount consumed (counts all args, one leading and trailing '--' as well)
+# XXX: does not accept spaces in args
+argv_more ()
+{
+  test $# -gt 0 || return
+  argv_more_cnt=$#
+  argv_is_seq "$1" && shift
+  argv_is_seq "$1" && { argv_more=; argv_more_cnt=1; return; }
+  argv_more="$1"
+  test $# -eq 0 || {
+    while {
+      shift
+      argv_more="$argv_more $1"
+    }
+    do argv_has_next "$@"; done
+  }
+  # Be nice..
+  argv_is_seq "$@" && shift
+  argv_more_cnt=$(( $argv_more_cnt - $# ))
+}
+
 #

@@ -82,13 +82,17 @@ htd_catalog__name() # Look for Catalog-Default ~ [Dir]
 htd_catalog__as_json()
 {
   test -n "$1" || set -- "$CATALOG"
-  local jsonfn="$(pathname "$1" .yml .yaml).json"
+  local jsonfn= s=
+  jsonfn="$(pathname "$1" .yml .yaml).json"
   { test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
         {
-          trueish "$update_json" || test ! -e "$jsonfn"
+          trueish "${update_json-}" || test ! -e "$jsonfn"
         } && {
-          jsotk yaml2json --ignore-alias "$1" "$jsonfn"
-        }
+          jsotk yaml2json --ignore-alias "$1" "$jsonfn" || s=$?
+          test ${s:-0} -eq 0 ||
+            error "Generating <$jsonfn>" $s
+        } ||
+          alert "Updated needed from YAML <$jsonfn>" 1
       }
     } >&2
   test -e "$jsonfn" || error "Unable to get CATALOG json for '$1' '$jsonfn'" 1

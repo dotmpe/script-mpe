@@ -43,6 +43,19 @@ tools_json_schema () # [B] [HTD_TOOLSSCHEMAFILE]
     || jsotk.py yaml2json $HTD_TOOLSSCHEMAFILE $B/tools-schema.json
 }
 
+tools_generate_script () # [Tools-JSON] [Script-Tpl] [Args...]
+{
+  local TOOLS_JSON="${1-}" TOOLS_SCR_TPL="${2-}"
+  test -n "${TOOLS_JSON}" || TOOLS_JSON="$B/tools.json"
+  test -n "${TOOLS_SCR_TPL}" || TOOLS_SCR_TPL="tools.install-deps.scr"
+
+  test $# -eq 0 || { test $# -eq 1 && shift ; } || shift 2
+
+  source $TOOLS_SCR_TPL
+
+  echo "# Generated at $(date --iso=min) using $TOOLS_SCR_TPL"
+}
+
 # List all installable tool Ids
 tools_list () # [B] ~ [tools.json]
 {
@@ -66,7 +79,7 @@ tools_installed () # [B] ~ [Tools-JSON] Tool-Id
   test $# -le 2 -a -n "${2-}" || return 64
   test -n "${1-}" || set -- $B/tools.json "$2"
 
-  tools_exists "$1" "$2" || {
+  tools_m_exists "$1" "$2" || {
     warn "No installable '$2' ($1)"
     return 1
   }
@@ -101,6 +114,18 @@ tools_installed () # [B] ~ [Tools-JSON] Tool-Id
   #$bin $version && return || break
 
   return 1;
+}
+
+tools_load () # ~ Tools-JSON Installer-Id
+{
+  func_exists tools_${installer^^}_install ||
+    error "No installer '$installer'" 1
+}
+
+tools_install_new () # ~ Tools-JSON Tool-Id
+{
+  func_exists tools_${installer^^}_install ||
+    error "No installer '$installer'" 1
 }
 
 tools_install () # ~ Tools-JSON Tool-Id
@@ -221,31 +246,20 @@ tools_PIP_uninstall () # id ~
   pip uninstall --user $id
 }
 
-tools_generate_script () # ~ Tools-JSON Tool-Id
+tools_generate_tool () # ~ Tools-JSON Tool-Id
 {
-  #tools_exists "$1" "$2" || {
-  #  warn "No installable '$2' ($1)"
-  #  return 1
-  #}
   local installer id="$2" toolid; mkvid "$id"; toolid=$vid
-  installer="$(jsotk.py -N -O py path $1 tools/\"$2\"/installer 2>/dev/null)"
-  required="$(jsotk.py path --is-bool $1 tools/\"$2\"/required 2>/dev/null)"
-  bin="$(tools_bin $1 $2)"
+  installer="$(tools_m_installer "$@")"
 
-#  # Special case for non-installable targets
-#  test -z "$installer" -a ${required:-false} = "true" && {
-#    jsotk.py -qs path $1 tools/$2/depends && return
-#    tools_generate_script_function install_${toolid} <<EOM
-#  test -x "\$(which $bin)" || stderr_ "Sorry, $2 is required" 1
-#EOM
-#    return
-#  }
-
-  true "${installer:=sh}"
   local vid installerid; mkvid "$installer"; installerid=$vid
-  func_exists tools_${installerid^^}_generate_script ||
+
+  lib_load tools-installers
+
+  func_exists tools_${installerid^^}_gen ||
     error "No generate-script '$installer'" 1
-  tools_${installerid^^}_generate_script "$@"
+
+  tools_${installerid^^}_gen "$@" "$vid"
+  #tools_${installerid^^}_generate_script "$@"
 }
 
 tools_generate_script_function () # >body ~ Func-Name
@@ -388,18 +402,7 @@ EOM
   # TODO: uninstall/update URL?
 }
 
-tools_exists () # ~ Tools-JSON Tool-Id
-{
-  jsotk.py path --is-obj "$1" "tools/$2"
-}
-
-tools_required () # ~ Tools-JSON Tool-Id
-{
-  local required="$(jsotk.py -O py path "$1" "tools/\"$2\"/required" 2>/dev/null)"
-  test "$bin" != "False"
-}
-
-tools_bin () # ~ Tools-JSON Tool-Id
+tools_m_bin () # ~ Tools-JSON Tool-Id
 {
   local bin="$(jsotk.py -O py path "$1" "tools/\"$2\"/bin" 2>/dev/null)"
   test "$bin" = "False" && return 1
@@ -408,12 +411,12 @@ tools_bin () # ~ Tools-JSON Tool-Id
   echo "$bin"
 }
 
-tools_depends () # ~ Tools-JSON Tool-Id
+tools_m_depends () # ~ Tools-JSON Tool-Name-Id
 {
-  test $# -eq 2 -a -e "$1" -a -n "$2" || return
-  local dep installer="$(jsotk.py -N -O py path $1 tools/\"$2\"/installer 2>/dev/null)"
+  test $# -eq 2 -a -e "$1" -a -n "$2" || return 64
+  local dep installer="$(tools_m_installer "$@")"
   test "${installer:-"sh"}" = "sh" || {
-    tools_depends $1 $installer
+    tools_m_depends $1 $installer
     echo "$installer"
   }
   {
@@ -424,7 +427,32 @@ tools_depends () # ~ Tools-JSON Tool-Id
   }; } |
     tr ' ' '\n' | while read dep
       do
-        tools_depends $1 $dep
+        tools_m_depends $1 $dep
         echo "$dep"
       done
+}
+
+tools_m_exists () # ~ Tools-JSON Tool-Id
+{
+  jsotk.py path --is-obj "$1" "tools/\"$2\""
+}
+
+tools_m_installer () # Tools-JSON Tool-Name-Id
+{
+  tools_m_vardef "$1" "$2" "installer" "sh"
+}
+
+tools_m_required () # ~ Tools-JSON Tool-Id
+{
+  local required="$(jsotk.py -O py path "$1" "tools/\"$2\"/required" 2>/dev/null)"
+  test "$required" != "False" && echo 1 || echo 0
+}
+
+tools_m_vardef () # Tools-JSON Tool-Name-Id Sub-Path [Default]
+{
+  test $# -ge 3 || return 64
+  local v
+  v="$( jsotk.py -N -O py path "$1" "tools/\"$2\"/$3" 2>/dev/null )"
+  test $# -eq 3 || true "${v:=$4}"
+  test -z "$v" || echo "$v"
 }

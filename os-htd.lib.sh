@@ -895,11 +895,11 @@ number_file() # [action=mv] Name [Ext]
 {
   local dir=$(dirname "$1") cnt=1 base=$(basename "$1")
 
-  while test -e "$dir/$base-$cnt$2"
+  while test -e "$dir/$base-$cnt${2-}"
   do
     cnt=$(( $cnt + 1 ))
   done
-  dest=$dir/$base-$cnt$2
+  dest="$dir/$base-$cnt${2-}"
 
   test -n "$action" || action="mv"
   { $action -v "$1" "$dest" || return $?; } | abbrev_rename
