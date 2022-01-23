@@ -23,6 +23,7 @@ env_face=cosmike
 #env_face=larry3d
 #env_face=rounded
 
+# FIXME: vlock_screen=host
 test -n "$vlock_screen" || vlock_screen=minimal
 test -z "$1" || vlock_screen=$1
 
@@ -45,9 +46,13 @@ case "$vlock_screen" in
             echo
             printf -- "$esc[1;30m"
             figlet -c -w$cols -f term $(uptime)
+
             printf -- "$esc[1;30m"
-            figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
+            # FIXME: figlet formatting doesn't get ANSI
+            #figlet -c -w$cols -f term "\[$(tput bold)\]$(hostname)$(tput sgr0)" $TERM $SHELL $HISTNUM lines
+            figlet -c -w$cols -f term "$(hostname)" $TERM $SHELL $HISTNUM lines
             printf -- "$esc[0m"
+
             eval $vpadd
         ;;
 
