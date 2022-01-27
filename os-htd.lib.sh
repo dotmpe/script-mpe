@@ -163,10 +163,10 @@ filemtype() # File..
 {
   local flags= ; file_tool_flags
   case "$uname" in
-    darwin )
+    Darwin )
         file -${flags}I "$1" || return 1
       ;;
-    linux )
+    Linux )
         file -${flags}i "$1" || return 1
       ;;
     * ) error "filemtype: $uname?" 1 ;;
@@ -178,7 +178,7 @@ fileformat()
 {
   local flags= ; file_tool_flags
   case "$uname" in
-    darwin | linux )
+    Darwin | Linux )
         file -${flags} "$1" || return 1
       ;;
     * ) error "fileformat: $uname?" 1 ;;
@@ -192,10 +192,10 @@ filesize() # File
   while test $# -gt 0
   do
     case "$uname" in
-      darwin )
+      Darwin )
           stat -f '%z' $flags "$1" || return 1
         ;;
-      linux )
+      Linux )
           stat -c '%s' $flags "$1" || return 1
         ;;
       * ) error "filesize: $1?" 1 ;;
@@ -209,10 +209,10 @@ filectime() # File
   while test $# -gt 0
   do
     case "$uname" in
-      darwin )
+      Darwin )
           stat -L -f '%c' "$1" || return 1
         ;;
-      linux | cygwin_nt-6.1 )
+      Linux | CYGWIN_NT-6.1 )
           stat -L -c '%Z' "$1" || return 1
         ;;
       * ) $os_lib_log error "os" "filectime: $1?" "" 1 ;;
@@ -227,11 +227,11 @@ filemtime() # File
   while test $# -gt 0
   do
     case "$uname" in
-      darwin )
+      Darwin )
           trueish "${file_names-}" && pat='%N %m' || pat='%m'
           stat -f "$pat" $flags "$1" || return 1
         ;;
-      linux )
+      Linux )
           trueish "${file_names-}" && pat='%N %Y' || pat='%Y'
           stat -c "$pat" $flags "$1" || return 1
         ;;
@@ -245,11 +245,11 @@ filebtime() # File
 {
   local flags=- ; file_stat_flags
   case "$uname" in
-    darwin )
+    Darwin )
         trueish "${file_names-}" && pat='%N %B' || pat='%B'
         stat -f "$pat" $flags "$1" || return 1
       ;;
-    linux )
+    Linux )
         # XXX: %N is deref-file
         trueish "${file_names-}" && pat='%N %W' || pat='%W'
         stat -c "$pat" $flags "$1" || return 1
@@ -674,8 +674,8 @@ count_cols()
 xsed_rewrite()
 {
   case "$uname" in
-    darwin ) sed -i.applyBack "$@";;
-    linux ) sed -i "$@";;
+    Darwin ) sed -i.applyBack "$@";;
+    Linux ) sed -i "$@";;
   esac
 }
 

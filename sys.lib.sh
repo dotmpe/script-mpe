@@ -106,17 +106,34 @@ try_exec_func()
 # directory will not be created.
 sys_tmp_init () # DIR
 {
-  test -n "${RAM_TMPDIR-}" || {
-        # Set to Linux ramfs path
-        test -w "/dev/shm" && RAM_TMPDIR=/dev/shm/tmp
-      }
+  local tag=:sys.lib:tmp-init
+  test -n "${RAM_TMPDIR:-}" || {
+    # Set to Linux ramfs path
+    test -d "/dev/shm" && {
+      RAM_TMPDIR=/dev/shm/tmp
+    }
+  }
+
+  test -n "${RAM_TMPDIR:-}" || {
+    # XXX: find existing parent dir
+    _RAM_TMPDIR="$(set -- $RAM_TMPDIR; while test ! -e "$1"; do set $(basename "$1"); done; echo "$1")"
+    test -w "$_RAM_TMPDIR" && {
+      test -d "$RAM_TMPDIR" || mkdir $RAM_TMPDIR
+    } || {
+      test -d "$RAM_TMPDIR" && {
+        $sys_lib_log warn $tag "Cannot access RAM-TmpDir" "$RAM_TMPDIR"
+      } ||
+        $sys_lib_log warn $tag "Cannot prepare RAM-TmpDir" "$RAM_TMPDIR"
+    unset _RAM_TMPDIR
+  }
+
   test -e "${1-}" -o -z "${RAM_TMPDIR-}" || set -- "$RAM_TMPDIR"
   test -e "${1-}" -o -z "${TMPDIR-}" || set -- "$TMPDIR"
   test -n "${1-}" && {
     test -n "${TMPDIR-}" || export TMPDIR=$1
   }
   test -d "$1" || {
-    $LOG warn sys "No RAM tmpdir/No tmpdir settings found" "" 1
+    $LOG warn $tag "No RAM tmpdir/No tmpdir found" "" 1
   }
   sys_tmp="$1"
 }
@@ -125,7 +142,7 @@ sys_tmp_init () # DIR
 # Get (create) fresh subdir in TMPDIR or fail.
 setup_tmpd () # Unique-Name
 {
-  test $# -le 2 || return
+  test $# -le 2 || return 98
   test -n "${2-}" || set -- "${1-}" "$sys_tmp"
   test -d "$2" ||
     $LOG error sys "Need existing tmpdir, got: '$2'" "" 1

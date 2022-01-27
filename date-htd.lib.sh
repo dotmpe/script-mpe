@@ -64,13 +64,17 @@ newer_than() # FILE SECONDS
   #test $(( $(date +%s) - $2 )) -lt $(filemtime "$1")
 }
 
-newer_than_all () # (REFFILE|TIMESTAMP) PATHS...
+newer_than_all () # (REFFILE|@TIMESTAMP) PATHS...
 {
-  local ref path
-  test -e "$1" && ref=$(filemtime "$1") || ref=$1
+  local ref path fm
+  fnmatch "@*" "$1" && ref="${1:1}" || { ref=$(filemtime "$1") || return; }
+  ref=0
+  echo ref=$1 mtime=$ref >&2
   shift
   for path in $@
-  do test $(filemtime "$path") -lt $ref
+  do
+    #test -e "$path" || continue
+    fm=$(filemtime "$path"); test ${fm:-0} -lt $ref
   done
 }
 
