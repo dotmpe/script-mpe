@@ -1,6 +1,7 @@
 #!/bin/sh
 
-test -n "${U_S-}" -a -d "${U_S-}" || . $scriptpath/tools/sh/parts/env-0-u_s.sh
+. ~/.local/etc/profile.d/_local.sh
+#test -n "${U_S-}" -a -d "${U_S-}" || . $scriptpath/tools/sh/parts/env-0-u_s.sh
 test -d "$U_S" || return
 
 test -n "${default_lib-}" ||

@@ -51,7 +51,7 @@ test -z "${1-}" && {
 trueish "$Check_All_Tags" && {
   test -n "${tasks_grep_expr-}" || tasks_grep_expr='\<\(SCRIPT-MPE\|TODO\|FIXME\|XXX\)\>' # tasks:no-check
 } || {
-  test -n "$tasks_grep_expr" || tasks_grep_expr='\<XXX\>' # tasks:no-check
+  test -n "${tasks_grep_expr-}" || tasks_grep_expr='\<XXX\>' # tasks:no-check
 }
 
 # match for tags, ignore lines with tasks.no.check at the end
