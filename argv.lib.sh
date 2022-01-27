@@ -1,5 +1,6 @@
 #!/bin/sh
 
+## argv:
 
 # Functions to deal with script or function arguments.
 # (for argv processing)
@@ -52,6 +53,28 @@ test_glob() # Glob
 #  done
 }
 
+# Simple helper to check for no or greater-/less-than argc
+argv__argc () # ~ evttag argc test expectedc
+{
+  local tag="${1:-":(args)"}" test="${3:-"eq"}" expc="${4:-0}"
+  test ${2:--1} -$test $expc || {
+    $LOG error "$tag" "Expected argument count $test $expc, got ${2:--1}"
+    return 64
+  }
+}
+
+# Idem as argv__argc but also check every argument value is non-empty
+argv__argc_n ()
+{
+  argv__argc "$@" || return
+  local arg
+  for arg in $@; do
+    test -n "$arg" && continue
+    $LOG error "${1:-":(args-n)"}" "Got empty argument"
+    return 63
+  done
+}
+
 # Echo arguments as sh vars (use with local, export, etc)
 arg_vars() # VARNAMES VALUES...
 {
@@ -97,7 +120,7 @@ check_argc()
 {
   local argi=$(( $1 + 1 ))
   shift
-  local value="$(eval echo \$$argi)"
+  local value="$(eval echo \${$argi-})"
   test -z "$value" || error "surplus arguments (expected $1): '$value'" 1
 }
 
