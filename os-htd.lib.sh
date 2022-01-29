@@ -1006,13 +1006,6 @@ linux_boottime()
   echo $(( $($gdate +"%s" ) + $(linux_uptime) ))
 }
 
-# Sort into lookup table (with Awk) to remove duplicate lines.
-# Remove duplicate lines (unlike uniq -u) without sorting.
-remove_dupes() # ~
-{
-  awk '!a[$0]++' "$@"
-}
-
  # Go over pathnames, and compare with file. Return non-zero on first file with differences.
 diff_files() # File-Path Path-Name...
 {

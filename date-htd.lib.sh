@@ -61,15 +61,12 @@ newer_than() # FILE SECONDS
 
   fnmatch "@*" "$2" || set -- "$1" "-$2"
   test $(date_epochsec "$2") -lt $(filemtime "$1")
-  #test $(( $(date +%s) - $2 )) -lt $(filemtime "$1")
 }
 
 newer_than_all () # (REFFILE|@TIMESTAMP) PATHS...
 {
   local ref path fm
   fnmatch "@*" "$1" && ref="${1:1}" || { ref=$(filemtime "$1") || return; }
-  ref=0
-  echo ref=$1 mtime=$ref >&2
   shift
   for path in $@
   do
@@ -79,11 +76,11 @@ newer_than_all () # (REFFILE|@TIMESTAMP) PATHS...
 }
 
 # older-than FILE SECONDS, filemtime must be less-than Now - SECONDS
-older_than()
+older_than ()
 {
   test -n "${1-}" || error "older-than expected path" 1
   test -e "$1" || error "older-than expected existing path" 1
-  test -n "$2" || error "older-than expected delta seconds argument" 1
+  test -n "${2-}" || error "older-than expected delta seconds argument" 1
   test -z "${3-}" || error "older-than surplus arguments" 1
   fnmatch "@*" "$2" || set -- "$1" "-$2"
   test $(date_epochsec "$2") -gt $(filemtime "$1")
@@ -95,9 +92,10 @@ date_ts()
   date +%s
 }
 
-date_epochsec()
+date_epochsec () # File | -Delta-Seconds | @Timestamp | Time-Fmt
 {
-  test -e "${1-}" && {
+  test $# -eq 1 || return 64
+  test -e "$1" && {
       filemtime "$1"
       return $?
     } || {
@@ -117,6 +115,10 @@ date_epochsec()
     }
   return 1
 }
+
+# See +U-c
+# date_fmt() # Date-Ref Str-Time-Fmt
+
 
 # Compare date, timestamp or mtime and return oldest as epochsec (ie. lowest val)
 date_oldest() # ( FILE | DTSTR | @TS ) ( FILE | DTSTR | @TS )
@@ -425,3 +427,4 @@ date_week() # Week Year [Date-Fmt]
   sat=$(date -d "$first_Sun +$((week - 1)) week + 6 day" "$date_fmt")
 }
 
+#

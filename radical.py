@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Radical
 =======
@@ -856,7 +856,8 @@ def scan_for_tag(tags, matchbox, data):
         return pos
 
 
-def trim_comment(match, data, (start, end)):
+def trim_comment(match, data, t):
+    (start, end) = t
     comment_data = data[start:end]
 
     match_start = match[0] or match[1]
@@ -1097,7 +1098,7 @@ def find_tagged_comments(session, matchbox, source, data, lines=None):
 
 def plain_text_flavor(peek, source):
     try:
-        peek.decode('ascii')
+        peek#.decode('ascii')
         return True
     except UnicodeDecodeError as e:
         pass
@@ -1242,9 +1243,10 @@ tag_match_re = re.compile('[%s]{2,}' % tag_chars)
 
 # TODO see bookmarks, basename-reg, mimereg, flesh out Txs
 
+@zope.interface.implementer(res.iface.ISimpleCommand)
 class Radical(rsr.Rsr):
 
-    zope.interface.implements(res.iface.ISimpleCommand)
+    # XXX: py2 zope.interface.implements(res.iface.ISimpleCommand)
 
     NAME = 'rdc'#radical' # Handler name prefix
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
@@ -1494,6 +1496,7 @@ class Radical(rsr.Rsr):
         #dbsession = get_session(self.rc.dbref)
         #yield dict( dbsession=dbsession )
 
+        issue_format = issue_format.lower()
         if issue_format not in EmbeddedIssue.formats:
             raise Exception("Unknown format '%r', %s" % (issue_format,
                 EmbeddedIssue.formats.keys()))
@@ -1572,8 +1575,13 @@ class Radical(rsr.Rsr):
         #for embedded in find_files_with_tag(sa, matchbox, paths):
 
         for source in source_iter:
+            assert isinstance(source, str), str
             log.debug("Scanning source: %s", source)
-            data = open(source).read()
+            try:
+                data = open(source).read()
+            except UnicodeDecodeError:
+                log.err("Decoding source: %s" % source)
+                continue
             lines = get_lines(data)
 
             srcdoc = SrcDoc( source, len(lines), data )
@@ -1615,6 +1623,7 @@ class Radical(rsr.Rsr):
 
     def _rdc_issue(self, cmt, data, issue_format='id', opts=None):
         """Handle comment-issue output. """
+        issue_format = issue_format.lower()
         if issue_format not in EmbeddedIssue.formats:
             raise Exception("Unknown format '%r', %s" % (issue_format,
                 EmbeddedIssue.formats.keys()))

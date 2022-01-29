@@ -520,8 +520,8 @@ class StatCache:
         """
         Get stat object and cache, return path.
         """
-        if isinstance( path, unicode ):
-            path = path.encode( 'utf-8' )
+        #if isinstance( path, str ):
+        #    path = path.encode( 'utf-8' )
         # canonize path
         p = path
         if path in klass.path_stats:
@@ -542,7 +542,7 @@ class StatCache:
             assert isinstance( p, str )
             klass.path_stats[ p ] = statv
         assert isinstance( p, str )
-        return p.decode( 'utf-8' )
+        return p
     @classmethod
     def exists( klass, path ):
         try:
@@ -597,7 +597,7 @@ class StatCache:
         p = klass.init( path ).encode( 'utf-8' )
         for x in klass.modes:
             modefunc = getattr(stat, klass.modes[ x ] )
-            if modefunc( klass.path_stats[ p ].st_mode ):
+            if modefunc( klass.path_stats[ p.decode() ].st_mode ):
                 # return mode name
                 return x[2:]
 

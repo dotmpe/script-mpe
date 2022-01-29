@@ -702,7 +702,8 @@ class SimpleCommand(object):
         #    default_reporter = self
 
         prog.output = [ default_reporter ]
-        log.category = 7-opts.message_level
+        # XXX: opts.message_level should be an integer
+        log.category = 7-int(opts.message_level)
         #print 'log level', log.category
 
         import taxus.core

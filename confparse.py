@@ -249,6 +249,8 @@ def find_config_path(markerleaf, path=None, prefixes=name_prefixes,
     # Get a list of all paths, parents, symlinked locations
     expanded_paths = []
     for p in paths:
+        if not isinstance(p, str):
+          p = p.decode()
         expanded_paths.extend(tree_paths(p))
     # test for existing markerleaf
     while expanded_paths:
@@ -282,7 +284,7 @@ class DictDeepUpdate(object):
 
     @classmethod
     def update(Klass, sub, data, key_h=None):
-        for k, v in data.iteritems():
+        for k, v in data.items():
             if key_h:
                 k = key_h(k)
             if isinstance(v, collections.Mapping):
@@ -764,5 +766,5 @@ if __name__ == '__main__':
     configs = list(expand_config_path('cllct.rc'))
 
     print(yaml_loads("test: 1"))
-    print(yaml_load(os.path.expanduser("~/project/.projects.yaml")) )
+    print(yaml_load(os.path.expanduser("~/.conf/user/projects.yaml")) )
 #    assert configs == ['/Users/berend/.cllct.rc'], configs

@@ -251,11 +251,54 @@ reverse_lines()
   sed '1!G;h;$!d'
 }
 
-# Sort into lookup table (with Awk) to remove duplicate lines.
-# Remove duplicate lines (unlike uniq -u) without sorting.
-remove_dupes() # ~
+## Put each line into lookup table (with Awk), print on first occurence only
+#
+# To remove duplicate lines in input, without sorting (unlike uniq -u).
+remove_dupes() # <line> ... ~
 {
   awk '!a[$0]++'
+}
+
+## Put each word into lookup table (with Awk), print on first occurence only (1)
+#
+# Like remove-dupes but act on words from each line, printing every word not
+# yet encountered on a line to stdout.
+# The input can contain newlines however these are seen as belonging to the last
+# word of that line. Adding a space before the newline introduces blank lines in
+# the output that separate the word lists into groups of output per line of input.
+#
+# This remembers each word of every line read.
+# Alternatively use unique-words to de-dupe words only per line.
+# To *print* one line of output but still remove all dupe words from a stream
+# use the remove-dupe-words-lines variant.
+remove_dupe_words () # <words> ... ~
+{
+  awk 'BEGIN { RS = " " } !a[$0]++'
+}
+
+## Put each word into lookup table (with Awk), print on first occurence only (2)
+#
+# Unlike remove-dupe-words this prints one line of output per line of input.
+# To remove newlines completely, these need to be removed from input
+# as wel or just filtered on output with lines-to-words.
+# See remove-dupes and remove-dupe-words for variants.
+#
+# To only remove words per-line, call for every line.
+# See unique-line-words.
+unique_words () # <words> ... ~
+{
+  awk 'BEGIN { RS = " "; ORS = " " } !a[$0]++'
+}
+
+## Put each word into lookup table per line, print each first occurence only on that line
+#
+# A loop calling remove-dupe-words on each line of input.
+# The last line must be followed by newline or it is ignored.
+unique_line_words ()
+{
+  while IFS= read -r line
+  do printf '%s' "$line" | unique_words; echo
+  done
 }
 
 # Try to turn given variable names into a more "terse", human readble string seq
@@ -538,7 +581,28 @@ str_sh_len ()
 
 # Treat text as ASCII with Bash-escaped ANSI codes.
 # Does not correct for double-byte chars ie. unicode, NERD/Powerline font symbols etc.
-str_sh_padd () # ~ LEN [PAD [INPUT [PAD]]]
+str_sh_padd () # ~ LEN [INPUT]
+{
+  str_sh_lpadd "$@"
+}
+
+str_sh_lpadd ()
+{
+  local raw="${2-}" invis newpadd
+  invis=$(( ${#raw} - $(str_sh_len "$raw") ))
+  newpadd=$(( $1 + $invis ))
+  printf '%'$newpadd's' "$raw"
+}
+
+str_sh_rpadd ()
+{
+  local raw="${2-}" invis newpadd
+  invis=$(( ${#raw} - $(str_sh_len "$raw") ))
+  newpadd=$(( $1 + $invis ))
+  printf '%-'$newpadd's' "$raw"
+}
+
+str_sh_padd_ch () # ~ LEN [PAD [INPUT [PAD]]]
 {
   local raw="${3-}" p1="${2-" "}" p2="${4-""}" invis
   invis=$(( ${#raw} - $(str_sh_len "$raw") ))

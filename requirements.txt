@@ -14,9 +14,9 @@ keyring
 #mysqlclient
 #mysql-connector==2.1.7
 mysql-connector==2.2.9
-nltk
+#nltk
 # TODO: nltk.download('wordnet')
-objectpath==0.6.1
+#objectpath==0.6.1
 openpyxl
 pbPlist
 #pydelicious

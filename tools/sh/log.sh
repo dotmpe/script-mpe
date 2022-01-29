@@ -86,9 +86,10 @@ test -n "$FIRSTTAB" || {
 
 if [ -z "$CS" ]
 then
-  echo "$(log_src_id): warning, using dark colorscheme (set CS to override)" 1>&2
+  # XXX: echo "$(log_src_id): warning, using dark colorscheme (set CS to override)" 1>&2
   CS=dark
 fi
+
 COLOURIZE=yes
 
 # Shell colors

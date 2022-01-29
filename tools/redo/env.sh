@@ -19,7 +19,7 @@ true "${DEBUG:=${REDO_DEBUG-${DEBUG-}}}"
 export verbosity="${verbosity:=${v:-3}}"
 export quiet="${quiet:=${q:-0}}"
 
-. ${CWD:="$PWD"}/tools/ci/env.sh
+. ${CWD:="$REDO_BASE"}/tools/ci/env.sh
 
 $LOG "info" "" "Started redo env" "${CWD}/tools/ci/env.sh"
 # Sync: U-S:
