@@ -24,7 +24,7 @@ test -n "${sh_tools-}" || sh_tools="$CWD/tools/sh"
 # XXX: cleanup
   #: "${sh_tools:="$scriptpath/tools/sh"}"
   #: "${ci_tools:="$scriptpath/tools/ci"}"
-util_mode=ext . $CWD/tools/sh/init-wrapper.sh || return
+util_mode=ext . $U_S/tools/sh/init-wrapper.sh || return
 #. $scriptpath/tools/sh/init.sh || return
 #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
 

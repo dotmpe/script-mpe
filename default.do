@@ -24,22 +24,13 @@ default_do_main ()
     htd package update && htd package write-scripts
   }
 
+  : ${CWD:=$PWD}
+
   ENV_NAME=redo . ./.meta/package/envs/main.sh || return
 
-  # XXX:
-  CWD=$PWD
-  . "${_LOCAL:="${UCONF:-"$HOME/.conf"}/etc/profile.d/_local.sh"}" || return
+  . "${UCONF:-"$HOME/.conf"}/tools/redo/env.sh" || return
 
-  test -n "${build_parts_bases:-}" || {
-    . "${_ENV:="tools/redo/env.sh"}" || return
-  }
-
-  export UC_QUIET=1
-  export UC_SYSLOG_OFF=1
-  export scriptname="redo[$$]:default"
-  #export UC_LOG_BASE="redo[$$]"
-  #STD_SYSLOG_LEVEL=${v:-5}
-  export v=${v:-3}
+  . "${UCONF:-"$HOME/.conf"}/etc/profile.d/_local.sh" || return
 
 
   # Keep short build sequences in this file (below in the case/easc), but move

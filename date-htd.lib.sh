@@ -13,6 +13,9 @@ date_htd_lib_load()
   export _4MIN=240
   export _5MIN=300
   export _10MIN=600
+  export _15MIN=900
+  export _20MIN=1200
+  export _30MIN=1800
   export _45MIN=2700
 
   export _1HOUR=3600
@@ -24,7 +27,7 @@ date_htd_lib_load()
 
   # Note: what are the proper lengths for month and year? It does not matter that
   # much if below is only used for fmtdate-relative.
-  export _1MONTH=$(( 4 * $_1WEEK ))
+  export _1MONTH=$(( 31 * $_1DAY ))
   export _1YEAR=$(( 365 * $_1DAY ))
 }
 
@@ -35,8 +38,8 @@ date_lib_init()
 
   lib_assert sys os str || return
   case "$uname" in
-    darwin ) gdate="gdate" ;;
-    linux ) gdate="date" ;;
+    Darwin ) gdate="gdate" ;;
+    Linux ) gdate="date" ;;
     * ) $INIT_LOG "error" "" "uname" "$uname" 1 ;;
   esac
 

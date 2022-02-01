@@ -4,17 +4,18 @@
 
 os_htd_lib_load()
 {
-  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  test -n "${os-}" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${uname-}" || uname="$(uname -s)"
+  test -n "${os-}" || os="$(uname -s)"
 }
 
 os_htd_lib_init()
 {
-  test "${os_htd_lib_init-}" = "0" && return
-  test -n "$LOG" -a \( -x "$LOG" -o "$(type -t "$LOG")" = "function" \) \
-    && os_htd_lib_log="$LOG" || os_htd_lib_log="$INIT_LOG"
-  test -n "$os_htd_lib_log" || return 102
-  $os_htd_lib_log info "" "Loaded os-htd.lib" "$0"
+  test "${os_htd_lib_init-}" = "0" || {
+    test -n "$LOG" -a \( -x "$LOG" -o "$(type -t "$LOG")" = "function" \) \
+      && os_htd_lib_log="$LOG" || os_htd_lib_log="$INIT_LOG"
+    test -n "$os_htd_lib_log" || return 108
+    $os_htd_lib_log debug "" "Initialized os-htd.lib" "$0"
+  }
 }
 
 
@@ -193,12 +194,12 @@ filesize() # File
   do
     case "$uname" in
       Darwin )
-          stat -f '%z' $flags "$1" || return 1
+          stat -L -f '%z' "$1" || return 1
         ;;
-      Linux )
-          stat -c '%s' $flags "$1" || return 1
+      Linux | CYGWIN_NT-6.1 )
+          stat -L -c '%s' "$1" || return 1
         ;;
-      * ) error "filesize: $1?" 1 ;;
+      * ) $os_htd_lib_log error "os" "filesize: $uname?" "" 1 ;;
     esac; shift
   done
 }
@@ -215,7 +216,7 @@ filectime() # File
       Linux | CYGWIN_NT-6.1 )
           stat -L -c '%Z' "$1" || return 1
         ;;
-      * ) $os_lib_log error "os" "filectime: $1?" "" 1 ;;
+      * ) $os_lib_log error "os" "filectime: $uname?" "" 1 ;;
     esac; shift
   done
 }
@@ -231,11 +232,11 @@ filemtime() # File
           trueish "${file_names-}" && pat='%N %m' || pat='%m'
           stat -f "$pat" $flags "$1" || return 1
         ;;
-      Linux )
+      Linux | CYGWIN_NT-6.1 )
           trueish "${file_names-}" && pat='%N %Y' || pat='%Y'
           stat -c "$pat" $flags "$1" || return 1
         ;;
-      * ) error "filemtime: $1?" 1 ;;
+      * ) $os_lib_log error "os" "filemtime: $uname?" "" 1 ;;
     esac; shift
   done
 }
@@ -269,13 +270,13 @@ file_tool_flags()
 file_stat_flags()
 {
   test -n "$flags" || flags=-
-  falseish "${file_deref-}" || flags=${flags}L
+  test ${file_deref:-0} -eq 0 || flags=${flags}L
   test "$flags" != "-" || flags=
 }
 
 
 # Split expression type from argument and set envs expr_/type_
-foreach_match_setexpr() # [Type:]Expression
+foreach_match_setexpr () # [Type:]Expression
 {
   test -n "$1" || set -- '*'
   expr_="$1"
@@ -292,7 +293,7 @@ foreach_match_setexpr() # [Type:]Expression
 # Types are [g]lob-match, grep-[r]egex, local-cmd e[x]pression or [e]val expression.
 # Subjects (stdin lines) may be provided as arguments instead, and to do
 # additional prefix/suffix addition on subjects (and only there).
-foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject...]
+foreach_match () # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject...]
 {
   test "$1" != "-" || shift
   test -n "$expr_" || { type_=g expr_='*'; }
@@ -323,7 +324,7 @@ foreach_match() # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subject
 #
 # If this routine is given no data is hangs indefinitely. It does not have
 # indicators for data availble at stdin.
-foreach()
+foreach ()
 {
   {
     test -n "$*" && {
@@ -346,7 +347,7 @@ foreach()
 # Read `foreach` lines and act, default is echo ie. same result as `foreach`
 # but with p(refix) and s(uffix) wrapped around each item produced. The
 # unwrapped loop-var is _S.
-foreach_do()
+foreach_do ()
 {
   test -n "${p-}" || local p= # Prefix string
   test -n "${s-}" || local s= # Suffix string
@@ -356,7 +357,7 @@ foreach_do()
 
 # Extend rows by mapping each value line using act, add result tab-separated
 # to line. See foreach-do for other details.
-foreach_addcol()
+foreach_addcol ()
 {
   test -n "${p-}" || local p= # Prefix string
   test -n "${s-}" || local s= # Suffix string
@@ -366,7 +367,7 @@ foreach_addcol()
 }
 
 # See -addcol and -do.
-foreach_inscol()
+foreach_inscol ()
 {
   test -n "${p-}" || local p= # Prefix string
   test -n "${s-}" || local s= # Suffix string
@@ -484,12 +485,12 @@ read_if_exists()
 # Read $line as long as CMD evaluates, and increment $line_number.
 # CMD can be silent or verbose in anyway, but when it fails the read-loop
 # is broken.
-lines_while() # CMD
+lines_while () # CMD
 {
   test $# -gt 0 || return
 
   line_number=0
-  while read -r line
+  while read ${read_f-"-r"} line
   do
     eval $1 || break
     line_number=$(( $line_number + 1 ))
@@ -921,7 +922,7 @@ rotate_file() # [action=mv] Name [Ext]
 wherefrom()
 {
   lib_load ${os} || return
-  ${os}_wherefrom "$@"
+  ${os,,}_wherefrom "$@"
 }
 
 sameas()

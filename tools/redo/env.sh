@@ -19,6 +19,16 @@ true "${DEBUG:=${REDO_DEBUG-${DEBUG-}}}"
 export verbosity="${verbosity:=${v:-3}}"
 export quiet="${quiet:=${q:-0}}"
 
+# XXX: unless CI is on, we assume we are interactive
+export STD_INTERACTIVE=1
+export COLORIZE=1
+
+export UC_QUIET=1
+export UC_SYSLOG_OFF=1
+export scriptname="redo[$$]:default"
+#export UC_LOG_BASE="redo[$$]"
+#STD_SYSLOG_LEVEL=${v:-5}
+
 . ${CWD:="$REDO_BASE"}/tools/ci/env.sh
 
 $LOG "info" "" "Started redo env" "${CWD}/tools/ci/env.sh"

@@ -7,6 +7,11 @@
 # nb. functions cannot access/change arguments of calling shell.
 
 
+test_n ()
+{
+  test -n "${1-}"
+}
+
 # Verbose test + return status
 # Also simple default helper for lookup-path
 test_exists() # Local-Name [ Base-Dir ]
@@ -26,10 +31,10 @@ test_equals()
   test "$1" = "$2"
 }
 
-test_dir() # Path
+test_dir() # path
 {
   test -d "$1" || {
-    error "No such dir: $1"
+    error "no such dir: $1"
     return 1
   }
 }
@@ -274,26 +279,34 @@ argv_is_seq ()
   test "${1-}" = "--"
 }
 
-# Read arguments until --, set argv_more to that list and argv_more_cnt
+# Read arguments until --, set more_argv to that list and more_argc
 # eventually to the amount consumed (counts all args, one leading and trailing '--' as well)
 # XXX: does not accept spaces in args
 argv_more ()
 {
   test $# -gt 0 || return
-  argv_more_cnt=$#
+  more_argc=$#
+  # Don't require this but read leading '--' anyway
   argv_is_seq "$1" && shift
-  argv_is_seq "$1" && { argv_more=; argv_more_cnt=1; return; }
-  argv_more="$1"
-  test $# -eq 0 || {
-    while {
+
+  test $# -gt 0 || return 1
+
+  # Found empty sequence?
+  argv_is_seq "$1" && { more_argv=; more_argc=1; return; }
+
+  # Get all args
+  more_argv="$1"
+  test $# -eq 1 || {
+    first=true
+    while $first || argv_has_next "$@"
+    do
       shift
-      argv_more="$argv_more $1"
-    }
-    do argv_has_next "$@"; done
+      first=false
+      test $# -gt 0 || break
+      argv_is_seq "$1" || more_argv="$more_argv ${1@Q}"
+    done
   }
-  # Be nice..
-  argv_is_seq "$@" && shift
-  argv_more_cnt=$(( $argv_more_cnt - $# ))
+  more_argc=$(( $more_argc - $# ))
 }
 
 #

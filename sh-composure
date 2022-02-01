@@ -8,6 +8,9 @@ unset  U_S  LOG  INIT_LOG  SCRIPTPATH
 
 base=sh-composure
 
+export UC_LOG_LEVEL=7
+LOG=/etc/profile.d/uc-profile.sh
+
 #test -n "${PROJECT_DIR:-}" || {
 #  test -w /srv/project-local &&
 #    PROJECT_DIR=/srv/project-local || PROJECT_DIR=$HOME/project
@@ -23,18 +26,22 @@ base=sh-composure
 scriptpath=$CWD
 SCRIPTPATH=
 
+. $scriptpath/tools/sh/env.sh
+
 . $scriptpath/tools/sh/init-include.sh
 
-sh_include env-ucache env-0 env-log env-std env-dev env-test std-ci-helper \
+sh_include env-ucache env-0 env-log-reinit env-std env-dev env-test std-ci-helper \
     print-color
 
 #. "tools/ci/util.sh"
 #
 #. "tools/ci/parts/init-user-repo.sh"
 
-. "tools/sh/parts/env-scriptpath.sh"
+. "tools/sh/parts/env-scriptpath-deps.sh"
 echo '-----'
 echo $SCRIPTPATH | tr ':' '\n'
+
+exit $?
 
 . $PPWD/tools/sh/init.sh
 lib_load composure str-htd std src function functions ck shell git volume oil docker-sh
