@@ -220,7 +220,7 @@ htd_package__write_scripts() # NAMES...
 
   while test $# -gt 0
   do
-    htd_package_write_script "$1" || return
+    htd_package__write_script "$1" || return
     shift
   done
 }

@@ -61,6 +61,11 @@ newer_than() # FILE SECONDS
   test -e "$1" || error "newer-than expected existing path" 1
   test -n "${2-}" || error "newer-than expected delta seconds argument" 1
   test -z "${3-}" || error "newer-than surplus arguments" 1
+  #us_fail $_E_GAE --\
+  #  std_argv eq 2 $# "Newer-than argc expected" --\
+  #  assert_ n "${1-}" "Newer-than expected path" --\
+  #  assert_ e "${1-}" "Newer-than expected existing path" --\
+  #  assert_ n "${2-}" "Newer-than expected delta seconds argument" || return
 
   fnmatch "@*" "$2" || set -- "$1" "-$2"
   test $(date_epochsec "$2") -lt $(filemtime "$1")
@@ -85,6 +90,12 @@ older_than ()
   test -e "$1" || error "older-than expected existing path" 1
   test -n "${2-}" || error "older-than expected delta seconds argument" 1
   test -z "${3-}" || error "older-than surplus arguments" 1
+  #us_fail $_E_GAE --\
+  #  std_argv eq 2 $# "Older-than argc expected" --\
+  #  assert_ n "${1-}" "Older-than expected path" --\
+  #  assert_ e "${1-}" "Older-than expected existing path" --\
+  #  assert_ n "${2-}" "Older-than expected delta seconds argument" || return
+
   fnmatch "@*" "$2" || set -- "$1" "-$2"
   test $(date_epochsec "$2") -gt $(filemtime "$1")
   #test $(( $(date +%s) - $2 )) -gt $(filemtime "$1")
