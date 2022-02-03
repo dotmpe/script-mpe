@@ -35,6 +35,7 @@
     || { compo eval "cd \$CWD && c-groups ht && ht-attributes"; }
   - . \$CWD/.meta/attributes.sh
   #- '. "\$CWD/tools/\${TOOLS_SUITE:="sh"}/env.sh" || return'
+  - '. \$CWD/.meta/package/main.sh'
   main: script-2008b-mpe
   type: application/vnd.org.wtwta.project
   vendor: dotmpe

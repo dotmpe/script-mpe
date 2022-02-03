@@ -154,11 +154,13 @@ date_newest() # ( FILE | DTSTR | @TS ) ( FILE | DTSTR | @TS )
 # X sec/min/hr/days/weeks/months/years ago
 fmtdate_relative() # [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
 {
-    # Calculate delta based on now
-  test -n "$2" || set -- "$1" "$(( $(date +%s) - $1 ))" "$3"
-    # Set default suffix
-  test -n "$3" -o -z "$datefmt_suffix" || set -- "$1" "$2" "$datefmt_suffix"
-  test -n "$3" || set -- "$1" "$2" " ago"
+  # Calculate delta based on now
+  test -n "${2-}" || set -- "${1-}" "$(( $(date +%s) - $1 ))" "${3-}"
+
+  # Set default suffix
+  test -n "${3-}" -o -z "${datefmt_suffix-}" || set -- "${1-}" "$2" "$datefmt_suffix"
+
+  test -n "${3-}" || set -- "${1-}" "$2" " ago"
 
   if test $2 -gt $_1YEAR
   then
@@ -236,6 +238,19 @@ fmtdate_relative() # [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
   fi
 }
 
+# Output date at required resolution
+date_autores() # Date-Time-Str
+{
+  fnmatch "@*" "$1" && {
+    true ${dateres:="minutes"}
+    set -- "$(date_iso "${1:1}" minutes)"
+  }
+  echo "$1" | sed \
+      -e 's/T00:00:00//' \
+      -e 's/T00:00//' \
+      -e 's/:00$//'
+}
+
 # Tag: seconds, minutes, hours, days, years
 ts_rel() # Seconds-Delta [Tag]
 {
@@ -279,6 +294,16 @@ touch_ts() # ( DATESTR | TIMESTAMP | FILE ) FILE
 {
   test -n "$2" || set -- "$1" "$1"
   touch -t "$(timestamp2touch "$1")" "$2"
+}
+
+date_iso() # Ts [date|hours|minutes|seconds|ns]
+{
+  test -n "${2-}" || set -- "${1-}" date
+  test -n "$1" && {
+    $gdate -d @$1 --iso-8601=$2 || return $?
+  } || {
+    $gdate --iso-8601=$2 || return $?
+  }
 }
 
 # NOTE: BSD date -v style TAG-values are used, translated to GNU date -d
@@ -359,19 +384,6 @@ sec_nomicro()
   } || echo "$1"
 }
 
-# Output date at required resolution
-date_autores() # Date-Time-Str
-{
-  fnmatch "@*" "$1" && {
-    true ${dateres:="minutes"}
-    set -- "$(date_iso "${1:1}" minutes)"
-  }
-  echo "$1" | sed \
-      -e 's/T00:00:00//' \
-      -e 's/T00:00//' \
-      -e 's/:00$//'
-}
-
 date_parse()
 {
   test -n "${2-}" || set -- "$1" "%s"
@@ -404,7 +416,8 @@ date_idp () # <Date-Id>
 }
 
 # Take compressed date-tstat format and parse to ISO-8601 again, local time
-date_pstat () {
+date_pstat ()
+{
   test "$1" = "-" && echo "$1" || date_parse "$(date_idp "$1")"
 }
 

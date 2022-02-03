@@ -59,7 +59,7 @@ htd_scripts_exec () # Script-Id
     }
 
     # Initialize shell from profile script
-    . "$PACK_ENVD/$package_env_name.sh"
+    . "$PACK_ENVD/${package_env_name:-main}.sh"
 
     # Write scriptline with expanded vars
     std_info "Expanded '$(eval echo \"$@\")'"

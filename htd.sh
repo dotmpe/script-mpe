@@ -310,7 +310,7 @@ htd_subcmd_load ()
   done
 
   # load extensions via load/unload function
-  for ext in $(try_value "${subcmd}" load htd)
+  for ext in $(try_value "${subcmd}" load htd || true)
   do
     htd_load_$ext || warn "Exception during loading $subcmd $ext"
   done
@@ -373,7 +373,7 @@ htd_subcmd_unload ()
     clean_failed || unload_ret=1
   }
 
-  for var in $(try_value "${subcmd}" vars htd)
+  for var in $(try_value "${subcmd}" vars htd || true)
   do
     eval unset $var
   done
@@ -4686,7 +4686,6 @@ htd_init()
   local scriptname_old=$scriptname; export scriptname=htd-init
   test -n "$script_util" || return 103 # NOTE: sanity
 
-  set -euo pipefail
   init_sh_libs=os\ sys\ str\ log
   true "${CWD:="$scriptpath"}"
   true "${SUITE:="Main"}"
@@ -4702,6 +4701,8 @@ htd_init()
 " date str-htd logger-theme sys-htd vc-htd statusdir os-htd htd ctx-std" \
 . ${CWD:="$scriptpath"}/tools/main/init.sh || return
 
+  trap bash_uc_errexit ERR
+
   # -- htd box init sentinel --
   export scriptname=$scriptname_old
 }
@@ -4709,7 +4710,8 @@ htd_init()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
 
-  set -euo pipefail
+  shopt -s extdebug
+  set -euETo pipefail
 
   # Ignore 'load-ext' sub-command
   test "${1-}" != load-ext || __load_lib=1

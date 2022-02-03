@@ -376,6 +376,12 @@ foreach_inscol ()
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
 }
 
+ignore_sigpipe()
+{
+  local r=$?
+  test $r -eq 141 || return $r # For bash: 128+signal where signal=SIGPIPE=13
+}
+
 
 # Sort paths by mtime. Uses foreach-addcol to add mtime column, sort on and then
 # remove again. Listing most-recent modified file name/path first.
@@ -452,7 +458,7 @@ split_multipath()
 
 # Read file filtering octothorp comments, like this one, and empty lines
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
-read_nix_style_file() # [cat_f=] ~ File [Grep-Filter]
+read_nix_style_file () # [cat_f=] ~ File [Grep-Filter]
 {
   test $# -le 2 -a "${1:-"-"}" = - -o -e "${1-}" || return 98
   test -n "${1-}" || set -- "-" "${2-}"
@@ -550,7 +556,7 @@ read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
 
 
 # Change cwd to parent dir with existing local path element (dir/file/..) $1, leave go_to_before var in env.
-go_to_dir_with()
+go_to_dir_with () # ~ Local-Name
 {
   test -n "$1" || error "go-to-dir: Missing filename arg" 1
 
