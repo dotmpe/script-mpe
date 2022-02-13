@@ -435,6 +435,16 @@ daemon()
   done
 }
 
+# Return path in statusdir metadata index
+setup_stat()
+{
+  test -n "$1" || set -- .json "$2" "$3"
+  test -n "$2" || set -- "$1" "${subcmd}" "$3"
+  test -n "$3" || set -- "$1" "$2" "${base}"
+  test -n "$1" -a -n "$2" -a -n "$3" || error "empty arg(s)" 1
+  statusdir.sh assert $2$1 $3 || return $?
+}
+
 stat_key()
 {
   test -n "$1" || set -- stat

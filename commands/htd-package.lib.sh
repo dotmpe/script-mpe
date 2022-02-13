@@ -2,7 +2,7 @@
 
 htd_man_1__package='Get local (project/workingdir) metadata
 
-  package ls|list|list-ids
+  package list|list-ids
      List package IDs from local package metadata file.
   package update
      Regenerate main.json/PackMeta-JS-Main and package.sh/PackMeta-Sh files from YAML

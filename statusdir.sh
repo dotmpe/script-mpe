@@ -5,7 +5,7 @@
 # Does not store actual properties yet, and the tree files are not actually used.
 # The files in the index are used to store lists of keys, see env.sh
 
-set -eu
+set -euETo pipefail
 
 version=0.0.4-dev # script-mpe
 

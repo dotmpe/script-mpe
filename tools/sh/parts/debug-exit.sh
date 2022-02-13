@@ -11,18 +11,17 @@ sh_debug_exit()
       echo "At $BASH_COMMAND:$LINENO"
       echo "In 0:$0 base:${base-} scriptname:${scriptname-}"
     } >&2
-    test "${SUITE-}" = CI || return $exit
-    #test "$USER" = "travis" || return $exit
-    sleep 5 # Allow for buffers to clear?
+    test "${SUITE-}" = "CI" || return $exit
+    sleep 5
   }
   return $exit
 }
 
-test ${COLORIZE:-0} -eq 0 || {
+#test ${COLORIZE:-0} -eq 0 || {
   . ${U_C:=/srv/project-local/user-conf-dev}/script/ansi-uc.lib.sh
   ansi_uc_lib_load
   ansi_uc_lib_init
-}
+#}
 
 . ${U_C:=/srv/project-local/user-conf-dev}/script/bash-uc.lib.sh
 trap bash_uc_errexit ERR
