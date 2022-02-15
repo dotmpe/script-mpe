@@ -1203,15 +1203,18 @@ STD_COMMENT_SCAN = {
 
 # Tag pattern, format and index type
 DEFAULT_TAG_RE = r'''
-  (?: ^|\s+ )                                  # After line start or space
-  (?:
-        (%s)                                   # Starting with TAG, ie. "slug"
-        (?:
-              (?: : )                          # Followed by delimiter, or
-            | (?: [:_-]+ [_\.\+a-f0-9-]+ : )   # delimiters with some form of digit or hexadecimal
-        )?
+  ( ^|\s+ )                                # After line-start or space
+  (
+      (%s)                                 # Starting with TAG, ie. "slug"
+      (?:                                  # Followed either by:
+          (?: : )                          # - semi-colon delimiter, or
+        | (?: [:_-]+ [:_\.\+a-z0-9-]+ : )  # - delimiters with any form of
+                                           #   alhanumeric Id. including
+                                           # space, underscore, period...
+                                           # XXX: more?
+      )?
   )
-  (?: $|\s+ )
+  ( $|\s+ )                                # until space, or line-end.
 '''
 
 DEFAULT_TAGS = {
