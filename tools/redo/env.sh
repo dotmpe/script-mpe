@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-set -euo pipefail
+shopt -s extdebug
+set -euETo pipefail
 
 # TODO: clean up other envs and let redo use CI or build or main env?
 
-#test "$PWD" != "." || {
-#  ${LOG:-$U_S/tools/sh/log.sh} \
-#    alert "" "Unknown CWD" "$PWD $CWD $0 $*" 1
-#}
+export scriptname="redo[$$]:$0"
 
 : "${SUITE:="Main"}"
 true "${package_build_tool:="redo"}"
@@ -25,11 +23,10 @@ export COLORIZE=1
 
 export UC_QUIET=1
 export UC_SYSLOG_OFF=1
-export scriptname="redo[$$]:default"
 #export UC_LOG_BASE="redo[$$]"
 #STD_SYSLOG_LEVEL=${v:-5}
 
 . ${CWD:="$REDO_BASE"}/tools/ci/env.sh
 
-$LOG "info" "" "Started redo env" "${CWD}/tools/ci/env.sh"
+$LOG "info" "" "Started redo env" "${CWD}/tools/redo/env.sh"
 # Sync: U-S:

@@ -19,11 +19,122 @@ os_htd_lib_init()
 }
 
 
-short()
+abbrev_rename()
 {
-  test -n "$1" || set -- "$PWD"
-  # XXX maybe replace python script. Only replaces home
-  $HOME/bin/short-pwd.py -1 "$1"
+  while read -r oldpath junk newpath
+  do
+    local idx=1
+    while test "$(echo "$oldpath" | cut -c 1-$idx )" = "$(echo "$newpath" | cut -c 1-$idx )"
+    do
+        idx=$(( $idx + 1 ))
+    done
+    local end=$(( $idx - 1 ))
+    echo "Backed up path: $( echo $oldpath | cut -c 1-$end 2>/dev/null){$(echo $oldpath | cut -c $idx- 2>/dev/null) => $(echo $newpath | cut -c $idx- 2>/dev/null)}"
+  done
+}
+
+# if not exists, create directories and touch file for each given path arg
+# to print only existing files see filter_files
+assert_files ()
+{
+  for fn in $@
+  do
+    test -n "$fn" || continue
+    test -e $fn || {
+      test -z "$(dirname $fn)" || mkdir -vp $(dirname $fn)
+      touch $fn
+    }
+  done
+}
+
+# make numbered copy, see number-file
+backup_file() # [action=mv] Name [Ext]
+{
+  action="cp" number_file "$1"
+}
+
+# Go over pathnames, and compare with file. Return non-zero on first file with differences.
+diff_files() # File-Path Path-Name...
+{
+  #param 'FILE OTHER...'
+  # TODO: group 'OS:Diff'
+  #group 'OS-Htd:Diff'
+  test $# -gt 1 -a -f "$1" || return 98
+
+  local from="$1"
+  shift
+  for path in "$@"
+  do
+    test -f "$path" || path="$path/$1"
+    diff -bqr "$1" "$path" && continue
+  done
+}
+# Sh-Copy: HT:tools/u-s/parts/diff-files.inc.sh vim:ft=bash:
+
+disk_usage()
+{
+  test -n "$1" || set -- "." "$2"
+  test -n "$2" || set -- "$1" "h"
+  du -$2s $1 | awk '{print $1}'
+}
+
+# Number lines from read-nix-style-file by src, filter comments after.
+enum_nix_style_file ()
+{
+  cat_f=-n read_nix_style_file "$@" '^[0-9]*:\s*(#.*|\s*)$' || return
+}
+
+filter_dir ()
+{
+  test -d "$1" && echo "$1"
+}
+
+filter_dirs ()
+{
+  act=filter_dir s= p= foreach_do "$@"
+}
+
+filter_file ()
+{
+  test -f "$1" && echo "$1"
+}
+
+filter_files ()
+{
+  act=filter_file s= p= foreach_do "$@"
+}
+
+find_one () # ~ DIR NAME
+{
+  test $# -eq 2 || return 64
+  find_num "$@" 1
+}
+
+find_num () # ~ DIR NAME [NUM]
+{
+  test -n "${1-}" -a -n "${2-}" || error "find-num '$*'" 1
+  test -n "${3-}" || set -- "$@" 1
+  local c=0
+  find "$1" -iname "$2" | while read -r path
+  do
+    c=$(( $c + 1 ))
+    test $c -le $3 || return 1
+    echo "$path"
+  done
+}
+
+find_broken_symlinks () # ~ DIR
+{
+  test $# -gt 0 || set -- .
+  test $# -eq 1 || return 64
+  find "$1" -type l ! -exec test -e {} \; -print
+}
+
+find_filter_broken_symlinks () # ~ DIR
+{
+  test $# -gt 0 || set -- .
+  test $# -eq 1 || return 64
+  find "$1" -type l -exec test -e {} \; -print
 }
 
 # Use `stat` to get birth time (in epoch seconds)
@@ -44,7 +155,75 @@ filebtime() # File
   esac
 }
 
+filesizesum ()
+{
+  sum=0
+  while read -r file
+  do
+      sum=$(( $sum + $(filesize "$file" | tr -d '\n' ) ))
+  done
+  echo $sum
+}
 
+# Go over arguments and echo. If no arguments given, or on argument '-' the
+# standard input is cat instead or in-place respectively. Strips empty lines.
+# (Does not open filenames and read from files). Multiple '-' arguments are
+# an error, as the input is not buffered and rewounded. This simple setup
+# allows to use arguments as stdin, insert arguments-as-lines before or after
+# stdin, and the pipeline consumer is free to proceed.
+#
+# If this routine is given no data is hangs indefinitely. It does not have
+# indicators for data availble at stdin.
+foreach ()
+{
+  {
+    test -n "$*" && {
+      while test $# -gt 0
+      do
+        test "$1" = "-" && {
+          # XXX: echo foreach_stdin=1
+          cat -
+          # XXX: echo foreach_stdin=0
+        } || {
+          printf -- '%s\n' "$1"
+        }
+        shift
+      done
+    } || cat -
+  } | grep -v '^$'
+}
+
+# Extend rows by mapping each value line using act, add result tab-separated
+# to line. See foreach-do for other details.
+foreach_addcol ()
+{
+  test -n "${p-}" || local p= # Prefix string
+  test -n "${s-}" || local s= # Suffix string
+  test -n "${act-}" || local act="echo"
+  foreach "$@" | while read -r _S
+    do S="$p$_S$s" && printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
+}
+
+# Read `foreach` lines and act, default is echo ie. same result as `foreach`
+# but with p(refix) and s(uffix) wrapped around each item produced. The
+# unwrapped loop-var is _S.
+foreach_do ()
+{
+  test -n "${p-}" || local p= # Prefix string
+  test -n "${s-}" || local s= # Suffix string
+  test -n "${act-}" || local act="echo"
+  foreach "$@" | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
+}
+
+# See -addcol and -do.
+foreach_inscol ()
+{
+  test -n "${p-}" || local p= # Prefix string
+  test -n "${s-}" || local s= # Suffix string
+  test -n "${act-}" || local act="echo"
+  foreach "$@" | while read -r _S
+    do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
+}
 
 # Split expression type from argument and set envs expr_/type_
 foreach_match_setexpr () # [Type:]Expression
@@ -85,38 +264,8 @@ foreach_match () # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subjec
   esac && $act "$S" || $no_act "$S" ; done
 }
 
-# Read single multipath to one path per line
-split_multipath()
-{
-  local root=
-  { test -n "${1-}" && echo "$@" || cat - ; } \
-     | grep -Ev '^(#.*|\s*)$' \
-     | sed 's/\([^\.]\)\/\.\./\1\
-../g' \
-     | grep -v '^\.[\.\/]*$' \
-     | while read -r rel_leaf
-  do
-    echo $rel_leaf | grep -q '^\.\.\/' && {
-      normalize $root/$rel_leaf
-    } || {
-      root=$rel_leaf
-      normalize $rel_leaf
-    }
-  done
-  test -n "$root" || error "No root found" 1
-}
-
-# Go to dir and set OLDPWD, but only if not already there
-#go_to_dir()
-#{
-#  test -n "$1" || set -- "."
-#  test "$1" = "." || cd "$1"
-#  # -o "$(pwd -P)" = "$(cd "$1" && pwd -P)" || cd $1
-#}
-
-
 # Resolve all symlinks in subtree, return a list with targets
-get_targets()
+get_targets ()
 {
   test -n "$1" || set -- /srv
   # Assume
@@ -128,12 +277,159 @@ get_targets()
   done | sort -u
 }
 
-xsed_rewrite()
+# XXX: Go to dir and set OLDPWD, but only if not already there
+#go_to_dir()
+#{
+#  test -n "$1" || set -- "."
+#  test "$1" = "." || cd "$1"
+#  # -o "$(pwd -P)" = "$(cd "$1" && pwd -P)" || cd $1
+#}
+
+# Change cwd to parent dir with existing local path element (dir/file/..) $1, leave go_to_before var in env.
+go_to_dir_with () # ~ Local-Name
 {
-  case "$uname" in
-    Darwin ) sed -i.applyBack "$@";;
-    Linux ) sed -i "$@";;
+  test -n "$1" || error "go-to-dir: Missing filename arg" 1
+
+  # Find dir with metafile
+  go_to_before=.
+  while true
+  do
+    test -e "$1" && break
+    go_to_before=$(basename -- "$PWD")/$go_to_before
+    test "$PWD" = "/" && break
+    cd ..
+  done
+
+  test -e "$1" || return 1
+}
+
+grep_nix_lines ()
+{
+  grep -Ev '^\s*(#.*|\s*)$' "$@"
+}
+
+ignore_sigpipe ()
+{
+  local r=$?
+  test $r -eq 141 || return $r # For bash: 128+signal where signal=SIGPIPE=13
+}
+
+isemptydir ()
+{
+  test -d "$1" -a "$(echo $1/*)" = "$1/*"
+}
+
+isnonemptydir ()
+{
+  test -d "$1" -a "$(echo $1/*)" != "$1/*"
+}
+
+# Read $line as long as CMD evaluates, and increment $line_number.
+# CMD can be silent or verbose in anyway, but when it fails the read-loop
+# is broken.
+lines_while () # CMD
+{
+  test $# -gt 0 || return
+
+  line_number=0
+  while read ${read_f-"-r"} line
+  do
+    eval $1 || break
+    line_number=$(( $line_number + 1 ))
+  done
+  test $line_number -gt 0 || return
+}
+
+# Offset content from input/file to line-based window.
+lines_slice () # [First-Line] [Last-Line] [-|File-Path]
+{
+  test -n "${3-}" || error "File-Path expected" 1
+  test "$3" = "-" && set -- "$1" "$2"
+  test -n "$1" && {
+    test -n "$2" && { # Start - End: tail + head
+      tail -n "+$1" "$3" | head -n $(( $2 - $1 + 1 ))
+      return $?
+    } || { # Start - ... : tail
+      tail -n "+$1" "$3"
+      return $?
+    }
+
+  } || {
+    test -n "$2" && { # ... - End : head
+      head -n "$2" "$3"
+      return $?
+    } || { # Otherwise cat
+      cat "$3"
+    }
+  }
+}
+
+linux_uptime ()
+{
+  cut -d' ' -f1 /proc/uptime
+}
+
+linux_boottime ()
+{
+  echo $(( $($gdate +"%s" ) + $(linux_uptime) ))
+}
+
+normalize_relative()
+{
+  OIFS=$IFS
+  IFS='/'
+  local NORMALIZED=
+
+  for I in $1
+  do
+    # Resolve relative path punctuation.
+    if [ "$I" = "." ] || [ -z "$I" ]
+      then continue
+
+    elif [ "$I" = ".." ]
+      then
+        NORMALIZED=$(echo "$NORMALIZED"|sed 's/\/[^/]*$//g')
+        # FIXME: normalize with special chars
+        #NORMALIZED=$(echo "$NORMALIZED"|sed 's/\/\"\?[^/]*\?$//g')
+        continue
+      else
+        NORMALIZED="${NORMALIZED}/${I}"
+        #test -n "$NORMALIZED" \
+        #  && NORMALIZED="${NORMALIZED}/${I}" \
+        #  || NORMALIZED="${I}"
+    fi
+  done
+  IFS=$OIFS
+  test -n "$NORMALIZED" \
+    && {
+      case "$1" in
+        /* ) ;;
+        * )
+            NORMALIZED="$(expr_substr "$NORMALIZED" 2 ${#NORMALIZED} )"
+          ;;
+      esac
+    } || NORMALIZED=.
+  trueish "${strip_trail-}" && echo "$NORMALIZED" || case "$1" in
+    */ ) echo "$NORMALIZED/"
+      ;;
+    * ) echo "$NORMALIZED"
+      ;;
   esac
+}
+
+# Add number to file, provide extension to split basename before adding suffix
+number_file() # [action=mv] Name [Ext]
+{
+  local dir=$(dirname "$1") cnt=1 base=$(basename "$1")
+
+  while test -e "$dir/$base-$cnt${2-}"
+  do
+    cnt=$(( $cnt + 1 ))
+  done
+  dest="$dir/$base-$cnt${2-}"
+
+  test -n "$action" || action="mv"
+  { $action -v "$1" "$dest" || return $?; } | abbrev_rename
 }
 
 # FIXME: can Bourne Sh do pushd/popd in a function?
@@ -169,29 +465,6 @@ xsed_rewrite()
 #    test "$(popd)" = "$CWDIR"
 #  } || set --
 #}
-
-# strip-trailing-dash
-strip_trail()
-{
-  fnmatch "*/" "$1" && {
-    echo "$1" | sed 's/\/$//'
-  } ||
-    echo "$1"
-}
-
-# if not exists, create directories and touch file for each given path arg
-# to print only existing files see filter_files
-assert_files()
-{
-  for fn in $@
-  do
-    test -n "$fn" || continue
-    test -e $fn || {
-      test -z "$(dirname $fn)" || mkdir -vp $(dirname $fn)
-      touch $fn
-    }
-  done
-}
 
 lock_files()
 {
@@ -248,140 +521,88 @@ mkrlink()
   ln -vs "$(basename "$1")" "${2:-"$PWD/"}"
 }
 
-
-filter_dir ()
+# Test for file or return before read
+read_if_exists ()
 {
-  test -d "$1" && echo "$1"
+  test -n "${1-}" || return 1
+  read_nix_style_file "$@" 2>/dev/null || return 1
 }
 
-filter_dirs ()
+# [0|1] [line_number=] read-lines-while FILE WHILE [START] [END]
+#
+# Read FILE lines and set line_number while WHILE evaluates true. No output,
+# WHILE should evaluate silently, see lines-while. This routine sets up a
+# (subshell) pipeline from lines-slice START END to lines-while, and captures
+# only the status and var line-number from the subshel.
+#
+read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
 {
-  act=filter_dir s= p= foreach_do "$@"
+  test -n "${1-}" || error "Argument expected (1)" 1
+  test -f "$1" || error "Not a filename argument: '$1'" 1
+  test -n "${2-}" -a $# -le 4 || return
+  local stat=''
+
+  read_lines_while_inner()
+  {
+    local r=0
+    lines_slice "${3-}" "${4-}" "$1" | {
+        lines_while "$2" || r=$? ; echo "$r $line_number"; }
+  }
+  stat="$(read_lines_while_inner "$@")"
+  test -n "$stat" || return
+  line_number=$(echo "$stat" | cut -f2 -d' ')
+  return "$(echo "$stat" | cut -f1 -d' ')"
 }
 
-filter_file ()
+# Read file filtering octothorp comments, like this one, and empty lines
+# XXX: this one support leading whitespace but others in ~/bin/*.sh do not
+read_nix_style_file () # [cat_f=] ~ File [Grep-Filter]
 {
-  test -f "$1" && echo "$1"
+  test $# -le 2 -a "${1:-"-"}" = - -o -e "${1-}" || return 98
+  test -n "${1-}" || set -- "-" "${2-}"
+  test -n "${2-}" || set -- "$1" '^\s*(#.*|\s*)$'
+  test -z "${cat_f-}" && {
+    grep -Ev "$2" "$1" || return $?
+  } || {
+    cat $cat_f "$1" | grep -Ev "$2"
+  }
 }
 
-filter_files ()
+# [0|1] [line_number=] read-lines-while FILE WHILE [START] [END]
+#
+# Read FILE lines and set line_number while WHILE evaluates true. No output,
+# WHILE should evaluate silently, see lines-while. This routine sets up a
+# (subshell) pipeline from lines-slice START END to lines-while, and captures
+# only the status and var line-number from the subshel.
+#
+read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
 {
-  act=filter_file s= p= foreach_do "$@"
+  test -n "${1-}" || error "Argument expected (1)" 1
+  test -f "$1" || error "Not a filename argument: '$1'" 1
+  test -n "${2-}" -a $# -le 4 || return
+  local stat=''
+
+  read_lines_while_inner()
+  {
+    local r=0
+    lines_slice "${3-}" "${4-}" "$1" | {
+        lines_while "$2" || r=$? ; echo "$r $line_number"; }
+  }
+  stat="$(read_lines_while_inner "$@")"
+  test -n "$stat" || return
+  line_number=$(echo "$stat" | cut -f2 -d' ')
+  return "$(echo "$stat" | cut -f1 -d' ')"
 }
 
-disk_usage()
-{
-  test -n "$1" || set -- "." "$2"
-  test -n "$2" || set -- "$1" "h"
-  du -$2s $1 | awk '{print $1}'
-}
 
-isemptydir()
-{
-  test -d "$1" -a "$(echo $1/*)" = "$1/*"
-}
-
-isnonemptydir()
-{
-  test -d "$1" -a "$(echo $1/*)" != "$1/*"
-}
-
-find_one () # ~ DIR NAME
-{
-  test $# -eq 2 || return 64
-  find_num "$@" 1
-}
-
-find_num () # ~ DIR NAME [NUM]
-{
-  test -n "${1-}" -a -n "${2-}" || error "find-num '$*'" 1
-  test -n "${3-}" || set -- "$@" 1
-  local c=0
-  find "$1" -iname "$2" | while read -r path
-  do
-    c=$(( $c + 1 ))
-    test $c -le $3 || return 1
-    echo "$path"
-  done
-}
-
-find_broken_symlinks () # ~ DIR
-{
-  test $# -gt 0 || set -- .
-  test $# -eq 1 || return 64
-  find "$1" -type l ! -exec test -e {} \; -print
-}
-
-find_filter_broken_symlinks () # ~ DIR
-{
-  test $# -gt 0 || set -- .
-  test $# -eq 1 || return 64
-  find "$1" -type l -exec test -e {} \; -print
-}
-
-abbrev_rename()
-{
-  while read -r oldpath junk newpath
-  do
-    local idx=1
-    while test "$(echo "$oldpath" | cut -c 1-$idx )" = "$(echo "$newpath" | cut -c 1-$idx )"
-    do
-        idx=$(( $idx + 1 ))
-    done
-    local end=$(( $idx - 1 ))
-    echo "Backed up path: $( echo $oldpath | cut -c 1-$end 2>/dev/null){$(echo $oldpath | cut -c $idx- 2>/dev/null) => $(echo $newpath | cut -c $idx- 2>/dev/null)}"
-  done
-}
-
-# Add number to file, provide extension to split basename before adding suffix
-number_file() # [action=mv] Name [Ext]
-{
-  local dir=$(dirname "$1") cnt=1 base=$(basename "$1")
-
-  while test -e "$dir/$base-$cnt${2-}"
-  do
-    cnt=$(( $cnt + 1 ))
-  done
-  dest="$dir/$base-$cnt${2-}"
-
-  test -n "$action" || action="mv"
-  { $action -v "$1" "$dest" || return $?; } | abbrev_rename
-}
-
-# make numbered copy, see number-file
-backup_file() # [action=mv] Name [Ext]
-{
-  action="cp" number_file "$1"
-}
 
 # rename to numbered file, see number-file
-rotate_file() # [action=mv] Name [Ext]
+rotate_file () # [action=mv] Name [Ext]
 {
   test -s "$1" || return
   action="mv" number_file "$1"
 }
 
-wherefrom()
-{
-  lib_load ${os} || return
-  ${os,,}_wherefrom "$@"
-}
-
-sameas()
-{
-  test -f "$1" -a -f "$2" || error "sameas: two file name expected: $*" 1
-  test $(stat -f "%i" "$1") -eq $(stat -f "%i" "$2")
-}
-
-filesizesum()
-{
-  sum=0
-  while read -r file
-  do
-      sum=$(( $sum + $(filesize "$file" | tr -d '\n' ) ))
-  done
-  echo $sum
-}
 
 # Read pairs and rsync. Env dry-run=0 to execute, rsync-a to override 'vaL' flags.
 rsync_pairs()
@@ -403,33 +624,55 @@ rsync_pairs()
   done
 }
 
-linux_uptime()
+sameas ()
 {
-  cut -d' ' -f1 /proc/uptime
+  test -f "$1" -a -f "$2" || error "sameas: two file name expected: $*" 1
+  test $(stat -f "%i" "$1") -eq $(stat -f "%i" "$2")
 }
 
-linux_boottime()
+short ()
 {
-  echo $(( $($gdate +"%s" ) + $(linux_uptime) ))
+  test -n "$1" || set -- "$PWD"
+  # XXX maybe replace python script. Only replaces home
+  $HOME/bin/short-pwd.py -1 "$1"
 }
 
- # Go over pathnames, and compare with file. Return non-zero on first file with differences.
-diff_files() # File-Path Path-Name...
+# Sort paths by mtime. Uses foreach-addcol to add mtime column, sort on and then
+# remove again. Listing most-recent modified file name/path first.
+sort_mtimes ()
 {
-  #param 'FILE OTHER...'
-  # TODO: group 'OS:Diff'
-  #group 'OS-Htd:Diff'
-  test $# -gt 1 -a -f "$1" || return 98
+  act=filemtime foreach_addcol "$@" | sort -r -k 2 | cut -f 1
+}
 
-  local from="$1"
-  shift
-  for path in "$@"
+# Read single multipath to one path per line
+split_multipath()
+{
+  local root=
+  { test -n "${1-}" && echo "$@" || cat - ; } \
+     | grep -Ev '^(#.*|\s*)$' \
+     | sed 's/\([^\.]\)\/\.\./\1\
+../g' \
+     | grep -v '^\.[\.\/]*$' \
+     | while read -r rel_leaf
   do
-    test -f "$path" || path="$path/$1"
-    diff -bqr "$1" "$path" && continue
+    echo $rel_leaf | grep -q '^\.\.\/' && {
+      normalize $root/$rel_leaf
+    } || {
+      root=$rel_leaf
+      normalize $rel_leaf
+    }
   done
+  test -n "$root" || error "No root found" 1
 }
-# Sh-Copy: HT:tools/u-s/parts/diff-files.inc.sh vim:ft=bash:
+
+# strip-trailing-dash
+strip_trail()
+{
+  fnmatch "*/" "$1" && {
+    echo "$1" | sed 's/\/$//'
+  } ||
+    echo "$1"
+}
 
 symlink_assert () # <Symlink-Path> <Target>
 {
@@ -442,6 +685,20 @@ symlink_assert () # <Symlink-Path> <Target>
   }
   local v=; test $verbosity -lt 7 || v=v
   ln -s$v "$2" "$3"
+}
+
+wherefrom ()
+{
+  lib_load ${os} || return
+  ${os,,}_wherefrom "$@"
+}
+
+xsed_rewrite()
+{
+  case "$uname" in
+    Darwin ) sed -i.applyBack "$@";;
+    Linux ) sed -i "$@";;
+  esac
 }
 
 # Sync: U-S:src/sh/lib/os.lib.sh

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+### Find duplicate exec-names (on PATH)
+
+. ~/.local/etc/profile.d/_local.sh
+
+. "${U_S:="$HOME/project/user-scripts"}/tools/sh/init-include.sh"
+
+push_scriptname sh-shadows
+sh_include env-strict
+
+. $U_S/tools/sh/init.sh
+$LOG notice "" OK
+#lib_init
+
+shopt -s nullglob
+CWD=$PWD
+
+echo $PATH | tr ':' '\n' | while read path
+do
+
+  cd "$path" && find -O1 . -type f -executable
+
+# Sort, inverse unique (show repated lines) and only unique lines of those
+done | cut -c3- | sort | uniq -D | uniq
+cd "$CWD"
+unset CWD
+
+$LOG notice "" Done
+
+
+# Sync: U-S: vim:ft=bash:

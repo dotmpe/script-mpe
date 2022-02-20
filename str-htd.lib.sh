@@ -4,7 +4,7 @@
 # Set env for str.lib.sh
 str_htd_lib_load()
 {
-  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${uname-}" || export uname="$(uname -s)"
   case "$uname" in
       Darwin ) expr=bash-substr ;;
       Linux ) expr=sh-substr ;;

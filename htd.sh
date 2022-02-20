@@ -4704,6 +4704,8 @@ htd_init()
 " date str-htd logger-theme sys-htd vc-htd statusdir os-htd htd ctx-std" \
 . ${CWD:="$scriptpath"}/tools/main/init.sh || return
 
+  trap bash_uc_errexit ERR
+
   # -- htd box init sentinel --
   export scriptname=$scriptname_old
 }

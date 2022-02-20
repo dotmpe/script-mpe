@@ -70,6 +70,8 @@ test -n "${ci_util_:-}" || {
   . "${ci_tools:="$CWD/tools/ci"}/util.sh"
 }
 
+: ${INIT_LOG:="$CWD/tools/sh/log.sh"}
+
 test -n "${IS_BASH:-}" || $INIT_LOG error "Not OK" "Need to know shell dist" "" 1
 
 # XXX: lib_load build-htd env-deps web # No-Sync
