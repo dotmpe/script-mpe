@@ -36,8 +36,11 @@ ctx__Bookmarks__import() # ~ Tags... # Run importers
   #lib_load str-htd urlstat
 
   # XXX: for DB generate urlstat.tab for diff
+
   # XXX: for chrome generate urlstat.tab for diff
+
   # XXX: for diigo look for export
+
   # XXX: for google fetch https://www.google.com/bookmarks/?output=xml&num=10000
   for importer in $contex_meta_importers
   do

@@ -20,15 +20,15 @@ htd_man_1__journal="Handle rSt log entries at archive paths.
   info PATH
       Print date/week/month info for cabinet or journal path.
 
-  TODO: status check update
-
   list [ Prefix=2... ]
       List entries with prefix, use current year if empty.
       Set to * for listing all entry.
 
   entries
-      XXX: resolve metadata
+      ..
 "
+# TODO: status check update htd:journal
+# XXX: resolve metadata htd:journal:entries
 htd__journal()
 {
   test -n "${1-}" || set -- status
@@ -607,6 +607,7 @@ htd_log_env=""
 htd_log_base_spec () # ~ [SPEC | PATH YSEP MSEP EXT # PARTS... ]
 {
   # XXX: maybe use defaults if no package is found
+
   # test -n "${PACK_SH-}" -a -e "${PACK_SH-}" && {
   # Default to local log, or user's journal-dir setting
   #true ${log:="${log_dir:=$JRNL_DIR}/"}

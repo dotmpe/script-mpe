@@ -6,6 +6,8 @@
 # Initialize Project Build Scripts shell modules
 build_htd_lib_load ()
 {
+  #lib_require date match $package_build_tool || return
+
   # XXX cleanup lib_load std stdio build-checks
 
   test -n "${cllct_set_base-}" || cllct_set_base=.cllct/specsets
@@ -13,6 +15,12 @@ build_htd_lib_load ()
   test -n "${cllct_test_base-}" || cllct_test_base=.cllct/testruns
   test -n "${docbase-}" || docbase="doc/src/sh"
 }
+
+build_htd_lib_init ()
+{
+  lib_require package vc-htd sys-htd logger-std log || return
+}
+
 
 #  lib_assert \
 #      main argv date tasks du vc-htd vc match src function functions shell ||
@@ -307,7 +315,7 @@ build_package_script_lib_list()
 
 build_components_id_path_map()
 {
-  # package_env_req || return
+  package_env_req || return
 
   $package_components "$@"
 }

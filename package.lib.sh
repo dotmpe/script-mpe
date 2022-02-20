@@ -75,7 +75,7 @@ package_detect () # [Package-Dir]
 }
 
 # Require sh package env. (but don't prepare)
-package_env_req () #
+package_env_req () # ~
 {
   local r
   test -n "${PACK_SH-}" -a -f "${PACK_SH-}" && {
