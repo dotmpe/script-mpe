@@ -49,7 +49,6 @@ jsotk.py
 tools/sh/tags.sh
 tools/sh/parts/tags-filter.sh
 tools/sh/init-here.sh
-tools/sh/init.sh
 tools/sh/env.sh
 tools/ci/parts/build.sh
 tools/ci/parts/check-all.sh
