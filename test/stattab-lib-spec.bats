@@ -6,13 +6,15 @@ load init
 setup()
 {
   init &&
+  load extra stdtest &&
   tmpd && STATUSDIR_ROOT=$tmpd &&
-  lib_load statusdir match stattab date str-htd os-htd date-htd build-htd setup-sh-tpl && build_init
+  lib_load statusdir match stattab date str-htd os-htd date-htd build-htd \
+    setup-sh-tpl package && build_init
 }
 
 @test "$base: descr" {
   local verbosity=3
-  stattab_entry_env
+  stattab_entry_env_reset
   sttab_stat="-"
   sttab_ctime=1539470160
   run stattab_descr
@@ -22,7 +24,7 @@ setup()
 
 @test "$base: fields entry" {
   local verbosity=3
-  stattab_entry_env
+  stattab_entry_env_reset
   sttab_id=none
   sttab_ctime=1539470160
   run stattab_entry_fields
@@ -41,14 +43,14 @@ setup()
 }
 
 @test "$base: exists" {
-  run stattab_entry_exists "test-stat-1"
+  run stattab_exists "" "test-stat-1"
   test_nok_empty || stdfail A.
 
   test_tpl="test/var/stattab/stattab-tpl1.sh"
   setup_sh_tpl "$test_tpl" "" "$tmpd"
-  run stattab_entry_exists "test-stat"
+  run stattab_exists "" "test-stat"
   test_nok_empty || stdfail B.1.
-  run stattab_entry_exists "test-stat-1"
+  run stattab_exists "" "test-stat-1"
   test_ok_empty || stdfail B.2.
 }
 
@@ -70,7 +72,7 @@ setup()
 }
 
 @test "$base: update entry" {
-  stattab_entry_env
+  stattab_entry_env_reset
   sttab_src=none
   stattab_env_prep test-me
   TODO

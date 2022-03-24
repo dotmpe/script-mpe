@@ -31,7 +31,7 @@ at_Statusdir__report_var () # Format [Record-Type [Record-Name]] [@Tags...] -- C
   # fsd_rtype=$type sd_be=fsdir statusdir_start "$name"
   log_key=$log_key $LOG "info" "" "Started SD for" "$type:$name"
 
-  echo name=$name >&2
+  echo format=$format type=$type name=$name tags=$tags $# $* >&2
   return
 
   # sd load: set variables for entry in backend
@@ -73,7 +73,7 @@ at_Statusdir__report_var () # Format [Record-Type [Record-Name]] [@Tags...] -- C
   esac
 }
 
-class.Statusdir.init ()
+class.Statusdir.load ()
 {
   declare -g -A Statusdir__params=()
   declare -g -A Statusdir__backends=()
@@ -107,6 +107,7 @@ class.Statusdir () # Instance-Id Message-Name Arguments...
         echo "Statusdir.${Statusdir__backend_types[${1,,}]}"
       ;;
 
+    .toString | \
     .default | \
     .info )
         echo "class.Statusdir <#$id> $($self.be.info)"

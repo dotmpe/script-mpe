@@ -11,9 +11,9 @@ at_Google__init() #
 at_Google__login() #
 {
   x-gdrive.py login &&
-  x-gspread.py login
-  #x-gcal.py login &&
-  #x-gtasks.py login &&
+  x-gspread.py login &&
+  x-gcal.py login &&
+  x-gtasks.py login
 }
 
 at_Google__reportlines () # ( [count] | names )

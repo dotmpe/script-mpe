@@ -4,7 +4,6 @@ File parser for todo.txt format.
 import re
 import os
 import base64
-from collections import UserDict
 import uriref
 
 from . import mb
@@ -177,7 +176,7 @@ class TodoTxtTaskParser(txt.AbstractTxtRecordParser_Old):
         return self.todotxt()
 
 
-class TodoTxtParser(UserDict):
+class TodoTxtParser(dict):
     """
     Arguments:
         tags

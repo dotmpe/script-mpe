@@ -381,13 +381,19 @@ htd_jrnl_rst_create_update () # Entry Base [parts]
           set -- "$1" title updated default-rst link-day-up ;;
 
     link-year-up )
-          test $new -eq 1 || return
+          test $new -eq 1 || {
+            error "XXX: Cannot add $1 to existing"
+            shift; continue
+          }
         ;;
 
     link-month-up )
           printf -- "$year\t$log_dir\n"
 
-          test $new -eq 1 || return
+          test $new -eq 1 || {
+            error "XXX: Cannot add $1 to existing"
+            shift; continue
+          }
 
           thisyearrel=$($grealpath --relative-to=$log_dir "$log_dir$year$EXT")
           {
@@ -402,7 +408,10 @@ htd_jrnl_rst_create_update () # Entry Base [parts]
           thismonth=$(date_fmt "$date" "%Y${YSEP}%m")
           printf -- "$thismonth\t$log_dir\n"
 
-          test $new -eq 1 || return
+          test $new -eq 1 || {
+            error "XXX: Cannot add $1 to existing"
+            shift; continue
+          }
 
           monthlbl="$(journal_title "" "$date" "m")"
 
@@ -423,7 +432,10 @@ htd_jrnl_rst_create_update () # Entry Base [parts]
           thisweek=$(date_fmt "$date" "%G${YSEP}w%V")
           printf -- "$thisweek\t$log_dir\n"
 
-          test $new -eq 1 || return
+          test $new -eq 1 || {
+            error "XXX: Cannot add $1 to existing"
+            shift; continue
+          }
 
           weeklbl="$(journal_title "" "$date" "w")"
           monthlbl="$(journal_title "" "$date" "m")"

@@ -186,7 +186,7 @@ def cmd_login(credentials, g, opts):
         credentials = load_secrets(opts.flags.token)
         return credentials and credentials.valid
 
-    if g.force:
+    if 'force' in g and g.force:
         if os.path.exists(opts.flags.token):
             os.unlink(opts.flags.token)
 

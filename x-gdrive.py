@@ -53,7 +53,7 @@ from script_mpe.res import js
 
 CLIENT_ID_FILE = os.path.expanduser('~/.local/etc/token.d/google/api-project/credentials.json')
 
-CLIENT_TOKEN_FILE = os.path.expanduser('~/.local/etc/token.d/google/x-script-mpe/credentials-gdrive.pickle')
+CLIENT_TOKEN_FILE = os.path.expanduser('~/.local/etc/token.d/google/api-project/credentials-gdrive.pickle')
 
 SCOPES = ['https://www.googleapis.com/auth/drive',
         'https://www.googleapis.com/auth/drive.appdata',

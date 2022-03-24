@@ -85,14 +85,6 @@ stattab_entry() # Entry-Id [Tab]
   stattab_entry_parse "$stattab_entry"
 }
 
-# Quietly check wether entry exists, don't capture output
-stattab_entry_exists () # [<Entry-Id> [<Tab>]]
-{
-  test -n "${1-}" && { stattab_env_init "$1" || return 94; }
-  test -n "${sttab_id-}" || return 93
-# XXX: $ggrep -q '^[0-9 +-]*\b'"$sttab_id"'\b\ ' "$2"
-}
-
 stattab_entry_env_reset ()
 {
   sttab_status=
@@ -163,9 +155,10 @@ sttab_env_vars ()
   done
 }
 
-stattab_exists () # <Stat-Id> [<Stat-Tab>] [<Entry-Type>]
+stattab_exists () # [<Stat-Id>] [<Entry-Type>] [<Stat-Tab>]
 {
-  grep_f=${grep_f:-"-q"} stattab_grep "$@"
+  grep_f=${grep_f:-"-q"} \
+    stattab_grep "${1:-$sttab_id}" "${2:-"id"}" "${3:-$STTAB}"
 }
 
 # Helper for other stattab-base; runs stattab-act on every parsed entry
@@ -229,7 +222,7 @@ stattab_init () # ST-Id [Init-Tags]
   stattab_init_show
 }
 
-stattab_init_show() #
+stattab_init_show () #
 {
   pref=eval set_always=1 \
     capture_var 'stattab_entry_fields "$@" | normalize_ws' sttab_r new_entry "$@"
@@ -270,7 +263,7 @@ stattab_process ()
 }
 
 # List entries; first argument is glob, converted to (grep) line-regex
-stattab_tab () # Match-Line
+stattab_tab () # <Match-Line> [<Stat-Tab>]
 {
   test -n "$2" || set -- "$1" "$STTAB"
   test "$1" != "*" || set -- "" "$2"
@@ -282,15 +275,23 @@ stattab_tab () # Match-Line
   }
 }
 
-stattab_update ()
+stattab_update () # ~ <Entry>
 {
-  false
+      stttab_status="${1:-"${new_tab_status:-"$stttab_status"}"}"
+       stttab_btime="${2:-"${new_tab_btime:-"$stttab_btime"}"}"
+       stttab_ctime="${3:-"${new_tab_ctime:-"$stttab_ctime"}"}"
+       stttab_utime="${4:-"${new_tab_utime:-"$stttab_utime"}"}"
+  stttab_directives="${5:-"${new_tab_directives:-"$stttab_directives"}"}"
+      stttab_passed="${6:-"${new_tab_passed:-"$stttab_passed"}"}"
+     stttab_skipped="${7:-"${new_tab_skipped:-"$stttab_skipped"}"}"
+       stttab_erred="${8:-"${new_tab_erred:-"$stttab_erred"}"}"
+      stttab_failed="${9:-"${new_tab_failed:-"$stttab_failed"}"}"
 }
 
-stattab_value () # ~ Value
+stattab_value () # ~ <Value>
 {
   test -n "${1-}" -a "${1-}" != "-"
 }
 
 
-# BIN:
+# Id: BIN:

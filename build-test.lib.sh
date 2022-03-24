@@ -407,8 +407,8 @@ component_test_exec() # Test-Files...
 # Record status
 component_set_status() # Tab Entry-Id Stat
 {
-  stattab_entry_exists "$2" "$1" && {
-    stattab_entry "$2"  "$1"
+  stattab_exists "$1" "" "$2"&& {
+    stattab_entry "$2" "$1"
   } || {
     stattab_append
   }

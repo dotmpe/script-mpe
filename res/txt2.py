@@ -16,7 +16,7 @@ and lists.
 """
 import os
 import re
-from collections import UserDict, UserList
+#from collections import UserDict, UserList
 
 import zope.interface
 from zope.interface import Interface, Attribute, implementer, classImplements
