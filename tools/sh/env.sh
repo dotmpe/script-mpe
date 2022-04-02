@@ -6,9 +6,10 @@ test -z "${sh_env_:-}" && sh_env_=1 || return 98 # Recursion
 
 test ${DEBUG:-0} -ne 0 || DEBUG=
 : "${CWD:="$PWD"}"
+: "${sh_tools:="$CWD/tools/sh"}"
 
 test "${env_strict_-}" = "0" || {
-  . "$CWD/tools/sh/parts/env-strict.sh" && env_strict_=$?; }
+  . "$U_S/tools/sh/parts/env-strict.sh" && env_strict_=$?; }
 
 # FIXME: generate local static env
 true "${BIN:="$HOME/bin"}"
@@ -25,7 +26,7 @@ export scriptname=${scriptname:-"`basename -- "$0"`"}
 
 test -n "${sh_util_:-}" || {
 
-  . "${sh_tools:=$CWD/tools/sh}/util.sh"
+  . "$sh_tools/util.sh"
 }
 
 sh_include \

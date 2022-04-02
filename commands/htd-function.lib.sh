@@ -1,5 +1,10 @@
 #!/bin/sh
 
+htd_function_lib_load()
+{
+  lib_require src-htd
+}
+
 htd__function()
 {
   test -n "$1" || set -- copy

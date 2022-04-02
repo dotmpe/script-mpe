@@ -265,7 +265,7 @@ lookup_exists () # NAME DIRS...
 # lookup-path List existing local paths, or fail if second arg is not listed
 # lookup-test: command to test equality with, default test_exists
 # lookup-first: boolean setting to stop after first success
-lookup_path () # VAR-NAME LOCAL-PATH
+lookup_path () # ~ VAR-NAME LOCAL-PATH
 {
   test $# -eq 2 || return 64
   test -n "${lookup_test-}" || local lookup_test="lookup_exists"

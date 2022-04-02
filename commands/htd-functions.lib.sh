@@ -3,7 +3,7 @@
 
 htd_functions_lib_load()
 {
-  lib_require function functions-htd
+  lib_require function functions functions-htd
 }
 
 ht_functions() { htd__functions "$@"; }
@@ -11,9 +11,9 @@ ht_functions() { htd__functions "$@"; }
 htd_man_1__functions='List functions, group, filter, and use `source` to get
 source-code info.
 
-   list-functions|list-func|ls-functions|ls-func
+   list-functions|list-func|ls-functions|ls-func FUNC FILE
      List shell functions in files.
-   find-functions Grep Scripts...
+   find-functions GREP-NAME SCRIPTS...
      List functions matching grep pattern in files
    list-groups [ Src-Files... ]
      List distinct values for "grp" attribute. See box-list-function-groups.

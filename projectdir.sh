@@ -1432,9 +1432,9 @@ pd__help()
 pd_preload()
 {
   scriptpath="$(dirname "$(realpath "$0")")"
-  true "${_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
+  true "${PD_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
   CWD="$scriptpath"
-  test ! -e $_ENV || { source $_ENV || return; }
+  test ! -e $PD_ENV || { source $PD_ENV || return; }
   test -n "${LOG-}" -a -x "${LOG-}" || export LOG=$CWD/tools/sh/log.sh
   test -n "${EDITOR-}" || EDITOR=nano
   test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"

@@ -20,18 +20,17 @@ default_do_include () # Build-Part Target-File Target-Name Temporary
 
 default_do_main ()
 {
-  test -e ./.meta/package/envs/main.sh || {
+  { test -e ./.meta/package/envs/main.sh -a \
+    ./.meta/package/envs/main.sh -nt package.yaml
+  } || {
     htd package update && htd package write-scripts
   }
 
   : ${CWD:=$PWD}
 
-  ENV_NAME=redo . ./.meta/package/envs/main.sh || return
+  ENV_GROUP=redo . ./.meta/package/envs/main.sh || return
 
-  . "${UCONF:-"$HOME/.conf"}/tools/redo/env.sh" || return
-
-  . "${UCONF:-"$HOME/.conf"}/etc/profile.d/_local.sh" || return
-
+  sh_include lib-load || return
 
   # Keep short build sequences in this file (below in the case/easc), but move
   # larger build-scripts to separate files to prevent unnecessary builds from

@@ -4692,8 +4692,8 @@ htd_init()
   init_sh_libs=os\ sys\ str\ log
   true "${CWD:="$scriptpath"}"
   true "${SUITE:="Main"}"
-  true "${_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
-  test ! -e $_ENV || { source $_ENV || return; }
+  true "${PACK_MAIN_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
+  test ! -e $PACK_MAIN_ENV || { source $PACK_MAIN_ENV || return; }
 
   LOG=$htd_log
 

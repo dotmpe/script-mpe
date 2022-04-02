@@ -1780,8 +1780,8 @@ main-init \
   init_sh_libs=os\ sys\ str\ log \
   true "${CWD:="$scriptpath"}" \
   true "${SUITE:="Main"}" \
-  true "${_ENV:="$scriptpath/.meta/package/envs/main.sh"}" \
-  test ! -e $_ENV || { source $_ENV || return; }\
+  true "${VC_ENV:="$scriptpath/.meta/package/envs/main.sh"}" \
+  test ! -e $VC_ENV || { source $VC_ENV || return; }\
   test ! -z "${SCRIPTPATH-}" || return
 
 main-load \

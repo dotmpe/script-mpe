@@ -13,49 +13,17 @@ export CS
 : "${CWD:="$PWD"}"
 : "${LOG:="$CWD/tools/sh/log.sh"}"
 
-test "${env_strict_-}" = "0" || {
-  . "$CWD/tools/sh/parts/env-strict.sh" && env_strict_=$?; }
-. "$CWD/tools/sh/parts/env-init-log.sh"
-. "$CWD/tools/sh/parts/debug-exit.sh"
-. "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
-
-# NOTE: lets require U-s for CI/build process, to reduce script copies.
-
-# FIXME: handle various U-S setups, and make script.mpe completely dependent on
-# scripts in U-S, remove all but specific local tools
+sh_include env-strict debug-exit \
+  env-0-1-lib-sys env-gnu
 
 test -n "${U_S-}" || {
   $LOG "error" "" "Expected U-S env" "" 1 || return
 }
 
-test -d $U_S/.git || {
-  test -n "${TRAVIS-}" -o \
-    -n "${CIRCLECI-}" -o \
-    -n "${SHIPPABLE-}" || {
-    $LOG "error" "" "Unexpected CI env" "$HOST:$HOME" 1
-    env
-  }
-
-  test ${ENV_DEV:-0} -eq 1 && {
-    {
-      test ! -d "$U_S" || rm -rf "$U_S"
-      git clone https://github.com/dotmpe/user-scripts.git $U_S
-    }
-    ( cd $U_S/ && git fetch --all &&
-        git checkout feature/docker-ci &&
-        git pull origin feature/docker-ci )
-  } || {
-      $LOG "error" "" "Expected U-S checkout" "" 1 || return
-  }
-}
-
 ci_env_ts=$($gdate +"%s.%N")
 ci_stages="${ci_stages:-} ci_env"
 
-test "${DEBUG-}" = "1" && set -x
-
 : "${SUITE:="CI"}"
-#: "${DEBUG:=1}"
 : "${keep_going:=1}" # No-Sync
 
 sh_env_ts=$($gdate +"%s.%N")
@@ -67,7 +35,7 @@ sh_env_end_ts=$($gdate +"%s.%N")
 
 test -n "${ci_util_:-}" || {
 
-  . "${ci_tools:="$CWD/tools/ci"}/util.sh"
+  . "$U_S/tools/ci/util.sh"
 }
 
 : ${INIT_LOG:="$CWD/tools/sh/log.sh"}
@@ -80,8 +48,9 @@ $INIT_LOG note "" "CI Env pre-load time: $(echo "$sh_env_ts - $ci_env_ts"|bc) se
 ci_env_end_ts=$($gdate +"%s.%N")
 
 $INIT_LOG note "" "Sh Env load time: $(echo "$ci_env_end_ts - $ci_env_ts"|bc) seconds"
-test ${verbosity:-${v:-3}} -lt 4 ||
-  print_yellow "ci:env:${SUITE}" "Starting: $0 ${_ENV-} #$#:'$*'" >&2
-
+test -z "${CI:-}" || {
+  test ${verbosity:-${v:-3}} -lt 4 ||
+    print_yellow "ci:env:${SUITE}" "Starting: $0 ${_ENV-} #$#:'$*'" >&2
+}
 # Sync: U-S:
 # Id: Script.mpe/0.0.4-dev tools/ci/env.sh
