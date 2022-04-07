@@ -1902,7 +1902,6 @@ htd__content()
 
 
 htd_man_1__date='
-
     relative TIMESTAMP
     fmt-dawin TAGS STRF
     fmt DATESTR STRF
@@ -1914,12 +1913,13 @@ htd_man_1__date='
     pstat TSTAT
     touchdt [FILE | TIMESTAMP]
     touch [FILE | TIMESTAMP FILE]
+    week [help|iso|iso-w.y|iso-w.Y]
 '
 htd_flags__date=fl
 htd_libs__date=date\ htd-date
 htd__date()
 {
-  test -n "$1" || set -- relative
+  test -n "${1:-}" || set -- relative
   subcmd_prefs=date_\ htd_date_\ fmtdate_ try_subcmd_prefixes "$@"
 }
 

@@ -82,10 +82,10 @@ journal_date () # YEAR [ 'w'WEEK | MONTH [DAY] ]
 
     w[0-9][0-9] )
         weeknr=$(echo "$1" | sed 's/^w0*//')
-        local sun sat
+        local mon sun
         date_week $weeknr $year
-        date="$sun"
-        enddate=$sat
+        date="$mon"
+        enddate=$sun
         # XXX: year=$(date --date="$date" +'%G')
         p=w
       ;;
@@ -127,8 +127,10 @@ journal_title () # Entry | Date Period
       w ) local dayintoweek weekstart month_at_weekstart
           dayintoweek=$(date_fmt $date %u)
           weekstart="$(date_fmt "$date - ${dayintoweek}days" "%F" )"
+          # XXX: should be using ISO principle of using month at thursday?
           month_at_weekstart="$(date_fmt $weekstart %b)"
-          date_fmt "$date" "Week %V, $month_at_weekstart %G"
+          weeknr=$(date +%V | sed 's/^0*//')
+          date_fmt "$date" "Week $weeknr, $month_at_weekstart '%g"
         ;;
 
       d ) date_fmt "$date" "%A %G.%V" ;;

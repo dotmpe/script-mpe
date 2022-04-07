@@ -66,7 +66,7 @@ case "$vlock_screen" in
             }
             echo
             printf -- "$esc[0;37m"
-            figlet -c -w$cols -f term $(date +"%C.%U %A %H:%M")
+            figlet -c -w$cols -f term $(date +"%C.%V %A %H:%M")
             eval $vpadd $vpadd $vpadd
             printf -- "$esc[1;30m"
             figlet -c -w$cols -f term $(hostname) $TERM $SHELL $HISTNUM lines
