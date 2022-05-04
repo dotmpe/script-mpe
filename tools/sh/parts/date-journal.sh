@@ -15,9 +15,9 @@ date_journal () # Year [ 'w'Week | Month [ Day ]]
     w[0-9][0-9] )
         weeknr=$(echo "$1" | sed 's/^w0*//')
         date_week $weeknr $year
-        date="$sun"
-        enddate=$sat
-        unset sat sun
+        date="$mon"
+        enddate=$sun
+        unset sun mon
       ;;
 
     [0-9][0-9] ) date=$year-$1-01

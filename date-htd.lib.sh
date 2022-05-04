@@ -432,26 +432,30 @@ time_fun()
   return $ret
 }
 
-# Get first and last day of given week: sunday and saturday
+# Get first and last day of given week: monday and sunday (ISO)
 date_week() # Week Year [Date-Fmt]
 {
   test $# -ge 2 -a $# -le 3 || return 2
   test $# -eq 3 || set -- "$@" "+%Y-%m-%d"
   local week=$1 year=$2 date_fmt="$3"
-  local week_num_of_Jan_1 week_day_of_Jan_1
-  local first_Sun
+  local week_num_of_Jan_4 week_day_of_Jan_4
+  local first_Mon
 
-  week_num_of_Jan_1=$(date -d $year-01-01 +%U)
-  week_day_of_Jan_1=$(date -d $year-01-01 +%u)
+  # decimal number, range 01 to 53
+  week_num_of_Jan_4=$(date -d $year-01-04 +%V | sed 's/^0*//')
+  # range 1 to 7, Monday being 1
+  week_day_of_Jan_4=$(date -d $year-01-04 +%u)
 
-  if ((week_num_of_Jan_1)); then
-      first_Sun=$year-01-01
+  # now get the Monday for week 01
+  if test $week_day_of_Jan_4 -le 4
+  then
+    first_Mon=$year-01-$((1 + 4 - week_day_of_Jan_4))
   else
-      first_Sun=$year-01-$((01 + (7 - week_day_of_Jan_1) ))
+    first_Mon=$((year - 1))-12-$((1 + 31 + 4 - week_day_of_Jan_4))
   fi
 
-  sun=$(date -d "$first_Sun +$((week - 1)) week" "$date_fmt")
-  sat=$(date -d "$first_Sun +$((week - 1)) week + 6 day" "$date_fmt")
+  mon=$(date -d "$first_Mon +$((week - 1)) week" "$date_fmt")
+  sun=$(date -d "$first_Mon +$((week - 1)) week + 6 day" "$date_fmt")
 }
 
 #
