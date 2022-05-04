@@ -114,9 +114,9 @@ sys_tmp_init () # DIR
     }
   }
 
-  test -n "${RAM_TMPDIR:-}" || {
-    # XXX: find existing parent dir
-    _RAM_TMPDIR="$(set -- $RAM_TMPDIR; while test ! -e "$1"; do set $(basename "$1"); done; echo "$1")"
+  test -z "${RAM_TMPDIR:-}" || {
+    # XXX: find first existing parent dir
+    _RAM_TMPDIR="$(set -- $RAM_TMPDIR; while test ! -e "$1"; do set -- $(dirname "$1"); done; echo "$1")"
     test -w "$_RAM_TMPDIR" && {
       test -d "$RAM_TMPDIR" || mkdir $RAM_TMPDIR
     } || {
@@ -124,6 +124,7 @@ sys_tmp_init () # DIR
         $sys_lib_log warn $tag "Cannot access RAM-TmpDir" "$RAM_TMPDIR"
       } ||
         $sys_lib_log warn $tag "Cannot prepare RAM-TmpDir" "$RAM_TMPDIR"
+    }
     unset _RAM_TMPDIR
   }
 
