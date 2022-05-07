@@ -98,6 +98,13 @@ append-if-len ()
   echo -n "$1$2"
 }
 
+prepend-if-len ()
+{
+  test $# -eq 2 || return 64
+  test -z "$1" && return
+  echo -n "$2$1"
+}
+
 if [ ${0:${#0}-9} == "string.sh" ]
 then
     "$@"

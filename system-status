@@ -15,10 +15,94 @@ charge-left-unconnected ()
   }
 }
 
-# Short description of SystemD: running or degraded
-systemd ()
+# Short description of SystemD (is-system-running in manual)
+systemd-status-text ()
 {
   systemctl is-system-running | tr -d ' \n'
+}
+
+# Icon or description for SytemD status
+systemd ()
+{
+  test ${NERD_FONT:-1} -eq 1 && {
+    systemd-status-icon
+    return
+  } || {
+    systemd-status-text
+    return
+  }
+}
+
+# Icon, or description only if not running
+systemd-short ()
+{
+  systemd | grep -v running || true
+}
+
+nf_fa_check='\Uf00c'
+nf_fa_exclamation='\Uf12a'
+nf_fa_delicious='\Uf1a5'
+nf_fa_exclamation_circle='\Uf06a'
+nf_fa_exclamation_triangle='\Uf071'
+nf_fa_gear='\Uf013'
+
+nf_oct_alert='\Uf421'
+nf_oct_check='\Uf42e'
+nf_oct_circle_slash='\Uf468'
+nf_oct_clock='\Uf43a'
+nf_oct_eye='\Uf441'
+nf_oct_gear='\Uf443'
+nf_oct_heart='\U2665'
+nf_oct_issue_openend='\Uf41d'
+nf_oct_lock='\Uf456'
+nf_oct_light_bulb='\Uf400'
+nf_oct_mute='\Uf466'
+nf_oct_plug='\Uf492'
+nf_oct_pulse='\Uf469'
+nf_oct_rss='\Uf428'
+nf_oct_shield='\Uf49c'
+nf_oct_star='\Uf41e'
+nf_oct_stop='\Uf46e'
+nf_oct_x='\Uf467'
+nf_oct_zap='\U26a1'
+
+
+systemd-status-icon ()
+{
+  #systemd-status-icon-fa
+  systemd-status-icon-oct
+}
+
+systemd-status-icon-oct ()
+{
+  test $# -gt 0 || set -- $(systemd-status-text)
+  case "$1" in
+
+    initializing | \
+    starting ) printf $nf_oct_zap ;;
+    running ) printf $nf_oct_check ;;
+    #degraded ) ;;
+    maintenance ) printf $nf_oct_gear ;;
+    stopping ) printf $nf_oct_stop ;;
+    offline ) printf $nf_oct_circle_slash ;;
+    unknown ) printf $nf_oct_x ;;
+
+    * ) printf $nf_oct_alert ;;
+  esac
+}
+
+systemd-status-icon-fa ()
+{
+  test $# -gt 0 || set -- $(systemd-status-text)
+  case "$1" in
+
+    initializing | \
+    starting ) printf $nf_fa_flash ;;
+    running ) printf $nf_fa_check ;;
+    maintenance ) printf $nf_fa_gear ;;
+
+    * ) printf $nf_fa_exclamation_triangle ;;
+  esac
 }
 
 "$@"
