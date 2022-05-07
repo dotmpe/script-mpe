@@ -1,4 +1,5 @@
 #!/bin/bash
+
 # Bash stringtools
 function rpad {
     if [ "$1" ]; then
@@ -11,7 +12,7 @@ function rpad {
         len=$((`echo $2 | sed 's/[^0-9]//g'`));
     else
         len=${#word};
-    fi; 
+    fi;
 
     if [ "$3" ]; then
         padding="$3";
@@ -25,7 +26,7 @@ function rpad {
     while [ ${#word} -gt $len ]; do
         word=${word:0:$((${#word}-1))}
     done;
-    echo "$word"; 
+    echo "$word";
 }
 function lpad {
     if [ "$1" ]; then
@@ -38,7 +39,7 @@ function lpad {
         len=$((`echo $2 | sed 's/[^0-9]//g'`));
     else
         len=${#word};
-    fi; 
+    fi;
 
     if [ "$3" ]; then
         padding="$3";
@@ -65,7 +66,7 @@ function cpad {
         len=$((`echo $2 | sed 's/[^0-9]//g'`));
     else
         len=${#word};
-    fi; 
+    fi;
 
     if [ "$3" ]; then
         padding="$3";
@@ -85,13 +86,23 @@ function cpad {
             word=${word:1:$((${#word}-1))}
         fi;
     done;
-  
+
     echo "$word";
 }
+
+# Concatenate STR2 after STR1 if STR1 is non-empty, otherwise output nothing
+append-if-len ()
+{
+  test $# -eq 2 || return 64
+  test -z "$1" && return
+  echo -n "$1$2"
+}
+
 if [ ${0:${#0}-9} == "string.sh" ]
 then
-    $1 ${@:2}
-#else 
+    "$@"
+    #$1 ${@:2}
+#else
 # XXX: function scope is local, but still overriden by any like-named symlinks
 #    string_sh=$(readlink $0)
 #    echo $0 $string_sh
