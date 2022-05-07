@@ -3,10 +3,10 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
-# shellcheck disable # save takes to long...
 # shellcheck disable=SC2004 # $/${} is unnecessary on arithmetic variables
 # shellcheck disable=SC2005 # Useless echo? NOTE: not, unquoted echoes to normalize whitespace!
 # shellcheck disable=SC2015 # A && B || C is not if-then-else
+# shellcheck disable=SC2016
 # shellcheck disable=SC2029 # Note that, unescaped, this expands on the client side
 # shellcheck disable=SC2034 # unused, unexported var
 # shellcheck disable=SC2039 # In POSIX sh, 'local' is undefined
@@ -37,7 +37,9 @@ htd_outputs="passed skipped error failed"
 htd_subcmd_load ()
 {
   # -- htd box load insert sentinel --
-  local scriptname_old=$scriptname; export scriptname=htd-load
+  local scriptname_old=$scriptname; export scriptname="htd-subcmd-load[$$]"
+
+  sh_include debug-exit
 
   main_subcmd_func "$subcmd" || true # Ignore, check for function later
   c=1 ; shift
@@ -136,13 +138,11 @@ htd_subcmd_load ()
   main_isdevenv || {
     #rm -r "${htd_tmp_dir:?}"/*
     test "$(echo $htd_tmp_dir/*)" = "$htd_tmp_dir/*" || {
-      rm -r $htd_tmp_dir/*
+      rm -r ${htd_tmp_dir:?}/*
     }
   }
 
-  test -n "${htd_session_id-}" || htd_session_id=$(htd__uuid)
-
-  sh_include debug-exit
+  test -n "${htd_session_id-}" || { htd_session_id=$(htd__uuid) || return; }
 
   # Process subcmd 'run' flags, single letter code triggers load/unload actions.
   # Sequence matters. Actions are predefined, or supplied using another subcmd
@@ -1228,7 +1228,7 @@ htd_als__outline=tools\ outline
 
 
 # XXX: setup env before main?
-htd_man_1__script='Get/list scripts in $HTD_TOOLSFILE. Statusdata is a mapping
+htd_man_1__script='Get/list scripts in HTD_TOOLSFILE. Statusdata is a mapping
 of scriptnames to script lines. See Htd run and run-names for package scripts. '
 htd_spc__script="script"
 htd_flags__script=pSmr
@@ -1252,7 +1252,7 @@ htd__script()
       jsotk.py -q path --is-str $HTD_TOOLSFILE tools/$toolid && {
         scriptline="$(jsotk.py path -O py $HTD_TOOLSFILE "tools/$toolid")"
         note "Line: '$scriptline'"
-        echo "tools/$toolid/scripts/$toolid[]=$scriptline" 1>&5
+        echo "tools/$toolid/scripts/${toolid}[]=$scriptline" 1>&5
         echo "scripts[]="$toolid 1>&5
         continue
       }
@@ -1265,10 +1265,10 @@ htd__script()
       ) && {
 
         jsotk.py objectpath -O lines $HTD_TOOLSFILE '$..*[@.scripts."'$toolid'"]' \
-          | while read scriptline
+          | while read -r scriptline
           do
             note "Line: '$scriptline'"
-            echo "tools/$toolid/scripts/$toolid[]=$scriptline" 1>&5
+            echo "tools/$toolid/scripts/${toolid}[]=$scriptline" 1>&5
           done
 
         #echo "scripts[]="$toolid 1>&5
@@ -1277,10 +1277,10 @@ htd__script()
 
       jsotk.py -q path --is-list $HTD_TOOLSFILE tools/$toolid && {
         jsotk.py items -O py $HTD_TOOLSFILE "tools/$toolid" \
-          | while read scriptline
+          | while read -r scriptline
           do
             note "Line: '$scriptline'"
-            echo "tools/$toolid/scripts/$toolid[]=$scriptline" 1>&5
+            echo "tools/$toolid/scripts/${toolid}[]=$scriptline" 1>&5
           done
         echo "scripts[]="$toolid 1>&5
         continue
@@ -1426,7 +1426,7 @@ htd__main_doc_paths()
         error "Not a main-doc $1"
 
   } || set -- "$candidates"
-  for x in $@; do
+  for x in "$@"; do
     test -e "$x" || continue
     set -- "$x"; break; done
   echo "$(basename "$1" $DOC_EXT) $1"
@@ -2059,7 +2059,7 @@ htd_git_rename()
 htd__rename_test()
 {
   cmd_pref="echo"
-  htd__rename $@
+  htd__rename "$@"
 }
 
 htd__rename()
@@ -2071,7 +2071,7 @@ htd__rename()
   test -z "$1" && {
     htd_git_rename "$from_pattern" "$to_pattern"
   } || {
-    { for p in $@; do echo $p; done ; echo -e "\l"; } |
+    { for p in "$@"; do echo $p; done ; echo -e "\l"; } |
     htd_git_rename "$from_pattern" "$to_pattern"
   }
 }
@@ -2163,7 +2163,7 @@ htd_spc__update_checkout='update [<commit-ish> [<remote>...]]'
 htd__update_checkout()
 {
   test -n "$1" ||
-      set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" $@
+      set -- "$(cd $scriptpath && git rev-parse --abbrev-ref HEAD)" "$@"
   test -n "$2" || set -- "$1" "$vc_rt_def"
   test "$2" = "all" &&
     set -- "$1" "$(cd $scriptpath && git remote | tr '\n' ' ')"
@@ -2172,7 +2172,7 @@ htd__update_checkout()
   test -n "$push" || push=0
   (
     cd $scriptpath
-    local branch=$1 ; shift ; for remote in $@
+    local branch=$1 ; shift ; for remote in "$@"
     do
       # Check argument is a valid existing branch on remote
       git checkout "$branch" &&
@@ -2299,7 +2299,7 @@ htd__push_commit()
   }
   # Perform push
   trueish "$push" && {
-    for remote in $@
+    for remote in "$@"
     do
       trueish "$any" && {
         git push --all $remote || failed "$base:$subcmd:push-any:$remote"
@@ -2731,7 +2731,7 @@ htd__inventory()
     set -- "personal/inventory/main.rst" "$@"
   }
   htd_rst_doc_create_update $1 "Inventory: $1"
-  htd_edit_and_update $@
+  htd_edit_and_update "$@"
 }
 htd_als__inv=inventory
 htd_grp__inventory=cabinet
@@ -2744,7 +2744,7 @@ htd__inventory_electronics()
       "personal/inventory/modules.rst" \
       "personal/inventory/hardware.rst" "$@"
   htd_rst_doc_create_update $1
-  htd_edit_and_update $@
+  htd_edit_and_update "$@"
 }
 htd_als__inv_elec=inventory-electronics
 htd_grp__inventory_electronics=cabinet
@@ -2898,10 +2898,10 @@ htd__active='
 htd__active()
 {
   test -n "$tdata_fmt" && {
-    note "Listing files active in '$@'"
+    note "Listing files active in '$*'"
   } || {
     tdata_fmt=$TODAY
-    note "Listing files active today in '$@'"
+    note "Listing files active today in '$*'"
   }
   tdate=$(date "$1")
 
@@ -3264,7 +3264,7 @@ htd_grp__archive=archive
 htd_als__archive_list=archive\ list
 htd_als__test_unpacked=archive\ test-unpacked
 htd_als__clean_unpacked=archive\ clean-unpacked
-htd_als__note_unpacked=archive\ note-unpacked
+htd_grp__note_unpacked=htd-archive
 
 
 htd__export_docker_env()
@@ -3530,7 +3530,7 @@ htd_spc__finfo="finfo DIR"
 htd__finfo()
 {
   req_dir_env HTDIR
-  for dir in $@
+  for dir in "$@"
   do
     finfo.py --recurse --documents --env htdocs=HTDIR $dir \
       || return $?
@@ -3832,7 +3832,7 @@ htd__backup()
     note "Moving $# files to backup.."; bu_act=mv; bu_act_lbl=Move
   }
 
-  local srcpaths="$(for arg in $@
+  local srcpaths="$(for arg in "$@"
     do
       test -f "$arg" || warn "Missing or not a file for backup: '$arg'" 1
       realpath "$arg"
@@ -4095,7 +4095,7 @@ htd__src_info()
 {
   test -n "$1" || set -- $0
   local functions=0 lines=0
-  for src in $@
+  for src in "$@"
   do
     src_id=$(prefix_resolve $src)
     $htd_log file_warn $src_id "Listing info.." >&2
@@ -4391,8 +4391,8 @@ htd_als__venv=ispyvenv
 
 
 
-htd_grp__catalog=catalog
-#htd_grp__catalogs=catalog
+htd_grp__catalog=htd-catalog
+htd_grp__catalogs=htd-catalogs
 
 
 htd__annexdir()
@@ -4624,6 +4624,33 @@ htd_grp__drafts=draft
 htd_grp__eval=htd-eval
 
 
+htd__conf ()
+{
+  test -n "${HTD_CONF:-}" || {
+    : "${XDG_CONFIG_HOME:="$HOME/.config"}"
+    test ! -d "$XDG_CONFIG_HOME/htd" || HTD_CONF="$XDG_CONFIG_HOME/htd"
+  }
+  test -n "${HTD_CONF:-}" -a -e "${HTD_CONF:-}" ||
+      $LOG error "" "Cannot find config dir or does not exist" \
+        "${HTD_CONF:-"\$XDG_CONFIG_HOME/htd"}" 1
+}
+
+
+htd__tosort () # ~ [ 'local' | 'global' ]
+{
+  local dir
+  for dir in $(case "${1:-"local"}" in
+          ( local ) find ./ \( -iname 'tosort' \
+              -o -iname '*tosort' -o -iname '*tosort' \
+              -o -iname '*tosort*' \) -a -exec test -d {}/ ';' -print ;;
+          ( global ) locate -e -b '*tosort*' | filter_dirs ;;
+          ( * ) return 1 ;;
+      esac)
+  do
+    echo "$dir: $(find $dir -type f -o -type l | count_lines)"
+  done | sumcolumn 2
+}
+
 
 # -- htd box insert sentinel --
 
@@ -4656,9 +4683,9 @@ htd_main ()
           test -t 0 && set -- main-doc-edit || set -- status
         }
         main_subcmd_run "$@" || return $?
-        test -z "$dry_run" \
+        test "$dry_run" = 0 \
           && std_info "'$base-$subcmd' completed normally" 0 \
-          || std_info "'$base-$subcmd' dry-drun completed" 0
+          || std_info "'$base-$subcmd' dry-run completed" 0
       ;;
 
     * )
@@ -4694,6 +4721,7 @@ htd_init()
   true "${SUITE:="Main"}"
   true "${PACK_MAIN_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
   test ! -e $PACK_MAIN_ENV || { source $PACK_MAIN_ENV || return; }
+  test -n "${HTD_CONF:-}" || { htd__conf || return; }
 
   LOG=$htd_log
 

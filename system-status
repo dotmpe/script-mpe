@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+# A helper (for tmux statusbar) that displays remaining battery when not
+# charging
+
+power-connected ()
+{
+  acpi -V | grep '^Adapter ' | grep -q 'on-line'
+}
+
+charge-left-unconnected ()
+{
+  power-connected || {
+    echo -n $( acpi | cut -d, -f2 ) | tr -s ' ' '/'
+  }
+}
+
+# Short description of SystemD: running or degraded
+systemd ()
+{
+  systemctl is-system-running | tr -d ' \n'
+}
+
+"$@"
+#

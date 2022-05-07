@@ -37,7 +37,7 @@ date_lib_init()
   test "${date_lib_init-}" = "0" && return
 
   lib_assert sys os str || return
-  case "$uname" in
+  test -n "${gdate-}" || case "$uname" in
     Darwin ) gdate="gdate" ;;
     Linux ) gdate="date" ;;
     * ) $INIT_LOG "error" "" "uname" "$uname" 1 ;;
@@ -281,16 +281,17 @@ ts_rel_multi() # Seconds-Delta [Tag [Tag...]]
 # Get stat datetime format, given file or datetime-string. Prepend @ for timestamps.
 timestamp2touch() # [ FILE | DTSTR ]
 {
-  test -n "$1" || set -- "@$(date_ts)"
+  test -n "${1-}" || set -- "@$(date_ts)"
   test -e "$1" && {
     $gdate -r "$1" +"%y%m%d%H%M.%S"
+    return
   } || {
     $gdate -d "$1" +"%y%m%d%H%M.%S"
   }
 }
 
 # Copy mtime from file or set to DATESTR or @TIMESTAMP
-touch_ts() # ( DATESTR | TIMESTAMP | FILE ) FILE
+touch_ts () # ~ ( DATESTR | TIMESTAMP | FILE ) FILE
 {
   test -n "$2" || set -- "$1" "$1"
   touch -t "$(timestamp2touch "$1")" "$2"
@@ -367,17 +368,23 @@ datelink() # Date Format Target-Path
 }
 
 # Print ISO-8601 datetime with minutes precision
-datet_isomin() { date_iso "${1-}" minutes; }
+datet_isomin () { date_iso "${1-}" minutes; }
 
 # Print ISO-8601 datetime with nanosecond precision
 datet_isons() { date_iso "$1" ns; }
 
 # Print fractional seconds since Unix epoch
-epoch_microtime() { $gdate +"%s.%N"; }
+epoch_microtime () # [Date-Ref=now]
+{
+  $gdate +"%s.%N"
+}
 
-date_microtime() { $gdate +"%Y-%m-%d %H:%M:%S.%N"; }
+date_microtime ()
+{
+  $gdate +"%Y-%m-%d %H:%M:%S.%N"
+}
 
-sec_nomicro()
+sec_nomicro ()
 {
   fnmatch "*.*" "$1" && {
       echo "$1" | cut -d'.' -f1

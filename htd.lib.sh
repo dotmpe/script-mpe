@@ -521,7 +521,7 @@ htd_wf_ctx_sub () # Flow-Id Tag-Refs...
   #${ctx_base}${primctx_sid}__${flow} "$@" &&
 #      $LOG note "htd-workflow" "Finished '${flow}'" "${ctx_base}${primctx_sid}__${flow} $*"
 
-  context_cmd_seq $flow -- $@
+  context_cmd_seq $flow -- "$@"
 }
 
 

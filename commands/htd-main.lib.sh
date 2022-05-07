@@ -49,11 +49,13 @@ htd_libs__info=package\ htd-package
 htd_flags__info=lp
 htd__info()
 {
-  test -n "$1" || set -- $(pwd -P)
-  test -z "$2" || error "unexpected args '$2'" 1
+  test -n "${1-}" || set -- $(pwd -P)
+  test -z "${2-}" || error "unexpected args '$2'" 1
 
   echo "package:"
-  vc_getscm "$1" || return $?
+  vc_getscm "$1" || {
+      $LOG error "" "Not an SCM dir" "" $?; return $?
+  }
   cd "$1"
   vc_info
 }

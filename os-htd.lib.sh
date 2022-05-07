@@ -86,22 +86,24 @@ enum_nix_style_file ()
 
 filter_dir ()
 {
-  test -d "$1" && echo "$1"
+  test -d "$1" || return 0
+  echo "$1"
 }
 
 filter_dirs ()
 {
-  act=filter_dir s= p= foreach_do "$@"
+  act=filter_dir s="" p="" foreach_do "$@"
 }
 
 filter_file ()
 {
-  test -f "$1" && echo "$1"
+  test -f "$1" || return 0
+  echo "$1"
 }
 
 filter_files ()
 {
-  act=filter_file s= p= foreach_do "$@"
+  act=filter_file s="" p="" foreach_do "$@"
 }
 
 find_one () # ~ DIR NAME
@@ -207,6 +209,7 @@ foreach_addcol ()
 # Read `foreach` lines and act, default is echo ie. same result as `foreach`
 # but with p(refix) and s(uffix) wrapped around each item produced. The
 # unwrapped loop-var is _S.
+# The return status of action is not handled.
 foreach_do ()
 {
   test -n "${p-}" || local p= # Prefix string
@@ -693,12 +696,18 @@ wherefrom ()
   ${os,,}_wherefrom "$@"
 }
 
-xsed_rewrite()
+xsed_rewrite ()
 {
   case "$uname" in
     Darwin ) sed -i.applyBack "$@";;
     Linux ) sed -i "$@";;
   esac
+}
+
+# Sum column and add total-line after stdin closes.
+sumcolumn () # ~ COL
+{
+  awk '{sum+=$'$1'; print} END{print "Total: "sum;}'
 }
 
 # Sync: U-S:src/sh/lib/os.lib.sh

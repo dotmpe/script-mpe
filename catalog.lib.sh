@@ -2,25 +2,30 @@
 
 # Catalog: maintain card records for files with Id and meta info
 
+# shellcheck disable=SC1090 # Use a directive to specify location?
+
+# shellcheck disable=SC2030
+# shellcheck disable=SC2031
+
+# shellcheck disable=SC2129
+# shellcheck disable=SC2140
+
 catalog_lib_load()
 {
-  lib_load ck-htd ck || return
+  true "${CATALOG_DEFAULT:="catalog.yml"}"
 
-  # Existing or default catalog file (relative path) for PWD
-  test -n "${CATALOG_DEFAULT-}" || {
-    CATALOG_DEFAULT=$(htd_catalog__name) || CATALOG_DEFAULT=catalog.yaml
-  }
-  test -n "${CATALOG_IGNORE_DIR-}" || CATALOG_IGNORE_DIR=.catalog-ignore
-  test -n "${CATALOG-}" || CATALOG="$CATALOG_DEFAULT"
+  true "${CATALOG_CACHE_DIR:=".meta/cache"}"
 
-  # List for all catalogs (global) or below PWD (default)
-  test -n "${CATALOGS-}" || CATALOGS=.cllct/catalogs.list
-  test -n "${GLOBAL_CATALOGS-}" ||
-      GLOBAL_CATALOGS=$HOME/$(pathname $CATALOGS .list)-global.list
+  # List for all catalogs below PWD
+  test -n "${CATALOGS-}" || CATALOGS=$CATALOG_CACHE_DIR/catalogs.list
 
-  test -n "${Catalog_Status-}" || Catalog_Status=.cllct/catalog-status.vars
-  test -n "${Catalog_Ignores-}" || Catalog_Ignores=.cllct/ignores
-  test -n "${Catalog_Duplicates-}" || Catalog_Duplicates=.cllct/duplicates
+  # Global catalog list file
+  test -n "${GLOBAL_CATALOGS-}" || GLOBAL_CATALOGS=$XDG_CONFIG_HOME/catalogs.list
+
+  test -n "${Catalog_Status-}" ||
+      Catalog_Status=$CATALOG_CACHE_DIR/catalog-status.vars
+  test -n "${Catalog_Duplicates-}" ||
+      Catalog_Duplicates=$CATALOG_CACHE_DIR/catalog-duplicates
 
   test -n "${ANNEX_DIR-}" || {
     ANNEX_DIR="/srv/annex-local"
@@ -31,31 +36,110 @@ catalog_lib_load()
 catalog_lib_init()
 {
   test "${catalog_lib_init-}" = "0" && return
-  test -d .cllct || mkdir .cllct
   true "${define_all:=1}" # XXX: override htd-load to set any argv opts to vars
+  test -d $CATALOG_CACHE_DIR || mkdir -p $CATALOG_CACHE_DIR
+  test -e "${CATALOG:-}" || CATALOG=$(catalog_name)
+  test -n "${CATALOG-}" || CATALOG="$CATALOG_DEFAULT"
+  test -n "${Archive_Catalogs:-}" || {
+
+    Archive_Catalogs=$(
+        for archive_dir in ${Archive_Dirs:-$HOME/Downloads $HOME/htdocs/cabinet}
+        do
+          catalog_list_names "$archive_dir" ||
+              $LOG warn "" "No catalog files found for Archive-Dir" "$archive_dir"
+        done )
+  }
 }
 
-htd_catalog__info() # Some catalog info ~
-{
-  $LOG header $scriptname:catalog:info
 
-  $LOG header2 "Catalog-Default" "$CATALOG_DEFAULT"
-  $LOG header2 "Catalog" "$CATALOG" "$(echo $( filesize "$CATALOG" && {
-      count_lines "$CATALOG"; echo bytes/lines
-    } || echo missing ))"
-  $LOG header2 "Catalogs" "$CATALOGS" "$(echo $( filesize "$CATALOGS" && {
-      count_lines "$CATALOGS"; echo bytes/lines
-    } || echo missing ))"
-  $LOG header2 "Global-Catalogs" "$GLOBAL_CATALOGS" "$(echo $(
-    filesize "$GLOBAL_CATALOGS" && {
-        count_lines "$GLOBAL_CATALOGS"; echo bytes/lines
-    } || echo missing ))"
-  $LOG header2 "global" "$global"
+# Find untracked elements below PATH.
+catalog_listtree () # ~ [PATH]
+{
+  test -n "${1:-}" || set -- .
+  local scm='' ; test ${use_find:-0} -eq 1 || vc_getscm "$1"
+  test -n "$scm" && {
+
+    catalog_listtree_scm "$1"
+    return
+  } || {
+
+    test ${use_find:-0} -eq 1 &&
+      std_info "Override SCM, tracking files directly ($Path_Ignores)" ||
+      std_info "No SCM, tracking files directly ($Path_Ignores)"
+    catalog_listtree_find "$1"
+  }
+}
+
+catalog_listtree_find () # ~ [PATH]
+{
+  ignores_cache || return
+
+  local find_ignores="-false $(ignores_find "$Path_Ignores") "\
+" -o -exec test ! \"{}\" = \"$1\" -a -e \"{}/$CATALOG_DEFAULT\" ';' -a -prune "\
+" -o -exec test -e \"{}/$IGNORE_DIR\" ';' -a -prune "
+  test ${filter_dirs:-1} -eq 0 ||
+      find_ignores="$find_ignores -o -exec test ! -d \"{}\" ';' "
+  #find_ignores="$find_ignores -o -true"
+  test ${choice_recursive:-0} -eq 1 &&
+      find_more="-mindepth 1" || find_more="-mindepth 1 -maxdepth 1"
+  #eval find ${find_opts:-"-H"} "${1:-.}" $find_more \\\( $find_ignores \\\) -a -print ;
+  eval find ${find_opts:-"-H"} "${1:-.}" $find_more $find_ignores -o -print ;
+}
+
+# Find elements below PATH using SCM system.
+catalog_listtree_scm () # [scm] ~ [PATH=.]
+{
+  test -n "${scm:-}" || { local scm='' ; vc_getscm "${1:-"."}"; }
+  std_info "SCM: $scm (listing untracked/ignored only)"
+  req_scm_opt
+  # XXX: { vc.sh tracked-files || error "Listing all from SCM" 1; } ||
+  trueish "$scm_all" && {
+    { vc.sh ufx || error "Listing with from SCM" 1; } ; } ||
+    { vc.sh uf || error "Listing from SCM" 1; };
+}
+
+# Update user catalog list (from locatedb)
+catalog_list_global ()
+{
+  # NOTE: no brace-expansion here ('*/catalog{,-*}.y{,a}ml')
+  { locate '*/catalog.yaml' '*/catalog.yml' \
+    '*/catalog-*.yml' '*/catalog-*.yaml' || return
+  } | tee $CATALOGS || return
+  test -s $CATALOGS || { error "No catalog files found" ; return 1 ; }
+}
+
+# Cache catalogs list. Error if none found.
+catalog_list_names () # ~ [PATH=.]
+{
+  { catalog_list_path_files "${1:-}" || return
+  } | tee "${1:-"."}/$CATALOGS" || return
+  test -s "${1:-"."}/$CATALOGS" || { error "No catalog files found" ; return 1 ; }
+}
+
+# List catalog file names below
+catalog_list_path_files () # ~ [PATH=.]
+{
+  find -L ${1:-"."} \( \
+      -iname 'catalog.y*ml' -o -iname 'catalog-*.y*ml' \
+  \) -not -ipath '*/schema/*' | {
+
+    # Remove './'-prefix
+    test ${1:-"."} = "." && cut -c3- || cat
+  }
+}
+
+catalog_name () # ~ [PATH=.]
+{
+  test -s "${1:-"./"}$CATALOGS" && {
+      head -n1 "${1:-"./"}$CATALOGS" || return
+    } || {
+      catalog_list_path_files "${1:-}" | head -n1
+    }
 }
 
 htd_catalog__paths() # List catalog path-names ~
 {
-  trueish "$global" && {
+  trueish "${choice_global:-0}" && {
     htd_catalog__req_global
     return $?
   } || {
@@ -63,26 +147,18 @@ htd_catalog__paths() # List catalog path-names ~
   }
 }
 
-htd_catalog__name() # Look for Catalog-Default ~ [Dir]
+# Remove ignored paths from stdin
+catalog_paths_filter ()
 {
-  test $# -gt 0 || set -- ./
-  test $# -eq 1 -a -d "$1" || return 97
-
-  fnmatch "*/" "$1" || set -- "$1/"
-
-  true "${CATALOG_DEFAULT:="catalog.yml"}"
-  test -f "$1$CATALOG_DEFAULT" &&
-    echo "$1$CATALOG_DEFAULT" || {
-
-      test -f "$1$(pathname $CATALOG_DEFAULT .yml).yaml" &&
-        echo "$1$(pathname $CATALOG_DEFAULT .yml).yaml" || return
-    }
+  ignores_cache || return
+  globlist_to_regex "$Path_Ignores" || return
+  grep -vf "$Path_Ignores.regex"
 }
 
 htd_catalog__as_json()
 {
   test -n "$1" || set -- "$CATALOG"
-  local jsonfn= s=
+  local jsonfn s=''
   jsonfn="$(pathname "$1" .yml .yaml).json"
   { test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
         {
@@ -110,7 +186,7 @@ htd_catalog__from_json()
 # Look for exact string match in catalog files
 htd_catalog__find() # Str
 {
-  htd_catalog__req_local | while read catalog; do
+  htd_catalog__req_local | while read -r catalog; do
     grep -qF "$1" "$catalog" || continue
     note "Found '$1' in $catalog"
   done
@@ -123,57 +199,10 @@ htd_catalog__ignores()
   } | sort -u
 }
 
-htd_catalog__update_ignores()
-{
-  htd_catalog__ignores > "$Catalog_Ignores"
-}
-
-# List local files for cataloging, excluding dirs but including symlinked
-catalog_listdir()
-{
-  test -n "$1" || set -- "."
-  { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY
-  } || htd_catalog__update_ignores
-  globlist_to_regex "$Catalog_Ignores" >/dev/null
-  for lname in "$1"/*
-  do test -f "$lname" || continue ; echo "$lname"
-  done | grep -vf "$Catalog_Ignores.regex"
-}
-
-# List untracked files for SCM dir, else find everything with ignores. Assuming
-# SCM can handle its own status.
-# Set use_find=1 to override for present SCM; scm_all to list SCM excluded as
-# well.
-htd_catalog__listtree() # List untracked or find all unignored ~ Path
-{
-  test -n "$1" || set -- "."
-  local scm='' ; test ${use_find:-0} -eq 1 || vc_getscm "$1"
-  { test -n "$scm" && {
-    std_info "SCM: $scm (listing untracked/ignored only)"
-    req_cons_scm
-    # XXX: { vc.sh tracked-files || error "Listing all from SCM" 1; } ||
-    trueish "$scm_all" && {
-      { vc.sh ufx || error "Listing with from SCM" 1; } ; } ||
-      { vc.sh uf || error "Listing from SCM" 1; };
-  } || {
-    test ${use_find:-0} -eq 1 &&
-      std_info "Override SCM, tracking files directly ($Catalog_Ignores)" ||
-      std_info "No SCM, tracking files directly ($Catalog_Ignores)"
-    { test -e "$Catalog_Ignores" && newer_than "$Catalog_Ignores" $_1DAY
-    } || htd_catalog__update_ignores
-    local find_ignores="-false $(ignores_find "$Catalog_Ignores") "\
-" -o -exec test ! \"{}\" = \"$1\" -a -e \"{}/$CATALOG_DEFAULT\" ';' -a -prune "\
-" -o -exec test -e \"{}/$CATALOG_IGNORE_DIR\" ';' -a -prune "\
-" -o -exec test ! -d \"{}\" ';' "
-    #eval find "$1" -not -type d $find_ignores -o -type f -a -print
-    eval find -H "$1" $find_ignores -a -print ;
-  } }
-}
-
-# List tree, and check entries exists for each file-name
+# List tree leafs, and check entries exists for each file-name
 htd_catalog__index() # Check each listtree fname ~ Path
 {
-  htd_catalog__listtree "$1" | while read fname
+  catalog_listtree "${1:-"."}" | while read -r fname
     do
       test -f "$fname" || {
         test -d "$fname" && {
@@ -183,45 +212,87 @@ htd_catalog__index() # Check each listtree fname ~ Path
         }
         warn "File expected '$fname'" ; continue ; }
 
-      htd_catalog__has_file "$fname" || {
+      catalog_has_file "$fname" || {
         $LOG warn "$PWD" "Missing" "$fname"
         echo "$fname" >>"$failed"
       }
     done
 }
 
-# List dir, check file extension-mime map and ...
+# Look for new catalog files and make new entries or ignore paths.
+#
+# XXX: List dir, check file extension-mime map and ...
 # TODO: wrap catalog add with some pre/post processing?
-htd_catalog__organize() # ~ Path
+htd_catalog__organize () # ~ [PATH]
 {
-  local r=
+  local pname
 
-  test -n "$dry_run" || {
-      test -z "$noact" && dry_run=0 || dry_run=$noact
+  test -z "$(archive_paths "${1:-.}" "find-first")" || {
+
+      # First round, look at dirs that could be unpacked archives
+
+      note "Looking for unpacked archives..."
+      for pname in $( archive_paths_unpacked "${1:-.}" "note" )
+        do
+            test -d "$pname" && {
+                test ! -e $pname/$IGNORE_DIR || continue
+            } || {
+                # XXX: no ignore for files yet
+                warn "Not a directory: <$pname>"
+                continue
+            }
+
+        # shellcheck disable=SC2162
+        read -s -p "Found '$pname'
+Skip/Delete/Ignore? [sdi]
+" -n 1 unpacked_do
+            # shellcheck disable=SC2115
+            case "${unpacked_do^^}" in
+                ( I ) touch $pname/$IGNORE_DIR ; echo "Ignored '$pname'" ;;
+                ( D ) rm -rf $pname/ ; echo "Deleted '$pname'" ;;
+                ( ""|S ) echo "Skipped '$pname'"; continue ;;
+            esac
+        done
     }
-  test -n "$keep_going" || keep_going=1
 
-  htd_catalog__listdir "$1" |
-    while read fname
+  # Second round, look at each name individually
+
+  # TODO: load mime->Path mapping from table into memory, array?
+
+  note "Scanning for all files..."
+  {
+    filter_dirs=0 \
+        catalog_listtree "${1:-}" || return
+  } |
+
+    while read -r bname
     do
-      test -f "$fname" || {
-        test -d "$fname" || warn "Not a file '$fname'"
+      test -f "$bname" || {
+        test -d "$bname" || warn "Not a file '$bname'"
         continue
       }
 
-      # TODO: matchbox.py check-name "$fname" std-ascii  && {
+      mime=$(file_mtype "$bname")
 
-      mime=$(basename-reg -o mime --no-mime-check --num-exts 1 -c "$fname") || {
+      #for catalog in $Archive_Catalogs
+      #do
+      #  catalog_has_file "$bname" "$catalog" || continue
+      #  continue 2
+      #done
 
-        $LOG error "mime" "No mime for extension" "$fname" 1
-        trueish "$keep_going" && { r=1; continue; }
-        return $?
-      }
-      ext="$(filenamext "$fname")"
-      title="$(basename "$fname" .$ext)"
-      newname="$(mkid "$title" "" "").$ext"
+      # TODO: matchbox.py check-name "$bname" std-ascii  && {
 
-      htd_catalog__has_file "$fname" && {
+      #mime=$(basename-reg -o mime --no-mime-check --num-exts 1 -c "$bname") || {
+
+      #  $LOG error "mime" "No mime for extension" "$bname" 1
+      #  trueish "$keep_going" && { r=1; continue; }
+      #  return $?
+      #}
+      ext="$(filenamext "$bname")"
+      title="$(basename "$bname" .$ext)"
+      newname="$(mkid "$title" "" "" && echo "$id").$ext"
+
+      catalog_has_file "$bname" && {
         note "File OK '$title' $mime $newname ($ext)"
         continue
 
@@ -235,8 +306,8 @@ htd_catalog__organize() # ~ Path
 
       }
     done
-  return $r
 }
+
 
 # Read (echo) checksums from catalog
 htd_catalog__ck () # ~ CATALOG
@@ -259,18 +330,19 @@ htd_catalog__fsck_all ()
 }
 
 # Update status (validate doc, set --full=1 to check filetree index and checksums)
-htd_catalog__check()
+htd_catalog__check ()
 {
   # Clean empty status-file
   test ! -e "$Catalog_Status" -o -s "$Catalog_Status" || rm "$Catalog_Status"
 
   # Renew status-file if older than catalog
-  test -e $Catalog_Status -a $CATALOG -ot $Catalog_Status || {
+  test -e $Catalog_Status -a $CATALOG -ot $Catalog_Status &&
+    $LOG note "$scriptname:catalog:check" "Status is up to date" || {
     {
-        ( htd_catalog__validate "$CATALOG" >/dev/null
+        ( htd_catalog__validate "$CATALOG" >&2 #>/dev/null
         ) && echo schema=0 || echo schema=$?
 
-        ( htd_catalog__index "$CATALOG" >/dev/null
+        ( htd_catalog__index "$(dirname "$CATALOG")" >&2 #>/dev/null
         ) && echo index=0 || echo index=$?
 
         test ${choice_full:-0} -eq 1 && {
@@ -295,9 +367,9 @@ req_catalog_status()
     return 51 # No status found for catalog
   }
   test $status -eq 0 && {
-    $LOG note "Pass" "status:" "$(lines_to_words $Catalog_Status)"
+    $LOG note "Catalog Pass" "status:" "$(lines_to_words $Catalog_Status)"
   } || {
-    $LOG warn "Failed" "status:" "$(lines_to_words $Catalog_Status)"
+    $LOG warn "Catalog Failed" "status:" "$(lines_to_words $Catalog_Status)"
   }
   return $status
 }
@@ -309,15 +381,15 @@ htd_catalog__status()
 {
   test ${choice_global:-0} -eq 1 && {
 
-    htd_catalog__req_global | sed 's/\.ya\?ml$//' | while read catalog; do
+    htd_catalog__req_global | sed 's/\.ya\?ml$//' | while read -r catalog; do
         #htd_catalog__check || return
         #req_catalog_status
 
       (
-        cd $(dirname $catalog) || continue
-        CATALOG="$(basename $catalog)"
+        cd $(dirname $catalog) || return
+        _CATALOG="$(basename $catalog)"
 
-        ( htd_catalog__validate "$CATALOG" )
+        ( htd_catalog__validate "$_CATALOG" )
 
       )
         #( htd_catalog__index "$CATALOG" )
@@ -335,17 +407,8 @@ htd_catalog__status()
 # Check schema for given catalog
 htd_catalog__validate() # CATALOG
 {
-  test -n "$1" || set -- $CATALOG
+  test $# -gt 0 || set -- $CATALOG
   htd_schema_validate "$1" "$scriptpath/schema/catalog.yml"
-}
-
-
-# List local catalog file names
-htd_catalog__list_files()
-{
-  find -L . \( \
-      -iname 'catalog.y*ml' -o -iname 'catalog-*.y*ml' \
-  \) -not -ipath '*/schema/*' | cut -c3-
 }
 
 
@@ -363,33 +426,14 @@ set_cataloged_file()
   # TODO: trueish "$strict" require catalog entry
 }
 
-
-# Cache catalogs, list basepaths. Error if none found.
-htd_catalog__list_local()
-{
-  { htd_catalog__list_files || return
-  } | tee "$CATALOGS" || return
-  test -s "$CATALOGS" || { error "No catalog files found" ; return 1 ; }
-}
-
 htd_catalog__req_local()
 {
   test -e $CATALOGS && {
     cat $CATALOGS
     $LOG "info" "$scriptname:catalog:req-local" "To update list run:" 'catalog list-local'
   } || {
-    htd_catalog__list_local || return
+    catalog_list_names || return
   }
-}
-
-# Update user catalog list (from locatedb)
-htd_catalog__list_global()
-{
-  # NOTE: no brace-expansion here (locate '*/catalog{,-*}.y{,a}ml')
-  { locate '*/catalog.yaml' '*/catalog.yml' \
-    '*/catalog-*.yml' '*/catalog-*.yaml' || return
-  } | tee ~/$CATALOGS || return
-  test -s ~/$CATALOGS || { error "No catalog files found" ; return 1 ; }
 }
 
 htd_catalog__req_global()
@@ -398,26 +442,17 @@ htd_catalog__req_global()
     cat $GLOBAL_CATALOGS
     $LOG "info" "$scriptname:catalog:req-global" "To update list run:" 'catalog list-global'
   } || {
-    htd_catalog__list_global || return
+    catalog_list_global || return
   }
 }
 
-htd_catalog__list() # List catalog names
+catalog_has_file() # ~ FILE [CATALOG]
 {
-  { trueish "$global" && {
-      htd_catalog__req_global || return
-    } || {
-      htd_catalog__req_local || return
-    } | sed 's/\.ya\?ml$//'; }
-}
-
-htd_catalog__has_file() # File
-{
-  test -n "$CATALOG" || error "CATALOG env expected"
-  test -s "$CATALOG" || return 1
+  test -n "${2:-}" || set -- "${1:-}" "$CATALOG"
+  test $# -eq 2 -a -e "$1" || return 177
 
   local basename="$(basename "$1" | sed 's/"/\\"/g')"
-  grep -q "^[-]\?  *\\<name:\\ ['\"]\?$(match_grep "$basename")" $CATALOG
+  grep -q "^[-]\?  *\\<name:\\ ['\"]\?$(match_grep "$basename")" "$2"
 }
 
 
@@ -454,7 +489,7 @@ htd_catalog__get_by_key() # [CATALOG] CKS...
 htd_catalog__add_file() # File
 {
   # TODO: check other catalogs, dropped entries too before adding.
-  htd_catalog__has_file "$1" && {
+  catalog_has_file "$1" && {
     # std_info "File '$(basename "$1")' already in catalog"
     $LOG note "" "already in catalog" "$1"
     return 2
@@ -486,7 +521,7 @@ htd_catalog__add_file() # File
   local mtype="$(filemtype "$1")" \
     basename="$(basename "$1" | sed 's/"/\\"/g')" \
     format="$(fileformat "$1" | sed 's/"/\\"/g')"
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  test -n "$hostname" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
   { cat <<EOM
 - name: "$basename"
   mediatype: '$mtype'
@@ -558,7 +593,7 @@ htd_catalog__add_all_larger() # DIR SIZE
   test -n "$1" || set -- . "$2"
   test -n "$2" || set -- "$1" 1048576
   note "Adding larger than '$2' from '$1'"
-  htd_catalog__listtree "$1" | while read fn
+  catalog_listtree "$1" | while read -r fn
   do
     test -e "$fn" -a \( -h "$fn" -o -f "$fn" \) || {
       warn "File expected '$fn'" ; continue ; }
@@ -573,10 +608,10 @@ htd_catalog__add_all_larger() # DIR SIZE
 # See listtree, check all files for catalog entry or echo local path
 htd_catalog__untracked()
 {
-  htd_catalog__listtree "$1" | while read fn
+  catalog_listtree "$1" | while read -r fn
   do
     test -f "$fn" || continue
-    htd_catalog__has_file "$fn" && continue
+    catalog_has_file "$fn" && continue
     echo "$fn"
   done
 }
@@ -588,7 +623,7 @@ htd_catalog__copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
   record="$( htd_catalog__as_json "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
   test -f "$3" || {
     test -d "$3" && {
-      set -- "$1" "$2" "$(htd_catalog__name "$3" || echo $CATALOG_DEFAULT)"
+      set -- "$1" "$2" "$(catalog_name "$3")"
     }
   }
   dest_dir="$(dirname "$3")/"
@@ -706,10 +741,10 @@ htd_catalog__set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
   {
     htd_catalog__as_json "$1" | {
         trueish "$json_value" && {
-          jq -c "map(select(.$5==\""$2"\").$3 |= $4 )" || return
+          jq -c "map(select(.$5==\"$2\").$3 |= $4 )" || return
 
         } || {
-          jq -c "map(select(.$5==\""$2"\").$3 |= \"$4\" )" || return
+          jq -c "map(select(.$5==\"$2\").$3 |= \"$4\" )" || return
 
         }
       } | jsotk json2yaml - $1
@@ -741,7 +776,7 @@ htd_catalog__update() # ~ [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key
   {
     htd_catalog__as_json "$1" | {
       test -z "$jq_scr" && {
-        jq "map(select(.$4==\""$2"\") += $3 )" || return $?
+        jq "map(select(.$4==\"$2\") += $3 )" || return $?
       } || {
         jq -f "$jq_scr" - || return $?
       }
@@ -767,8 +802,8 @@ htd_catalog__from_annex() # ~ [Annex-Dir] [Annexed-Paths]
   note "PWD: $PWD"
   shift
   note "Now building JQ update script <$jq_scr>..."
-  annex_list $@ | metadata_keys=1 metadata_exists=1 annex_metadata |
-      while read -d $'\f' block_
+  annex_list "$@" | metadata_keys=1 metadata_exists=1 annex_metadata |
+      while read -r -d $'\f' block_
   do
     block="$(echo "$block_" | sed 's/=\(.*[^0-9].*\)\ *$/="\1"/g' )"
     eval $(echo "$block" | grep 'name=')
@@ -785,7 +820,7 @@ htd_catalog__from_annex() # ~ [Annex-Dir] [Annexed-Paths]
   done
   # Update catalog now
   note "Done building script, executing catalog update..."
-  cd "$cwd"
+  cd "$cwd" || return
   update_json=1 htd_catalog__update "" "$jq_scr" || r=$?
   rm "$jq_scr"
   return $r
@@ -818,7 +853,7 @@ htd_catalog__ck_import()
   catalog.py --catalog="$CATALOG" importcks "$@"
 }
 
-req_cons_scm()
+req_scm_opt()
 {
   test -n "$scm_all" || {
     # TODO prompt "Scan untracked only, or all (SCM untracked and excluded files)?"
@@ -831,7 +866,7 @@ req_cons_scm()
 htd_catalog__consolidate()
 {
   test -n "$1" || set -- "."
-  htd_catalog__listtree | while read fpath
+  catalog_listtree | while read -r fpath
   do
     case "$fpath" in
 
@@ -856,7 +891,7 @@ htd_catalog__cons() { htd_catalog__consolidate "$@"; }
 # TODO: consolidate data from metafiles
 htd_catalog__consolidate_metafiles()
 {
-  find ./ -iname '*.meta' | while read metafile
+  find ./ -iname '*.meta' | while read -r metafile
   do
     htd_catalog__add_file "$metafile"
   done
@@ -866,7 +901,7 @@ htd_catalog__consolidate_metafiles()
 # TODO: merge all local catalogs (from subtrees to PWD)
 htd_catalog__consolidate_catalogs()
 {
-  htd_catalog__req_local | while read catalog; do
+  htd_catalog__req_local | while read -r catalog; do
     sameas "$CATALOG" "$catalog" && continue
     note "TODO: $catalog"
   done
@@ -902,7 +937,7 @@ htd_catalog__scan_for_md5()
 htd_catalog__scan_for_sha2()
 {
   note "Looking for SHA2: $1..."
-  while read catalog
+  while read -r catalog
   do
     grep -q 'sha2:\ '"$1" "$catalog"|| continue
     echo "$catalog"
@@ -917,7 +952,7 @@ htd_catalog__separate() # PATH
   test -d "$1" || error "dir expected" 1
   while test $# -gt 0
   do
-    htd_catalog__listtree "$1" | while read filename
+    catalog_listtree "$1" | while read -r filename
     do
        htd_catalog__move "" "$filename" "$1"
     done
@@ -948,10 +983,10 @@ htd_catalog__update_keys() # Entry-Id [Keys...]
 htd_catalog__update_all()
 {
   test -n "$1" || error "expected properties to update" 1
-  htd_catalog__listtree | while read fn
+  catalog_listtree | while read -r fn
   do
     test -f "$fn" || continue
-    htd_catalog__has_file "$1" || continue
+    catalog_has_file "$1" || continue
     htd_catalog__update_keys "$fn" "$@" || {
       error "Updating '$fn"
       continue
@@ -961,7 +996,7 @@ htd_catalog__update_all()
 
 htd_catalog__addempty()
 {
-  test -n "$1" || set -- "$CATALOG"
+  test -n "${1:-}" || set -- "$CATALOG"
 
   test ! -s "$1" || {
     htd_catalog__get_by_key "$1" \
@@ -972,7 +1007,7 @@ htd_catalog__addempty()
 
   test -f "$1" || {
     test -d "$1" && {
-      set -- "$(htd_catalog__name "$1" || echo $CATALOG_DEFAULT)"
+      set -- "$(catalog_name "$1")"
     }
   }
   { cat <<EOM
@@ -1021,7 +1056,7 @@ htd_catalog__cleanup_annex_missing()
   htd catalog from-annex . --not --in .
 
   # Drop paths
-  git annex list --not --in . | while read path
+  git annex list --not --in . | while read -r path
   do
     test -h "$path" -a ! -e "$path" || {
       warn "Broken symlink path expected '$path'"
@@ -1100,7 +1135,7 @@ catalog_zip_archive_manifest()
   printf -- " unpacking.."
   unzip -q "$archive" -d "$tmpdir" </dev/null || return
   (
-    cd "$tmpdir"
+    cd "$tmpdir" || return
     printf -- " hashing all files.."
     find . -type f | catalog_sha2list ../catalog.sha2list
     printf -- " OK."
@@ -1184,7 +1219,7 @@ cllct_sha256e_tempkey()
 cllct_cons_by_sha256e_tempkey()
 {
   test -n "$noact" || noact=1
-  trueish "$noact" && pref=echo || pref=""
+  trueish "$noact" && pref="echo" || pref=""
   test -n "$backup" || backup=0
   #test -n "$target" || target=~/htdocs/cabinet
   test -n "$target" || target="/srv/$(readlink /srv/annex-local)/backup"
@@ -1193,7 +1228,7 @@ cllct_cons_by_sha256e_tempkey()
   mkdir -p .cllct/tmp
   find $1 -type f | while read -r fn
   do
-    descr= ext= size= sha2=
+    descr='' ext='' size='' sha2=''
     cllct_sha256e_tempkey "$fn"
     test "$sha2" = "$empty_sha2" && continue
     cllct_find_by_sha256e_keyparts $size $sha2 $ext && {

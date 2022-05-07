@@ -20,16 +20,26 @@ htd_archive__help ()
 htd__archive()
 {
   test -n "$1" || set -- help
-  subcmd_prefs=${base}_archive_ try_subcmd_prefixes "$@"
+  case "$1" in
+    ( find ) shift; archive_paths "${1:-"."}" "find" || return ;;
+    ( find-first ) shift; archive_paths "${1:-"."}" "find-first" || return ;;
+    ( locate ) shift; archive_paths "${1:-"."}" "locate" || return ;;
+    ( locate-first ) shift; archive_paths "${1:-"."}" "locate-first" || return ;;
+    ( find-unpacked ) shift; archive_paths_unpacked "$1" || return ;;
+    ( list ) shift; archive_list "$@" || return ;;
+    ( list-basedirs ) shift; archive_list_basedirs "$@" || return ;;
+    ( * )
+          subcmd_prefs=${base}_archive_ try_subcmd_prefixes "$@" ;;
+  esac
 }
 htd_flags__archive=fl
-htd_libs__archive=archive\ htd-archive
+htd_libs__archive=date-htd\ list\ ignores\ archive\ htd-archive
 
 
 #htd_env__clean_unpacked='P'
 
 
-htd_archive_list()
+htd_archive_verbose_list() # ~ ARCHIVE FIELDS...
 {
   archive_verbose_list "$@"
 }
@@ -89,7 +99,7 @@ htd__clean_unpacked() # ARCHIVE [DIR]
   set -- "$(cd "$dir"; pwd -P)/$archive" "$2"
 
   local oldwd="$PWD" \
-      cnt=$(setup_tmpf .cnt) \
+      cntf=$(setup_tmpf .cnt) \
       cleanup=$(setup_tmpf .cleanup) \
       dirty=$(setup_tmpf .dirty)
   test ! -e "$cleanup" || rm "$cleanup"
@@ -135,8 +145,8 @@ List archive contents, and look for existing files.
 '
 htd__note_unpacked() # ARCHIVE [DIR]
 {
-  test -n "$1" || error "note-unpacked 'ARCHIVE'" 1
-  test -n "$2" || set -- "$1" "$(dirname "$1")"
+  test -n "${1:-}" || error "note-unpacked 'ARCHIVE'" 1
+  test -n "${2:-}" || set -- "$1" "$(dirname "$1")"
 
   test -e "$1" && {
     test -f "$1" || error "not a file: '$1'" 1

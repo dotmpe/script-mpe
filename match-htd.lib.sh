@@ -149,34 +149,33 @@ match_name_pattern()
 }
 
 # rewrite file $1 to $1$2, compile-glob each content line
-compile_globs()
+globlist_to_regex () # ~ LIST [OUT=LIST.regex]
 {
   test -e "$1" || error "source file expected" 1
-  test -n "$2" || set -- "$1" ".regex"
-  test ! -s "$1$2" || {
-    note "truncating existing $1$2"
+  test -n "$2" || set -- "$1" "$1.regex"
+  test ! -s "$2" || {
+    note "truncating existing $2"
   }
-  read_nix_style_file "$1" | while read glob
+  read_nix_style_file "$1" | while read -r glob
   do
     compile_glob "$glob"
-  done > $1$2
-  std_info "Recompiled $(count_lines "$1$2") ($1$2)"
+  done > $2
+  std_info "Recompiled $(count_lines "$2") ($2)"
 }
 
-# wrapper for compile-globs
-globlist_to_regex()
+# wrapper for globlist_to_regex
+globlists_to_regex () # ~ LISTS...
 {
   while test $# -gt 0
   do
     test -e "$1" || error "no globlist file '$1'" 1
     test -s "$1" && {
       test $1 -ot $1.regex || {
-        compile_globs $1 .regex || {
+        globlist_to_regex $1 $1.regex || {
           error "error compiling '$1'"
           return 1
         }
       }
-      cat $1.regex
     }
     shift
   done
