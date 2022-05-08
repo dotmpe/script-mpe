@@ -10,30 +10,48 @@ power-connected ()
 
 battery-charging ()
 {
-  acpi | grep -qv 'Not charging'
+  acpi | cut -d' ' -f3 | grep -q 'Charging'
 }
 
-# Display battery charge(s) when running on battery
+# Display battery charge when running on battery,
+# or AC and level indicator when charging. Otherwise nothing.
 charge-left-unconnected ()
 {
   # shellcheck disable=SC2015
   power-connected && {
 
-    battery-charging || return 0
+    battery-charging && {
 
-    test "${NERD_FONT:-1}" != "0" && {
-      battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
-      printf ' '
-      local nerd_font_codename=nf_${NERD_FONT_AC:-mdi}_plug
-      # shellcheck disable=2059
-      printf "${!nerd_font_codename}"
+      # Show charging AC indicator and level
+      test "${NERD_FONT:-1}" != "0" && {
+        battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
+        printf ' '
+        local nerd_font_codename=nf_${NERD_FONT_AC:-mdi}_plug
+        # shellcheck disable=2059
+        printf "${!nerd_font_codename}"
+
+      } || {
+        printf '%s%%' "$(battery-charge)"
+        printf ' '
+        printf AC
+      }
 
     } || {
-      printf AC
+
+      # Detect forced discharge as well
+      test "${NERD_FONT:-1}" != "0" && {
+        battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
+      } || {
+        printf '%s%%' "$(battery-charge)"
+      }
     }
 
   } || {
+
+    # Show charge level on battery
+    # XXX: show percentage, want to see exact value. customize with opts?
     printf '%s%%' "$(battery-charge-total)"
+
     #test ${NERD_FONT:-1} != "0" && {
     #  battery-charge-icon-${NERD_FONT_BAT:-mdi}
     #} || {
@@ -54,10 +72,14 @@ battery-charge-total ()
   sudo tlp-stat -b | grep Charge\ total | awk '{print $5}'
 }
 
-# Display total battery charge left when running on battery
-charge-indicator ()
+battery-charge ()
 {
-  true
+  test ${NUM_BAT:-1} -gt 1 && {
+    battery-charge-total
+    return
+  } || {
+    battery-charges | tr -d '% '
+  }
 }
 
 battery-charge-icon-fa ()
@@ -77,7 +99,7 @@ battery-charge-icon-fa ()
 
 battery-charge-icon-mdi ()
 {
-  local pct=$( battery-charge-total | cut -d. -f1 )
+  local pct=$( battery-charge | cut -d. -f1 )
   if test $pct -lt 20
   then printf $nf_mdi_battery_10
   elif test $pct -lt 30
