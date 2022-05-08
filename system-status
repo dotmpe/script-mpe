@@ -8,12 +8,100 @@ power-connected ()
   acpi -V | grep '^Adapter ' | grep -q 'on-line'
 }
 
+battery-charging ()
+{
+  acpi | grep -qv 'Not charging'
+}
+
+# Display battery charge(s) when running on battery
 charge-left-unconnected ()
 {
-  power-connected || {
-    echo -n $( acpi | cut -d, -f2 ) | tr -s ' ' '/'
+  # shellcheck disable=SC2015
+  power-connected && {
+
+    battery-charging || return 0
+
+    test "${NERD_FONT:-1}" != "0" && {
+      battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
+      printf ' '
+      local nerd_font_codename=nf_${NERD_FONT_AC:-mdi}_plug
+      # shellcheck disable=2059
+      printf "${!nerd_font_codename}"
+
+    } || {
+      printf AC
+    }
+
+  } || {
+    printf '%s%%' "$(battery-charge-total)"
+    #test ${NERD_FONT:-1} != "0" && {
+    #  battery-charge-icon-${NERD_FONT_BAT:-mdi}
+    #} || {
+    #  battery-charge-total
+    #  #echo -n $(battery-charges) | tr -s ' ' '/'
+    #}
   }
 }
+
+battery-charges ()
+{
+  acpi | cut -d, -f2
+}
+
+# Print total charge in procent
+battery-charge-total ()
+{
+  sudo tlp-stat -b | grep Charge\ total | awk '{print $5}'
+}
+
+# Display total battery charge left when running on battery
+charge-indicator ()
+{
+  true
+}
+
+battery-charge-icon-fa ()
+{
+  local pct=$( battery-charge-total | cut -d. -f1 )
+  if test $pct -lt 25
+  then printf $nf_fa_battery_0
+  elif test $pct -lt 50
+  then printf $nf_fa_battery_1
+  elif test $pct -lt 75
+  then printf $nf_fa_battery_2
+  elif test $pct -lt 100
+  then printf $nf_fa_battery_3
+  else printf $nf_fa_battery_4
+  fi
+}
+
+battery-charge-icon-mdi ()
+{
+  local pct=$( battery-charge-total | cut -d. -f1 )
+  if test $pct -lt 20
+  then printf $nf_mdi_battery_10
+  elif test $pct -lt 30
+  then printf $nf_mdi_battery_20
+  elif test $pct -lt 40
+  then printf $nf_mdi_battery_30
+  elif test $pct -lt 50
+  then printf $nf_mdi_battery_40
+  elif test $pct -lt 60
+  then printf $nf_mdi_battery_50
+  elif test $pct -lt 70
+  then printf $nf_mdi_battery_60
+  elif test $pct -lt 80
+  then printf $nf_mdi_battery_70
+  elif test $pct -lt 90
+  then printf $nf_mdi_battery_80
+  elif test $pct -lt 100
+  then printf $nf_mdi_battery_90
+  else printf $nf_mdi_battery
+  fi
+}
+
+#
+
 
 # Short description of SystemD (is-system-running in manual)
 systemd-status-text ()
@@ -24,8 +112,8 @@ systemd-status-text ()
 # Icon or description for SytemD status
 systemd ()
 {
-  test ${NERD_FONT:-1} -eq 1 && {
-    systemd-status-icon
+  test ${NERD_FONT:-1} != "0" && {
+    systemd-status-icon-${NERD_FONT:-fa}
     return
   } || {
     systemd-status-text
@@ -39,12 +127,35 @@ systemd-short ()
   systemd | grep -v running || true
 }
 
+
 nf_fa_check='\Uf00c'
 nf_fa_exclamation='\Uf12a'
 nf_fa_delicious='\Uf1a5'
 nf_fa_exclamation_circle='\Uf06a'
 nf_fa_exclamation_triangle='\Uf071'
+nf_fa_flash='\Uf0e7'
+nf_fa_plug='\Uf1e6'
 nf_fa_gear='\Uf013'
+
+nf_fa_battery_0='\Uf244'
+nf_fa_battery_1='\Uf243'
+nf_fa_battery_2='\Uf242'
+nf_fa_battery_3='\Uf241'
+nf_fa_battery_4='\Uf240'
+
+nf_mdi_power_plug='\Ufba3'
+nf_mdi_plug=$nf_mdi_power_plug
+nf_mdi_power_plug_off='\Ufba4'
+nf_mdi_battery='\Uf578'
+nf_mdi_battery_10='\Uf579'
+nf_mdi_battery_20='\Uf57a'
+nf_mdi_battery_30='\Uf57b'
+nf_mdi_battery_40='\Uf57c'
+nf_mdi_battery_50='\Uf57d'
+nf_mdi_battery_60='\Uf57e'
+nf_mdi_battery_70='\Uf57f'
+nf_mdi_battery_80='\Uf580'
+nf_mdi_battery_90='\Uf581'
 
 nf_oct_alert='\Uf421'
 nf_oct_check='\Uf42e'
@@ -66,12 +177,6 @@ nf_oct_stop='\Uf46e'
 nf_oct_x='\Uf467'
 nf_oct_zap='\U26a1'
 
-
-systemd-status-icon ()
-{
-  #systemd-status-icon-fa
-  systemd-status-icon-oct
-}
 
 systemd-status-icon-oct ()
 {
