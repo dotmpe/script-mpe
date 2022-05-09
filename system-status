@@ -27,8 +27,7 @@ charge-left-unconnected ()
         battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
         printf ' '
         local nerd_font_codename=nf_${NERD_FONT_AC:-mdi}_plug
-        # shellcheck disable=2059
-        printf "${!nerd_font_codename}"
+        echo -en "${!nerd_font_codename}"
 
       } || {
         printf '%s%%' "$(battery-charge)"
@@ -38,7 +37,7 @@ charge-left-unconnected ()
 
     } || {
 
-      # Detect forced discharge as well
+      # Detect forced discharge (while on AC) as well
       test "${NERD_FONT:-1}" != "0" && {
         battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
       } || {

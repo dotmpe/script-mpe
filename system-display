@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+
+displays ()
+{
+  xrandr | grep ' connected ' | cut -d' ' -f1
+}
+
+# Set to value from 0.0-1.0
+brightness ()
+{
+  test $# -gt 0 || return
+  local d
+  for d in $(displays)
+  do xrandr --output "$d" --brightness "$1"
+  done
+}
+
+"$@"
+#
