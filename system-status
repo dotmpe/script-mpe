@@ -68,9 +68,16 @@ battery-charges ()
 # Print total charge in procent
 battery-charge-total ()
 {
-  sudo tlp-stat -b | grep Charge\ total | awk '{print $5}'
+  local x c=0
+  for x in $(seq 0 $(( ${NUM_BAT?} - 1 )))
+  do
+    c=$(( c + $(cat /sys/class/power_supply/BAT$x/capacity) ))
+  done
+  echo "$c / $NUM_BAT" | bc
+  #sudo tlp-stat -b | grep Charge\ total | awk '{print $5}'
 }
 
+# Print battery charge in procent (without percent character)
 battery-charge ()
 {
   test ${NUM_BAT:-1} -gt 1 && {
