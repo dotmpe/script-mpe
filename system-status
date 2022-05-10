@@ -141,7 +141,7 @@ systemd-status-text ()
 systemd ()
 {
   test ${NERD_FONT:-1} != "0" && {
-    systemd-status-icon-${NERD_FONT:-fa}
+    systemd-status-icon-${NERD_FONT_STATUS:-fa}
     return
   } || {
     systemd-status-text
