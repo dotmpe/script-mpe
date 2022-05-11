@@ -3,7 +3,13 @@
 case "$1" in
 
   p ) # get the largest (first) pretty-print uptime part (ie. minutes, hours, or larger)
-      echo $(uptime -p | sed 's/^.*up \([^,]*\),\ *.*$/\1/')
+      echo $(uptime -p | cut -d',' -f1 | sed '
+          s/^up //
+          s/ minutes\?/m/
+          s/ hours\?/h/
+          s/ days\?/d/
+          s/ weeks\?/w/
+          s/ months\?/mo/' )
     ;;
 
   l ) # get the requested loadavg part: , default 5min avg
