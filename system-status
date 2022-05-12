@@ -36,19 +36,24 @@ mutt-user-conf ()
 # Show email indicator if any new mail has been delivered
 mutt-indicator ()
 {
-  count_first=1 mutt-count-new || return 0
+  mutt-new || return 0
   printf $nf_mdi_email_outline
 }
 
 mutt-indicator-count ()
 {
   local count=$(mutt-count-new | awk '{sum+=$1} END{print sum;}')
-  test $count -eq 0 && return
+  test ${count:-0} -eq 0 && return
   printf $nf_mdi_email_outline
   # XXX: this seems to be two characters wide? Messes up entire tmux screen.
   #printf $nf_mdi_email_variant
   printf ' '
   printf $count
+}
+
+mutt-new ()
+{
+  test -n "$(count_first=1 mutt-count-new)"
 }
 
 mutt-count-new ()
@@ -72,10 +77,10 @@ mutt-inboxes () # ~ muttrc-mail-
   local folder
   folder=$( grep '^set folder=' $1 | sed 's/.*"\([^"]*\)"$/\1/')
 
-  eval "echo $folder/new"
   ! grep -q '^mailboxes ' $2 || {
     grep '^mailboxes ' $2 | sed \
-        -e 's/mailboxes +//' \
+        -e 's/mailboxes//' \
+        -e 's# + # "'"$folder"'" #' \
         -e 's#"+#"'"$folder/"'#g' \
         -e 's/ "\([^"]*\)"/\1\n/g' |
             while read -r path
