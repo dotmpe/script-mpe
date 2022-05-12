@@ -5,12 +5,17 @@
 
 power-connected ()
 {
-  acpi -V | grep '^Adapter ' | grep -q 'on-line'
+  acpi -V | grep '^Adapter ' | grep -q ' on-line$'
 }
 
 battery-charging ()
 {
-  acpi | cut -d' ' -f3 | grep -q 'Charging'
+  acpi | cut -d' ' -f3 | grep -q '^Charging'
+}
+
+battery-discharging ()
+{
+  acpi | cut -d' ' -f3 | grep -q '^Discharging'
 }
 
 # Display battery charge when running on battery,
@@ -22,7 +27,7 @@ charge-left-unconnected ()
 
     battery-charging && {
 
-      # Show charging AC indicator and level
+      # Show charging AC indicator and current capacity level
       test "${NERD_FONT:-1}" != "0" && {
         battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
         printf ' '
@@ -37,26 +42,25 @@ charge-left-unconnected ()
 
     } || {
 
-      # Detect forced discharge (while on AC) as well
-      test "${NERD_FONT:-1}" != "0" && {
-        battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
-      } || {
-        printf '%s%%' "$(battery-charge)"
+      ! battery-discharging || {
+
+        # Detect forced discharge (while on AC) as well
+        test "${NERD_FONT:-1}" != "0" && {
+          battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
+        } || {
+          printf '%s%%' "$(battery-charge)"
+        }
       }
     }
 
   } || {
 
-    # Show charge level on battery
-    # XXX: show percentage, want to see exact value. customize with opts?
-    printf '%s%%' "$(battery-charge-total)"
-
-    #test ${NERD_FONT:-1} != "0" && {
-    #  battery-charge-icon-${NERD_FONT_BAT:-mdi}
-    #} || {
-    #  battery-charge-total
-    #  #echo -n $(battery-charges) | tr -s ' ' '/'
-    #}
+    # Show battery capacity level
+    test "${NERD_FONT:-1}" != "0" && {
+      battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
+    } || {
+      printf '%s%%' "$(battery-charge)"
+    }
   }
 }
 
@@ -140,7 +144,7 @@ systemd-status-text ()
 # Icon or description for SytemD status
 systemd ()
 {
-  test ${NERD_FONT:-1} != "0" && {
+  test "${NERD_FONT:-1}" != "0" && {
     systemd-status-icon-${NERD_FONT_STATUS:-fa}
     return
   } || {
