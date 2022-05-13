@@ -2,6 +2,13 @@
 
 ### Helper to dislay (short) system status, for use in status bars
 
+
+status ()
+{
+  echo "$(tmux-uptime l 2) $(systemd-short) $(tmux-uptime p)"
+  # XXX: setup generic mail check
+}
+
 ## New e-mails
 
 # Count new e-mails (simple impl. for mutt with maildirs only).
@@ -234,22 +241,25 @@ systemd-status-text ()
   systemctl is-system-running | tr -d ' \n'
 }
 
-# Icon or description for SytemD status
-systemd ()
-{
-  test "${NERD_FONT:-1}" != "0" && {
-    systemd-status-icon-${NERD_FONT_STATUS:-fa}
-    return
-  } || {
-    systemd-status-text
-    return
-  }
-}
-
-# Icon, or description only if not running
+# Icon, or description and fail-count but only if not running
 systemd-short ()
 {
-  systemd | grep -v running || true
+  test $# -gt 0 || set -- $(systemd-status-text)
+
+  local msg
+  test "${NERD_FONT:-1}" != "0" && {
+    msg=$(systemd-status-icon-${NERD_FONT_STATUS:-fa} "$1")
+  } ||
+    msg="$1"
+
+  test "$1" != "running" &&
+      printf "$msg(%s)" $(systemd-count-failed) ||
+      printf "$msg"
+}
+
+systemd-count-failed ()
+{
+  systemctl list-units | grep -c ' failed '
 }
 
 
