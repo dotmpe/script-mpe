@@ -1,61 +1,206 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-# from mislav/dotfiles - bin/tmux-session
+# save/restore 'raw1' (and callees) are copies from mislav/dotfiles (2015).
+# It is a simple save and restore for tmux sessions and windows. Just the basics.
+#
+# This was never used much, having run tmux-resurrect for a long time now, and
+# recently added tmux-continuum. Never needed or wanted to look much under the
+# covers. And have been trying out yet another solution, called tmuxp which isn't
+# a addon but a 'wrapper' as well.
+#
+# Now (2022) I want to pin down my SystemD unit files for this, and since
+# neither SystemD nor any particular tmux session addon does what I want I'm
+# adding wrapper of my own. So here is my use-case for session open and close:
+#
+# open requires a running server, and a session name or loads one from config
+# close requires a config update and (clean?) exit of session.
+#
+# Nothing more. The config file depends on the Session-Name.
+# A lot of environment variables to allow for some customization.
+#
 
-# Save and restore the state of tmux sessions and windows.
-# TODO: persist and restore the state & position of panes.
+# XXX: persist and restore the state & position of panes.
+
 set -e
 
-dump() {
-  local d=$'\t'
-  tmux list-windows -a -F "#S${d}#W${d}#{pane_current_path}"
+help () # ~
+{
+  # shellcheck disable=SC2015
+  test $# -eq 0 && { {
+    echo "Usage:"
+    echo "  tmux-session (open|close) [<Session-Config-Id>] [<Session-Config-File>]"
+    echo "  tmux-session help|commands|..."
+    echo "Env:"
+    echo "  TMUX_SESSION_P=(raw1|resurrect|tmuxp)"
+  } >&2; } || {
+    grep "^$1" "$0"
+  }
+  # XXX: use the source...
+  exit
 }
 
-save() {
-  dump > ~/.tmux-session
-}
-
-terminal_size() {
+terminal_size () # (stdout) ~
+{
   stty size 2>/dev/null | awk '{ printf "-x%d -y%d", $2, $1 }'
 }
 
-session_exists() {
+session_exists () # ~ <Session-Name> # Hides error if none exists.
+{
   tmux has-session -t "$1" 2>/dev/null
 }
 
-add_window() {
+add_window () # ~ <Session-Name> <Window-Name> <PWD>
+{
   tmux new-window -d -t "$1:" -n "$2" -c "$3"
 }
 
-new_session() {
-  cd "$3" &&
-  tmux new-session -d -s "$1" -n "$2" $4
+new_session () # ~ <Session-Name> <Window-Name> <PWD> <Command>
+{
+  cd "$3" && tmux new-session -d -s "$1" -n "$2" $4
 }
 
-restore() {
-  tmux start-server
-  local count=0
-  local dimensions="$(terminal_size)"
+end_session () # ~ <Session-Name>
+{
+  tmux kill-session -t "$1"
+}
 
-  while IFS=$'\t' read session_name window_name dir; do
-    if [[ -d "$dir" && $window_name != "log" && $window_name != "man" ]]; then
+
+dump_raw1 () # (stdout) ~ [<Session-Name>]
+{
+  d=$(printf '\t')
+  # By ${TMUX_SESSION_ID?} dumps current. Specify all or session name for otherwise.
+  test -n "${1:-}" && { test "$1" != "all" && t="-t $1" || t="-a"; }
+  tmux list-windows ${t:-} -F "#S${d}#W${d}#{pane_current_path}"
+  unset d t
+}
+
+load_raw1 () # (stdin) ~
+{
+  count=0
+  dimensions="$(terminal_size)"
+
+  # shellcheck disable=SC2162 # ignore advice, don't need to read escapes
+  while IFS=$(printf '\t') read session_name window_name dir; do
+    if [ -d "$dir" ] && [ "$window_name" != "log" ] && [ "$window_name" != "man" ]; then
       if session_exists "$session_name"; then
-        add_window "$session_name" "$window_name" "$dir"
+        add_window "$session_name" "$window_name" "$dir" || return
       else
-        new_session "$session_name" "$window_name" "$dir" "$dimensions"
+        new_session "$session_name" "$window_name" "$dir" "$dimensions" ||
+            return
         count=$(( count + 1 ))
       fi
     fi
-  done < ~/.tmux-session
+  done
 
   echo "restored $count sessions"
+
+  unset count dimensions session_name window_name dir
 }
 
-case "$1" in
-save | restore )
-  $1
-  ;;
-* )
-  echo "valid commands: save, restore" >&2
-  exit 1
-esac
+open_raw1 () # ~ [<Session-Name>] [<Tmux-Session-File>]
+{
+  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+  test -n "${1:-}" || set -- "" "${TMUX_SESSION_FILE?}"
+  test -n "${2:-}" || set -- "$1" "${TMUX_CONFIG_DIR?}/sessions/$1.tab"
+
+  tmux has-session -t "$1" && return
+  load_raw1 < "$2"
+}
+
+save_raw1 () # ~ [<Session-Name>] [<Tmux-Session-File>]
+{
+  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+  test -n "${1:-}" || set -- "" "${TMUX_SESSION_FILE?}"
+  test -n "${2:-}" || set -- "$1" "${TMUX_CONFIG_DIR?}/sessions/$1.tab"
+
+  tmux has-session -t "$1" || return
+  dump_raw1 "$1" > "$2"
+}
+
+
+open_tmuxp () # ~ [<Session-Name>] [<Tmuxp-Session-File>]
+{
+  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+  test -n "${2:-}" || set -- "$1" "${TMUXP_CONFIG_DIR?}/$1.yaml"
+
+  tmuxp load -d "$2"
+}
+
+save_tmuxp () # ~ [<Session-Name>] [<Tmuxp-Session-File>]
+{
+  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+  test -n "${2:-}" || set -- "$1" "${TMUXP_CONFIG_DIR?}/$1.yaml"
+
+  tmuxp freeze -y -o "$2" "$1"
+}
+
+
+open_resurrect () # ~
+{
+  "${TMUX_RESURRECT?}"/scripts/restore.sh
+}
+
+save_resurrect () # ~
+{
+  "${TMUX_RESURRECT?}"/scripts/save.sh
+}
+
+
+defaults ()
+{
+  true "${TMUX_SESSION_ID:="default"}"
+
+  true "${TMUX_CONFIG_DIR:="$HOME/.config/tmux"}"
+
+  #true "${TMUX_SESSION_FILE:="$HOME/.tmux-session"}"
+
+  true "${TMUX_RESURRECT:="$TMUX_CONFIG_DIR/plugins/tmux-resurrect"}"
+
+  true "${TMUXP_CONFIG_DIR:="$HOME/.tmuxp"}"
+}
+
+# Load whatever to do other shell stuff before open/save/close actions
+# shellcheck disable=SC1090
+loadenv ()
+{
+  test -e "${TMUX_ENV:="$HOME/.tmux.sh"}" && {
+    . "$TMUX_ENV"
+  }
+  test -e "${TMUX_CONFIG_DIR:="$HOME/.config/tmux"}/env.sh" && {
+    . "$TMUX_CONFIG_DIR/env.sh"
+  }
+  defaults
+}
+
+open ()
+{
+  loadenv
+
+  # I think start-server is useless, so removed that line.
+
+  open_"${TMUX_SESSION_P:-raw1}" "$@"
+}
+
+save ()
+{
+  loadenv
+
+  save_"${TMUX_SESSION_P:-raw1}" "$@"
+}
+
+close () # ~ [<Tmux-Config-Id>] [<Tmux-Session-File>]
+{
+  loadenv
+
+  test $# -gt 0 || set -- "${TMUX_SESSION_ID:-"default"}"
+
+  save_"${TMUX_SESSION_P:-raw1}" "$@" || return
+  end_session "$1"
+}
+
+
+case "${1:-}" in
+    ( "" | "-h" | "--help" ) test $# -eq 0 || shift; set -- help "$@" ;; esac
+
+"$@"
+#

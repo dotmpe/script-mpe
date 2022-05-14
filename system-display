@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 
 displays ()
@@ -10,10 +10,10 @@ displays ()
 brightness ()
 {
   test $# -gt 0 || return
-  local d
   for d in $(displays)
   do xrandr --output "$d" --brightness "$1"
   done
+  unset d
 }
 
 "$@"

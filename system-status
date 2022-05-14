@@ -320,7 +320,7 @@ nf_oct_zap='\U26a1'
 
 systemd-status-icon-oct ()
 {
-  test $# -gt 0 || set -- $(systemd-status-text)
+  test $# -gt 0 || set -- "$(systemd-status-text)"
   case "$1" in
 
     initializing | \
@@ -338,7 +338,7 @@ systemd-status-icon-oct ()
 
 systemd-status-icon-fa ()
 {
-  test $# -gt 0 || set -- $(systemd-status-text)
+  test $# -gt 0 || set -- "$(systemd-status-text)"
   case "$1" in
 
     initializing | \
