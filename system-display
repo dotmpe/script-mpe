@@ -1,20 +1,149 @@
 #!/bin/sh
 
+## Helper to deal with X server displays
+
 
 displays ()
 {
-  xrandr | grep ' connected ' | cut -d' ' -f1
+  connected_info | cut -d' ' -f1
+}
+
+info ()
+{
+  test $# -gt 0 || set -- ".*"
+  connected_info | grep "^$1 "
+}
+
+primary ()
+{
+  primary_info | cut -d' ' -f1
+}
+
+connected_info ()
+{
+  xrandr | grep ' connected '
+}
+
+primary_info ()
+{
+  xrandr | grep ' connected primary'
+}
+
+aux_info ()
+{
+  connected_info | grep -v ' primary '
+}
+
+display ()
+{
+  case "${1:-}" in
+
+      ( "primary" ) primary ;;
+      ( "aux" ) aux_info | cut -d' ' -f1 ;;
+
+      ( ""|"all" ) displays ;;
+
+      ( * ) echo "$1" ;;
+  esac
+}
+
+display_setbg () # ~ <Display> <File> <Mode>
+{
+  info "$1" | grep -Po '\b[0-9]+x[0-9]+'
+  false # TODO: feh can presumably easily set any png/jpg.
 }
 
 # Set to value from 0.0-1.0
-brightness ()
+brightness () # ~ <Value> <Display>...
 {
   test $# -gt 0 || return
-  for d in $(displays)
-  do xrandr --output "$d" --brightness "$1"
+  v="$1"
+  shift
+  # shellcheck disable=2046
+  set -- $(display "$1") || return
+
+  # shellcheck disable=2068
+  for d in $@
+  do xrandr --output "$d" --brightness "$v"
   done
-  unset d
+  unset v d
 }
 
-"$@"
+on ()
+{
+  brightness 1.0 all
+}
+
+off ()
+{
+  brightness 0 all
+}
+
+list ()
+{
+  display "$@"
+}
+
+
+backgrounds_find ()
+{
+  loadenv
+  find "${BG_DIR}" \( ! -path '*/.*' \) -type f
+}
+
+get_bg () # ~ <Tags>...
+{
+  false
+  #image scale
+}
+
+
+background_set () # ~ <File> <Display>...
+{
+  loadenv
+  fn="$1"
+  shift
+  # shellcheck disable=2046
+  set -- $(display "$1") || return
+
+  # shellcheck disable=2068
+  for d in $@
+  do
+      display_setbg "$d" "$fn" "${BG_MODE:="fill"}"
+  done
+  unset fn d
+}
+
+background ()
+{
+  loadenv
+  sub=$1
+  shift
+  background_"${sub}" "$@"
+}
+
+# shellcheck disable=1090
+loadenv ()
+{
+  test -e "${DISP_CONFIG_DIR:="$HOME/.config/display"}/env.sh" && {
+    . "${DISP_CONFIG_DIR}/env.sh"
+  }
+  test -e "${BG_DIR:="$HOME/Pictures/Backgrounds"}/.meta.sh" && {
+    . "${BG_DIR}/.meta.sh"
+  }
+  defaults
+}
+
+defaults ()
+{
+  true "${BG_PICTURES:-$HOME/Pictures/Backgrounds}"
+}
+
+if test "${base:=$(basename -- "$0")}" = "system-display"
+then
+  test $# -gt 0 || set -- list
+  set -e
+  test -z "${DEBUG:-}" || set -x
+  "$@"
+fi
 #

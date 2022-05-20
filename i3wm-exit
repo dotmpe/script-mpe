@@ -1,0 +1,100 @@
+#!/bin/sh
+
+## An helper script to deal with the X system user session
+
+
+lock ()
+{
+  # i3lock is very simple, but well done. Good interaction (if you understand
+  # what it is) but only background color and an optional PNG which you'll have
+  # to adapt to a multihead yourself.
+
+  # TODO: sensible lockscreen bg
+  #eval $( system-display get_bg login primary $( user-tools time-of-day) )
+
+  # Display a white background. Nothing else.
+  i3lock
+}
+
+pm_suspend_dbus ()
+{
+  dbus-send --system --print-reply --dest=org.freedesktop.login1 \
+      /org/freedesktop/login1 "org.freedesktop.login1.Manager.Suspend" boolean:true
+}
+
+pm_suspend_systemctl ()
+{
+  systemctl suspend
+}
+
+pm_hibernate_dbus ()
+{
+  dbus-send --system --print-reply --dest=org.freedesktop.login1 \
+      /org/freedesktop/login1 "org.freedesktop.login1.Manager.Hibernate" boolean:true
+}
+
+pm_hibernate_systemctl ()
+{
+  systemctl hibernate
+}
+
+pm_reboot_dbus ()
+{
+  dbus-send --system --print-reply --dest=org.freedesktop.login1 \
+      /org/freedesktop/login1 "org.freedesktop.login1.Manager.Reboot" boolean:true
+}
+
+pm_reboot_systemctl ()
+{
+  systemctl reboot
+}
+
+pm_shutdown_dbus ()
+{
+  dbus-send --system --print-reply --dest=org.freedesktop.login1 \
+      /org/freedesktop/login1 "org.freedesktop.login1.Manager.PowerOff" boolean:true
+
+}
+
+pm_shutdown_systemctl ()
+{
+  systemctl poweroff
+}
+
+
+help () # ~
+{
+  # shellcheck disable=SC2015
+  test $# -eq 0 && { {
+    cat <<EOM
+Usage:
+    $0 {lock|logout|switch|guest|suspend|hibernate|reboot|shutdown}
+Env:
+    SYS_PM={dbus|systemctl}
+        The former usually requires some sudoer rights I think.
+
+EOM
+  } >&2; } || {
+    grep "^$1" "$0"
+  }
+}
+
+true "${SYS_PM:=dbus}"
+
+case "${1:-}" in
+
+    ( "lock" ) lock ;;
+    ( "now"|"session" ) i3-msg exit ;;
+
+    ( "switch" ) dm-tool switch-to-greeter ;;
+    ( "guest" ) dm-tool switch-to-guest ;;
+
+    ( "suspend" ) lock && pm_suspend_${SYS_PM} ;;
+    ( "hibernate" ) lock && pm_hibernate_${SYS_PM} ;;
+    ( "reboot" ) pm_reboot_${SYS_PM} ;;
+    ( "shutdown" ) pm_shutdown_${SYS_PM} ;;
+
+    ( "-h" | "--help" | "help" ) shift; help "$@" ;;
+    ( "" | * ) help; exit 2 ;;
+esac
+#

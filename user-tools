@@ -1,0 +1,131 @@
+#!/bin/sh
+
+
+location ()
+{
+  test -n "${GEO_HOME:-}" || return
+}
+
+
+# TODO: tags for times of day
+
+# To provide names for every hour, the choice is what time measurement, and which
+# periods to count, and name. The basic Western scheme of a 12 hour day and 12
+# hour night is pretty common. Anyway this includes three schemes to name periods.
+# Each can be combined with administrative (local) time, or with real
+# (calculated) solar time.
+
+# Basic: {day {morning,afternoon},evening,night}
+#   Four six hour periods
+#
+# Astronomical: {day {morning,afternoon,evening{, dusk twillight},night{, dawn twillight}}
+#   Two periods of 3 uneven parts: morning 1/4, afternoon and evening of 1/8th
+#   each. And night divided into dusk and twillight.
+#
+#
+# Roman: {day {prime,terce,sext,none},evening,night}
+timeofday () # ~ [<Hour>]
+{
+  ${UC_TOD:-"basic_hours"} "$@"
+}
+
+#
+basic_hours () # ~ [<Hour>]
+{
+  roman_hours "$@" | cut -d' ' -f1,2
+}
+
+#
+astronomical_hours () # ~ [<Hour>]
+{
+  test $# -gt 0 || set -- $(solar_time -d "${DT_NOW:-now}" +"%H")
+
+  false
+}
+
+#
+roman_hours () # ~ [<Hour>]
+{
+  test $# -gt 0 || set -- $(time_hours)
+
+  test $# -gt 0 || {
+    test "${SOLAR_TIME:-0}" = "1" && {
+      set -- $(solar_time "${DT_NOW:-now}" "%H")
+    } || {
+      set -- $(date -d "${DT_NOW:-now}" +"%H"|sed 's/^0//')
+    }
+  }
+
+  case "$1" in
+
+     6| 7| 8 ) echo day morning prime ;;
+     9|10|11 ) echo day morning terce ;;
+    12|13|14 ) echo day afternoon sext ;;
+    15|16|17 ) echo day afternoon none ;;
+    18|19|20 ) echo evening ;;
+    21|22|23 ) echo evening ;;
+     0| 1| 2 ) echo night ;;
+     3| 4| 5 ) echo night ;;
+
+     *) return 1 ;;
+  esac
+}
+
+
+timeofyear ()
+{
+  ${UC_TOY:-"season"}
+}
+
+season ()
+{
+  season_"${UC_SEASON:-meteorological}"
+}
+
+season_meteorological () # ~ [<Month>]
+{
+  test $# -gt 0 || set -- $(date -d "${DT_NOW:-now}" +"%m"|sed 's/^0//')
+
+  case "$1" in
+
+     3| 4| 5 ) echo spring ;;
+     6| 7| 8 ) echo summer ;;
+     9|10|11 ) echo autumn ;;
+    12| 1| 2 ) echo winter ;;
+
+    * ) return 1 ;;
+  esac
+}
+
+# Use to check light conditions at users location.
+# Default for darktime is suns edge is below -3 degrees on location,
+# return non-zero otherwise.
+# Ie. darktime is after nightfall and before twillight of dawn. Twillight ranges
+# from 3-9 degrees.
+#
+# XXX: With no location provided can we map timezone
+#
+# Alternatively darktime can be measured by the suns height,
+# HORIZON=0 corresponds to the time the sun is just below the horizon.
+actual_darktime () # ~ [<Datetime>]
+{
+  location || {
+    timezone || return
+    eval $(timezone_to_location) || return
+  }
+
+  TWILLIGHT_HORIZON=${HORIZON:-"-3"} $python3_bin ephem-day-times.py darktime "$@"
+}
+
+timezone_to_location ()
+{
+  false
+}
+
+if test "${base:=$(basename -- "$0")}" = "user-tools"
+then
+  test $# -gt 0 || set -- sensible
+  set -e
+  test -z "${DEBUG:-}" || set -x
+  "$@"
+fi

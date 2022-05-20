@@ -3,7 +3,7 @@
 ### Helper to dislay (short) system status, for use in status bars
 
 
-status ()
+short ()
 {
   echo "$(tmux-uptime l 2) $(systemd-short) $(tmux-uptime p)"
   # XXX: setup generic mail check
@@ -350,5 +350,21 @@ systemd-status-icon-fa ()
   esac
 }
 
-"$@"
+help () # ~
+{
+  test $# -eq 0 && set -- '[A-Za-z_][A-Za-z0-9_]* () #'
+  test -e "$0" && scr="$0" || scr="$(command -v "$0")"
+  grep "^$1 () #" "$scr"
+  exit
+}
+
+if test "${base:=$(basename -- "$0")}" = "system-status"
+then
+  test $# -gt 0 || set -- short
+  case "${1:-}" in
+      ( "" | "-h" | "--help" ) test $# -eq 0 || shift; set -- help "$@" ;; esac
+  set -e
+  test -z "${DEBUG:-}" || set -x
+  "$@"
+fi
 #

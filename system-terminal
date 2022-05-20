@@ -1,0 +1,149 @@
+#!/bin/sh
+# Helper to launch user terminal and have it run certain env
+# Usage:
+#   system-terminal run [ENV...] [ -- Shell-ARGV... ]
+#   system-terminal (sensible|day|night) [ENV...]
+
+
+# This doesnt really try hard at being sensible but its a start
+sensible ()
+{
+  true "${UC_TERM:="urxvt"}"
+  true "${UC_SHELL:="bash"}"
+  test -n "${UC_NIGHTTIME:-}" || {
+      sensible_colorscheme || true
+  }
+  run "$@"
+}
+
+# Set UC_NIGHTTIME variable to a function that can check wether dark or light
+# mode is appropiate. Return non-zero if no user-defined setting was found.
+sensible_colorscheme ()
+{
+  # shellcheck disable=2015
+  test -n "${DAY_START:-}" -o -n "${DAY_END:-}" && {
+
+    UC_NIGHTTIME=nighttime
+  } || {
+
+    test -n "${GEO_HOME:-}" || return
+
+    case "$(python3 -V 2>/dev/null)" in ( "Python 3"* ) ;; ( * ) false ;; esac &&
+        python3_bin=python3
+    case "$(python -V 2>/dev/null)" in ( "Python 3"* ) ;; ( * ) false ;; esac &&
+        python3_bin=python
+    test -n "${python3_bin:-}" || return
+
+    # shellcheck disable=1090
+    . ~/bin/user-tools
+    UC_NIGHTTIME=actual_darktime
+  }
+}
+
+run () # ~ [<Env...>] [ -- <Shell-Argv>... ]
+{
+  # shellcheck disable=2086
+  exportargs "$@" && shift $argc
+  test $# -gt 0 || set -- -l
+  shellexec "$@"
+}
+
+day () # ~ <Run-Argv...>
+{
+  cs=light sensible "$@"
+}
+
+night () # ~ <Run-Argv...>
+{
+  cs=dark sensible "$@"
+}
+
+terminal () # ~ <Name> <Run-Argv...>
+{
+  term=$1
+  shift
+  UC_TERM=$term sensible "$@"
+}
+
+name () # ~ <Name> <Run-Argv...>
+{
+  name=$1
+  shift
+  UC_TERM_NAME=$name sensible "$@"
+}
+
+# This is not for stuff with quotes. Add some exports before starting terminal,
+# so that these are set in the terminal and shell's environment. A standard set
+# is given as shellexec as well.
+exportargs () # [VAR=...] --
+{
+  cnt=$#
+  # shellcheck disable=2163
+  while test $# -gt 0 -a "$1" != -- # Stop argv shifting bef sec argopts seq
+  do export "$1"
+    shift
+  done
+  test $# -eq 0 -o "${1-}" != -- || shift
+  argc=$(( cnt - $# ))
+  unset cnt
+}
+
+colorscheme ()
+{
+  ${UC_NIGHTTIME:=nighttime} && echo "dark" || echo "light"
+}
+
+# Naive function to check for day vs night time based on DAY_{START,END} hours
+nighttime () # ~ [<Hour>]
+{
+  # shellcheck disable=2046
+  test $# -gt 0 || set -- $(date +%k|tr -d ' ')
+  # shellcheck disable=2086
+  test $1 -lt ${DAY_START:-6} -o $1 -ge ${DAY_END:-18}
+}
+
+# Continue execution at terminal program running shell command
+# shellcheck disable=2086
+shellexec ()
+{
+  true ${bin:=$(command -v $UC_SHELL)}
+  true ${cs:=$(colorscheme)}
+
+  # Make everything available to term/shell instance
+  export SHELL=$bin SHELL_NAME=$UC_SHELL CS=$cs
+  test -z "${UC_TERM_NAME:-}" || export UC_TERM_NAME
+
+  # shellcheck disable=SC2046
+  eval exec $(uc_term_$UC_TERM) $bin "$@"
+}
+
+# Echo URxvt command-line
+uc_term_urxvt ()
+{
+  set -- "$(command -v urxvt)"
+
+  case "${cs:-dark}" in
+
+    ( "dark" )
+        set -- "$* -background Black -foreground White -cursorColor White -shading 9" ;;
+
+    ( "light" )
+        # For light scheme, turn blacks up a bit and second white down a bit.
+        set -- "$* -color0 '#555753' -color15 '#babdb6' -color8 '#888a85'"
+        set -- "$* -background White -foreground Black -cursorColor Black -shading 180" ;;
+  esac
+
+  # Name ends up on the WM-Class property
+  test -z "${UC_TERM_NAME:-}" || set -- "$* -name '$UC_TERM_NAME'"
+
+  echo "$* ${UC_TERM_OPTS:-} -e"
+}
+
+if test "${base:=$(basename -- "$0")}" = "system-terminal"
+then
+  test $# -gt 0 || set -- sensible
+  set -e
+  test -z "${DEBUG:-}" || set -x
+  "$@"
+fi
+#

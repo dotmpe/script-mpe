@@ -10,16 +10,18 @@
 #
 # Now (2022) I want to pin down my SystemD unit files for this, and since
 # neither SystemD nor any particular tmux session addon does what I want I'm
-# adding wrapper of my own. So here is my use-case for session open and close:
+# adding wrapper of my own. So the simple use-case for session open and close:
 #
 # open requires a running server, and a session name or loads one from config
 # close requires a config update and (clean?) exit of session.
 #
-# Nothing more. The config file depends on the Session-Name.
-# A lot of environment variables to allow for some customization.
+# I dont know how to make or even if SystemD can manage one session with the
+# server, and I don't care.
 #
-
-# XXX: persist and restore the state & position of panes.
+# The config file depends on the Session-Name.
+# This script has its own env source file. See loadenv.
+#
+# A lot of environment variables to allow for some customization.
 
 set -e
 
@@ -27,11 +29,15 @@ help () # ~
 {
   # shellcheck disable=SC2015
   test $# -eq 0 && { {
-    echo "Usage:"
-    echo "  tmux-session (open|close) [<Session-Config-Id>] [<Session-Config-File>]"
-    echo "  tmux-session help|commands|..."
-    echo "Env:"
-    echo "  TMUX_SESSION_P=(raw1|resurrect|tmuxp)"
+    cat <<EOM
+Usage:
+  tmux-session (open|close) [<Session-Config-Id>] [<Session-Config-File>]
+  tmux-session help|commands|...
+Env:
+  TMUX_SESSION_P=(raw1|resurrect|tmuxp)
+  TMUX_ENV XXX: Set to ~/.{config/tmux/env,tmux}.sh whatever exists
+
+EOM
   } >&2; } || {
     grep "^$1" "$0"
   }
@@ -103,7 +109,8 @@ open_raw1 () # ~ [<Session-Name>] [<Tmux-Session-File>]
   test -n "${1:-}" || set -- "" "${TMUX_SESSION_FILE?}"
   test -n "${2:-}" || set -- "$1" "${TMUX_CONFIG_DIR?}/sessions/$1.tab"
 
-  tmux has-session -t "$1" && return
+  tmux start-server || return
+  session_exists "$1" && return
   load_raw1 < "$2"
 }
 
@@ -113,7 +120,7 @@ save_raw1 () # ~ [<Session-Name>] [<Tmux-Session-File>]
   test -n "${1:-}" || set -- "" "${TMUX_SESSION_FILE?}"
   test -n "${2:-}" || set -- "$1" "${TMUX_CONFIG_DIR?}/sessions/$1.tab"
 
-  tmux has-session -t "$1" || return
+  session_exists "$1" && return
   dump_raw1 "$1" > "$2"
 }
 
@@ -137,12 +144,22 @@ save_tmuxp () # ~ [<Session-Name>] [<Tmuxp-Session-File>]
 
 open_resurrect () # ~
 {
-  "${TMUX_RESURRECT?}"/scripts/restore.sh
+  # shellcheck disable=2086
+  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+
+  # exit-empty must be off. But new-session does this anyway.
+  #tmux start-server || return
+
+  session_exists "$1" && return
+  tmux new-session -d -s "$1" || return
+
+  #tmux run-shell "${TMUX_RESURRECT?}"/scripts/restore.sh
 }
 
 save_resurrect () # ~
 {
-  "${TMUX_RESURRECT?}"/scripts/save.sh
+  true
+  # tmux run-shell "${TMUX_RESURRECT?}"/scripts/save.sh
 }
 
 
@@ -176,8 +193,6 @@ open ()
 {
   loadenv
 
-  # I think start-server is useless, so removed that line.
-
   open_"${TMUX_SESSION_P:-raw1}" "$@"
 }
 
@@ -199,8 +214,13 @@ close () # ~ [<Tmux-Config-Id>] [<Tmux-Session-File>]
 }
 
 
-case "${1:-}" in
-    ( "" | "-h" | "--help" ) test $# -eq 0 || shift; set -- help "$@" ;; esac
+if test "${base:=$(basename -- "$0")}" = "tmux-session"
+then
+  case "${1:-}" in
+      ( "" | "-h" | "--help" ) test $# -eq 0 || shift; set -- help "$@" ;; esac
 
-"$@"
+  set -e
+  test -z "${DEBUG:-}" || set -x
+  "$@"
+fi
 #
