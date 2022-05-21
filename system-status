@@ -3,9 +3,10 @@
 ### Helper to dislay (short) system status, for use in status bars
 
 
-short ()
+short () # ~ [<Separator>]
 {
-  echo "$(tmux-uptime l 2) $(systemd-short) $(tmux-uptime p)"
+  test -n "${1:-}" || set -- " "
+  echo "$(tmux-uptime l 2)$1$(systemd-short)$1$(tmux-uptime p)"
   # XXX: setup generic mail check
 }
 
@@ -262,6 +263,17 @@ systemd-count-failed ()
   systemctl list-units | grep -c ' failed '
 }
 
+systemd-failed ()
+{
+  systemctl --failed | grep failed | cut -d' ' -f2 | sed 's/\.service$//'
+}
+
+failed ()
+{
+  test $# -gt 0 || set -- $(systemd-status-text)
+  test "$1" != "running" || return 0
+  echo $1: $(systemd-failed)
+}
 
 nf_fa_check='\Uf00c'
 nf_fa_exclamation='\Uf12a'
@@ -352,7 +364,7 @@ systemd-status-icon-fa ()
 
 help () # ~
 {
-  test $# -eq 0 && set -- '[A-Za-z_][A-Za-z0-9_]* () #'
+  test $# -eq 0 && set -- '[A-Za-z_][A-Za-z0-9_-]* () #'
   test -e "$0" && scr="$0" || scr="$(command -v "$0")"
   grep "^$1 () #" "$scr"
   exit

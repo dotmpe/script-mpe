@@ -586,7 +586,7 @@ str_sh_padd () # ~ LEN [INPUT]
   str_sh_lpadd "$@"
 }
 
-str_sh_lpadd ()
+str_sh_lpadd () # ~ LEN [INPUT]
 {
   local raw="${2-}" invis newpadd
   invis=$(( ${#raw} - $(str_sh_len "$raw") ))
@@ -594,7 +594,7 @@ str_sh_lpadd ()
   printf '%'$newpadd's' "$raw"
 }
 
-str_sh_rpadd ()
+str_sh_rpadd () # ~ LEN [INPUT]
 {
   local raw="${2-}" invis newpadd
   invis=$(( ${#raw} - $(str_sh_len "$raw") ))

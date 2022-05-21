@@ -45,7 +45,7 @@ readtab () # ~ [<Tags...>]
   true "${rest_default:="#"}"
   true "${rest_empty:="#"}"
 
-  grep -vE '^\s*(|#.*)$' | sed -e 's/^ *//' -e 's/ *$//' | while read -r st et f rest
+  grep -vE '^\s*(|#.*)$' | sed -e 's/^ *//' -e 's/ *$//' | while read st et f rest
   do
     test -e "$st" && {
       # Special case, set current file-path if first value exists, ignore rest
@@ -56,6 +56,7 @@ readtab () # ~ [<Tags...>]
 
     case "$f" in ( "#"* ) f= rest="# $rest" ;; esac
 
+    # Match for tags?
     test $# -eq 0 || {
 
       test -n "$rest" || rest=$rest_default
@@ -66,6 +67,10 @@ readtab () # ~ [<Tags...>]
       :; esac
     }
 
+    test -z "$f" -o -e "$f" || {
+      f=$(find . -iname "$f" -print -quit)
+    }
+
     test -e "$p" -o -e "$f" || {
       echo "Not a file <$f>" >&2
       continue
@@ -74,6 +79,11 @@ readtab () # ~ [<Tags...>]
     test -n "$f" && {
       echo
       p="$f"
+    }
+
+    # Just set file, dont output; timespecs follow
+    test "$st $et" = "- -" && {
+      continue
     }
 
     # Don't include timespec

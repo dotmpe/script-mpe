@@ -1,5 +1,12 @@
 #!/bin/bash
 
+string_load ()
+{
+  set -e
+  . ~/bin/str-htd.lib.sh
+  test -z "${DEBUG:-}" || set -x
+}
+
 # Bash stringtools
 function rpad {
     if [ "$1" ]; then
@@ -90,28 +97,23 @@ function cpad {
     echo "$word";
 }
 
-# Concatenate STR2 after STR1 if STR1 is non-empty, otherwise output nothing
-append-if-len ()
-{
-  test $# -eq 2 || return 64
-  test -z "$1" && return
-  echo -n "$1$2"
-}
 
-prepend-if-len ()
-{
-  test $# -eq 2 || return 64
-  test -z "$1" && return
-  echo -n "$2$1"
-}
 
-if [ ${0:${#0}-9} == "string.sh" ]
+if [ "$(basename -- "$0")" == "string" ]
 then
-    "$@"
-    #$1 ${@:2}
-#else
-# XXX: function scope is local, but still overriden by any like-named symlinks
-#    string_sh=$(readlink $0)
-#    echo $0 $string_sh
-#    $string_sh $0 ${@:1}
+  string_load
+
+  case "${1-}" in
+
+    str-padd-left ) str_sh_padd_ch "$2" "$3" "$4" ;;
+    str-padd-right ) str_sh_padd_ch "$2" "" "$4" "$3" ;;
+
+    * | "" ) exit 64 ;;
+
+  esac
+
+elif [ "$(basename -- "$0")" == "string.sh" ]
+then
+  string_load
+  "$@"
 fi
