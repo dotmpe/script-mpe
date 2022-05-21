@@ -1,5 +1,16 @@
 #!/bin/sh
 
+weather ()
+{
+  location_weather | cut -d ':' -f 2 | sed 's/^ //'
+}
+
+
+location_weather ()
+{
+  curl "wttr.in/?format=3" | tr -s ' ' ' '
+}
+
 
 location ()
 {

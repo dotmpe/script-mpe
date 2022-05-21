@@ -62,7 +62,7 @@ add_window () # ~ <Session-Name> <Window-Name> <PWD>
 
 new_session () # ~ <Session-Name> <Window-Name> <PWD> <Command>
 {
-  cd "$3" && tmux new-session -d -s "$1" -n "$2" $4
+  cd "$3" && tmux new-session -d -s "$1" -n "$2" "$4"
 }
 
 end_session () # ~ <Session-Name>
@@ -105,7 +105,7 @@ load_raw1 () # (stdin) ~
 
 open_raw1 () # ~ [<Session-Name>] [<Tmux-Session-File>]
 {
-  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+  test $# -gt 0 || set -- "${TMUX_SESSION_ID?}"
   test -n "${1:-}" || set -- "" "${TMUX_SESSION_FILE?}"
   test -n "${2:-}" || set -- "$1" "${TMUX_CONFIG_DIR?}/sessions/$1.tab"
 
@@ -116,7 +116,7 @@ open_raw1 () # ~ [<Session-Name>] [<Tmux-Session-File>]
 
 save_raw1 () # ~ [<Session-Name>] [<Tmux-Session-File>]
 {
-  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+  test $# -gt 0 || set -- "${TMUX_SESSION_ID?}"
   test -n "${1:-}" || set -- "" "${TMUX_SESSION_FILE?}"
   test -n "${2:-}" || set -- "$1" "${TMUX_CONFIG_DIR?}/sessions/$1.tab"
 
@@ -127,7 +127,7 @@ save_raw1 () # ~ [<Session-Name>] [<Tmux-Session-File>]
 
 open_tmuxp () # ~ [<Session-Name>] [<Tmuxp-Session-File>]
 {
-  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+  test $# -gt 0 || set -- "${TMUX_SESSION_ID?}"
   test -n "${2:-}" || set -- "$1" "${TMUXP_CONFIG_DIR?}/$1.yaml"
 
   tmuxp load -d "$2"
@@ -135,7 +135,7 @@ open_tmuxp () # ~ [<Session-Name>] [<Tmuxp-Session-File>]
 
 save_tmuxp () # ~ [<Session-Name>] [<Tmuxp-Session-File>]
 {
-  test $# -gt 0 || set -- ${TMUX_SESSION_ID?}
+  test $# -gt 0 || set -- "${TMUX_SESSION_ID?}"
   test -n "${2:-}" || set -- "$1" "${TMUXP_CONFIG_DIR?}/$1.yaml"
 
   tmuxp freeze -y -o "$2" "$1"
@@ -211,6 +211,17 @@ close () # ~ [<Tmux-Config-Id>] [<Tmux-Session-File>]
 
   save_"${TMUX_SESSION_P:-raw1}" "$@" || return
   end_session "$1"
+}
+
+status_position ()
+{
+  # shellcheck disable=2015
+  test "$(tmux show -gv status-position)" = "bottom" && {
+    tmux set-option -g status-position "top"
+    return
+  } || {
+    tmux set-option -g status-position "bottom"
+  }
 }
 
 
