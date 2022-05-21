@@ -1,0 +1,38 @@
+#!/bin/sh
+
+host=localhost
+port=9999
+pass=secret
+
+
+send ()
+{
+{
+  cat <<EOM
+$pass
+$1
+quit
+EOM
+} | nc $host $port
+}
+
+
+usage () { help; exit 1; }
+
+help () # ~
+{
+  test $# -eq 0 && set -- '[A-Za-z_][A-Za-z0-9_]* () #'
+  test -e "$0" && scr="$0" || scr="$(command -v "$0")"
+  grep "^$1 () #" "$scr"
+  exit
+}
+
+if test "${base:=$(basename -- "$0")}" = "vlc-cli"
+then
+  test $# -gt 0 || set -- usage
+  set -e
+  test -z "${DEBUG:-}" || set -x
+  "$@"
+fi
+
+#
