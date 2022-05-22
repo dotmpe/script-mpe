@@ -6,8 +6,11 @@
 short () # ~ [<Separator>]
 {
   test -n "${1:-}" || set -- " "
-  echo "$(tmux-uptime l 2)$1$(systemd-short)$1$(tmux-uptime p)"
-  # XXX: setup generic mail check
+  printf "$(tmux-uptime l 2)$1$(systemd-short)$1$(tmux-uptime p)"
+  test -z "${UC_MAIL:-}" || {
+    printf "$1$(emails-count)"
+  }
+  echo
 }
 
 ## New e-mails
@@ -23,6 +26,7 @@ emails ()
 # Idem to emails however show new-mail counter as well
 emails-count ()
 {
+#MUTTRC_MAILBOXES=$HOME/.conf/etc/mutt/mailboxes.rc system-status emails-count
   emails-user-conf || return 0
   mutt-indicator-count
 }

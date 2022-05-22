@@ -108,6 +108,9 @@ then
     str-padd-left ) str_sh_padd_ch "$2" "$3" "$4" ;;
     str-padd-right ) str_sh_padd_ch "$2" "" "$4" "$3" ;;
 
+    append-if-len ) test -z "$2" && return; echo "$2$3" ;;
+    prepend-if-len ) test -z "$2" && return; echo "$2$3" ;;
+
     * | "" ) exit 64 ;;
 
   esac

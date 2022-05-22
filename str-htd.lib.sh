@@ -548,9 +548,9 @@ while (<>) {
     1 while s/[^\b][\b]//g;  # remove all non-backspace followed by backspace
   print;
 }'
-	return
+  return
 
-	#XXX: I'm not sure what the differences are, or how to change the script even @Regex @Perl
+  #XXX: I'm not sure what the differences are, or how to change the script even @Regex @Perl
   echo "$1" | perl -e '
 #!/usr/bin/env perl
 ## uncolor — remove terminal escape sequences such as color changes
@@ -567,7 +567,7 @@ while (<>) {
 # XXX:
 str_sh_clean ()
 {
-	ansi_clean "$1" | sed -e 's/\(\\\(\[\|\]\)\)//g' | tr -d '\n\r'
+  ansi_clean "$1" | sed -e 's/\(\\\(\[\|\]\)\)//g' | tr -d '\n\r'
 }
 
 # Get the length of the string counting the number of visible characters
