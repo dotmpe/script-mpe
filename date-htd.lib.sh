@@ -150,17 +150,17 @@ date_newest() # ( FILE | DTSTR | @TS ) ( FILE | DTSTR | @TS )
   test $1 -gt $2 && echo $1
 }
 
-# given timestamp, display a friendly human readable time-delta:
-# X sec/min/hr/days/weeks/months/years ago
-fmtdate_relative() # [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
+# Given a timestamp, display a friendly human readable time-delta:
+# X sec/min/hr/days/weeks/months/years ago. This is not very precise, as it
+# only displays a single unit and no fractions. But it is sufficient for a lot
+# of purposes. See fmtdate_relative_f
+fmtdate_relative () # ~ [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
 {
   # Calculate delta based on now
-  test -n "${2-}" || set -- "${1-}" "$(( $(date +%s) - $1 ))" "${3-}"
+  test -n "${2-}" || set -- "${1-}" "$(( $(date +%s) - $1 ))" ${3-}
 
   # Set default suffix
-  test -n "${3-}" -o -z "${datefmt_suffix-}" || set -- "${1-}" "$2" "$datefmt_suffix"
-
-  test -n "${3-}" || set -- "${1-}" "$2" " ago"
+  test $# -gt 2 || set -- "${1-}" "$2" " ${datefmt_suffix:-"ago"}"
 
   if test $2 -gt $_1YEAR
   then
@@ -238,8 +238,98 @@ fmtdate_relative() # [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
   fi
 }
 
+# XXX: want more resolution for fmtdate_relative.
+# Also printing several orders together. But not a lot of customization.
+fmtdate_relative_f ()
+{
+  test ${2//.*} -gt 0 && {
+    # Seconds
+
+    test ${2//.*} -gt 60 && {
+      # Minutes
+
+      test ${2//.*} -gt 3600 && {
+        # Hours
+
+        test ${2//.*} -gt 86400 && {
+          # Days
+
+          test ${2//.*} -gt 604800 && {
+            # Weeks
+
+            test ${2//.*} -gt 31536000 && {
+              # Years
+
+              printf '%.0f years, %.0f weeks, %.0f days, %.0f hours%s' \
+                "$(echo "$2 / 31536000"|bc)" \
+                  "$(echo "$2 % 31536000 / 604800"|bc)" \
+                    "$(echo "$2 % 31536000 % 604800 / 86400"|bc)" \
+                      "$(echo "$2 % 31536000 % 604800 % 86400 / 3600"|bc)" "$3"
+
+            } || {
+              printf '%.0f weeks, %.0f days, %.0f hours, %.0f minutes%s' \
+                "$(echo "$2 / 604800"|bc)" \
+                  "$(echo "$2 % 604800 / 86400"|bc)" \
+                    "$(echo "$2 % 604800 % 86400 / 3600"|bc)" \
+                      "$(echo "$2 % 604800 % 86400 % 3600 / 60"|bc)" "$3"
+            }
+          } || {
+            printf '%.0f days, %.0f hours, %.0f minute, %.0f seconds%s' \
+              "$(echo "$2 / 86400"|bc)" \
+                "$(echo "$2 % 86400 / 3600"|bc)" \
+                  "$(echo "$2 % 86400 % 3600 / 60"|bc)" \
+                    "$(echo "$2 % 86400 % 3600 % 60"|bc)" "$3"
+          }
+        } || {
+          printf '%.0f hours, %.0f minutes, %.0f seconds%s' \
+            "$(echo "$2 / 3600"|bc)" \
+              "$(echo "$2 % 3600 / 60"|bc)" \
+                "$(echo "$2 % 3600 % 60"|bc)" "$3"
+        }
+      } || {
+        printf '%.0f minutes, %.0f seconds%s' \
+          "$(echo "$2 / 60"|bc)" "$(echo "$2 % 60"|bc)" "$3"
+      }
+    } || {
+      printf '%.3f seconds%s' "$2" "$3"
+    }
+
+  } || {
+    # Miliseconds
+    set -- "$1" "0$(echo "$2 * 1000" | bc)" $3
+    test ${2//.*} -gt 0 && {
+      printf '%.3f miliseconds%s' "$2" "$3"
+    } || {
+      # Microseconds
+      set -- "$1" "0$(echo "$2 * 1000" | bc)" $3
+      test ${2//.*} -gt 0 && {
+        printf '%.3f microseconds%s' "$2" "$3"
+      } || {
+        # Nanoseconds
+        set -- "$1" "0$(echo "$2 * 1000" | bc)" $3
+        printf '%.3f nanoseconds%s' "$2" "$3"
+      }
+    }
+  }
+}
+
+fmtdate_abbrev ()
+{
+   sed ' s/,//g
+          s/ nanoseconds\?/ns/
+          s/ microseconds\?/us/
+          s/ miliseconds\?/ms/
+          s/ seconds\?/s/
+          s/ minutes\?/m/
+          s/ hours\?/h/
+          s/ days\?/d/
+          s/ weeks\?/w/
+          s/ months\?/mo/
+          s/ years\?/y/'
+}
+
 # Output date at required resolution
-date_autores() # Date-Time-Str
+date_autores () # ~ <Date-Time-Spec>
 {
   fnmatch "@*" "$1" && {
     true ${dateres:="minutes"}

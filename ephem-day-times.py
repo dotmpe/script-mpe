@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Print table with twillight and suntimes in GMT and local time.
 All parameters are from the environment, except the first argument is parsed
