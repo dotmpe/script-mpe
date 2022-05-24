@@ -1,0 +1,100 @@
+#!/bin/sh
+
+### Helper for Tmux formatted status bits
+
+
+# Show 1:1min, 2:5min or 3:15min load average
+load () # ~ <Loadnum>
+{
+  load_styles "$(less-uptime l ${1:-2})"
+}
+
+load_styles ()
+{
+  set -- "$1" "$(echo "$1" | awk '{printf "%.0f", $1 * 100}')"
+
+  if test $2 -ge ${tmux_load_critical:-400}
+  then
+      printf '#[#{@c_critical}]%s#[#{@c_normal}]' "$1"
+  elif test $2 -ge ${tmux_load_degraded:-300}
+  then
+      printf '#[#{@c_degraded}]%s#[#{@c_normal}]' "$1"
+  elif test $2 -ge ${tmux_load_abnormal:-100}
+  then
+      printf '#[#{@c_abnormal}]%s#[#{@c_normal}]' "$1"
+  elif test $2 -ge ${tmux_load_gentle:-50}
+  then
+      printf '#[#{@c_light}]%s#[#{@c_normal}]' "$1"
+  else
+      printf '%s' "$1"
+  fi
+}
+
+
+systemd ()
+{
+  test $# -gt 0 || set -- "$(system-status systemd-status-text)"
+  system-status systemd-short "$1" | {
+      case "$1" in
+
+          ( initializing | \
+            starting )
+              sed 's/^\([^(]*\)/#[fg=colour220]\1#[#{@c_normal}]/' ;;
+
+          ( running )
+              sed 's/^\([^(]*\)/#[#{@c_ok}]\1#[#{@c_normal}]/' ;;
+
+          ( maintenance )
+              sed 's/^\([^(]*\)/#[fg=colour111]\1#[#{@c_normal}]/' ;;
+
+          ( degraded | \
+            stopping | \
+            offline | \
+            unknown )
+              sed 's/^\([^(]*\)/#[#{@c_degraded}]\1#[#{@c_normal}]/' ;;
+      esac
+  }
+}
+
+
+charge ()
+{
+  battery_level_c_ok='#[#{@c_normal}]' \
+  battery_level_low=10 \
+  battery_level_c_low='#[#{@c_critical}]' \
+  battery_c_charging='#[#{@c_abnormal}]' \
+  battery_c_normal='#[#{@c_normal}]' \
+      system-status charge-left-unconnected
+}
+
+
+weather ()
+{
+    user-tools weather | sed \
+        's/\xe2\x98\x80/#[fg=colour220]&#[#{@c_dark}]/'
+}
+
+
+weather_and_sky ()
+{
+    dark=0
+    user-tools actual_darktime && dark=1
+    weather
+    test $dark -eq 1 || return 0
+    moon
+}
+
+
+moon ()
+{
+    user-tools moon | sed \
+        's/.*/#[#{@c_abnormal}]&#[#{@c_dark}]/'
+}
+
+
+if test "${base:=$(basename -- "$0")}" = "tmux-status"
+then
+  test $# -gt 0 || set -- default
+  "$@"
+fi
+#
