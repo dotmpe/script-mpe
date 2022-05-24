@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# Helper script to display some data derived from 'uptime' output
+
 case "$1" in
 
   p ) # get the largest (first) pretty-print uptime part (ie. minutes, hours, or larger)

@@ -1,5 +1,6 @@
 #!/bin/sh
 
+
 weather ()
 {
   location_weather | cut -d ':' -f 2 | sed 's/^ //'
@@ -8,7 +9,12 @@ weather ()
 
 location_weather ()
 {
-  curl "wttr.in/?format=3" | tr -s ' ' ' '
+  curl "wttr.in/${wttr_loc-}?format=3" | tr -s ' ' ' '
+}
+
+moon ()
+{
+  curl "wttr.in/${wttr_loc-}?format=%m"
 }
 
 
@@ -112,7 +118,7 @@ season_meteorological () # ~ [<Month>]
 # Default for darktime is suns edge is below -3 degrees on location,
 # return non-zero otherwise.
 # Ie. darktime is after nightfall and before twillight of dawn. Twillight ranges
-# from 3-9 degrees.
+# from 3-9 degrees below horizon (civil, nautical and astronomical)
 #
 # XXX: With no location provided can we map timezone
 #
@@ -121,6 +127,8 @@ season_meteorological () # ~ [<Month>]
 actual_darktime () # ~ [<Datetime>]
 {
   location || {
+    echo "Please provide GEO_HOME" >&2
+    return 1 # XXX: autodetect location
     timezone || return
     eval $(timezone_to_location) || return
   }

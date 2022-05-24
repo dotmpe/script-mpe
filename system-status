@@ -6,7 +6,7 @@
 short () # ~ [<Separator>]
 {
   test -n "${1:-}" || set -- " "
-  printf "$(tmux-uptime l 2)$1$(systemd-short)$1$(tmux-uptime p)"
+  printf "$(less-uptime l 2)$1$(systemd-short)$1$(less-uptime p)"
   test -z "${UC_MAIL:-}" || {
     printf "$1$(emails-count)"
   }
@@ -127,45 +127,61 @@ battery-discharging ()
 # or AC and level indicator when charging. Otherwise nothing.
 charge-left-unconnected ()
 {
+  set -- $( battery-charge | cut -d. -f1 )
+
   # shellcheck disable=SC2015
   power-connected && {
 
     battery-charging && {
 
-      # Show charging AC indicator and current capacity level
+      # Show current capacity level
+      test -z "${battery_c_charging:-}" || printf '%s' "${battery_c_charging}"
       test "${NERD_FONT:-1}" != "0" && {
-        battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
-        printf ' '
+        battery-charge-icon-"${NERD_FONT_BAT:-mdi}" "$1"
+      } || {
+        printf '%s%%' "$1"
+      }
+      test -z "${battery_c_charging:-}" || printf '%s' "${battery_c_normal}"
+
+      printf ' '
+
+      # And charging AC indicator
+      test "${NERD_FONT:-1}" != "0" && {
         local nerd_font_codename=nf_${NERD_FONT_AC:-mdi}_plug
         echo -en "${!nerd_font_codename}"
-
       } || {
-        printf '%s%%' "$(battery-charge)"
-        printf ' '
         printf AC
       }
 
     } || {
 
       ! battery-discharging || {
+        battery-level-prefix "$1"
 
         # Detect forced discharge (while on AC) as well
         test "${NERD_FONT:-1}" != "0" && {
-          battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
+
+          battery-charge-icon-"${NERD_FONT_BAT:-mdi}" "$1"
         } || {
-          printf '%s%%' "$(battery-charge)"
+          printf '%s%%' "$1"
         }
+
+        battery-level-normal
       }
     }
 
   } || {
 
+    battery-level-prefix "$1"
+
     # Show battery capacity level
     test "${NERD_FONT:-1}" != "0" && {
-      battery-charge-icon-"${NERD_FONT_BAT:-mdi}"
+      battery-charge-icon-"${NERD_FONT_BAT:-mdi}" "$1"
     } || {
       printf '%s%%' "$(battery-charge)"
     }
+
+    battery-level-normal
   }
 }
 
@@ -174,7 +190,7 @@ battery-charges ()
   acpi | cut -d, -f2
 }
 
-# Print total charge in procent
+# Print total charge in procent (without percent character)
 battery-charge-total ()
 {
   local x c=0
@@ -183,6 +199,8 @@ battery-charge-total ()
     c=$(( c + $(cat /sys/class/power_supply/BAT$x/capacity) ))
   done
   echo "$c / $NUM_BAT" | bc
+
+  # This would require sudoer setup:
   #sudo tlp-stat -b | grep Charge\ total | awk '{print $5}'
 }
 
@@ -199,14 +217,14 @@ battery-charge ()
 
 battery-charge-icon-fa ()
 {
-  local pct=$( battery-charge-total | cut -d. -f1 )
-  if test $pct -lt 25
+  test $# -gt 0 || set -- $( battery-charge | cut -d. -f1 )
+  if test $1 -lt 25
   then printf $nf_fa_battery_0
-  elif test $pct -lt 50
+  elif test $1 -lt 50
   then printf $nf_fa_battery_1
-  elif test $pct -lt 75
+  elif test $1 -lt 75
   then printf $nf_fa_battery_2
-  elif test $pct -lt 100
+  elif test $1 -lt 100
   then printf $nf_fa_battery_3
   else printf $nf_fa_battery_4
   fi
@@ -214,28 +232,44 @@ battery-charge-icon-fa ()
 
 battery-charge-icon-mdi ()
 {
-  local pct=$( battery-charge | cut -d. -f1 )
-  if test $pct -lt 20
+  test $# -gt 0 || set -- $( battery-charge | cut -d. -f1 )
+  if test $1 -lt 20
   then printf $nf_mdi_battery_10
-  elif test $pct -lt 30
+  elif test $1 -lt 30
   then printf $nf_mdi_battery_20
-  elif test $pct -lt 40
+  elif test $1 -lt 40
   then printf $nf_mdi_battery_30
-  elif test $pct -lt 50
+  elif test $1 -lt 50
   then printf $nf_mdi_battery_40
-  elif test $pct -lt 60
+  elif test $1 -lt 60
   then printf $nf_mdi_battery_50
-  elif test $pct -lt 70
+  elif test $1 -lt 70
   then printf $nf_mdi_battery_60
-  elif test $pct -lt 80
+  elif test $1 -lt 80
   then printf $nf_mdi_battery_70
-  elif test $pct -lt 90
+  elif test $1 -lt 90
   then printf $nf_mdi_battery_80
-  elif test $pct -lt 100
+  elif test $1 -lt 100
   then printf $nf_mdi_battery_90
   else printf $nf_mdi_battery
   fi
 }
+
+battery-level-prefix () # ~ <Pct>
+{
+  test -z "${battery_level_low:-}" && return
+  if test $1 -le $battery_level_low
+  then printf '%s' "${battery_level_c_low}"
+  else printf '%s' "${battery_level_c_ok}"
+  fi
+}
+
+battery-level-normal ()
+{
+  test -z "${battery_level_low:-}" && return
+  printf '%s' "${battery_c_normal}"
+}
+
 
 
 ## SystemD status

@@ -1566,8 +1566,8 @@ htd_grp__vbox_gp=vm
 wol_hwaddr=~/.conf/etc/wol/hosts-hwaddr.sh
 htd__wol_list_hosts()
 {
-  cat $wol_hwaddr
-  error "Expected hostname argument" 2
+  grep '^[a-zA-Z_][a-zA-Z0-9_]*=' $wol_hwaddr |
+      cut -d'=' -f 1 | column
 }
 htd_grp__wol_list_hosts=box
 
@@ -1575,6 +1575,7 @@ htd__wake()
 {
   [ -z "${1-}" ] && {
     htd__wol_list_hosts
+    error "Expected hostname argument" 2
   } || {
     local host=$1
     local $(echo $(read_nix_style_file $wol_hwaddr|sed 's/ # .*$//g'))
