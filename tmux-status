@@ -68,27 +68,42 @@ charge ()
 }
 
 
+# Weather is symbol
 weather ()
 {
-    user-tools weather | sed \
-        's/\xe2\x98\x80/#[fg=colour220]&#[#{@c_dark}]/'
+  user-tools weather | {
+    test $darktime -eq 1 && {
+      sed 's/\xe2\x98\x80/#[fg=colour240]&#[#{@c_dark}]/'
+    } || {
+      sed 's/\xe2\x98\x80/#[fg=colour220]&#[#{@c_dark}]/'
+    }
+  }
 }
 
 
+# Show weather always, moon phase during night.
 weather_and_sky ()
 {
-    dark=0
-    user-tools actual_darktime && dark=1
-    weather
-    test $dark -eq 1 || return 0
-    moon
+  darktime=0
+  user-tools actual_darktime && darktime=1
+
+  weather
+  test $darktime -eq 1 || return 0
+  printf ' '
+  moon
 }
 
 
+# dark moon for night time and brighter for twillight
 moon ()
 {
-    user-tools moon | sed \
-        's/.*/#[#{@c_abnormal}]&#[#{@c_dark}]/'
+  user-tools moon | {
+    test $darktime -eq 1 && {
+      sed 's/.*/#[fg=colour=232]&#[#{@c_dark}]/'
+    } || {
+      sed 's/.*/#[fg=colour=242]&#[#{@c_dark}]/'
+    }
+  }
 }
 
 

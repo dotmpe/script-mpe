@@ -105,8 +105,16 @@ then
 
   case "${1-}" in
 
+    len ) str_len "$2" ;;
+    tmux-len ) str_fmt=tmux str_len "$2" ;;
+
+    sh-clean ) str_sh_clean "$2" ;;
+    tmux-clean ) str_tmux_clean "$2" ;;
+
     str-padd-left ) str_sh_padd_ch "$2" "$3" "$4" ;;
     str-padd-right ) str_sh_padd_ch "$2" "" "$4" "$3" ;;
+    tmux-str-padd-left ) str_tmux_padd_ch "$2" "$3" "$4" ;;
+    tmux-str-padd-right ) str_tmux_padd_ch "$2" "" "$4" "$3" ;;
 
     append-if-len ) test -z "$2" && return; echo "$2$3" ;;
     prepend-if-len ) test -z "$2" && return; echo "$3$2" ;;

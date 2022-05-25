@@ -564,18 +564,27 @@ while (<>) {
 }'
 }
 
-# XXX:
+# Clean up ANSI with PS1-type escaping.
+# XXX: also strips newline chars
 str_sh_clean ()
 {
   ansi_clean "$1" | sed -e 's/\(\\\(\[\|\]\)\)//g' | tr -d '\n\r'
 }
 
+# Remove tmux formatting.
+# var-refs, formatting and expressions.
+# XXX: also strips newline chars
+str_tmux_clean ()
+{
+  echo "$1" | sed -E -e 's/#\[[^]]+\]//g'
+}
+
 # Get the length of the string counting the number of visible characters
 # Strips ANSI codes and delimiter escapes (for Bash PS1) before count
-str_sh_len ()
+str_len ()
 {
-  local str
-  str="$(str_sh_clean "$1")"
+  local str str_clean=str_${str_fmt:-"sh"}_clean
+  str="$($str_clean "$1")"
   printf '%i' ${#str}
 }
 
@@ -589,7 +598,7 @@ str_sh_padd () # ~ LEN [INPUT]
 str_sh_lpadd () # ~ LEN [INPUT]
 {
   local raw="${2-}" invis newpadd
-  invis=$(( ${#raw} - $(str_sh_len "$raw") ))
+  invis=$(( ${#raw} - $(str_fmt= sh_len "$raw") ))
   newpadd=$(( $1 + $invis ))
   printf '%'$newpadd's' "$raw"
 }
@@ -597,15 +606,25 @@ str_sh_lpadd () # ~ LEN [INPUT]
 str_sh_rpadd () # ~ LEN [INPUT]
 {
   local raw="${2-}" invis newpadd
-  invis=$(( ${#raw} - $(str_sh_len "$raw") ))
+  invis=$(( ${#raw} - $(str_fmt= str_len "$raw") ))
   newpadd=$(( $1 + $invis ))
   printf '%-'$newpadd's' "$raw"
 }
 
 str_sh_padd_ch () # ~ LEN [PAD [INPUT [PAD]]]
 {
+  str_fmt=sh str_padd_ch "$@"
+}
+
+str_tmux_padd_ch () # ~ LEN [PAD [INPUT [PAD]]]
+{
+  str_fmt=tmux str_padd_ch "$@"
+}
+
+str_padd_ch () # [str_fmt=] ~ LEN [PAD [INPUT [PAD]]]
+{
   local raw="${3-}" p1="${2-" "}" p2="${4-""}" invis
-  invis=$(( ${#raw} - $(str_sh_len "$raw") ))
+  invis=$(( ${#raw} - $(str_len "$raw") ))
   while [ $(( ${#raw} - $invis )) -lt $1 ]; do raw="${p1}$raw${p2}"; done
   printf '%s' "$raw"
 }

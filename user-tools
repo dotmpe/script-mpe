@@ -3,18 +3,40 @@
 
 weather ()
 {
-  location_weather | cut -d ':' -f 2 | sed 's/^ //'
+  location_weather | cut -d ':' -f 2 | sed 's/^ //' | spaced_words
 }
 
 
+forecast_tab ()
+{
+  location_weather_info | jq -r \
+    '.weather[0].hourly[] | "\(.time) \(.weatherCode) \(.weatherDesc[0].value)"'
+}
+
+
+forecast ()
+{
+  forecast_tab |
+    while read time code desc
+    do
+      echo $(date relative-abbrev "" "$time" "") $code $desc
+    done
+}
+
+location_weather_info ()
+{
+  curl "wttr.in/${wttr_loc-}?format=j1"
+}
+
+# Weather is name for location, unicode symbol and temperature.
 location_weather ()
 {
-  curl "wttr.in/${wttr_loc-}?format=3" | tr -s ' ' ' '
+  curl "wttr.in/${wttr_loc-}?format=3" | spaced_words
 }
 
 moon ()
 {
-  curl "wttr.in/${wttr_loc-}?format=%m"
+  curl "wttr.in/${wttr_loc-}?format=%m" | spaced_words
 }
 
 
@@ -140,6 +162,12 @@ timezone_to_location ()
 {
   false
 }
+
+spaced_words ()
+{
+  tr -s ' ' ' ' | tr -d '\n'
+}
+
 
 if test "${base:=$(basename -- "$0")}" = "user-tools"
 then

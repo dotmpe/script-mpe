@@ -27,6 +27,8 @@ import pytz
 from pytz import timezone
 
 
+cmds=("daytime","nighttime","twillight","darktime")
+
 args = sys.argv[:]
 script = args.pop(0)
 cmd = 'printtable'
@@ -34,7 +36,7 @@ if len(args) > 0:
     if args[0] == "help":
         print(__doc__)
         sys.exit()
-    elif args[0] in ("daytime","nighttime"):
+    elif args[0] in cmds:
         cmd = args.pop(0)
 
 if 'GEO_HOME' in os.environ:
@@ -59,8 +61,8 @@ if cmd == 'printtable':
     dt = dt.replace(hour=15, minute=0, second=0, microsecond=0)
 
 loc.date = ephem.Date(dt)
-# No elevation or horizon added.. yet
 
+# No elevation or horizon added.. yet
 loc.pressure = 0
 loc.lat, loc.lon = latlong
 
@@ -75,12 +77,13 @@ if cmd == 'daytime':
     # or if next sunrise is before next sunset (nighttime)
 
     loc.horizon = loc_horizon
-    if loc.next_rising(sun) < loc.next_setting(sun):
-        sys.exit(1)
-    else:
+    if loc.next_setting(sun) < loc.next_rising(sun):
         sys.exit(0)
+    else:
+        sys.exit(1)
 
 elif cmd == 'nighttime':
+
     loc.horizon = loc_horizon
     if loc.next_rising(sun) < loc.next_setting(sun):
         sys.exit(0)
@@ -88,10 +91,63 @@ elif cmd == 'nighttime':
         sys.exit(1)
 
 elif cmd == 'twillight':
-    loc.horizon = twillight_horizon
-    # TODO:
+    # By lowering the horizon to a negative degree the sunrise/sunset
+    # can be used to indicate the start or end of twillight.
+
+    loc.horizon = loc_horizon
+    if loc.next_rising(sun) < loc.next_setting(sun):
+
+        # Night time; twillights ends and starts at negative horizon
+        loc.horizon = twillight_horizon
+
+        if loc.next_rising(sun, use_center=True) < loc.next_setting(sun,
+                use_center=True):
+
+            # Past dusk
+            if loc.next_setting(sun, use_center=True) < loc.next_rising(sun,
+                    use_center=True):
+
+                # Past break of dawn
+                print('dawn')
+
+            else:
+                sys.exit(1)
+
+        else:
+            print('dusk')
+    else:
+        sys.exit(1)
+
+elif cmd == 'darktime':
+    # For actual darktime we exclude twillight from nighttime as well.
+
+    loc.horizon = loc_horizon
+    if loc.next_rising(sun) < loc.next_setting(sun):
+
+        # Night time; twillights ends and starts at negative horizon
+        loc.horizon = twillight_horizon
+
+        if loc.next_rising(sun, use_center=True) < loc.next_setting(sun,
+                use_center=True):
+
+            # Past dusk
+            if loc.next_setting(sun, use_center=True) < loc.next_rising(sun,
+                    use_center=True):
+
+                # Past break of dawn
+                sys.exit(1)
+        else:
+            # Dusk
+            sys.exit(1)
+    else:
+        # Daytime
+        sys.exit(1)
 
 else:
+
+    # FIXME: timezone is acting up, and haven't been able to nail it yet
+    # but not using this table anyway.
+
     print('# dates')
     print(dt.astimezone(timezone('utc')), 'now GMT')
     print(dt.astimezone(), 'now local')
