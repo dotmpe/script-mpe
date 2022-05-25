@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 """
 Print table with twillight and suntimes in GMT and local time.
-All parameters are from the environment, except the first argument is parsed
-as date and an optional prefix.
+Also helpers to extract useful information based on user location.
 
-Prefixing with 'daytime' or 'nighttime' silences the progam and instead tests
-wether the given datetime is day or nighttime and exits non-zero otherwise.
+All parameters are from the environment, except the first argument is parsed
+as date and an optional prefix. The default command is 'printtable'.
+
+Commands:
+  - daytime - tests next sunset is before sunrise
+  - nighttime - tests next sunrise is before sunset
+  - twillight - tests for and reports dusk or dawn
+  - night - tests for actual nighttime, no twillight
+  - sun - report RA,DEC,AZ,ALT for sun
+  - moon - report RA,DEC,AZ,ALT for moon
 
 Usage:
-  ephem-day-times.py [daytime|nighttime] [<Datetime>]
+  ephem-day-times.py [<command>] [<Datetime>]
   ephem-day-times.py help
 
 Environment:
@@ -16,6 +23,9 @@ Environment:
   HORIZON set horizon angle. Normally day start/end are at 0 degrees, but other
     values may be appropiate to get actual daylight conditions (ie. 3 or 6).
   TWILLIGHT_HORIZON set angle to compute twillight (default is -6 degrees).
+  COORD set coordinate system for reporting degrees, 1 for local Az-Alt or
+    2 for celestial RA-Dec.
+  DEGREE set to 1 to use degree instead of time notation for degrees.
 """
 import os
 import sys
@@ -25,9 +35,10 @@ from datetime import datetime, tzinfo
 from dateutil import parser, tz
 import pytz
 from pytz import timezone
+import numpy as np
 
 
-cmds=("daytime","nighttime","twillight","darktime")
+cmds=("daytime","nighttime","twillight","night","sun","moon")
 
 args = sys.argv[:]
 script = args.pop(0)
@@ -118,8 +129,8 @@ elif cmd == 'twillight':
     else:
         sys.exit(1)
 
-elif cmd == 'darktime':
-    # For actual darktime we exclude twillight from nighttime as well.
+elif cmd == 'night':
+    # For actual night we exclude twillight from nighttime as well.
 
     loc.horizon = loc_horizon
     if loc.next_rising(sun) < loc.next_setting(sun):
@@ -143,10 +154,34 @@ elif cmd == 'darktime':
         # Daytime
         sys.exit(1)
 
-else:
+elif cmd in ('sun', 'moon'):
 
-    # FIXME: timezone is acting up, and haven't been able to nail it yet
-    # but not using this table anyway.
+    COORD = int(os.environ.get('COORD', '1'))
+
+    if cmd == 'sun':
+        sun = ephem.Sun(loc)
+        if COORD == 1:
+            coords = (sun.az, sun.alt)
+        elif COORD == 2:
+            coords = (sun.ra, sun.dec)
+        else: sys.exit(1)
+
+    else:
+        moon = ephem.Moon(loc)
+        if COORD == 1:
+            coords = (moon.az, moon.alt)
+        elif COORD == 2:
+            coords = (moon.ra, moon.dec)
+        else: sys.exit(1)
+
+    if int(os.environ.get('DEGREES', '0')) == 1:
+        coords = list(map(np.degrees, coords))
+
+    sep = os.environ.get('SEPARATOR', ' ')
+
+    print(sep.join(["%s" % s for s in coords]))
+
+else:
 
     print('# dates')
     print(dt.astimezone(timezone('utc')), 'now GMT')
