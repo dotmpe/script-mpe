@@ -45,7 +45,7 @@ run () # ~ [<Env...>] [ -- <Shell-Argv>... ]
   # shellcheck disable=2086
   exportargs "$@" && shift $argc
   test $# -gt 0 || set -- -l
-  shellexec "$@"
+  termexec "$@"
 }
 
 day () # ~ <Run-Argv...>
@@ -74,7 +74,7 @@ name () # ~ <Name> <Run-Argv...>
 
 # This is not for stuff with quotes. Add some exports before starting terminal,
 # so that these are set in the terminal and shell's environment. A standard set
-# is given as shellexec as well.
+# is given as termexec as well.
 exportargs () # [VAR=...] --
 {
   cnt=$#
@@ -102,9 +102,20 @@ nighttime () # ~ [<Hour>]
   test $1 -lt ${DAY_START:-6} -o $1 -ge ${DAY_END:-18}
 }
 
+shellexec ()
+{
+  exportargs "$@" && shift $argc
+  test $# -gt 0 || set -- -l
+
+  true "${UC_SHELL:="bash"}"
+  true ${bin:=$(command -v $UC_SHELL)}
+
+  eval exec $bin "$@"
+}
+
 # Continue execution at terminal program running shell command
 # shellcheck disable=2086
-shellexec ()
+termexec ()
 {
   true ${bin:=$(command -v $UC_SHELL)}
   true ${cs:=$(colorscheme)}
