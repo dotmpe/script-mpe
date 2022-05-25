@@ -19,7 +19,7 @@ forecast ()
   forecast_tab |
     while read time code desc
     do
-      echo $(date relative-abbrev "" "$time" "") $code $desc
+      echo $(date-util relative-abbrev "" "$time" "") $code $desc
     done
 }
 

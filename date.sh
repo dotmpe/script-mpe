@@ -8,7 +8,7 @@ date_load ()
 }
 
 
-if [ "$(basename -- "$0")" == "date" ]
+if [ "$(basename -- "$0")" == "date-util" ]
 then
   date_load
 
