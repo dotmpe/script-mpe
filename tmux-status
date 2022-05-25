@@ -41,8 +41,8 @@ systemd ()
             starting )
               sed 's/^\([^(]*\)/#[fg=colour220]\1#[#{@c_normal}]/' ;;
 
-          ( running )
-              sed 's/^\([^(]*\)/#[#{@c_ok}]\1#[#{@c_normal}]/' ;;
+          ( running ) cat ;;
+              #sed 's/^\([^(]*\)/#[#{@c_ok}]\1#[#{@c_normal}]/' ;;
 
           ( maintenance )
               sed 's/^\([^(]*\)/#[fg=colour111]\1#[#{@c_normal}]/' ;;

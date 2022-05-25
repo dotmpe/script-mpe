@@ -155,7 +155,7 @@ actual_darktime () # ~ [<Datetime>]
     eval $(timezone_to_location) || return
   }
 
-  TWILLIGHT_HORIZON=${HORIZON:-"-3"} $python3_bin ephem-day-times.py darktime "$@"
+  TWILLIGHT_HORIZON=${HORIZON:-"-3"} $python3_bin ~/bin/ephem-day-times.py darktime "$@"
 }
 
 timezone_to_location ()
