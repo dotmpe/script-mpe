@@ -3,3 +3,6 @@
 # shellcheck disable=SC2016 # check single-quoted strs for expressions
 # shellcheck disable=SC1090 # follow non-constant source
 # shellcheck disable=SC2034 # unused var
+#
+# shellcheck disable=SC2068
+#

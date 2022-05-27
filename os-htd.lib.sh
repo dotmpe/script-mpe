@@ -37,6 +37,7 @@ abbrev_rename()
 # to print only existing files see filter_files
 assert_files ()
 {
+  # shellcheck disable=SC2068
   for fn in $@
   do
     test -n "$fn" || continue
@@ -176,7 +177,7 @@ filesizesum ()
 #
 # If this routine is given no data is hangs indefinitely. It does not have
 # indicators for data availble at stdin.
-foreach ()
+foreach () # [(stdin)] ~ ['-' | <Arg...>]
 {
   {
     test -n "$*" && {
@@ -202,7 +203,7 @@ foreach_addcol ()
   test -n "${p-}" || local p= # Prefix string
   test -n "${s-}" || local s= # Suffix string
   test -n "${act-}" || local act="echo"
-  foreach "$@" | while read -r _S
+  foreach "$@" | while read_asis  _S
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
 }
 
@@ -215,7 +216,7 @@ foreach_do ()
   test -n "${p-}" || local p= # Prefix string
   test -n "${s-}" || local s= # Suffix string
   test -n "${act-}" || local act="echo"
-  foreach "$@" | while read -r _S ; do S="$p$_S$s" && $act "$S" ; done
+  foreach "$@" | while read_asis _S ; do S="$p$_S$s" && $act "$S" ; done
 }
 
 # See -addcol and -do.
@@ -224,7 +225,7 @@ foreach_inscol ()
   test -n "${p-}" || local p= # Prefix string
   test -n "${s-}" || local s= # Suffix string
   test -n "${act-}" || local act="echo"
-  foreach "$@" | while read -r _S
+  foreach "$@" | while read_asis _S
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
 }
 
@@ -524,6 +525,17 @@ mkrlink()
   ln -vs "$(basename "$1")" "${2:-"$PWD/"}"
 }
 
+read_asis ()
+{
+  read -r "$@"
+}
+
+read_line ()
+{
+  # shellcheck disable=2162
+  read "$@"
+}
+
 # Test for file or return before read
 read_if_exists ()
 {
@@ -633,7 +645,7 @@ sameas ()
   test $(stat -f "%i" "$1") -eq $(stat -f "%i" "$2")
 }
 
-short ()
+shortdir () # ~ [<Dir>] # Wrapper to print short dir with Python
 {
   test -n "$1" || set -- "$PWD"
   # XXX maybe replace python script. Only replaces home
@@ -690,17 +702,21 @@ symlink_assert () # <Symlink-Path> <Target>
   ln -s$v "$2" "$3"
 }
 
+#
 wherefrom ()
 {
-  lib_load ${os} || return
+    # XXX: this sould fail if no os given, TODO: look at lib-{load,req} specs
+  lib_load ${os:="$(str_lower "${uname:-"$(uname -s)"}")"} || return
   ${os,,}_wherefrom "$@"
 }
 
+# BSD helper
 xsed_rewrite ()
 {
   case "$uname" in
     Darwin ) sed -i.applyBack "$@";;
     Linux ) sed -i "$@";;
+    * ) return 60 ;;
   esac
 }
 

@@ -6,7 +6,7 @@
 
 
 # This doesnt really try hard at being sensible but its a start
-sensible ()
+sensible () # ~ # XXX: start urxvt bash session. see Env
 {
   true "${UC_TERM:="urxvt"}"
   true "${UC_SHELL:="bash"}"
@@ -150,11 +150,26 @@ uc_term_urxvt ()
   echo "$* ${UC_TERM_OPTS:-} -e"
 }
 
-if test "${base:=$(basename -- "$0")}" = "system-terminal"
-then
-  test $# -gt 0 || set -- sensible
-  set -e
-  test -z "${DEBUG:-}" || set -x
-  "$@"
-fi
+
+system_terminal_usage ()
+{
+  printf \
+'\t%s <Command <Arg...>>
+
+Env:
+\tUC_TERM urxvt
+\tUC_SHELL bash
+\tUC_NIGHTTIME "" Depends on env and system, see sensible-colorscheme
+\tGEO_HOME <lat>,<long> Provided by the user
+\tUC_TERM_NAME <Name> Window name for terminal (should be made available on
+\t    the windows WM_CLASS attribute).
+' "$base"
+}
+
+
+test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+
+! script_isrunning "system-terminal" || eval "set -- $(user_script_defarg "$@")"
+
+script_defcmd=sensible script_entry "system-terminal" "$@"
 #

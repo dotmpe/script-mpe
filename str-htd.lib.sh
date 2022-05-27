@@ -44,10 +44,11 @@ mkid() # Str Extra-Chars Substitute-Char
   test $# -gt 2 || c='\.\\\/:_'
   test -n "$s" || s=-
   test -n "${upper-}" && {
-    trueish "${upper-}" && {
-      id=$(printf -- "%s" "$1" | tr -sc '[:alnum:]'"$c$s" "$s" | tr 'a-z' 'A-Z')
-    } || {
-      id=$(printf -- "%s" "$1" | tr -sc '[:alnum:]'"$c$s" "$s" | tr 'A-Z' 'a-z')
+    test "$upper" = "1" && {
+      id=$(printf -- "%s" "$1" | tr -sc '[:alnum:]'"$c$s" "$s" | tr '[:lower:]' '[:upper:]')
+    }
+    test "$upper" = "0" && {
+      id=$(printf -- "%s" "$1" | tr -sc '[:alnum:]'"$c$s" "$s" | tr '[:upper:]' '[:lower:]')
     }
   } || {
     id=$(printf -- "%s" "$1" | tr -sc '[:alnum:]'"$c$s" "$s" )
@@ -70,11 +71,11 @@ mkvid() # STR
   test $# -eq 1 -a -n "${1-}" || error "mkvid argument expected ($*)" 1
   local upper=${upper-"-1"} ; test -n "$upper" || upper=-1
   test 1 -eq $upper && {
-    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'a-z' 'A-Z')
+    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr '[:lower:]' '[:upper:]')
     return
   }
   test 0 -eq $upper && {
-    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr 'A-Z' 'a-z')
+    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr '[:upper:]' '[:lower:]')
     return
   }
   vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
@@ -93,19 +94,19 @@ mknameid()
 }
 
 # A either args or stdin STR to lower-case pipeline element
-str_upper()
+str_upper ()
 {
   test -n "$1" \
-    && { echo "$1" | tr 'a-z' 'A-Z'; } \
-    || { cat - | tr 'a-z' 'A-Z'; }
+    && { echo "$1" | tr '[:lower:]' '[:upper:]'; } \
+    || { cat - | tr '[:lower:]' '[:upper:]'; }
 }
 
 # Counter-part to str-upper
-str_lower()
+str_lower ()
 {
   test -n "$1" \
-    && { echo "$1" | tr 'A-Z' 'a-z'; } \
-    || { cat - | tr 'A-Z' 'a-z'; }
+    && { echo "$1" | tr '[:upper:]' '[:lower:]'; } \
+    || { cat - | tr '[:upper:]' '[:lower:]'; }
 }
 
 # XXX: deprecate in favor of fnmatch/case X in Y expressions?

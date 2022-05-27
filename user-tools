@@ -1,9 +1,11 @@
 #!/bin/sh
 
+#shellcheck disable=SC1090
 
-weather ()
+
+weather () # ~
 {
-  location_weather | cut -d ':' -f 2 | sed 's/^ //' | spaced_words
+  location_weather | cut -d ':' -f 2 | sed 's/^ //' | lines_to_words
 }
 
 
@@ -14,12 +16,13 @@ forecast_tab ()
 }
 
 
-forecast ()
+forecast () # ~
 {
   forecast_tab |
-    while read time code desc
+    while read_asis time code desc
     do
-      echo $(date-util relative-abbrev "" "$time" "") $code $desc
+      # shellcheck disable=2086,2046
+      echo $time $(date-util relative-abbrev "" "$time" "") $code $desc
     done
 }
 
@@ -28,15 +31,20 @@ location_weather_info ()
   curl "wttr.in/${wttr_loc-}?format=j1"
 }
 
+weatherdata () # ~
+{
+  location_weather_info | jq .
+}
+
 # Weather is name for location, unicode symbol and temperature.
 location_weather ()
 {
-  curl "wttr.in/${wttr_loc-}?format=3" | spaced_words
+  curl "wttr.in/${wttr_loc-}?format=3" | lines_to_words
 }
 
 moon ()
 {
-  curl "wttr.in/${wttr_loc-}?format=%m" | spaced_words
+  curl "wttr.in/${wttr_loc-}?format=%m" | lines_to_words
 }
 
 
@@ -111,12 +119,12 @@ roman_hours () # ~ [<Hour>]
 }
 
 
-timeofyear ()
+timeofyear () # ~
 {
   ${UC_TOY:-"season"}
 }
 
-season ()
+season () # ~
 {
   season_"${UC_SEASON:-meteorological}"
 }
@@ -149,12 +157,13 @@ season_meteorological () # ~ [<Month>]
 actual_darktime () # ~ [<Datetime>]
 {
   location || {
-    echo "Please provide GEO_HOME" >&2
+    stdmsg '*err' "Please provide GEO_HOME"
     return 1 # XXX: autodetect location
     timezone || return
     eval $(timezone_to_location) || return
   }
 
+  #shellcheck disable=SC2154
   TWILLIGHT_HORIZON=${HORIZON:-"-3"} $python3_bin ~/bin/ephem-day-times.py night "$@"
 }
 
@@ -163,16 +172,19 @@ timezone_to_location ()
   false
 }
 
-spaced_words ()
+
+user_tools_usage ()
 {
-  tr -s ' ' ' ' | tr -d '\n'
+  #shellcheck disable=SC2154
+  printf \
+'\t%s <Command <Arg...>>
+
+Env:
+' "$base"
 }
 
+test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
 
-if test "${base:=$(basename -- "$0")}" = "user-tools"
-then
-  test $# -gt 0 || set -- sensible
-  set -e
-  test -z "${DEBUG:-}" || set -x
-  "$@"
-fi
+! script_isrunning "user-tools" || eval "set -- $(user_script_defarg "$@")"
+
+script_defcmd=check script_entry "user-tools" "$@"

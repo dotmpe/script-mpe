@@ -271,7 +271,7 @@ __vc_screen ()
   test -n "$1" || set -- "$(pwd -P)"
   local w=$1 short repo sub
 
-  short=$(short "$1")
+  short=$(shortdir "$1")
 
   local gitdir=$(vc_gitdir "$1")
   test -z "$gitdir" || {

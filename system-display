@@ -2,26 +2,28 @@
 
 ## Helper to deal with X server displays
 
+#shellcheck disable=SC1090,1007
+
 
 displays ()
 {
   connected_info | cut -d' ' -f1
 }
 
-info ()
-{
-  test $# -gt 0 || set -- ".*"
-  connected_info | grep "^$1 "
-}
-
-primary ()
+primary () # ~ # List name of primary display
 {
   primary_info | cut -d' ' -f1
 }
 
-connected_info ()
+connected_info () # ~ # List xrandr line of each connected display
 {
   xrandr | grep ' connected '
+}
+
+display_info () # ~ [<Name>] # List xrandr lines (with display names and resolution/offset info)
+{
+  test $# -gt 0 || set -- ".*"
+  connected_info | grep "^$1 " | sed 's/\( connected\| primary\)//g'
 }
 
 primary_info ()
@@ -34,116 +36,102 @@ aux_info ()
   connected_info | grep -v ' primary '
 }
 
-display ()
+display () # ~ ['primary'|'aux'|'all'|<Glob>] # List display names
 {
-  case "${1:-}" in
-
+  test $# -gt 0 || set -- all
+  for spec in "$@"
+  do
+    case "$spec" in
       ( "primary" ) primary ;;
       ( "aux" ) aux_info | cut -d' ' -f1 ;;
 
-      ( ""|"all" ) displays ;;
+      ( "all" )
+          true "${displays:=$(displays)}"
+          echo "$displays" ;;
 
-      ( * ) echo "$1" ;;
-  esac
+      ( * )
+          true "${displays:=$(displays)}"
+          for display in $displays
+          do case "$display" in ( $spec ) echo "$display" ;; esac
+          done ;;
+    esac
+  done
 }
 
 display_setbg () # ~ <Display> <File> <Mode>
 {
-  info "$1" | grep -Po '\b[0-9]+x[0-9]+'
+  . ~/bin/user-desktop.sh
+
+  display_info "$1" | grep -Po '\b[0-9]+x[0-9]+'
   false # TODO: feh can presumably easily set any png/jpg.
 }
 
 # Set to value from 0.0-1.0
-brightness () # ~ <Value> <Display>...
+# XXX: I cant see how to get the current value
+brightness () # ~ <Value> <Display>... # Set brightness for displays
 {
   test $# -gt 0 || return
   v="$1"
   shift
-  # shellcheck disable=2046
+  #shellcheck disable=2046
   set -- $(display "$1") || return
 
-  # shellcheck disable=2068
+  #shellcheck disable=2068
   for d in $@
   do xrandr --output "$d" --brightness "$v"
   done
   unset v d
 }
 
-on ()
+on () # ~ # Set brightness to 1.0 for all displays
 {
   brightness 1.0 all
 }
 
-off ()
+off () # ~ # Set brightness to 0.0 for all displays
 {
   brightness 0 all
 }
 
-list ()
+list () # ~ <Spec> # List matching, use e.g. all, primary, *DP* or HDMI*. See'display'.
 {
   display "$@"
 }
 
-
-backgrounds_find ()
+mouse_sh ()
 {
-  loadenv
-  find "${BG_DIR}" \( ! -path '*/.*' \) -type f
+  xdotool getmouselocation | sed -e '
+        s/\(^\| \)/\nmouse_/g
+        s/:/=/g
+    '
 }
 
-get_bg () # ~ <Tags>...
+mouse () # ~ # Report display name where mousepointer currently is
 {
-  false
-  #image scale
+  mouse_display | cut -d ' ' -f 1
+}
+
+mouse_display () # ~ # Report display name and mousepointer info
+{
+  eval "$(mouse_sh)"
+  #shellcheck disable=SC2154,2086,2004
+  display_info |
+      tr -s 'x+' ' ' | while read_line name width height dx dy rest
+    do
+        test $mouse_x -ge $dx -a $mouse_x -le $(( $dx + $width )) || continue
+        test $mouse_y -ge $dy -a $mouse_y -le $(( $dy + $height )) || continue
+
+        echo "$name ${mouse_x}x${mouse_y} ${width}x${height}+$dx+$dy"
+        break
+    done
 }
 
 
-background_set () # ~ <File> <Display>...
-{
-  loadenv
-  fn="$1"
-  shift
-  # shellcheck disable=2046
-  set -- $(display "$1") || return
+test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
 
-  # shellcheck disable=2068
-  for d in $@
-  do
-      display_setbg "$d" "$fn" "${BG_MODE:="fill"}"
-  done
-  unset fn d
-}
+# Parse arguments
+! script_isrunning "system-display" || eval "set -- $(user_script_defarg "$@")"
 
-background ()
-{
-  loadenv
-  sub=$1
-  shift
-  background_"${sub}" "$@"
-}
-
-# shellcheck disable=1090
-loadenv ()
-{
-  test -e "${DISP_CONFIG_DIR:="$HOME/.config/display"}/env.sh" && {
-    . "${DISP_CONFIG_DIR}/env.sh"
-  }
-  test -e "${BG_DIR:="$HOME/Pictures/Backgrounds"}/.meta.sh" && {
-    . "${BG_DIR}/.meta.sh"
-  }
-  defaults
-}
-
-defaults ()
-{
-  true "${BG_PICTURES:-$HOME/Pictures/Backgrounds}"
-}
-
-if test "${base:=$(basename -- "$0")}" = "system-display"
-then
-  test $# -gt 0 || set -- list
-  set -e
-  test -z "${DEBUG:-}" || set -x
-  "$@"
-fi
+# Execute argv and return
+script_defcmd=list script_entry "system-display" "$@"
 #

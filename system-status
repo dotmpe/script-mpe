@@ -2,8 +2,10 @@
 
 ### Helper to dislay (short) system status, for use in status bars
 
+#shellcheck disable=SC1090
 
-short () # ~ [<Separator>]
+
+short () # ~ [<Separator>] # Print 5min load, SystemD short, uptime and emails-count
 {
   test -n "${1:-}" || set -- " "
   printf "$(less-uptime l 2)$1$(systemd-short)$1$(less-uptime p)"
@@ -17,14 +19,14 @@ short () # ~ [<Separator>]
 
 # Count new e-mails (simple impl. for mutt with maildirs only).
 # User-config must exist or else nothing is done.
-emails ()
+emails () # ~ # If configured, print emails
 {
   emails-user-conf || return 0
   mutt-indicator
 }
 
 # Idem to emails however show new-mail counter as well
-emails-count ()
+emails-count () # ~ # If configured, print email indicator and new-count
 {
 #MUTTRC_MAILBOXES=$HOME/.conf/etc/mutt/mailboxes.rc system-status emails-count
   emails-user-conf || return 0
@@ -81,7 +83,7 @@ mutt-count-new ()
   done
 }
 
-mutt-inboxes () # ~ muttrc-mail-
+mutt-inboxes () # ~ <Muttrc> <Muttrc-Mailboxes> #
 {
   test $# -gt 0 || set -- ${MUTTRC:-"$HOME/.muttrc"}
   test $# -gt 1 || set -- "$1" ${MUTTRC_MAILBOXES:-"$1"}
@@ -103,22 +105,22 @@ mutt-inboxes () # ~ muttrc-mail-
 
 ## Battery/power status
 
-battery ()
+battery () # ~ # Print short battery indication (if relevant)
 {
   charge-left-unconnected
 }
 
-power-connected ()
+power-connected () # ~ # Test if an AC power adapter is connected
 {
   acpi -V | grep '^Adapter ' | grep -q ' on-line$'
 }
 
-battery-charging ()
+battery-charging () # ~ # Test is a battery is charging
 {
   acpi | cut -d' ' -f3 | grep -q '^Charging'
 }
 
-battery-discharging ()
+battery-discharging () # ~ # Test is a battery is discharging
 {
   acpi | cut -d' ' -f3 | grep -q '^Discharging'
 }
@@ -205,7 +207,7 @@ battery-charge-total ()
 }
 
 # Print battery charge in procent (without percent character)
-battery-charge ()
+battery-charge () # ~ # Report charge left in percent of (actual) capacity
 {
   test ${NUM_BAT:-1} -gt 1 && {
     battery-charge-total
@@ -213,6 +215,11 @@ battery-charge ()
   } || {
     battery-charges | tr -d '% '
   }
+}
+
+charge () # ~ # TODO: report on actual charge, print capacity left as well
+{
+  false
 }
 
 battery-charge-icon-fa ()
@@ -275,13 +282,13 @@ battery-level-normal ()
 ## SystemD status
 
 # Short description of SystemD (is-system-running in manual)
-systemd-status-text ()
+systemd-status-text () # ~ # Report SystemD state
 {
   systemctl is-system-running | tr -d ' \n'
 }
 
 # Icon, or description and fail-count but only if not running
-systemd-short ()
+systemd-short () # ~ # Short indicator for SystemD state
 {
   test $# -gt 0 || set -- $(systemd-status-text)
 
@@ -296,22 +303,25 @@ systemd-short ()
       printf "$msg"
 }
 
-systemd-count-failed ()
+systemd-count-failed () # ~ # Count failed SystemD units
 {
   systemctl list-units | grep -c ' failed '
 }
 
-systemd-failed ()
+systemd-failed () # ~ # List failed SystemD unit names
 {
   systemctl --failed | grep failed | cut -d' ' -f2 | sed 's/\.service$//'
 }
 
-failed ()
+failed () # ~ # Oneline report of state and failed unit names
 {
   test $# -gt 0 || set -- $(systemd-status-text)
   test "$1" != "running" || return 0
   echo $1: $(systemd-failed)
 }
+
+
+# A Nerd font is required to use these
 
 nf_fa_check='\Uf00c'
 nf_fa_exclamation='\Uf12a'
@@ -368,7 +378,7 @@ nf_oct_x='\Uf467'
 nf_oct_zap='\U26a1'
 
 
-systemd-status-icon-oct ()
+systemd-status-icon-oct () # ~ [<State>] # Print Octicon for SystemD state
 {
   test $# -gt 0 || set -- "$(systemd-status-text)"
   case "$1" in
@@ -386,7 +396,7 @@ systemd-status-icon-oct ()
   esac
 }
 
-systemd-status-icon-fa ()
+systemd-status-icon-fa () # ~ [<State>] # Print Font-Awesome icon for SystemD state
 {
   test $# -gt 0 || set -- "$(systemd-status-text)"
   case "$1" in
@@ -400,21 +410,25 @@ systemd-status-icon-fa ()
   esac
 }
 
-help () # ~
+
+system_status_usage ()
 {
-  test $# -eq 0 && set -- '[A-Za-z_][A-Za-z0-9_-]* () #'
-  test -e "$0" && scr="$0" || scr="$(command -v "$0")"
-  grep "^$1 () #" "$scr"
-  exit
+  #shellcheck disable=SC2154
+  printf \
+'\t%s <Command <Arg...>>
+
+Env:
+\tNERD_FONT 1
+\tNERD_FONT_BAT
+\tNERD_FONT_AC
+\tNERD_FONT_STATUS
+\tMUTTRC
+\tMUTTRC_MAILBOXES
+' "$base"
 }
 
-if test "${base:=$(basename -- "$0")}" = "system-status"
-then
-  test $# -gt 0 || set -- short
-  case "${1:-}" in
-      ( "" | "-h" | "--help" ) test $# -eq 0 || shift; set -- help "$@" ;; esac
-  set -e
-  test -z "${DEBUG:-}" || set -x
-  "$@"
-fi
+
+test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+! script_isrunning "system-status" || eval "set -- $(user_script_defarg "$@")"
+script_defcmd=short script_entry "system-status" "$@"
 #

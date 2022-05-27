@@ -1,0 +1,152 @@
+#!/bin/sh
+
+## Helper for desktop settings
+
+#shellcheck disable=SC1090,1007
+
+
+backgrounds () # ~ # List user's deesktop backgrounds
+{
+  {
+    backgrounds_tag_find
+
+    backgrounds_dirs_find
+
+  } | remove_dupes
+}
+
+preview () # ~ [<Fzf-Opts...>] # Use fzf+feh to browse through images
+{
+  backgrounds | fzf-tmux \
+      --preview='feh --title feh-preview -B black -Z {} -.' \
+      --preview-window=0 "$@"
+}
+
+backgrounds_tag_find ()
+{
+  find "${PICTURES}" \( ! -path '*/.*' \) -ipath "*$user_bgtag*" -type f
+}
+
+backgrounds_dirs_find ()
+{
+  test $# -gt 0 || {
+    test -e "$BG_DIR" && set -- "$BG_DIR"
+    for d in /usr/share/backgrounds /usr/share/pixmaps/backgrounds
+    do
+      test ! -d "$d" || set -- "$@" "$d"
+    done
+    unset d
+  }
+  act=find_nonhidden_files p="" s="" foreach_do "$@"
+}
+
+find_nonhidden_files ()
+{
+  find "$1" \( ! -path '*/.*' \) -type f
+}
+
+get_bg () # ~ <Tags>...
+{
+  false
+  #image scale
+}
+
+
+background_set () # ~ <File> <Display>...
+{
+  fn="$1"
+  shift
+  #shellcheck disable=2046
+  set -- $(display "$1") || return
+
+  #shellcheck disable=2068
+  for d in $@
+  do
+      display_setbg "$d" "$fn" "${BG_MODE:="fill"}"
+  done
+  unset fn d
+}
+
+background ()
+{
+  sub=$1
+  shift
+  background_"${sub}" "$@"
+}
+
+
+screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
+{
+  dt=$(date --iso=sec)
+  tmpf="$HOME/.local/tmp/Screenshot $dt.png"
+
+  . ~/bin/system-display || return
+
+  # shellcheck disable=SC2015
+  test $# -gt 0 && {
+
+    geo=$(display_info "$(display "$1")" | cut -d ' ' -f 2)
+  } || {
+
+    geo=$(mouse_display | cut -d ' ' -f 3)
+  }
+
+  test -n "$geo" || {
+    stdstat 123 "Cannot get geometry for display"
+  }
+
+  #gnome-screenshot -f "$tmpf" || return
+
+  # Async works better. Lots of segfaults.
+  i3-msg "exec \"gnome-screenshot -f '$tmpf'\"" || return
+  while test ! -e "$tmpf"
+  do stdmsg '*info' "Waiting for file..."; sleep 3
+  done
+
+  . ~/bin/image || return
+  outf="$HOME/.local/tmp/Screenshot $dt-$geo.png"
+  crop "$geo" "$tmpf" "$outf"
+
+  rm "$tmpf"
+  mv "$outf" ~/Pictures/
+  stdmsg '*note' "Moved screenshot $dt to Pictures"
+}
+
+
+# shellcheck disable=1090
+user_desktop_loadenv ()
+{
+  test -e "${DISP_CONFIG_DIR:="$HOME/.config/display"}/env.sh" && {
+    . "${DISP_CONFIG_DIR}/env.sh"
+  }
+  test -e "${BG_DIR:="$HOME/Pictures/Backgrounds"}/.meta.sh" && {
+    . "${BG_DIR}/.meta.sh"
+  }
+  user_desktop_defaults
+}
+
+user_desktop_defaults ()
+{
+  true "${PICTURES:=$HOME/Pictures}"
+  true "${BG_DIR:=$PICTURES/Backgrounds}"
+  true "${user_bgtag:="background"}"
+}
+
+user_desktop_usage ()
+{
+  #shellcheck disable=SC2154
+  printf \
+'\t%s <Command <Arg...>>
+
+Env:
+    DISP_CONFIG_DIR
+    PICTURES
+    BG_DIR
+' "$base"
+}
+
+
+test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+! script_isrunning "user-desktop" || eval "set -- $(user_script_defarg "$@")"
+script_defcmd= script_entry "user-desktop" "$@"
+#

@@ -10,7 +10,7 @@ lock ()
   # to adapt to a multihead yourself.
 
   # TODO: sensible lockscreen bg
-  #eval $( system-display get_bg login primary $( user-tools time-of-day) )
+  #eval $( user-desktop get_bg login primary $( user-tools time-of-day) )
 
   # Display a white background. Nothing else.
   i3lock
@@ -73,10 +73,12 @@ Env:
     SYS_PM={dbus|systemctl}
         The former usually requires some sudoer rights I think.
 
+Commands:
 EOM
-  } >&2; } || {
-    grep "^$1" "$0"
-  }
+  } >&2; }
+
+  test $# -eq 0 && set -- '[A-Za-z_][A-Za-z0-9_]* () #'
+  grep "^$1" "$0"
 }
 
 true "${SYS_PM:=dbus}"
