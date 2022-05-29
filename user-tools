@@ -1,6 +1,6 @@
 #!/bin/sh
 
-#shellcheck disable=SC1090
+#shellcheck disable=SC1090 # follow non-constant source
 
 
 weather () # ~
@@ -172,6 +172,33 @@ timezone_to_location ()
   false
 }
 
+state ()
+{
+
+  test "${NERD_FONT:-1}" != "0" && {
+    state_icon_${NERD_FONT_STATUS:-fa} "$1"
+  } || {
+    echo "$1"
+  }
+}
+
+state_icon_fa ()
+{
+  printf "$nf_ple_left_half_circle_thick $nf_ple_right_half_circle_thick"
+  echo
+  printf "$nf_fa_check"
+  echo
+  env printf "$nf_fa_check"
+  echo
+  /usr/bin/printf "$nf_fa_check"
+  echo
+
+  case "${1:-}" in
+      ( ok ) printf "%s" "$nf_fa_check" ;;
+      ( failed ) env printf $nf_fa_close ;;
+  esac
+}
+
 
 user_tools_usage ()
 {
@@ -182,6 +209,12 @@ user_tools_usage ()
 Env:
 ' "$base"
 }
+
+#user_tools_load ()
+{
+  . ~/bin/nerdfont.lib.sh
+}
+
 
 test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
 

@@ -95,10 +95,11 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
     stdstat 123 "Cannot get geometry for display"
   }
 
-  #gnome-screenshot -f "$tmpf" || return
+  scrot "$tmpf"
 
   # Async works better. Lots of segfaults.
-  i3-msg "exec \"gnome-screenshot -f '$tmpf'\"" || return
+  #i3-msg "exec \"gnome-screenshot -f '$tmpf'\"" || return
+
   while test ! -e "$tmpf"
   do stdmsg '*info' "Waiting for file..."; sleep 3
   done
@@ -110,6 +111,11 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
   rm "$tmpf"
   mv "$outf" ~/Pictures/
   stdmsg '*note' "Moved screenshot $dt to Pictures"
+}
+
+user_desktop_settings ()
+{
+  UC_DPI
 }
 
 

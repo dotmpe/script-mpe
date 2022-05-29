@@ -7,74 +7,35 @@
 
 displays ()
 {
-  connected_info | cut -d' ' -f1
+  xorg_names
+  #xorg_info_connected | cut -d' ' -f1
 }
 
 primary () # ~ # List name of primary display
 {
-  primary_info | cut -d' ' -f1
+  xorg_info_primary | cut -d' ' -f1
 }
 
-connected_info () # ~ # List xrandr line of each connected display
+display_info ()
 {
-  xrandr | grep ' connected '
-}
-
-display_info () # ~ [<Name>] # List xrandr lines (with display names and resolution/offset info)
-{
-  test $# -gt 0 || set -- ".*"
-  connected_info | grep "^$1 " | sed 's/\( connected\| primary\)//g'
-}
-
-primary_info ()
-{
-  xrandr | grep ' connected primary'
-}
-
-aux_info ()
-{
-  connected_info | grep -v ' primary '
-}
-
-display () # ~ ['primary'|'aux'|'all'|<Glob>] # List display names
-{
-  test $# -gt 0 || set -- all
-  for spec in "$@"
-  do
-    case "$spec" in
-      ( "primary" ) primary ;;
-      ( "aux" ) aux_info | cut -d' ' -f1 ;;
-
-      ( "all" )
-          true "${displays:=$(displays)}"
-          echo "$displays" ;;
-
-      ( * )
-          true "${displays:=$(displays)}"
-          for display in $displays
-          do case "$display" in ( $spec ) echo "$display" ;; esac
-          done ;;
-    esac
-  done
+  xorg_info "$@"
 }
 
 display_setbg () # ~ <Display> <File> <Mode>
 {
-  . ~/bin/user-desktop.sh
-
   display_info "$1" | grep -Po '\b[0-9]+x[0-9]+'
   false # TODO: feh can presumably easily set any png/jpg.
 }
 
 # Set to value from 0.0-1.0
-# XXX: I cant see how to get the current value
+# TODO: use xrandr --verbose to get at brightness, gamma
 brightness () # ~ <Value> <Display>... # Set brightness for displays
 {
   test $# -gt 0 || return
   v="$1"
   shift
   #shellcheck disable=2046
-  set -- $(display "$1") || return
+  set -- $(xorg_display "$1") || return
 
   #shellcheck disable=2068
   for d in $@
@@ -93,9 +54,14 @@ off () # ~ # Set brightness to 0.0 for all displays
   brightness 0 all
 }
 
-list () # ~ <Spec> # List matching, use e.g. all, primary, *DP* or HDMI*. See'display'.
+list () # ~ <Spec> # List matching, use e.g. all, primary, *DP* or HDMI*. See 'xorg-display'.
 {
-  display "$@"
+  xorg_display "$@"
+}
+
+info ()
+{
+  xorg_info "$@"
 }
 
 mouse_sh ()
@@ -125,6 +91,12 @@ mouse_display () # ~ # Report display name and mousepointer info
         break
     done
 }
+
+#system_display_load ()
+#{
+  . ~/bin/xorg.lib.sh
+  . ~/bin/user-desktop
+#}
 
 
 test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh

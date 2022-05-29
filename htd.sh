@@ -3,13 +3,13 @@
 #
 # Htdocs: work in progress 'daily' shell scripts
 #
-# shellcheck disable=SC2004 # $/${} is unnecessary on arithmetic variables
-# shellcheck disable=SC2005 # Useless echo? NOTE: not, unquoted echoes to normalize whitespace!
-# shellcheck disable=SC2015 # A && B || C is not if-then-else
-# shellcheck disable=SC2016
-# shellcheck disable=SC2029 # Note that, unescaped, this expands on the client side
-# shellcheck disable=SC2034 # unused, unexported var
-# shellcheck disable=SC2039 # In POSIX sh, 'local' is undefined
+#shellcheck disable=SC2004 # $/${} is unnecessary on arithmetic variables
+#shellcheck disable=SC2005 # Useless echo? NOTE: not, unquoted echoes to normalize whitespace!
+#shellcheck disable=SC2015 # A && B || C is not if-then-else
+#shellcheck disable=SC2016
+#shellcheck disable=SC2029 # Note that, unescaped, this expands on the client side
+#shellcheck disable=SC2034 # unused, unexported var
+#shellcheck disable=SC2039 # In POSIX sh, 'local' is undefined
 # SC2046 # Quote this to prevent word splitting
 # SC2059 # Don't use variables in the printf format string. Use printf "..%s.." "$foo"
 # SC2068 # Double quote array expansions to avoid re-splitting elements

@@ -1,8 +1,14 @@
-# shellcheck disable=SC2046 # quote to prevent word splitting
-# shellcheck disable=SC2209 # check strs are all quoted
-# shellcheck disable=SC2016 # check single-quoted strs for expressions
-# shellcheck disable=SC1090 # follow non-constant source
-# shellcheck disable=SC2034 # unused var
-#
-# shellcheck disable=SC2068
-#
+#shellcheck disable=SC1090 # follow non-constant source
+#shellcheck disable=SC2004 # $/${} is unnecessary on arithmetic variables
+#shellcheck disable=SC2005 # Useless echo? NOTE: not, unquoted echoes to normalize whitespace!
+#shellcheck disable=SC2015 # A && B || C is not if-then-else
+#shellcheck disable=SC2016 # check single-quoted strs for expressions
+#shellcheck disable=SC2029 # Note that, unescaped, this expands on the client side
+#shellcheck disable=SC2034 # unused, unexported var
+#shellcheck disable=SC2034 # X appears unused. Verify use (or export if used externally).
+#shellcheck disable=SC2039 # In POSIX sh, 'local' is undefined
+#shellcheck disable=SC2046 # Quote to prevent word splitting.
+#shellcheck disable=SC2086 # Double quote to prevent globbing and word splitting.
+#shellcheck disable=SC2068 # Double quote array expansions to avoid re-splitting elements
+#shellcheck disable=SC2162 # read without -r will mangle backslashes.
+#shellcheck disable=SC2209 # check strs are all quoted

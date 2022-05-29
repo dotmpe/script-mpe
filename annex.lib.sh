@@ -1,11 +1,11 @@
 #!/bin/sh
 
-# Annex: GIT annex wrappers (consolidate and lock media-file versions)
+## Annex: GIT annex wrappers (consolidate and lock media-file versions)
 
 
 annex_lib_load()
 {
-  content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos $ANNEX_DIR/NathalieH $ANNEX_DIR/enemies"
+  content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos"
 
     # TODO: scan for .annex/objects folder, move this to user-conf
   #content_annices="$()"
@@ -13,13 +13,14 @@ annex_lib_load()
 
 annex_init()
 {
+  #shellcheck disable=SC1090 # follow non-constant source
   . ~/.local/composure/find_by_sha2.inc
 }
 
 htd_annex_files()
 {
   # Annex queries remotes, which may give errors (no network/mounts missing)
-  git annex list $@ --fast 2>/dev/null | while read prefix file
+  git annex list "$@" --fast 2>/dev/null | while read_line prefix file
   do
     test -e "$file" -o -h "$file" && echo "$file"
   done
@@ -202,7 +203,7 @@ git_annex_unusedkeys_drop_ifloggrep() # Key-List-File Grep...
     echo Key $x: $key
     log=.cllct/annex-unused/$key.log
     test -e "$log" || git log --stat -S"$key" > "$log"
-    for pat in $@
+    for pat in "$@"
     do
       grep "$pat" "$log" && {
         git annex dropkey --force "$key" || true
