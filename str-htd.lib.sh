@@ -630,4 +630,21 @@ str_padd_ch () # [str_fmt=] ~ LEN [PAD [INPUT [PAD]]]
   printf '%s' "$raw"
 }
 
+str_quote ()
+{
+  case "$1" in
+    ( *" "* | *[\[\]\<\>$]* )
+      case "$1" in
+          ( *"'"* ) printf '"%s"' "$1" ;;
+          ( * ) printf "'%s'" "$1" ;;
+      esac ;;
+    ( * ) printf '%s' "$1" ;;
+  esac
+}
+
+str_quote_var ()
+{
+  echo "$( printf '%s' "$1" | grep -o '^[^=]*' )=$(str_quote "$( printf -- '%s' "$1" | sed 's/^[^=]*=//' )")"
+}
+
 #

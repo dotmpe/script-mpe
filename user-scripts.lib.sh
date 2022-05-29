@@ -38,4 +38,36 @@ htd_user_find_command() # [grep_flags] [ext] ~ REGEX
   done
 }
 
+# Function flags: simple but easy run-time flags for function.
+# Run every time upon invocation of user-function
+# E.g. to the function, this local env:
+#   myfunc_flags=aqz myfunc ....
+# becomes flag-vars:
+#   myfunc_a=1 myfunc_q=1 myfunc_z=1
+#
+# Giving a flexible run-time configuration of the function with minimal parsing
+# and setup. If the user passes any flags, these are guaranteed to be
+# default 1. If the function passes any flags, these are guaranteed to be set
+# with default 0 for Off or 1 for On.
+# Indiviudal flag-vars are never changed if provided by env.
+fun_flags () # ~ <Var-Name> [<Flags-Off>] [<Flags-On>]
+{
+  for flag in $(echo $(eval "echo \"\$${1}_flags\"") | sed 's/./&\ /g')
+  do eval "true \${${1}_${flag}:=1}"
+  done
+
+  test -z "${2-}" || {
+    for flag in $(echo $2 | sed 's/./&\ /g')
+    do eval "true \${${1}_${flag}:=0}"
+    done
+  }
+
+  test -z "${3-}" || {
+    for flag in $(echo $3 | sed 's/./&\ /g')
+    do eval "true \${${1}_${flag}:=1}"
+    done
+  }
+  unset flag
+}
+
 #

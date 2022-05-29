@@ -428,7 +428,10 @@ Env:
 }
 
 
-test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+test -n "${user_scripts_loaded:-}" || {
+  . ~/bin/user-scripts.sh
+  user_scripts_loadenv
+}
 ! script_isrunning "system-status" || eval "set -- $(user_script_defarg "$@")"
 script_defcmd=short script_entry "system-status" "$@"
 #
