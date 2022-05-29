@@ -309,4 +309,16 @@ argv_more ()
   more_argc=$(( $more_argc - $# ))
 }
 
+argv_dump ()
+{
+  while test $# -gt 0
+  do
+    # TODO: str_quote_shprop "$1"
+    str_quote "$1"
+    shift
+    test $# -gt 0 || break
+    printf ' '
+  done
+}
+
 #

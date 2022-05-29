@@ -15,7 +15,7 @@ script_entry () # ~ <Scriptname> <Arg...>
     base="$1"
     shift
     test $# -gt 0 || set -- ${script_defcmd:-"usage"}
-    script_doenv
+    script_doenv || return
     stdmsg '*debug' "User-Scripts entry now"
     "$@" || script_ret=$?
     script_unenv
@@ -26,35 +26,24 @@ script_entry () # ~ <Scriptname> <Arg...>
 script_doenv ()
 {
   set -e
-  test "${user_scripts_loaded:-}" = "1" || {
-    user_scripts_load || stdexit 123 "Cannot load user-scripts lib"
-  }
-  #. ~/project/user-scripts/src/sh/lib/shell.lib.sh
-  . /src/local/user-conf-dev/script/shell-uc.lib.sh
 
-  true "${SHELL:="$(ps -q $$ -o command= | cut -d ' ' -f 1)"}"
-  shell_uc_lib_load || stdstat 123 "Cannot load shell-uc lib"
+  test "${user_scripts_loaded:-}" = "1" || {
+    user_scripts_loadenv || { ERR=$?
+      printf "ERR%03i: Cannot load user-scripts env" "$ERR" >&2
+      return $ERR
+    }
+  }
 
   mkvid "$base"; baseid=$vid
 
   ! sh_fun ${baseid}_loadenv || ${baseid}_loadenv
 
-  script_dodebug
+  test -z "${DEBUG:-}" || set -x
 }
 
 script_unenv ()
 {
   set +e
-  script_undebug
-}
-
-script_dodebug ()
-{
-  test -z "${DEBUG:-}" || set -x
-}
-
-script_undebug ()
-{
   test -z "${DEBUG:-}" || set +x
 }
 
@@ -67,19 +56,30 @@ user_script_defarg ()
       ( "-V" | "--version" ) test $# -eq 0 || shift; set -- version "$@" ;;
   esac
 
-  echo "$*"
-  # XXX: could properly quote arguments but there is little need for now
-  return
-  test $# -eq 0 || foreach "$@"
-  act=quote_str s="" p="" foreach_do "$@"
+  argv_dump "$@"
 }
 
-user_scripts_load ()
+user_scripts_loadenv ()
 {
   ! test "${user_scripts_loaded:-}" = "1" || return 0
-  stdmsg '*info' "User-Scripts loading..."
-  . ~/bin/str-htd.lib.sh
-  . ~/bin/os-htd.lib.sh
+
+  {
+    . ~/bin/str-htd.lib.sh &&
+    . ~/bin/os-htd.lib.sh &&
+    . ~/bin/argv.lib.sh &&
+    #. ~/project/user-scripts/src/sh/lib/shell.lib.sh
+    . /src/local/user-conf-dev/script/shell-uc.lib.sh
+  } || return
+
+  # Restore SHELL setting to proper value if unset
+  true "${SHELL:="$(ps -q $$ -o command= | cut -d ' ' -f 1)"}"
+
+  # Set everything about the shell we are working in
+  shell_uc_lib_load || { ERR=$?
+    printf "ERR%03i: Cannot initialze Shell lib" "$ERR" >&2
+    return $ERR
+  }
+
   user_scripts_loaded=1
 }
 
@@ -168,9 +168,8 @@ script_listfun ()
 
 ! script_baseext=.sh script_isrunning "user-scripts" || {
 
-  user_scripts_load
+  user_scripts_loadenv
   eval "set -- $(user_script_defarg "$@")"
-  stdmsg '*info' "User-Scripts starting..."
   script_baseext=.sh
   script_entry "user-scripts" "$@"
 }
