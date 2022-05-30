@@ -80,7 +80,7 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
   dt=$(date --iso=sec)
   tmpf="$HOME/.local/tmp/Screenshot $dt.png"
 
-  . ~/bin/system-display || return
+  . $US_BIN/system-display || return
 
   # shellcheck disable=SC2015
   test $# -gt 0 && {
@@ -104,7 +104,7 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
   do stdmsg '*info' "Waiting for file..."; sleep 3
   done
 
-  . ~/bin/image || return
+  . $US_BIN/image || return
   outf="$HOME/.local/tmp/Screenshot $dt-$geo.png"
   crop "$geo" "$tmpf" "$outf"
 
@@ -152,7 +152,11 @@ Env:
 }
 
 
-test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+test -n "${user_scripts_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+  unset SHELL
+  user_scripts_loadenv
+}
 ! script_isrunning "user-desktop" || eval "set -- $(user_script_defarg "$@")"
 script_defcmd= script_entry "user-desktop" "$@"
 #

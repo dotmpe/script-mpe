@@ -10,7 +10,6 @@
 .bzr/
 .cllct/
 .composer.lock
-.conf/
 .coverage
 .coverage/
 .git/
@@ -26,7 +25,6 @@
 .vagrant/
 /.coverage
 /htmlcov
-bin
 bower_components/
 composer.lock
 coverage_html_report/

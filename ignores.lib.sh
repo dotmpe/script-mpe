@@ -5,8 +5,9 @@
 
 ignores_lib_load()
 {
-  default_env Script-Etc "$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1 )" ||
-    debug "Using Script-Etc '$SCRIPT_ETC'"
+  # XXX: default_env Script-Etc "$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1 )" ||
+  #  debug "Using Script-Etc '$SCRIPT_ETC'"
+  true "${SCRIPT_ETC:="$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1)"}"
 
   #test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" ||
   #    error "ignores: SCRIPT-ETC '$SCRIPT_ETC'" 2
@@ -191,9 +192,9 @@ glob_to_find_prune()
 
   case "$1" in
       /*/ ) echo "-o -path \"$1*\" -a -prune" ;;
-      */ ) echo "-o -path \"$1*\" -a -prune" ;;
-      /* ) echo "-o -path \"$1\" -a -prune" ;;
-      */* ) echo "-o -path \"*/$1\" -a -prune" ;;
+      */ ) echo "-o -path \"*/$1*\" -a -prune" ;;
+      /* ) echo "-o -path \"$1*\" -a -prune" ;;
+      */* ) echo "-o -path \"*/$1*\" -a -prune" ;;
       * ) echo "-o -name \"$1\" -a -prune" ;;
   esac
 }

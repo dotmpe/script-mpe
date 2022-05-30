@@ -2,7 +2,7 @@
 # box-comp - auto-completion scripts for readline
 # Created: 2015-09-05
 
-__box_init() # Exec-Name
+__box_init () # ~ <Exec-Name>
 {
   test -n "${1-}" || set -- box
   box=$(which $1)
@@ -34,7 +34,8 @@ __box_aliases()
   grep -oP '^'$base'_als__\K\w+(?==)' "$box" | sort -u | tr '_' '-'
 }
 
-__box_bash_auto_complete()
+# Generate AC for script. See __box_init for settings.
+__box_bash_auto_complete ()
 {
   test -n "${box-}" || __box_init "$@"
 
@@ -48,7 +49,7 @@ __box_bash_auto_complete()
   COMPREPLY=( $(compgen -W "$(__box_cmds) $(__box_aliases) $(__box_options)" -- $cur) )
 }
 
-__box_ac_def() # Exec Handle
+__box_ac_def () # ~ <Exec-Name> <Handle> # Add completions for box execname
 {
   test -n "${2-}" || set -- "$1" "__box_bash_auto_complete"
   local box scriptname base
@@ -56,21 +57,36 @@ __box_ac_def() # Exec Handle
   scriptname="$(basename "$box" .sh)"
   base="$(echo "$scriptname" | tr '-' '_')"
   eval "$(cat <<EOM
-    __box_ac_${base}() {
-        local box cwd scriptname base ctags ; __box_init $1.sh || return
-        $2
-    }
+__box_ac_${base} ()
+{
+    local box cwd scriptname base ctags ; __box_init $1.sh || return
+    $2
+}
 EOM
   )"
   complete -F __box_ac_${base} $1.sh $1
 }
 
-uc_lib_load str-uc std-uc &&
 
-for box in box diskdoc docker-sh esop graphviz htd htd ino list match meta-sh \
-    redmine rst script-sh srv tasks topics twitter vagrant-sh vc x-test
-do
-  __box_ac_def $box
-done; unset box
+BOX_EXECS="box diskdoc docker-sh esop graphviz htd htd ino list match meta-sh"\
+" redmine rst script-sh srv tasks topics twitter vagrant-sh vc x-test"
+
+__uc_ac_init ()
+{
+  local box
+  for box in "$@"
+  do
+    __box_ac_def $box
+  done
+}
+
+__uc_execnames_check ()
+{
+  uc_lib_load user-scripts &&
+  user_scripts_lib_init &&
+  user_scripts_check
+}
+
+uc_lib_load str-uc std-uc && __uc_ac_init $BOX_EXECS
 
 # Id: script-mpe/0.0.4-dev box-completion.sh                       ex:ft=bash:

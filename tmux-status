@@ -107,9 +107,11 @@ moon ()
 }
 
 
-if test "${base:=$(basename -- "$0")}" = "tmux-status"
-then
-  test $# -gt 0 || set -- default
-  "$@"
-fi
+test -n "${user_scripts_loaded:-}" || {
+  . ~/bin/user-scripts.sh
+  unset SHELL
+  user_scripts_loadenv
+}
+! script_isrunning "tmux-status" || eval "set -- $(user_script_defarg "$@")"
+script_defcmd="" script_entry "tmux-status" "$@"
 #

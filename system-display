@@ -92,14 +92,18 @@ mouse_display () # ~ # Report display name and mousepointer info
     done
 }
 
-#system_display_load ()
-#{
-  . ~/bin/xorg.lib.sh
-  . ~/bin/user-desktop
-#}
+system_display_loadenv ()
+{
+  . "$US_BIN"/xorg.lib.sh &&
+  . "$US_BIN"/user-desktop
+}
 
 
-test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+test -n "${user_scripts_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+  unset SHELL
+  user_scripts_loadenv
+}
 
 # Parse arguments
 ! script_isrunning "system-display" || eval "set -- $(user_script_defarg "$@")"

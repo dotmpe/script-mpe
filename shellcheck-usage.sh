@@ -1,14 +1,17 @@
 #!/bin/sh
 
-# shellcheck disable=1090
-. "$HOME"/bin/os-htd.lib.sh
+#shellcheck disable=SC1090 # follow non-constant source
 
 
 wiki () # ~ <SCREF> # Dump wikipage to text on stdout
 {
-  echo "https://www.shellcheck.net/wiki/$1"
-  return
-  curl "https://www.shellcheck.net/wiki/$1" | elinks -dump
+  case "$1" in ( "CS"* ) set -- "$(echo "$1"|cut -c3-)" ;; esac
+
+  #curl -L "https://www.shellcheck.net/wiki/$1" | elinks -dump
+
+  curl -qSs "https://github.com/koalaman/shellcheck/wiki/SC$1" |
+      bs-cli.py xpath '//*[@class="markdown-body"]' - |
+      elinks -dump -no-references
 }
 
 
@@ -35,11 +38,22 @@ ex_quote_args ()
 # of 'read' I use read_lines or read_asis to avoid warnings.
 
 
-test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+shellcheck_loadenv ()
+{
+  . "${US_BIN:-"$HOME/bin"}"/os-htd.lib.sh
+}
+
+
+test -n "${user_scripts_loaded:-}" ||{
+  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+  unset SHELL
+  user_scripts_loadenv
+}
+
 ! script_baseext=.sh script_isrunning "shellcheck-usage" ||
     eval "set -- $(user_script_defarg "$@")"
 
 script_baseext=.sh \
-script_defcmd=check \
+script_defcmd="" \
     script_entry "shellcheck-usage" "$@"
 #

@@ -1,7 +1,11 @@
 #!/bin/sh
 
+#shellcheck disable=2154,2015
+
+
 script_isrunning () # ~ <Scriptname>
 {
+  #shellcheck disable=2086
   test "${base:-"$(basename -- "$0" ${script_baseext:-})"}" = "$1"
 }
 
@@ -14,7 +18,7 @@ script_entry () # ~ <Scriptname> <Arg...>
   then
     base="$1"
     shift
-    test $# -gt 0 || set -- ${script_defcmd:-"usage"}
+    test $# -gt 0 || set -- "${script_defcmd:-"usage"}"
     script_doenv || return
     stdmsg '*debug' "User-Scripts entry now"
     "$@" || script_ret=$?
@@ -34,9 +38,11 @@ script_doenv ()
     }
   }
 
+  #shellcheck disable=2039
+  test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set -uo pipefail
   mkvid "$base"; baseid=$vid
 
-  ! sh_fun ${baseid}_loadenv || ${baseid}_loadenv
+  ! sh_fun "${baseid}"_loadenv || "${baseid}"_loadenv
 
   test -z "${DEBUG:-}" || set -x
 }
@@ -44,6 +50,8 @@ script_doenv ()
 script_unenv ()
 {
   set +e
+  #shellcheck disable=2039
+  test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set +uo pipefail
   test -z "${DEBUG:-}" || set +x
 }
 
@@ -63,10 +71,12 @@ user_scripts_loadenv ()
 {
   ! test "${user_scripts_loaded:-}" = "1" || return 0
 
+  true "${US_BIN:="$HOME/bin"}"
+  #shellcheck source=/srv/project-local/script-mpe
   {
-    . ~/bin/str-htd.lib.sh &&
-    . ~/bin/os-htd.lib.sh &&
-    . ~/bin/argv.lib.sh &&
+    . "$US_BIN"/str-htd.lib.sh &&
+    . "$US_BIN"/os-htd.lib.sh &&
+    . "$US_BIN"/argv.lib.sh &&
     #. ~/project/user-scripts/src/sh/lib/shell.lib.sh
     . /src/local/user-conf-dev/script/shell-uc.lib.sh
   } || return
@@ -99,13 +109,13 @@ stdmsg () # ~ <Class> <Message>
   true "${v:="${verbosity:-4}"}"
   case "$1" in
       ( *"emerg" ) ;;
-      ( *"alert" ) test $v -gt 0 || return 0 ;;
-      ( *"crit" ) test $v -gt 1 || return 0 ;;
-      ( *"err" ) test $v -gt 2 || return 0 ;;
-      ( *"warn" ) test $v -gt 3 || return 0 ;;
-      ( *"note" ) test $v -gt 4 || return 0 ;;
-      ( *"info" ) test $v -gt 5 || return 0 ;;
-      ( *"debug" ) test $v -gt 6 || return 0 ;;
+      ( *"alert" ) test "$v" -gt 0 || return 0 ;;
+      ( *"crit" )  test "$v" -gt 1 || return 0 ;;
+      ( *"err" )   test "$v" -gt 2 || return 0 ;;
+      ( *"warn" )  test "$v" -gt 3 || return 0 ;;
+      ( *"note" )  test "$v" -gt 4 || return 0 ;;
+      ( *"info" )  test "$v" -gt 5 || return 0 ;;
+      ( *"debug" ) test "$v" -gt 6 || return 0 ;;
   esac
   echo "$2" >&2
 }
@@ -139,8 +149,8 @@ user_script_help () # ~ [<Name>]
   test $# -eq 0 && { {
     cat <<EOM
 Usage:
-$( sh_fun ${baseid}_usage &&
-    ${baseid}_usage || printf "\t%s <Command <Arg...>>" "$base" )
+$( sh_fun "${baseid}"_usage &&
+    "${baseid}"_usage || printf "\t%s <Command <Arg...>>" "$base" )
 
 Commands:
 EOM
@@ -151,7 +161,7 @@ EOM
   script_listfun "${1:-"[A-Za-z_:-][A-Za-z0-9_:-]*"}" | sed 's/^/\t/'
 }
 
-script_listfun ()
+script_listfun () # ~ # Wrap grep for function declarations scan
 {
   true "${script_src:="$(test -e "$0" && echo "$0" || command -v "$0")"}"
 
@@ -164,10 +174,12 @@ script_listfun ()
 }
 
 
-# Main
+# Main (this has nothing to-do, but anyway, as a boilerplate or
+# example..)
 
 ! script_baseext=.sh script_isrunning "user-scripts" || {
 
+  #. "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
   user_scripts_loadenv
   eval "set -- $(user_script_defarg "$@")"
   script_baseext=.sh

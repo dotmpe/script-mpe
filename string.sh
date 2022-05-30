@@ -3,7 +3,7 @@
 string_load ()
 {
   set -e
-  . ~/bin/str-htd.lib.sh
+  . "${US_BIN:-"$HOME/bin"}"/str-htd.lib.sh
   test -z "${DEBUG:-}" || set -x
 }
 

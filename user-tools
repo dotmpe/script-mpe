@@ -8,13 +8,11 @@ weather () # ~
   location_weather | cut -d ':' -f 2 | sed 's/^ //' | lines_to_words
 }
 
-
 forecast_tab ()
 {
   location_weather_info | jq -r \
     '.weather[0].hourly[] | "\(.time) \(.weatherCode) \(.weatherDesc[0].value)"'
 }
-
 
 forecast () # ~
 {
@@ -185,13 +183,6 @@ state ()
 state_icon_fa ()
 {
   printf "$nf_ple_left_half_circle_thick $nf_ple_right_half_circle_thick"
-  echo
-  printf "$nf_fa_check"
-  echo
-  env printf "$nf_fa_check"
-  echo
-  /usr/bin/printf "$nf_fa_check"
-  echo
 
   case "${1:-}" in
       ( ok ) printf "%s" "$nf_fa_check" ;;
@@ -210,14 +201,18 @@ Env:
 ' "$base"
 }
 
-#user_tools_load ()
+user_tools_loadenv ()
 {
-  . ~/bin/nerdfont.lib.sh
+  . "$US_BIN"/nerdfonts.lib.sh &&
+  nerdfonts_lib_load &&
+  nerdfonts_lib_init
 }
 
-
-test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
-
+test -n "${user_scripts_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+  unset SHELL
+  user_scripts_loadenv
+}
 ! script_isrunning "user-tools" || eval "set -- $(user_script_defarg "$@")"
 
 script_defcmd=check script_entry "user-tools" "$@"

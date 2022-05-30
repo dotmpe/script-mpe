@@ -370,14 +370,15 @@ Env:
 ' "$base"
 }
 
-
 system_status_loadenv ()
 {
-  . ~/bin/nerdfont.lib.sh
+  . "$US_BIN"/nerdfonts.lib.sh &&
+  nerdfonts_lib_load &&
+  nerdfonts_lib_init
 }
 
 test -n "${user_scripts_loaded:-}" || {
-  . ~/bin/user-scripts.sh
+  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
   user_scripts_loadenv
 }
 ! script_isrunning "system-status" || eval "set -- $(user_script_defarg "$@")"

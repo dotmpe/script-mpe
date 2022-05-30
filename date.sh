@@ -3,7 +3,7 @@
 date_load ()
 {
   set -e
-  . ~/bin/date-htd.lib.sh
+  . "${US_BIN:-"$HOME/bin"}"/date-htd.lib.sh
   test -z "${DEBUG:-}" || set -x
 }
 

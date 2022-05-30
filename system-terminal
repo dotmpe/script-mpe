@@ -35,7 +35,7 @@ sensible_colorscheme ()
     test -n "${python3_bin:-}" || return
 
     # shellcheck disable=1090
-    . ~/bin/user-tools
+    . $US_BIN/user-tools
     UC_NIGHTTIME=actual_darktime
   }
 }
@@ -166,8 +166,11 @@ Env:
 ' "$base"
 }
 
-
-test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+test -n "${user_scripts_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+  unset SHELL
+  user_scripts_loadenv
+}
 
 ! script_isrunning "system-terminal" || eval "set -- $(user_script_defarg "$@")"
 

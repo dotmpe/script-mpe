@@ -17,11 +17,14 @@ crop () # ~ <Geometry> <Input> [<Output>]
 }
 
 
-test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
+test -n "${user_scripts_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+  user_scripts_loadenv
+}
 
 # Parse arguments
 ! script_isrunning "image" || eval "set -- $(user_script_defarg "$@")"
 
 # Execute argv and return
-script_defcmd= script_entry "image" "$@"
+script_defcmd="" script_entry "image" "$@"
 #

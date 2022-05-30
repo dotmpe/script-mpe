@@ -8,10 +8,76 @@ user_scripts_lib_load()
       user_cmd_lists=~/.alias\ ~/.bash_alias\ ~/.bash_history\ ~/.conf/etc/git/base.config
 }
 
-user_scripts_lib_init()
+user_scripts_lib_init ()
 {
   test "${user_scripts_lib_init-}" = "0" && return
-  true
+
+  true "${uname:="$(uname -s)"}"
+  true "${US_BIN:=$HOME/bin}"
+  true "${SCRIPT_ETC:=$US_BIN/etc}"
+  lib_load ignores
+}
+
+user_scripts_find () # ~ # Find executables from user-dirs
+{
+  test $# -gt 0 || set -- $US_BIN $UCONF/script $UCONF/path/$uname
+  # $UCONF/script/$uname $UCONF/script/Generic
+
+  local find_ignores
+  find_ignores="$(ignores_find ~/bin/.htdignore.names | tr '\n' ' ')"
+
+  local bd
+  for bd in "$@"
+  do
+    eval "find $bd/ -false $find_ignores -o -executable -type f -print"
+  done
+}
+
+user_scripts_check () # ~ # See that every script has a description
+{
+  user_scripts_find | user_scripts_filter | user_scripts_check_description
+}
+
+user_scripts_check_description () # ~ #
+{
+  while IFS= read -r execname
+  do
+    grep -q '^###* [A-Z]' "$execname" || {
+        echo "No matches for <$execname>" >&2
+        echo "$execname"
+    }
+  done
+}
+
+user_scripts_filter () # ~ #
+{
+  local execname mime
+  while IFS= read -r execname
+  do
+    mime=$(file -bi "$execname")
+
+    fnmatch "application/*" "$mime" && {
+        echo "Skipping check of binary file <$execname>" >&2
+        continue
+    }
+
+    fnmatch "text/*" "$mime" ||  {
+        echo "Unexpected type <$execname>" >&2
+        continue
+    }
+
+    fnmatch "*.sh" "$execname" || {
+        fnmatch "*.bash" "$execname" || {
+            {
+                head -n 1 "$execname" | grep -q '\<\(bash\|sh\)\>'
+            } || {
+                echo "Skipping non-shell scripts for now <$execname>" >&2
+            }
+        }
+    }
+
+    echo "$execname"
+  done
 }
 
 # Look for command (ie. in history, aliases) given basic regex. To turn on
@@ -20,7 +86,7 @@ user_scripts_lib_init()
 # This looks at user-cmd-lists, a user-spec ossibly derived from package
 # metadata. To look at other scripts use `htd git-grep`, or see user-scripts'
 # env functions. In particular see LIB_SRC and ENV_SRC for scripts to grep.
-htd_user_find_command() # [grep_flags] [ext] ~ REGEX
+htd_user_find_command () # [grep_flags] [ext] ~ REGEX
 {
   test -n "${1-}" || return
   test -n "$user_cmd_lists" || return
@@ -31,8 +97,8 @@ htd_user_find_command() # [grep_flags] [ext] ~ REGEX
   note "Looking for user-command '$*'"
   for cmdl_file in $user_cmd_lists
   do
-      note "$cmdl_file"
-      test -e "$cmdl_file" || continue
+    note "$cmdl_file"
+    test -e "$cmdl_file" || continue
     std_info "Looking through '$cmdl_file'..."
     $ggrep $grep_flags "$1" "$cmdl_file" || continue
   done
