@@ -182,8 +182,6 @@ state ()
 
 state_icon_fa ()
 {
-  printf "$nf_ple_left_half_circle_thick $nf_ple_right_half_circle_thick"
-
   case "${1:-}" in
       ( ok ) printf "%s" "$nf_fa_check" ;;
       ( failed ) env printf $nf_fa_close ;;

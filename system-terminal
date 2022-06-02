@@ -8,8 +8,6 @@
 # This doesnt really try hard at being sensible but its a start
 sensible () # ~ # XXX: start urxvt bash session. see Env
 {
-  true "${UC_TERM:="urxvt"}"
-  true "${UC_SHELL:="bash"}"
   test -n "${UC_NIGHTTIME:-}" || {
       sensible_colorscheme || true
   }
@@ -18,7 +16,7 @@ sensible () # ~ # XXX: start urxvt bash session. see Env
 
 # Set UC_NIGHTTIME variable to a function that can check wether dark or light
 # mode is appropiate. Return non-zero if no user-defined setting was found.
-sensible_colorscheme ()
+sensible_colorscheme () # ~ # Look for function to determine current night-time
 {
   # shellcheck disable=2015
   test -n "${DAY_START:-}" -o -n "${DAY_END:-}" && {
@@ -58,14 +56,14 @@ night () # ~ <Run-Argv...>
   cs=dark sensible "$@"
 }
 
-terminal () # ~ <Name> <Run-Argv...>
+terminal () # ~ <Name> <Run-Argv...> # Start with other than default terminal
 {
   term=$1
   shift
   UC_TERM=$term sensible "$@"
 }
 
-name () # ~ <Name> <Run-Argv...>
+name () # ~ <Name> <Run-Argv...> # Start terminal with WM instance name
 {
   name=$1
   shift
@@ -88,7 +86,7 @@ exportargs () # [VAR=...] --
   unset cnt
 }
 
-colorscheme ()
+colorscheme () # ~ # 'dark' for night-time, 'light' otherwise
 {
   ${UC_NIGHTTIME:=nighttime} && echo "dark" || echo "light"
 }
@@ -102,7 +100,8 @@ nighttime () # ~ [<Hour>]
   test $1 -lt ${DAY_START:-6} -o $1 -ge ${DAY_END:-18}
 }
 
-shellexec ()
+# Replace current shell
+shellexec () # ~ [<Env>] -- [<Command>] ~ # Just execute shell
 {
   exportargs "$@" && shift $argc
   test $# -gt 0 || set -- -l
@@ -110,13 +109,16 @@ shellexec ()
   true "${UC_SHELL:="bash"}"
   true ${bin:=$(command -v $UC_SHELL)}
 
-  eval exec $bin "$@"
+  #shellcheck disable=2145
+  eval "exec $bin \"$@\""
 }
 
 # Continue execution at terminal program running shell command
 # shellcheck disable=2086
 termexec ()
 {
+  true "${UC_TERM:="urxvt"}"
+  true "${UC_SHELL:="bash"}"
   true ${bin:=$(command -v $UC_SHELL)}
   true ${cs:=$(colorscheme)}
 
@@ -124,8 +126,13 @@ termexec ()
   export SHELL=$bin SHELL_NAME=$UC_SHELL CS=$cs
   test -z "${UC_TERM_NAME:-}" || export UC_TERM_NAME
 
-  # shellcheck disable=SC2046
-  eval exec $(uc_term_$UC_TERM) $bin "$@"
+  # Re-quote arguments for eval
+  #set -- "$(argv_dump "$@")"
+  #eval "echo \"Running '$(uc_term_$UC_TERM) $bin $1'\"" >&2
+
+  # Eval exec command with uc_term_* part
+  # NOTE: urxvt does not require quotes around command and arguments.
+  eval "exec $(uc_term_$UC_TERM) $bin \"\$@\""
 }
 
 # Echo URxvt command-line
@@ -148,6 +155,27 @@ uc_term_urxvt ()
   test -z "${UC_TERM_NAME:-}" || set -- "$* -name '$UC_TERM_NAME'"
 
   echo "$* ${UC_TERM_OPTS:-} -e"
+}
+
+xterm_query ()
+{
+  oldstty=$(stty -g)
+
+  # What to query?
+  # 11: text background
+  Ps=${1:-11}
+
+  stty raw -echo min 0 time 0
+  # stty raw -echo min 0 time 1
+  printf "\033]$Ps;?\033\\"
+  # xterm needs the sleep (or "time 1", but that is 1/10th second).
+  sleep 0.00000001
+  read -r answer
+  # echo $answer | cat -A
+  result=${answer#*;}
+  stty $oldstty
+  # Remove escape at the end.
+  echo $result | sed 's/[^rgb:0-9a-f/]\+$//'
 }
 
 

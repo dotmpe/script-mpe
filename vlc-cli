@@ -130,24 +130,15 @@ stream_rc_fields ()
 
 status_sh () # ~ # Print RC status fields as Shell variables
 {
-  status_rc | status_rc_sh
+  status_rc | conv_fields_shell
 }
 
 info_sh () # ~ # Print RC info fields as Shell variables
 {
-  info_rc | sed 's/^/_/' | status_rc_sh
+  info_rc | sed 's/^/_/' | conv_fields_shell
 }
 
-# Translate uniform fields format into shell variable declarations
-status_rc_sh ()
-{
-  awk '
-    match($0,/^([^:]+): (.*)/,a) {
-        gsub("[^a-zA-Z0-9_]", "_",a[1])
-        $0 = a[1]"=\""a[2]"\""
-    } 1 '
-}
-
+eval "$(compo typeset conv_fields_shell)"
 
 # Send RC command over socket (using Py client)
 vlc_rc_ssend ()
@@ -208,7 +199,7 @@ fixlines ()
 
 test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
 
-#! script_isrunning "vlc-cli" || eval "set -- $(user_script_defarg "$@")"
+! script_isrunning "vlc-cli" || eval "set -- $(user_script_defarg "$@")"
 
 script_defcmd= script_entry "vlc-cli" "$@"
 #

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# std: logging and dealing with the shell's stdio decriptors
+### std.lib: logging and dealing with the shell's stdio decriptors
 
 
 std_ht_lib_load()

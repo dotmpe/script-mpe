@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# stdio.lib.sh: additional io for shell scripts
+### stdio.lib: additional io for shell scripts
 
 
 stdio_lib_init()

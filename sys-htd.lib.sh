@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Htd-Sys: dealing with vars, functions, env.
+## Htd:Sys: dealing with vars, functions, env.
 
 sys_htd_lib_load()
 {
