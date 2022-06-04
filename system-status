@@ -353,6 +353,19 @@ systemd-status-icon-fa () # ~ [<State>] # Print Font-Awesome icon for SystemD st
   esac
 }
 
+# XXX: detailed report about any process using CPU
+cpu_usage ()
+{
+  ps auxww | awk '{if ($3 < '${1:-0.1}') next;} {print}'
+}
+
+monitor ()
+{
+  grep '^0\.[0-9]*\ 0\.[0-9]*\ 0\.[0-9]* ' /proc/loadavg || {
+      cpu_usage 1.0
+  }
+}
+
 
 system_status_usage ()
 {

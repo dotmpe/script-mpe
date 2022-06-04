@@ -55,14 +55,34 @@ off () # ~ # Set brightness to 0.0 for all displays
   brightness 0 all
 }
 
+# List names
 list () # ~ <Spec> # List matching, use e.g. all, primary, *DP* or HDMI*. See 'xorg-display'.
 {
   xorg_display "$@"
 }
 
+# List onelines for each monitor with link-name
 info ()
 {
   xorg_info "$@"
+}
+
+# List Xorg config blocks for each monitor
+monitors ()
+{
+  xrandr --verbose | perl -ne '
+  if ((/EDID(_DATA)?:/.../:/) && !/:/) {
+    s/^\s+//;
+    chomp;
+    $hex .= $_;
+  } elsif ($hex) {
+    # Use "|strings" if you dont have read-edid package installed
+    # and just want to see (or grep) the human-readable parts.
+    open FH, "|parse-edid";
+    print FH pack("H*", $hex);
+    $hex = "";
+  }'
+  # Looking at find /sys -name edid could give files as well to decode
 }
 
 mouse_sh ()
