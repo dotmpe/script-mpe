@@ -158,19 +158,36 @@ EOM
 
   # NOTE: some shell allow all kinds of characters.
   # sometimes I define scripts as /bin/bash and use '-', maybe ':'.
-  script_listfun "${1:-"[A-Za-z_:-][A-Za-z0-9_:-]*"}" | sed 's/^/\t/'
+  script_listfun_flags=h \
+  script_listfun "${1:-"[A-Za-z_:-][A-Za-z0-9_:-]*"}"
 }
 
 script_listfun () # ~ # Wrap grep for function declarations scan
 {
   true "${script_src:="$(test -e "$0" && echo "$0" || command -v "$0")"}"
-
+  fun_flags script_listfun ht
   # XXX: foreach...
-  grep "^$1 () #" "$script_src" | sed '
-        s/ () //
-        s/# \~/#/
-      ' |
-    tr -s '#' '\t' | column -c3 -s "$(printf '\t')" -t
+  grep "^$1 *() #" "$script_src" | {
+    test $script_listfun_h = 1 && {
+      sed '
+        s/# \([^\~]\)/\n      \1/
+        s/ *() *# ~ */ /
+        s/^/    /
+      '
+    } || {
+      sed '
+        s/ *() *//
+        s/# \~ */#/
+      ' | tr -s '#' '\t' | {
+        test $script_listfun_t = 1 && {
+          cat
+        } || {
+          column -c3 -s "$(printf '\t')" -t |
+            sed 's/^/\t/'
+        }
+      }
+    }
+  }
 }
 
 

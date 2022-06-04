@@ -216,4 +216,9 @@ pop_pwd()
   cd "$pwd"
 }
 
+sys_running () # ~ <Exec>
+{
+  pgrep "$1" >/dev/null
+}
+
 # Sync: U-S:src/sh/lib/sys.lib.sh

@@ -21,6 +21,7 @@ display_info ()
   xorg_info "$@"
 }
 
+# TODO: set with zoom,fill,center,tile modes
 display_setbg () # ~ <Display> <File> <Mode>
 {
   display_info "$1" | grep -Po '\b[0-9]+x[0-9]+'
@@ -96,6 +97,19 @@ system_display_loadenv ()
 {
   . "$US_BIN"/xorg.lib.sh &&
   . "$US_BIN"/user-desktop
+}
+
+system_display_usage ()
+{
+  printf \
+'    %s <Command <Arg...>>
+
+FIXME: have been meaning to list actual monitor names iso. link names but
+found only incomplete data with read-edid.
+But e.g.
+xconf-query -lvc displays
+and other config tools do provide actual monitor names.
+' "$base"
 }
 
 

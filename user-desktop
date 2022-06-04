@@ -51,14 +51,28 @@ get_bg () # ~ <Tags>...
   #image scale
 }
 
-
+# TODO: prepare fancy background
 background_set () # ~ <File> <Display>...
 {
   fn="$1"
   shift
-  #shellcheck disable=2046
-  set -- $(display "$1") || return
 
+  . $US_BIN/system-display || return
+  . $US_BIN/xorg.lib.sh || return
+  #shellcheck disable=2046
+  #set -- $(display "$1") || return
+  #geom=$(display_info "$(display "$1")" | cut -d ' ' -f 2)
+  display_geom=$(mouse_display | cut -d ' ' -f 3)
+
+  . $US_BIN/image || return
+
+  echo display geom: $display_geom
+  geom=$(echo $display_geom | sed 's/+.*/+0+0/')
+
+  scale "$geom" "$fn" "scaled.jpg"
+  colorize "scaled.jpg" "tinted.jpg" "#000000" 95
+
+  return
   #shellcheck disable=2068
   for d in $@
   do
@@ -66,14 +80,6 @@ background_set () # ~ <File> <Display>...
   done
   unset fn d
 }
-
-background ()
-{
-  sub=$1
-  shift
-  background_"${sub}" "$@"
-}
-
 
 screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
 {
@@ -85,13 +91,13 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
   # shellcheck disable=SC2015
   test $# -gt 0 && {
 
-    geo=$(display_info "$(display "$1")" | cut -d ' ' -f 2)
+    geom=$(display_info "$(display "$1")" | cut -d ' ' -f 2)
   } || {
 
-    geo=$(mouse_display | cut -d ' ' -f 3)
+    geom=$(mouse_display | cut -d ' ' -f 3)
   }
 
-  test -n "$geo" || {
+  test -n "$geom" || {
     stdstat 123 "Cannot get geometry for display"
   }
 
@@ -105,17 +111,29 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
   done
 
   . $US_BIN/image || return
-  outf="$HOME/.local/tmp/Screenshot $dt-$geo.png"
-  crop "$geo" "$tmpf" "$outf"
+  outf="$HOME/.local/tmp/Screenshot $dt-$geom.png"
+  crop "$geom" "$tmpf" "$outf"
 
   rm "$tmpf"
   mv "$outf" ~/Pictures/
   stdmsg '*note' "Moved screenshot $dt to Pictures"
 }
 
+# TODO:
 user_desktop_settings ()
 {
   UC_DPI
+}
+
+theme ()
+{
+  desktop_conf || return
+  "${DESKTOP_CONF}"_widget_theme "$@"
+}
+
+list_themes ()
+{
+  list_widget_themes
 }
 
 
@@ -156,6 +174,8 @@ test -n "${user_scripts_loaded:-}" || {
   . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
   unset SHELL
   user_scripts_loadenv
+  . ~/bin/sys-htd.lib.sh
+  . ~/bin/desktop.lib.sh
 }
 ! script_isrunning "user-desktop" || eval "set -- $(user_script_defarg "$@")"
 script_defcmd= script_entry "user-desktop" "$@"

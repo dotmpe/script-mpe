@@ -242,6 +242,13 @@ fmtdate_relative () # ~ [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
 # Also printing several orders together. But not a lot of customization.
 fmtdate_relative_f ()
 {
+  test -z "${1-}" || {
+      echo "No supported" >&2
+  }
+  test -n "${2:-}" || return 64
+
+  echo 2=${2//.*} >&2
+
   test ${2//.*} -gt 0 && {
     # Seconds
 

@@ -118,7 +118,7 @@ htd_user_find_command () # [grep_flags] [ext] ~ REGEX
 # Indiviudal flag-vars are never changed if provided by env.
 fun_flags () # ~ <Var-Name> [<Flags-Off>] [<Flags-On>]
 {
-  for flag in $(echo $(eval "echo \"\$${1}_flags\"") | sed 's/./&\ /g')
+  for flag in $(echo $(eval "echo \"\${${1}_flags-}\"") | sed 's/./&\ /g')
   do eval "true \${${1}_${flag}:=1}"
   done
 
@@ -133,6 +133,7 @@ fun_flags () # ~ <Var-Name> [<Flags-Off>] [<Flags-On>]
     do eval "true \${${1}_${flag}:=1}"
     done
   }
+
   unset flag
 }
 

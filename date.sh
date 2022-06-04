@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 date_load ()
 {
@@ -14,12 +14,19 @@ then
 
   case "${1-}" in
 
-    ( relative ) shift; fmtdate_relative "$@" || return ;;
-    ( relative-abbrev ) shift; {
-        fmtdate_relative "$@" || return
+    ( relative ) shift; case "$2" in
+            ( *"."* ) fmtdate_relative_f "$@" || return ;;
+            ( * ) fmtdate_relative "$@" || return ;;
+        esac;;
+
+    ( relative-abbrev ) shift; { case "$2" in
+            ( *"."* ) fmtdate_relative_f "$@" || return ;;
+            ( * ) fmtdate_relative "$@" || return ;;
+        esac
       } | fmtdate_abbrev || return;;
 
-    * | "" ) exit 64 ;;
+    * ) echo "relative|relative-abbrev"; exit 1 ;;
+    * ) exit 2 ;;
 
   esac
 
