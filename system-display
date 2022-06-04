@@ -78,6 +78,8 @@ mouse () # ~ # Report display name where mousepointer currently is
   mouse_display | cut -d ' ' -f 1
 }
 
+# Cant seem to do this with xdotool directly? Desktop numbering is
+# strange as well.
 mouse_display () # ~ # Report display name and mousepointer info
 {
   eval "$(mouse_sh)"
@@ -93,9 +95,30 @@ mouse_display () # ~ # Report display name and mousepointer info
     done
 }
 
+#shellcheck disable=2015,2086,2154
+window_geometry () # ~ [<Window-ID>]
+{
+  test $# -gt 0 || set -- "$(xdotool getactivewindow)"
+  fun_flags window_geometry r g
+  xwininfo -id "$1" | awk -F ":" ' /(Absolute upper|Width|Height)/ {
+        gsub("^ *", "", $1)
+        gsub("^ *", "", $2)
+        print $1"\t"$2
+    }' | { test $window_geometry_r = 1 && cat || {
+        tr '\n' '\t' | {
+          test $window_geometry_g = 1 &&
+            awk ' BEGIN{FS="\t"} { print $6"x"$8"+"$2"+"$4 }' ||
+                awk ' BEGIN{FS="\t"} { print $2" "$4" "$6" "$8 }'
+      }
+    }
+  }
+}
+
+
 system_display_loadenv ()
 {
   . "$US_BIN"/xorg.lib.sh &&
+  . "$US_BIN"/user-scripts.lib.sh &&
   . "$US_BIN"/user-desktop
 }
 
