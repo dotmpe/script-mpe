@@ -225,7 +225,8 @@ background () # ~
   set_background "$img"
 }
 
-# XXX: OSC 20 and 50 requires a recent rxvt. I compiled v9.30 from GitHub src.
+# XXX: OSC 20 and 50 requires a recent rxvt.
+# I compiled v9.30 from GitHub src and hacked in 706 (shade) and 707 (blurradius)
 
 set_background () # ~ #
 {
@@ -245,28 +246,28 @@ set_font () # ~ #
 }
 
 # Extension on customized URxvt
-set_shade ()
+set_shade () # ~ <Percentage> # Change shading (patched URxvt only)
 {
   term_send_osc 706 "$1"
 }
 
 # Extension on customized URxvt
-set_blur ()
+set_blur () # ~ <Pixels> # Change blur radius (patched URxvt only)
 {
   term_send_osc 707 "$1"
 }
 
-night ()
+night () # ~ # Switch to dark colorscheme
 {
   colorscheme dark
 }
 
-day ()
+day () # ~ # Switch to light colorscheme
 {
   colorscheme light
 }
 
-colorscheme ()
+colorscheme () # ~ ([dark]|light)
 {
   case "${1:-dark}" in
       ( dark ) set_colors Tango-dark && set_shade 30 ;;
