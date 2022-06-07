@@ -1,6 +1,6 @@
 #!/bin/sh
 
-## Helper for desktop settings
+### Helper for desktop settings
 
 #shellcheck disable=SC1090,1007
 
@@ -119,12 +119,6 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
   stdmsg '*note' "Moved screenshot $dt to Pictures"
 }
 
-# TODO:
-user_desktop_settings ()
-{
-  UC_DPI
-}
-
 theme ()
 {
   desktop_conf || return
@@ -176,6 +170,7 @@ test -n "${user_scripts_loaded:-}" || {
   user_scripts_loadenv
   . ~/bin/sys-htd.lib.sh
   . ~/bin/desktop.lib.sh
+  . ~/bin/xorg.lib.sh
 }
 ! script_isrunning "user-desktop" || eval "set -- $(user_script_defarg "$@")"
 script_defcmd= script_entry "user-desktop" "$@"

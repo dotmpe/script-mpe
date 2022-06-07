@@ -7,7 +7,7 @@
 sensible () # ~ # XXX: start urxvt bash session. see Env
 {
   test -n "${UC_NIGHTTIME:-}" || {
-      sensible_colorscheme || true
+    sensible_colorscheme || true
   }
   run "$@"
 }

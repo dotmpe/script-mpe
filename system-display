@@ -5,7 +5,7 @@
 #shellcheck disable=SC1090,1007
 
 
-displays ()
+displays () # ~ # Display monitor link names
 {
   xorg_names
   #xorg_info_connected | cut -d' ' -f1
@@ -67,22 +67,9 @@ info ()
   xorg_info "$@"
 }
 
-# List Xorg config blocks for each monitor
 monitors ()
 {
-  xrandr --verbose | perl -ne '
-  if ((/EDID(_DATA)?:/.../:/) && !/:/) {
-    s/^\s+//;
-    chomp;
-    $hex .= $_;
-  } elsif ($hex) {
-    # Use "|strings" if you dont have read-edid package installed
-    # and just want to see (or grep) the human-readable parts.
-    open FH, "|parse-edid";
-    print FH pack("H*", $hex);
-    $hex = "";
-  }'
-  # Looking at find /sys -name edid could give files as well to decode
+  xrandr_info
 }
 
 mouse_sh ()

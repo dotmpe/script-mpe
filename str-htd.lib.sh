@@ -647,4 +647,19 @@ str_quote_var ()
   echo "$( printf '%s' "$1" | grep -o '^[^=]*' )=$(str_quote "$( printf -- '%s' "$1" | sed 's/^[^=]*=//' )")"
 }
 
+str_concat () # ~ <String-1> <String-2> <String-Sep>
+{
+  test $# -ge 2 -a $# -le 3 || return 64
+  test $# -gt 2 || set -- "$@" " "
+  test -n "$1" && {
+    test -n "$2" && {
+        echo "$1$3$2"
+    } || {
+        echo "$1"
+    }
+  } || {
+    test -z "$2" || echo "$2"
+  }
+}
+
 #
