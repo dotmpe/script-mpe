@@ -78,4 +78,23 @@ rst_reference_targets ()
   git grep -Hn '^ *\.\. _.*:\ *$' '*.rst'
 }
 
+rst_nestedlists_rootlists='document.0.\/\(section\[[0-9][0-9]*\]\/\)*\(enumerated\|bullet\)_list\[[0-9][0-9]*\]'
+
+# Extract nested lists as tab-indented text. Top lists must be in document
+# root or section.
+rst_nestedlists () # ~ <File> [<Grep>]
+{
+  test $# -gt 1 || set -- "$1" "$rst_nestedlists_rootlists"
+
+  rst-outline.py --outliner-type list --outline-format tab \
+    --outline-text "$1" |
+    grep "$2" | grep '#text' |
+    sed '
+        s/list_item\[[0-9]*\]/	/g
+        s/[^	]*#text\[[0-9]*\]//g
+        s/[^	]*	/	/g
+      ' |
+        cut -d' ' -f1,6-
+}
+
 #
