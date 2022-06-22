@@ -275,6 +275,17 @@ colorscheme () # ~ ([dark]|light)
   esac
 }
 
+shells ()
+{
+  UNAME=`uname -sr`
+  for i in /bin/*sh /usr/local/bin/*sh /sbin/*sh; do
+    echo "$i"
+    case $i in *r*sh|*csh|*ssh) continue;;esac
+    echo "$i ($UNAME): `$i ~/.local/bin/whatshell.sh 2>&1`"
+  done
+}
+
+
 
 system_terminal_usage ()
 {
