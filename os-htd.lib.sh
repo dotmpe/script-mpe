@@ -268,6 +268,26 @@ foreach_match () # [type_=(grxe) expr_= act=echo no_act=/dev/null p= s=] [Subjec
   esac && $act "$S" || $no_act "$S" ; done
 }
 
+foreach_sub_col () # ~ <Col-Nr> <Sub-Cmd>
+{
+  awk ' BEGIN { mysub = "'"$2"'" }
+        {
+            col = $'$1'
+            print col |& mysub
+            mysub |& getline out
+            close(mysub)
+            $'$1' = out
+            print
+        }
+    '
+}
+
+forone_do () # ~ <Cmd>
+{
+  read forone
+  "$@" "$forone"
+}
+
 # Resolve all symlinks in subtree, return a list with targets
 get_targets ()
 {

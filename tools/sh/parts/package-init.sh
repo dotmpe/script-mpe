@@ -11,7 +11,7 @@ package_require ()
   package_load || return
 
   # Evaluate package env
-  test ! -e "$PACK_SH" -a ${package_require:-1} -eq 0 || {
+  test ! -e "${PACK_SH-}" -a ${package_require:-1} -eq 0 || {
 
     . $PACK_SH || stderr error "local package ($?)" 7
     $LOG debug "" "Found package '$package_id'"

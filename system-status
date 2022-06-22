@@ -359,9 +359,49 @@ cpu_usage ()
   ps auxww | awk '{if ($3 < '${1:-0.1}') next;} {print}'
 }
 
-monitor ()
+# Tabulate CPU users above cutoff into: Users CPU% MEM% Instance-count Suite
+# where suite is either the first name of the command line or the word that
+# the UC_SUITE_CMDS_SED sed-script puts in its place.
+# This is so we can gather the statistics we want in one step, see ps-map-suites-sed.
+cpu_users () # ~ <Pct-Cutoff=0.01>
 {
-  grep '^0\.[0-9]*\ 0\.[0-9]*\ 0\.[0-9]* ' /proc/loadavg || {
+  ps auxww | ps_map_suites_sed | awk '
+        {
+            if ($3 <= '${1:-0.1}') next
+            !cmds[$11]++
+            if (users[$11] != $1) {
+              if (users[$11] == "") {
+                users[$11] = $1
+              } else {
+                users[$11] = users[$11]","$1
+              }
+            }
+            cpu[$11] = cpu[$11]+$3
+            mem[$11] = mem[$11]+$4
+        }
+        END { for(i in cmds) { print users[i]" "cpu[i]" "mem[i]" "cmds[i]" "i  } }
+    ' | sort -r -k 2n,3n
+}
+
+# Use a sed script to translate paths of executables to Suite-Ids.
+# Because its written as a sed-script it can be used on any output,
+# but it will also leave unknown commands.
+# To be tailored per-user, host, context...
+ps_map_suites_sed ()
+{
+  set -- ${PS_MAP_SUITES_SED:-${UCONF?}/user/cmds-suite-names.sed}
+  test -e "$1" || error "No user script $1" 1
+  sed -f "$1"
+}
+
+# Trigger when load average fails to match
+monitor () # ~ <1min=0-9> <5min=0> <15min=0-9>
+{
+  test $# -gt 0 || set -- 0
+  test $# -gt 1 || set -- 0-9 "$1"
+  test $# -gt 2 || set -- "$@" 0-9
+
+  grep '^['$1']\.[0-9]*\ ['$2']\.[0-9]*\ ['$3']\.[0-9]* ' /proc/loadavg || {
       cpu_usage 1.0
   }
 }

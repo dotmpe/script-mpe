@@ -913,7 +913,7 @@ Per host, cwd info
 htd_als__st=status
 htd_als__stat=status
 htd_flags__status=lq
-htd_libs__status=package\ sys-htd\ htd-list\ htd-tasks\ ctx-base\ htd-prefix
+htd_libs__status=package\ sys-htd\ htd-list\ htd-tasks\ ctx-base\ htd-prefix\ context
 htd__status()
 {
   htd_wf_ctx_sub status "$@"

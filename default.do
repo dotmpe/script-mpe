@@ -80,13 +80,13 @@ default_do_main ()
         test "$1" != "${components_txt-}" -a -s "${components_txt-}" || {
           $LOG alert ":build-component:$1" \
             "Cannot build from table w/o table" "${components_txt-null}" 1
-          return
+          return 1
         }
 
         build_component_exists "$1" && {
           $LOG "notice" ":exists:$1" "Found component " "$1"
           lib_require match &&
-          build_component "$@"
+          build_components "$1" "" "$@"
           return $?
         } || true
 

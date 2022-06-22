@@ -277,11 +277,31 @@ colorscheme () # ~ ([dark]|light)
 
 shells ()
 {
-  UNAME=`uname -sr`
-  for i in /bin/*sh /usr/local/bin/*sh /sbin/*sh; do
-    echo "$i"
-    case $i in *r*sh|*csh|*ssh) continue;;esac
-    echo "$i ($UNAME): `$i ~/.local/bin/whatshell.sh 2>&1`"
+  WS=`command -v whatshell.sh`
+  test -x "$WS" || {
+    echo "Cannot find <whatshell.sh>" >&2
+    return 1
+  }
+
+  for p in /bin /usr/bin /usr/local/bin /sbin/ /usr/sbin
+  do
+    for sh in $p/*sh $p/ksh*
+    do
+        case $sh in
+            */sh | \
+            */[akz]sh | \
+            */[bdlmr][akz]sh | \
+            */[r][b][a]sh | \
+            */ksh2020 )
+        ;; * ) continue
+        ;; esac
+
+        test -h "$sh" &&
+            p="$sh (-> $(realpath --relative-base=$(dirname "$sh") "$sh"))" ||
+            p="$sh"
+
+        echo "$p: `$sh $WS 2>/dev/null`"
+    done
   done
 }
 
