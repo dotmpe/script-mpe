@@ -283,24 +283,37 @@ shells ()
     return 1
   }
 
-  for p in /bin /usr/bin /usr/local/bin /sbin/ /usr/sbin
+  for p in /bin /usr/bin /usr/local/bin /sbin /usr/sbin
   do
     for sh in $p/*sh $p/ksh*
     do
-        case $sh in
-            */sh | \
-            */[akz]sh | \
-            */[bdlmr][akz]sh | \
-            */[r][b][a]sh | \
-            */ksh2020 )
-        ;; * ) continue
-        ;; esac
+      { case $sh in */*.* ) false ;; * ) ;; esac && test -e "$sh"
+      } || continue
 
-        test -h "$sh" &&
-            p="$sh (-> $(realpath --relative-base=$(dirname "$sh") "$sh"))" ||
-            p="$sh"
+      test "${REVIEW:-0}" = "0" || {
+        echo "$sh"
+        continue
+      }
 
-        echo "$p: `$sh $WS 2>/dev/null`"
+      case $sh in
+          */sh | \
+          */[akz]sh | \
+          */[bdlmr][akz]sh | \
+          */[r][blm][ak]sh | \
+          */ksh2020 )
+      ;; * ) continue
+      ;; esac
+
+      test "${PERFORM_WS:-0}" = "1" || {
+        echo "$sh"
+        continue
+      }
+
+      test -h "$sh" &&
+          p="$sh (-> $(realpath --relative-base=$(dirname "$sh") "$sh"))" ||
+          p="$sh"
+
+      echo "$p: `$sh $WS 2>/dev/null`"
     done
   done
 }
