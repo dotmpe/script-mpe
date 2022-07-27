@@ -14,16 +14,34 @@ then
 
   case "${1-}" in
 
-    ( relative ) shift; case "$2" in
+    ( time-parse ) shift;
+            time_parse_seconds "$1"
+        ;;
+
+    ( time-readable ) shift;
+            echo "$1" | time_minsec_human_readable
+        ;;
+
+    ( time-readable-tag ) shift;
+            time_minsec_human_readable_tag "$1"
+        ;;
+
+    ( relative ) shift;
+        case "$2" in
             ( *"."* ) fmtdate_relative_f "$@" || return ;;
             ( * ) fmtdate_relative "$@" || return ;;
         esac;;
 
-    ( relative-abbrev ) shift; { case "$2" in
+    ( relative-ts ) shift; case "$2" in
+            ( *"."* ) fmtdate_relative_f "$@" || return ;;
+            ( * ) fmtdate_relative "$@" || return ;;
+        esac;;
+
+    ( relative-ts-abbrev ) shift; { case "$2" in
             ( *"."* ) fmtdate_relative_f "$@" || return ;;
             ( * ) fmtdate_relative "$@" || return ;;
         esac
-      } | fmtdate_abbrev || return;;
+      } | time_fmt_abbrev || return;;
 
     * ) echo "relative|relative-abbrev"; exit 1 ;;
     * ) exit 2 ;;

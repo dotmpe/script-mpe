@@ -1,8 +1,6 @@
 #!/bin/sh
 
-### Helper for VLC control using olrdrc module
-
-#shellcheck disable=SC1090,1007
+## Helper for VLC control using olrdrc module
 
 # vlctl is fork of vlctransc.py
 
@@ -197,6 +195,7 @@ fixlines ()
 
 # Main
 
+#shellcheck source=user-scripts.sh
 test -n "${user_scripts_loaded:-}" || . ~/bin/user-scripts.sh
 
 ! script_isrunning "vlc-cli" || eval "set -- $(user_script_defarg "$@")"

@@ -1,7 +1,6 @@
 #!/bin/sh
 
-#shellcheck disable=SC1090 # follow non-constant source
-
+#shellcheck disable=SC2119 # Special functions accept either/both argv & stdin
 
 weather () # ~
 {
@@ -20,7 +19,7 @@ forecast () # ~
     while read_asis time code desc
     do
       # shellcheck disable=2086,2046
-      echo $time $(date-util relative-abbrev "" "$time" "") $code $desc
+      echo $time $(date-util relative-ts-abbrev "" "$time" "") $code $desc
     done
 }
 
@@ -37,6 +36,7 @@ weatherdata () # ~
 # Weather is name for location, unicode symbol and temperature.
 location_weather ()
 {
+  #shellcheck disable=SC2119 # Special functions accepts either/both argv/stdin
   curl "wttr.in/${wttr_loc-}?format=3" | lines_to_words
 }
 

@@ -143,6 +143,8 @@ and other config tools do provide actual monitor names.
 }
 
 
+# Main entry (see user-scripts.sh for boilerplate)
+
 test -n "${user_scripts_loaded:-}" || {
   . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
   unset SHELL
@@ -150,8 +152,10 @@ test -n "${user_scripts_loaded:-}" || {
 }
 
 # Parse arguments
-! script_isrunning "system-display" || eval "set -- $(user_script_defarg "$@")"
+! script_isrunning "system-display" ||
+    eval "set -- $(user_script_defarg "$@")"
 
 # Execute argv and return
-script_defcmd=list script_entry "system-display" "$@"
+script_defcmd=list \
+    script_entry "system-display" "$@"
 #

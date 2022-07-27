@@ -55,8 +55,7 @@ package_init () # [Package-Dir] [Package-Lib-Auto] [Package-Id]
   test -d "$1/$PACK_ENVD" || mkdir -p "$1/$PACK_ENVD"
   test -d "$1/$PACK_SCRIPTS" || mkdir -p "$1/$PACK_SCRIPTS"
 
-  package_env_reset &&
-  package_lib_set_local "$@" || true
+  package_env_reset && package_lib_set_local "$@" || true
 }
 
 # Detect package format and set PACKMETA
@@ -253,12 +252,13 @@ package_id () # Package-Id [Package-Type]
   jq -r 'map(select(.type=="'"$2"'" and .id=="'"$1"'")) | .[].id' $PACKAGE_JSON
 }
 
-package_file()
+package_file () # [metaf] ~ [<Dir>] # Check for or set metaf{,_src} and run preproc
 {
   test -n "${metaf-}" || metaf="$(echo $1/package.y*ml | cut -f1 -d' ')"
   test -e "$metaf" || error "No package-file at '$1' '$metaf'" 1
   metaf="$(normalize_relative "$metaf")"
 
+  # Check wether we need to pre-proc file
   grep -q '^#include\ ' "$metaf" && {
     metaf_src="$metaf"
     metaf="$1"/.htd/package.yaml
@@ -678,6 +678,7 @@ package_lists_contexts_map() #
   while test -z "${2-}"
   do
     upper=0 mkvid "package_lists_contexts_map_$local_name" ;
+    #shellcheck disable=SC1083
     set -- $( eval echo \"\${$vid-}\" )
     test -z "${1-}" || echo "$1"
     local_name="$(dirname "$local_name")"

@@ -4,6 +4,13 @@ http://stackoverflow.com/questions/2572521/extract-the-sha1-hash-from-a-torrent-
 """
 from __future__ import print_function
 import sys, os, hashlib, StringIO, bencode
+from pprint import pprint
+
+from hashlib import sha1
+from bencode import bdecode as decode, bencode as encode
+
+#import libtorrent as lt
+
 
 def pieces_generator(info):
     """Yield pieces from download file(s)."""
@@ -44,33 +51,73 @@ def corruption_failure():
     print("download corrupted")
     exit(1)
 
-def main(torrentfile_path):
-    # Open torrent file
+
+def read_torrent(torrentfile_path):
     torrent_file = open(torrentfile_path, "rb")
-    metainfo = bencode.bdecode(torrent_file.read())
-    info = metainfo['info']
+    return decode(torrent_file.read())
+
+def info(torrentfile_path):
+    metainfo = read_torrent(torrentfile_path)
+    if not 'magnet-info' in metainfo:
+        #pprint(metainfo)
+        print("Missing 'magnet-info' key %r" % os.path.basename(torrentfile_path))
+        sys.exit(1)
+    #pprint(metainfo['magnet-info'])
+
+    info = metainfo['magnet-info']['info_hash']
+
+    print("magnet:?xt=urn:btih:%s" % sha1(info).hexdigest())
+    print("magnet:?xt=urn:btih:%s" % sha1(encode(info)).hexdigest())
+
+
+def verify(torrentfile_path):
+    metainfo = read_torrent(torrentfile_path)
+
+    if not 'magnet-info' in metainfo:
+        print("Missing 'magnet-info' key %r" % os.path.basename(torrentfile_path))
+        sys.exit(1)
+
+    print(metainfo)
+    info = metainfo['magnet-info']
+
     if 'files' in info:
         print('info/files', info['files'])
-    print('info/piece length', info['piece length'])
+
+    print('info/piece length', info['piece_length'])
     print('info/name', info['name'])
-    #btih = hashlib.sha1(info).hexdigest()
-    #print "magnet:?xt=urn:btih:%s" % btih
+
     pieces = StringIO.StringIO(info['pieces'])
     print(len(info['pieces'])/20, "pieces, piece length:",info['piece length'])
+
     # Iterate through pieces
     for piece in pieces_generator(info):
         # Compare piece hash with expected hash
-        piece_hash = hashlib.sha1(piece).digest()
+        piece_hash = sha1(piece).digest()
         if (piece_hash != pieces.read(20)):
             corruption_failure()
+
     # ensure we've read all pieces
     if pieces.read():
         corruption_failure()
 
+
 if __name__ == "__main__":
     argv = list(sys.argv)
     scriptname = argv.pop(0)
+
     if '-h' in argv:
         print(__doc__)
         sys.exit(0)
-    main(argv.pop(0))
+
+    if '--info' in argv:
+        pprint(info(argv[1]))
+        sys.exit(0)
+
+    if '--dump' in argv:
+        # Can't serialize binary string with JSON lib
+        #from script_mpe.res import js
+        #print(js.dumps(read_torrent(argv[1])))
+        pprint(read_torrent(argv[1]))
+        sys.exit(0)
+
+    verify(argv.pop(0))

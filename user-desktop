@@ -1,8 +1,6 @@
 #!/bin/sh
 
-### Helper for desktop settings
-
-#shellcheck disable=SC1090,1007
+## Helper for desktop settings
 
 
 backgrounds () # ~ # List user's deesktop backgrounds
@@ -122,6 +120,7 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
 theme ()
 {
   desktop_conf || return
+  dash $LOG info "" "Using conf manager" "$DESKTOP_CONF"
   "${DESKTOP_CONF}"_widget_theme "$@"
 }
 
@@ -131,7 +130,7 @@ list_themes ()
 }
 
 
-# shellcheck disable=1090
+#shellcheck disable=1091 # env.sh and .meta.sh do not need to exist
 user_desktop_loadenv ()
 {
   test -e "${DISP_CONFIG_DIR:="$HOME/.config/display"}/env.sh" && {
@@ -168,9 +167,12 @@ test -n "${user_scripts_loaded:-}" || {
   . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
   unset SHELL
   user_scripts_loadenv
-  . ~/bin/sys-htd.lib.sh
-  . ~/bin/desktop.lib.sh
-  . ~/bin/xorg.lib.sh
+  #shellcheck source=sys-htd.lib.sh
+  . $US_BIN/sys-htd.lib.sh
+  #shellcheck source=desktop.lib.sh
+  . $US_BIN/desktop.lib.sh
+  #shellcheck source=xorg.lib.sh
+  . $US_BIN/xorg.lib.sh
 }
 ! script_isrunning "user-desktop" || eval "set -- $(user_script_defarg "$@")"
 script_defcmd= script_entry "user-desktop" "$@"

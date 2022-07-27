@@ -1,6 +1,6 @@
 #!/bin/sh
 
-## ImageMagick helpers
+### ImageMagick helpers
 
 #shellcheck disable=SC1090,1007
 
@@ -28,14 +28,18 @@ colorize () # ~ <In> <Out> <Color> <Percentage <G, B>
 }
 
 
+# Main entry (see user-scripts.sh for boilerplate)
+
 test -n "${user_scripts_loaded:-}" || {
   . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
   user_scripts_loadenv
 }
 
 # Parse arguments
-! script_isrunning "image" || eval "set -- $(user_script_defarg "$@")"
+! script_isrunning "image" ||
+    eval "set -- $(user_script_defarg "$@")"
 
 # Execute argv and return
-script_defcmd="" script_entry "image" "$@"
+script_defcmd="" \
+    script_entry "image" "$@"
 #

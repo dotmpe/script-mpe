@@ -1,5 +1,8 @@
 #!/bin/sh
 
+## Lib to bootstrap user-scripts executables
+
+
 user_scripts_lib_load()
 {
   # Special userspec to any source/format listing user shell commands.

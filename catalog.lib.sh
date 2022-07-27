@@ -1,14 +1,7 @@
 #!/bin/sh
 
-# Catalog: maintain card records for files with Id and meta info
+## Catalog: maintain card records for files with Id and meta info
 
-# shellcheck disable=SC1090 # Use a directive to specify location?
-
-# shellcheck disable=SC2030
-# shellcheck disable=SC2031
-
-# shellcheck disable=SC2129
-# shellcheck disable=SC2140
 
 catalog_lib_load()
 {
@@ -457,7 +450,7 @@ catalog_has_file() # ~ FILE [CATALOG]
 
 
 # Return error state unless every key is found.
-htd_catalog__check_keys() # CKS...
+htd_catalog__check_keys () # CKS...
 {
   while test $# -gt 0
   do
@@ -486,7 +479,67 @@ htd_catalog__get_by_key() # [CATALOG] CKS...
   return 1
 }
 
-htd_catalog__add_file() # File
+htd_catalog__generate_entry () # ~ <File>
+{
+  local mtype="$(filemtype "$1")" \
+    basename="$(basename "$1" | sed 's/"/\\"/g')" \
+    format="$(fileformat "$1" | sed 's/"/\\"/g')" \
+    cksum="$(cksum "$1" | cut -d ' ' -f 1,2)"
+  test -n "$hostname" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
+
+    # FIXME: crc32: $(cksum.py -a rhash-crc32 "$1" | cut -d ' ' -f 1,2)
+  cat <<EOM
+- name: "$basename"
+  mediatype: '$mtype'
+  format: '$format'
+  keys:
+    ck: $cksum
+    md5: $md5sum
+    sha1: $sha1sum
+    sha2: $sha2sum
+EOM
+
+  htd_catalog__generate_entry__${mtype//\//*} "$1"
+
+  # Keep directory here for now
+  fnmatch "*/*" "$1" && { cat <<EOM
+  categories:
+  - $(dirname "$1")/
+EOM
+    } || true
+
+  htd_catalog__file_wherefrom "$1"
+  htd_catalog__file_birth_date "$1"
+}
+
+htd_catalog__generate_entry__text () # ~ <File>
+{
+  true
+    # XXX: git: $(git hash-object "$1")
+  # TODO: see res/ck.py tlit
+  #fnmatch "text/*" "$mtype" && { {
+  #  echo "    tlit-md5: $(cksum.py -a tlit-md5 --format-from "$mtype" "$1")"
+  #  echo "    tlit-sha1: $(cksum.py -a tlit-sha1 --format-from "$mtype" "$1")"
+  #  echo "    tlit-sha2: $(cksum.py -a tlit-sha256 --format-from "$mtype" "$1")"
+  #} >> $CATALOG ; }
+}
+
+htd_catalog__generate_entry__audio () # ~ <File>
+{
+  true
+}
+
+htd_catalog__generate_entry__image () # ~ <File>
+{
+  true
+}
+
+htd_catalog__generate_entry__video () # ~ <File>
+{
+  true
+}
+
+htd_catalog__add_file() # ~ <File>
 {
   # TODO: check other catalogs, dropped entries too before adding.
   catalog_has_file "$1" && {
@@ -494,6 +547,8 @@ htd_catalog__add_file() # File
     $LOG note "" "already in catalog" "$1"
     return 2
   }
+
+  # Hardcoded to check for sha1 first, then md5 and sha2
 
   local \
       sha1sum=$(sha1sum "$1" | awk '{print $1}')
@@ -518,39 +573,9 @@ htd_catalog__add_file() # File
     std_info "New keys for '$1' generated.."
   }
 
-  local mtype="$(filemtype "$1")" \
-    basename="$(basename "$1" | sed 's/"/\\"/g')" \
-    format="$(fileformat "$1" | sed 's/"/\\"/g')"
-  test -n "$hostname" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
-  { cat <<EOM
-- name: "$basename"
-  mediatype: '$mtype'
-  format: '$format'
-  tags:
-  keys:
-    ck: $(cksum "$1" | cut -d ' ' -f 1,2)
-    crc32: $(cksum.py -a rhash-crc32 "$1" | cut -d ' ' -f 1,2)
-    md5: $md5sum
-    sha1: $sha1sum
-    sha2: $sha2sum
-EOM
-    # git: $(git hash-object "$1")
-    fnmatch "*/*" "$1" && { cat <<EOM
-  categories:
-  - $(dirname "$1")/
-EOM
-    } || true
-  } >> $CATALOG
+  # No match, generate new entry
 
-  # TODO: see res/ck.py tlit
-  #fnmatch "text/*" "$mtype" && { {
-  #  echo "    tlit-md5: $(cksum.py -a tlit-md5 --format-from "$mtype" "$1")"
-  #  echo "    tlit-sha1: $(cksum.py -a tlit-sha1 --format-from "$mtype" "$1")"
-  #  echo "    tlit-sha2: $(cksum.py -a tlit-sha256 --format-from "$mtype" "$1")"
-  #} >> $CATALOG ; }
-
-  htd_catalog__file_wherefrom "$1" >> $CATALOG
-  htd_catalog__file_birth_date "$1" >> $CATALOG
+  htd_catalog__generate_entry "$1" >> "$CATALOG"
 }
 
 # Add entries for given paths
@@ -812,9 +837,10 @@ htd_catalog__from_annex() # ~ [Annex-Dir] [Annexed-Paths]
     std_info "JSON for $name: $json"
     test ! -s "$jq_scr" || printf " |\\n" >>"$jq_scr"
     grep -q "name:[\\ \"\']$name" $CATALOG && {
-      printf -- "map(if .name==\"$name\" then . * $json else . end )" >>"$jq_scr"
+      printf -- "map(if .name==\"%s\" then . * else . end )" "$name" "$json" \
+            >>"$jq_scr"
     } || {
-      printf -- ". += [ $json ]" >>"$jq_scr"
+      printf -- ". += [ %s ]" "$json" >>"$jq_scr"
     }
     # XXX: catalog_backup=0 htd_catalog__update "" "$name" "$json"
   done
@@ -1076,7 +1102,7 @@ catalog_sha2list()
     filesize "$filename" | tr -d '\n\r'
     printf -- " "
     shasum -a 256 "$filename" | tr -d '\n\r'
-    test -n "$reason" && printf "\t$reason\n" || printf "\n"
+    test -n "$reason" && printf '\t%s\n' "$reason" || printf "\n"
   done >> "$1"
 }
 
@@ -1104,7 +1130,7 @@ catalog_tar_archive_manifest()
   test "$ext" = "tar" || ext=tar.$ext
   local catalog="$(pathname "$1" .$ext).sha2list"
   test -e "$catalog" && return
-  printf -- "Creating SHA256 manifest for $(basename "$1")..."
+  printf -- "Creating SHA256 for '%s'..." "$(basename "$1")"
   local name_key=$(echo "$1" | sha1sum - | tr -d '\n -')
   mkdir -p ".cllct/tmp/$name_key.$ext"
   local tmpdir="$(realpath .cllct/tmp/$name_key.$ext)"
@@ -1128,7 +1154,7 @@ catalog_zip_archive_manifest()
   test -s "$archive" || return 1
   local catalog="$(pathname "$1" .$ext).sha2list"
   test -e "$catalog" && return
-  printf -- "Creating SHA256 manifest for $(basename "$1")..."
+  printf -- "Creating SHA256 for '%s'..." "$(basename "$1")"
   local name_key=$(echo "$1" | sha1sum - | tr -d '\n -')
   mkdir -p ".cllct/tmp/$name_key.$ext"
   local tmpdir="$(realpath .cllct/tmp/$name_key.$ext)"
@@ -1212,6 +1238,7 @@ cllct_sha256e_tempkey()
     } >.cllct/tmp/$name_key.sh
     stderr 0 "New $name_key.sh for '$1'"
   }
+  #shellcheck disable=1090
   . ./.cllct/tmp/$name_key.sh || return 1
   test -z "$ext" || ext=.$ext
 }
@@ -1232,7 +1259,7 @@ cllct_cons_by_sha256e_tempkey()
     cllct_sha256e_tempkey "$fn"
     test "$sha2" = "$empty_sha2" && continue
     cllct_find_by_sha256e_keyparts $size $sha2 $ext && {
-      i=$(( $i + 1 ))
+      i=$(( i + 1 ))
       ls -la "$fn"
       $pref rm "$fn"
       $pref rm .cllct/tmp/$name_key.sh

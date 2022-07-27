@@ -156,6 +156,11 @@ date_newest() # ( FILE | DTSTR | @TS ) ( FILE | DTSTR | @TS )
 # of purposes. See fmtdate_relative_f
 fmtdate_relative () # ~ [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
 {
+  local spec=$1
+  shift
+  # FIXME:
+  set -- "$(time_parse_seconds "$spec")" "$@"
+
   # Calculate delta based on now
   test -n "${2-}" || set -- "${1-}" "$(( $(date +%s) - $1 ))" ${3-}
 
@@ -238,16 +243,21 @@ fmtdate_relative () # ~ [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
   fi
 }
 
+# Turn spec into seconts (time-parse-seconds) and give human readable
+fmtdate_relative_f () # ~ <Time-Spec>
+{
+  local ms=${1//*./}
+  seconds_fmt_relative_f "$(time_parse_seconds "${1//.*/}").$ms"
+}
+
 # XXX: want more resolution for fmtdate_relative.
 # Also printing several orders together. But not a lot of customization.
-fmtdate_relative_f ()
+seconds_fmt_relative_f () # ~ <Seconds>
 {
   test -z "${1-}" || {
       echo "No supported" >&2
   }
   test -n "${2:-}" || return 64
-
-  echo 2=${2//.*} >&2
 
   test ${2//.*} -gt 0 && {
     # Seconds
@@ -320,7 +330,7 @@ fmtdate_relative_f ()
   }
 }
 
-fmtdate_abbrev ()
+time_fmt_abbrev () # (stdin) ~
 {
    sed ' s/,//g
           s/ nanoseconds\?/ns/
@@ -333,6 +343,58 @@ fmtdate_abbrev ()
           s/ weeks\?/w/
           s/ months\?/mo/
           s/ years\?/y/'
+}
+
+# Match abbreviated, human readable time notations
+time_grep_abbrev () # (stdin) ~
+{
+  grep -qE '^([0-9]+(y|mo|w|d|h|m|s|ms|us|ns))+$'
+}
+
+# Return true and print seconds if spec matches time (duration) notation
+time_parse_seconds () # ~ <Time-Spec>
+{
+  case "$1" in ( *":"* )
+        set -- "$(echo "$1" | time_minsec_human_readable | tr -d ' ')" || return
+      ;;
+  esac
+  echo "$1" | time_grep_abbrev && {
+    echo "$1" | time_parse_human_readable_tag
+    return $?
+  }
+  return 1
+}
+
+time_minsec_human_readable ()
+{
+  sed -E '
+        s/([0-9]+):([0-9]+):([0-9]+):([0-9]+):([0-9]+)/\1y \2d \3h \4m \5s/
+        s/([0-9]+):([0-9]+):([0-9]+):([0-9]+)/\1d \2h \3m \4s/
+        s/([0-9]+):([0-9]+):([0-9]+)/\1h \2m \3s/
+        s/([0-9]+):([0-9]+)/\1m \2s/
+        s/\<0+([dhmoswy])?//g
+    '
+}
+
+time_parse_human_readable ()
+{
+  echo "$1" | time_parse_human_readable_tag
+  #| sed 's/[0-9]*[0-9][dhmoswy]/& /g'
+}
+
+time_parse_human_readable_tag ()
+{
+  tr -d ' ' | sed -E 's/[0-9]+[dhmoswy]/&\n/g' | awk '
+            BEGIN { s=0 }
+            /[0-9]+y/  { gsub(/y$/,"",$0);  s += int( $0 ) * '"$_1YEAR"'  }
+            /[0-9]+mo/ { gsub(/mo$/,"",$0); s += int( $0 ) * '"$_1MONTH"' }
+            /[0-9]+w/  { gsub(/w$/,"",$0);  s += int( $0 ) * '"$_1WEEK"'  }
+            /[0-9]+d/  { gsub(/d$/,"",$0);  s += int( $0 ) * '"$_1DAY"'   }
+            /[0-9]+h/  { gsub(/h$/,"",$0);  s += int( $0 ) * '"$_1HOUR"'  }
+            /[0-9]+m/  { gsub(/m$/,"",$0);  s += int( $0 ) * '"$_1MIN"'   }
+            /[0-9]+s/  { gsub(/s$/,"",$0);  s += int( $0 )                }
+            END { print s }
+        '
 }
 
 # Output date at required resolution
@@ -488,7 +550,41 @@ sec_nomicro ()
   } || echo "$1"
 }
 
-date_parse()
+# Parse time to seconds
+time_get () # ~ <Time-Spec>
+{
+  local a1 ts; a1="$1"; shift
+  case "$a1" in
+
+      ( "@"* ) ts="${a1:1:}" ;;
+      ( "[0-9][0-9][0-9][0-9][0-9]*[0-9]" ) ts=@${a1:1:} ;;
+
+      ( *":"* ) ts=$(timespec_parse "$a1") ;;
+      ( "" ) ts=$(timespec_parse "$a1") ;;
+      ( * )
+          ;;
+  esac
+}
+
+# Parse time to timestamp.
+# Any number with more than 5 digits is used as timestamp.
+time_get () # ~ <Time-Spec>
+{
+  local a1 ts; a1="$1"; shift
+  case "$a1" in
+
+      ( "@"* ) ts="${a1:1:}" ;;
+      ( "[0-9][0-9][0-9][0-9][0-9]*[0-9]" ) ts=@${a1:1:} ;;
+
+      ( *":"* ) ts=$(timespec_parse "$a1") ;;
+  esac
+  test $# -gt 0 || set -- +'%s'
+  date -d @$ts "$@"
+}
+
+# Parse datetime spec to std repr.
+# Any number with more than 5 digits is used as timestamp.
+date_parse() # ~ <Date-Spec>
 {
   test -n "${2-}" || set -- "$1" "%s"
   fnmatch "[0-9][0-9][0-9][0-9][0-9]*[0-9]" "$1" && {

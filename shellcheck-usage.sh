@@ -1,8 +1,5 @@
 #!/bin/sh
 
-#shellcheck disable=SC1090 # follow non-constant source
-
-
 wiki () # ~ <SCREF> # Dump wikipage to text on stdout
 {
   case "$1" in ( "CS"* ) set -- "$(echo "$1"|cut -c3-)" ;; esac
@@ -38,21 +35,26 @@ ex_quote_args ()
 # of 'read' I use read_lines or read_asis to avoid warnings.
 
 
-shellcheck_loadenv ()
+shellcheck_usage_loadenv ()
 {
-  . "${US_BIN:-"$HOME/bin"}"/os-htd.lib.sh
+  . "$US_BIN"/os-htd.lib.sh &&
+  . "$US_BIN"/user-scripts.lib.sh
 }
 
 
-test -n "${user_scripts_loaded:-}" ||{
+# Main entry (see user-scripts.sh for boilerplate)
+
+test -n "${user_scripts_loaded:-}" || {
   . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
   unset SHELL
   user_scripts_loadenv
 }
 
+# Parse arguments
 ! script_baseext=.sh script_isrunning "shellcheck-usage" ||
     eval "set -- $(user_script_defarg "$@")"
 
+# Execute argv and return
 script_baseext=.sh \
 script_defcmd="" \
     script_entry "shellcheck-usage" "$@"

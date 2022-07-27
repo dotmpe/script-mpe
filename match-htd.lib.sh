@@ -1,6 +1,15 @@
 #!/bin/sh
 
 
+match_htd_lib_load ()
+{
+  case "$uname" in
+      ( Linux ) gsed=sed ;;
+      ( Darwin ) gsed=gsed ;;
+      ( * ) return 1 ;;
+  esac
+}
+
 match_req_names_tab()
 {
   local pwd="$PWD"
@@ -45,9 +54,16 @@ match_load_defs()
 
 # Take any string and return a Regex to match that exact string, see
 # match-grep-pattern-test.
-match_grep() # String
+match_grep () # ~ <String>
 {
   echo "$1" | $gsed -E 's/([^A-Za-z0-9{}(),?!@+_])/\\\1/g'
+}
+
+# Get AWK pattern
+match_awk () # ~ <String>
+{
+  echo "$1" | $gsed -E 's/([^A-Za-z0-9{},?!@+_&# ])/\\\1/g'
+        #s/'"'"'/\\\\&/g
 }
 
 #

@@ -1,22 +1,29 @@
 #!/bin/sh
 
-#shellcheck disable=2154,2015
+## Main source to bootstrap user-scripts executables
 
 
-script_isrunning () # ~ <Scriptname>
+# Check if given argument equals zeroth argument.
+script_isrunning () # [scriptname] ~ <Scriptname> # argument matches zeroth argument
 {
   #shellcheck disable=2086
-  test "${base:-"$(basename -- "$0" ${script_baseext:-})"}" = "$1"
+  test "$scriptname" = "$1"
 }
 
-# Execute when script is sourced, when given base matches script-name.
-script_entry () # ~ <Scriptname> <Arg...>
+# Execute when script is sourced, when given base matches scriptname. If
+# need to run this scriptname can be set, but normally this
+# gets the correct string to decide wether to execute.
+#
+# If the function prefixes don't match the exec name, use
+# base var to change that.
+#
+script_entry () # [script{name,_basext},base] ~ <Scriptname> <Arg...>
 {
-  test -z "${base:-}" || return 0
+  : "${scriptname:="$(basename -- "$0" ${script_baseext:-})"}"
 
   if script_isrunning "$1"
   then
-    base="$1"
+    : "${base:="$1"}"
     shift
     test $# -gt 0 || set -- "${script_defcmd:-"usage"}"
     script_doenv || return
@@ -27,6 +34,7 @@ script_entry () # ~ <Scriptname> <Arg...>
   fi
 }
 
+# Handle env setup (vars & sources) for script-entry
 script_doenv ()
 {
   set -e
@@ -38,7 +46,6 @@ script_doenv ()
     }
   }
 
-  #shellcheck disable=2039
   test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set -uo pipefail
   mkvid "$base"; baseid=$vid
 
@@ -47,15 +54,15 @@ script_doenv ()
   test -z "${DEBUG:-}" || set -x
 }
 
+# Undo env setup for script-entry (inverse of script-doenv)
 script_unenv ()
 {
   set +e
-  #shellcheck disable=2039
   test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set +uo pipefail
   test -z "${DEBUG:-}" || set +x
 }
 
-
+# Output argv line after doing 'default' stuff
 user_script_defarg ()
 {
   # Every good citizen on the executable lookup PATH should have
@@ -64,15 +71,18 @@ user_script_defarg ()
       ( "-V" | "--version" ) test $# -eq 0 || shift; set -- version "$@" ;;
   esac
 
+  # Print everything using appropiate quoting
   argv_dump "$@"
 }
 
+# Default loadenv for user-scripts. This is before anything
+# is known about what to source/run.
 user_scripts_loadenv ()
 {
   ! test "${user_scripts_loaded:-}" = "1" || return 0
 
   true "${US_BIN:="$HOME/bin"}"
-  #shellcheck source=/srv/project-local/script-mpe
+
   {
     . "$US_BIN"/str-htd.lib.sh &&
     . "$US_BIN"/os-htd.lib.sh &&
@@ -145,7 +155,6 @@ version ()
 
 user_script_help () # ~ [<Name>]
 {
-  # shellcheck disable=SC2015
   test $# -eq 0 && { {
     cat <<EOM
 Usage:
@@ -191,8 +200,7 @@ script_listfun () # ~ # Wrap grep for function declarations scan
 }
 
 
-# Main (this has nothing to-do, but anyway, as a boilerplate or
-# example..)
+# Main boilerplate (mostly useless for this script)
 
 ! script_baseext=.sh script_isrunning "user-scripts" || {
 
@@ -200,6 +208,7 @@ script_listfun () # ~ # Wrap grep for function declarations scan
   user_scripts_loadenv
   eval "set -- $(user_script_defarg "$@")"
   script_baseext=.sh
+  # Execute argv and return
   script_entry "user-scripts" "$@"
 }
 

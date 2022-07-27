@@ -210,10 +210,13 @@ Checksums
 _________
 Tracking by checksum is never as easy as it seems.
 
-- algorithms get replaced, new checksums will need to be added
+- algorithms get replaced and will have different performance characteristics
 
-- hashes differ by filters; especially wrt text formats: line-end/tab whitespace
-  translation, charset, GIT prefixes data with a type name
+- publishing and processing creates new representations of 'identical' content
+
+- more complex 'fingerprinting' algos may be needed to track content properly
+
+- content is distributed in containers, in different file structures, alongside metadata and other related contents
 
 - cksum has very different results to commonly encountered CRC32's;
   `CRC32 Checksums; The Good, The Bad, And The Ugly`__ gives a good introduction.
