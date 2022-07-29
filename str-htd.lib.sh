@@ -255,9 +255,14 @@ reverse_lines()
 ## Put each line into lookup table (with Awk), print on first occurence only
 #
 # To remove duplicate lines in input, without sorting (unlike uniq -u).
-remove_dupes() # <line> ... ~
+remove_dupes () # <line> ... ~
 {
   awk '!a[$0]++'
+}
+
+remove_dupes_at_col () # ~ <Column>
+{
+  awk -F "${FS:- }" '!a[$'"$1"']++'
 }
 
 ## Put each word into lookup table (with Awk), print on first occurence only (1)

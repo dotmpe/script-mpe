@@ -351,11 +351,11 @@ Env:
 ' "$base" "$base" "$base" "$base"
 }
 
-test -n "${user_scripts_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
   unset SHELL
-  user_scripts_loadenv
-  . ~/bin/user-scripts.lib.sh
+  user_script_shell_env
+  . ~/bin/user-script.lib.sh
   . ~/bin/term.lib.sh
   # Stick themes among all others.
   true "${THEME_DIR:="$HOME/.local/share/themes"}"

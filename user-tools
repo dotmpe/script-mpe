@@ -1,6 +1,8 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 #shellcheck disable=SC2119 # Special functions accept either/both argv & stdin
+
+user_script_usage='User tools.'
 
 weather () # ~
 {
@@ -189,16 +191,6 @@ state_icon_fa ()
 }
 
 
-user_tools_usage ()
-{
-  #shellcheck disable=SC2154
-  printf \
-'\t%s <Command <Arg...>>
-
-Env:
-' "$base"
-}
-
 user_tools_loadenv ()
 {
   . "$US_BIN"/nerdfonts.lib.sh &&
@@ -206,10 +198,10 @@ user_tools_loadenv ()
   nerdfonts_lib_init
 }
 
-test -n "${user_scripts_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
   unset SHELL
-  user_scripts_loadenv
+  user_script_shell_env
 }
 ! script_isrunning "user-tools" || eval "set -- $(user_script_defarg "$@")"
 

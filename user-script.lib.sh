@@ -1,9 +1,8 @@
 #!/bin/sh
 
-## Lib to bootstrap user-scripts executables
+## Lib to bootstrap User-Script executables
 
-
-user_scripts_lib_load()
+user_script_lib_load()
 {
   # Special userspec to any source/format listing user shell commands.
   # Globs and non-existing paths allowed.
@@ -11,9 +10,9 @@ user_scripts_lib_load()
       user_cmd_lists=~/.alias\ ~/.bash_alias\ ~/.bash_history\ ~/.conf/etc/git/base.config
 }
 
-user_scripts_lib_init ()
+user_script_lib_init ()
 {
-  test "${user_scripts_lib_init-}" = "0" && return
+  test "${user_script_lib_init-}" = "0" && return
 
   true "${uname:="$(uname -s)"}"
   true "${US_BIN:=$HOME/bin}"
@@ -21,7 +20,7 @@ user_scripts_lib_init ()
   lib_load ignores
 }
 
-user_scripts_find () # ~ # Find executables from user-dirs
+user_script_find () # ~ # Find executables from user-dirs
 {
   test $# -gt 0 || set -- $US_BIN $UCONF/script $UCONF/path/$uname
   # $UCONF/script/$uname $UCONF/script/Generic
@@ -36,12 +35,12 @@ user_scripts_find () # ~ # Find executables from user-dirs
   done
 }
 
-user_scripts_check () # ~ # See that every script has a description
+user_script_check () # ~ # See that every script has a description
 {
-  user_scripts_find | user_scripts_filter | user_scripts_check_description
+  user_script_find | user_script_filter | user_script_check_description
 }
 
-user_scripts_check_description () # ~ #
+user_script_check_description () # ~ #
 {
   while IFS= read -r execname
   do
@@ -52,7 +51,7 @@ user_scripts_check_description () # ~ #
   done
 }
 
-user_scripts_filter () # ~ #
+user_script_filter () # ~ #
 {
   local execname mime
   while IFS= read -r execname
@@ -87,7 +86,7 @@ user_scripts_filter () # ~ #
 # extended regex set `ext` flag. Multple matches possible.
 #
 # This looks at user-cmd-lists, a user-spec ossibly derived from package
-# metadata. To look at other scripts use `htd git-grep`, or see user-scripts'
+# metadata. To look at other scripts use `htd git-grep`, or see user-script'
 # env functions. In particular see LIB_SRC and ENV_SRC for scripts to grep.
 htd_user_find_command () # [grep_flags] [ext] ~ REGEX
 {

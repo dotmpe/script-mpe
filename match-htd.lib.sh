@@ -6,7 +6,8 @@ match_htd_lib_load ()
   case "$uname" in
       ( Linux ) gsed=sed ;;
       ( Darwin ) gsed=gsed ;;
-      ( * ) return 1 ;;
+      ( * ) $LOG error ":match-htd:lib-load" "Unknown uname" "$uname"
+          return 1 ;;
   esac
 }
 
@@ -62,8 +63,10 @@ match_grep () # ~ <String>
 # Get AWK pattern
 match_awk () # ~ <String>
 {
-  echo "$1" | $gsed -E 's/([^A-Za-z0-9{},?!@+_&# ])/\\\1/g'
-        #s/'"'"'/\\\\&/g
+  echo "$1" | $gsed -E '
+      s/([^A-Za-z0-9{},?!@+_&# ])/\\\1/g
+      s/'"'"'/\\&/g
+  '
 }
 
 #

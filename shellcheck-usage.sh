@@ -38,16 +38,16 @@ ex_quote_args ()
 shellcheck_usage_loadenv ()
 {
   . "$US_BIN"/os-htd.lib.sh &&
-  . "$US_BIN"/user-scripts.lib.sh
+  . "$US_BIN"/user-script.lib.sh
 }
 
 
-# Main entry (see user-scripts.sh for boilerplate)
+# Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_scripts_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
   unset SHELL
-  user_scripts_loadenv
+  user_script_shell_env
 }
 
 # Parse arguments

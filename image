@@ -28,11 +28,11 @@ colorize () # ~ <In> <Out> <Color> <Percentage <G, B>
 }
 
 
-# Main entry (see user-scripts.sh for boilerplate)
+# Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_scripts_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
-  user_scripts_loadenv
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
+  user_script_shell_env
 }
 
 # Parse arguments

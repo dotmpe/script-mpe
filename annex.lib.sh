@@ -281,22 +281,35 @@ annex_keyexists() # Dir SHA256E-Key
   test -n "$content_location" || return $?
 }
 
+annexed_file ()
+{
+  # XXX: this assumes the usual SHA256(E) backend
+  test -h "$1" || return 1
+  case "$(realpath -m "$1")" in */.git/annex/objects/* ) ;; ( * ) return 1 ;; esac
+  #objectdir="$(dirname "$(dirname "$(dirname "$(dirname "$(realpath -mq "$1")")")")")"
+  #gitdir="$(dirname "$(dirname "$(dirname "$objectdir")")")"
+  #test "${objectdir:${#gitdir}}" = "/.git/annex/objects"
+}
+
+annex_file_is_here ()
+{
+  test -h "$1" || return 0
+  test -e "$1"
+}
+
+annex_files_are_here ()
+{
+  find "$1" -type f -o -type l | while read -r f
+    do
+        test -s "$f" || return
+    done
+}
+
 annex_info_parsehere()
 {
   info_raw="$(git annex info | grep here)"
   info_uuid="$(echo $info_raw | cut -d ' ' -f1  )"
   info_descr="$(echo $info_raw | cut -d ' ' -f3- )"
-}
-
-annex_unused_cachelist()
-{
-  mkdir -vp .cllct/annex-unused
-  test -n "$info_uuid" || annex_info_parsehere
-  out=.cllct/annex-unused/repo-$info_uuid.list
-  git annex unused > $out
-  unused=$(count_lines $out)
-  test $unused -gt 1 &&
-    stderr 0 "Unused files: $(( unused - 1 )) <$out>" || rm "$out"
 }
 
 annex_fsckfast_cache()
@@ -517,26 +530,20 @@ annices_scan_for_sha2()
   return 1
 }
 
-annexed_file ()
+annex_status ()
 {
-  # XXX: this assumes the usual SHA256(E) backend
-  test -h "$1" || return 1
-  case "$(realpath -m "$1")" in */.git/annex/objects/* ) ;; ( * ) return 1 ;; esac
-  #objectdir="$(dirname "$(dirname "$(dirname "$(dirname "$(realpath -mq "$1")")")")")"
-  #gitdir="$(dirname "$(dirname "$(dirname "$objectdir")")")"
-  #test "${objectdir:${#gitdir}}" = "/.git/annex/objects"
+  annex_unused_cachelist
 }
 
-annex_file_is_here ()
+annex_unused_cachelist()
 {
-  test -h "$1" || return 0
-  test -e "$1"
+  mkdir -vp .cllct/annex-unused
+  test -n "$info_uuid" || annex_info_parsehere
+  out=.cllct/annex-unused/repo-$info_uuid.list
+  git annex unused > $out
+  unused=$(count_lines $out)
+  test $unused -gt 1 &&
+    stderr 0 "Unused files: $(( unused - 1 )) <$out>" || rm "$out"
 }
 
-annex_files_are_here ()
-{
-  find "$1" -type f -o -type l | while read -r f
-    do
-        test -s "$f" || return
-    done
-}
+#

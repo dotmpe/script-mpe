@@ -125,7 +125,7 @@ window_geometry () # ~ [<Window-ID>]
 system_display_loadenv ()
 {
   . "$US_BIN"/xorg.lib.sh &&
-  . "$US_BIN"/user-scripts.lib.sh &&
+  . "$US_BIN"/user-script.lib.sh &&
   . "$US_BIN"/user-desktop
 }
 
@@ -143,12 +143,12 @@ and other config tools do provide actual monitor names.
 }
 
 
-# Main entry (see user-scripts.sh for boilerplate)
+# Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_scripts_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
   unset SHELL
-  user_scripts_loadenv
+  user_script_shell_env
 }
 
 # Parse arguments

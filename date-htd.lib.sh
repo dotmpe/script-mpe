@@ -162,7 +162,7 @@ fmtdate_relative () # ~ [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
   set -- "$(time_parse_seconds "$spec")" "$@"
 
   # Calculate delta based on now
-  test -n "${2-}" || set -- "${1-}" "$(( $(date +%s) - $1 ))" ${3-}
+  test -n "${2-}" || set -- "${1-}" "$(( $(date +%s) - $1 ))" ${3:-}
 
   # Set default suffix
   test $# -gt 2 || set -- "${1-}" "$2" " ${datefmt_suffix:-"ago"}"

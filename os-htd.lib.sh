@@ -229,6 +229,12 @@ foreach_inscol ()
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
 }
 
+foreach_line_do ()
+{
+  while read -r args
+  do "$@" $args ; done
+}
+
 # Split expression type from argument and set envs expr_/type_
 foreach_match_setexpr () # [Type:]Expression
 {

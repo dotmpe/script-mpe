@@ -430,9 +430,9 @@ system_status_loadenv ()
   nerdfonts_lib_init
 }
 
-test -n "${user_scripts_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
-  user_scripts_loadenv
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
+  user_script_shell_env
 }
 ! script_isrunning "system-status" || eval "set -- $(user_script_defarg "$@")"
 script_defcmd=short script_entry "system-status" "$@"

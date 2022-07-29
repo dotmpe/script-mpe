@@ -2,6 +2,7 @@
 
 ## Helper for desktop settings
 
+user_desktop_usage='User desktop tools.'
 
 backgrounds () # ~ # List user's deesktop backgrounds
 {
@@ -163,10 +164,10 @@ Env:
 }
 
 
-test -n "${user_scripts_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-scripts.sh
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
   unset SHELL
-  user_scripts_loadenv
+  user_script_shell_env
   #shellcheck source=sys-htd.lib.sh
   . $US_BIN/sys-htd.lib.sh
   #shellcheck source=desktop.lib.sh
