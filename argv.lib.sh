@@ -264,25 +264,31 @@ define_var_from_opt () # Option [Var-Name-Pref]
   esac
 }
 
-argv_has_next ()
+argv_has_next () # ~ <Argv...> # True if more for current sequence is available.
 {
   test $# -gt 0 -a "${1-}" != "--"
 }
 
-argv_has_none ()
+argv_has_none () # ~ <Argv...> # True if argv is empty or before start of next sequence.
 {
   test $# -eq 0 -o "${1-}" = "--"
 }
 
-argv_is_seq ()
+argv_is_seq () # ~ <Argv...> # True if immediate item is '--' continuation.
 {
   test "${1-}" = "--"
 }
 
-# Read arguments until --, set more_argv to that list and more_argc
-# eventually to the amount consumed (counts all args, one leading and trailing '--' as well)
-# XXX: does not accept spaces in args
-argv_more ()
+# Read arguments until --, accumulate more_argv and track more_argc.
+# For convenience, this processes a leading '--' arg as well. So in that case
+# instead of reading an empty or end-of sequence it reads the next.
+# Returns false if no argv where handled.
+#
+# Typical usage is 'argv_more "$@" && shift $more_argc' and then handle
+# $more_argv contents.
+#
+# NOTE: use argv_q to set quoting
+argv_more () # ~ <Argv...> # Read until '--', and set $more_arg{c,v}
 {
   test $# -gt 0 || return
   more_argc=$#
@@ -295,21 +301,25 @@ argv_more ()
   argv_is_seq "$1" && { more_argv=; more_argc=1; return; }
 
   # Get all args
-  more_argv="$1"
-  test $# -eq 1 || {
+  test ${argv_q:-1} -eq 1 && more_argv="${1@Q}" || more_argv="$1"
+  test $# -eq 1 && shift || {
     first=true
     while $first || argv_has_next "$@"
     do
       shift
       first=false
       test $# -gt 0 || break
-      argv_is_seq "$1" || more_argv="$more_argv ${1@Q}"
+      argv_is_seq "$1" || {
+          test ${argv_q:-1} -eq 1 &&
+              more_argv="$more_argv ${1@Q}" ||
+              more_argv="$more_argv ${1}"
+      }
     done
   }
   more_argc=$(( $more_argc - $# ))
 }
 
-argv_dump ()
+argv_dump () # ~ <Argv...> # Print argv for re-eval
 {
   while test $# -gt 0
   do

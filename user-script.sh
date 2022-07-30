@@ -54,7 +54,7 @@ script_doenv ()
     "${baseid}"_loadenv || return
   }
 
-  test -z "${DEBUG:-}" || set -x
+  test -z "${DEBUGSH:-}" || set -x
 }
 
 # Check if given argument equals zeroth argument.
@@ -70,7 +70,7 @@ script_unenv ()
 {
   set +e
   test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set +uo pipefail
-  test -z "${DEBUG:-}" || set +x
+  test -z "${DEBUGSH:-}" || set +x
 }
 
 script_name ()
@@ -324,7 +324,20 @@ user_script_shell_env ()
     return $ERR
   }
 
-  test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set -uo pipefail
+  test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && {
+
+    set -u # Treat unset variables as an error when substituting. (same as nounset)
+    set -o pipefail #
+
+    test -z "${DEBUG:-}" || {
+
+      set -h # Remember the location of commands as they are looked up. (same as hashall)
+      set -E # If set, the ERR trap is inherited by shell functions.
+      set -T
+      set -e
+      shopt -s extdebug
+    }
+  }
 
   user_script_shell_env=1
 }
