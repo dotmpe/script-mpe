@@ -430,10 +430,20 @@ system_status_loadenv ()
   nerdfonts_lib_init
 }
 
+
+# Main entry (see user-script.sh for boilerplate)
+
 test -n "${user_script_loaded:-}" || {
   . "${US_BIN:-"$HOME/bin"}"/user-script.sh
   user_script_shell_env
 }
-! script_isrunning "system-status" || eval "set -- $(user_script_defarg "$@")"
-script_defcmd=short script_entry "system-status" "$@"
+
+# Parse arguments
+! script_isrunning "system-status" || {
+  script_defcmd=short
+  eval "set -- $(user_script_defarg "$@")"
+}
+
+# Execute argv and return
+script_entry "system-status" "$@"
 #

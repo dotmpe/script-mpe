@@ -203,6 +203,10 @@ test -n "${user_script_loaded:-}" || {
   unset SHELL
   user_script_shell_env
 }
-! script_isrunning "user-tools" || eval "set -- $(user_script_defarg "$@")"
 
-script_defcmd=check script_entry "user-tools" "$@"
+! script_isrunning "user-tools" || {
+  script_defcmd=check
+  eval "set -- $(user_script_defarg "$@")"
+}
+
+script_entry "user-tools" "$@"

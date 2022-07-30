@@ -201,7 +201,8 @@ test -n "${user_script_loaded:-}" || {
   user_script_shell_env
 }
 
-! script_isrunning "vlc-cli" || eval "set -- $(user_script_defarg "$@")"
+! script_isrunning "vlc-cli" ||
+    eval "set -- $(user_script_defarg "$@")"
 
-script_defcmd= script_entry "vlc-cli" "$@"
+script_entry "vlc-cli" "$@"
 #

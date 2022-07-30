@@ -200,11 +200,23 @@ foreach () # [(stdin)] ~ ['-' | <Arg...>]
 # to line. See foreach-do for other details.
 foreach_addcol ()
 {
-  test -n "${p-}" || local p= # Prefix string
-  test -n "${s-}" || local s= # Suffix string
+  foreach "$@" | read_addcol
+}
+
+# XXX:
+#read_concat_col ()
+#{
+#  test -n "${p-}" || local p= # Prefix string
+#  test -n "${s-}" || local s= # Suffix string
+#  while read_asis _S
+#    do echo "$p$_S$s"; done
+#}
+
+read_addcol ()
+{
   test -n "${act-}" || local act="echo"
-  foreach "$@" | while read_asis  _S
-    do S="$p$_S$s" && printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
+  while read_asis S
+    do printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
 }
 
 # Read `foreach` lines and act, default is echo ie. same result as `foreach`

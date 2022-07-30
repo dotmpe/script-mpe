@@ -40,6 +40,5 @@ test -n "${user_script_loaded:-}" || {
     eval "set -- $(user_script_defarg "$@")"
 
 # Execute argv and return
-script_defcmd="" \
-    script_entry "image" "$@"
+script_entry "image" "$@"
 #

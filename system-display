@@ -152,10 +152,11 @@ test -n "${user_script_loaded:-}" || {
 }
 
 # Parse arguments
-! script_isrunning "system-display" ||
-    eval "set -- $(user_script_defarg "$@")"
+! script_isrunning "system-display" || {
+  script_defcmd=list
+  eval "set -- $(user_script_defarg "$@")"
+}
 
 # Execute argv and return
-script_defcmd=list \
-    script_entry "system-display" "$@"
+script_entry "system-display" "$@"
 #

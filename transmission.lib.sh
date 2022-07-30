@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-### Helpers to sort through transmission downloads
+### Helpers to sort through Transmission downloads
+
 
 transmission_lib_load ()
 {
@@ -92,9 +93,12 @@ transmission_id () # ~ (id|hash|name) <Hash-or-Num-or-Name>
   test $# -gt 1 || set -- id "$1"
   local lk=${lk:-}:id
 
-  num=; [[ $1 =~ ^[0-9]+\*?$ ]] && num=$1
-  btih=; [[ $1 =~ ^[0-9a-f]{40}$ ]] && btih=$1
-  name=; test -n "$num" -o -n "$btih" || name=$1
+  # Clear and check given argument
+  test ${tid_chk:-1} -eq 0 || {
+    num=; [[ $1 =~ ^[0-9]+\*?$ ]] && num=$1
+    btih=; [[ $1 =~ ^[0-9a-f]{40}$ ]] && btih=$1
+    name=; test -n "$num" -o -n "$btih" || name=$1
+  }
 
   local ti=
   case "$1" in
@@ -342,31 +346,52 @@ transmission_list () # ~
 
     ( active )
           transmission-remote -l | grep -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
-    ( stopped|paused )
-          transmission-remote -l | grep '\(None\|[0-9][0-9]*\) * Stopped ' ;;
     ( not-stopped )
           transmission-remote -l | grep -v '\(None\|[0-9][0-9]*\) * Stopped ' ;;
     ( idle )
-          transmission-remote -l | grep -e 'Idle' ;;
-
+          transmission-remote -l | grep 'Idle' ;;
+    ( issues )
+          transmission-remote -l | grep -E '^ * [0-9]+\* ' ;;
     ( popular )
           transmission-remote -l |
             grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
             transmission_fix_item_cols | sort -k7n
         ;;
+    ( stopped|paused )
+          transmission-remote -l | grep '\(None\|[0-9][0-9]*\) * Stopped ' ;;
 
-    ( item )
+    ( fix-cols )
+          shift; transmission_list "$@" | transmission_fix_item_cols ;;
+    ( item-grep-num )
           shift; transmission-remote -l | grep '^ * '$1'\*\? ' ;;
-    ( tab )
-          transmission-remote -l ;;
+    ( items-by-nums )
+          local listarg listargc
+          shift; transmission_listarg "$@" && shift $listargc
+          test $# -gt 0 || {
+            $LOG error "$lk" "Item ID arguments expected"
+            return 64
+          }
+          transmission_list $listarg | grep "^ *\<$( grep_or "$@" )\> "
+        ;;
+    ( key|keys|cols ) # ~ [ <List-Arg...> -- ] <Var:Field...>
+          test "$1" = "cols" && ti_row=1 || {
+            test "$1" = "key" -o "$1" = "col" && ti_keymap=0 || ti_keymap=1;
+          }
+          local listarg listargc
+          shift; transmission_listarg "$@" && shift $listargc
+          test $# -gt 0 || {
+            $LOG error "$lk" "Key var names or map arguments expected"
+            return 64
+          }
+          transmission_list_run $listarg -- transmission_item_keys "$@"
+        ;;
     ( summary )
           transmission_list_summary ;
           $LOG notice "$lk:summary" \
 "Sharing $sum in $cnt shares, current transfer rates: $down down, $up up"
         ;;
-
-    ( fix-cols )
-          shift; transmission_list "$@" | transmission_fix_item_cols ;;
+    ( tab )
+          transmission-remote -l ;;
     ( unknown )
           transmission_list xtab | grep Unknown | grep -E '^ *[0-9]+\*?  *n/a' ;;
     ( xtab )
@@ -374,22 +399,23 @@ transmission_list () # ~
     ( xitem )
           shift; transmission_list fix-cols item "$1" ;;
 
-    ( key|keys|cols ) # ~ [ <List-Arg...> -- ] <Var:Field...>
-          test "$1" = "cols" && ti_row=1 || {
-            test "$1" = "key" -o "$1" = "col" && ti_keymap=0 || ti_keymap=1;
-          }
-          shift
-          local listarg
-          ! fnmatch "* -- *" " $* " || {
-            argv_q=0 argv_more "$@" && shift $more_argc ; listarg="$more_argv"
-            unset more_arg{v,c}
-          }
-          true "${listarg:="fix-cols tab"}"
-          transmission_list_run $listarg -- transmission_item_keys "$@"
-        ;;
-
     ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
   esac
+}
+
+transmission_listarg ()
+{
+  listargc=$#
+  local more=false
+  fnmatch "* -- *" " $* " && more=true
+  $more && {
+    argv_q=0 argv_more "$@" && shift $more_argc ; listarg="$more_argv"
+    unset more_arg{v,c}
+    shift
+  }
+  listargc=$(( $listargc - $# ))
+  true "${listarg:="fix-cols tab"}"
+  $more
 }
 
 # A simple and compact basis to write handlers to parse transmission-remote -l
@@ -398,12 +424,8 @@ transmission_list () # ~
 #
 transmission_list_run () # ~ [ <List-Arg...> -- ] <Handler <Args...>>
 {
-  local listarg lk=${lk:-}:list-run
-  ! fnmatch "* -- *" " $* " || {
-    argv_q=0 argv_more "$@" && shift $more_argc ; listarg="$more_argv"
-    unset more_arg{v,c}
-  }
-  true "${listarg:="fix-cols tab"}"
+  local listarg listargc lk=${lk:-}:list-run
+  transmission_listarg "$@" && shift $listargc
 
   true "${tl_runner:=transmission_list_runner}"
   test $# -gt 0 || set -- transmission_item_check
@@ -464,50 +486,39 @@ transmission_list_summary () # ~ # Get share summary variables
 
 transmission_name_env () # ~ (num|hash)
 {
-  test -n "$name" || return 63
   test $# -gt 1 || set -- hash
-  local lk=${lk:-}:name-env
-  case "$1" in
-    ( id|num|numid ) # ~ <Id-Spec> # Ensure Id env for torrent name
-          transmission_info "$name" num:ID
-          test -n "$num" || return
-        ;;
-    ( info-hash|btih|hash ) # ~ <Id-Spec> # Ensure BTIH env for torrent name
-          transmission_info "$name" btih:Hash
-          test -n "$btih" || return
-        ;;
-
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
-  esac
+  test "$1" = num -o "$1" = "hash" || return 67
+  test -n "$name" || return 63
+  tid_chk=0 transmission_id "$1" "$name"
 }
 
 transmission_num_env () # ~ (hash|name)
 {
-  test -n "$num" || return 63
   test $# -gt 1 || set -- hash
-  local lk=${lk:-}:num-env
-  case "$1" in
-    ( info-hash|btih|hash ) # ~ <Id-Spec> # Ensure BTIH env for torrent ID
-          transmission_info "$num" btih:Hash
-          test -n "$btih" || return
-        ;;
-    ( info-name|name ) # ~ <Id-Spec> # Ensure Info-Name env for torrent ID
-          transmission_info "$num" name:Name
-          test -n "$name" || return
-        ;;
-
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
-  esac
+  test "$1" = hash -o "$1" = "name" || return 67
+  test -n "$num" || return 63
+  tid_chk=0 transmission_id "$1" "$num"
 }
 
-transmission_share_find () # ~ <Num> <Path>
+transmission_remote () # ~ <Argv...>
 {
-  transmission-remote -t "$1" --find "$2"
+  rpcres=$(transmission-remote "$@") &&
+  test "$rpcres" = 'localhost:9091/transmission/rpc/ responded: "success"'
 }
 
-transmission_share_move () # ~ <Num> <Path>
+transmission_share_find () # ~ <Id-Spec> <Path>
 {
-  transmission-remote -t "$1" --move "$2"
+  transmission_remote -t "$1" --find "$2"
+}
+
+transmission_share_move () # ~ <Id-Spec> <Path>
+{
+  transmission_remote -t "$1" --move "$2"
+}
+
+transmission_share_start () # ~ <Id-Spec>
+{
+  transmission_remote -t "$1" --start
 }
 
 #

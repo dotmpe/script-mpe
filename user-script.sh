@@ -197,7 +197,8 @@ user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main scr
   # NOTE: some shell allow all kinds of characters.
   # sometimes I define scripts as /bin/bash and use '-', maybe ':'.
 
-  for name in $scriptname.$script_baseext user-script.sh
+  local scriptname_ext=${script_baseext:-}
+  for name in $scriptname$scriptname_ext user-script.sh
   do
     script_src=$(command -v "$name") slf_h=1 script_listfun "$1"
   done
@@ -279,16 +280,22 @@ user_script_maincmds () # ~ [<Name-globs...>]
           sed 's/^\(.*\): \(.*\)$/\2 \1/' | tr -d ',' )
     alias_sed=$( echo "$user_script_aliases" | while read -r handler aliases
             do
-                printf 's/\<%s\>/( %s | & )/\n' "$handler" "${aliases// / | }"
+                printf 's/^\<%s\>/( %s | & )/\n' "$handler" "${aliases// / | }"
             done
         )
     handlers=$(user_script_resolve_aliases "$@" | remove_dupes | lines_to_words)
 
-    printf '%s:\n%s\n\n' "$hdr" "$(
+    printf '%s:\n%s\n' "$hdr" "$(
             user_script_handlers $handlers |
                 sed "$alias_sed" |
                     sed 's/^/\t/'
         )"
+
+    test $# -ne 1 || {
+      . $U_S/src/sh/lib/src.lib.sh &&
+        func_comment "$handlers" "$0"
+    }
+    return
   } || {
     printf 'Main aliases:\n%s\n\n' "$( user_script_aliases $* | sed 's/^/\t/' )"
   }
@@ -373,7 +380,7 @@ user_script_usage ()
     printf '%s\n\n' "$usage"
   } || {
     printf 'Usage:\n\t%s %s <Arg...>\n\n' "$base" "$1"
-    #printf '%s\n\n' "$_usage"
+    # XXX: func comments printf '%s\n\n' "$_usage"
   }
 }
 
@@ -387,36 +394,6 @@ script_version () # ~
 
 
 ## Other functions
-
-grep_or ()
-{
-  printf '\(%s\)' "$(
-        printf '%s' "$*" | sed '
-                s/ /\\|/g
-                s/\*/.*/g
-            '
-    )"
-}
-
-# Extract simple, single-line case/esac cases
-sh_type_esacs () # ~ <Func>
-{
-  sh_type_esacs_fmt "$1" | sh_type_esacs_grep
-}
-
-sh_type_esacs_fmt ()
-{
-  type "$1" | sed -z '
-        s/)\n */ ) /g
-        s/\n *;;/ ;;/g
-        s/\([^;]\);\n */\1; /g
-    '
-}
-
-sh_type_esacs_grep ()
-{
-  grep -Po ' \(? .* \) .* set -- [a-z_:-][a-z0-9_:-]* .* ;;'
-}
 
 # TODO: eval this as part of us-load. Maybe use $3 or $6 or $9...
 #
@@ -494,8 +471,8 @@ usage ()
 
   #. "${US_BIN:-"$HOME/bin"}"/user-script.sh
   user_script_shell_env
-  eval "set -- $(user_script_defarg "$@")"
   script_baseext=.sh
+  eval "set -- $(user_script_defarg "$@")"
   # Execute argv and end shell
   script_entry "user-script" "$@" || exit
 }

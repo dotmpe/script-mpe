@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# bin/sh
 
 ### Helpers to launch user terminal, shells and configure them
 
@@ -75,7 +76,7 @@ exportargs () # ~ [VAR=...] --
 {
   cnt=$#
   # shellcheck disable=2163
-  while test $# -gt 0 -a "$1" != -- # Stop argv shifting bef sec argopts seq
+  while test $# -gt 0 -a "${1:-}" != -- # Stop argv shifting bef sec argopts seq
   do export "$1"
     shift
   done
@@ -361,8 +362,10 @@ test -n "${user_script_loaded:-}" || {
   true "${THEME_DIR:="$HOME/.local/share/themes"}"
 }
 
-! script_isrunning "system-terminal" ||
+! script_isrunning "system-terminal" || {
+  script_defcmd=sensible
   eval "set -- $(user_script_defarg "$@")"
+}
 
-script_defcmd=sensible script_entry "system-terminal" "$@"
+script_entry "system-terminal" "$@"
 #

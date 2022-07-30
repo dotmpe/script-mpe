@@ -51,11 +51,11 @@ test -n "${user_script_loaded:-}" || {
 }
 
 # Parse arguments
-! script_baseext=.sh script_isrunning "shellcheck-usage" ||
-    eval "set -- $(user_script_defarg "$@")"
+! script_baseext=.sh script_isrunning "shellcheck-usage" || {
+  script_baseext=.sh
+  eval "set -- $(user_script_defarg "$@")"
+}
 
 # Execute argv and return
-script_baseext=.sh \
-script_defcmd="" \
-    script_entry "shellcheck-usage" "$@"
+script_entry "shellcheck-usage" "$@"
 #

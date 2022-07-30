@@ -139,4 +139,34 @@ fun_flags () # ~ <Var-Name> [<Flags-Off>] [<Flags-On>]
   unset flag
 }
 
+grep_or ()
+{
+  printf '\(%s\)' "$(
+        printf '%s' "$*" | sed '
+                s/ /\\|/g
+                s/\*/.*/g
+            '
+    )"
+}
+
+# Extract simple, single-line case/esac cases
+sh_type_esacs () # ~ <Func>
+{
+  sh_type_esacs_fmt "$1" | sh_type_esacs_grep
+}
+
+sh_type_esacs_fmt ()
+{
+  type "$1" | sed -z '
+        s/)\n */ ) /g
+        s/\n *;;/ ;;/g
+        s/\([^;]\);\n */\1; /g
+    '
+}
+
+sh_type_esacs_grep ()
+{
+  grep -Po ' \(? .* \) .* set -- [a-z_:-][a-z0-9_:-]* .* ;;'
+}
+
 #

@@ -112,6 +112,9 @@ test -n "${user_script_loaded:-}" || {
   unset SHELL
   user_script_shell_env
 }
-! script_isrunning "tmux-status" || eval "set -- $(user_script_defarg "$@")"
-script_defcmd="" script_entry "tmux-status" "$@"
+
+! script_isrunning "tmux-status" ||
+    eval "set -- $(user_script_defarg "$@")"
+
+script_entry "tmux-status" "$@"
 #

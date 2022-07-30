@@ -175,6 +175,9 @@ test -n "${user_script_loaded:-}" || {
   #shellcheck source=xorg.lib.sh
   . $US_BIN/xorg.lib.sh
 }
-! script_isrunning "user-desktop" || eval "set -- $(user_script_defarg "$@")"
-script_defcmd= script_entry "user-desktop" "$@"
+
+! script_isrunning "user-desktop" ||
+    eval "set -- $(user_script_defarg "$@")"
+
+script_entry "user-desktop" "$@"
 #

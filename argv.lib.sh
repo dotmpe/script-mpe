@@ -295,14 +295,12 @@ argv_more () # ~ <Argv...> # Read until '--', and set $more_arg{c,v}
   # Don't require this but read leading '--' anyway
   argv_is_seq "$1" && shift
 
-  test $# -gt 0 || return 1
+  test $# -eq 0 || {
+    # Found empty sequence?
+    argv_is_seq "$1" && { more_argv=; more_argc=1; return; }
 
-  # Found empty sequence?
-  argv_is_seq "$1" && { more_argv=; more_argc=1; return; }
-
-  # Get all args
-  test ${argv_q:-1} -eq 1 && more_argv="${1@Q}" || more_argv="$1"
-  test $# -eq 1 && shift || {
+    # Get all args
+    test ${argv_q:-1} -eq 1 && more_argv="${1@Q}" || more_argv="$1"
     first=true
     while $first || argv_has_next "$@"
     do
