@@ -48,8 +48,8 @@ transmission_active () # ~
   test $# -gt 0 || set -- tab
   local lk=${lk:-}:transmission-active
   case "$1" in
-    ( ids )
-          transmission_active tab | awk '{print $1}' ;;
+    ( ids|nums )
+          transmission_list ids active ;; #active tab | awk '{print $1}' ;;
     ( key|keys|cols ) # ~ <Var:Field...>
           local act="$1"; shift; set -- "$1" fix-cols active -- "$@"
           transmission_list "$@" ;;
@@ -62,20 +62,21 @@ transmission_active () # ~
   esac
 }
 
-transmission_fix_item_cols ()
+# Basic scrapter utility for use with list-runner.
+transmission_fix_item_cols () # (std) ~ # Remove whitespace from columns
 {
   sed '
         s/\([0-9]\) \([kMGT]B\) /\1\2 /
-        s/\([0-9]\) \(min\|hrs\|days\) /\1\2 /
+        s/\([0-9]\) \(sec\|min\|hrs\|days\) /\1\2 /
         s/ Up & Down / Up-Down /
     '
 }
 
-# This should be must faster than looking for the share name ourself on the fs
+# Ask transmission for download location of torrent
 transmission_get_item () # ~ <Name>
 {
   ti= transmission_info "$1" location:Location || return
-  test -e "$location/$1" || return 1
+  test -e "$location/$1" || return 100
   pp="$location/$1"
 
   #filetabs=$(transmission-remote -t "$num" -if | tail -n +3 | transmission_fix_item_cols)
@@ -130,7 +131,8 @@ transmission_info () # ~ <Id-Spec> <Key...> # Parse info output and set vars
       } || {
         field=$1 var=${1// /_}
       }
-      echo "$ti" | grep "^ *$field:" | sed '
+      # NOTE: Availability field is duplicated for missing-metadata downloads
+      echo "$ti" | grep -m 1 "^ *$field:" | sed '
           s/^ *[^:]*: \(.*\)$/'"$var"'="\1"/
         '
       shift
@@ -161,17 +163,11 @@ transmission_is_item () # ~ [name|hash] <Info-Name-or-Hash>
   esac
 }
 
-transmission_item_cb ()
-{
-  local argvar="$2" arg
-  arg=${!argvar}
-  "$1" "$arg" || {
-    $LOG error "$lk:cb:$num" "Callback '$1' failed" "${arg//%/%%}"
-    return 100
-  }
-}
-
-# Just checking wether the row was parsed correctly.
+# Automatization scripts should probebly not run on items that Transmission has
+# issues with, this transmission-list-item handler takes a subhandler that is
+# only run if there are no issues for the current item.
+# XXX: also checking wether the status was parsed correctly, but scripts should
+# be using the validate function now when things go amiss.
 transmission_item_check () # ~ [ <Handler <Arg...>> ]
 {
   local lk="${lk:-}:check"
@@ -272,7 +268,8 @@ transmission_item_pause () # ~
     return
   }
 
-  test "$pct" = n/a -o "$pct" = "0%" || return 0
+  # Keep fishing for missing metadata
+  test -z "$pct" && return
 
   #test "$have" != "None" && return
 
@@ -310,6 +307,8 @@ transmission_item_peers () # ~
       done
 }
 
+# Scraping output we miss some raw data. This selects some and tries to use
+# proper variable names.
 transmission_item_percentage () # ~
 {
   # Skip shares with issues and abort on unknown status
@@ -318,8 +317,15 @@ transmission_item_percentage () # ~
   ti= transmission_info "$num" btih:Hash status:State \
     avail:Availability done_pct:Percent.Done size_tot:Total.size
 
-  test "$done_pct" = "-nan%" && done_pct=n/a
-  test "$avail" = "-nan%" && avail=n/a
+  # Progress (and other variables) can be nan for numbers, and None for other
+  # value types, if no metadata (torrent-file) is yet available.
+  # In these cases set progress to empty.
+
+  test "$done_pct" = "-nan%" \
+      && { done_pct=n/a; progress=; } \
+      || progress=${done_pct//%/}
+
+  test "$avail" = "-nan%" -a "$avail" = "None" && avail=n/a
 
   test $# -eq 0 && {
     printf 'ID: %s\nName: %s\nHash: %s\nState: %s\nAvailability: %s\n'\
@@ -335,7 +341,34 @@ transmission_item_trackers () # ~
   trackers=$(transmission-remote -t "$num" -it)
   tcnt=$(echo "$trackers" | grep 'Tracker [0-9]' | count_lines)
   echo "$numid. $name ($tcnt)"
-  echo "$trackers" | grep 'an error' | sed 's/Got an error //' || true
+  echo "$trackers" | grep '^ *Tracker [1-9][0-9]*: ' |
+      sed 's/^ *Tracker [1-9][0-9]*: //g'
+  # echo "$trackers" | grep 'an error' | sed 's/Got an error //' || true
+}
+
+transmission_item_validate () # ~
+{
+  local fail failed
+  [[ $numid =~ ^[0-9]{1,}\*?$ ]] || fail=Num\ ID
+  test -z "${num:-}" || {
+    [[ $num =~ ^[0-9]{1,}$ ]] || fail=ID; }
+  [[ $pct =~ ^[0-9]{,}$ ]] || fail=Percentage
+  [[ $have =~ ^(None|([0-9]{1,}\.[0-9]{1,}[kMGT]B))$ ]] || fail=Have
+  [[ $eta =~ ^(Unknown|Done|([0-9]{1,}[minhrsday]{1,4}))$ ]] || fail=Eta
+  [[ $up =~ ^[0-9]{1,}\.[0-9]{1,}$ ]] || fail=Up
+  [[ $down =~ ^[0-9]{1,}\.[0-9]{1,}$ ]] || fail=Down
+  [[ $ratio =~ ^(None|([0-9]{1,}\.[0-9]{1,}))$ ]] || fail=Ratio
+  [[ $status =~ ^(Uploading|Downloading|Up-Down|Seeding|Stopped|Finished|Queued|Idle)$ ]] \
+      || fail=Status
+  test -z "${btih:-}" || {
+    [[ $btih =~ ^[0-9a-f]{40}$ ]] || fail=Bt\ info-hash; }
+  test -z "${fail-}" && return
+
+  ctx="id:$numid pct:$pct have:$have eta:$eta up:$up down:$down ratio:$ratio ih:${btih:-} status:$status n:$name"
+  $LOG warn ":item-validate" "$fail failed" "${ctx//%/%%}"
+
+  test ${ti_v_ff:-0} -eq 1 && return 1
+  return 100
 }
 
 transmission_list () # ~
@@ -344,27 +377,31 @@ transmission_list () # ~
   local lk=${lk:-}:transmission-list
   case "$1" in
 
-    ( active )
+    ( a|active )
           transmission-remote -l | grep -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
-    ( not-stopped )
-          transmission-remote -l | grep -v '\(None\|[0-9][0-9]*\) * Stopped ' ;;
+    ( S|not-stopped )
+          transmission-remote -l | grep -v '\(None\|[1-9][0-9]*\) * Stopped ' ;;
     ( idle )
           transmission-remote -l | grep 'Idle' ;;
-    ( issues )
+    ( e|errors|issues )
           transmission-remote -l | grep -E '^ * [0-9]+\* ' ;;
     ( popular )
           transmission-remote -l |
             grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
             transmission_fix_item_cols | sort -k7n
         ;;
-    ( stopped|paused )
+    ( s|stopped|paused )
           transmission-remote -l | grep '\(None\|[0-9][0-9]*\) * Stopped ' ;;
 
     ( fix-cols )
           shift; transmission_list "$@" | transmission_fix_item_cols ;;
-    ( item-grep-num )
-          shift; transmission-remote -l | grep '^ * '$1'\*\? ' ;;
-    ( items-by-nums )
+    ( I|ids )
+          shift; transmission_list "$@" | awk '{print $1}' ;;
+    ( i|items ) # ~ (<Handler>) <Id-Spec...> # Shortcut to run given handler on selected IDs
+          shift; local handler=${1:-lognote}; shift
+          transmission_list_run fix-cols items-by-nums "$@" -- \
+              transmission_item_$handler ;;
+    ( items-by-nums ) # ~ [<List-Arg...> -- ] <Id...>
           local listarg listargc
           shift; transmission_listarg "$@" && shift $listargc
           test $# -gt 0 || {
@@ -390,14 +427,14 @@ transmission_list () # ~
           $LOG notice "$lk:summary" \
 "Sharing $sum in $cnt shares, current transfer rates: $down down, $up up"
         ;;
-    ( tab )
+    ( tab|all )
           transmission-remote -l ;;
-    ( unknown )
+    ( u|unknown )
           transmission_list xtab | grep Unknown | grep -E '^ *[0-9]+\*?  *n/a' ;;
+    ( v|validate )
+          transmission_list_run transmission_item_validate ;;
     ( xtab )
           transmission_list fix-cols tab ;;
-    ( xitem )
-          shift; transmission_list fix-cols item "$1" ;;
 
     ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
   esac
@@ -407,14 +444,15 @@ transmission_listarg ()
 {
   listargc=$#
   local more=false
-  fnmatch "* -- *" " $* " && more=true
-  $more && {
+  while fnmatch "* -- *" " $* "
+  do more=true
     argv_q=0 argv_more "$@" && shift $more_argc ; listarg="$more_argv"
     unset more_arg{v,c}
     shift
-  }
-  listargc=$(( $listargc - $# ))
+    true "${listarg:="fix-cols tab"}"
+  done
   true "${listarg:="fix-cols tab"}"
+  listargc=$(( $listargc - $# ))
   $more
 }
 
@@ -424,13 +462,13 @@ transmission_listarg ()
 #
 transmission_list_run () # ~ [ <List-Arg...> -- ] <Handler <Args...>>
 {
-  local listarg listargc lk=${lk:-}:list-run
+  local listarg listargc
   transmission_listarg "$@" && shift $listargc
 
   true "${tl_runner:=transmission_list_runner}"
   test $# -gt 0 || set -- transmission_item_check
 
-  transmission_list $listarg | "$tl_runner" "$@"
+  lk=${lk:-}:list-run transmission_list $listarg | "$tl_runner" "$@"
 }
 
 # Basic reader for transmission_list xtab-formatted outputs.
@@ -438,16 +476,19 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
 {
   test $# -gt 0 || set -- transmission_item_check
   local numid pct have eta up down ratio status name
-  local r ret num lk="${lk:-}:list-runner"
+  local r ret num lk="${lk:-}:list-runner:${1//transmission_item_}"
+
   while read -r numid pct have eta up down ratio status name
   do
     test "$numid" = ID && continue
     test "$numid" != "Sum:" && {
-      pct=$(echo "$pct" | tr -d '%')
+
       num=${numid//\*/}
+      pct=$(echo "$pct" | tr -d 'n/a%')
+
       test ${quiet:-0} -eq 1 || {
         test $(expr $num % ${tl_li:-100}) -ne 0 -o $num -eq 0 ||
-          $LOG notice "$lk" "$num rows read..."
+          $LOG notice "$lk" "$num items read..."
       }
 
       # Defer to handler, and handle return
@@ -463,8 +504,8 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
 
     } || {
       test ${quiet:-0} -eq 1 ||
-        $LOG notice "$lk" "Summary" \
-            "size:$pct items:$num xfer:$have up/$eta down"
+        $LOG notice "$lk" "Completed, summary:" \
+            "size:$pct items:$num xfer:: up:$have down:$eta"
       break
     }
   done
@@ -486,7 +527,7 @@ transmission_list_summary () # ~ # Get share summary variables
 
 transmission_name_env () # ~ (num|hash)
 {
-  test $# -gt 1 || set -- hash
+  test $# -gt 1 || set -- num
   test "$1" = num -o "$1" = "hash" || return 67
   test -n "$name" || return 63
   tid_chk=0 transmission_id "$1" "$name"
@@ -506,19 +547,23 @@ transmission_remote () # ~ <Argv...>
   test "$rpcres" = 'localhost:9091/transmission/rpc/ responded: "success"'
 }
 
-transmission_share_find () # ~ <Id-Spec> <Path>
+transmission_share ()
 {
-  transmission_remote -t "$1" --find "$2"
-}
+  #test $# -gt 0 || set -- info
+  local lk=${lk:-}:transmission-share
+  case "${1:?}" in
 
-transmission_share_move () # ~ <Id-Spec> <Path>
-{
-  transmission_remote -t "$1" --move "$2"
-}
+    ( find ) # ~ <Id-Spec> <Path>
+          transmission_remote -t "${2:?}" --find "${3:?}" ;;
+    ( move ) # ~ <Id-Spec> <Path>
+          transmission_remote -t "${2:?}" --move "${3:?}" ;;
+    ( s|start ) # ~ <Id-Spec>
+          transmission_remote -t "${2:?}" --start ;;
+    ( S|stop ) # ~ <Id-Spec>
+          transmission_remote -t "${2:?}" --stop ;;
 
-transmission_share_start () # ~ <Id-Spec>
-{
-  transmission_remote -t "$1" --start
+    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+  esac
 }
 
 #

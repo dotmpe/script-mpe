@@ -24,6 +24,7 @@ update ()
   test ! -e "${1:?}" && {
     # Can't do stats on first run
     init_ref "$1" || return
+    echo "# First run only created stats file, re-run to get delta's"
 
   } || {
 
@@ -33,7 +34,11 @@ update ()
 
       test -z "$last_tx" && {
         # Don't report anything if something went wrong and last values are missing
-        init_ref "$1" || return
+        init_ref "$1" && echo "# Problem with last run, re-created stats file" \
+            || {
+                echo "# Problem with last runs, still can't created stats file"
+                return 1
+            }
 
       } || {
 
@@ -53,15 +58,22 @@ update ()
   }
 }
 
+load ()
+{
+  true "${US_BIN:=/srv/home-local/bin}"
+  test -e "$MUNIN_LIBDIR/plugins/transmissionbt-munin.lib.sh" &&
+      . "$MUNIN_LIBDIR/plugins/transmissionbt-munin.lib.sh" ||
+      . "$US_BIN/transmissionbt-munin.lib.sh"
+}
+
+true "${MUNIN_LIBDIR:=/usr/share/munin}"
 
 # Munin shell lib, mainly for use with thresholds.
-# true "${MUNIN_LIBDIR:=/usr/share/munin}/plugins/plugin.sh"
+# . "${MUNIN_LIBDIR:=/usr/share/munin}/plugins/plugin.sh"
 
 # Location for state files.
 # true "${MUNIN_PLUGSTATE:=/var/run/munin}"
-true "${PLUGSTATE:=${MUNIN_PLUGSTATE:=/tmp}}"
-
-true "${helper_py:=/srv/home-local/bin/transmission.py}"
+true "${PLUGSTATE:=${MUNIN_PLUGSTATE:-/tmp}}"
 
 set -e
 
@@ -70,6 +82,7 @@ case ${1:-print} in
     ( autoconf ) echo "yes" ;;
 
     ( config ) cat <<EOM
+# With peaks in data above the million I think logarithmic is more readable
 graph_args --logarithmic
 graph_category p2p
 graph_title BitTorrent Network Rates
@@ -81,7 +94,7 @@ bt_tx_rate.label Bytes/sec send
 EOM
         ;;
 
-    ( print | update )
+    ( print | update ) load && assert_helper &&
             update ${PLUGSTATE:?}/transmissionbt_xfer_rates.stats
         ;;
 

@@ -15,9 +15,23 @@ report ()
   echo "total_shareratio.value $total_shareratio"
 }
 
+validate ()
+{
+  test $# -gt 0 || set -- \
+      ${PLUGSTATE:?}/transmissionbt_shareratios.cache
+  test -e "$1" || return 12
+
+  list_validate < "$1" || {
+      echo "# Problem with current $1 file"
+      echo "# Problem with current $1 file" >&2
+      test -e "$1.fail" || cp "$1" "$1.fail"
+      return 99
+  }
+}
+
 update ()
 {
-  set -- \
+  test $# -gt 0 || set -- \
       ${PLUGSTATE:?}/transmissionbt_shareratios.cache
 
   transmission-remote -l | transmission_fix_item_cols >"$1" || return
@@ -28,20 +42,36 @@ update ()
   seeding_max_shareratio=$(list_seeding "$1" | max_shareratio)
   seeding_avg_shareratio=$(list_seeding "$1" | avg_shareratio)
 
+  # XXX: hack to try to pin-down issues with generated data (incidental
+  # ratios in 100s-1000s range)
+
+  test ${max_shareratio/.*/} -gt 99 \
+      -o ${active_max_shareratio//.*/} -gt 100 \
+      -o ${active_avg_shareratio//.*/} -gt 100 \
+      -o ${seeding_max_shareratio//.*/} -gt 100 \
+      -o ${seeding_avg_shareratio//.*/} -gt 100 && {
+
+      validate "$1" || return
+  }
+
   eval "$(FMT=sh ${helper_py:?} shareratios)"
 
   report
 }
 
+load ()
+{
+  true "${US_BIN:=/srv/home-local/bin}"
+  test -e "$MUNIN_LIBDIR/plugins/transmissionbt-munin.lib.sh" &&
+      . "$MUNIN_LIBDIR/plugins/transmissionbt-munin.lib.sh" ||
+      . "$US_BIN/transmissionbt-munin.lib.sh"
+}
+
+true "${MUNIN_LIBDIR:=/usr/share/munin}"
 
 # Location for state files.
 # true "${MUNIN_PLUGSTATE:=/var/run/munin}"
-true "${PLUGSTATE:=${MUNIN_PLUGSTATE:=/tmp}}"
-
-true "${helper_py:=/srv/home-local/bin/transmission.py}"
-
-#. /usr/share/munin/plugins/transmissionbt.sh
-. /srv/home-local/bin/munin/transmissionbt.sh
+true "${PLUGSTATE:=${MUNIN_PLUGSTATE:-/tmp}}"
 
 set -e
 
@@ -50,7 +80,6 @@ case ${1:-print} in
     ( autoconf ) echo "yes" ;;
 
     ( config ) cat <<EOM
-graph_args --logarithmic
 graph_category p2p
 graph_title BitTorrent Share Ratios
 graph_vlabel ratio
@@ -71,9 +100,9 @@ total_shareratio.label Cumulative share ratio
 EOM
         ;;
 
-    ( print | update )
-            update
-        ;;
+    ( print | update ) load && assert_helper && update ;;
+
+    ( v | validate ) test $# -eq 0 || shift; load && validate "$@" ;;
 
 esac
 
