@@ -11,7 +11,7 @@ match_htd_lib_load ()
   esac
 }
 
-match_req_names_tab()
+match_req_names_tab () # ~ # Look for table.names at PWD paths
 {
   local pwd="$PWD"
 
@@ -101,8 +101,8 @@ rl.on("line", function(line){
     ' )
 }
 
-# a working globs2regex with Perl
-perl_globs2regex()
+# Build extended-regex expressions for grep with Perl
+perl_globs2regex() # (stdin) ~
 {
   perl -pe '
 s{
@@ -119,11 +119,8 @@ s{
     '
 }
 
-# Filter out
-
-
-# To escape filenames and perhaps other values for use as grep literals
-match_grep_pattern_test()
+# Test if match-grep performs OK
+match_grep_pattern_test () # ~ <Search-String>
 {
   p_="$(match_grep "$1")"
   # test regex

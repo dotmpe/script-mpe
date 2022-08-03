@@ -1,5 +1,18 @@
 #!/bin/sh
 
+### Manage numbered disks
+
+
+volume_htd_lib_load ()
+{
+  true
+}
+
+volume_htd_lib_init ()
+{
+  true
+}
+
 
 # Load config settings for device and host
 source_device_catalog() # Device [Hostname]

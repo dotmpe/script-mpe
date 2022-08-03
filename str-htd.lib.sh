@@ -638,6 +638,7 @@ str_padd_ch () # [str_fmt=] ~ LEN [PAD [INPUT [PAD]]]
 str_quote ()
 {
   case "$1" in
+    ( "" ) printf '""' ;;
     ( *" "* | *[\[\]\<\>$]* )
       case "$1" in
           ( *"'"* ) printf '"%s"' "$1" ;;

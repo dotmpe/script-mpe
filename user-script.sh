@@ -23,6 +23,7 @@ script_entry () # [script{name,_basext},base] ~ <Scriptname> <Arg...>
     shift
     script_doenv "$@" || return
     stdmsg '*debug' "User-Script entry now"
+    sh_fun "$1" || set -- usage -- "$@"
     "$@" || script_ret=$?
     script_unenv
     return ${script_ret:-0}
@@ -155,7 +156,7 @@ user_script_defarg ()
 user_script_defcmd ()
 {
   true "${script_defcmd:="usage"}"
-  test $# -gt 0 && defcmd=0 ||{
+  test $# -gt 0 && defcmd=0 || {
     defcmd=1
     return 1
   }
@@ -308,7 +309,7 @@ user_script_shell_env ()
 
   user_script_shell_env=0
 
-  user_script_loadenv
+  user_script_loadenv || return
 
   set -e
 
@@ -458,8 +459,13 @@ script_listfun () # [script-src] ~ [<Grep>] # Wrap grep for function declaration
 
 usage ()
 {
+  local failcmd ; test "${1-}" != "--" || { shift; failcmd="$*"; shift $#; }
   script_version "$@" >&2
   user_script_help "$@" >&2
+  test -z "${failcmd-}" || {
+    $LOG error ":usage" "No such command" "$failcmd"
+    return 2
+  }
   # Exit non-zero unless command was given
   test "$script_cmddef" = "0"
 }

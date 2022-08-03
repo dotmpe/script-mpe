@@ -20,20 +20,6 @@ user_script_lib_init ()
   lib_load ignores
 }
 
-user_script_find () # ~ # Find executables from user-dirs
-{
-  test $# -gt 0 || set -- $US_BIN $UCONF/script $UCONF/path/$uname
-  # $UCONF/script/$uname $UCONF/script/Generic
-
-  local find_ignores
-  find_ignores="$(ignores_find ~/bin/.htdignore.names | tr '\n' ' ')"
-
-  local bd
-  for bd in "$@"
-  do
-    eval "find $bd/ -false $find_ignores -o -executable -type f -print"
-  done
-}
 
 user_script_check () # ~ # See that every script has a description
 {
@@ -80,6 +66,51 @@ user_script_filter () # ~ #
 
     echo "$execname"
   done
+}
+
+user_script_find () # ~ # Find executables from user-dirs
+{
+  test $# -gt 0 || set -- $US_BIN $UCONF/script $UCONF/path/$uname
+  # $UCONF/script/$uname $UCONF/script/Generic
+
+  local find_ignores
+  find_ignores="$(ignores_find ~/bin/.htdignore.names | tr '\n' ' ')"
+
+  local bd
+  for bd in "$@"
+  do
+    eval "find $bd/ -false $find_ignores -o -executable -type f -print"
+  done
+}
+
+# With uc-profile available on a system it is easy to re-use Uc's log setup,
+# which also has received a fair amount of work and so should be less messy
+# than other older $LOG scripts. It is also much, much faster to use the native
+# functions than to execute an external script every time.
+# XXX: this also introduces other functions from *-uc.lib.sh that Uc has loaded
+# but making this more transparent is no a prio and is convenient for the same
+# reason.
+user_script_initlog ()
+{
+  # Setup user-output formatter/'logger'.
+  # Not using any formatting is the fasted for batched execution, but does not
+  # call any loggers and is not very readable. Should probably use UC_LOG_LEVEL
+  # and may be profile that a bit because it can hide levels as well and would
+  # be better for i.e. crond batch execution.
+  test ${quicklog:-0} -eq 0 && {
+    #UC_LOG_LEVEL=${v:-5}
+    . /etc/profile.d/uc-profile.sh && uc_log_init || return
+    #shellcheck disable=1087 # Below is not an expansion
+    UC_LOG_BASE="$base[$$]"
+    uc_log "debug" "" "uc-profile log loaded"
+    LOG=uc_log
+  } || {
+    # With many log statements and high verbosity may be this makes a difference
+    # and is worth turning on for batch mode. But while running tl v it barely
+    # makes 10% difference. uc-log should have other useful facilities as well.
+    uc_log() { $LOG "$@"; }
+    LOG=quicklog
+  }
 }
 
 # Look for command (ie. in history, aliases) given basic regex. To turn on
