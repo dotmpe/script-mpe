@@ -83,8 +83,13 @@ case ${1:-print} in
 
     ( config ) cat <<EOM
 # With peaks in data above the million I think logarithmic is more readable
-graph_args --logarithmic
+graph_args --base 1000 --logarithmic -l 0.7 -r
 graph_category p2p
+graph_info Transmission network data use
+# XXX: This has no effect on vertical axis labels with log type, but changes
+# legend
+#graph_scale no
+#graph_scale yes
 graph_title BitTorrent Network Rates
 graph_vlabel bytes/sec
 bt_rx_rate.type GAUGE

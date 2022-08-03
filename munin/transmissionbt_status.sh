@@ -85,9 +85,12 @@ case ${1:-print} in
 # 0.001-1.0 order takes about a third of the graph in logarithmic scale;
 # --rigid prevents plots below 1e+00. Now we can only read 1 or above but can
 # still read 0 values in the legend.
-graph_args --logarithmic -l 1 -r
+graph_args --base 1000 --logarithmic -l 0.8 -r
 graph_category p2p
+graph_info Transmission states over time
 graph_printf %6.0lf
+# Neither yes or no has effect on log type v-axis, but changes legend
+#graph_scale yes no
 graph_title BitTorrent Status
 graph_vlabel counts
 active_torrents.type GAUGE

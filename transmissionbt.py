@@ -99,8 +99,16 @@ def print_torrent (torrent, c, s, fmt='id-info'):
         print(torrent.date_done, td_str, numid, torrent.name)
     elif fmt == 'corrupted-log':
         # Normally date-done is None for torrents with bytes left to download,
-        # this is for those invalidated afterwards.
-        print(torrent.date_done, numid, torrent.left_until_done, torrent.name)
+        # this is for those invalidated afterwards??
+        hum_bytes = torrent.left_until_done
+        o = ''
+        if hum_bytes > 1024:
+            hum_bytes = hum_bytes/1024
+            o = 'k'
+            if hum_bytes > 1024:
+                hum_bytes = hum_bytes/1024
+                o = 'M'
+        print(torrent.date_done, numid, '-%.2f%s'%(hum_bytes,o), torrent.name)
     elif fmt == 'torrent-status':
         print(numid, torrent.hashString, '%i' % torrent.progress,
                 '%i' % torrent.available, end='')

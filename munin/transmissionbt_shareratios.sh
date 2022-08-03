@@ -82,6 +82,7 @@ case ${1:-print} in
     ( config ) cat <<EOM
 graph_category p2p
 graph_title BitTorrent Share Ratios
+graph_info Upload vs. download data ratios
 graph_vlabel ratio
 max_shareratio.type GAUGE
 max_shareratio.label Max. share ratio
