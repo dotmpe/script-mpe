@@ -61,7 +61,8 @@ script_doenv ()
 # Check if given argument equals zeroth argument.
 script_isrunning () # [scriptname] ~ <Scriptname> # argument matches zeroth argument
 {
-  script_name
+  local scriptname
+  script_name &&
   #shellcheck disable=2086
   test "$scriptname" = "$1"
 }
@@ -247,7 +248,8 @@ user_script_help () # ~ [<Name>]
 # deferring to handler.
 user_script_loadenv ()
 {
-  true "${US_BIN:="$HOME/bin"}"
+  true "${US_BIN:="$HOME/bin"}" &&
+    test -d "$US_BIN" &&
 
   user_script_loaded=1
 }
@@ -320,7 +322,7 @@ user_script_shell_env ()
     . "$US_BIN"/user-script.lib.sh && user_script_lib_load
 
     #. ~/project/user-script/src/sh/lib/shell.lib.sh
-    . /src/local/user-conf-dev/script/shell-uc.lib.sh
+    . "${U_C:-/src/local/user-conf-dev}"/script/shell-uc.lib.sh
   } || return
 
   # Restore SHELL setting to proper value if unset
