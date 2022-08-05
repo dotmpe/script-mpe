@@ -15,7 +15,7 @@ safe_ref () # ~ <File>
 init_ref () # ~ <File>
 {
   #shellcheck disable=2209
-  eval "$(FMT=sh ${helper_py:?} transfer_stats)" && safe_ref "${1:?}"
+  eval "$(FMT=sh ${helper_py:?} --transfer-stats)" && safe_ref "${1:?}"
 }
 
 
@@ -43,7 +43,7 @@ update ()
       } || {
 
         #shellcheck disable=2209
-        eval "$(FMT=sh ${helper_py:?} transfer_rates_since \
+        eval "$(FMT=sh ${helper_py:?} --transfer-rates-since \
             ${last_rt:?} ${last_rx:?} ${last_tx:?})" || return
         echo "# Delta: $delta_seconds seconds"
 

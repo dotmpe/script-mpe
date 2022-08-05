@@ -34,32 +34,32 @@ list_all ()
 
 list_active ()
 {
-  grep ${grep_f:+-}${grep_f:-} ' \(Uploading\|Downloading\|Up & Down\|Seeding\) ' "$1"
+  grep ${grep_f:+-}${grep_f:-} ' \(Uploading\|Downloading\|Up & Down\|Seeding\) ' "${1:?}"
 }
 
 list_downloading ()
 {
-  grep ${grep_f:+-}${grep_f:-} ' \(Downloading\|Up & Down\) ' "$1"
+  grep ${grep_f:+-}${grep_f:-} ' \(Downloading\|Up & Down\) ' "${1:?}"
 }
 
 list_uploading ()
 {
-  grep ${grep_f:+-}${grep_f:-} ' \(Uploading\|Up & Down\) ' "$1"
+  grep ${grep_f:+-}${grep_f:-} ' \(Uploading\|Up & Down\) ' "${1:?}"
 }
 
 list_updown ()
 {
-  grep ${grep_f:+-}${grep_f:-} ' \(Uploading\|Downloading\|Up & Down\) ' "$1"
+  grep ${grep_f:+-}${grep_f:-} ' \(Uploading\|Downloading\|Up & Down\) ' "${1:?}"
 }
 
 list_seeding ()
 {
-  grep ${grep_f:+-}${grep_f:-} ' Seeding ' "$1"
+  grep ${grep_f:+-}${grep_f:-} ' Seeding ' "${1:?}"
 }
 
 list_issues ()
 {
-  grep ${grep_f:+-}${grep_f:-} '^ * [0-9]*\* ' "$1"
+  grep ${grep_f:+-}${grep_f:-} '^ * [0-9]*\* ' "${1:?}"
 }
 
 # Remove whitespaces from transmission-remote --list columns

@@ -54,7 +54,7 @@ update ()
       validate "$1" || return
   }
 
-  eval "$(FMT=sh ${helper_py:?} shareratios)"
+  eval "$(FMT=sh ${helper_py:?} --share-ratios)"
 
   report
 }

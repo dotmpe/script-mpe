@@ -4,7 +4,8 @@
 #
 # Don't need total I think.
 # XXX: Do want count of stalled torrents if possible.
-# TODO: And torrents which received corrupt data.
+# TODO: And torrents which received corrupt data. And incomplete ones and
+# missing ones.
 
 
 report ()
@@ -21,6 +22,8 @@ report ()
   echo "finished_torrents.value $finished_torrents"
   echo "total_torrents.value $total_torrents"
   echo "peers.value $peers"
+  echo "missing_torrents.value $missing_torrents"
+  #echo "incomplete.value $incomplete"
 }
 
 update ()
@@ -39,6 +42,8 @@ update ()
   error_torrents=$(grep_f=c list_issues "$1" || true)
   paused_torrents=$(grep -c ' Stopped ' "$1")
   finished_torrents=$(grep -c ' Finished ' "$1")
+  missing_torrents=$(grep -c '^ *[0-9]* * n/a ' "$1")
+  #incomplete_torrents=$()
 
   #up_torrents=$(grep -c ' Uploading ' "$1" || true )
   # Total = finished_torrents + downloading_torrents + queued_torrents +
@@ -88,9 +93,8 @@ case ${1:-print} in
 graph_args --base 1000 --logarithmic -l 0.8 -r
 graph_category p2p
 graph_info Transmission states over time
-graph_printf %6.0lf
-# Neither yes or no has effect on log type v-axis, but changes legend
-#graph_scale yes no
+graph_printf %7.0lf
+graph_scale no
 graph_title BitTorrent Status
 graph_vlabel counts
 active_torrents.type GAUGE
@@ -104,7 +108,7 @@ idle_torrents.info By deault inactivity for 30 minutes marks a torrent Idle
 seeding_torrents.type GAUGE
 seeding_torrents.label Seeding
 connections.type GAUGE
-connections.label Total peer connections
+connections.label Peer connections
 connections.info The sum of connected peers for all torrents
 uploading_torrents.type GAUGE
 uploading_torrents.label Uploading
@@ -120,11 +124,17 @@ finished_torrents.label Finished
 total_torrents.type GAUGE
 total_torrents.label Total
 peers.type GAUGE
-peers.label Connected peers
+peers.label Peers connected
 peers.info The number of unique peers
-#stalled.type GAUGE
-#stalled.label Stalled
-#stalled.info XXX: not sure, maybe a bit set once Idle time expires?
+#stalled_torrents.type GAUGE
+#stalled_torrents.label Stalled
+#stalled_torrents.info XXX: not sure, maybe a bit set once Idle time expires?
+missing_torrents.type GAUGE
+missing_torrents.label No metadata
+missing_torrents.info Unknown file size or name
+#incomplete_torrents.type GAUGE
+#incomplete_torrents.label Incomplete data
+#incomplete_torrents.info Available data is less than 100%
 EOM
         ;;
 

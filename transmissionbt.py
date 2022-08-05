@@ -20,7 +20,7 @@ Usage:
     --commands
     --aliases
 """
-import os, sys
+import os, socket, sys, time
 from pprint import pprint
 
 import distutils.util
@@ -53,6 +53,14 @@ stat_fields = (
         s.current_stats['downloadedBytes'] / s.current_stats['secondsActive']),
     ("Session tx rate",     lambda c, s:
         s.current_stats['uploadedBytes'] / s.current_stats['secondsActive']),
+
+    ("Session io octets",   lambda c, s: (
+        s.current_stats['downloadedBytes'], s.current_stats['uploadedBytes'] )
+    ),
+    ("Session delta io octets",   lambda c, s: (
+        s.current_stats['downloadedBytes'] - c.last_rx,
+        s.current_stats['uploadedBytes'] - c.last_tx )
+    ),
 
     ("Delta seconds",       lambda c, s: c.delta_sec),
 
@@ -339,7 +347,7 @@ def handle_rawsession(c, s):
     "Dump string representation of session object"
     print(s)
 
-def handle_shareratios (c, s):
+def handle_share_ratios (c, s):
     "Print total- and session-shareratio"
     handle_stats(c, s, 'total_shareratio', 'session_shareratio')
 
@@ -365,16 +373,35 @@ def handle_transfer_stats (c, s):
 
 def handle_stats (c, s, *selectids):
     "Print statistics/metrics with given IDs"
-    fmt = os.getenv('FMT', 'text')
+    global metric_formatters
+    if not hasattr(c, 'fmt'):
+        c.fmt = os.getenv('FMT', 'text')
     stats = init_stats(c, s, *selectids)
     for field_id in stats:
         v = stats[field_id][1](c, s)
-        if fmt == 'text':
-            print('%s:' % stats[field_id][0], v)
-        elif fmt == 'sh':
-            print('%s=%s' % (field_id, v))
-        else:
-            print(stats[field_id][0], repr(v))
+        metric_formatters[c.fmt](c, s, stats, field_id, v)
+
+metric_formatters = {
+        'text': lambda c, s, stats, k, v: print('%s:' % stats[k][0], v),
+        'sh': lambda c, s, stats, k, v: print('%s=%s' % (k, v)),
+        'raw': lambda c, s, stats, k, v: print(stats[k][0], repr(v)),
+        'collectd-io-octets': lambda c, s, stats, k, v:
+            print('PUTVAL "%s/transmissionbt/io_octets-%s" interval=%f N:%i:%i'
+                % ( ( c.hn, k.replace('_delta_io_octets', ''), c.i,)+v )),
+}
+
+def handle_collectd(c, s, i, *fieldids):
+    if not i: i = os.getenv('COLLECTD_INTERVAL', '10')
+    c.i = float(i)
+    c.fmt = 'collectd-io-octets'
+    c.hn = socket.gethostname()
+    if not fieldids: fieldids = ( 'session_delta_io_octets', )
+    stats = init_stats(c, s, 'session_io_octets')
+    while True:
+        c.last_rx, c.last_tx = stats['session_io_octets'][1](c, s)
+        time.sleep(c.i)
+        c.session_stats()
+        handle_stats(c, s, *fieldids)
 
 def handle_commands(c, s):
     "List all command actions"

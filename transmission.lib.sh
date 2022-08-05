@@ -182,7 +182,7 @@ transmission_item_check () # ~ [ <Handler <Arg...>> ]
   # Check if read loop works correctly, we may have to catch some more
   # ETA or have-formats.
   case "$status" in
-    ( Idle | Downloading | Seeding | Uploading | Stopped | Up-Down | Queued ) ;;
+    ( Idle | Downloading | Seeding | Uploading | Stopped | Up-Down | Queued | Finished ) ;;
     ( * )
       test $ti_c_quiet -eq 1 ||
         $LOG error "$lk" "Unknown status '$status'" "$name";
@@ -294,8 +294,8 @@ transmission_item_peers () # ~
 
   test ${quiet:-0} -eq 1 || {
     test $status = Idle &&
-        echo "$numid. $name ($status, $done_pct of $avail)" ||
-        echo "$numid. $name ($status, $done_pct of $avail, $up/$down)"
+        echo "$numid. $name ($status, $pct of $avail)" ||
+        echo "$numid. $name ($status, $pct of $avail, $up/$down)"
     echo "$peers" | sed 's/^/  /'
   }
 
@@ -315,25 +315,37 @@ transmission_item_percentage () # ~
   transmission_item_check || return
 
   ti= transmission_info "$num" btih:Hash status:State \
-    avail:Availability done_pct:Percent.Done size_tot:Total.size
+    avail:Availability size_tot:Total.size
 
   # Progress (and other variables) can be nan for numbers, and None for other
   # value types, if no metadata (torrent-file) is yet available.
   # In these cases set progress to empty.
 
-  test "$done_pct" = "-nan%" \
-      && { done_pct=n/a; progress=; } \
-      || progress=${done_pct//%/}
+  #test "$done_pct" = "-nan%" \
+  #    && { done_pct=n/a; progress=; } \
+  #    || progress=${done_pct//%/}
 
-  test "$avail" = "-nan%" -a "$avail" = "None" && avail=n/a
+  test "$avail" = "-nan%" -o "$avail" = "None" && avail=n/a
 
   test $# -eq 0 && {
     printf 'ID: %s\nName: %s\nHash: %s\nState: %s\nAvailability: %s\n'\
 'Percentage: %s\nTotal size: %s\n' \
-          "$numid" "$name" "$btih" "$status" "$avail" "$done_pct" "$size_tot"
+          "$numid" "$name" "$btih" "$status" "$avail" "$pct" "$size_tot"
   } || {
     test "${1:-}" = "-" || "$@"
   }
+}
+
+transmission_item_available () # ~
+{
+  #ti_c_quiet=1 transmission_item_percentage - || return
+  #test "$avail" = n/a || return 0
+  transmission_list_item
+}
+
+transmission_list_item () # ~
+{
+  echo "$numid ${pct:-n/a} $have $eta $up $down $ratio $status $name"
 }
 
 transmission_item_trackers () # ~
