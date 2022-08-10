@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 :created: 2017-12-26
-:updated: 2020-07-31
+:updated: 2022-08-10
 
 Query Wordnet corpus with Python NLTK. Wordnet has hypernym, hyponym, antonym
 synonym relations, derived forms, examples and more.
@@ -15,12 +15,15 @@ __version__ = '0.0.4-dev' # script-mpe
 __usage__ = """
 Usage:
   wordnet.py [options] ( define | meanings | path | tree | positions | examples ) WORD
-  wordnet.py info
+  wordnet.py [options] ( list | definitions ) WORD
+  wordnet.py [options] info [ WORD ]
   wordnet.py -h|--help
   wordnet.py help [ CMD ]
   wordnet.py --version
 
 Options:
+    --max-sublist NUM
+                  Try to curb 'info' output a bit... [default: 10]
     --no-head
                   Don't include query as header line or indent results.
     --print-memory
@@ -34,6 +37,8 @@ from pprint import pformat, pprint
 
 import log
 import libcmd_docopt
+
+# Some utils for nltk.corpus to query WordNet dataset
 from libwn import *
 
 
@@ -45,13 +50,69 @@ cmd_default_settings = dict(
 ### Commands
 
 
-def cmd_info(g):
-    print(sorted(wn.langs()))
+def cmd_info(WORD, g):
+    """
+    List languages. Or given a WORD either count the definitions (Synsets)
+    or dump all info about one to stdout.
+    """
+    if not WORD:
+        log.stderr('{green}Languages{default}:')
+        print("\n".join(sorted(wn.langs())))
+        return
+    syn, syns = syn_or_syns(WORD)
+    if syn:
+        print('Synset:', syn.name(), '(Lemma %r, position %r)' % (
+                syn.lemma_names()[0],
+                syn.pos()
+            ))
+        for fn, ak, lt in synset_field_attr_map:
+            v = getattr(syn, ak)(); it = None; it2 = None
+
+            if lt == 1: # Synsets in list
+                for it in u_o_ml(fn, v, g):
+                    print('-', it.name())
+
+            elif lt == 2: # Tuple with distance in second position
+                for it in u_o_ml(fn, v, g):
+                    print('-', '%i:' % it[1], it[0].name())
+
+            elif lt == 3: # Sublist with Synsets
+                for it in u_o_ml(fn, v, g):
+                    print('-')
+                    for it2 in it:
+                        print(' ', '-', it2.name())
+
+            elif lt == 4: # Primitive type (int, string) in list
+                for it in u_o_ml(fn, v, g):
+                    print('-', it)
+
+            else:
+                print('%s:' % fn, v)
+
+        #print(dir(syn))
+        # empty lists, identical to -to_?
+        #print(syn.in_region_domains())
+        #print(syn.in_topic_domains())
+        #print(syn.in_usage_domains())
+    else:
+        print(len(syns))
+        log.stderr('{green}%i definition(s) found for %r{default}' % (len(syns), WORD))
+
+
+def cmd_definitions(WORD, g):
+    """
+        List just the 'sense terms', ie. the Synset names found for query WORD
+    """
+    ret, (syn, syns) = u_q_w(WORD, g)
+    if ret: return ret
+    #if syn: syns = [syn]
+    for syn in syns:
+        print(syn.name())
 
 
 def cmd_meanings(WORD, g):
     """
-        Print short definition for word name or synonyms.
+        Pretty-print short definition for word name or synonyms.
         Each definition has all lemmas, a lexical name and the word name.
     """
     return printcmd_word_meanings(WORD, g)
@@ -61,12 +122,8 @@ def cmd_define(WORD, g):
     """
         Print dictionary info for word name or synonyms.
     """
-
-    if not WORD: return 1
-    syn, syns = syn_or_syns(WORD)
-    if not syn and not syns:
-        log.stderr('{yellow}No results{default}')
-        return 1
+    ret, (syn, syns) = u_q_w(WORD, g)
+    if ret: return ret
 
     d, defs = 1, 0
     if syn:
@@ -94,11 +151,7 @@ def cmd_define(WORD, g):
 
 
 def cmd_path(WORD, g):
-    if not WORD: return 1
-    syn, syns = syn_or_syns(WORD)
-    if not syn and not syns:
-        log.stderr('{yellow}No results{default}')
-        return 1
+    syn, syns = u_q_w(WORD, g)
 
     d_ = 0
     if g.head:
@@ -124,16 +177,12 @@ def cmd_tree(WORD, g):
 def cmd_positions(WORD, g):
     """
         Print positions that given word name or synonym appears in speech:
-        adj, adj-sat, adv, noun and/or verb.
+        adj., adj.sat., adv., n. and/or v.
     """
-    if not WORD: return 1
-    syn, syns = syn_or_syns(WORD)
-    if not syn and not syns:
-        log.stderr('{yellow}No results{default}')
-        return 1
+    ret, (syn, syns) = u_q_w(WORD, g)
+    if ret: return ret
 
-    for s in syns: poss = set( poss + position_label(s) )
-    print(" ".join(poss))
+    print(" ".join( set( [ position_label(s) for s in syns ] ) ))
 
 
 def cmd_examples(WORD, g):
@@ -141,11 +190,8 @@ def cmd_examples(WORD, g):
         List soft definitions with examples for word name or synonyms. Skip
         synonyms without examples.
     """
-    if not WORD: return 1
-    syn, syns = syn_or_syns(WORD)
-    if not syn and not syns:
-        log.stderr('{yellow}No results{normal}')
-        return 1
+    ret, (syn, syns) = u_q_w(WORD, g)
+    if ret: return ret
 
     d = 0
     if g.head:
@@ -170,6 +216,7 @@ def cmd_examples(WORD, g):
 
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd_')
 commands.update(dict(
+        list = cmd_definitions,
         help = libcmd_docopt.cmd_help,
         memdebug = libcmd_docopt.cmd_memdebug
 ))
