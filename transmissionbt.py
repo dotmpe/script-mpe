@@ -116,6 +116,9 @@ def print_torrent (torrent, c, s, fmt='id-info'):
             if hum_bytes > 1024:
                 hum_bytes = hum_bytes/1024
                 o = 'M'
+                if hum_bytes > 1024:
+                    hum_bytes = hum_bytes/1024
+                    o = 'G'
         print(torrent.date_done, numid, '-%.2f%s'%(hum_bytes,o), torrent.name)
     elif fmt == 'torrent-status':
         print(numid, torrent.hashString, '%i' % torrent.progress,

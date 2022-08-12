@@ -407,6 +407,16 @@ monitor () # ~ <1min=0-9> <5min=0> <15min=0-9>
 }
 
 
+system_status_maincmds="battery cpu email help short services version"
+system_status_usage='User and system resource stat'
+
+system_status_aliasargv ()
+{
+  case "$1" in
+      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  esac
+}
+
 system_status_usage ()
 {
   #shellcheck disable=SC2154
@@ -441,6 +451,8 @@ test -n "${user_script_loaded:-}" || {
 # Parse arguments
 ! script_isrunning "system-status" || {
   script_defcmd=short
+  script_fun_xtra_defarg=system_status_aliasargv
+  script_xtra_defarg=aliasargv
   eval "set -- $(user_script_defarg "$@")"
 }
 

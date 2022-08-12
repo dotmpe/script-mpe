@@ -1,9 +1,10 @@
 #!/bin/sh
 
 
-src_htd_lib_load()
+src_htd_lib_load ()
 {
-  test -n "${sentinel_comment-}" || sentinel_comment="#"
+  true "${sentinel_comment:="#"}"
+  true "${gsed:=sed}"
 }
 
 
@@ -337,10 +338,10 @@ backup_header_comment() # Src-File [.header]
   test -f "${1-}" || return
   test -n "${2-}" || set -- "$1" ".header"
   fnmatch "/*" "$2" \
-    && backup_file="$2" \
-    || backup_file="$1$2"
+    && file_backup="$2" \
+    || file_backup="$1$2"
   # find last line of header, add output to backup
-  read_head_comment "$1" >"$backup_file" || return $?
+  read_head_comment "$1" >"$file_backup" || return $?
 }
 
 # Return span of lines from Src, starting output at Start-Line and ending
@@ -352,7 +353,7 @@ backup_header_comment() # Src-File [.header]
 # length. Start is set to 0 if empty.
 # TODO: cleanup and manage start-line, end-line, span-lines env code.
 #
-source_lines() # Src Start-Line End-Line [Span-Lines]
+source_lines () # ~ Src Start-Line End-Line [Span-Lines]
 {
   test -f "$1" || return
   test -n "${2-}" && start_line=$2 || start_line=0
@@ -365,12 +366,10 @@ source_lines() # Src Start-Line End-Line [Span-Lines]
   tail -n +$start_line $1 | head -n $Span_Lines
 }
 
-
 source_line() # Src Start-Line
 {
   source_lines "$1" "$2" "$(( $2 + 1 ))"
 }
-
 
 # Given a shell script line with a source command to a relative or absolute
 # path (w/o shell vars or subshells), replace that line with the actual contents
@@ -471,16 +470,17 @@ expand_include_sentinels() # Src...
 {
   for src in "$@"
   do
-    grep -n $sentinel_comment'include\ ' "$src" | while IFS="$IFS:" read -r num match file
-    do
-      # NOTE: should not rewrite file while grepping it
-      #expand_line "$src" "$num" "$file"
-      source_lines "$src" "0" "$(( $num - 1 ))"
-      trueish "$add_sentinels" && echo "$sentinel_comment start of $src" || true
-      deref_include "$file" "$src"
-      trueish "$add_sentinels" && echo "$sentinel_comment end of $src" || true
-      source_lines "$src" "$(( $num + 1 ))"
-    done
+    grep -n $sentinel_comment'include\ ' "$src" |
+        while IFS="$IFS:" read -r num match file
+        do
+          # NOTE: should not rewrite file while grepping it
+          #expand_line "$src" "$num" "$file"
+          source_lines "$src" "0" "$(( $num - 1 ))"
+          trueish "$add_sentinels" && echo "$sentinel_comment start of $src" || true
+          deref_include "$file" "$src"
+          trueish "$add_sentinels" && echo "$sentinel_comment end of $src" || true
+          source_lines "$src" "$(( $num + 1 ))"
+        done
   done
 }
 
@@ -582,39 +582,86 @@ diff_where() # Where/Line Where/Span Src-File
 
 # List values for include-type pre-processor directives from file and all
 # included files.
-list_preproc() # Directive File
+list_preproc_refs () # ~ <Directive> <File> [<Resolver>]
 {
+  local ref file
   # Resolve all includes recursively
   for ref in $(grep_preproc "$@")
   do
-    fnmatch "[/~$]*" "$ref" && fileref=$ref || fileref=$(dirname "$2")/$ref # make abs path
-    file="$(eval echo "$fileref")" # expand vars, user
+    file=$("${3:-resolve_fileref}" "$ref" "$2" "$1") || return
+
+    # Recurse, now pre-proc directives for file at ref
+    list_preproc_refs "${1:-include}" "$file" "${3:-}"
+
     echo "$ref $file"
-    test -e "$file" || {
-      $LOG warn "" "Cannot resolve $1 file" "$ref"
-      continue
-    }
-    list_preproc $1 "$file"
   done
 }
 
-# List values for directive from root file
-grep_preproc() # Direct File
+# Resolve include reference from file, echo filename with path. If cache=1 and
+# this is not a plain file (it has its own includes), give the path to where
+# the fully pre-processed file shoul be instead.
+resolve_fileref () # ~ <Ref> <From> <Directive>
 {
-  $gsed -n 's/^#'$1'\ \(.*\)$/\1/gp' "$2"
+  local fileref
+
+  # TODO: we should look-up these on some (lib) path
+  #fnmatch "<*>" "$1"
+  #fnmatch '"*"' "$1"
+
+  # Ref must be absolute path (or var-ref), or we prefix the file's basedir
+  fnmatch "[/~$]*" "$1" \
+      && fileref=$1 \
+      || fileref=$(dirname -- "$2")/$1 # make abs path
+
+  file="$(eval "echo \"$fileref\"" | sed 's#\~/#'"$HOME"'#')" # expand vars, user
+
+  test -e "$file" || {
+    $LOG warn "" "Cannot resolve reference" "ref:$1 file:$1"
+    return 9
+  }
+
+# FIXME:
+  { test ${cache:-0} -eq 1 && grep -q '^ *#'"${3:?}"' ' "$file"
+  } \
+      && echo "TODO:$file" \
+      || echo "$file"
+}
+
+# List values for directive from root file
+grep_preproc () # ~ <Directive> <File>
+{
+  $gsed -n 's/^ *#'${1:-include}'\ \(.*\)$/\1/gp' "${2:?}"
 }
 
 # Replace include directives with file content, using two sed's and some subproc
 # per include line in between.
-expand_preproc() # Directive File
+expand_preproc () # ~ <Directive> <File> [<Resolver>]
 {
   # Get include lines, reformat to sed commands, and execute sed-expr on input
-  list_preproc "$@" |
-  while read -r includeref file
-  do printf -- '/^#'$1'\ %s/r %s\n' \
-      "$(match_grep "$includeref")" \
-      "$file"
-  done | $gsed -f - "$2"
+  preproc_sed "${@:?}" | "${gsed:?}" -f - "${2:?}"
+}
+
+preproc_sed () # ~ <Directive> <File> [<Resolver>]
+{
+  list_preproc_refs "${@:?}" |
+      while read -r ref file
+      do
+        ref_re="$(match_grep "$ref")"
+        # Include plain files as is,
+        # but use resolver to get alt file for processed files
+        grep -q '^ *#'"${1:-include}"' ' "$file" && {
+          file=$(cache=1 "${3:-resolve_fileref}" "$ref" "$2" "$1") || return
+        }
+        # XXX: would love to insert Source/sentinel lines here but not sure
+        # how to make sed run two commands for a match. But both r and e command
+        # leave the include-preproc line.
+        #|| {
+        #  printf -- 's/^ *#'${1:-include}'\ %s/# Ref: %s\\n# File: %s\\n&\\n/g\n' \
+        #      "$ref_re" "$ref_re" "$(match_grep "$file")"
+        #}
+        #printf -- '/^ *#'${1:-include}'\ %s/e cat %s\n' "$ref_re" "$file"
+        printf -- '/^ *#'${1:-include}'\ %s/r %s\n' "$ref_re" "$file"
+      done
 }
 
 # Sync: src.lib.sh

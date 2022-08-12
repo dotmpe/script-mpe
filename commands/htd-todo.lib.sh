@@ -49,18 +49,18 @@ htd__todotxt_edit()
   assert_files $1 $2
   # Lock main files todo/done and additional-paths
   local id=$htd_session_id
-  locks="$(lock_files $id "$@" | lines_to_words )"
+  locks="$(files_lock $id "$@" | lines_to_words )"
   note "Acquired locks:"
   { basenames ".list" $locks ; echo ; } | column_layout
   # Fail now if main todo/done files are not included in locks
-  verify_lock $id $1 $2 || {
-    unlock_files $id "$@"
+  files_locked $id $1 $2 || {
+    files_unlock $id "$@"
     error "Unable to lock main files: $1 $2" 1
   }
   # Edit todo and done file
   $TODOTXT_EDITOR $1 $2
   # release all locks
-  released="$(unlock_files $id "$@" | lines_to_words )"
+  released="$(files_unlock $id "$@" | lines_to_words )"
   note "Released locks"
   { basenames ".list" $released ; echo; } | column_layout
 }

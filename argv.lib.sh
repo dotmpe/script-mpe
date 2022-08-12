@@ -73,7 +73,8 @@ argv__argc_n ()
 {
   argv__argc "$@" || return
   local arg
-  for arg in $@; do
+  for arg in "$@"
+  do
     test -n "$arg" && continue
     $LOG error "${1:-":(args-n)"}" "Got empty argument"
     return 63
@@ -272,6 +273,11 @@ argv_has_next () # ~ <Argv...> # True if more for current sequence is available.
 argv_has_none () # ~ <Argv...> # True if argv is empty or before start of next sequence.
 {
   test $# -eq 0 -o "${1-}" = "--"
+}
+
+argv_has_seq () # ~ <Argv...> # True if argv has sequence, except if the first is empty
+{
+  ! argv_has_none "$@" && fnmatch "* -- *" " $* "
 }
 
 argv_is_seq () # ~ <Argv...> # True if immediate item is '--' continuation.

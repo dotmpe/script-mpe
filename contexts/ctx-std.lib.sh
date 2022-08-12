@@ -353,7 +353,7 @@ std__commands()
 
   test -z "${choice_debug-}" || echo "local_id=$local_id"
   list_functions_foreach "$@" | { local file
-    while read line
+    while read -r line
     do
       # Check sentinel for new file-name
       test "$(expr_substr "$line" 1 1)" = "#" && {
@@ -403,6 +403,10 @@ std__commands()
       test -n "$spc" || spc=$(echo $func_name | tr '_' '-' )
 
       test -n "$descr" || {
+        test -s "${file-}" || {
+          $LOG error "" "Did not get description or file" "fun:$func_name src:list-functions-foreach $*"
+          continue
+        }
         grep -q "^${subcmd_func_pref}${func_name}()" "$file" && {
           descr="$(func_comment "$subcmd_func_pref$func_name" "$file")"
         } || true

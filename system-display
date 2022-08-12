@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ## Helper to deal with X server displays
 
@@ -67,7 +67,7 @@ info ()
   xorg_info "$@"
 }
 
-monitors ()
+monitors () # ~ # List XRANDR info
 {
   xrandr_info
 }
@@ -122,6 +122,16 @@ window_geometry () # ~ [<Window-ID>]
 }
 
 
+system_display_maincmds="displays help monitors version"
+system_display_usage='System monitors, window server, and window managers.'
+
+system_display_aliasargv ()
+{
+  case "$1" in
+      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  esac
+}
+
 system_display_loadenv ()
 {
   . "$US_BIN"/xorg.lib.sh &&
@@ -154,6 +164,9 @@ test -n "${user_script_loaded:-}" || {
 # Parse arguments
 ! script_isrunning "system-display" || {
   script_defcmd=list
+  script_fun_xtra_defarg=system_display_aliasargv
+  script_xtra_defarg=aliasargv
+
   eval "set -- $(user_script_defarg "$@")"
 }
 

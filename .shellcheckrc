@@ -1,6 +1,5 @@
 ### Shellcheck config
 
-
 ## Disable checks
 
 # 1007: I'm not sure; why should I always put empty string? I'm lazy.

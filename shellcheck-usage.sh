@@ -30,9 +30,14 @@ ex_quote_args ()
 # deferring to a function because that would get its own argv.
 
 
-# SC2162: read without -r will mangle backslashes.
-# -r doesnt really "mangle" anything, but I get the idea. So instead
-# of 'read' I use read_lines or read_asis to avoid warnings.
+# SC2162: read without -r will 'mangle' backslashes.
+# -r doesnt really "mangle" anything, but I get the idea. No magic characters.
+# But also no line-continuations.
+#
+# The exact reader type for generic functions cannot be predetermined, but can
+# be one of several. Normally ${read:-read -r} suffices so that for specific
+# needs an alt can be provided. See read-{asis,content,escaped} for the basic
+# types.
 
 
 shellcheck_usage_loadenv ()

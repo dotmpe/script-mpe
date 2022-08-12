@@ -39,7 +39,7 @@ context_files () # ~
 {
   test -n "${context_tab-}" || local context_tab="$CTX_TAB"
   echo "$context_tab $context_tab"
-  list_preproc include "$context_tab"
+  list_preproc_refs include "$context_tab"
 }
 
 # Echo table after preproc

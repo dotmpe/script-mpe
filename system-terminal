@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+CMD_ARG=$_
 # bin/sh
 
 ### Helpers to launch user terminal, shells and configure them
@@ -121,8 +122,6 @@ termexec ()
   true ${bin:=$(command -v $UC_SHELL)}
   true ${cs:=$(colorscheme)}
 
-  # Make everything available to term/shell instance
-  export SHELL=$bin SHELL_NAME=$UC_SHELL CS=$cs
   test -z "${UC_TERM_NAME:-}" || export UC_TERM_NAME
 
   # Re-quote arguments for eval
@@ -131,7 +130,7 @@ termexec ()
 
   # Eval exec command with uc_term_* part
   # NOTE: urxvt does not require quotes around command and arguments.
-  eval "exec $(uc_term_$UC_TERM) $bin \"\$@\""
+  eval "CS=$cs exec $(uc_term_$UC_TERM) $bin \"\$@\""
 }
 
 # Echo URxvt command-line
@@ -352,9 +351,11 @@ Env:
 ' "$base" "$base" "$base" "$base"
 }
 
+
+# Main entry (see user-script.sh for boilerplate)
+
 test -n "${user_script_loaded:-}" || {
   . "${US_BIN:-"$HOME/bin"}"/user-script.sh
-  unset SHELL
   user_script_shell_env
   . ~/bin/user-script.lib.sh
   . ~/bin/term.lib.sh

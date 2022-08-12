@@ -2,7 +2,6 @@
 
 #shellcheck disable=SC2119 # Special functions accept either/both argv & stdin
 
-user_script_usage='User tools.'
 
 weather () # ~
 {
@@ -18,7 +17,7 @@ forecast_tab ()
 forecast () # ~
 {
   forecast_tab |
-    while read_asis time code desc
+    while read -r time code desc
     do
       # shellcheck disable=2086,2046
       echo $time $(date-util relative-ts-abbrev "" "$time" "") $code $desc
@@ -191,11 +190,20 @@ state_icon_fa ()
 }
 
 
+user_tools_maincmds="forecast help location weather season version"
+user_tools_usage='User tools.'
+
+user_tools_aliasargv ()
+{
+  case "$1" in
+      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+
+  esac
+}
+
 user_tools_loadenv ()
 {
-  . "$US_BIN"/nerdfonts.lib.sh &&
-  nerdfonts_lib_load &&
-  nerdfonts_lib_init
+  . "$US_BIN"/nerdfonts.lib.sh && nerdfonts_lib_load && nerdfonts_lib_init
 }
 
 test -n "${user_script_loaded:-}" || {
@@ -206,6 +214,9 @@ test -n "${user_script_loaded:-}" || {
 
 ! script_isrunning "user-tools" || {
   script_defcmd=check
+  script_fun_xtra_defarg=user_tools_aliasargv
+  script_xtra_defarg=aliasargv
+
   eval "set -- $(user_script_defarg "$@")"
 }
 

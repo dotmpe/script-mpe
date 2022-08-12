@@ -72,7 +72,7 @@ project_stats_list() # TAB LOGNUM
   test -n "$2" || set -- "$1" $(count_cols "$1")
 
   local tab="$1" col="$2"
-  grep_nix_lines "$1" | while read file stats
+  filter_content_lines "$1" | while read file stats
   do
     set -- "" $stats
     eval "echo \"\$$col\" $file"

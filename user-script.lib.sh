@@ -188,7 +188,7 @@ sh_type_esacs () # ~ <Func>
 
 sh_type_esacs_fmt ()
 {
-  type "$1" | sed -z '
+  sh_type "$1" | sed -z '
         s/)\n */ ) /g
         s/\n *;;/ ;;/g
         s/\([^;]\);\n */\1; /g
@@ -198,6 +198,17 @@ sh_type_esacs_fmt ()
 sh_type_esacs_grep ()
 {
   grep -Po ' \(? .* \) .* set -- [a-z_:-][a-z0-9_:-]* .* ;;'
+}
+
+sh_type_fun_body ()
+{
+  { sh_type "${1:?}" || return
+  } | tail -n +4 | head -n -1
+}
+
+script_source ()
+{
+  test -e "$0" && echo "$0" || command -v "$0"
 }
 
 #

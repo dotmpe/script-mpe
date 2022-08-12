@@ -251,11 +251,11 @@ htd__tasks_session_start()
   # Get additional paths to all files, look for todo/done buffer files per tag
   buffers="$(htd_tasks_buffers $tags )"
   # Lock files todo/done and additional-paths to buffers
-  locks="$(lock_files $id "$@" $buffers $add_files | lines_to_words )"
+  locks="$(files_lock $id "$@" $buffers $add_files | lines_to_words )"
   { exts="$TASK_EXTS" pathnames $locks ; echo; } | column_layout
   # Fail now if main todo/done files are not included in locks
-  verify_lock $id $1 $2 || {
-    released="$(unlock_files $id $@ $buffers | lines_to_words )"
+  files_locked $id $1 $2 || {
+    released="$(files_unlock $id $@ $buffers | lines_to_words )"
     error "Unable to lock main files: $1 $2" 1
   }
   note "Acquired locks ($(echo "$locks" | count_words ))"
@@ -379,7 +379,7 @@ htd_tasks_session_end()
   test ! -e "$todo_document" -o -s "$todo_document" || rm "$todo_document"
   test ! -e "$todo_done" -o -s "$todo_done" || rm "$todo_done"
   # release all locks
-  released="$(unlock_files $id "$1" "$2" $buffers | lines_to_words )"
+  released="$(files_unlock $id "$1" "$2" $buffers | lines_to_words )"
   test -n "$(echo "$released")" && {
     note "Released locks ($(echo "$released" | count_words )):"
     { exts="$TASK_EXTS" pathnames $released ; echo; } | column_layout
@@ -602,7 +602,7 @@ htd_tasks_edit()
   $TODOTXT_EDITOR "$todo_document" "$todo_done"
   # Relock in case new tags added
   # TODO: diff new locks
-  #newlocks="$(lock_files $id "$1" | lines_to_words )"
+  #newlocks="$(files_lock $id "$1" | lines_to_words )"
   #note "Acquired additional locks ($(basenames ".list" $newlocks | lines_to_words))"
   # TODO: Consolidate all tasks to proper project/context files
   std_info "2.6. Env: $(var2tags \

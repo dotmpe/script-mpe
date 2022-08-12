@@ -487,7 +487,6 @@ htd_catalog__generate_entry () # ~ <File>
     cksum="$(cksum "$1" | cut -d ' ' -f 1,2)"
   test -n "$hostname" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
 
-    # FIXME: crc32: $(cksum.py -a rhash-crc32 "$1" | cut -d ' ' -f 1,2)
   cat <<EOM
 - name: "$basename"
   mediatype: '$mtype'
@@ -654,7 +653,7 @@ htd_catalog__copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
   dest_dir="$(dirname "$3")/"
 
   test -s "$3" || echo "[]" > $3
-  rotate_file "$3"
+  file_rotate "$3" || return
   htd_catalog__as_json "$3" | eval jq -c \'. += [ $record ]\' | jsotk json2yaml - > $3
 }
 
@@ -697,7 +696,7 @@ htd_catalog__delete() # NAME
 htd_catalog__drop_by_name() # [CATALOG] NAME
 {
   test -n "$1" || set -- $CATALOG "$2"
-  test -s "$1" && backup_file "$1" || echo "[]" > $1
+  test -s "$1" && file_backup "$1" || echo "[]" > $1
   htd_catalog__as_json "$1" |
       jq -c ' del( .[] | select(.name=="'"$2"'")) ' |
       jsotk json2yaml --pretty - "$1"
@@ -761,7 +760,7 @@ htd_catalog__set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
   test -n "$5" || set -- "$1" "$2" "$3" "$4" "name"
 
   #trueish "$catalog_backup" && {
-    backup_file "$1" || return
+    file_backup "$1" || return
   #}
   {
     htd_catalog__as_json "$1" | {
@@ -796,7 +795,7 @@ htd_catalog__update() # ~ [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key
     }
 
   trueish "$catalog_backup" && {
-    backup_file "$1" || return
+    file_backup "$1" || return
   }
   {
     htd_catalog__as_json "$1" | {

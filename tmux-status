@@ -108,13 +108,13 @@ moon ()
 
 
 test -n "${user_script_loaded:-}" || {
-  . ~/bin/user-script.sh
-  unset SHELL
+  . ~/bin/user-script.sh &&
   user_script_shell_env
 }
 
-! script_isrunning "tmux-status" ||
+! script_isrunning "tmux-status" || {
     eval "set -- $(user_script_defarg "$@")"
+}
 
 script_entry "tmux-status" "$@"
 #

@@ -112,6 +112,7 @@ try_local_func()
 main_local () # Base-Ids [Attr-Id [Fields....]]
 {
   test $# -gt 0 -a -n "${1-}" || return
+  #shellcheck disable=2316 # I can use $local, so I do
   local baseids="$1" attrid= local baseid; shift
   test -z "${1-}" || attrid=_$1; shift
   test $# -eq 0 && local= || local=$( while test $# -gt 0
@@ -124,6 +125,7 @@ main_local () # Base-Ids [Attr-Id [Fields....]]
 
 main_value () # Base-Ids Attr-Id [Default [Fields....]]
 {
+  #shellcheck disable=2316 # I can use $local, so I do
   local baseids="$1" attrid="$2" default="${3-"default"}" local v
   test $# -gt 2 && shift 3 || shift 2
   for local in $( main_local "$baseids" "$attrid" "$@" )
@@ -174,6 +176,7 @@ try_value()
 # Look for function part <base>[-<attr>]--<field[--field...]>
 main_func () # Var-Name Base-Ids Attr-Name [Default [Local...]]
 {
+  #shellcheck disable=2316 # I can use $local, so I do
   local varname="$1" baseids="$2" attrid="$3" default="${4-"default"}" local
   test $# -gt 3 && shift 4 || shift 3
   for local in $( main_local "$baseids" "$attrid" "$@" )
@@ -215,13 +218,13 @@ main_subcmd_alias ()
 # Recursively load libraries for subcmds
 main_subcmd_func_load () # Groups
 {
-  main_groups_load $@ || {
+  main_groups_load "$@" || {
     $us_log error "" "Loading groups for '$1'" "$subcmd_group"
     return 1
   }
 
   local group supergroups
-  for group in $@
+  for group in "$@"
   do
       main_var supergroups "$baseids" "grp" "" "$1" || continue
       main_subcmd_func_load $( for x in $supergroups; do
@@ -231,7 +234,7 @@ main_subcmd_func_load () # Groups
 
 main_groups_load () # Groups...
 {
-  local libs="$( for x in $@; do
+  local libs="$( for x in "$@"; do
       test -e "$scriptpath/commands/$base-$x.lib.sh" &&
           echo "$base-$x $x" || echo "$x" ; done )"
   test -z "$libs" && return

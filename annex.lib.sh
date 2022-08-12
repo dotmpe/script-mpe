@@ -20,7 +20,7 @@ annex_init()
 htd_annex_files()
 {
   # Annex queries remotes, which may give errors (no network/mounts missing)
-  git annex list "$@" --fast 2>/dev/null | while read_line prefix file
+  git annex list "$@" --fast 2>/dev/null | while ${read:-read -r} prefix file
   do
     test -e "$file" -o -h "$file" && echo "$file"
   done

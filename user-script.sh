@@ -22,8 +22,9 @@ script_entry () # [script{name,_basext},base] ~ <Scriptname> <Arg...>
     : "${base:="$1"}"
     shift
     script_doenv "$@" || return
-    stdmsg '*debug' "User-Script entry now"
-    sh_fun "$1" || set -- usage -- "$@"
+    stdmsg '*debug' "User-Script $user_script_version"
+    #sh_fun "$1" || set -- usage -- "$@"
+    type "$1" >/dev/null 2>&1 || set -- usage -- "$@"
     "$@" || script_ret=$?
     script_unenv
     return ${script_ret:-0}
@@ -58,20 +59,24 @@ script_doenv ()
   test -z "${DEBUGSH:-}" || set -x
 }
 
+script_edit () # ~
+{
+  "$EDITOR" "$0" "$@"
+}
+
 # Check if given argument equals zeroth argument.
 script_isrunning () # [scriptname] ~ <Scriptname> # argument matches zeroth argument
 {
   local scriptname
-  script_name &&
-  #shellcheck disable=2086
-  test "$scriptname" = "$1"
+  script_name && test "$scriptname" = "$1"
 }
 
 # Undo env setup for script-entry (inverse of script-doenv)
 script_unenv ()
 {
   set +e
-  test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set +uo pipefail
+  # XXX: test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set +uo pipefail
+  test -z "${BASH_VERSION:-}" || set +uo pipefail
   test -z "${DEBUGSH:-}" || set +x
 }
 
@@ -91,18 +96,34 @@ user_script_aliases () # ~ [<Name-globs...>] # List handlers with aliases
     set -- "$(grep_or "$*")"
   }
 
-  local bid
+  local bid fun
   for bid in $(user_script_bases)
   do
-    sh_fun "${bid}_defarg" || continue
-    sh_type_esacs ${bid}_defarg | sed '
-            s/ set -- \([^ ]*\) .*$/ set -- \1/g
-            s/ *) .* set -- /: /g
-            s/^ *//g
-            s/ *| */, /g
-            s/"//g
-        '
-    done | grep "\<$1\>"
+    for h in defarg ${script_xtra_defarg:-}
+    do
+      sh_fun "${bid}_$h" && fun=${bid}_$h || {
+        sh_fun "$h" && fun=$h || continue
+      }
+      echo "# $fun"
+      sh_type_esacs $fun | sed '
+              s/ set -- \([^ ]*\) .*$/ set -- \1/g
+              s/ *) .* set -- /: /g
+              s/^ *//g
+              s/ *| */, /g
+              s/"//g
+          '
+    done
+  done | grep "\<$1\>" | {
+
+    # Handle output formatting
+    test -n "${u_s_env_fmt:-}" || {
+      test ! -t 1 || u_s_env_fmt=pretty
+    }
+    case "${u_s_env_fmt:-}" in
+        ( pretty ) grep -v '^#' | sort | column -s ':' -t ;;
+        ( ""|plain ) cat ;;
+    esac
+  }
 }
 
 user_script_bases ()
@@ -147,6 +168,11 @@ user_script_defarg ()
 
   esac
 
+  # Hook-in more from user-script
+  test -z "${script_fun_xtra_defarg:-}" || {
+    eval "$(sh_type_fun_body $script_fun_xtra_defarg)" || return
+  }
+
   # Print everything using appropiate quoting
   argv_dump "$@"
 
@@ -174,18 +200,32 @@ user_script_defcmdenv ()
 
 user_script_envvars () # ~ # Grep env vars from loadenv
 {
-  local bid
+  local bid h
   for bid in $(user_script_bases)
   do
-    sh_fun "${bid}_loadenv" || continue
-    type "${bid}_loadenv" | grep -Eo -e '\${[A-Z_]+:=.*}' -e '[A-Z_]+=[^;]+' |
-        sed '
-              s/\([^:]\)=/\1 = /g
-              s/\${\(.*\)}$/\1/g
-              s/:=/ ?= /g
-          '
-    continue
-  done
+    for h in loadenv ${script_xtra_envvars:-defaults}
+    do
+      sh_fun "${bid}_$h" || continue
+      echo "# ${bid}_$h"
+      type "${bid}_$h" | grep -Eo -e '\${[A-Z_]+:=.*}' -e '[A-Z_]+=[^;]+' |
+            sed '
+                  s/\([^:]\)=/\1\t=\t/g
+                  s/\${\(.*\)}$/\1/g
+                  s/:=/\t?=\t/g
+              '
+      true
+    done
+  done | {
+
+    # Handle output formatting
+    test -n "${u_s_env_fmt:-}" || {
+      test ! -t 1 || u_s_env_fmt=pretty
+    }
+    case "${u_s_env_fmt:-}" in
+        ( pretty ) grep -v '^#' | sort | column -s $'\t' -t ;;
+        ( ""|plain ) cat ;;
+    esac
+  }
 }
 
 user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main script
@@ -288,15 +328,43 @@ user_script_maincmds () # ~ [<Name-globs...>]
         )
     handlers=$(user_script_resolve_aliases "$@" | remove_dupes | lines_to_words)
 
-    printf '%s:\n%s\n' "$hdr" "$(
-            user_script_handlers $handlers |
-                sed "$alias_sed" |
-                    sed 's/^/\t/'
-        )"
+    test $# -eq 0 && {
 
-    test $# -ne 1 || {
-      . $U_S/src/sh/lib/src.lib.sh &&
-        func_comment "$handlers" "$0"
+      printf '%s:\n%s\n' "$hdr" "$(
+              user_script_handlers $handlers | sed "$alias_sed" | sed 's/^/\t/'
+          )"
+
+    } || {
+
+      test -n "$handlers" && {
+        echo "Command:"
+        echo "$handlers"
+
+      } || {
+
+        . $U_S/src/sh/lib/os.lib.sh &&
+        . $U_S/src/sh/lib/src.lib.sh && {
+
+          local h=$1 fun=${1//-/_} fun_def fun_src fun_ln
+
+          shopt -s extdebug
+          fun_def=$(declare -F "$fun") || {
+            $LOG error "" "No such type loaded" "fun?:$fun"
+            return 1
+          }
+
+          # TODO: listfun-specs see sh-fun-spec-dev
+          # XXX: going have to rewrite a lot of [<Arg>] to <Arg->
+
+          fun_src=${fun_def//* }
+          fun_def=${fun_def% *}
+          fun_ln=${fun_def//* }
+
+          echo "Shell Function at $(basename "$fun_src"):$fun_ln:"
+          script_src=$fun_src script_listfun "$fun"
+          func_comment "$fun" "$fun_src"
+        }
+      }
     }
     return
   } || {
@@ -315,26 +383,43 @@ user_script_shell_env ()
 
   set -e
 
+  . "$US_BIN"/os-htd.lib.sh || return
   {
     . "$US_BIN"/str-htd.lib.sh &&
-    . "$US_BIN"/os-htd.lib.sh &&
     . "$US_BIN"/argv.lib.sh &&
-    . "$US_BIN"/user-script.lib.sh && user_script_lib_load
+    . "$US_BIN"/user-script.lib.sh && user_script_lib_load &&
+
+    . "${U_S:-/src/local/user-scripts}"/src/sh/lib/std.lib.sh &&
 
     #. ~/project/user-script/src/sh/lib/shell.lib.sh
     . "${U_C:-/src/local/user-conf-dev}"/script/shell-uc.lib.sh
-  } || return
 
-  # Restore SHELL setting to proper value if unset
-  true "${SHELL:="$(ps -q $$ -o command= | cut -d ' ' -f 1)"}"
+  } || eval `sh_gen_abort '' "Loading libs status '$?'"`
+
+  #PID_CMD=$(ps -q $$ -o command= | cut -d ' ' -f 1)
+  test "${SHELL_NAME:=$(basename -- "$SHELL")}" = "$PID_CMD" || {
+    test "$PID_CMD" = /bin/sh && {
+      $LOG note "" "$SHELL_NAME running in special sh-mode"
+    }
+    # I'm relying on these in shell lib but I keep getting them in the exports
+    # somehow
+    SHELL=
+    SHELL_NAME=
+    #|| {
+    #  $LOG warn ":env" "Reset SHELL to process exec name '$PID_CMD'" "$SHELL_NAME != $PID_CMD"
+    #  #SHELL_NAME=$(basename "$PID_CMD")
+    #  #SHELL=$PID_CMD
+    #}
+  }
 
   # Set everything about the shell we are working in
-  shell_uc_lib_load || { ERR=$?
+  shell_uc_lib_init || { ERR=$?
     printf "ERR%03i: Cannot initialze Shell lib" "$ERR" >&2
     return $ERR
   }
 
-  test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && {
+  test -z "${BASH_VERSION:-}" || {
+  # XXX: test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && {
 
     set -u # Treat unset variables as an error when substituting. (same as nounset)
     set -o pipefail #
@@ -409,10 +494,10 @@ script_version () # ~
 # some other preconditions are met usually indicating a prepared script (ie.
 # batch not interactive user) environment.
 #
-stdmsg () # ~ <Class> <Message>
+stdmsg () # (e) ~ <Class> <Message>
 {
   true "${v:="${verbosity:-4}"}"
-  case "$1" in
+  case "${1:?}" in
       ( *"emerg" ) ;;
       ( *"alert" ) test "$v" -gt 0 || return 0 ;;
       ( *"crit" )  test "$v" -gt 1 || return 0 ;;
@@ -422,7 +507,7 @@ stdmsg () # ~ <Class> <Message>
       ( *"info" )  test "$v" -gt 5 || return 0 ;;
       ( *"debug" ) test "$v" -gt 6 || return 0 ;;
   esac
-  echo "$2" >&2
+  echo "${2:?}" >&2
 }
 
 stdstat ()
@@ -433,26 +518,27 @@ stdstat ()
   exit $1
 }
 
-script_listfun () # [script-src] ~ [<Grep>] # Wrap grep for function declarations scan
+script_listfun () # (s:script-src) ~ [<Grep>] # Wrap grep for function declarations scan
 {
-  true "${script_src:="$(test -e "$0" && echo "$0" || command -v "$0")"}"
+  local script_src="${script_src:-"$(script_source)"}"
   fun_flags slf ht
   grep "^$1 *() #" "$script_src" | {
     test $slf_h = 1 && {
+      # Simple help format from fun-spec
       sed '
-        s/ *() *# [][(){}a-zA-Z0-9=,_-]* *~ */ /g
-        s/# \([^~].*\)/\n\t\1\n/g
-      '
+            s/ *() *# [][(){}a-zA-Z0-9=,_-]* *~ */ /g
+            s/# \([^~].*\)/\n\t\1\n/g
+          '
     } || {
+      # Turn into three tab-separated fields: name, spec, gist
       sed '
-        s/ *() *//
-        s/# \~ */#/
-      ' | tr -s '#' '\t' | {
+            s/ *() *//
+            s/# \~ */#/
+          ' | tr -s '#' '\t' | {
         test $slf_t = 1 && {
           cat
         } || {
-          column -c3 -s "$(printf '\t')" -t |
-            sed 's/^/\t/'
+          column -c3 -s "$(printf '\t')" -t | sed 's/^/\t/'
         }
       }
     }
@@ -473,7 +559,7 @@ usage ()
 }
 
 
-# Main boilerplate (mostly useless for this script)
+# Main boilerplate (mostly useless except for testing this script)
 
 ! script_baseext=.sh script_isrunning "user-script" || {
 

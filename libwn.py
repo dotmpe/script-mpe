@@ -27,11 +27,12 @@ The output of 'wordnet.py define word.n.01'::
       "words are the blocks from which sentences are made"
       "he hardly said ten words all morning"
 
-As you can see with 'wordnet info word.n.01' as well, there is a lot of stuff
-that can be queried.
+As you can see in the dump from 'wordnet info word.n.01' as well,
+there is a lot of stuff that can be queried.
 
 .. [#] See pydoc nltk.corpus.reader.wordnet.Synset
 """
+# Get nltk.corpus.reader.api.CorpusReader instance, prepared by nltk module
 from nltk.corpus import wordnet as wn
 
 import log

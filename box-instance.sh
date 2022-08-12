@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Created: 2016-04-09
 box_instance__source="$_"
 
