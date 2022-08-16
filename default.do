@@ -68,8 +68,10 @@ default_do_main ()
     # without additional redo files (using components-txt and build-component).
     # See U-s:build.lib.sh
     * )
+        # FIXME: this taints every target in the components-txt every time
+        # some (other?) rule is updated a bit. There has to be a better way.
 
-        test "$components_txt_build" = "1" && {
+        test "${components_txt_build:=0}" = "1" && {
           build-ifchange $components_txt || return
         } || {
           test "$components_txt_build" = "0" || {
@@ -80,12 +82,11 @@ default_do_main ()
         test "$1" != "${components_txt-}" -a -s "${components_txt-}" || {
           $LOG alert ":build-component:$1" \
             "Cannot build from table w/o table" "${components_txt-null}" 1
-          return 1
+          return
         }
 
         build_component_exists "$1" && {
           $LOG "notice" ":exists:$1" "Found component " "$1"
-          lib_require match &&
           build_components "$1" "" "$@"
           return $?
         } || true
@@ -99,5 +100,5 @@ default_do_main ()
 
 default_do_main "$@"
 
-# Sync: U-s
 # Id: BIN:default.do                                               ex:ft=bash:
+# Sync: U-s

@@ -407,6 +407,8 @@ monitor () # ~ <1min=0-9> <5min=0> <15min=0-9>
 }
 
 
+## User-script parts
+
 system_status_maincmds="battery cpu email help short services version"
 system_status_usage='User and system resource stat'
 
@@ -444,12 +446,12 @@ system_status_loadenv ()
 # Main entry (see user-script.sh for boilerplate)
 
 test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh &&
   user_script_shell_env
 }
 
-# Parse arguments
 ! script_isrunning "system-status" || {
+  # Pre-parse arguments
   script_defcmd=short
   script_fun_xtra_defarg=system_status_aliasargv
   script_xtra_defarg=aliasargv

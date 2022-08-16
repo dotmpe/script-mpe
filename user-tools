@@ -1,6 +1,5 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-#shellcheck disable=SC2119 # Special functions accept either/both argv & stdin
 
 
 weather () # ~
@@ -37,7 +36,6 @@ weatherdata () # ~
 # Weather is name for location, unicode symbol and temperature.
 location_weather ()
 {
-  #shellcheck disable=SC2119 # Special functions accepts either/both argv/stdin
   curl "wttr.in/${wttr_loc-}?format=3" | lines_to_words
 }
 
@@ -162,8 +160,8 @@ actual_darktime () # ~ [<Datetime>]
     eval $(timezone_to_location) || return
   }
 
-  #shellcheck disable=SC2154
-  TWILLIGHT_HORIZON=${HORIZON:-"-3"} $python3_bin ~/bin/ephem-day-times.py night "$@"
+  TWILLIGHT_HORIZON=${HORIZON:-"-3"} ${python3_bin:-python3} \
+      ~/bin/ephem-day-times.py night "$@"
 }
 
 timezone_to_location ()
@@ -190,6 +188,8 @@ state_icon_fa ()
 }
 
 
+## User-script parts
+
 user_tools_maincmds="forecast help location weather season version"
 user_tools_usage='User tools.'
 
@@ -206,13 +206,16 @@ user_tools_loadenv ()
   . "$US_BIN"/nerdfonts.lib.sh && nerdfonts_lib_load && nerdfonts_lib_init
 }
 
+
+# Main entry (see user-script.sh for boilerplate)
+
 test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
-  unset SHELL
-  user_script_shell_env
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
 }
 
 ! script_isrunning "user-tools" || {
+  # Pre-parse arguments
   script_defcmd=check
   script_fun_xtra_defarg=user_tools_aliasargv
   script_xtra_defarg=aliasargv

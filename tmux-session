@@ -203,22 +203,22 @@ status_position ()
 }
 
 
-tmux_session_usage ()
-{
-  cat <<EOM
+## User-script parts
+
+tmux_session_usage='
   tmux-session (open|close) [<Session-Config-Id>] [<Session-Config-File>]
   tmux-session help|commands|...
 Env:
   TMUX_SESSION_P=(raw1|resurrect|tmuxp)
   TMUX_ENV XXX: Set to ~/.{config/tmux/env,tmux}.sh whatever exists
+'
 
-EOM
-}
+
+# Main entry (see user-script.sh for boilerplate)
 
 test -n "${user_script_loaded:-}" || {
-  . ~/bin/user-script.sh
-  unset SHELL
-  user_script_shell_env
+  . "${US_BIN:-"$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
 }
 
 ! script_isrunning "tmux-session" ||

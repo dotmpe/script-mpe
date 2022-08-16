@@ -2,33 +2,139 @@
 
 ## Main source to bootstrap User-Script executables
 
-
+# Custom scripts can provide <baseid>-*=<custom value> to use local values
 user_script_name="User-script"
 user_script_version=0.0.1-dev
 
-# Execute when script is sourced, when given base matches scriptname. If
-# need to run this scriptname can be set, but normally this
-# gets the correct string to decide wether to execute.
-#
-# If the function prefixes don't match the exec name, use
+# The short help only lists main commands
+user_script_maincmds="help long-help aliases commands variables version"
+
+# TODO: This short help starts with a short usage.
+user_script_usage='This is a boilerplate and library to write executable shell scripts.
+See help and specifically help user-script for more info'
+
+# TODO: The long per-sub-command help
+#shellcheck disable=2016
+user_script_extusage='Custom scripts only need to know where to find
+user-script.sh. I'"'"'ll include the current minimal boilerplate here to
+illustrate:
+
+    test -n "${user_script_loaded:-}" ||
+        . "${US_BIN:="$HOME/bin"}"/user-script.sh
+    script_entry "my.sh" "$@"
+
+This would make your (executable) script run at script-entry, if invoked as
+`my.sh` (or when included in a script invoked as such). But not when called or
+sourced otherwise. Basically only if scriptname == entry-argument.
+
+Generic env settings:
+    DEBUG - To enable some bash-specific trace/debug shell settings.
+    DEBUGSH - To enable verbose execution (aka sh -x, xtrace; to stderr)
+    BASH_VERSION - Used to enable bash-specific runtime options
+    quiet - Used to make user-script stop commenting on anything
+
+# Entry sequence
+Before entry, user-script-shell-env can be executed to get access at other
+functions in the pre-entry stage, such as pre-processing arguments (w. defarg)
+
+Without defarg, there are only one or two more env settings at this point:
+    script_baseext - Set to strip ".ext" from name
+    scriptname - Should be no need to set this
+
+At script-entry first the scriptname is set and checked with first argument.
+user-script-shell-env then gets to run again (if needed), but it only does
+some basics for generic user-script things like the help function and
+the simple argument pre processing.
+
+- set some environment vars (calling user-script-loadenv)
+- load some libraries (basic dependencies for user-script)
+- and do some shell specific setups (using shell.lib).
+
+Then script-doenv is called, to do find the handler function and to do further
+preparations.
+This runs the <baseid>-loadenv hook so custom scripts can do their own stuff.
+
+At that point these variables are provided:
+    base{,id} - Same as scriptname, and an ID created from that
+    script-cmd{,id,alsid} - The first argument, and an ID created from that.
+        And also from an alias if set (see defarg)
+
+After do-env it is expected that "$1" equals the name of a shell function, if
+not then "usage" (fail) is invoked instead.
+do-env can not change arguments,
+either the handler does further argv processing or defarg takes care of it.
+
+script-doenv is paired with a script-unenv, called after the command.
+Both are short steps:
+
+- doenv sets base and baseid,
+  calls script-cmdid to set vars,
+  and then <baseid>_loadenv
+
+- unenv calls <baseid>_unload,
+  and then undoes every of its own settings and unsets vars
+
+During unenv, script-cmdstat holds the return status.
+
+Some of these things may need to be turned into hooks as well.
+
+
+# Hooks
+The current hooks mainly revolve around command alias functionality.
+
+defarg
+    Provide <baseid>_defarg and use it to pre-process argv instead of
+    user_script_defarg.
+    To help user-script-aliases find case/esac items set script-extra-defarg.
+
+    Custom scripts may not want to take on the defarg boilerplate however,
+    processing argv is a bit tricky since we use the dump-eval steps,
+    and extracting aliases requires the case/esac in-line in the function body.
+
+    Instead user-script-defarg can pick up one script-fun-xtra-defarg,
+    which it includes in-line (evals function body).
+
+
+NOTE: I use user-script-shell-env and user-script-defarg for almost all scripts,
+focus is on good online help functions still. And using code/comments to
+provide needed data instead of having to give additional variables.
+
+TODO: fix help usage/maincmd so each gives proper info. Some tings mixed up now
+'
+
+
+# Execute when script is sourced, when given base matches scriptname.
+# If the handlers prefixes don't match the exec name, use
 # base var to change that.
-#
-script_entry () # [script{name,_basext},base] ~ <Scriptname> <Arg...>
+script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Arg...>
 {
+  local scriptname=${scriptname:-}
   script_name || return
-  if script_isrunning "$1"
+  if test "$scriptname" = "$1"
   then
     user_script_shell_env || return
-    : "${base:="$1"}"
     shift
     script_doenv "$@" || return
-    stdmsg '*debug' "User-Script $user_script_version"
-    #sh_fun "$1" || set -- usage -- "$@"
-    type "$1" >/dev/null 2>&1 || set -- usage -- "$@"
-    "$@" || script_ret=$?
-    script_unenv
-    return ${script_ret:-0}
+    stdmsg '*debug' "Entering user-script $(script_version)"
+    sh_fun "$1" || set -- usage -- "$@"
+    "$@" || script_cmdstat=$?
+    script_unenv || return
   fi
+}
+
+
+script_baseenv ()
+{
+  mkvid "${base:="$scriptname"}"; baseid=$vid
+
+  local var ucvar
+  for var in name version
+  do
+    var=${baseid}_$var;
+    test -z "${!var:-}" \
+        || set "script_$var=${!var}"
+  done
+  : "${script_name:="$user_script_name:$scriptname"}"
 }
 
 script_cmdid ()
@@ -44,13 +150,8 @@ script_cmdid ()
 # Handle env setup (vars & sources) for script-entry
 script_doenv ()
 {
-  user_script_loadenv || { ERR=$?
-    printf "ERR%03i: Cannot load user-script env" "$ERR" >&2
-    return $ERR
-  }
-
-  mkvid "$base"; baseid=$vid
-  script_cmdid "$1"
+  script_baseenv &&
+  script_cmdid "$1" || return
 
   ! sh_fun "${baseid}"_loadenv || {
     "${baseid}"_loadenv || return
@@ -59,25 +160,36 @@ script_doenv ()
   test -z "${DEBUGSH:-}" || set -x
 }
 
-script_edit () # ~
+script_edit () # ~ # Invoke $EDITOR on script source(s)
 {
   "$EDITOR" "$0" "$@"
 }
 
 # Check if given argument equals zeroth argument.
-script_isrunning () # [scriptname] ~ <Scriptname> # argument matches zeroth argument
+# Unlike when calling script-name, this will not pollute the environment.
+script_isrunning () # [scriptname] ~ <Scriptname> [<Name-ext>]# argument matches zeroth argument
 {
-  local scriptname
+  local scriptname script_baseext="${2:-}"
   script_name && test "$scriptname" = "$1"
 }
 
 # Undo env setup for script-entry (inverse of script-doenv)
 script_unenv ()
 {
+  ! sh_fun "${baseid}"_unload || {
+    "${baseid}"_unload || return
+  }
+
+  local cmdstat=${script_cmdstat:-0}
+
+  unset script{name,_{baseext,cmd{als,def,id,alsid,stat},defcmd}} base{,id}
+
   set +e
   # XXX: test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set +uo pipefail
   test -z "${BASH_VERSION:-}" || set +uo pipefail
   test -z "${DEBUGSH:-}" || set +x
+
+  return $cmdstat
 }
 
 script_name ()
@@ -150,6 +262,8 @@ user_script_defarg ()
   # Resolve aliases
   case "$1" in
 
+      ( a|all ) shift && set -- user_scripts_all ;;
+
       # Every good citizen on the executable lookup PATH should have these
       ( "-?"|-h|help )
             test $# -eq 0 || shift; set -- user_script_help "$@" ;;
@@ -169,7 +283,7 @@ user_script_defarg ()
   esac
 
   # Hook-in more from user-script
-  test -z "${script_fun_xtra_defarg:-}" || {
+  test -z "${script_fun_xtra_defarg:=${script_xtra_defarg-}}" || {
     eval "$(sh_type_fun_body $script_fun_xtra_defarg)" || return
   }
 
@@ -299,8 +413,6 @@ user_script_longhelp () # ~ [<Name>]
   longhelp=1 user_script_help "$@"
 }
 
-user_script_maincmds="help long-help aliases commands variables version"
-
 # It is convenient to have a short-ish table, that gives the user an overview
 # of which main command handlers a script has. For small scripts this can be
 # simply the aliases table. As the script grows, or if aliases are not used
@@ -379,9 +491,12 @@ user_script_shell_env ()
 
   user_script_shell_env=0
 
-  user_script_loadenv || return
-
   set -e
+
+  user_script_loadenv || { ERR=$?
+    printf "ERR%03i: Cannot load user-script env" "$ERR" >&2
+    return $ERR
+  }
 
   . "$US_BIN"/os-htd.lib.sh || return
   {
@@ -453,9 +568,6 @@ user_script_resolve_aliases ()
   done
 }
 
-user_script_usage='This is a boilerplate to write executable shell scripts. See
-help and specifically help user-script for more info'
-
 # Display description how to evoke command or handler
 user_script_usage ()
 {
@@ -472,12 +584,9 @@ user_script_usage ()
   }
 }
 
-script_version () # ~
+script_version () # ~ # Output {name,version} from script-baseenv
 {
-  local name version var
-  var=${baseid}_name; name=${!var:-}
-  var=${baseid}_version; version=${!var:-}
-  echo "$name/$version"
+  echo "${script_name:?}/${script_version:-null}"
 }
 
 
@@ -494,8 +603,9 @@ script_version () # ~
 # some other preconditions are met usually indicating a prepared script (ie.
 # batch not interactive user) environment.
 #
-stdmsg () # (e) ~ <Class> <Message>
+stdmsg () # (e) ~ <Class> <Message> [<Context>]
 {
+  ${quiet:-false} && return
   true "${v:="${verbosity:-4}"}"
   case "${1:?}" in
       ( *"emerg" ) ;;
@@ -510,7 +620,7 @@ stdmsg () # (e) ~ <Class> <Message>
   echo "${2:?}" >&2
 }
 
-stdstat ()
+stdstat () # ~ <Status-Int> <Status-Message> # Exit handler
 {
   type sh_state_name >/dev/null 2>&1 &&
     stdmsg '*note' "$(sh_state_name "$1"): $2" ||
@@ -560,13 +670,25 @@ usage ()
 
 
 # Main boilerplate (mostly useless except for testing this script)
+# To list all user-script instances, see user-script.sh all.
 
-! script_baseext=.sh script_isrunning "user-script" || {
+! script_isrunning "user-script" .sh || {
 
-  #. "${US_BIN:-"$HOME/bin"}"/user-script.sh
+  #. "${US_BIN:="$HOME/bin"}"/user-script.sh
   user_script_shell_env
+
+  # Strip extension from scriptname (and baseid)
   script_baseext=.sh
+  # Default value used when argv is empty
+  #script_defcmd=usage
+  # Extra handlers for user-script-aliases to extract from
+  #script_xtra_defarg={(user_script_bases)}_defarg
+  # Extra defarg handlers to copy, used by default user-script-defarg impl.
+  #script_fun_xtra_defarg=
+
+  # Pre-parse arguments and reset argv: resolve aliased commands or sets default
   eval "set -- $(user_script_defarg "$@")"
+
   # Execute argv and end shell
   script_entry "user-script" "$@" || exit
 }

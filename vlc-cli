@@ -193,12 +193,11 @@ fixlines ()
 }
 
 
-# Main
+# Main entry (see user-script.sh for boilerplate)
 
-#shellcheck source=user-script.sh
 test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
-  user_script_shell_env
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
 }
 
 ! script_isrunning "vlc-cli" ||

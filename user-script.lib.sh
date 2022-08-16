@@ -113,6 +113,18 @@ user_script_initlog ()
   }
 }
 
+# Last line of a user-script should be 'script_entry "<Scriptname>" ...'
+user_scripts_all ()
+{
+  # Refs:
+  #git grep '\<user-script.sh \<'
+
+  # Entry points:
+  $stdmsg "*note" "User-script entry points" "$PWD"
+  git grep -nH '^script_entry "' | tr -d '"' | tr ' ' ':' |
+      cut -d ':' -f1,2,4 --output-delimiter ' '
+}
+
 # Look for command (ie. in history, aliases) given basic regex. To turn on
 # extended regex set `ext` flag. Multple matches possible.
 #
@@ -170,7 +182,7 @@ fun_flags () # ~ <Var-Name> [<Flags-Off>] [<Flags-On>]
   unset flag
 }
 
-grep_or ()
+grep_or () # ~ <Globs...>
 {
   printf '\(%s\)' "$(
         printf '%s' "$*" | sed '

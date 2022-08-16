@@ -1,3 +1,6 @@
+### Helper to run Vim
+
+
 # Run Vim command with output on stdout. Hides stderr so make sure command
 # works.
 vim_cmd_stdout () # Cmd
@@ -5,7 +8,7 @@ vim_cmd_stdout () # Cmd
   vim -c ':set t_ti= t_te= nomore' -c "$1"'|q!' 2>/dev/null
 }
 
-vim_scriptnames() #
+vim_scriptnames () #
 {
   vim_cmd_stdout 'scriptnames'
 }
@@ -41,8 +44,8 @@ vim_docpath ()
   done
 }
 
-# Write a VIM command file to configure editor on startup, to be used
-# like: vim -c 'source $sys_tmp/<Name-ID>.vimcmd'
+# Write a VIM command file to configure editor on startup, and output the
+# invocation argv for Vim like: '-c "source $sys_tmp/<Name-ID>.vimcmd"'
 vim_prepare_session () # Name-ID Layout
 {
   test $# -gt 0 -a -n "${1-}" || return 98
@@ -78,6 +81,11 @@ vim_panes_startupcmd () # Layout
   esac
 
   printf ":wincmd =\n"  # Equalize col/rows
+}
+
+vim_search () # ~ <Search-re>
+{
+  vim -c '/'"${1:?}"
 }
 
 #

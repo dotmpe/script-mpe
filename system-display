@@ -1,8 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-## Helper to deal with X server displays
+### Helper to deal with X server displays
 
-#shellcheck disable=SC1090,1007
 
 
 displays () # ~ # Display monitor link names
@@ -74,10 +73,7 @@ monitors () # ~ # List XRANDR info
 
 mouse_sh ()
 {
-  xdotool getmouselocation | sed -e '
-        s/\(^\| \)/\nmouse_/g
-        s/:/=/g
-    '
+  xdotool getmouselocation | sed 's/\(^\| \)/\nmouse_/g; s/:/=/g'
 }
 
 mouse () # ~ # Report display name where mousepointer currently is
@@ -92,7 +88,7 @@ mouse_display () # ~ # Report display name and mousepointer info
   eval "$(mouse_sh)"
   #shellcheck disable=SC2154,2086,2004
   display_info |
-      tr -s 'x+' ' ' | while read_line name width height dx dy rest
+      tr -s 'x+' ' ' | while read_data name width height dx dy rest
     do
         test $mouse_x -ge $dx -a $mouse_x -le $(( $dx + $width )) || continue
         test $mouse_y -ge $dy -a $mouse_y -le $(( $dy + $height )) || continue
@@ -121,6 +117,8 @@ window_geometry () # ~ [<Window-ID>]
   }
 }
 
+
+## User-script parts
 
 system_display_maincmds="displays help monitors version"
 system_display_usage='System monitors, window server, and window managers.'
@@ -156,17 +154,16 @@ and other config tools do provide actual monitor names.
 # Main entry (see user-script.sh for boilerplate)
 
 test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
-  unset SHELL
-  user_script_shell_env
+  set -e
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
 }
 
-# Parse arguments
 ! script_isrunning "system-display" || {
+  # Pre-parse arguments
   script_defcmd=list
   script_fun_xtra_defarg=system_display_aliasargv
   script_xtra_defarg=aliasargv
-
   eval "set -- $(user_script_defarg "$@")"
 }
 

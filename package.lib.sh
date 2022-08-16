@@ -505,7 +505,7 @@ package_sh_get_env() # Name V-Id
 }
 
 # Read from package.sh
-package_sh_get() # PACKAGE-SH NAME-KEY
+package_sh_get () # PACKAGE-SH NAME-KEY
 {
   test -n "$1" || set -- $PACK_SH "$2"
   # XXX: eval modes anyway, for certain interpolations?
@@ -517,30 +517,32 @@ package_sh_get() # PACKAGE-SH NAME-KEY
 # and other project tasks (sh routines, make, cron, CI/CD, etc.)
 package_sh_env ()
 {
-  test -n "${PACK_SH-}" || return 90
-  echo "#!${package_shell:="$default_package_shell"}"
-    # TODO: echo "ENV_NAME=$package_env_name $package_env"
-  test -n "${package_env-}" && {
-    # Single line script
-    echo "$package_env"
+  echo "#!${package_shell:="${default_package_shell:?}"}"
+
+  # Single line or multiline script XXX: shouldnt use env-name first?
+  envkey=package_ sh_envlist env ||
+      envkey=package_envs_ sh_envlist ${package_env_name:?}
+}
+
+# XXX: may should just use array decl.
+# still need to lookup single-line concatenated values vs actual list
+# TODO: fields like package sh_list <Prop>
+sh_envlist () # ~ <Var> [<Prop>]
+{
+  local listk=${envkey:-}${1:?}
+  test -n "${!listk-}" && {
+    echo "${!listk}"
   } || {
-    test -n "${package_env__0-}" && {
-      # Multiline-script
-      package_sh_list "$PACK_SH" "env"
-      return
-    }
-    local env_key=package_envs_${package_env_name}
-    test -n "${!env_key-}" && {
-      # Single line script
-      echo "${!env_key}"
-      return
-    }
-    env_key=${env_key}__0
-    test -n "${!env_key-}" && {
-      # Multiline-script
-      package_sh_list "$PACK_SH" "envs_$package_env_name"
-    }
-    return 1
+    local seqi=0 listki=$listk listi
+    listk=${listki}__${seqi}
+    test -n "${!listk-}" || return
+    while true
+    do
+      printf '%s\n' "${!listk}"
+      seqi=$(( seqi + 1 ))
+      listk=${listki}__${seqi}
+      listi=${!listk-} && test -n "$listi" || break
+    done
   }
 }
 
@@ -585,23 +587,20 @@ package_js_script()
 
 
 # Read from package.sh, no env required. But source env if using show-eval(on)
-package_sh_list() # show_index=0 show_item=1 show_eval=1 PACKAGE-SH LIST-KEY
+# to interpolate/expand values.
+package_sh_list() # show_index=0 show_item=1 show_eval=1 PACKAGE-SH LIST-KEY [PROP]
 {
   test -n "${1-}" || {
-    test -n "${PACK_SH-}" || return
-    set -- $PACK_SH "${2-}" "${3-}" "${4-}"
+    set -- "${PACK_SH:?}" "${2-}" "${3-}" "${4-}"
   }
-  test -n "${2-}" || error package_sh_list:list-key 1
-  test -n "${4-}" || set -- "$1" "$2" "${3-}" "package_"
-  test -n "${show_index-}" || show_index=0
-  test -n "${show_item-}" || show_item=1
-  test -n "${show_eval-}" || show_eval=1
-  trueish "$show_eval" && {
+  : "${show_index:=0}"
+  : "${show_item:=1}"
+  test 1 -eq "${show_eval:=1}" && {
       test -n "${package_main-}" || . $1
     }
+  # Dont get listitem but field from of object of item
   local subp="$3" ; test -n "$subp" && subp="__$subp" || subp=''
-
-  grep '^'"$4$2__[0-9]*$subp=" "$1" |
+  grep '^'"${4:-package_}${2:?"Key required for variable"}__[0-9]*$subp=" "$1" |
     sed -E 's/^'"$4$2"'__([0-9]+)'"$subp"'=(['\''"](.*)['\''"]$|(.*))$/\1 \3\4/g' |
     while read -r index item
     do

@@ -18,7 +18,7 @@ sensible () # ~ # XXX: start urxvt bash session. see Env
 # mode is appropiate. Return non-zero if no user-defined setting was found.
 sensible_colorscheme () # ~ # Look for function to determine current night-time
 {
-  # shellcheck disable=2015
+  #shellcheck disable=2015
   test -n "${DAY_START:-}" -o -n "${DAY_END:-}" && {
 
     UC_NIGHTTIME=nighttime
@@ -32,7 +32,7 @@ sensible_colorscheme () # ~ # Look for function to determine current night-time
         python3_bin=python
     test -n "${python3_bin:-}" || return
 
-    # shellcheck disable=1090
+    #shellcheck disable=1090
     . $US_BIN/user-tools
     UC_NIGHTTIME=actual_darktime
   }
@@ -40,7 +40,7 @@ sensible_colorscheme () # ~ # Look for function to determine current night-time
 
 run () # ~ [<Env...>] [ -- <Shell-Argv>... ]
 {
-  # shellcheck disable=2086
+  #shellcheck disable=2086
   exportargs "$@" && shift $argc
   test $# -gt 0 || set -- -l
   termexec "$@"
@@ -76,7 +76,7 @@ name () # ~ <Name> <Run-Argv...> # Start terminal with WM instance name
 exportargs () # ~ [VAR=...] --
 {
   cnt=$#
-  # shellcheck disable=2163
+  #shellcheck disable=2163
   while test $# -gt 0 -a "${1:-}" != -- # Stop argv shifting bef sec argopts seq
   do export "$1"
     shift
@@ -94,9 +94,9 @@ colorscheme () # ~ # 'dark' for night-time, 'light' otherwise
 # Naive function to check for day vs night time based on DAY_{START,END} hours
 nighttime () # ~ [<Hour>]
 {
-  # shellcheck disable=2046
+  #shellcheck disable=2046
   test $# -gt 0 || set -- $(date +%k|tr -d ' ')
-  # shellcheck disable=2086
+  #shellcheck disable=2086
   test $1 -lt ${DAY_START:-6} -o $1 -ge ${DAY_END:-18}
 }
 
@@ -114,13 +114,13 @@ shellexec () # ~ [<Env>] -- [<Command>] # Just execute shell
 }
 
 # Continue execution at terminal program running shell command
-# shellcheck disable=2086
+#shellcheck disable=2086
 termexec ()
 {
   true "${UC_TERM:="urxvt"}"
   true "${UC_SHELL:="bash"}"
   true ${bin:=$(command -v $UC_SHELL)}
-  true ${cs:=$(colorscheme)}
+  true ${cs:=${CS:-$(colorscheme)}}
 
   test -z "${UC_TERM_NAME:-}" || export UC_TERM_NAME
 
@@ -270,8 +270,8 @@ day () # ~ # Switch to light colorscheme
 colorscheme () # ~ ([dark]|light)
 {
   case "${1:-dark}" in
-      ( dark ) set_colors Tango-dark && set_shade 30 ;;
-      ( light ) set_colors Tango-light && set_shade 180 ;;
+      ( dark ) set_colors Tango-dark && set_shade 15 ;;
+      ( light ) set_colors Tango-light && set_shade 188 ;;
   esac
 }
 
@@ -355,8 +355,9 @@ Env:
 # Main entry (see user-script.sh for boilerplate)
 
 test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
-  user_script_shell_env
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
+
   . ~/bin/user-script.lib.sh
   . ~/bin/term.lib.sh
   # Stick themes among all others.

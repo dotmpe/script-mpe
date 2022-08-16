@@ -5,15 +5,11 @@
 
 lock ()
 {
-  # i3lock is very simple, but well done. Good interaction (if you understand
-  # what it is) but only background color and an optional PNG which you'll have
-  # to adapt to a multihead yourself.
-
-  # TODO: sensible lockscreen bg
-  #eval $( user-desktop get_bg login primary $( user-tools time-of-day) )
-
-  # Display a white background. Nothing else.
-  i3lock
+  local bg=${lock_bg:-}
+  test -n "$bg" || {
+    test "${CS:-dark}" = "dark" && bg="#121212" || bg="#767676"
+  }
+  i3lock -f -e -c "$bg"
 }
 
 pm_suspend_dbus ()
@@ -77,7 +73,7 @@ Commands:
 EOM
   } >&2; }
 
-  test $# -eq 0 && set -- '[A-Za-z_][A-Za-z0-9_]* () #'
+  test $# -eq 0 && set -- '[A-Za-z_][A-Za-z0-9_]* ()'
   grep "^$1" "$0"
 }
 

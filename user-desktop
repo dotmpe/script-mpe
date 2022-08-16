@@ -1,38 +1,53 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
-## Helper for desktop settings
-
-
-user_desktop_usage='User desktop tools.'
+### Helper for desktop settings
 
 
-
-background ()
+background () # ~ <-info>
 {
   local act=${1:-info}; test $# -eq 0 || shift
   case "$act" in
-      ( c|choose )
-              img=$(preview) &&
-              feh --bg-fill "$img"
-          ;;
+    ( c|choose )
+          img=$(backgrounds preview) && background set "$img" ;;
+    ( i|info ) false ;; # TODO
+    ( s|set )
+          feh --bg-fill "$@" ;;
+    ( p|preview )
+          backgrounds preview "$@" ;;
+
+    ( * ) $LOG error ":$act" "No such action" "$act"; return 67 ;;
   esac
 }
 
-backgrounds () # ~ # List user's deesktop backgrounds
+backgrounds () # ~ <-list>
+{
+  local act=${1:-list}; test $# -eq 0 || shift
+  case "$act" in
+
+    ( l|list ) # List user's desktop background images
+        backgrounds_list ;;
+
+    ( p|preview ) # ~ [<Fzf-Opts...>] # Use fzf+feh to browse through images
+        local bg=${preview_bg:-}
+        # TODO: move to Chauvet dark/light theme files
+        test -n "$bg" || {
+          test "${CS:-dark}" = "dark" && bg="#1c1c1c" || bg="#dadada"
+        }
+        backgrounds_list | fzf-tmux \
+          --preview='feh --title feh-preview -B "'"$bg"'" -Z {} -.' \
+          --preview-window=0 "$@" ;;
+
+    ( * ) $LOG error ":$act" "No such action" "$1"; return 67 ;;
+  esac
+}
+
+backgrounds_list ()
 {
   {
-    backgrounds_tag_find
-
+    backgrounds_tag_find &&
     backgrounds_dirs_find
 
   } | remove_dupes
-}
-
-preview () # ~ [<Fzf-Opts...>] # Use fzf+feh to browse through images
-{
-  backgrounds | fzf-tmux \
-      --preview='feh --title feh-preview -B black -Z {} -.' \
-      --preview-window=0 "$@"
 }
 
 backgrounds_tag_find ()
@@ -97,6 +112,7 @@ background_set () # ~ <File> <Display>...
 screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
 {
   dt=$(date --iso=sec)
+  # XXX: ~/.l/tmp is not a real TMP dir
   tmpf="$HOME/.local/tmp/Screenshot $dt.png"
 
   . $US_BIN/system-display || return
@@ -132,6 +148,27 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
   stdmsg '*note' "Moved screenshot $dt to Pictures"
 }
 
+switch_cs ()
+{
+  test $CS = "light" && {
+    theme Greybird
+
+    # Dark Ivy bg for nice high contrast during day
+    background set \
+        /usr/share/backgrounds/gnome/Dark_Ivy.jpg
+
+    # or something sunny or related to weather?
+      #/home/hari/Pictures/Backgrounds/924665-vertical-sunny-day-background-1920x1200-large-resolution.jpg
+
+    true
+  } || {
+    theme Greybird-dark
+
+    background set \
+      /home/hari/Pictures/Aesthetics/Backgrounds/31313-full_4-things-you-can-never-recover-tom-b.jpg
+  }
+}
+
 theme ()
 {
   desktop_conf || return
@@ -144,6 +181,11 @@ list_themes ()
   list_widget_themes
 }
 
+
+## User-script parts
+
+user_desktop_maincmds="backgrounds help screenshots themes version"
+user_desktop_usage='User desktop tools.'
 
 #shellcheck disable=1091 # env.sh and .meta.sh do not need to exist
 user_desktop_loadenv ()
@@ -162,6 +204,9 @@ user_desktop_aliasargv ()
   case "$1" in
       ( b|bg ) shift; set -- background "$@" ;;
       ( bgs ) shift; set -- backgrounds "$@" ;;
+      ( preview ) shift; set -- backgrounds preview "$@" ;;
+      ( switch-cs ) shift; set -- switch_cs "$@" ;;
+      ( set-bg ) shift; set -- background set "$@" ;;
       ( themes ) shift; set -- list_themes "$@" ;;
       ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
@@ -174,14 +219,13 @@ user_desktop_defaults ()
   true "${user_bgtag:="background"}"
 }
 
-user_desktop_maincmds="backgrounds help screenshots themes version"
+
+# Main entry (see user-script.sh for boilerplate)
 
 test -n "${user_script_loaded:-}" || {
-  script_fun_xtra_defarg=user_desktop_aliasargv
-  script_xtra_defarg=aliasargv
 
   #shellcheck source=user-script.sh
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh &&
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
       user_script_shell_env
 
   #shellcheck source=sys-htd.lib.sh
@@ -194,8 +238,12 @@ test -n "${user_script_loaded:-}" || {
   . $US_BIN/xorg.lib.sh
 }
 
-! script_isrunning "user-desktop" ||
-    eval "set -- $(user_script_defarg "$@")"
+! script_isrunning "user-desktop" || {
+  # Pre-parse arguments
+  script_fun_xtra_defarg=user_desktop_aliasargv
+  script_xtra_defarg=aliasargv
+  eval "set -- $(user_script_defarg "$@")"
+}
 
 script_entry "user-desktop" "$@"
 #

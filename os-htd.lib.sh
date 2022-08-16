@@ -1,11 +1,12 @@
 #!/bin/sh
-# Htd ctx cleanup for OS wip: files, paths.
+
+## Htd ctx cleanup for OS wip: files, paths.
 
 
 os_htd_lib_load()
 {
-  test -n "${uname-}" || uname="$(uname -s)"
-  test -n "${os-}" || os="$(uname -s)"
+  : "${uname:="$(uname -s)"}"
+  : "${os:="$(uname -o)"}"
 }
 
 os_htd_lib_init()
@@ -534,6 +535,17 @@ lines_slice () # [First-Line] [Last-Line] [-|File-Path]
   }
 }
 
+files_exist ()
+{
+  false
+}
+
+# Expand pattern, ignoring non-existant expansions. TODO: non-zero for empty
+files_existing () # ~ <Shell-filename-pattern...>
+{
+  eval "echo $*" | tr ' ' '\n' | filter_files
+}
+
 files_lock()
 {
   local id=$1
@@ -746,11 +758,15 @@ read_asis ()
 #    do echo "$p$_S$s"; done
 #}
 
-read_content ()
+# Read only data, trimming whitespace but leaving '\' as-is.
+# See read-escaped and read-literal for other modes/impl.
+read_data () # (s) ~ <Read-argv...> # Read into variables, ignoring escapes and collapsing whitespacek
 {
   read -r "$@"
 }
 
+# Read character data separated by spaces, allowing '\' to escape special chars.
+# See also read-literal and read-content.
 read_escaped ()
 {
   #shellcheck disable=2162 # Escaping can be useful to ignore line-ends, and read continuations as one line
@@ -778,7 +794,7 @@ read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
   test -n "${2-}" -a $# -le 4 || return
   local stat=''
 
-  read_lines_while_inner()
+  read_lines_while_inner() # sh:no-stat
   {
     local r=0
     lines_slice "${3-}" "${4-}" "$1" | {
