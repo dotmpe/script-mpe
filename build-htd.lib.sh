@@ -326,6 +326,12 @@ build_lib_func_deps_list()
 {
   { copy_function "$1" "$2" | list_sh_calls - | remove_dupes
   } || {
+    {
+        echo $1 $2
+        copy_function "$1" "$2"
+        echo calls:
+        copy_function "$1" "$2" | list_sh_calls - >&2
+    }>&2
     error "parsing callees from $2 '$1'"
     return 2
   }
