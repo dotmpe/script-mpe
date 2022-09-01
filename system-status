@@ -409,7 +409,7 @@ monitor () # ~ <1min=0-9> <5min=0> <15min=0-9>
 
 ## User-script parts
 
-system_status_maincmds="battery cpu email help short services version"
+system_status_maincmds="battery cpu emails help short services version"
 system_status_shortdescr='User and system resource stat'
 
 system_status_aliasargv ()
@@ -419,21 +419,14 @@ system_status_aliasargv ()
   esac
 }
 
-system_status_usage ()
-{
-  #shellcheck disable=SC2154
-  printf \
-'\t%s <Command <Arg...>>
-
-Env:
-\tNERD_FONT 1
-\tNERD_FONT_BAT
-\tNERD_FONT_AC
-\tNERD_FONT_STATUS
-\tMUTTRC
-\tMUTTRC_MAILBOXES
-' "$base"
-}
+#system_status_usage=
+#Env:
+#\tNERD_FONT 1
+#\tNERD_FONT_BAT
+#\tNERD_FONT_AC
+#\tNERD_FONT_STATUS
+#\tMUTTRC
+#\tMUTTRC_MAILBOXES
 
 system_status_loadenv ()
 {
