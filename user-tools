@@ -36,12 +36,12 @@ weatherdata () # ~
 # Weather is name for location, unicode symbol and temperature.
 location_weather ()
 {
-  curl "wttr.in/${wttr_loc-}?format=3" | lines_to_words
+  curl -sSf "wttr.in/${wttr_loc-}?format=3" | lines_to_words
 }
 
 moon ()
 {
-  curl "wttr.in/${wttr_loc-}?format=%m" | lines_to_words
+  curl -sSf "wttr.in/${wttr_loc-}?format=%m" | lines_to_words
 }
 
 

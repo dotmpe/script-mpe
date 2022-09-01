@@ -73,7 +73,7 @@ weather ()
 {
   user-tools weather | {
     test $darktime -eq 1 && {
-      sed 's/\xe2\x98\x80/#[fg=colour240]&#[#{@c_dark}]/'
+      sed 's/\xe2\x98\x80/#[fg=colour245]&#[#{@c_dark}]/'
     } || {
       sed 's/\xe2\x98\x80/#[fg=colour220]&#[#{@c_dark}]/'
     }
@@ -89,8 +89,9 @@ weather_and_sky ()
 
   weather
   test $darktime -eq 1 || return 0
-  printf ' '
+  printf '#[fg=colour250]'
   moon
+  printf '#[#{@c_normal}]'
 }
 
 
