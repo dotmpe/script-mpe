@@ -5,6 +5,8 @@
 # 1007: I'm not sure; why should I always put empty string? I'm lazy.
 disable=SC1007
 
+disable=SC2001 # See if you can use ${variable//search/replace} instead.
+
 # XXX: Variable syntax is not needed in math expr. Not sure if true, but
 # following for now (while it works on Bash).
 #disable=SC2004
