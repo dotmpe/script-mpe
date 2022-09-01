@@ -185,7 +185,7 @@ list_themes ()
 ## User-script parts
 
 user_desktop_maincmds="backgrounds help screenshots themes version"
-user_desktop_usage='User desktop tools.'
+user_desktop_shortdescr='User desktop tools.'
 
 #shellcheck disable=1091 # env.sh and .meta.sh do not need to exist
 user_desktop_loadenv ()

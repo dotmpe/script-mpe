@@ -2,17 +2,6 @@
 
 
 
-weather () # ~
-{
-  location_weather | cut -d ':' -f 2 | sed 's/^ //' | lines_to_words
-}
-
-forecast_tab ()
-{
-  location_weather_info | jq -r \
-    '.weather[0].hourly[] | "\(.time) \(.weatherCode) \(.weatherDesc[0].value)"'
-}
-
 forecast () # ~
 {
   forecast_tab |
@@ -23,9 +12,20 @@ forecast () # ~
     done
 }
 
+forecast_tab ()
+{
+  location_weather_info | jq -r \
+    '.weather[0].hourly[] | "\(.time) \(.weatherCode) \(.weatherDesc[0].value)"'
+}
+
 location_weather_info ()
 {
   curl "wttr.in/${wttr_loc-}?format=j1"
+}
+
+weather () # ~
+{
+  location_weather | cut -d ':' -f 2 | sed 's/^ //' | lines_to_words
 }
 
 weatherdata () # ~
@@ -191,11 +191,13 @@ state_icon_fa ()
 ## User-script parts
 
 user_tools_maincmds="forecast help location weather season version"
-user_tools_usage='User tools.'
+user_tools_shortdescr='User tools.'
 
 user_tools_aliasargv ()
 {
   case "$1" in
+      ( m|media ) shift; set -- us_media "$@" ;;
+      ( sort|media-sort ) shift; set -- catalog_uc_sort "$@" ;;
       ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
 
   esac
@@ -203,7 +205,31 @@ user_tools_aliasargv ()
 
 user_tools_loadenv ()
 {
-  . "$US_BIN"/nerdfonts.lib.sh && nerdfonts_lib_load && nerdfonts_lib_init
+  test $# -gt 0 || set -- "$script_cmd"
+  while test $# -gt 0
+  do
+    case "$1" in
+
+      ( catalog )
+          user_script_libload $UCONF/script/catalog-uc.lib.sh &&
+              catalog_uc_lib_load ;;
+      ( media )
+          user_script_libload $UCONF/script/media-uc.lib.sh \
+                $US_BIN/contexts/ctx-playerctl.lib.sh &&
+                media_uc_lib_load && ctx_playerctl_lib_load ;;
+      ( nerdfonts )
+          . "$US_BIN"/nerdfonts.lib.sh &&
+              nerdfonts_lib_load && nerdfonts_lib_init ;;
+
+      ( all ) set -- "" nerdfonts media catalog ;;
+      ( user_script_handlers ) set -- "" all ;;
+      ( catalog_uc_sort ) set -- "$@" catalog ;;
+      ( us_media ) set -- "$@" media ;;
+
+      ( * ) set -- "" nerdfonts ;;
+    esac
+    shift
+  done
 }
 
 

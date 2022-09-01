@@ -10,7 +10,7 @@ user_script_version=0.0.1-dev
 user_script_maincmds="help long-help aliases commands variables version"
 
 # TODO: This short help starts with a short usage.
-user_script_usage='This is a boilerplate and library to write executable shell scripts.
+user_script_shortdescr='This is a boilerplate and library to write executable shell scripts.
 See help and specifically help user-script for more info'
 
 # TODO: The long per-sub-command help
@@ -125,16 +125,34 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Arg...>
 
 script_baseenv ()
 {
+  local vid var var_ _baseid
   mkvid "${base:="$scriptname"}"; baseid=$vid
 
-  local var ucvar
-  for var in name version
+  # Get instance vars
+  for var in name version shortdescr
   do
-    var=${baseid}_$var;
-    test -z "${!var:-}" \
-        || set "script_$var=${!var}"
+    var_=${baseid}_$var;
+    test -z "${!var_:-}"  || eval "script_$var=\"${!var_}\""
   done
   : "${script_name:="$user_script_name:$scriptname"}"
+  : "${script_shortdescr:="User-script '$scriptname' has no description. "}"
+
+  # Get inherited vars
+  for var in maincmds
+  do
+    for _baseid in $(${user_script_bases:-user_script_bases})
+    do
+      var_=${_baseid}_$var;
+      test -n "${!var_:-}" || continue
+      eval "script_$var=\"${!var_}\""
+      continue 2
+    done
+  done
+
+  local scriptname_ext=${script_baseext:-}
+  : "${script_src:="$scriptname$scriptname_ext user-script.sh"}"
+  # TODO: write us_load function ${script_lib:=user-script.lib.sh}
+  script_lib=
 }
 
 script_cmdid ()
@@ -162,6 +180,7 @@ script_doenv ()
 
 script_edit () # ~ # Invoke $EDITOR on script source(s)
 {
+  #test $# -gt 0 || set -- $script_src $script_lib
   "$EDITOR" "$0" "$@"
 }
 
@@ -202,6 +221,7 @@ script_name ()
 
 user_script_aliases () # ~ [<Name-globs...>] # List handlers with aliases
 {
+  # Match given function name globs, or set fairly liberal regex
   test $# -eq 0 && {
     set -- "[A-Za-z_:-][A-Za-z0-9_:-]*"
   } || {
@@ -209,15 +229,15 @@ user_script_aliases () # ~ [<Name-globs...>] # List handlers with aliases
   }
 
   local bid fun
-  for bid in $(user_script_bases)
+  for bid in $(${user_script_bases:-user_script_bases})
   do
-    for h in defarg ${script_xtra_defarg:-}
+    for h in ${script_xtra_defarg:-} defarg
     do
       sh_fun "${bid}_$h" && fun=${bid}_$h || {
         sh_fun "$h" && fun=$h || continue
       }
       echo "# $fun"
-      sh_type_esacs $fun | sed '
+      sh_type_esacs_als $fun | sed '
               s/ set -- \([^ ]*\) .*$/ set -- \1/g
               s/ *) .* set -- /: /g
               s/^ *//g
@@ -269,6 +289,8 @@ user_script_defarg ()
             test $# -eq 0 || shift; set -- user_script_help "$@" ;;
       ( --help|long-help )
             test $# -eq 0 || shift; set -- user_script_longhelp "$@" ;;
+      ( -V|--version|version )
+            test $# -eq 0 || shift; set -- script_version "$@" ;;
 
       ( --aliases|aliases )
             test $# -eq 0 || shift; set -- user_script_aliases "$@" ;;
@@ -276,9 +298,6 @@ user_script_defarg ()
             test $# -eq 0 || shift; set -- user_script_handlers "$@" ;;
       ( --env|variables )
             test $# -eq 0 || shift; set -- user_script_envvars "$@" ;;
-
-      ( -V|--version|version )
-            test $# -eq 0 || shift; set -- script_version "$@" ;;
 
   esac
 
@@ -350,13 +369,19 @@ user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main scr
     set -- "$(grep_or "$@")"
   }
 
-  # NOTE: some shell allow all kinds of characters.
+  # NOTE: some shell allow all kinds of characters in functions.
   # sometimes I define scripts as /bin/bash and use '-', maybe ':'.
 
-  local scriptname_ext=${script_baseext:-}
-  for name in $scriptname$scriptname_ext user-script.sh
+  local name slf_h=${slf_h:-1}
+
+  for name in $script_lib
   do
-    script_src=$(command -v "$name") slf_h=1 script_listfun "$1"
+    script_listfun "$name" "$1" || true
+  done
+
+  for name in $script_src
+  do
+    script_listfun "$(command -v "$name")" "$1"
   done
 }
 
@@ -373,29 +398,35 @@ user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main scr
 # With argument, display only help parts related to matching function(s).
 user_script_help () # ~ [<Name>]
 {
-  # First display generic or handler usage.
-  sh_fun "${baseid}"_usage \
-      && "${baseid}"_usage "$@" \
-      || user_script_usage "$@"
+  local _baseid
 
-  # Include only main functions unless longhelp isset
-  test ${longhelp:-0} -eq 0 -o $# -ne 0 || set -- "*"
+  for _baseid in $(${user_script_bases:-user_script_bases})
+  do
+    ! sh_fun "${_baseid}"_usage || break
+  done
 
-  # Go with it, list all specs
-  sh_fun "${baseid}"_maincmds \
-      && "${baseid}"_maincmds "$@" \
-      || user_script_maincmds "$@"
+  "${_baseid}"_usage "$@"
 
-  # Add more parts for generic usage
-  test $# -ne 0 || {
+  test $# -gt 0 -o ${longhelp:-0} -eq 0 || {
 
     # Add env-vars block, if there is one
     test ${longhelp:-0} -eq 0 || {
-      envvars=$( user_script_envvars | sed 's/^/\t/' )
+      envvars=$( user_script_envvars | grep -v '^#' | sed 's/^/\t/' )
       test -z "$envvars" ||
-          printf 'Env vars:\n%s\n\n' "$envvars"
+          printf '\nEnv vars:\n%s\n\n' "$envvars"
     }
   }
+}
+
+user_script_libload ()
+{
+  test $# -gt 0 || return
+  while test $# -gt 0
+  do
+    . "$1" || return
+    script_lib=${script_lib:-}${script_lib:+ }$1
+    shift
+  done
 }
 
 # Default loadenv for user-script, run at the end of doenv just before
@@ -411,77 +442,6 @@ user_script_loadenv ()
 user_script_longhelp () # ~ [<Name>]
 {
   longhelp=1 user_script_help "$@"
-}
-
-# It is convenient to have a short-ish table, that gives the user an overview
-# of which main command handlers a script has. For small scripts this can be
-# simply the aliases table. As the script grows, or if aliases are not used
-# this may not suffice.
-user_script_maincmds () # ~ [<Name-globs...>]
-{
-  local hdr
-  test $# -gt 0 && {
-    test "$1" = "*" && hdr="Commands" || hdr="Option"
-  } || {
-    local var=${baseid}_maincmds
-    set -- ${!var:-}
-    test $# -gt 0 || set -- $user_script_maincmds
-    hdr="Main commands"
-  }
-  test ${quick:-0} -eq 0 && {
-
-    # Cache aliases we care about and build sed-rewrite to prefix to handlers
-    user_script_aliases=$(user_script_aliases "$*" |
-          sed 's/^\(.*\): \(.*\)$/\2 \1/' | tr -d ',' )
-    alias_sed=$( echo "$user_script_aliases" | while read -r handler aliases
-            do
-                printf 's/^\<%s\>/( %s | & )/\n' "$handler" "${aliases// / | }"
-            done
-        )
-    handlers=$(user_script_resolve_aliases "$@" | remove_dupes | lines_to_words)
-
-    test $# -eq 0 && {
-
-      printf '%s:\n%s\n' "$hdr" "$(
-              user_script_handlers $handlers | sed "$alias_sed" | sed 's/^/\t/'
-          )"
-
-    } || {
-
-      test -n "$handlers" && {
-        echo "Command:"
-        echo "$handlers"
-
-      } || {
-
-        . $U_S/src/sh/lib/os.lib.sh &&
-        . $U_S/src/sh/lib/src.lib.sh && {
-
-          local h=$1 fun=${1//-/_} fun_def fun_src fun_ln
-
-          shopt -s extdebug
-          fun_def=$(declare -F "$fun") || {
-            $LOG error "" "No such type loaded" "fun?:$fun"
-            return 1
-          }
-
-          # TODO: listfun-specs see sh-fun-spec-dev
-          # XXX: going have to rewrite a lot of [<Arg>] to <Arg->
-
-          fun_src=${fun_def//* }
-          fun_def=${fun_def% *}
-          fun_ln=${fun_def//* }
-
-          echo "Shell Function at $(basename "$fun_src"):$fun_ln:"
-          script_src=$fun_src script_listfun "$fun"
-          func_comment "$fun" "$fun_src"
-        }
-      }
-    }
-    return
-  } || {
-    printf 'Main aliases:\n%s\n\n' "$( user_script_aliases $* | sed 's/^/\t/' )"
-  }
 }
 
 # This should be run before calling any function
@@ -554,34 +514,183 @@ user_script_shell_env ()
 
 user_script_resolve_aliases ()
 {
-  for alias in "$@"
+  for handle in "$@"
   do
-    echo "$user_script_aliases" | while read -r handler aliases
-    do
-      test "$handler" = "$alias" && {
-          echo $handler
-      } || {
-          case " $aliases " in ( *" $alias "* ) echo $handler ; break ;; esac
-      }
-      true
-    done
+    echo "$us_aliases" | {
+        while read -r handler aliases
+        do
+          test "$handler" = "$handle" && {
+              echo $handler
+          } || {
+              case " $aliases " in
+                  ( *" $handle "* ) echo $handler ; break ;;
+                  ( * ) false ;;
+              esac
+          }
+        done
+      } || echo $handle
   done
 }
 
 # Display description how to evoke command or handler
-user_script_usage ()
+user_script_usage () # ~
 {
-  local usage var=${baseid}_usage
-  usage=${!var:-}
+  local short=0 slf_l
+
   test $# -eq 0 && {
-    printf 'Usage:\n\t%s <Command <Arg...>>\n\t%s (%s)\n\n' \
-        "$base" \
-        "$base" "$script_defcmd"
-    printf '%s\n\n' "$usage"
+    short=1
+    slf_l=0
+    set -- $script_maincmds
+    printf 'Usage:\n\t%s <Command <Arg...>>\n' "$base"
   } || {
-    printf 'Usage:\n\t%s %s <Arg...>\n\n' "$base" "$1"
-    # XXX: func comments printf '%s\n\n' "$_usage"
+    slf_l=1
+    printf 'Usage:\n'
   }
+
+  # Resolve handler (if alias) and output formatted spec
+  local us_aliases alias_sed handlers
+  test $slf_l -eq 0 && {
+      user_script_usage_handlers "$@" || {
+        $LOG error "" "in" "$@"
+        return 1
+      }
+    } || {
+      user_script_usage_handlers "$1" || true
+    }
+  # XXX: could jsut use bash extdebug instead of script-{src,lib}
+  # however these all have to be loaded first, creating a chicken and the egg
+  # problem
+  # TODO func-comment Needs abit of polishing. and be moved to use for other
+  # functions as well
+  test -n "$handlers" || {
+    $LOG error "" "No handler found"
+    return 1
+
+    "${baseid}"_loadenv all || return
+    user_script_usage_ext "$1" || return
+    echo "Shell Function at $(basename "$fun_src"):$fun_ln:"
+    script_listfun $fun_src "$handlers"
+    #. $U_S/src/sh/lib/os.lib.sh
+    . $U_S/src/sh/lib/src.lib.sh
+    func_comment "$handlers" "$fun_src"
+  }
+
+  # Gather functions again, look for choice-esacs
+  local sub_funs actions
+  test $slf_l -eq 0 && {
+      user_script_usage_choices "$handlers" || true
+    } || {
+      user_script_usage_choices "$handlers" "${2:-}"
+    }
+
+  test $short -eq 1 && {
+    printf '\t%s (%s) %s\n' "$base" "$script_defcmd" ""
+    printf '\n%s\n' "$script_shortdescr"
+  } || {
+    true # XXX: func comments printf '%s\n\n' "$_usage"
+  }
+}
+
+user_script_usage_choices () # ~ <Handler> [<Choice>]
+{
+  sub_funs=$( slf_t=1 slf_h=0 user_script_handlers ${1:?} |
+      while IFS=$'\t' read -r fun_name fun_spec fun_descr
+      do
+        fnmatch "* ?y? *" " $fun_spec " || continue
+        echo "$fun_name"
+      done)
+  test -n "$sub_funs" || {
+    $LOG debug "" "No choice specs" "$1"
+    return 0
+  }
+
+  # Always use long-help format if we're selecting a particular choice (set)
+  test -n "${2:-}" -o ${longhelp:-0} -eq  1 && {
+
+    test -z "${2:-}" && {
+       actions=$( for fun_name in $sub_funs
+         do
+           sh_type_esacs_tab $fun_name
+         done |
+             sed 's/\t/\t$ /' | column -c2 -s $'\t' -t )
+    } || {
+
+       actions=$( for fun_name in $sub_funs
+         do
+           sh_type_esacs_tab $fun_name
+         done |
+             grep '\(^\|| \)'"${2:-".*"}"'\( |\|'$'\t''\)' |
+         while IFS=$'\t' read -r alias_case alias_exec
+         do
+           alias_cmd=${alias_exec// *}
+           test -n "$alias_cmd" || {
+             $LOG error "" "No handler found" "action:$2 case:$alias_case"
+             continue
+           }
+           echo -e "$alias_case\t$ $alias_cmd"
+           user_script_usage "$alias_cmd" | tail -n +3 | sed 's/^/ \t \t/'
+         done | column -c2 -s $'\t' -t )
+    }
+
+  } || {
+    actions=$(for fun_name in $sub_funs
+        do sh_type_esacs_choices $fun_name
+        done | grep -v '^\*$' )
+  }
+  test -n "$actions" || {
+    $LOG error "" "Cannot get choices" "fun:${1:?}"
+    return 1
+  }
+  test -n "${2:-}" && {
+    printf "\nChoice '%s':\n" "$2"
+  } || {
+    printf "\nAction choices:\n"
+  }
+  echo "$actions" | sed 's/^/\t/'
+}
+
+user_script_usage_ext ()
+{
+  local h=$1 fun=${1//-/_} fun_def
+
+  shopt -s extdebug
+  fun_def=$(declare -F "$fun") || {
+    $LOG error "" "No such type loaded" "fun?:$fun"
+    return 1
+  }
+
+  fun_src=${fun_def//* }
+  fun_def=${fun_def% *}
+  fun_ln=${fun_def//* }
+
+  script_lib=${script_lib:-}${script_lib:+ }$fun_src
+  handlers=$fun
+}
+
+# Output formatted help specs for one or more handlers.
+user_script_usage_handlers ()
+{
+  us_aliases=$(user_script_aliases "$@" |
+        sed 's/^\(.*\): \(.*\)$/\2 \1/' | tr -d ',' )
+  alias_sed=$( echo "$us_aliases" | while read -r handler aliases
+          do
+              printf 's/^\<%s\>/( %s | & )/\n' "$handler" "${aliases// / | }"
+          done
+      )
+  handlers=$(user_script_resolve_aliases "$@" | remove_dupes | lines_to_words)
+
+  # Do any loading required for handler, so script-src/script-lib is set
+  # XXX: not loading might speed up a bit, but only as long as AST is not
+  # required later. See user-script-usage.
+  ! sh_fun "${baseid}"_loadenv || {
+    "${baseid}"_loadenv $handlers || return
+  }
+
+  # Output handle name(s) with 'spec' and short descr.
+  slf_h=1 user_script_handlers $handlers | sed "$alias_sed" | sed "
+        s/^\t/\t\t/
+        s/^[^\t]/\t$base &/
+    "
 }
 
 script_version () # ~ # Output {name,version} from script-baseenv
@@ -628,18 +737,25 @@ stdstat () # ~ <Status-Int> <Status-Message> # Exit handler
   exit $1
 }
 
-script_listfun () # (s:script-src) ~ [<Grep>] # Wrap grep for function declarations scan
+script_listfun () # (s) ~ [<Grep>] # Wrap grep for function declarations scan
 {
-  local script_src="${script_src:-"$(script_source)"}"
-  fun_flags slf ht
+  local script_src="${1:-"$(script_source)"}"
+  shift 1
+  fun_flags slf ht l
   grep "^$1 *() #" "$script_src" | {
     test $slf_h = 1 && {
       # Simple help format from fun-spec
       sed '
             s/ *() *# [][(){}a-zA-Z0-9=,_-]* *~ */ /g
             s/# \([^~].*\)/\n\t\1\n/g
-          '
+          ' | {
+                # Strip short usage descr
+                test $slf_l = 1 && cat ||
+                    grep -v -e '^'$'\t' -e '^$'
+              }
+
     } || {
+
       # Turn into three tab-separated fields: name, spec, gist
       sed '
             s/ *() *//

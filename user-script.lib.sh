@@ -192,24 +192,41 @@ grep_or () # ~ <Globs...>
     )"
 }
 
-# Extract simple, single-line case/esac cases
-sh_type_esacs () # ~ <Func>
+# Extract simple, single-line case/esac cases.
+# Does not extract just case/esac blocks but this is simple enough to work for me.
+sh_type_esacs () # ~ <Func> [<Inner-Block-Grep>]
 {
-  sh_type_esacs_fmt "$1" | sh_type_esacs_grep
+  sh_type_fun_body "${1:?}" | sh_type_esacs_fmt | sh_type_esacs_gpo "${2:-}"
 }
 
-sh_type_esacs_fmt ()
+# Extract first argument for all case/esac branches from case-set-argv typeset
+sh_type_esacs_als () # ~ <Fun> # Extract first replacement argv with each branch key
 {
-  sh_type "$1" | sed -z '
+  sh_type_esacs "${1:?}" '.* set -- [a-z_:-][a-z0-9_:-]* .*'
+}
+
+sh_type_esacs_choices () # ~ <Func> # List keys for each esac branch
+{
+  sh_type_esacs_tab "${1:?}" | cut -d$'\t' -f1 | tr -s '\t ' ' '
+}
+
+sh_type_esacs_fmt () # (s) ~ # Collapse whitespace formatting of case/esac sh typeset
+{
+  sed -z '
         s/)\n */ ) /g
         s/\n *;;/ ;;/g
         s/\([^;]\);\n */\1; /g
     '
 }
 
-sh_type_esacs_grep ()
+sh_type_esacs_gpo () # ~ [<Inner-re>] # Match one case branch with inner code block.
 {
-  grep -Po ' \(? .* \) .* set -- [a-z_:-][a-z0-9_:-]* .* ;;'
+  grep -Po ' \(? .* \) '"${1:-".*"}"';;'
+}
+
+sh_type_esacs_tab () # ~ <Func> [<Inner-Block-Grep>]
+{
+  sh_type_esacs "${1:?}" "${2:-}" | sed -e 's/ ) */\t/' -e 's/ *;; *$//' -e 's/^ *//'
 }
 
 sh_type_fun_body ()

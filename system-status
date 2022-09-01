@@ -410,7 +410,7 @@ monitor () # ~ <1min=0-9> <5min=0> <15min=0-9>
 ## User-script parts
 
 system_status_maincmds="battery cpu email help short services version"
-system_status_usage='User and system resource stat'
+system_status_shortdescr='User and system resource stat'
 
 system_status_aliasargv ()
 {

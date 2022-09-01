@@ -39,7 +39,7 @@ outline_header ()
 #outline_sh_name=foo
 #outline_sh_version=xxx
 outline_sh_maincmds="help fetch version"
-#outline_sh_usage=''
+#outline_sh_shortdescr=''
 
 outline_sh_aliasargv ()
 {

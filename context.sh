@@ -41,7 +41,7 @@ context_status ()
 #context_sh_name=foo
 #context_sh_version=xxx
 context_sh_maincmds="help short version"
-#context_sh_usage=''
+#context_sh_shortdescr=''
 
 context_sh_aliasargv ()
 {

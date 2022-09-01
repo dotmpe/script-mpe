@@ -643,6 +643,23 @@ line_conts_collapse () # (s) ~ # Replace line-continuations with space
   sed ':a; N; $!ba; s/ *\\\n */ /g'
 }
 
+# Insert string at empty positions in space/tab/... separated lines
+line_fields_replace_empty () # ~ [<Field-separator>] [<Substitute>]
+{
+  line_fields_replace_value "${1:-}" "" "${2:?}"
+}
+
+line_fields_replace_value () # ~ [<Field-separator>] <Match-> [<Substitute->]
+{
+  local fs=${1:-"\t"} m=${2:-} s=${3:-}
+  test $# -eq 0 || shift
+  test $# -eq 0 || shift
+  test $# -eq 0 || shift
+  sed ':a; /\('"$fs"'\|^\)'"$m"'\('"$fs"'\|$\)/{
+        s/\('"$fs"'\|^\)'"$m"'\('"$fs"'\|$\)/\1'"$s"'\2/g; ba;
+      }' "$@"
+}
+
 linux_boottime ()
 {
   echo $(( $($gdate +"%s" ) + $(linux_uptime) ))

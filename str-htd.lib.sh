@@ -668,4 +668,14 @@ str_concat () # ~ <String-1> <String-2> <String-Sep>
   }
 }
 
+# Error unless non-empty and true-ish value
+trueish() # Str
+{
+  test $# -eq 1 -a -n "${1-}" || return
+  case "$1" in [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1) return 0;;
+    * ) return 1;;
+  esac
+}
+# Id: sh-trueish
+
 #

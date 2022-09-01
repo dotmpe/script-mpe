@@ -162,7 +162,7 @@ poorgaps () # ~ [<Gap=100>] [<HGap>] [<Top-offset>] [<Bottom-offset>]
 ## User-script parts
 
 system_display_maincmds="displays help monitors version"
-system_display_usage='System monitors, window server, and window managers.'
+system_display_shortdescr='System monitors, window server, and window managers.'
 
 system_display_aliasargv ()
 {

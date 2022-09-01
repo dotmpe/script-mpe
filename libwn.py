@@ -153,7 +153,7 @@ def u_q_w(WORD, g):
     syn, syns = syn_or_syns(WORD)
     if not syn and not syns:
         log.stderr('{yellow}No results{default}')
-        return 1, ()
+        return 1, ( None, None )
     return 0, (syn, syns)
 
 def u_o_ml(fieldlabel, listval, g):

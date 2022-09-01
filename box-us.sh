@@ -24,7 +24,7 @@ rulesets () # ~
 ## User-script parts
 
 box_us_maincmds="diagnostics help rulesets status update version"
-box_us_usage='Generic user shell tool.'
+box_us_shortdescr='Generic user shell tool.'
 
 box_us_aliasargv ()
 {

@@ -205,7 +205,7 @@ status_position ()
 
 ## User-script parts
 
-tmux_session_usage='
+tmux_session_shortdescr='
   tmux-session (open|close) [<Session-Config-Id>] [<Session-Config-File>]
   tmux-session help|commands|...
 Env:
