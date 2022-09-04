@@ -1355,7 +1355,7 @@ htd_als__edit_week=journal\ edit-week
 
 htd_grp__today=cabinet
 
-htd_grp__week_nr=cabinet
+htd_grp__week_nr=journal
 htd_als__week=week-nr
 htd_als__wknr=week-nr
 
