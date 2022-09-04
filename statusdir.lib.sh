@@ -6,7 +6,7 @@
 statusdir_lib_load ()
 {
   # Setup static STATUSDIR_ROOT env to directory (including trailing-/)
-  true "${STATUSDIR_DEFAULT="$HOME/.statusdir"}"
+  true "${STATUSDIR_DEFAULT="$HOME/.local/statusdir"}"
   true "${STATUSDIR_ROOT:="$STATUSDIR_DEFAULT/"}"
   fnmatch "*/" "$STATUSDIR_ROOT" || STATUSDIR_ROOT="$STATUSDIR_ROOT/"
   export STATUSDIR_ROOT
@@ -29,8 +29,11 @@ statusdir_lib_init()
   test ${statusdir_lib_init:-1} -eq 0 || {
     test -n "$INIT_LOG" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
 
-    test -d "${STATUSDIR_ROOT-}" &&
-        statusdir_lib_start || return
+    test -d "${STATUSDIR_ROOT-}" || {
+      $sd_log  "error" "" "No root directory" "$STATUSDIR_ROOT"
+      return 1
+    }
+    statusdir_lib_start || return
   }
 }
 
@@ -39,7 +42,10 @@ statusdir_lib_start() #
 {
   statusdir_settings || return
   test -n "${sd_be:=""}" || {
-    statusdir_autodetect || return
+    statusdir_autodetect || {
+      $sd_log  "error" "" "Cannot auto-detect usable backend"
+      return 4
+    }
   }
 }
 
@@ -159,10 +165,13 @@ statusdir_record () #
 statusdir_settings() #
 {
   test -e ${STATUSDIR_ROOT}meta.sh || {
-    $sd_log  "error" "" "Cannot load root settings"
-    return 1
+    $sd_log  "error" "" "Cannot find root settings"
+    return 2
   }
-  source ${STATUSDIR_ROOT}meta.sh || return
+  source ${STATUSDIR_ROOT}meta.sh || {
+    $sd_log  "error" "" "Cannot load root settings"
+    return 3
+  }
 }
 
 
