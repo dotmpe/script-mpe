@@ -349,15 +349,20 @@ disk_list_by_nr () # [List-Partitions] [Major-Types]
 disk_list()
 {
   case "$uname" in
+      [a-z]* ) uname=${uname^}
+          ;;
+  esac
 
-    linux )
+  case "$uname" in
+
+    Linux )
         glob=/dev/sd*[a-z]
         test "$(echo $glob)" = "$glob" || {
           echo $glob | tr ' ' '\n'
         }
       ;;
 
-    darwin )
+    Darwin )
         echo /dev/disk[0-9]* |
             tr ' ' '\n' |
             grep -v '[0-9]s[0-9]*$'
