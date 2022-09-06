@@ -3,17 +3,23 @@
 ## disk device query routines
 
 
-disk_lib_load()
+disk_lib_load ()
 {
   : "${uname:=$(uname -s)}"
-  test -n "${username-}" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
   : "${username:=$(whoami)}"
-  test -n "${hostname-}" || hostname="$(hostname -s)"
+  #test -n "${username-}" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
+  #test -n "${hostname-}" || hostname="$(hostname -s)"
   : "${hostname:=$(hostname -s | tr '[:upper:]' '[:lower:]')}"
 
-  test -n "${DISK_CATALOG-}" || DISK_CATALOG=$HOME/.diskdoc
+  : "${DISK_CATALOG:=$HOME/.diskdoc}"
 
-  disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ WWN
+  : "${USER_DEVS:=${UCONF:?}/user/devices.list}"
+  #DD_DISKDEVS="sd fd sr md"
+  #DD_DISKVIRTDEVS="loop ramdisk device-mapper"
+  : "${USER_DISKDEVS:=sd fd}"
+  : "${USER_VDISKDEVS:=loop ramdisk device-mapper}"
+
+  disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ WWN\ UUID\ PTTYPE
   disk_partition_lsblk_keys=KNAME\ PARTTYPE\ PARTLABEL\ PARTUUID\ MOUNTPOINT\ FSTYPE\ PTUUID\ PTTYPE\ UUID
 
   disk_keys=disk_id\ disk_index\ disk_description\ disk_host\ disk_domain\
@@ -41,7 +47,7 @@ volume_parttype PARTTYPE'
   disk_volume_defaults='{disk_prefix}-{part_index}-{part_size}'
 }
 
-disk_lib_init()
+disk_lib_init ()
 {
   test "${disk_lib_init-}" = "0" && return
   local log=; req_init_log
@@ -88,14 +94,53 @@ req_blkid()
 }
 
 
-disk_fdisk_id()
+disk_device_numbers () # () ~
 {
-  req_fdisk disk-fdisk-id || return
-  case "$uname" in
+  disk_devices_filter "$@" | cut -d' ' -f1
+}
+
+disk_devices_filter () # ~ ( <Include-devnames...> | ! <Exclude-devnames...> )
+{
+  local g_o=${grep_opts:-}
+  test $# -eq 0 || {
+    test "$1" != "!" || { g_o=${g_o}v; shift; }
+  }
+  test $# -gt 0 || {
+    case "$g_o" in
+      ( *v* ) set -- $USER_VDISKDEVS ;;
+      ( * ) set -- $USER_DISKDEVS ;; esac
+  }
+
+  #shellcheck disable=2048
+  set -- " $(grep_or_exact $*)$"
+  disk_devices_numbers | grep ${g_o:+-}${g_o-} "$1"
+}
+
+# Get Kernels major number and driver for block type devices
+# from /proc/devices
+disk_devices_numbers () # ~ # List major number and driver for block devices
+{
+  local IFS=$'\n' blockdevs
+  for line in $(cat /proc/devices)
+  do
+    test ${blockdevs:-0} -eq 1 && {
+      test "$line" = "" && break;
+      IFS=$' \t\n' # Restore IFS to remove spaces on echo
+      echo $line
+    }
+    test "$line" = "Block devices:" || continue
+    blockdevs=1
+  done
+}
+
+disk_fdisk_id () # ~ <Disk-dev>
+{
+  test $# -gt 0 -a -n "${1:-}" || return ${_E_GAE:-3}
+  case "${uname:?}" in
 
       Linux )
             { # List partition table
-              $fdisk -l $1 || {
+              ${fdisk:?} -l $1 || {
                 error "disk-fdisk-id at '$1'"
                 return $?
               }
@@ -104,14 +149,103 @@ disk_fdisk_id()
 
       Darwin )
             # Dump partition table
-              $fdisk -d $1 || return $?
+              ${fdisk:?} -d $1 || return $?
           ;;
 
     * ) error "Disk-fdisk-Id: $uname" 1 ;;
   esac
 }
 
-disk_serial_id()
+disk_id () # ~ <Device>  # XXX: Prints serial-id
+{
+  disk_serial_id "$@"
+  #disk_fdisk_id "$@" # XXX: Old
+}
+
+disk_id_for_dev()
+{
+  local dev="$1" ;
+  local disk_id="$(disk_id "$dev")" || error "disk-id: '$dev'" 1
+  test -z "$disk_id" && error "No disk Id for device '$dev'" 1
+  std_info "Using Disk-ID '$disk_id' for '$dev'"
+  echo "$disk_id"
+}
+
+disk_ignore_numbers () # ~ <Exclude-devnames...>
+{
+  disk_devices_filter "!" "$@" | cut -d' ' -f1
+}
+
+disk_info ()
+{
+  local disk=$1; shift
+  debug "disk-local-inner disk='$disk'"
+  while test $# -gt 0
+  do
+    case $(str_lower $1) in
+      num ) disk_catalog_field "$disk" disk_index || echo -1 ;;
+      dev ) printf -- "$disk " || return $?;;
+      disk_id ) disk_id $disk || return $?;;
+      disk_model ) disk_model $disk | tr ' ' '-';;
+      size ) disk_size $disk || return $?;;
+      table_type ) disk_tabletype $disk || return $?;;
+      mnt_c ) disk_mountpoint $disk | count_words ;;
+      * ) error "inner $1?" 1 ;;
+    esac
+    shift
+  done | tr -s '\n' ' '
+}
+
+# Use lsblk to list properties for attached devices (without subnode trees)
+disk_lsblk_field () # ~ <Device> <Field-key>
+{
+  true "${lsblk_opts:=dn}"
+  lsblk -$lsblk_opts "$1" -o "$2"
+}
+
+disk_lsblk_list () # ~
+{
+  true "${lsblk_opts:=dn}"
+  local diskdev_vnums excluded_devs
+  diskdev_vnums=$(disk_ignore_numbers)
+  excluded_devs=$(echo $diskdev_vnums | tr ' ' ',')
+  lsblk -o "PATH" -e$excluded_devs ${lsblk_opts:+-}${lsblk_opts:-} "$@"
+}
+
+disk_lsblk_partnr () # ~ <Device>
+{
+  disk_lsblk_field "$1" MAJ:MIN | cut -d':' -f2
+}
+
+disk_model () # ~ <Device>
+{
+  case "$uname" in
+
+    Linux ) req_parted disk-model || return
+
+        req_parted disk-model || return
+        {
+          $parted -s $1 print 2>/dev/null || {
+            error "disk-model at '$1'"
+            return $?
+          }
+        } | grep Model: | sed 's/^Model: //'
+      ;;
+
+    Darwin )
+        # FIXME: this only works with one disk, would need to parse XML plist
+        system_profiler SPSerialATADataType | grep -qv disk1 || {
+          error "Parse SPSerialATADataType plist" 1
+        }
+        echo $(system_profiler SPSerialATADataType | head -n 15  | grep Model \
+          | cut -d ':' -f 2)
+      ;;
+
+    * ) error "Disk-Model: $uname" 1 ;;
+  esac
+}
+
+disk_serial_id ()
 {
   case "$uname" in
 
@@ -155,129 +289,6 @@ disk_serial_id()
   esac
 }
 
-disk_id () # ~ <Device>  # XXX: Prints serial-id
-{
-  disk_serial_id "$@"
-}
-
-# Use lsblk to list properties for attached devices (without subnode trees)
-disk_lsblk_field () # ~ <Device> <Field-key>
-{
-  true "${lsblk_opts:=dn}"
-  lsblk -$lsblk_opts "$1" -o "$2"
-}
-
-disk_lsblk_partnr () # ~ <Device>
-{
-  disk_lsblk_field "$1" MAJ:MIN | cut -d':' -f2
-}
-
-disk_id_for_dev()
-{
-  local dev="$1" ;
-  local disk_id="$(disk_id "$dev")" || error "disk-id: '$dev'" 1
-  test -z "$disk_id" && error "No disk Id for device '$dev'" 1
-  std_info "Using Disk-ID '$disk_id' for '$dev'"
-  echo "$disk_id"
-}
-
-disk_model() # DEVICE
-{
-  case "$uname" in
-
-    Linux ) req_parted disk-model || return
-
-        req_parted disk-model || return
-        {
-          $parted -s $1 print 2>/dev/null || {
-            error "disk-model at '$1'"
-            return $?
-          }
-        } | grep Model: | sed 's/^Model: //'
-      ;;
-
-    Darwin )
-        # FIXME: this only works with one disk, would need to parse XML plist
-        system_profiler SPSerialATADataType | grep -qv disk1 || {
-          error "Parse SPSerialATADataType plist" 1
-        }
-        echo $(system_profiler SPSerialATADataType | head -n 15  | grep Model \
-          | cut -d ':' -f 2)
-      ;;
-
-    * ) error "Disk-Model: $uname" 1 ;;
-  esac
-}
-
-disk_size ()
-{
-  case "$uname" in
-
-    Linux ) req_parted disk-size || return
-        req_parted disk-size || return
-        {
-          $parted -s $1 print || {
-            error "disk-size at '$1'"
-            return $?
-          }
-        } | grep Disk.*: | sed 's/^Disk[^:]*: //'
-      ;;
-
-    Darwin )
-        echo $(system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
-          | cut -d ':' -f 2 | cut -d ' ' -f 2 )GB
-      ;;
-
-    * ) error "Disk-Size: $uname" 1 ;;
-  esac
-}
-
-disk_tabletype()
-{
-  case "$uname" in
-
-    Linux ) req_parted disk-tabletype || return
-        req_parted disk-tabletype || return
-        {
-          $parted -s $1 print || {
-            error "disk-tabletype at '$1'"
-            return $?
-          }
-        } | grep Partition.Table: | sed 's/^Partition.Table: //'
-      ;;
-
-    Darwin )
-        system_profiler SPSerialATADataType | grep -qv GPT || {
-          error "Parse SPSerialATADataType plist" 1
-        }
-        echo gpt
-      ;;
-
-    * ) error "Disk-Tabletype: $uname" 1 ;;
-  esac
-}
-
-disk_info ()
-{
-  local disk=$1; shift
-  debug "disk-local-inner disk='$disk'"
-  while test $# -gt 0
-  do
-    case $(str_lower $1) in
-      num ) disk_catalog_field "$disk" disk_index || echo -1 ;;
-      dev ) printf -- "$disk " || return $?;;
-      disk_id ) disk_id $disk || return $?;;
-      disk_model ) disk_model $disk | tr ' ' '-';;
-      size ) disk_size $disk || return $?;;
-      table_type ) disk_tabletype $disk || return $?;;
-      mnt_c ) disk_mountpoint $disk | count_words ;;
-      * ) error "inner $1?" 1 ;;
-    esac
-    shift
-  done | tr -s '\n' ' '
-}
-
-
 # List disks with mountpoint and type
 disk_mounts() # [TYPES]
 {
@@ -297,33 +308,13 @@ disk_mounts() # [TYPES]
   esac
 }
 
-# Get Kernels major number and driver for block type devices
-# from /proc/devices
-disk_device_numbers () # ~ # List major number and driver for block devices
-{
-  local IFS=$'\n' blockdevs
-  for line in $(cat /proc/devices)
-  do
-    test ${blockdevs:-0} -eq 1 && {
-      test "$line" = "" && break;
-      IFS=$' \t\n' # Restore IFS to remove spaces on echo
-      echo $line
-    }
-    test "$line" = "Block devices:" || continue
-    blockdevs=1
-  done
-}
-
 # XXX: should rewrite this to pipeline pieces
 # List (local) disks (indicated major-type block devices from /dev, mounted or not)
 disk_list_by_nr () # [List-Partitions] [Major-Types]
 {
   local partitions=${1:-0}
   test $# -gt 0 && shift
-  test $# -gt 0 ||
-    set -- $(disk_device_numbers |
-      grep -v '\(loop\|ramdisk\|device-mapper\)$' | cut -d' ' -f1)
-    #set -- $(disk_device_numbers | grep '\(sd\|fd\|sr\|md\)$' | cut -d' ' -f1)
+  test $# -gt 0 || set -- $(disk_device_numbers)
 
   local dev numbrs
   eval 'disk_list_filter ()
@@ -361,14 +352,16 @@ disk_list ()
   case "$uname" in
 
     Linux )
-        glob=/dev/sd*[a-z]
+        test $# -gt 0 || set -- "sd*[a-z]"
+        glob=/dev/$1
         test "$(echo $glob)" = "$glob" || {
           echo $glob | tr ' ' '\n'
         }
       ;;
 
     Darwin )
-        echo /dev/disk[0-9]* |
+        test $# -gt 0 || set -- 'disk[0-9]*'
+        echo /dev/$1 |
             tr ' ' '\n' |
             grep -v '[0-9]s[0-9]*$'
       ;;
@@ -534,19 +527,23 @@ disk_catalog_field ()
   eval echo \$$2
 }
 
-# volume id is "{disk-id}-{partition-index}"
-disk_vol_info()
+disk_bootnumber () # DEV
 {
-  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
-  test -n "$2" || set -- "$1" "id"
-  #test -e "$DISK_CATALOG/volume/$1.sh" || {
-  #  # Find ID for device if given iso. ID
-  #  set -- $(disk_vol_id $1) $2
-  #}
-  test -e "$DISK_CATALOG/volume/$1.sh" \
-    || error "No such known volume $1" 1
-  . $DISK_CATALOG/volume/$1.sh
-  eval echo \$volumes_main_$2
+  note "TODO: Getting disk0 boot count-crash count..."
+  eval local $(disk_smartctl_attrs $1)
+  test -z "${Power_Cycle_Count-}" ||
+      echo "$Power_Cycle_Count-$Power_Cycle_Count_Raw"
+  test -z "${Power_Off_Retract_Count-}" ||
+      echo "$Power_Off_Retract_Count-$Power_Off_Retract_Count_Raw"
+}
+
+disk_doc()
+{
+{ cat <<EOM
+host: $hostname
+
+EOM
+  } | jsotk yaml2json -
 }
 
 disk_catalog_put_disk()
@@ -697,15 +694,6 @@ disk_report()
   return $disk_report_result
 }
 
-disk_doc()
-{
-{ cat <<EOM
-host: $hostname
-
-EOM
-  } | jsotk yaml2json -
-}
-
 disk_smartctl_attrs()
 {
   ${smart_pref} smartctl -A "$1" -f old | tail -n +8 | {
@@ -730,23 +718,17 @@ disk_runtime () # DEV
   #echo "$Power_On_Hours"
 }
 
-disk_bootnumber () # DEV
-{
-  note "TODO: Getting disk0 boot count-crash count..."
-  eval local $(disk_smartctl_attrs $1)
-  test -z "${Power_Cycle_Count-}" ||
-      echo "$Power_Cycle_Count-$Power_Cycle_Count_Raw"
-  test -z "${Power_Off_Retract_Count-}" ||
-      echo "$Power_Off_Retract_Count-$Power_Off_Retract_Count_Raw"
-}
-
 # Load into env or print on dry-run properties from lsblk output line
-disk_lsblk_type_load () # Device Type Columns...
+disk_lsblk_type_load () # ~ <Device> <Type> <Columns...>
 {
-  local dev type data
-  dev=$1 type=$2; shift 2
-  data="$(lsblk -P -o TYPE,$(echo $* | tr ' ' ',') $dev | grep -m 1 '^TYPE="'"$type"'"' )" ||
-      return
+  test -b "${1:?}" -a $# -ge 2  || return $_E_GAE
+  local dev=$1 type=${2:?} data; shift 2
+  # Looks like PTUUID is set to PTUUID of first partition. PARTUUID is empty.
+  local lsblk_opts=${lsblk_opts:-d}
+  data="$( lsblk \
+       ${lsblk_opts:+-}${lsblk_opts:-} -P -o TYPE,$(echo $* | tr ' ' ',') $dev \
+         | grep -m 1 '^TYPE="'"$type"'"'
+       )" || return
   trueish "${dry_run-}" && {
       echo "$data"
       return
@@ -754,25 +736,25 @@ disk_lsblk_type_load () # Device Type Columns...
 }
 
 # Load into env properties from lsblk for disk devices
-disk_lsblk_load () # Device Columns...
+disk_lsblk_load () # ~ <Disk-dev> <Columns...>
 {
   local dev=$1 ; shift
   test $# -gt 0 || set -- $disk_lsblk_keys
   disk_lsblk_type_load "$dev" disk "$@"
 }
 
+# Print properties from lsblk for disk devices
+disk_lsblk_show () # ~ <Disk-dev> <Columns...>
+{
+  dry_run=1 disk_lsblk_load "$@"
+}
+
 # Load into env properties from lsblk for partition devices
-disk_partition_lsblk_load () # Device Columns...
+disk_partition_lsblk_load () # ~ <Part-dev> <Columns...>
 {
   local dev=$1 ; shift
   test $# -gt 0 || set -- $disk_partition_lsblk_keys
   disk_lsblk_type_load "$dev" part "$@"
-}
-
-# Print properties from lsblk for disk devices
-disk_lsblk_show () # Device Columns
-{
-  dry_run=1 disk_lsblk_load "$@"
 }
 
 # Read partition UUIDs (given disk dev or part dev) without sudo
@@ -785,3 +767,68 @@ disk_partition_uuids ()
     esac
   done
 }
+
+disk_size ()
+{
+  case "$uname" in
+
+    Linux ) req_parted disk-size || return
+        req_parted disk-size || return
+        {
+          $parted -s $1 print || {
+            error "disk-size at '$1'"
+            return $?
+          }
+        } | grep Disk.*: | sed 's/^Disk[^:]*: //'
+      ;;
+
+    Darwin )
+        echo $(system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
+          | cut -d ':' -f 2 | cut -d ' ' -f 2 )GB
+      ;;
+
+    * ) error "Disk-Size: $uname" 1 ;;
+  esac
+}
+
+disk_tabletype()
+{
+  case "$uname" in
+
+    Linux ) req_parted disk-tabletype || return
+        req_parted disk-tabletype || return
+        {
+          $parted -s $1 print || {
+            error "disk-tabletype at '$1'"
+            return $?
+          }
+        } | grep Partition.Table: | sed 's/^Partition.Table: //'
+      ;;
+
+    Darwin )
+        system_profiler SPSerialATADataType | grep -qv GPT || {
+          error "Parse SPSerialATADataType plist" 1
+        }
+        echo gpt
+      ;;
+
+    * ) error "Disk-Tabletype: $uname" 1 ;;
+  esac
+}
+
+# volume id is "{disk-id}-{partition-index}"
+disk_vol_info()
+{
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
+  test -n "$2" || set -- "$1" "id"
+  #test -e "$DISK_CATALOG/volume/$1.sh" || {
+  #  # Find ID for device if given iso. ID
+  #  set -- $(disk_vol_id $1) $2
+  #}
+  test -e "$DISK_CATALOG/volume/$1.sh" \
+    || error "No such known volume $1" 1
+  . $DISK_CATALOG/volume/$1.sh
+  eval echo \$volumes_main_$2
+}
+
+#

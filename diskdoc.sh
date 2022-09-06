@@ -3,6 +3,7 @@
 
 set -eu -o posix
 
+# XXX: diskdoc: a pre-~/.diskdoc attempt to build disk catalog.
 
 
 version=0.0.4-dev # script-mpe

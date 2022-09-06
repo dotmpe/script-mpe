@@ -1,6 +1,6 @@
 #!/bin/sh
 
-### A new box.sh based on @User_script-lib-dev
+### A new box.sh based on @User_script.lib+dev
 
 #version=0.0.4-dev # script-mpe
 
@@ -29,8 +29,10 @@ box_us_shortdescr='Generic user shell tool.'
 box_us_aliasargv ()
 {
   case "$1" in
-      ( l|list) shift; set -- rulesets list "$@" ;;
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+    ( l|list) shift; set -- rulesets list "$@" ;;
+    ( rs|rulesets ) shift; set -- rulesets "$@" ;;
+
+    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 

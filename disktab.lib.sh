@@ -1,6 +1,13 @@
 #!/bin/sh
 
-# Manage local disks at multiple hosts in plain-text table
+## Manage local disks at multiple hosts in plain-text table
+
+
+# XXX: this only deals with single instances. Really would like to use stattab
+# as macro somehow, see uctab +U-c.
+# Meanwhile I think I'm just going to generate shell catalog files from yaml
+# diskdoc.
+
 
 disktab_lib_load()
 {
@@ -17,6 +24,7 @@ disktab_lib_init()
   }
   dtab_id=
 }
+
 
 disktab_load()
 {

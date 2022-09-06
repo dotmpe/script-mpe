@@ -1,84 +1,137 @@
 #!/usr/bin/env bash
 
 
-check () # ~
+disk_uc_check () # ~
 {
-  disks_uc check-doc
+  local act=${1:-summary}
+  local lk=${lk:-$base}:check
+  test $# -eq 0 || shift
+  case "$act" in
+
+    # ( D|diag ) rules_run user/diag ;;
+
+    ( doc ) disks_uc doc-check ;;
+    ( nt|numtab ) disks_uc numtab-chk ;;
+    ( nr|numbers ) disks_uc nums-chk ;;
+
+    ( s|stat|summary ) disks_uc num-check && disks_uc doc-check ;;
+
+    ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
+  esac
 }
 
 
-# lists disks and partitions based on major number dev drv name
-disk_list_nonvirt_drv ()
+disk_uc_list () # ~
 {
-  UC_VIRT_DEVS='loop ramdisk device-mapper'
-  disk_drivers=$(disk_device_numbers|
-      grep -v "$(grep_or_exact $UC_VIRT_DEVS)"|cut -f1 -d' ')
+  local act=${1:-summary}
+  test $# -eq 0 || shift
+  local lk=${lk:-$base}:list
+  case "$act" in
 
-  for dev_drv in $disk_drivers
-  do
-    disk_list_by_nr $dev_drv
-  done
+    # ( D|diag|diag-rules ) rules_list user/diag ;;
+
+    # Different ways of getting list of block/disk devices:
+    ( disks-df ) disk_uc_list disks-df-info | tail -n +2 | cut -f1 -d' ' ;;
+    ( disks-lsblk ) disk_lsblk_list "$@" ;; # $UC_DISK_DGLOB ;;
+    ( disks-dev ) disk_list $UC_DISK_DGLOB ;;
+    ( d|dev|devices|disks ) disk_uc_list disks-dev ;;
+
+    ( disks-df-info ) df -Th -x tmpfs -x devtmpfs -x squashfs ;;
+
+    ( doc ) disks_uc doc-media-ids ;;
+
+    ( i|info )
+        test $# -gt 0 || set -- $(${UC_DISK_DEVICES:=disk_lsblk_list})
+        for disk_dev in "$@"
+        do
+          disks_uc disk-info "$disk_dev"
+          disk_serial_id "$disk_dev"
+          $LOG notice "" "Found disk $disk_dev" "$KNAME:$VENDOR:$MODEL:$UUID"
+        done
+      ;;
+
+    ( nonvirt )
+# Lists disks and partitions based on major number dev drv name
+        disk_drivers=$(disk_device_numbers|
+            grep -v "$(grep_or_exact $USER_VDISKDEVS)"|cut -f1 -d' ')
+
+        for dev_drv in $disk_drivers
+        do
+          disk_list_by_nr $dev_drv
+        done
+      ;;
+
+    ( nr|num|numbers ) disk_device_numbers "$@" ;;
+    ( ns|numbers-all ) disk_devices_numbers ;;
+    ( nsi|numbers-ignore ) disk_ignore_numbers "$@" ;;
+    ( N|nums|drivers ) disks_uc disk-drivers ;;
+
+    ( s|stat|summary ) disk_uc_list info ;;
+
+    ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
+  esac
 }
 
-status () # ~
+
+disk_uc_status () # ~
 {
   false
 }
-
 
 disks_uc ()
 {
   local act=${1:-info}
   test $# -eq 0 || shift
+  local lk="${lk:-:$base:$act}"
   case "$act" in
-    ( check-doc )
+    ( list-devices ) ${UC_DISK_DEVICES:=disk_list} "$@" ;;
+    ( doc-check )
+        failed=false
         dev_pref=sudo
-
-        media_ids=$(jsotk keys $diskdoc -O lines catalog/media) || return
-
         for disk_dev in $(disk_list)
         do
           disks_uc disk-info "$disk_dev"
-          test $RM -ne 0 || RM=
-          echo "$disk_dev $SERIAL $KNUM $TRAN $MODEL $VENDOR $SIZE${RM:+" removable"}"
-          echo "$media_ids" | grep "^$SIZE-" ||
-              echo no record
-          continue
+          diskdoc_try_disk "$disk_dev" || failed=true
+        done
+        ! $failed || return
+      ;;
+    ( disk-info ) local disk_dev=${1:?}
+        shift
+        diskdoc_lsblk_disk "$disk_dev"
+        echo "$disk_dev $SERIAL $KNUM $TRAN $MODEL $VENDOR $SIZE${RM:+" removable"}"
+        $LOG notice "" "Found disk $disk_dev" "$KNAME:$VENDOR:$MODEL:$UUID"
+      ;;
+    ( doc )
+# List current user doc
+        jsotk --pretty $USER_DISKS ;;
+    ( doc-media-ids ) diskdoc_list_disks ;;
 
-          #disks_uc size-info "$disk_dev"
-          #echo "Sectors: $fdisk_sectorcnt"
-          #echo "Size: $fdisk_size $lsblk_size $parted_size $fdisk_bsize $lsblk_bsize "
-
-          for part_dev in $(disk_list_part_local "$disk_dev")
-          do
-            disks_uc part-info "$part_dev"
-            echo "$part_dev $PTTYPE:${FSTYPE:-?} "
-            #$(disk_partition_type "$disk_dev") $(disk_partition_usage "$disk_dev")"
-            #disk_partition_size "$disk_dev"
-          done
+    ( numtab-chk ) local ok=true
+        disk_devices_numbers | while read -r devmaj devname
+        do grep -q "^$devname " "$USER_DEVS" && continue
+          ! $ok || ok=false
+          echo Unkown device: $devmaj $devname
         done
       ;;
 
-    ( disk-info ) local disk_dev=${1:?}
-        shift
+    ( nums|disk-drivers )
+        disk_devices_numbers | while read -r devmaj devname
+        do
+          grep "^$devname " "$USER_DEVS" || {
+            $LOG error "" "Unknown device name" "$devmaj:$devname" $?
+            return
+          }
+        done | remove_dupes
+      ;;
 
-        # parted report the same as lsblk
-        # fdisk report the same as parted, but requires password
-
-        #fdisk_hdrline=$(sudo fdisk -l $disk_dev | head -n 1)
-        #fdisk_diskspec=$(echo "$fdisk_hdrline" | cut -d ':' -f2)
-        #fdisk_size=$(echo "$fdisk_diskspec" | cut -d ',' -f 1 )
-        #fdisk_bsize=$(echo "$fdisk_diskspec" | cut -d ',' -f 2 |
-        #    tr -dc '[0-9]')
-        #fdisk_sectorcnt=$(echo "$fdisk_diskspec" | cut -d ',' -f 3 |
-        #    tr -dc '[0-9]')
-
-        # Looks like PTUUID is set to PTUUID of first partition. PARTUUID is empty.
-        eval "$(lsblk -bdnP "$disk_dev" -o "KNAME,SIZE,TRAN,RM,MODEL,VENDOR,SERIAL,UUID,PTTYPE")"
-        KNUM=$(lsblk -dn "$disk_dev" -o MAJ:MIN)
-        KNUM_MAJOR=${KNUM/:*}
-        KNUM_MINOR=${KNUM/*:}
-        $LOG notice "" "Found disk $disk_dev" "$KNAME:$VENDOR:$MODEL:$UUID"
+    ( nums-chk|numbers-check )
+        unknown_devnames=$(disk_devices_filter "!" $USER_DISKDEVS $USER_VDISKDEVS)
+        test -z "$unknown_devnames" && return
+        echo "$unknown_devnames" | while read -r devmaj devname
+        do
+          ! $ok || ok=false
+          echo Unkown device: $devmaj $devname
+        done
       ;;
 
     ( part-info ) local part_dev=${1:?}
@@ -93,19 +146,40 @@ disks_uc ()
         lsblk_size=$(disk_lsblk_field "$disk_dev" SIZE)
         parted_size=$(disk_size "$disk_dev")
         $LOG notice "" "$disk_dev:$SERIAL " "$parted_size:$lsblk_size:$lsblk_bsize"
+          #continue
+
+          #disks_uc size-info "$disk_dev"
+          #echo "Sectors: $fdisk_sectorcnt"
+          #echo "Size: $fdisk_size $lsblk_size $parted_size $fdisk_bsize $lsblk_bsize "
+
+          #for part_dev in $(disk_list_part_local "$disk_dev")
+          #do
+          #  disks_uc part-info "$part_dev"
+          #  echo "$part_dev $PTTYPE:${FSTYPE:-?} "
+          #  #$(disk_partition_type "$disk_dev") $(disk_partition_usage "$disk_dev")"
+          #  #disk_partition_size "$disk_dev"
+          #done
       ;;
 
-    ( * ) ;;
+    ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
   esac
 }
 
-disk_uc_list ()
-{
-  jsotk --pretty ~/.conf/disk/mpe.yaml
+
+## Main parts
+
+: "${USER_DISKS:=$UCONF/user/diskdoc.yml}"
+
+test -s "$USER_DISKS" || {
+    $LOG error "" "Missing diskdoc" "$USER_DISKS"
+    return 3
 }
+
+: "${UC_DISK_DGLOB:=sd[a-z]}"
 
 
 ## User-script parts
+
 
 disk_uc_maincmds="status stat check list help version"
 disk_uc_shortdescr=''
@@ -113,9 +187,13 @@ disk_uc_shortdescr=''
 disk_uc_aliasargv ()
 {
   case "$1" in
-      ( l|list ) shift; set -- disk_uc_list "$@" ;;
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
 
+      ( c|check ) shift; set -- disk_uc_check "$@" ;;
+      ( s|status ) shift; set -- disk_uc_status "$@" ;;
+      ( S|stat ) shift; set -- disk_uc_stat "$@" ;;
+      ( l|list ) shift; set -- disk_uc_list "$@" ;;
+
+      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 
@@ -134,21 +212,20 @@ disk_uc_loadenv ()
           { lib_require \
               argv statusdir statusdir-fsdir \
               date \
-              disk disktab htd-disk
+              disk disktab diskdoc htd-disk
           } || return
-
-            diskdoc=$UCONF/disk/mpe.yaml
-            test -e "$diskdoc" || {
-                $LOG error "" "Missing diskdoc" "$diskdoc"
-                return 3
-            }
         ;;
 
-      #( all ) set -- "" nerdfonts media catalog ;;
+      ( rules )
+          { lib_require \
+              env-main rules
+          } || return
+        ;;
+
       #( user_script_handlers ) set -- "" all ;;
       #( us_media ) set -- "$@" media ;;
 
-      ( * ) set -- "" us-lib disk ;;
+      ( * ) set -- "" us-lib disk rules ;;
     esac
     shift
   done
