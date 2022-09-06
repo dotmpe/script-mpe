@@ -2748,6 +2748,7 @@ htd_als__bootnumber=disk\ bootnumber
 
 htd_grp__disk=disk
 htd_grp__disks=disk
+htd_grp__disktab=disk
 htd_grp__disk_doc=disk
 htd_grp__create_ram_disk=disk
 htd_grp__check_disks=disk

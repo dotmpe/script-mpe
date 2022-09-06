@@ -413,11 +413,12 @@ main_subcmd_run ()
     $us_log crit "" "No such subcommand defined '$subcmd'" "$baseids"
     return 249
   }
+
   test ${verbosity:-${v:-5}} -gt 5 &&
-    $us_log note "" "Running '$scriptname:$subcmd'..."  "$subcmd_func" ||
-    $us_log note "" "Running '$scriptname:$subcmd'..."
+    $us_log notice "" "Running main subcmd '$scriptname:$subcmd'..."  "$subcmd_func" ||
+    $us_log notice "" "Running main subcmd '$scriptname:$subcmd'..."
   $subcmd_func "$@" && r=0 || { r=$?
-    $us_log error "" "Command '$scriptname:$subcmd' failed" "$r"
+    $us_log error "" "Main subcommand '$scriptname:$subcmd' failed" "$r"
   }
 
   main_handle "$baseids" subcmd_unload main_${main}_unload || true
@@ -428,7 +429,7 @@ main_subcmd_run ()
 
 daemon()
 {
-  note "Running at $$"
+  note "Daemonize at $$"
 
   while read argline
   do

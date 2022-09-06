@@ -1,13 +1,13 @@
 #!/bin/sh
 
-# Sys: dealing with vars, functions, env.
+## Sys: dealing with vars, functions, env.
 
 sys_lib_load()
 {
-  test -n "${LOG-}" || return 102
-  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
-  test -n "${HOST-}" || HOST=$hostname
+  : "${LOG:?"No LOG env"}"
+  : "${uname:=$(uname -s)}"
+  : "${HOST:=$(hostname -s)}"
+  : "${hostname:=$(hostname -s | tr '[:upper:]' '[:lower:]')}"
 }
 
 sys_lib_init()

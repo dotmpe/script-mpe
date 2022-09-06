@@ -7,6 +7,7 @@ du_lib_load()
       test -z "$DEBUG" || warn "No rst2xml"
     }
   }
+echo rst2xml=$rst2xml >&2
 }
 
 du_proc()
@@ -116,4 +117,5 @@ du_dl_term_paths() # Normalize relative path from dl-terms-paths-raw ~ Du-Doc Xm
 # Id|Version|Language|Tags
 du_get_param () #
 {
+  false
 }

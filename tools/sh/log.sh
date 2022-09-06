@@ -119,31 +119,31 @@ then
   then
     # primary fg, black
 
-    # pale (inverted white)
-    c7="$standout$(tput setaf 7)"
+    # pale
+    c7="$(tput setaf 7)"
     # hard (bright black, ie. dark gray)
-    c9="$bold$0"
+    c9="$normal$bold$c0"
   else
     # primary, pale white
     # pale (normal white, ie. light gray)
     c7="$(tput setaf 7)"
     # hard (bold white)
-    c9="$bold$7"
+    c9="$normal$bold$c7"
   fi
   # warning color, red
-  c1="$bold$(tput setaf 1)"
+  c1="$normal$bold$(tput setaf 1)"
   # ok color, green
-  c2="$(tput setaf 2)"
-  c21="$bold$c2"
+  c2="$normal$(tput setaf 2)"
+  c21="$normal$bold$c2"
   # running, orange
-  c3="$(tput setaf 3)"
-  c31="$bold$c3"
+  c3="$normal$(tput setaf 3)"
+  c31="$normal$bold$c3"
   # updated, blue
-  c4="$(tput setaf 4)"
-  c41="$bold$c4"
+  c4="$normal$(tput setaf 4)"
+  c41="$normal$bold$c4"
   # generic, purple
-  c5="$(tput setaf 5)"
-  c51="$bold$c5"
+  c5="$normal$(tput setaf 5)"
+  c51="$normal$bold$c5"
 fi
 ## Make output strings
 mk_title_blue="$c7$c41%s$c7:$c0"
@@ -254,8 +254,8 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
       ;;
     fatal|ok|'done'|* )
       if [ -n "$msg" ]
-      then msg="$c9$1$c0, $msg";
-      else msg="$c9$1$c0"; fi
+      then msg="$c9${1^}$c0: $msg";
+      else msg="$c9${1^}$c0"; fi
       ;;
   esac
   if [ -n "$msg" -a -z "$sources" ]
@@ -291,7 +291,7 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
 if test "$1" = '-'
 then
   export IFS="	"; # tab-separated fields for $inp
-  while read lt p m c s;
+  while read -r lt p m c s;
   do
     __log "$lt" "$p" "$m" "$c" "$s";
   done

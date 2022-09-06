@@ -1438,7 +1438,7 @@ pd_preload()
   test -n "${LOG-}" -a -x "${LOG-}" || export LOG=$CWD/tools/sh/log.sh
   test -n "${EDITOR-}" || EDITOR=nano
   test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  : "${uname:=$(uname -s)}"
   test -n "${SCRIPT_ETC-}" ||
       SCRIPT_ETC="$({ pd_init_etc || ignore_sigpipe $?; } | head -n 1)"
 }

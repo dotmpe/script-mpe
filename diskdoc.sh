@@ -57,7 +57,8 @@ diskdoc_flags__status=ybf
 diskdoc_man_1__help='Run over known prefixes and present status indicators'
 diskdoc__status()
 {
-  test -z "$2" || error "Surplus arguments: $2" 1
+  # XXX: test $# -le 2 || error "Surplus arguments: $2" 1
+
   note "Getting status for checkouts $prefix"
   diskdoc.py disks | while read mount device type
   do
@@ -74,7 +75,7 @@ diskdoc_flags__check=ybf
 diskdoc_man_1__check='Check with remote refs'
 diskdoc__check()
 {
-  test -z "$2" || error "Surplus arguments: $2" 1
+  test -z "${2-}" || error "Surplus arguments: $2" 1
   note "Checking prefixes"
   diskdoc__meta list-disks "$1" | while read -r prefix
   do
@@ -166,7 +167,7 @@ main_load_flags \
  \
         # Find dir with metafile \
         prerun=$PWD \
-        prefix=$2 \
+        prefix=${2:-} \
  \
         while test ! -e "$diskdoc" \
         do \

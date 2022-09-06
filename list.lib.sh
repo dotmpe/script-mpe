@@ -10,7 +10,7 @@ lst__outputs="passed skipped errored failed"
 
 list_lib_load ()
 {
-  test -n "${uname-}" || export uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  : "${uname:=$(uname -s)}"
   test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${archive_dt_strf-}" || archive_dt_strf=%Y-%M-%dT%H:%m:%S
   test -n "${lst_base-}" || lst_base=htd

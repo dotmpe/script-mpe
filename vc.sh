@@ -1790,7 +1790,7 @@ main-load \
   #. ~/.conf/bash/git-completion.bash \
  \
   test -n "${hnid-}" || hnid="$(hostname -s | tr 'A-Z.-' 'a-z__')" \
-  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')" \
+  : "${uname:=$(uname -s)}"
   test -n "${vc_dir-}" || vc_dir=$PWD \
   test -n "${vc_dir-}" || vc_dir=$scriptpath \
   test -n "${vc_br_def-}" || vc_br_def=master \

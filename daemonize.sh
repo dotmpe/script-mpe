@@ -18,7 +18,7 @@
 
 daemonize__info()
 {
-  note "Running at $$"
+  note "Deamonize info $$"
 }
 
 daemonize__edit()

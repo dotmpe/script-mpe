@@ -4,7 +4,7 @@
 
 darwin_lib_load()
 {
-  test -n "${os-}" || os="$(uname -s | tr 'A-Z' 'a-z')"
+  : "${uname:=$(uname -s)}"
   test -n "${xattr-}" || xattr=xattr-2.7
   test -n "${STATUSDIR_ROOT-}" || STATUSDIR_ROOT=$HOME/.statusdir
   test -d "${STATUSDIR_ROOT-}logs/$hostname" ||

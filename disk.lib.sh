@@ -5,9 +5,11 @@
 
 disk_lib_load()
 {
-  test -n "${uname-}" || uname="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  : "${uname:=$(uname -s)}"
   test -n "${username-}" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
-  test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
+  : "${username:=$(whoami)}"
+  test -n "${hostname-}" || hostname="$(hostname -s)"
+  : "${hostname:=$(hostname -s | tr '[:upper:]' '[:lower:]')}"
 
   test -n "${DISK_CATALOG-}" || DISK_CATALOG=$HOME/.diskdoc
 
@@ -91,7 +93,7 @@ disk_fdisk_id()
   req_fdisk disk-fdisk-id || return
   case "$uname" in
 
-      linux )
+      Linux )
             { # List partition table
               $fdisk -l $1 || {
                 error "disk-fdisk-id at '$1'"
@@ -100,7 +102,7 @@ disk_fdisk_id()
             } | grep Disk.identifier | sed 's/^Disk.identifier: //'
           ;;
 
-      darwin )
+      Darwin )
             # Dump partition table
               $fdisk -d $1 || return $?
           ;;
@@ -113,31 +115,31 @@ disk_serial_id()
 {
   case "$uname" in
 
-    linux )
+    Linux )
         udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
           | cut -d '=' -f 2
       ;;
 
-    darwin )
+    Darwin )
         local bsd_name=$(basename $1) xml=
         #diskutil info "$1" | grep 'UUID' >&2 || warn "No grep $dev"
 
         xml=$(darwin_profile_xml "SPSerialATADataType")
-        device_serial="$(darwin.py spserialata-disk $xml $bsd_name device_serial)" || true
+        device_serial="$(Darwin.py spserialata-disk $xml $bsd_name device_serial)" || true
         test -z "$device_serial" || {
           debug "SPSerialATADataType $bsd_name device serial '$device_serial'"
           echo $device_serial; return
         }
 
         xml=$(darwin_profile_xml "SPUSBDataType")
-        serial_num="$(darwin.py spusb-disk $xml $bsd_name serial_num)" || true
+        serial_num="$(Darwin.py spusb-disk $xml $bsd_name serial_num)" || true
         test -z "$serial_num" || {
           debug "SPUSBDataType $bsd_name serial number '$serial_num'"
           echo $serial_num; return
         }
 
         xml=$(darwin_profile_xml "SPStorageDataType")
-        serial_num="$(darwin.py spstorage-disk $xml $bsd_name serial_num)" || true
+        serial_num="$(Darwin.py spstorage-disk $xml $bsd_name serial_num)" || true
         test -z "$serial_num" || {
           debug "SPStorageDataType $bsd_name serial number '$serial_num'"
           echo $serial_num; return
@@ -153,17 +155,19 @@ disk_serial_id()
   esac
 }
 
-disk_id() # DEVICE
+disk_id () # ~ <Device>  # XXX: Prints serial-id
 {
   disk_serial_id "$@"
 }
 
-disk_lsblk_field() # DEVICE FIELD
+# Use lsblk to list properties for attached devices (without subnode trees)
+disk_lsblk_field () # ~ <Device> <Field-key>
 {
-  lsblk "$1" -no "$2"
+  true "${lsblk_opts:=dn}"
+  lsblk -$lsblk_opts "$1" -o "$2"
 }
 
-disk_lsblk_partnr()
+disk_lsblk_partnr () # ~ <Device>
 {
   disk_lsblk_field "$1" MAJ:MIN | cut -d':' -f2
 }
@@ -181,7 +185,7 @@ disk_model() # DEVICE
 {
   case "$uname" in
 
-    linux ) req_parted disk-model || return
+    Linux ) req_parted disk-model || return
 
         req_parted disk-model || return
         {
@@ -192,7 +196,7 @@ disk_model() # DEVICE
         } | grep Model: | sed 's/^Model: //'
       ;;
 
-    darwin )
+    Darwin )
         # FIXME: this only works with one disk, would need to parse XML plist
         system_profiler SPSerialATADataType | grep -qv disk1 || {
           error "Parse SPSerialATADataType plist" 1
@@ -205,11 +209,11 @@ disk_model() # DEVICE
   esac
 }
 
-disk_size()
+disk_size ()
 {
   case "$uname" in
 
-    linux ) req_parted disk-size || return
+    Linux ) req_parted disk-size || return
         req_parted disk-size || return
         {
           $parted -s $1 print || {
@@ -219,7 +223,7 @@ disk_size()
         } | grep Disk.*: | sed 's/^Disk[^:]*: //'
       ;;
 
-    darwin )
+    Darwin )
         echo $(system_profiler SPSerialATADataType | head -n 15 | grep Capacity \
           | cut -d ':' -f 2 | cut -d ' ' -f 2 )GB
       ;;
@@ -232,7 +236,7 @@ disk_tabletype()
 {
   case "$uname" in
 
-    linux ) req_parted disk-tabletype || return
+    Linux ) req_parted disk-tabletype || return
         req_parted disk-tabletype || return
         {
           $parted -s $1 print || {
@@ -242,7 +246,7 @@ disk_tabletype()
         } | grep Partition.Table: | sed 's/^Partition.Table: //'
       ;;
 
-    darwin )
+    Darwin )
         system_profiler SPSerialATADataType | grep -qv GPT || {
           error "Parse SPSerialATADataType plist" 1
         }
@@ -280,7 +284,7 @@ disk_mounts() # [TYPES]
   test $# -gt 0 || set -- vfat ntfs ext2 ext3 ext4
   case "$uname" in
 
-    darwin | linux )
+    Darwin | Linux )
         mount | {
           test $# -eq 0 && {
             grep '\ on\ ' || return
@@ -293,8 +297,9 @@ disk_mounts() # [TYPES]
   esac
 }
 
-# List block-device driver numbers and ids
-disk_numbers ()
+# Get Kernels major number and driver for block type devices
+# from /proc/devices
+disk_device_numbers () # ~ # List major number and driver for block devices
 {
   local IFS=$'\n' blockdevs
   for line in $(cat /proc/devices)
@@ -309,15 +314,16 @@ disk_numbers ()
   done
 }
 
+# XXX: should rewrite this to pipeline pieces
 # List (local) disks (indicated major-type block devices from /dev, mounted or not)
 disk_list_by_nr () # [List-Partitions] [Major-Types]
 {
   local partitions=${1:-0}
   test $# -gt 0 && shift
   test $# -gt 0 ||
-    set -- $(disk_numbers |
+    set -- $(disk_device_numbers |
       grep -v '\(loop\|ramdisk\|device-mapper\)$' | cut -d' ' -f1)
-    #set -- $(disk_numbers | grep '\(sd\|fd\|sr\|md\)$' | cut -d' ' -f1)
+    #set -- $(disk_device_numbers | grep '\(sd\|fd\|sr\|md\)$' | cut -d' ' -f1)
 
   local dev numbrs
   eval 'disk_list_filter ()
@@ -336,7 +342,6 @@ disk_list_by_nr () # [List-Partitions] [Major-Types]
     test -b "$dev" || continue
     numbrs=$(mountpoint -x "$dev")
     disk_list_filter "$numbrs" || continue
-
     case "${out_fmt:-fields}" in
 
       fields ) echo "$dev $numbrs" | tr ':' ' ' ;;
@@ -345,13 +350,13 @@ disk_list_by_nr () # [List-Partitions] [Major-Types]
   done
 }
 
-# List (local) disks (from /dev, mounted or not)
-disk_list()
+# List (local) disks (from /dev, mounted or not) using glob expansion
+# XXX: this need knowledge of underlying adapters
+# however its main property should be that it lists locally attached disks only
+# also this does not handle patterns in minor and will miss actual disks
+disk_list ()
 {
-  case "$uname" in
-      [a-z]* ) uname=${uname^}
-          ;;
-  esac
+  case "$uname" in [a-z]* ) uname=${uname^} ;; esac
 
   case "$uname" in
 
@@ -372,18 +377,18 @@ disk_list()
   esac
 }
 
-# List all local disk partitions
-disk_list_part_local()
+# List all local disk partitions using glob expansion
+disk_list_part_local () # ~ # List partition devices
 {
   local glob=
   test $# -gt 0 -a -n "${1-}" || error "Device or disk-id required" 1
   test $# -eq 1 || return 64
   case "$uname" in
-    linux )
+    Linux )
         test -z "$1" && glob=/dev/sd*[a-z]*[0-9] \
           || glob=$1[0-9]
       ;;
-    darwin )
+    Darwin )
         # FIXME: deal with system_profiler plist datatypes
         # This only uses first disk to avoid complexity
         test -z "$1" && glob=/dev/disk0s*[0-9] \
@@ -398,7 +403,7 @@ disk_list_part_local()
 }
 
 
-disk_partition_type()
+disk_partition_type () # (dev) ~ [<Device>]
 {
   req_blkid disk-partition-type || return
   test -z "$1" || local dev=$1
@@ -406,19 +411,19 @@ disk_partition_type()
   # Or parse sudo file -Ls $dev
 }
 
-disk_partition_usage()
+disk_partition_usage () # ~ <Device>
 {
   dftabline=$(df -P $1 | tail -1);
   echo $(echo $dftabline | cut -f5 -d\  | sed -e 's/\%//g')
 }
 
-disk_partition_size()
+disk_partition_size () # ~ <Device>
 {
   dftabline=$(df -hP $1 | tail -1);
   echo $(echo $dftabline | cut -f2 -d\  | sed -e 's/\%//g')
 }
 
-find_partition_ids()
+find_partition_ids ()
 {
   find /dev/disk/by-uuid -type l | while read path
   do

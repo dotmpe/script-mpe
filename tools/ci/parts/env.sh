@@ -4,7 +4,7 @@
 # XXX: Travis CI: /home/travis/.travis/job_stages: line 1
 # Testing deinit.sh to allow better feedback for Shell tools/ and lib DUTs.
 
-export uname=${uname:-$(uname -s | tr '[:upper:]' '[:lower:]')"}
+export uname=${uname:-$(uname -s)"}
 
 # Set GNU 'aliases' to try to build on Darwin/BSD
 export gdate=${gdate:-date}

@@ -268,6 +268,14 @@ user_script_bases ()
   echo "$script_bases"
 }
 
+user_script_commands ()
+{
+  # FIXME: maincmds list are not functions, use aliases to resolve handler names
+  test $# -gt 0 || set -- $script_maincmds
+user_script_resolve_aliases
+  script_lib= user_script_handlers "$@"
+}
+
 # Output argv line after doing 'default' stuff. Because these script snippets
 # have to change the argv of the function, it is not possible to move them to
 # subroutines. And user-script implementations will have to copy these scripts,
@@ -284,6 +292,9 @@ user_script_defarg ()
 
       ( a|all ) shift && set -- user_scripts_all ;;
 
+      ( --list-script-bases )
+            test $# -eq 0 || shift; set -- user_script_bases "$@" ;;
+
       # Every good citizen on the executable lookup PATH should have these
       ( "-?"|-h|help )
             test $# -eq 0 || shift; set -- user_script_help "$@" ;;
@@ -294,8 +305,13 @@ user_script_defarg ()
 
       ( --aliases|aliases )
             test $# -eq 0 || shift; set -- user_script_aliases "$@" ;;
-      ( --commands|commands )
+
+      ( --handlers|handlers ) # Display all potential handlers
             test $# -eq 0 || shift; set -- user_script_handlers "$@" ;;
+
+      ( --commands|commands ) # ....
+            test $# -eq 0 || shift; set -- user_script_commands "$@" ;;
+
       ( --env|variables )
             test $# -eq 0 || shift; set -- user_script_envvars "$@" ;;
 
@@ -361,6 +377,7 @@ user_script_envvars () # ~ # Grep env vars from loadenv
   }
 }
 
+# Transform glob to regex and invoke script-listfun for source files.
 user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main script
 {
   test $# -eq 0 && {
@@ -512,7 +529,54 @@ user_script_shell_env ()
   user_script_shell_env=1
 }
 
-user_script_resolve_aliases ()
+user_script_resolve_alias () # ~ <Name> #
+{
+  echo "$us_aliases" | {
+      while read -r handler aliases
+      do
+        test "$handler" != "$handle" && {
+            case " $aliases " in
+                ( *" $handle "* ) echo $handler ; return ;;
+                ( * ) continue ;;
+            esac
+        } || {
+          echo $handler
+          return
+        }
+      done
+      return 3
+  }
+}
+
+user_script_resolve_aliases () # ~ <Handlers...> # List aliases for given names
+{
+  for handle in "$@"
+  do
+      {
+          user_script_resolve_alias "$handle" || echo
+      } | sed "s#^#$handle #"
+  done
+}
+
+user_script_resolve_alias () # ~ <Name> # Give aliases for handler
+{
+  echo "$us_aliases" | {
+      while read -r handler aliases
+      do
+        test "$handler" != "$handle" && {
+            case " $aliases " in
+                ( *" $handle "* ) echo $aliases ; return ;;
+                ( * ) continue ;;
+            esac
+        } || {
+          echo $aliases ; return
+        }
+      done
+      return 3
+    }
+}
+
+user_script_resolve_handlers () # ~ <Handlers...> # List handlers for given names
 {
   for handle in "$@"
   do
@@ -667,8 +731,7 @@ user_script_usage_ext ()
   handlers=$fun
 }
 
-# Output formatted help specs for one or more handlers.
-user_script_usage_handlers ()
+user_script_fetch_handlers ()
 {
   us_aliases=$(user_script_aliases "$@" |
         sed 's/^\(.*\): \(.*\)$/\2 \1/' | tr -d ',' )
@@ -677,7 +740,13 @@ user_script_usage_handlers ()
               printf 's/^\<%s\>/( %s | & )/\n' "$handler" "${aliases// / | }"
           done
       )
-  handlers=$(user_script_resolve_aliases "$@" | remove_dupes | lines_to_words)
+  handlers=$(user_script_resolve_handlers "$@" | remove_dupes | lines_to_words)
+}
+
+# Output formatted help specs for one or more handlers.
+user_script_usage_handlers ()
+{
+  user_script_fetch_handlers "$@"
 
   # Do any loading required for handler, so script-src/script-lib is set
   # XXX: not loading might speed up a bit, but only as long as AST is not

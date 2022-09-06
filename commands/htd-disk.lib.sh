@@ -1,9 +1,18 @@
 #!/bin/sh
 
+
+htd_disk_lib_load ()
+{
+  true
+}
+
+
 htd_man_1__disk='Enumerate disks '
 htd__disk()
 {
-  lib_load disk htd-disk || return
+  lib_require disk || return
+  #disk_lib_init || return
+
   test -z "$(lib_path $os)" || lib_load $os || return
   test "$uname" = linux && {
     test -e /proc || error "/proc/* required" 1
@@ -15,20 +24,23 @@ htd__disk()
 
 htd__disks()
 {
-  test -n "$rst2xml" || error "rst2xml required" 1
+  lib_require du || return
+
+  : "${rst2xml:?"rst2xml required"}"
+
   sudo which parted 1>/dev/null && parted=$(sudo which parted) \
     || warn "No parted" 1
   test -n "$parted" || error "parted required" 1
 
-  DISKS=/dev/sd[a-e]
-  for disk in $DISKS
+  for disk in ${DISKS:-/dev/sd[a-e]}
   do
     echo "$disk $(htd disk-id $disk)"
     echo "  :table-type: $(htd disk-tabletype $disk)"
     echo "  :size: $(htd disk-size $disk)"
     echo "  :model: $(htd disk-model $disk)"
     echo ""
-    for dp in $disk[0-9]*
+    #shellcheck disable=1087 # not an array expansion
+    for dp in "$disk"[0-9]*
     do
         pn="$(echo $dp | sed 's/^.*\([0-9]*\)/\1/')"
         ps="$(sudo parted $disk -s print | grep '^\ '$pn | awk '{print $4}')"
@@ -39,6 +51,12 @@ htd__disks()
     echo
   done
   echo
+}
+
+
+htd__disktab ()
+{
+    false
 }
 
 htd_man_1__disk_doc='
@@ -63,11 +81,12 @@ htd__disk_doc()
 
       update ) ;;
       sync )  shift
-           disk_list | while read dev
+           disk_list | while read -r dev
            do
              {
+               #shellcheck disable=2106 # ignore subshell var update
                disk_local "$dev" NUM DISK_ID || continue
-             } | while read num disk_id
+             } | while read -r num disk_id
              do
                echo "disk_doc '$dev' $num '$disk_id'"
              done
@@ -83,9 +102,9 @@ htd__disk_doc()
 
 htd__create_ram_disk()
 {
-  test -n "$1" || set -- "RAM disk" "$2"
-  test -n "$2" || set -- "$1" 32
-  test -z "$3" || error "Surplus arguments '$3'" 1
+  test -n "${1:-}" || set -- "RAM disk" "$2"
+  test -n "${2:-}" || set -- "$1" 32
+  test $# -eq 2 || error "create-ram-disk argv" 1
 
   note "Creating/updating RAM disk '$1' ($2 MB)"
   create_ram_disk "$1" "$2" || return
@@ -121,11 +140,12 @@ EOM
 htd__check_disks()
 {
   req_dir_env HTDIR
-  cd $HTDIR
-  list_host_disks | while read label path id eol
+  cd "$HTDIR" || return
+  list_host_disks | while read -r label path id eol
   do
     test -e "$path" && {
       echo "Path for $label OK"
+      #shellcheck disable=2027 # ignore quoting
       xmllint --xpath \
           "//definition_list/definition_list_item/definition/bullet_list/list_item[contains(paragraph,'"$path"')]/ancestor::bullet_list" \
           $sys_tmp/$hostname-disks.xml > $sys_tmp/$hostname-disk.xml;
@@ -190,7 +210,7 @@ htd_darwin_partition_table()
 
 htd_linux_disk_check()
 {
-  sudo blkid /dev/sd* | tr -d ':' | while read dev props
+  sudo blkid /dev/sd* | tr -d ':' | while read -r dev props
   do
     eval $props
     test -z "$PARTUUID" && {
@@ -232,7 +252,7 @@ htd_linux_disk_partitions()
 htd_linux_disk_tab()
 {
   sudo file -s /var/lib/docker/aufs
-  tail -n +3 /proc/partitions | while read major minor blocks dev_node
+  tail -n +3 /proc/partitions | while read -r major minor blocks dev_node
   do
     echo $dev_node
     sudo file -s /dev/$dev_node
@@ -272,7 +292,7 @@ htd_disk_runtime()
 {
   test -n "${1-}" || set -- sda
   test -x "$(which smartctl)" || smart_pref=sudo
-  for dev in $@
+  for dev in "$@"
   do test -e /dev/$1 || error "No such device '$1'" 1
     note "Getting '$dev' runtime..."
     echo "/dev/$dev:"; disk_runtime /dev/"$dev"; done
@@ -283,7 +303,7 @@ htd_disk_bootnumber()
   test -n "$1" || set -- sda
   test -x "$(which smartctl)" || smart_pref=sudo
   note "TODO: Getting disk0 bootnumber (days)..."
-  for dev in $@
+  for dev in "$@"
   do test -e /dev/$1 || error "No such device '$1'" 1
     note "Getting '$dev' bootnumber..."
     echo "/dev/$dev:"; disk_bootnumber /dev/"$dev"; done
@@ -293,7 +313,7 @@ htd_disk_stats()
 {
   test -n "$1" || set -- sda
   test -x "$(which smartctl)" || smart_pref=sudo
-  for dev in $@
+  for dev in "$@"
   do test -e /dev/$1 || error "No such device '$1'" 1
   (
     eval local $(disk_smartctl_attrs /dev/"$dev")

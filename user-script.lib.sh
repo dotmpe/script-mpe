@@ -182,6 +182,16 @@ fun_flags () # ~ <Var-Name> [<Flags-Off>] [<Flags-On>]
   unset flag
 }
 
+grep_or_exact () # ~ <Globs...>
+{
+  printf '\(%s\)' "$(
+      echo $(printf '\<%s\>\n' "$@") | sed '
+                s/ /\\|/g
+                s/\*/.*/g
+            '
+    )"
+}
+
 grep_or () # ~ <Globs...>
 {
   printf '\(%s\)' "$(
