@@ -8,13 +8,19 @@ disk_uc_check () # ~
   test $# -eq 0 || shift
   case "$act" in
 
-    # ( D|diag ) rules_run user/diag ;;
+    # ( D|diag ) rules_run user/rules ;;
 
-    ( doc ) disks_uc doc-check ;;
-    ( nt|numtab ) disks_uc numtab-chk ;;
-    ( nr|numbers ) disks_uc nums-chk ;;
+    ( doc )          disks_uc doc-check ;;
+    ( nt|numtab )    disks_uc numtab-check ;;
+    ( nr|numbers )   disks_uc numbers-check ;;
 
-    ( s|stat|summary ) disks_uc num-check && disks_uc doc-check ;;
+    ( s|stat|summary )
+        $ll warn "disk.uc[$$]:check" "Checking disk device numbers.." &&
+            disks_uc nums-chk && disks_uc ntab-chk &&
+        $ll warn "disk.uc[$$]:check" "Checking diskdoc Id's.."
+            disks_uc doc-chk &&
+        # TODO: use runner with LOG/pass-fail output
+        $ll ok "disk.uc[$$]:check" "Local disk device numbers and diskdoc Id's OK" ;;
 
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
   esac
@@ -45,6 +51,7 @@ disk_uc_list () # ~
         for disk_dev in "$@"
         do
           disks_uc disk-info "$disk_dev"
+
           disk_serial_id "$disk_dev"
           $LOG notice "" "Found disk $disk_dev" "$KNAME:$VENDOR:$MODEL:$UUID"
         done
@@ -66,7 +73,8 @@ disk_uc_list () # ~
     ( nsi|numbers-ignore ) disk_ignore_numbers "$@" ;;
     ( N|nums|drivers ) disks_uc disk-drivers ;;
 
-    ( s|stat|summary ) disk_uc_list info ;;
+    ( s|stat|summary )
+        disk_uc_list info ;;
 
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
   esac
@@ -85,33 +93,52 @@ disks_uc ()
   local lk="${lk:-:$base:$act}"
   case "$act" in
     ( list-devices ) ${UC_DISK_DEVICES:=disk_list} "$@" ;;
-    ( doc-check )
-        failed=false
-        dev_pref=sudo
-        for disk_dev in $(disk_list)
+
+    ( doc-chk|doc-check ) local failed=false dev_pref=sudo
+        for disk_dev in $(disks_uc list-devices)
         do
           disks_uc disk-info "$disk_dev"
+          ! sh_fun disk_uc_select_${TRAN}_device || {
+              disk_uc_select_${TRAN}_device || {
+                $LOG warn "" "Ignored SD-USB device" "$KNAME"
+                continue
+              }
+            }
           diskdoc_try_disk "$disk_dev" || failed=true
         done
         ! $failed || return
       ;;
+
     ( disk-info ) local disk_dev=${1:?}
         shift
         diskdoc_lsblk_disk "$disk_dev"
         echo "$disk_dev $SERIAL $KNUM $TRAN $MODEL $VENDOR $SIZE${RM:+" removable"}"
+        # TODO: dump but only on v=7
         $LOG notice "" "Found disk $disk_dev" "$KNAME:$VENDOR:$MODEL:$UUID"
+      ;;
+
+    ( disk-dump ) local disk_dev=${1:?}
+        shift
+        for kn in $disk_lsblk_keys KNUM KNUM_MAJOR KNUM_MINOR
+        do
+          echo "$kn: ${!kn}"
+        done
       ;;
     ( doc )
 # List current user doc
         jsotk --pretty $USER_DISKS ;;
     ( doc-media-ids ) diskdoc_list_disks ;;
 
-    ( numtab-chk ) local ok=true
-        disk_devices_numbers | while read -r devmaj devname
-        do grep -q "^$devname " "$USER_DEVS" && continue
-          ! $ok || ok=false
-          echo Unkown device: $devmaj $devname
-        done
+    ( ntab-chk|numtab-check )
+        disk_devices_numbers | {
+            local ok=true
+            while read -r devmaj devname
+            do grep -q "^$devname " "$USER_DEVS" && continue
+              ! $ok || ok=false
+              echo Unkown device: $devmaj $devname >&2
+            done
+            $ok
+          }
       ;;
 
     ( nums|disk-drivers )
@@ -124,14 +151,18 @@ disks_uc ()
         done | remove_dupes
       ;;
 
-    ( nums-chk|numbers-check )
-        unknown_devnames=$(disk_devices_filter "!" $USER_DISKDEVS $USER_VDISKDEVS)
-        test -z "$unknown_devnames" && return
-        echo "$unknown_devnames" | while read -r devmaj devname
-        do
-          ! $ok || ok=false
-          echo Unkown device: $devmaj $devname
-        done
+    ( nums-chk|numbers-check ) local ok=true unknown_devnames
+        unknown_devnames=$(
+            disk_devices_filter "!" $USER_DISKDEVS $USER_VDISKDEVS) &&
+          test -n "$unknown_devnames" || return 0
+        echo "$unknown_devnames" | {
+            while read -r devmaj devname
+            do
+              ! $ok || ok=false
+              echo "Unkown device: $devmaj $devname" >&2
+            done
+            $ok
+          }
       ;;
 
     ( part-info ) local part_dev=${1:?}
@@ -165,6 +196,14 @@ disks_uc ()
   esac
 }
 
+# For USB SD-card readers the firmware reports a fixed SERIAL that equals
+# iSerial from lsusb output. The user can record devices to exclude them from
+# disk certain functions and rules in USER_SDUSB
+disk_uc_select_usb_device ()
+{
+  ! grep -q $'\t'"$SERIAL"$'\t' "$USER_SDUSB"
+}
+
 
 ## Main parts
 
@@ -188,10 +227,10 @@ disk_uc_aliasargv ()
 {
   case "$1" in
 
-      ( c|check ) shift; set -- disk_uc_check "$@" ;;
+      ( c|chk|check ) shift; set -- disk_uc_check "$@" ;;
+      ( l|ls|list ) shift; set -- disk_uc_list "$@" ;;
       ( s|status ) shift; set -- disk_uc_status "$@" ;;
       ( S|stat ) shift; set -- disk_uc_stat "$@" ;;
-      ( l|list ) shift; set -- disk_uc_list "$@" ;;
 
       ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
@@ -225,7 +264,8 @@ disk_uc_loadenv ()
       #( user_script_handlers ) set -- "" all ;;
       #( us_media ) set -- "$@" media ;;
 
-      ( * ) set -- "" us-lib disk rules ;;
+      ( * ) set -- "" us-lib disk rules
+          ll=$HOME/bin/log.sh ;;
     esac
     shift
   done

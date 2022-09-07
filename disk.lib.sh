@@ -14,12 +14,14 @@ disk_lib_load ()
   : "${DISK_CATALOG:=$HOME/.diskdoc}"
 
   : "${USER_DEVS:=${UCONF:?}/user/devices.list}"
-  #DD_DISKDEVS="sd fd sr md"
-  #DD_DISKVIRTDEVS="loop ramdisk device-mapper"
-  : "${USER_DISKDEVS:=sd fd}"
+  : "${USER_SDUSB:=${UCONF:?}/user/sdusbtab}"
+  #DD_DISKDEVS=
+  #DD_DISKVIRTDEVS=
+  # XXX: may need additional list for partition devices?
+  : "${USER_DISKDEVS:=sd fd sr md mdp blkext}"
   : "${USER_VDISKDEVS:=loop ramdisk device-mapper}"
 
-  disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ WWN\ UUID\ PTTYPE
+  disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ WWN\ UUID\ PTTYPE\ SCHED\ STATE\ HCTL
   disk_partition_lsblk_keys=KNAME\ PARTTYPE\ PARTLABEL\ PARTUUID\ MOUNTPOINT\ FSTYPE\ PTUUID\ PTTYPE\ UUID
 
   disk_keys=disk_id\ disk_index\ disk_description\ disk_host\ disk_domain\
