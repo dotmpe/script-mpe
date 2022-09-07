@@ -222,7 +222,7 @@ __log() # [Line-Type] [Header] [Msg] [Ctx] [Exit]
     verbose | warn*  )
       targets=$(printf "$mk_p_trgt_yellow_faint" "$targets")
       ;;
-    attention | crit* )
+    attention | attn | crit* )
       targets=$(printf "$mk_p_trgt_yellow" "$targets")
       ;;
     file[_-]target )

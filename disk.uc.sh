@@ -15,12 +15,19 @@ disk_uc_check () # ~
     ( nr|numbers )   disks_uc numbers-check ;;
 
     ( s|stat|summary )
-        $ll warn "disk.uc[$$]:check" "Checking disk device numbers.." &&
+        $ll Attn "disk.uc[$$]:check" "Checking disk device numbers.." &&
             disks_uc nums-chk && disks_uc ntab-chk &&
-        $ll warn "disk.uc[$$]:check" "Checking diskdoc Id's.."
+        $ll Attn "disk.uc[$$]:check" "Checking diskdoc Id's.."
             disks_uc doc-chk &&
+        $ll Attn "disk.uc[$$]:check" "Checking volumes.sh's.."
+            disks_uc v-chk &&
+        $ll Attn "disk.uc[$$]:check" "Checking volume containers symlinks.."
+            disks_uc srv-chk &&
         # TODO: use runner with LOG/pass-fail output
-        $ll ok "disk.uc[$$]:check" "Local disk device numbers and diskdoc Id's OK" ;;
+        $ll OK "disk.uc[$$]:check" "Local disks and config OK" ;;
+
+    ( srv|containers ) disks_uc containers-check ;;
+    ( vols|volumes ) disks_uc volumes-check ;;
 
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
   esac
@@ -38,21 +45,22 @@ disk_uc_list () # ~
 
     # Different ways of getting list of block/disk devices:
     ( disks-df ) disk_uc_list disks-df-info | tail -n +2 | cut -f1 -d' ' ;;
-    ( disks-lsblk ) disk_lsblk_list "$@" ;; # $UC_DISK_DGLOB ;;
-    ( disks-dev ) disk_list $UC_DISK_DGLOB ;;
-    ( d|dev|devices|disks ) disk_uc_list disks-dev ;;
+    ( disks-lsblk ) disk_lsblk_list "$@" ;;
+    ( disks-devglob ) disk_list "$UC_DISK_DGLOB" ;;
+
+    ( d|dev|devices|disks ) ${UC_DISK_DEVICES:-disk_lsblk_list} "$@" ;;
 
     ( disks-df-info ) df -Th -x tmpfs -x devtmpfs -x squashfs ;;
 
     ( doc ) disks_uc doc-media-ids ;;
 
     ( i|info )
-        test $# -gt 0 || set -- $(${UC_DISK_DEVICES:=disk_lsblk_list})
+        test $# -gt 0 || set -- $(${UC_DISK_DEVICES:-disk_lsblk_list})
         for disk_dev in "$@"
         do
           disks_uc disk-info "$disk_dev"
-
-          disk_serial_id "$disk_dev"
+          #@smartctl disk_runtime "$disk_dev"
+          #disk_serial_id "$disk_dev"
           $LOG notice "" "Found disk $disk_dev" "$KNAME:$VENDOR:$MODEL:$UUID"
         done
       ;;
@@ -70,7 +78,9 @@ disk_uc_list () # ~
 
     ( nr|num|numbers ) disk_device_numbers "$@" ;;
     ( ns|numbers-all ) disk_devices_numbers ;;
-    ( nsi|numbers-ignore ) disk_ignore_numbers "$@" ;;
+    ( nsi|numbers-ignore ) disk_devices_filter "!" "$@" ;;
+
+    #( nsi|numbers-ignore ) disk_ignore_numbers "$@" ;;
     ( N|nums|drivers ) disks_uc disk-drivers ;;
 
     ( s|stat|summary )
@@ -113,13 +123,13 @@ disks_uc ()
         shift
         diskdoc_lsblk_disk "$disk_dev"
         echo "$disk_dev $SERIAL $KNUM $TRAN $MODEL $VENDOR $SIZE${RM:+" removable"}"
-        # TODO: dump but only on v=7
+        test ${v:-${verbosity:-4}} -lt 7 || disks_uc disk-dump "$disk_dev"
         $LOG notice "" "Found disk $disk_dev" "$KNAME:$VENDOR:$MODEL:$UUID"
       ;;
 
     ( disk-dump ) local disk_dev=${1:?}
         shift
-        for kn in $disk_lsblk_keys KNUM KNUM_MAJOR KNUM_MINOR
+        for kn in $disk_lsblk_keys KNUM # KNUM_MAJOR KNUM_MINOR
         do
           echo "$kn: ${!kn}"
         done
@@ -133,6 +143,8 @@ disks_uc ()
         disk_devices_numbers | {
             local ok=true
             while read -r devmaj devname
+
+### Htd/Catalog @Dev
             do grep -q "^$devname " "$USER_DEVS" && continue
               ! $ok || ok=false
               echo Unkown device: $devmaj $devname >&2
@@ -192,6 +204,12 @@ disks_uc ()
           #done
       ;;
 
+    ( srv-chk|containers-check )
+      ;;
+
+    ( v-chk|volumes-check )
+      ;;
+
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
   esac
 }
@@ -214,7 +232,7 @@ test -s "$USER_DISKS" || {
     return 3
 }
 
-: "${UC_DISK_DGLOB:=sd[a-z]}"
+: "${UC_DISK_DGLOB:="\{nvme[0-9]n[1-9],sd[a-z]}"}"
 
 
 ## User-script parts

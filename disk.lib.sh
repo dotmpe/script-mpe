@@ -18,7 +18,7 @@ disk_lib_load ()
   #DD_DISKDEVS=
   #DD_DISKVIRTDEVS=
   # XXX: may need additional list for partition devices?
-  : "${USER_DISKDEVS:=sd fd sr md mdp blkext}"
+  : "${USER_DISKDEVS:=sd fd sr mmc md mdp blkext}"
   : "${USER_VDISKDEVS:=loop ramdisk device-mapper}"
 
   disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ WWN\ UUID\ PTTYPE\ SCHED\ STATE\ HCTL
@@ -137,7 +137,7 @@ disk_devices_numbers () # ~ # List major number and driver for block devices
 
 disk_fdisk_id () # ~ <Disk-dev>
 {
-  test $# -gt 0 -a -n "${1:-}" || return ${_E_GAE:-3}
+  test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
   case "${uname:?}" in
 
       Linux )
@@ -164,18 +164,18 @@ disk_id () # ~ <Device>  # XXX: Prints serial-id
   #disk_fdisk_id "$@" # XXX: Old
 }
 
-disk_id_for_dev()
+disk_id_for_dev ()
 {
-  local dev="$1" ;
-  local disk_id="$(disk_id "$dev")" || error "disk-id: '$dev'" 1
-  test -z "$disk_id" && error "No disk Id for device '$dev'" 1
-  std_info "Using Disk-ID '$disk_id' for '$dev'"
+  test -b "${1:?}" || return $_E_GAE
+  local disk_id="$(disk_id "$1")" || error "disk-id: '$1'" 1
+  test -z "$disk_id" && error "No disk Id for device '$1'" 1
+  std_info "Using Disk-ID '$disk_id' for '$1'"
   echo "$disk_id"
 }
 
 disk_ignore_numbers () # ~ <Exclude-devnames...>
 {
-  disk_devices_filter "!" "$@" | cut -d' ' -f1
+  disk_devices_filter $USER_VDISKDEVS | cut -d' ' -f1
 }
 
 disk_info ()
@@ -199,16 +199,16 @@ disk_info ()
 }
 
 # Use lsblk to list properties for attached devices (without subnode trees)
-disk_lsblk_field () # ~ <Device> <Field-key>
+disk_lsblk_field () # ~ <Device> <Field-spec>
 {
-  true "${lsblk_opts:=dn}"
-  lsblk -$lsblk_opts "$1" -o "$2"
+  test -b "${1:?}" -a $# -eq 2  || return $_E_GAE
+  local lsblk_opts="${lsblk_opts:-dn}"
+  lsblk -o "${2:-PATH}" ${lsblk_opts:+-}${lsblk_opts:-} "$1"
 }
 
-disk_lsblk_list () # ~
+disk_lsblk_list () # ~ [<lsblk-argv...>]
 {
-  true "${lsblk_opts:=dn}"
-  local diskdev_vnums excluded_devs
+  local lsblk_opts="${lsblk_opts:-dn}" diskdev_vnums excluded_devs
   diskdev_vnums=$(disk_ignore_numbers)
   excluded_devs=$(echo $diskdev_vnums | tr ' ' ',')
   lsblk -o "PATH" -e$excluded_devs ${lsblk_opts:+-}${lsblk_opts:-} "$@"
@@ -216,11 +216,13 @@ disk_lsblk_list () # ~
 
 disk_lsblk_partnr () # ~ <Device>
 {
+  test -b "${1:?}" || return $_E_GAE
   disk_lsblk_field "$1" MAJ:MIN | cut -d':' -f2
 }
 
 disk_model () # ~ <Device>
 {
+  test -b "${1:?}" || return $_E_GAE
   case "$uname" in
 
     Linux ) req_parted disk-model || return
@@ -249,6 +251,7 @@ disk_model () # ~ <Device>
 
 disk_serial_id ()
 {
+  test -b "${1:?}" || return $_E_GAE
   case "$uname" in
 
     Linux )
@@ -356,8 +359,14 @@ disk_list ()
     Linux )
         test $# -gt 0 || set -- "sd*[a-z]"
         glob=/dev/$1
-        test "$(echo $glob)" = "$glob" || {
-          echo $glob | tr ' ' '\n'
+        fnmatch "*{*" "$1" && {
+          test "$(eval "echo $glob")" = "$glob" || {
+            eval "echo $glob" | tr ' ' '\n'
+          }
+        } || {
+          test "$(echo $glob)" = "$glob" || {
+            echo $glob | tr ' ' '\n'
+          }
         }
       ;;
 
@@ -696,9 +705,9 @@ disk_report()
   return $disk_report_result
 }
 
-disk_smartctl_attrs()
+disk_smartctl_attrs ()
 {
-  ${smart_pref} smartctl -A "$1" -f old | tail -n +8 | {
+  ${smartctl_pref:-} smartctl -A "$1" -f old | tail -n +8 | {
     local IFS=$' \t\n'
     while \
       read id attr flag value worst thresh type updated when_failed raw_value
@@ -713,7 +722,7 @@ disk_smartctl_attrs()
 # Getting disk0 runtime (days)
 disk_runtime () # DEV
 {
-  eval local $(disk_smartctl_attrs $1)
+  eval local $(disk_smartctl_attrs $1) || return
   #python -c "print $Power_On_Hours_Raw / 24.0"
   echo "$Power_On_Hours_Raw hours"
   echo "$(echo "$Power_On_Hours_Raw / 24" | bc) days"
@@ -740,6 +749,7 @@ disk_lsblk_type_load () # ~ <Device> <Type> <Columns...>
 # Load into env properties from lsblk for disk devices
 disk_lsblk_load () # ~ <Disk-dev> <Columns...>
 {
+  test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
   local dev=$1 ; shift
   test $# -gt 0 || set -- $disk_lsblk_keys
   disk_lsblk_type_load "$dev" disk "$@"
@@ -754,6 +764,7 @@ disk_lsblk_show () # ~ <Disk-dev> <Columns...>
 # Load into env properties from lsblk for partition devices
 disk_partition_lsblk_load () # ~ <Part-dev> <Columns...>
 {
+  test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
   local dev=$1 ; shift
   test $# -gt 0 || set -- $disk_partition_lsblk_keys
   disk_lsblk_type_load "$dev" part "$@"
@@ -770,8 +781,9 @@ disk_partition_uuids ()
   done
 }
 
-disk_size ()
+disk_size () # ~ <Disk-dev>
 {
+  test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
   case "$uname" in
 
     Linux ) req_parted disk-size || return
@@ -793,8 +805,9 @@ disk_size ()
   esac
 }
 
-disk_tabletype()
+disk_tabletype () # ~ <Disk-dev>
 {
+  test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
   case "$uname" in
 
     Linux ) req_parted disk-tabletype || return

@@ -1,5 +1,8 @@
 #!/bin/sh
 
+### Htd/Catalog @Dev
+
+
 htd_man_1__catalog='Build file manifests. See `htd help htd-catalog-*` for more
 details per function. The main commands to use are:
 

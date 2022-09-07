@@ -291,7 +291,7 @@ htd_disk_tabletype()
 htd_disk_runtime()
 {
   test -n "${1-}" || set -- sda
-  test -x "$(which smartctl)" || smart_pref=sudo
+  test -x "$(which smartctl)" || smartctl_pref=sudo
   for dev in "$@"
   do test -e /dev/$1 || error "No such device '$1'" 1
     note "Getting '$dev' runtime..."
@@ -301,7 +301,7 @@ htd_disk_runtime()
 htd_disk_bootnumber()
 {
   test -n "$1" || set -- sda
-  test -x "$(which smartctl)" || smart_pref=sudo
+  test -x "$(which smartctl)" || smartctl_pref=sudo
   note "TODO: Getting disk0 bootnumber (days)..."
   for dev in "$@"
   do test -e /dev/$1 || error "No such device '$1'" 1
@@ -312,7 +312,7 @@ htd_disk_bootnumber()
 htd_disk_stats()
 {
   test -n "$1" || set -- sda
-  test -x "$(which smartctl)" || smart_pref=sudo
+  test -x "$(which smartctl)" || smartctl_pref=sudo
   for dev in "$@"
   do test -e /dev/$1 || error "No such device '$1'" 1
   (

@@ -32,7 +32,7 @@ diskdoc_list_disks () # ~ [<Diskdoc.yaml>] # List Media Ids from document
 diskdoc_lsblk_disk ()
 {
   lsblk_opts=db disk_lsblk_load "$1" || return
-  test $RM -ne 0 || RM=
+  test "$RM" -ne 0 || RM=
   KNUM=$(lsblk -dn "$1" -o MAJ:MIN)
   KNUM_MAJOR=${KNUM/:*}
   KNUM_MINOR=${KNUM/*:}
@@ -74,11 +74,6 @@ diskdoc_try_disk () # [dd-keys] ~ <Disk-dev> [<Diskdoc.yaml>]
       return 1
     }
   }
-}
-
-diskdoc_autodetect () # ~ [<Pfile>] [<Diskdoc.yaml>]
-{
-  false
 }
 
 #
