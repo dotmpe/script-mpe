@@ -29,6 +29,8 @@ disk_uc_check () # ~
     ( srv|containers ) disks_uc containers-check ;;
     ( vols|volumes ) disks_uc volumes-check ;;
 
+    ( v ) disks_uc v-check && disks_uc srv-check ;;
+
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
   esac
 }
@@ -102,7 +104,6 @@ disks_uc ()
   test $# -eq 0 || shift
   local lk="${lk:-:$base:$act}"
   case "$act" in
-    ( list-devices ) ${UC_DISK_DEVICES:=disk_list} "$@" ;;
 
     ( doc-chk|doc-check ) local failed=false dev_pref=sudo
         for disk_dev in $(disks_uc list-devices)
@@ -110,7 +111,7 @@ disks_uc ()
           disks_uc disk-info "$disk_dev"
           ! sh_fun disk_uc_select_${TRAN}_device || {
               disk_uc_select_${TRAN}_device || {
-                $LOG warn "" "Ignored SD-USB device" "$KNAME"
+                $LOG warn "" "Ignored SD-USB device" "/dev/$KNAME:$VENDOR:$MODEL"
                 continue
               }
             }
@@ -138,6 +139,13 @@ disks_uc ()
 # List current user doc
         jsotk --pretty $USER_DISKS ;;
     ( doc-media-ids ) diskdoc_list_disks ;;
+
+    ( list-devices ) ${UC_DISK_DEVICES:=disk_list} "$@" ;;
+    ( list-partition-devices )
+        for disk_dev in $(disks_uc list-devices)
+        do disk_partition_list "$disk_dev"
+        done
+      ;;
 
     ( ntab-chk|numtab-check )
         disk_devices_numbers | {
@@ -208,6 +216,12 @@ disks_uc ()
       ;;
 
     ( v-chk|volumes-check )
+        for part_dev in $(disks_uc list-partition-devices)
+        do
+            lsblk_opts=b disk_partition_lsblk_load "$part_dev"
+            #echo "$part_dev ${MOUNTPOINT:--} $SIZE $PARTLABEL ($PARTTYPE) $PARTUUID ($FSTYPE) $PTUUID ($PTTYPE) $UUID (UUID)"
+            echo -e "$part_dev ${MOUNTPOINT:--} $SIZE ${FSTYPE:--} ${PTTYPE:--}\t${UUID:-null}\t${PARTLABEL:--}"
+        done | column -s $'\t' -tc 3
       ;;
 
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;

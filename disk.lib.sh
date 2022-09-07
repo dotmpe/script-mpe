@@ -22,7 +22,7 @@ disk_lib_load ()
   : "${USER_VDISKDEVS:=loop ramdisk device-mapper}"
 
   disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ WWN\ UUID\ PTTYPE\ SCHED\ STATE\ HCTL
-  disk_partition_lsblk_keys=KNAME\ PARTTYPE\ PARTLABEL\ PARTUUID\ MOUNTPOINT\ FSTYPE\ PTUUID\ PTTYPE\ UUID
+  disk_partition_lsblk_keys=KNAME\ PARTTYPE\ PARTLABEL\ PARTUUID\ MOUNTPOINT\ FSTYPE\ PTUUID\ PTTYPE\ UUID\ SIZE
 
   disk_keys=disk_id\ disk_index\ disk_description\ disk_host\ disk_domain\
 \ disk_prefix\ disk_model\ disk_vendor\ disk_revision\ disk_serial\ disk_size\
@@ -759,6 +759,11 @@ disk_lsblk_load () # ~ <Disk-dev> <Columns...>
 disk_lsblk_show () # ~ <Disk-dev> <Columns...>
 {
   dry_run=1 disk_lsblk_load "$@"
+}
+
+disk_partition_list ()
+{
+  lsblk_opts=n disk_lsblk_field "$1" PATH,TYPE | grep ' part' | cut -d' ' -f1
 }
 
 # Load into env properties from lsblk for partition devices
