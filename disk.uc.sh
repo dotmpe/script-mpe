@@ -85,8 +85,11 @@ disk_uc_list () # ~
     #( nsi|numbers-ignore ) disk_ignore_numbers "$@" ;;
     ( N|nums|drivers ) disks_uc disk-drivers ;;
 
-    ( s|stat|summary )
+    ( s|stat|summary ) # TODO:
         disk_uc_list info ;;
+
+    ( v|vol|vols|volumes ) # TODO: add diskdoc data
+        disks_uc v-ls ;;
 
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
   esac
@@ -215,13 +218,20 @@ disks_uc ()
     ( srv-chk|containers-check )
       ;;
 
+    ( v-ls|volumes-list )
+        for part_dev in $(disks_uc list-partition-devices)
+        do
+          lsblk_opts=b disk_partition_lsblk_load "$part_dev"
+          echo -e "$part_dev ${MOUNTPOINT:--}\t${FSTYPE:--} ${PTTYPE:--} $SIZE\t${UUID:-null}\t${PARTLABEL:--}"
+        done | column -s $'\t' -tc 4
+      ;;
+
     ( v-chk|volumes-check )
         for part_dev in $(disks_uc list-partition-devices)
         do
             lsblk_opts=b disk_partition_lsblk_load "$part_dev"
-            #echo "$part_dev ${MOUNTPOINT:--} $SIZE $PARTLABEL ($PARTTYPE) $PARTUUID ($FSTYPE) $PTUUID ($PTTYPE) $UUID (UUID)"
-            echo -e "$part_dev ${MOUNTPOINT:--} $SIZE ${FSTYPE:--} ${PTTYPE:--}\t${UUID:-null}\t${PARTLABEL:--}"
-        done | column -s $'\t' -tc 3
+            echo -e "$part_dev ${MOUNTPOINT:--}\t${FSTYPE:--} ${PTTYPE:--} $SIZE\t${UUID:-null}\t${PARTLABEL:--}"
+        done | column -s $'\t' -tc 4
       ;;
 
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
