@@ -56,6 +56,10 @@ disk_uc_list () # ~
 
     ( doc ) disks_uc doc-media-ids ;;
 
+    ( e|ext )
+        colvars="$disk_lsblk_keys_ext"
+        disks_uc table | column -s $'\t' -t ;;
+
     ( i|info )
         test $# -gt 0 || set -- $(${UC_DISK_DEVICES:-disk_lsblk_list})
         for disk_dev in "$@"
@@ -85,8 +89,9 @@ disk_uc_list () # ~
     #( nsi|numbers-ignore ) disk_ignore_numbers "$@" ;;
     ( N|nums|drivers ) disks_uc disk-drivers ;;
 
-    ( s|stat|summary ) # TODO:
-        disk_uc_list info ;;
+    ( s|stat|summary )
+        colvars="KNAME STATE TRAN HCTL RA RM RO VENDOR MODEL SERIAL"
+        disks_uc table | column -s $'\t' -t ;;
 
     ( v|vol|vols|volumes ) # TODO: add diskdoc data
         disks_uc v-ls ;;
@@ -123,10 +128,20 @@ disks_uc ()
         ! $failed || return
       ;;
 
+    ( tab|table )
+        : "${colvars:=$disk_lsblk_keys}"
+        echo "#${colvars// /,$'\t'}"
+        for disk_dev in $(disks_uc list-devices)
+        do
+          diskdoc_lsblk_disk "$disk_dev" -- $colvars
+          vars_tabline - $colvars
+        done
+      ;;
+
     ( disk-info ) local disk_dev=${1:?}
         shift
         diskdoc_lsblk_disk "$disk_dev"
-        echo "$disk_dev $SERIAL $KNUM $TRAN $MODEL $VENDOR $SIZE${RM:+" removable"}"
+        echo "$disk_dev $SERIAL $KNUM $TRAN $MODEL $VENDOR $SIZE${RM_:+" removable"}"
         test ${v:-${verbosity:-4}} -lt 7 || disks_uc disk-dump "$disk_dev"
         $LOG notice "" "Found disk $disk_dev" "$KNAME:$VENDOR:$MODEL:$UUID"
       ;;
@@ -246,6 +261,35 @@ disk_uc_select_usb_device ()
   ! grep -q $'\t'"$SERIAL"$'\t' "$USER_SDUSB"
 }
 
+vars_eecho () # ~ <Fs> <Default-> <Var-names...>
+{
+  test $# -ge 3 || return $_E_GAE
+  local sep="${1:?}" def=${2:-} str v
+  shift 2
+  while test $# -gt 0
+  do
+    v=${!1:-$def}
+    str="${str:-}${str:+$sep}$v"
+    shift
+  done
+  echo -e "$str"
+  return
+
+  #using eval
+  local shstr="\$${1:?}"
+  shift
+  while test $# -gt 0
+  do
+    shstr="$shstr\t\$$1"
+  done
+  eval "echo -e \"$shstr\""
+}
+
+vars_tabline () # ~ <Default-> <Var-names...>
+{
+  vars_eecho "\t" "$@"
+}
+
 
 ## Main parts
 
@@ -268,13 +312,12 @@ disk_uc_shortdescr=''
 disk_uc_aliasargv ()
 {
   case "$1" in
+    ( c|chk|check ) shift; set -- disk_uc_check "$@" ;;
+    ( l|ls|list ) shift; set -- disk_uc_list "$@" ;;
+    ( s|status ) shift; set -- disk_uc_status "$@" ;;
+    ( S|stat ) shift; set -- disk_uc_stat "$@" ;;
 
-      ( c|chk|check ) shift; set -- disk_uc_check "$@" ;;
-      ( l|ls|list ) shift; set -- disk_uc_list "$@" ;;
-      ( s|status ) shift; set -- disk_uc_status "$@" ;;
-      ( S|stat ) shift; set -- disk_uc_stat "$@" ;;
-
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 

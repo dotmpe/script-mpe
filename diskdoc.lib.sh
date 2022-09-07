@@ -29,15 +29,27 @@ diskdoc_list_disks () # ~ [<Diskdoc.yaml>] # List Media Ids from document
   jsotk keys "$@" -O lines catalog/media || return
 }
 
-diskdoc_lsblk_disk ()
+diskdoc_lsblk_disk () # ~ <Disk-device> [<Keyset>] # Load lsblk disk env (see disk-lsblk-load)
 {
-  lsblk_opts=db disk_lsblk_load "$1" || return
-  test "$RM" -ne 0 || RM=
-  KNUM=$(lsblk -dn "$1" -o MAJ:MIN)
+  local disk_dev=${1:?}; shift
+  case "${1:-}" in
+    ( ext ) set -- $disk_lsblk_keys_ext ;;
+    ( "" ) set -- $disk_lsblk_keys ;;
+    ( -- ) shift ;;
+    ( * ) return $_E_GAE ;;
+  esac
+  unset SIZE BSIZE RM RO
+  lsblk_opts=db disk_lsblk_load "$disk_dev" $@ || return
+  BSIZE=${SIZE:?}
+  lsblk_opts=d disk_lsblk_load "$disk_dev" SIZE || return
+  test -z "${RM:-}" || RM_=$(test "$RM" -eq 0 || printf 1)
+  test -z "${RO:-}" || RO_=$(test "$RO" -eq 0 || printf 1)
+  KNUM=$(lsblk -dn "$disk_dev" -o MAJ:MIN)
   KNUM_MAJOR=${KNUM/:*}
   KNUM_MINOR=${KNUM/*:}
 }
 
+# TODO: check disk catalog entry and resolve issues while interactive
 diskdoc_try_disk () # [dd-keys] ~ <Disk-dev> [<Diskdoc.yaml>]
 {
   local disk_dev=${1:?}; shift; test $# -gt 0 || set -- "${USER_DISKS:?}"

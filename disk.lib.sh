@@ -21,7 +21,9 @@ disk_lib_load ()
   : "${USER_DISKDEVS:=sd fd sr mmc md mdp blkext}"
   : "${USER_VDISKDEVS:=loop ramdisk device-mapper}"
 
-  disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ WWN\ UUID\ PTTYPE\ SCHED\ STATE\ HCTL
+  disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ UUID\ PTTYPE\ STATE
+  disk_lsblk_keys_ext=KNAME\ TRAN\ RM\ RA\ RO\ SCHED\ HCTL\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ UUID\ WWN\ PTTYPE\ STATE
+
   disk_partition_lsblk_keys=KNAME\ PARTTYPE\ PARTLABEL\ PARTUUID\ MOUNTPOINT\ FSTYPE\ PTUUID\ PTTYPE\ UUID\ SIZE
 
   disk_keys=disk_id\ disk_index\ disk_description\ disk_host\ disk_domain\

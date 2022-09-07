@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Helpers for mounts
+### XXX: old helper to mount from volumestat.tab
 
 volumestat_lib_load()
 {
