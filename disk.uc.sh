@@ -90,7 +90,7 @@ disk_uc_list () # ~
     ( N|nums|drivers ) disks_uc disk-drivers ;;
 
     ( s|stat|summary )
-        colvars="KNAME STATE TRAN HCTL RA RM RO VENDOR MODEL SERIAL"
+        colvars="KNAME STATE TRAN HCTL RA RM RO VENDOR MODEL SERIAL SIZE BSIZE"
         disks_uc table | column -s $'\t' -t ;;
 
     ( v|vol|vols|volumes ) # TODO: add diskdoc data
