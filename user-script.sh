@@ -290,7 +290,7 @@ user_script_defarg ()
   # Resolve aliases
   case "$1" in
 
-      ( a|all ) shift && set -- user_scripts_all ;;
+      # XXX: ( a|all ) shift && set -- user_scripts_all ;;
 
       ( --list-script-bases )
             test $# -eq 0 || shift; set -- user_script_bases "$@" ;;
@@ -524,6 +524,21 @@ user_script_shell_env ()
       set -e
       shopt -s extdebug
     }
+  }
+
+  test -z "${DEBUG:-}" ||
+    : "${BASH_VERSION:?"Not sure how to do debug"}"
+
+  test -z "${ALIASES:-}" || {
+    : "${BASH_VERSION:?"Not sure how to do aliases"}"
+
+    # Use shell aliases and templates to cut down on boilerplate for some
+    # user-scripts.
+    # This gives a sort-of macro-like functionality for shell scripts that is
+    # useful in some contexts.
+    shopt -s expand_aliases &&
+
+    us_shell_alsdefs
   }
 
   user_script_shell_env=1
@@ -765,6 +780,76 @@ user_script_usage_handlers ()
 script_version () # ~ # Output {name,version} from script-baseenv
 {
   echo "${script_name:?}/${script_version:-null}"
+}
+
+# Use alsdefs set to cut down on small multiline boilerplate bits and reduce
+# those idiomatic script parts to oneliners, tied with re-usable patterns.
+# See us-shell-alsdefs.
+#
+# This defines the basic set provided and used? by user-scripts,
+# and doubles as a oneliner for user-scripts to add their own.
+user_script_alsdefs ()
+{
+  us_shell_alias_defs \
+    sa_a1_act_lk   l-argv1-lk   act :-\$actdef "" \${lkn:-\$act} -- \
+    sa_a1_act_lk_2 l-argv1-lk   act :-\$actdef :-\$base:\$act "" -- \
+    "$@"
+}
+
+# Shell aliases can be useful, except when used as macro then they don't even
+# have some variable expansion. But if we escape their definitions for eval,
+# we can still declare new specific aliases from re-usable patterns.
+#
+# See us-shell-alias-def.
+us_shell_alsdefs ()
+{
+  # XXX: note the us vs uc. ATM not sure I really want these 'expansions' in US.
+  declare -g -A uc_shell_alsdefs=()
+
+  # Some current patterns. Probably want to move to compose.
+
+  # Take first argument and set to variable, and update LOG scope
+  # This can both do optional or required, if $2 uses :? it will fail on empty
+  # and unset.
+  uc_shell_alsdefs[l-argv1-lk]='
+    local ${1:?}=\${1${2:?}}
+    test \$# -eq 0 || shift
+    local lk="\${lk${3:-:-\$base}}:${4:-}"
+  '
+
+  # Take first argument and set to variable, and test for block device.
+  uc_shell_alsdefs[l-argv1-bdev]='
+    local ${1:?}=\${1${2:-":?"}}
+    shift
+    test -b \"\$${1:?}\" || {
+      \$LOG warn \"${3:-\$base}\" \"Block device expected\" \"\" \$?
+      return ${4:-3}
+    }
+  '
+}
+
+# NOTE: to be able to use us_shell_alias_defs, make sure you always call with
+# fixed argument lengths to your templates.
+us_shell_alias_def ()
+{
+  local als_name=${1:?} als_tpl=${2:?}
+  shift 2
+  eval "alias $als_name=\"${uc_shell_alsdefs[$als_tpl]}\""
+}
+
+# Call us-shell-alias-def for each argv sequence (separated by '--')
+us_shell_alias_defs ()
+{
+  while test $# -gt 0
+  do
+    us_shell_alias_def "$@" || return
+    shift 2
+    while test "${1:-}" != "--"
+    do test $# -gt 0 || return 0
+      shift
+    done
+    shift
+  done
 }
 
 
