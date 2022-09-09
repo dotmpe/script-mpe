@@ -40,7 +40,6 @@ before_install:
 install:
   - export scriptname=install install_ts="$(date +%s)"
   - . ./tools/ci/parts/install.sh
-  - . ./tools/ci/env.sh
 
 before_script:
   - export scriptname="before-script" before_script_ts="$(date +%s)"
@@ -111,6 +110,7 @@ branches:
     # Because shippable does not handle the patterns correctly
     - test
     - dev
+    - '/^features\/.*$/'
     - '/^test.*$/'
     - '/^dev.*$/'
     - '/^[0-9]*\.[0-9]*\.[0-9]*/'
