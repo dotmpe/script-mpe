@@ -1,7 +1,7 @@
-redo-ifchange "$REDO_BASE/.git/index" "$REDO_BASE/.git/HEAD"
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Always means always. 
-# redo-always
+redo-ifchange "$REDO_BASE/.git/index" "$REDO_BASE/.git/HEAD"
 
 (
   cd "$REDO_BASE" &&

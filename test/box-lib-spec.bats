@@ -6,10 +6,11 @@ base=box.lib
 init
 
 
-setup() {
+setup()
+{
   test_lib=$SHT_PWD/var/sh-src-main-mytest-funcs.sh
   lib_load src &&
-  . $lib/tools/sh/box.env.sh &&
+  . $scriptpath/tools/sh/parts/env-box.sh &&
   lib_load box
   # XXX: I think this breaks BATS: bash -o posix && box_run_sh_test
   #bash -o posix

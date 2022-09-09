@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+shopt -s extdebug
+scriptname=sh-ci
+
+. "tools/ci/before-install.sh"
+
+. "tools/ci/install.sh"
+
+. "tools/ci/before.sh"
+
+. "tools/ci/script.sh" || sh_ci_script_status=$?
+
+. "tools/ci/before-cache.sh"
+
+if test ${sh_ci_script_status:-0} -eq 0
+then
+  TRAVIS_TEST_RESULT=1
+  . "tools/ci/after-success.sh"
+else
+  TRAVIS_TEST_RESULT=0
+  . "tools/ci/after-failure.sh"
+fi
+
+# Travis executes one after hook: either 'after', or one of 'after-{failure,success}'
+# . "tools/ci/after.sh"
+
+test ${sh_ci_script_status:-0} -eq 0 && ci_announce "$scriptname OK" || exit 1
+# Sync: U-S:
+# Id: Script.mpe/ sh-ci                                     ex:ft=bash:nowrap:

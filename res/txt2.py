@@ -14,19 +14,22 @@ Related modules:
 Further higehr level docs are in `res`, in the section on plain text items
 and lists.
 """
+import os
 import re
-from UserDict import UserDict
-from UserList import UserList
+#from collections import UserDict, UserList
 
 import zope.interface
-from zope.interface import Interface, Attribute, implements, classImplements
+from zope.interface import Interface, Attribute, implementer, classImplements
 
 from script_mpe import log
-import tp
-import dt
-import mb
-import task
+from . import tp
+from . import dt
+from . import mb
+from . import task
 
+
+
+re_idref = re.compile('([A-Z]+):')
 
 ### Interfaces with docs for line- and list-parser base
 
@@ -171,6 +174,7 @@ class AbstractTxtLineParser(object):
 
 ### Concrete example on line-parser base
 
+@implementer(ITxtLineParser)
 class ConcreteTxtLineParser(AbstractTxtLineParser):
 
     """
@@ -181,8 +185,6 @@ class ConcreteTxtLineParser(AbstractTxtLineParser):
     It has for a restrictive 1-part field-spec but with fall back to
     a default parse_field pass-through function for missing field handlers.
     """
-
-    implements(ITxtLineParser)
 
     def run_field_parse(self, text, onto, method):
         return self.run_or_default(method, text, onto)
@@ -524,14 +526,15 @@ class AbstractTxtListParser(object):
     # Load from local resources
 
     def _get_fl_src(self, fspec):
-        "Return a file-like with source-name"
+        "Return a file-like with initial size and source-name"
         if hasattr(fspec, 'read'):
             _fl = fspec
             name = fspec.name
         else:
             _fl = open( fspec )
             name = fspec
-        return _fl, name
+        size = os.path.getsize(name)
+        return _fl, size, name
 
     def load_file(self, fspec):
 
@@ -543,7 +546,7 @@ class AbstractTxtListParser(object):
 
     # Load lines, track parser context and instantiate items
 
-    def load(self, src, src_name='<string>'):
+    def load(self, src, src_size, src_name='<string>'):
 
         """
         Parse items from stream, yield instances from builder or line context
@@ -551,20 +554,28 @@ class AbstractTxtListParser(object):
 
         # TODO: extend parser context, some gate.content based parser with
         # offsets would be nice to refactor to.
-        ctx_init = dict(doc_name=src_name, line=0, doc_offset=0)
+        ctx_init = dict(index=0, line=0, doc_line=0, offset=0, doc_offset=0)
 
-        for itraw_str in src.readlines():
+        reader = Reader(src, src_size, src_name)
+        for itraw_str in reader.readlines():
 
             # Increment and prepare for new line, proc+skip for non-item lines
             ctx_init['line'] += 1
+            ctx_init['doc_line'] += 1
             itraw = itraw_str.decode('utf-8').strip()
-            if self._parse_non_item(itraw, ctx_init):
-                # XXX: further pre-/line-proc possible; for now store comments
+            if self._parse_non_item(itraw, ctx_init, reader):
+                # Non-items are not yielded but may be stored in line_contexts
+                # as comment, or XXX: further pre-/line-proc possible; for now store comments
                 continue
 
             # Increment and prepare state for line with new item
+            reader.update(ctx_init)
             ctx = ctx_init.copy()
-            ctx.update(dict( _raw=itraw_str, index=self.next_index ))
+            ctx.update(dict(
+                _raw=itraw_str,
+                index=self.next_index
+            ))
+
             self.line_contexts[ctx['line']] = ctx
             assert len(self.items) == ctx['index']
             self.items.append((ctx['line'], itraw_str, None, None))
@@ -579,7 +590,9 @@ class AbstractTxtListParser(object):
             # XXX: use of byte-offset, without tracking character width or the
             # amount of raw whitespace stripped limits use. Again, see
             # gate.content and Scrow for stream resource deref. and demuxing.
-            ctx['doc_offset'] += len(itraw_str)
+            itraw_len = len(itraw_str)
+            ctx_init['offset'] += itraw_len
+            ctx_init['doc_offset'] += itraw_len
 
     def parse(self, txtitem, ctx):
         """
@@ -598,15 +611,29 @@ class AbstractTxtListParser(object):
             text = self.parser.parse(txtitem, ctx['index'])
             return text, ctx
 
-    def _parse_non_item(self, itbare, ctx):
+    def _parse_non_item(self, itbare, ctx, reader):
         "Preprocess on trimmed line, allows to mark as non-item and skip parser"
         line = ctx['line']
         if not itbare:
             return True
         if itbare[0] == '#':
-            if itbare[0] == '# ': # Keep comments
+            if itbare[0:2] == '# ': # Keep comments
                 self.line_contexts[line] = ctx.copy()
                 self.line_contexts[line]['comment'] = itbare[2:]
+            else: # Replace directives
+                params = itbare.split(' ')
+                # XXX: Don't know if script_mpe has much of a resource resolver,
+                # so deferring ID decl. to env vars
+                fref = re_idref.sub(r'$\1/', params[1].strip('"'))
+                fn = os.path.expanduser(os.path.expandvars( fref ))
+                filext = os.path.splitext(fn)[1][1:]
+                if filext in ( 'list', 'txt', 'tab' ):
+                    reader.insert_src(*self._get_fl_src(fn))
+                    if len(params) > 2:
+                        reader.insert_suffix(' ' + ' '.join(params[2:]))
+                else:
+                    log.warn("Ignored non-list include: %s" % fn)
+
             return True
 
     def proc(self, item):
@@ -627,6 +654,78 @@ class AbstractTxtListParser(object):
         return len(self.items)
 
 
+class Reader:
+
+    """
+    A simple readline reader that works from a stack, for the parsers to use
+    to consume files with includes.
+
+    In addition allows simple line prefix/suffix parts.
+    """
+
+    def __init__(self, src, size, name):
+        self.srcs = [ src ] # Stack of sources to read from
+        self.sizes = [ size ]
+        self.names = [ name ]
+        self.prefixes = []
+        self.suffixes = []
+
+    def __len__(self):
+        return self.sizes[0]
+
+    @property
+    def prefix(self):
+        if self.prefixes:
+            return self.prefixes[0]
+
+    @property
+    def suffix(self):
+        if self.suffixes:
+            return self.suffixes[0]
+
+    @property
+    def name(self):
+        return self.names[0]
+
+    def insert_src(self, handle, filesize, name):
+        self.srcs.append(handle)
+        self.sizes.append(filesize)
+        self.names.append(name)
+
+    def pop(self):
+        self.srcs[0].close()
+        self.srcs.pop(0)
+        self.sizes.pop(0)
+        self.names.pop(0)
+        if self.suffixes: self.suffixes.pop(0)
+        if self.prefixes: self.prefixes.pop(0)
+
+    def readlines(self):
+        while len(self.srcs):
+            if self.srcs[0].tell() == self.sizes[0]:
+                self.pop()
+            else:
+                line = self.srcs[0].readline()
+                if line.strip():
+                    if self.prefix: line = self.prefix+line
+                    if self.suffix: line+=self.suffix
+                yield line
+
+    def update(self, ctx):
+        if 'doc_name' not in ctx:
+            ctx['doc_name'] = self.name
+        elif ctx['doc_name'] != self.name:
+            ctx['doc_name'] = self.name
+            ctx['doc_offset'] = 0
+            ctx['doc_line'] = 0
+
+    def insert_suffix(self, suffix):
+        self.suffixes.insert(0, suffix)
+
+    def insert_prefix(self, prefix):
+        self.prefixes.insert(0, prefix)
+
+
 ### Simple type for res.txt list-item instances
 
 class SimpleTxtLineItem(object):
@@ -645,10 +744,14 @@ class SimpleTxtLineItem(object):
         return "%s. %s" %( 1+self._index, self.text or repr(self._raw) )
     def __repr__(self):
         return "%s(%r)" % ( self.__class__.__name__, self.to_dict() )
-    def to_dict(self):
-        d = dict( text=self.text, _raw=self._raw)
-        for k in "doc_name line doc_offset index".split(' '):
-            if k in self.ctx:
+
+    KEYS = "offset line index doc_name doc_line doc_offset".split(' ')
+    def to_dict(self, keys=KEYS):
+        d = dict( text=self.text )
+        for k in keys:
+            if k == '_raw':
+                d[k] = self._raw
+            elif k in self.ctx:
                 d[k] = self.ctx[k]
         for f in self.parser.field_targets():
             assert f, f

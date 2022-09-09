@@ -1,0 +1,249 @@
+#!/bin/sh
+
+### Helper for desktop settings
+
+
+background () # ~ <-info>
+{
+  local act=${1:-info}; test $# -eq 0 || shift
+  case "$act" in
+    ( c|choose )
+          img=$(backgrounds preview) && background set "$img" ;;
+    ( i|info ) false ;; # TODO
+    ( s|set )
+          feh --bg-fill "$@" ;;
+    ( p|preview )
+          backgrounds preview "$@" ;;
+
+    ( * ) $LOG error ":$act" "No such action" "$act"; return 67 ;;
+  esac
+}
+
+backgrounds () # ~ <-list>
+{
+  local act=${1:-list}; test $# -eq 0 || shift
+  case "$act" in
+
+    ( l|list ) # List user's desktop background images
+        backgrounds_list ;;
+
+    ( p|preview ) # ~ [<Fzf-Opts...>] # Use fzf+feh to browse through images
+        local bg=${preview_bg:-}
+        # TODO: move to Chauvet dark/light theme files
+        test -n "$bg" || {
+          test "${CS:-dark}" = "dark" && bg="#1c1c1c" || bg="#dadada"
+        }
+        backgrounds_list | fzf-tmux \
+          --preview='feh --title feh-preview -B "'"$bg"'" -Z {} -.' \
+          --preview-window=0 "$@" ;;
+
+    ( * ) $LOG error ":$act" "No such action" "$1"; return 67 ;;
+  esac
+}
+
+backgrounds_list ()
+{
+  {
+    backgrounds_tag_find &&
+    backgrounds_dirs_find
+
+  } | remove_dupes
+}
+
+backgrounds_tag_find ()
+{
+  find "${PICTURES}" \( ! -path '*/.*' \) -ipath "*$user_bgtag*" -type f
+}
+
+backgrounds_dirs_find ()
+{
+  test $# -gt 0 || {
+    test -e "$BG_DIR" && set -- "$BG_DIR"
+    for d in /usr/share/backgrounds /usr/share/pixmaps/backgrounds
+    do
+      test ! -d "$d" || set -- "$@" "$d"
+    done
+    unset d
+  }
+  act=find_nonhidden_files p="" s="" foreach_do "$@"
+}
+
+find_nonhidden_files ()
+{
+  find "$1" \( ! -path '*/.*' \) -type f
+}
+
+get_bg () # ~ <Tags>...
+{
+  false
+  #image scale
+}
+
+# TODO: prepare fancy background
+background_set () # ~ <File> <Display>...
+{
+  fn="$1"
+  shift
+
+  . $US_BIN/system-display || return
+  . $US_BIN/xorg.lib.sh || return
+  #shellcheck disable=2046
+  #set -- $(display "$1") || return
+  #geom=$(display_info "$(display "$1")" | cut -d ' ' -f 2)
+  display_geom=$(mouse_display | cut -d ' ' -f 3)
+
+  . $US_BIN/image || return
+
+  echo display geom: $display_geom
+  geom=$(echo $display_geom | sed 's/+.*/+0+0/')
+
+  scale "$geom" "$fn" "scaled.jpg"
+  colorize "scaled.jpg" "tinted.jpg" "#000000" 95
+
+  return
+  #shellcheck disable=2068
+  for d in $@
+  do
+      display_setbg "$d" "$fn" "${BG_MODE:="fill"}"
+  done
+  unset fn d
+}
+
+screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
+{
+  dt=$(date --iso=sec)
+  # XXX: ~/.l/tmp is not a real TMP dir
+  tmpf="$HOME/.local/tmp/Screenshot $dt.png"
+
+  . $US_BIN/system-display || return
+
+  # shellcheck disable=SC2015
+  test $# -gt 0 && {
+
+    geom=$(display_info "$(display "$1")" | cut -d ' ' -f 2)
+  } || {
+
+    geom=$(mouse_display | cut -d ' ' -f 3)
+  }
+
+  test -n "$geom" || {
+    stdstat 123 "Cannot get geometry for display"
+  }
+
+  scrot "$tmpf"
+
+  # Async works better. Lots of segfaults.
+  #i3-msg "exec \"gnome-screenshot -f '$tmpf'\"" || return
+
+  while test ! -e "$tmpf"
+  do stdmsg '*info' "Waiting for file..."; sleep 3
+  done
+
+  . $US_BIN/image || return
+  outf="$HOME/.local/tmp/Screenshot $dt-$geom.png"
+  crop "$geom" "$tmpf" "$outf"
+
+  rm "$tmpf"
+  mv "$outf" ~/Pictures/
+  stdmsg '*note' "Moved screenshot $dt to Pictures"
+}
+
+switch_cs ()
+{
+  test $CS = "light" && {
+    theme Greybird
+
+    # Dark Ivy bg for nice high contrast during day
+    background set \
+        /usr/share/backgrounds/gnome/Dark_Ivy.jpg
+
+    # or something sunny or related to weather?
+      #/home/hari/Pictures/Backgrounds/924665-vertical-sunny-day-background-1920x1200-large-resolution.jpg
+
+    true
+  } || {
+    theme Greybird-dark
+
+    background set \
+      /home/hari/Pictures/Aesthetics/Backgrounds/31313-full_4-things-you-can-never-recover-tom-b.jpg
+  }
+}
+
+theme ()
+{
+  desktop_conf || return
+  dash $LOG info "" "Using conf manager" "$DESKTOP_CONF"
+  "${DESKTOP_CONF}"_widget_theme "$@"
+}
+
+list_themes ()
+{
+  list_widget_themes
+}
+
+
+## User-script parts
+
+user_desktop_maincmds="backgrounds help screenshots themes version"
+user_desktop_shortdescr='User desktop tools.'
+
+#shellcheck disable=1091 # env.sh and .meta.sh do not need to exist
+user_desktop_loadenv ()
+{
+  test -e "${DISP_CONFIG_DIR:="$HOME/.config/display"}/env.sh" && {
+    . "${DISP_CONFIG_DIR}/env.sh"
+  }
+  test -e "${BG_DIR:="$HOME/Pictures/Backgrounds"}/.meta.sh" && {
+    . "${BG_DIR}/.meta.sh"
+  }
+  user_desktop_defaults
+}
+
+user_desktop_aliasargv ()
+{
+  case "$1" in
+      ( b|bg ) shift; set -- background "$@" ;;
+      ( bgs ) shift; set -- backgrounds "$@" ;;
+      ( preview ) shift; set -- backgrounds preview "$@" ;;
+      ( switch-cs ) shift; set -- switch_cs "$@" ;;
+      ( set-bg ) shift; set -- background set "$@" ;;
+      ( themes ) shift; set -- list_themes "$@" ;;
+      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  esac
+}
+
+user_desktop_defaults ()
+{
+  true "${PICTURES:=$HOME/Pictures}"
+  true "${BG_DIR:=$PICTURES/Backgrounds}"
+  true "${user_bgtag:="background"}"
+}
+
+
+# Main entry (see user-script.sh for boilerplate)
+
+test -n "${user_script_loaded:-}" || {
+
+  #shellcheck source=user-script.sh
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
+
+  #shellcheck source=sys-htd.lib.sh
+  . $US_BIN/sys-htd.lib.sh
+
+  #shellcheck source=desktop.lib.sh
+  . $US_BIN/desktop.lib.sh
+
+  #shellcheck source=xorg.lib.sh
+  . $US_BIN/xorg.lib.sh
+}
+
+! script_isrunning "user-desktop" || {
+  # Pre-parse arguments
+  script_fun_xtra_defarg=user_desktop_aliasargv
+  script_xtra_defarg=aliasargv
+  eval "set -- $(user_script_defarg "$@")"
+}
+
+script_entry "user-desktop" "$@"
+#

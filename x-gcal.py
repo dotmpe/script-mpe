@@ -1,8 +1,11 @@
 #!/usr/bin/env python
+# Created: 2015-12-27
+# Updated: 2020-07-30
 from __future__ import print_function
-__doc__ = """
-:created: 2015-12-27
-
+__description__ = 'x-gcal Google Calendar API Python CLI'
+__version__ = '0.0.4-dev' # script-mpe
+__usage__ = """
+Experimental Google Calendar
 
 Usage:
     gcal [options] list-upcoming [<num> [<calId> [<timeargs>...]]]
@@ -10,91 +13,58 @@ Usage:
     gcal [options] happening-now <calId> <before> <after>
     gcal [options] delete-calendar <calId>
     gcal [options] insert-calendar <kwargs>...
+    gcal [options] login [--valid]
+    gcal help | --help
+    gcal --version
 
 Options:
   -q, --quiet   Quiet operations
   -s, --strict  Strict operations
-  -S --secret CLIENT_SECRET_FILE
-                JSON formatted credentials.
-  --help
-                Show help
-  --version
-                Show version
-"""
-"""
-FIXME: gcal auth
-from tools.argparser for argparse.ArgumentParser
-gcal.py [-h] [--auth_host_name AUTH_HOST_NAME]
-[--noauth_local_webserver]
-[--auth_host_port [AUTH_HOST_PORT [AUTH_HOST_PORT...]]]
-[--logging_level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-"""
+  -S, --secret CLIENT_ID_FILE
+                JSON formatted client secret (credentials).
+  -T, --token CLIENT_TOKEN_FILE
+                Pickled client token (validated credentials).
+  --print-memory
+                Print memory usage just before program ends.
 
-import httplib2
+"""
 import os
 from pprint import pprint, pformat
-
-from apiclient import discovery
-import oauth2client
-from oauth2client import client
-from oauth2client import tools
 
 import datetime
 from datetime import timedelta
 from datetime import datetime
 
-from script_mpe import libcmd_docopt
+from script_mpe import libcmd_docopt, libgapi_mpe
 import confparse
 
 
-#import argparse
-#flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
-flags = confparse.Values(dict(
-        logging_level= 'INFO',
-        noauth_local_webserver= False
-    ))
+CLIENT_ID_FILE = os.path.expanduser('~/.local/etc/token.d/google/x-script-mpe/credentials.json')
+CLIENT_TOKEN_FILE = os.path.expanduser('~/.local/etc/token.d/google/x-script-mpe/credentials-gcal.pickle')
+
+SCOPES_RO = ['https://www.googleapis.com/auth/calendar.readonly']
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 
-#SCOPES = 'https://www.googleapis.com/auth/calendar.readonly'
-SCOPES = 'https://www.googleapis.com/auth/calendar'
+def gcal_defaults(opts, init={}):
+    libcmd_docopt.defaults(opts)
 
-# XXX: cleanup
-#CLIENT_SECRET_FILE = 'client_secret.json'
-#CLIENT_SECRET_FILE = os.getenv('GSPREAD_CREDS_JSON')
-#CLIENT_SECRET_FILE = "/Users/berend/.local/etc/simza-script-d2efacfe6f41.json"
-TOKEN_D = os.path.expanduser('~/.local/etc/tokens.d')
-CLIENT_SECRET_FILE = TOKEN_D+"/script-gspread-banded-lexicon-d2efacfe6f41.json"
+    if not opts.cmds:
+        opts.cmds = ['list']
 
-#if not os.path.exists(CLIENT_SECRET_FILE):
-#    raise Exception("Missing CLIENT_SECRET_FILE=%r" % CLIENT_SECRET_FILE)
+    if not opts.flags.secret:
+        if 'GCAL_JSON_CLIENT_ID_FILE' in os.environ:
+            opts.flags.secret = os.environ['GCAL_JSON_CLIENT_ID_FILE']
+        else:
+            opts.flags.secret = CLIENT_ID_FILE
 
-CRED_FILE = os.path.expanduser('~/.local/etc/x-gcal-creds.json')
-#CRED_FILE = "/usr/local/lib/python2.7/site-packages/gtasks/credentials.json"
+    if not opts.flags.token:
+        if 'GCAL_TOKEN_FILE' in os.environ:
+            opts.flags.token = os.environ['GCAL_TOKEN_FILE']
+        else:
+            opts.flags.token = CLIENT_TOKEN_FILE
 
-
-APPLICATION_NAME = 'Google Calendar API Python Quickstart'
-
-
-def get_credentials(app_name, secret_file, credential_path, scopes):
-    """Gets valid user credentials from storage.
-
-    If nothing has been stored, or if the stored credentials are invalid,
-    the OAuth2 flow is completed to obtain the new credentials.
-
-    Returns:
-        Credentials, the obtained credential.
-    """
-
-    store = oauth2client.file.Storage(credential_path)
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-    #except oauth2client.clientsecrets.InvalidClientSecretsError:
-        flow = client.flow_from_clientsecrets(secret_file, scopes)
-        flow.user_agent = app_name
-        #credentials = tools.run(flow, store)
-        credentials = tools.run_flow(flow, store, flags)
-        print('Storing credentials to ' + credential_path)
-    return credentials
+    return init
 
 def kwargs(*args):
     kwds = dict([ k.split('=') for k in args ])
@@ -116,15 +86,16 @@ def td2dt(timedelta, time=datetime.utcnow()):
 
 ## Sub-cmd handlers
 
-def H_list(service, opts):
-    r = service.calendarList().list().execute()
+def cmd_list(g, opts):
+    r = g.services.calendar.calendarList().list().execute()
 
+    service = g.services.calendar
     for i in r['items']:
         id = i['id']
         print(id, pformat(service.calendarList().get(calendarId=id).execute()))
 
 
-def H_insert_calendar(service, opts):
+def cmd_insert_calendar(g, opts):
 
     # XXX: read args to json
     kwds = dict([ k.split('=') for k in opts.args.kwargs ])
@@ -136,13 +107,13 @@ def H_insert_calendar(service, opts):
         elif v.isdigit():
             kwds[k] = int(v)
 
-    print(service.calendars().insert(body=kwds).execute())
+    print(g.services.calendar.calendars().insert(body=kwds).execute())
 
-def H_delete_calendar(service, opts):
-    print(service.calendars().delete(calendarId=opts.args.calId).execute())
+def cmd_delete_calendar(g, opts):
+    print(g.services.calendar.calendars().delete(calendarId=opts.args.calId).execute())
 
 
-def H_happening_now(service, opts):
+def cmd_happening_now(g, opts):
 
     if not opts.args.calId:
         opts.args.calId = 'primary'
@@ -152,7 +123,7 @@ def H_happening_now(service, opts):
     earlier = timedelta(**kwargs(opts.args.before or 'hours=1'))
     later = timedelta(**kwargs(opts.args.after or 'hours=1'))
 
-    eventsResult = service.events().list(
+    eventsResult = g.services.calendar.events().list(
         calendarId=opts.args.calId,
         timeMin=td2dt(earlier),
         timeMax=td2dt(later),
@@ -168,7 +139,7 @@ def H_happening_now(service, opts):
         print(start, event['summary'])
 
 
-def H_list_upcoming(service, opts):
+def cmd_list_upcoming(g, opts):
 
     if not opts.args.calId:
         opts.args.calId = 'primary'
@@ -181,7 +152,7 @@ def H_list_upcoming(service, opts):
     later = ( datetime.utcnow() + timedelta(**tdargs) ).isoformat() + 'Z'
     print(now, later)
 
-    eventsResult = service.events().list(
+    eventsResult = g.services.calendar.events().list(
         calendarId=opts.args.calId,
         timeMin=now, timeMax=later,
         maxResults=opts.args.num,
@@ -196,33 +167,27 @@ def H_list_upcoming(service, opts):
         print(start, event['summary'])
 
 
-handlers = {}
-for k, h in locals().items():
-    if not k.startswith('H_'):
-        continue
-    handlers[k[2:].replace('_', '-')] = h
+commands = libcmd_docopt.get_cmd_handlers_2(globals(), 'cmd_')
+commands.update(libcmd_docopt.command_handlers)
+commands.update(libgapi_mpe.command_handlers)
 
+def gcal_main(opts):
+    g = opts.flags
+    g.credentials = libgapi_mpe.load_secrets(opts.flags.token)
+    libgapi_mpe.get_services(g, 'calendar')
+    ret = libcmd_docopt.run_commands(commands, g, opts)
+    if g.print_memory:
+        libcmd_docopt.cmd_memdebug(g)
+    return ret
 
-def main(func=None, opts=None):
-    """Shows basic usage of the Google Calendar API.
-    """
-    credentials = get_credentials(APPLICATION_NAME, opts.flags.secret,
-            CRED_FILE, SCOPES)
-    http = credentials.authorize(httplib2.Http())
-    service = discovery.build('calendar', 'v3', http=http)
-
-    return handlers[func](service, opts)
-
+def gcal_version():
+    return 'x-gcal.mpe/%s' % __version__
 
 
 if __name__ == '__main__':
     import sys
-    opts = libcmd_docopt.get_opts(__doc__)
-    if not opts.cmds:
-        opts.cmds = ['list']
-    if not opts.flags.secret:
-        if 'GCAL_JSON_SECRET_FILE' in os.environ:
-            opts.flags.secret = os.environ['GCAL_JSON_SECRET_FILE']
-        else:
-            opts.flags.secret = CLIENT_SECRET_FILE
-    sys.exit( main( opts.cmds[0], opts ) )
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+    opts = libcmd_docopt.get_opts(__description__+'\n'+__usage__,
+            version=gcal_version(), defaults=gcal_defaults)
+    sys.exit( gcal_main( opts ) )

@@ -1,0 +1,36 @@
+#!/bin/sh
+set -e
+
+unset  U_S  LOG  INIT_LOG  SCRIPTPATH
+
+: "${U_S:="$HOME/project/user-scripts"}"
+: "${LOG:="$U_S/tools/sh/log.sh"}"
+: "${INIT_LOG:="$LOG"}"
+
+export  U_S  LOG  INIT_LOG
+export verbosity=7
+. $U_S/tools/sh/init.sh
+note OK
+
+lib_load build-test
+build_test_init
+
+
+load extra
+load vc-setup
+
+vc_setup_clean_git && gitdir=$tmpd
+vc_setup_submodule && sm1=$tmpd
+vc_setup_submodule my-docs && sm2=$tmpd
+echo OK
+
+CWD= RCWD= PCWD=
+pwd
+git submodule foreach
+git submodule foreach | sed "s/.*'\(.*\)'.*/\1/"
+vc_git_submodules
+
+rm -rf "$gitdir" "$sm1" "$sm2" "$BATS_TMPDIR"
+echo Done
+
+# Sync: U-S: vim:ft=bash:

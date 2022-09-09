@@ -1,0 +1,4 @@
+# App-Id/-Ver        Symbol                   Canonical-Path  Real-Path...    #
+App/Ver-Id           App-A                    /srv/app/A
+Symbol/              App-B                    /srv/app/B
+App2/                App                      /srv/app

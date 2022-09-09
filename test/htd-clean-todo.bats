@@ -1,12 +1,21 @@
 #!/bin/bash
 
-load helper
-
+base=htd\ clean
+load init
 
 setup()
 {
-  tmpd=/tmp/htd-clean-spec
-  test ! -e $tmpd || rm -rf $tmpd
+  init && lib_load setup-sh-tpl &&
+  setup_sh_tpl "$" "" "$tmpd"
+}
+
+
+@test "htd-clean/foo" {
+  set | grep -i bats >/tmp/bats.env
+}
+
+
+@test "$base " {
 
   test -e ~/Downloads && {
     mkdir $tmpd

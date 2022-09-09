@@ -55,11 +55,11 @@ tasks__trc_list()
         tag_sed="s/^(.*[[:punct:][:space:]])?($( echo $@ | sed 's/\ /|/g' ))[\\ :-]?([0-9]*).*/\\2\\ \\3/"
     }
   }
-  info "Grep: '$tag_grep'"
-  info "Sed: '$tag_sed'"
-  info "Hub: '$tasks_hub'"
-  info "Slug: '$todo_slug'"
-  info "Docs: '$todo_document  $todo_done'"
+  std_info "Grep: '$tag_grep'"
+  std_info "Sed: '$tag_sed'"
+  std_info "Hub: '$tasks_hub'"
+  std_info "Slug: '$todo_slug'"
+  std_info "Docs: '$todo_document  $todo_done'"
   # Run grep/sed
   test -n "$tag_sed" && {
     eval "grep -nHsrI '$tag_grep' $tasks_hub $todo_document $todo_done" |

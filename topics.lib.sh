@@ -3,7 +3,6 @@
 
 # Topics
 
-
 topics_lib_load()
 {
     true
@@ -18,11 +17,15 @@ create_topics()
   topic new $(basename $1) $(basename $(dirname $1))
 }
 
+topics_list()
+{
+  htd_topics_list "$@"
+}
 
 # XXX: find local documents, extract topics
 htd_topics_list()
 {
-  local find_ignores="$(find_ignores "$IGNORE_GLOBFILE")"
+  local find_ignores="$(ignores_find "$IGNORE_GLOBFILE")"
   eval local $(map=package_ext_topics_:topics_  package_sh  id  roots )
   test -n "$topics_roots" || topics_roots=.
 

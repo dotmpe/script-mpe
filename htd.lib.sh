@@ -1,16 +1,60 @@
 #!/bin/sh
+# Created: 2016-01-09
+# Htd support lib, see also htd-* libs
 
 
 htd_lib_load()
 {
-  test -n "$NS_NAME" || NS_NAME=bvberkum
-  lib_load htd-project
+  test -n "${NS_NAME-}" || NS_NAME=dotmpe
 }
 
 
+# Set XSL-Ver if empty. See htd tpaths
+htd_load_xsl()
+{
+  test -z "${xsl_ver-}" && {
+    test -x "$(which saxon)" && xsl_ver=2 || xsl_ver=1
+  }
+  test xsl_ver != 2 -o -x "$(which saxon)" ||
+      $LOG error "" "Saxon required for XSLT 2.0" "" 1
+  $LOG info "" "Set XSL proc version=$xsl_ver.0"
+}
+
+htd_xproc()
+{
+  {
+    fnmatch '<* *>' "$2" && {
+
+      xsltproc --novalid - $1 <<EOM
+$2
+EOM
+    } || {
+      xsltproc --novalid $2 $1
+    }
+  # remove XML prolog:
+  } | tail -n +2 | grep -Ev '^(#.*|\s*)$'
+}
+
+htd_xproc2()
+{
+  {
+    fnmatch '<* *>' "$2" && {
+      # TODO: hack saxon to ignore offline DTD's
+      # https://www.scriptorium.com/2009/09/ignoring-doctype-in-xsl-transforms-using-saxon-9b/
+      saxon - $1 <<EOM
+$2
+EOM
+    } || {
+      test -e "$1" || error "no file for saxon: '$1'" 1
+      saxon -dtd "$1" "$2" || return $?
+    }
+  # remove XML prolog:
+  } | cut -c39-
+}
+
 htd_relative_path()
 {
-  cwd=$(pwd)
+  cwd=$PWD
   test -e "$1" && {
     x_re "${1}" '\/.*' && {
       error "TODO make rel"
@@ -40,13 +84,13 @@ htd_report()
   # leave htd_report_result to "highest" set value (where 1 is highest)
   htd_report_result=0
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
 
       passed )
           test $passed_count -gt 0 \
-            && info "Passed ($passed_count): $passed_abbrev"
+            && std_info "Passed ($passed_count): $passed_abbrev"
         ;;
 
       skipped )
@@ -142,7 +186,7 @@ htd_repository_url() # Remote Url
 {
   local remote_hostinfo= remote_dir= remote_id= domain=
 
-  info "Getting local references for repo '$1' with URL '$2'"
+  std_info "Getting local references for repo '$1' with URL '$2'"
 
   fnmatch "*.*" "$1" && {
       remote_id="$(echo $1 | cut -f1 -d'.')"
@@ -150,10 +194,10 @@ htd_repository_url() # Remote Url
     }
 
   test -n "$remote_id" || {
-    test ! -e $UCONFDIR/etc/git/remotes/$remote.sh || remote_id=$remote
+    test ! -e $UCONF/etc/git/remotes/$remote.sh || remote_id=$remote
   }
   test -z "$remote_id" || {
-    . $UCONFDIR/etc/git/remotes/$remote_id.sh
+    . $UCONF/etc/git/remotes/$remote_id.sh
   }
   test -n "$domain" || domain=$remote_id
 
@@ -173,13 +217,13 @@ htd_repository_url() # Remote Url
 
   } || {
 
-    #{ test -e $UCONFDIR/etc/git/remotes/$domain.sh ||
+    #{ test -e $UCONF/etc/git/remotes/$domain.sh ||
     #  fnmatch "/*" "$2" || fnmatch "~/*" "$2"
     #} || return
     #url="$domain:$2"
 
     # No namespacing in remote name,
-    # prefix remote-dirs if not local
+    # prefix remote Id if not local
     test -n "$remote_id" && {
       { fnmatch "*:*" "$2" || test "$remote" = "$hostname"
       } || {
@@ -302,56 +346,14 @@ htd_filter() # [type_= expr_= mode_= ] [Path...]
   act=act_ no_act=no_act_ foreach_do "$@"
 }
 
-
-# Take an REST url and go request
-htd_resolve_paged_json() # URL Num-Query Page-query
-{
-  test -n "$1" -a "$2" -a "$3" || return 100
-  local tmpd=/tmp/json page= page_size=
-  mkdir -p $tmpd
-  page_size=$(eval echo \$$2)
-  page=$(eval echo \$$3)
-  case "$1" in
-    *'?'* ) ;;
-    * ) set -- "$1?" "$2" "$3" ;;
-  esac
-
-  test -n "$page" || page=1
-  while true
-  do
-    note "Requesting '$1$2=$page_size&$3=$page'..."
-    out=$tmpd/page-$page.json
-    curl -sSf "$1$2=$page_size&$3=$page" > $out
-    json_list_has_objects "$out" || { rm "$out" ; break; }
-    info "Fetched $page <$out>"
-    page=$(( $page + 1 ))
-  done
-
-  note "Finished downloading"
-  test -e "$tmpd/page-1.json" || error "Initial page expected" 1
-  count="$( echo $tmpd/page-*.json | count_words )"
-  test "$count" = "1" && {
-    cat $tmpd/page-1.json
-  } || {
-    jsotk merge --pretty - $tmpd/page-*.json
-  }
-  rm -rf $tmpd/
-}
-
-json_list_has_objects()
-{
-  jsotk -sq path $out '0' --is-obj || return
-  #jq -e '.0' $out >>/dev/null || break
-}
-
 # Given ID, look for shell script with function
 htd_function_comment() # Func-Name [ Script-Path ]
 {
   upper= mkvid "$1" ; shift ; set -- "$vid" "$@"
   test -n "$2" || {
     # TODO: use SCRIPTPATH?
-    #set -- "$1" "$(first_match=1 find_functions "$1" $scriptpath/*.sh)"
-    set -- "$1" "$(first_match=1 find_functions "$1" $(git ls-files | grep '\.sh$'))"
+    #set -- "$1" "$(first_match=1 functions_find "$1" $scriptpath/*.sh)"
+    set -- "$1" "$(first_match=1 functions_find "$1" $(git ls-files | grep '\.sh$'))"
   }
   file="$2"
   test -n "$2" || { error "No shell scripts for '$1'" ; return 1; }
@@ -373,9 +375,9 @@ htd_function_help()
 # Find paths, follow symlinks below, print relative paths.
 htd_find() # Dir [ Namespec ]
 {
-  test -n "$find_match" || find_match="-type f -o -type l"
-  test -n "$find_ignores" || find_ignores="-false $(find_ignores $IGNORE_GLOBFILE)"
-  test -n "$1" || set -- "$(pwd)"
+  test -n "${find_match-}" || local find_match="-type f -o -type l"
+  test -n "${find_ignores-}" || local find_ignores="-false $(ignores_find $IGNORE_GLOBFILE)"
+  test -n "$1" || set -- "$PWD"
   match_grep_pattern_test "$1"
   {
     test -z "$2" \
@@ -428,128 +430,6 @@ htd_expand()
   }
 }
 
-htd_edit_today()
-{
-  test -n "$EXT" || EXT=.rst
-  local pwd="$(normalize_relative "$go_to_before")" arg="$1"
-
-  # Evaluate package env if local manifest is found
-  test -n "$PACKMETA_SH" -a -e "$PACKMETA_SH" && {
-    #. $PACKMETA_SH || error "Sourcing package Sh" 1
-    eval local $(map=package_pd_meta_: package_sh \
-      log log_path log_title log_entry log_path_ysep log_path_msep log_path_dsep) >/dev/null
-  }
-
-  # Handle arguments wether log-file or cabinet-path/archive-dir
-  test -n "$1" || {
-    # If no argument given start looking for standard LOG file/dir path
-    test -n "$log" && {
-      # Default for local project
-      set -- $log
-    } || {
-      # Default for Htdir
-      set -- $JRNL_DIR/
-      log="$JRNL_DIR"
-    }
-  }
-  fnmatch "*/" "$1" && {
-    test -e "$1" || error "unknown dir $1" 1
-    jrnldir="$(strip_trail "$1")"
-    shift
-    set -- "$jrnldir" "$@"
-  } || {
-    # Look for here and in pwd, or create in pwd; if ext matches filename
-    test -e "$1" || set -- "$pwd/$1"
-    test -e "$1" || fnmatch "*$EXT" "$1"  && touch $1
-    # Test in htdir with ext
-    test -e "$1" || set -- "$arg$EXT"
-    # Test in pwd with ext
-    test -e "$1" || set -- "$pwd$1$EXT"
-    # Create in pwd (with ext)
-    test -e "$1" || touch $1
-  }
-
-  test "$EDITOR" = 'vim' && {
-    test -d .cllct/tmp || mkdir -p .cllct/tmp/
-    # Two columns, two h-splits each
-    { printf -- \
-      "+vs\n:sp\nwincmd j\n:bn\nwincmd l\n:bn\n:sp\n:bn\nwincmd j\n:bn\n:bn\n"
-      printf -- "wincmd h\nwincmd k\nwincmd =\n"
-    } > .cllct/tmp/edit-today.vimcmd
-    evoke="-c 'source .cllct/tmp/edit-today.vimcmd'"
-  }
-
-  note "Editing $1"
-  # Open of dir causes several symlinks and files for days/periods etc. to be generated
-  test -d "$1" && {
-    {
-      # FIXME: order files some way, cksums should have exact same sequence
-
-      # Prepare todays' day-links (including weekday and next/prev week)
-      test -n "$log_path_ysep" || log_path_ysep="/"
-      files=''
-      htd_jrnl_day_links "$1" "$log_path_ysep" "$log_path_msep" "$log_path_dsep"
-
-      # TODO: And summaries for current week, month, and year
-      files="$files $(htd_jrnl_period_links "$1" "$log_path_ysep")"
-      note "Files: $files"
-
-      # FIXME: need offset dates from file or table with values to initialize docs
-
-      # Prepare and edit, but only todays file and linked indices
-      today="$(realpath "$1${log_path_ysep}today$EXT")"
-      test -s "$today" || {
-        # %U     week number of year, with Sunday as first day of week (00..53)
-        # %V     ISO week number, with Monday as first day of week (01..53)
-        test -n "$log_title" || log_title="%A %G.%V"
-        title="$(date_fmt "" "$log_title")"
-        htd_rst_doc_create_update "$today" "$title" title created default-rst \
-            link-stats
-      }
-      # Prepare linked indices
-      htd_rst_doc_create_update "$today" "" link-day
-
-      htd_edit_and_update $(realpaths \
-          $1/today$EXT  \
-          $1/week$EXT   \
-          $1/month$EXT  \
-          $1/year$EXT   \
-        ) $files
-
-    } || {
-      error "during edit of $1 ($?)" 1
-    }
-
-  } || {
-    # Open of archive file cause day entry added
-    {
-      local date_fmt="%Y${log_path_msep}%m${log_path_dsep}%d"
-      local today="$(date_fmt "" "$date_fmt")"
-      grep -qF $today $1 || printf "$today\n  - \n\n" >> $1
-      $EDITOR $evoke $1
-      git add $1
-    } || {
-      error "err file $?" 1
-    }
-  }
-}
-
-htd_edit_week()
-{
-  test -n "$1" || set -- log
-  #git add $1/[0-9]*-[0-9][0-9]-[0-9][0-9].rst
-  htd__this_week "$1"
-  week=$(realpath $1/week.rst)
-  test -s "$week" || {
-    title="$(date_fmt "" '%G.%U')"
-    htd_rst_doc_create_update "$week" "$title" week created default-rst
-  }
-  # FIXME: bashism since {} is'nt Bourne Sh, but csh and derivatives..
-  FILES=$(bash -c "echo $1/{week,last-week,next-week}$EXT")
-  htd_edit_and_update $(realpath $FILES)
-  #FILES=$(bash -c "echo $1/{today,tomorrow,yesterday}$EXT")
-  #htd_edit_and_update $1 #$(realpath $FILES)
-}
 
 htd_edit_main()
 {
@@ -602,19 +482,6 @@ htd_edit_note()
   htd_edit_and_update $note
 }
 
-archive_pairs()
-{
-  trueish "$now" && prefix="$(date +%Y/%m/%d)-" || prefix=''
-  while read _S
-  do
-    trueish "$now" ||
-        prefix=$(date_flags="-r $(filemtime "$1")" date_fmt "" %Y/%m/%d-)
-    echo "$CABINET_DIR/$prefix$_S"
-    shift
-  done
-}
-
-
 gitrepos()
 {
   test -n "$repos" && { test -z "$*" || error no-args-expected 41
@@ -631,57 +498,78 @@ gitrepos()
 
 
 # Given context or path with context, load ctx lib and run action.
-htd_wf_ctx_sub()
+htd_wf_ctx_sub () # Flow-Id Tag-Refs...
 {
-  upper=0 mkvid "$1" ; shift ; flow="$vid"
+  local flow; upper=0 mkvid "$1" ; shift ; flow="$vid"
+  test -n "${ctx_base-}" || local ctx_base=${base}_ctx__
+
+  $LOG info "htd-workflow" "Init for '$flow' action" "$*"
   htd_current_context "$@" || return $?
+
+  $LOG debug "htd-workflow" "Primary context" "$primctx ${primctx_id}/${primctx_sid}"
   # Load/run action on primary context
-  lib_load ctx-${primctx_id}
-  ctx_${primctx_id}_init "$@"
+  lib_require context-uc ctx-${primctx_sid} || return
+  func_exists ctx_${primctx_sid}_lib_init && {
+    $LOG info "htd-workflow" "" "ctx-${primctx_id}-init $*"
+    ctx_${primctx_sid}_lib_init "$@" || {
+      $LOG error "" "context lib init failed for '$primctx_sid'" "$*" 1
+      return 1
+    }
+  }
   #try_context_actions current std base
-  htd_ctx__${primctx_id}__${flow} "$@"
+  #$LOG info "htd-workflow" "Running '${flow}'" "${ctx_base}${primctx_sid}__${flow} $*"
+  #${ctx_base}${primctx_sid}__${flow} "$@" &&
+#      $LOG note "htd-workflow" "Finished '${flow}'" "${ctx_base}${primctx_sid}__${flow} $*"
+
+  context_cmd_seq $flow -- "$@"
 }
 
 
-htd_context()
+# Get primary context...
+htd_current_context ()
 {
-  test -n "$package_lists_contexts_default" || package_lists_contexts_default=@Std
-  test -n "$1" || set $package_lists_contexts_default
-  ctx="$1"
-  # Remove '@'
-  primctx="$(echo "$1" | cut -f 1 -d ' ')"
-  upper=0 mkvid "$(echo "$primctx" | cut -c2-)"
-  primctx_id="$vid"
-}
-
-htd_current_context()
-{
-  test -n "$1" && {
+  test -n "${1-}" && {
     test -e "$1" && {
-      context_exists "$1" && {
-        context_tag_env "$1"
-        htd_context @$tag_id $rest
+      context_exists_tag "$1" && {
+        context_tag_env "$1" &&
+        contexttab_init @$tag_id $rest
         return $?
       }
-      context_existsub "$1" && {
-        context_subtag_env "$1"
-        htd_context @$tag_id $rest
+      context_exists_subtagi "$1" && {
+        context_subtag_env "$1" &&
+        contexttab_init @$tag_id $rest
         return $?
       }
     }
     fnmatch "@*" "$1" && {
-      htd context exists $(echo "$1" | cut -c2-) || return $?
-      htd_context "$1"
+      context_exists_tag $(echo "$1" | cut -c2-) || {
+        $LOG error "" "No such tag" "$1" $?
+        return $?
+      }
+      contexttab_init "$1"
       return $?
     }
     fnmatch "+*" "$1" && {
-      htd_project_exists $(echo "$1" | cut -c2-) || return $?
+      htd_project_exists $(echo "$1" | cut -c2-) || {
+        $LOG error "" "No such project" "$1" $?
+        return $?
+      }
       test "$package_id" = "$project_id" || error TODO 1
       # TODO: get primctx for other package
       #( cd "...$1" && htd context ... )
-      htd_context "$package_lists_contexts_default"
+      contexttab_init "$package_lists_contexts_default"
       return $?
     }
   }
-  htd_context
+  contexttab_init
 }
+
+
+htd_init_etc()
+{
+  lst_init_etc
+  #XXX: test ! -e .conf || echo .conf
+  #test ! -e $UCONF/htd || echo $UCONF
+}
+
+# Id: script-mpe/0.0.4-dev ht.sh

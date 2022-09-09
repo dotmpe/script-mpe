@@ -1,18 +1,15 @@
 #!/usr/bin/env bats
 
 load init
-load vc
 base=vc.lib
-
-init
 
 setup()
 {
-  . ./vc.sh load-ext &&
-  . ./util.sh load-ext &&
-  lib_load os sys str std match vc &&
-  . ./vc.sh &&
-  setup_clean_git
+  init && load vc-setup &&
+  __load_lib=1 . ./vc.sh &&
+  lib_load match vc-htd &&
+  #. ./vc.sh &&
+  vc_setup_clean_git
 }
 
 @test "${base}: vc_dir/vc_gitdir - reports GIT dir in GIT checkout" {
@@ -89,9 +86,9 @@ setup()
   #test_ok_empty || stdfail 1
   
   TODO  cleanup
-  git remote add origin git@github.com:bvberkum/script-mpe.git
+  git remote add origin git@github.com:dotmpe/script-mpe.git
   run __vc_gitrepo
-  test_ok_nonempty "bvberkum/script-mpe" || stdfail 2
+  test_ok_nonempty "dotmpe/script-mpe" || stdfail 2
 }
 
 # vim:ft=sh:

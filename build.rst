@@ -84,3 +84,67 @@ build.lib.sh
 Dependency based build system
 -----------------------------
 
+
+Travis
+-----------
+Sequence
+
+- [Apt, Services, Clone+Submodules, Env, Cache setup]
+- (Before) Install
+- (Before) Script
+- After Success, Failure
+- After Script
+- Before Cache
+
+# Travis env:
+# TRAVIS_TIMER_ID=(hex)
+# TRAVIS_TIMER_START_TIME=1544134348250991906
+#                         1544136294. ie. split at end-9
+# TRAVIS_TEST_RESULT=(0|...)
+# TRAVIS_COMMIT
+# TRAVIS_LANGUAGE=(python|...)
+# TRAVIS_INFRA=(gce|...)
+# TRAVIS_DIST=(trusty|...)
+# TRAVIS_BUILD_STAGE_NAME=?
+# TRAVIS_PULL_REQUEST=(true|false)
+# TRAVIS_STACK_TIMESTAMP=(ISO DATETIME)
+# TRAVIS_JOB_WEB_URL=https://travis-ci.org/dotmpe/script-mpe/jobs/$TRAVIS_JOB_ID
+# TRAVIS_BUILD_WEB_URL=https://travis-ci.org/dotmpe/script-mpe/builds/$TRAVIS_BUILD_ID
+# TRAVIS_BUILD_NUMBER=[1-9][0-9]*
+# TRAVIS_JOB_NUMBER=$BUILD_NUMBER.[1-9][0-9]*
+# TRAVIS_BUILD_ID=[1-0][0-9]*
+# TRAVIS_JOB_ID=[1-0][0-9]*
+
+Logging
+-------
+::
+
+    $sd_logsdir/builds-$PROJ_LBL.list
+    $sd_logsdir/results-$PROJ_LBL.list
+
+Commands in ``u_s-dckr.lib.sh`` (`U-s:bin/u-s`):
+
+- ledge-showbuilds
+- ledge-exists
+- ledge-pull
+- ledge-listlogs
+- ledge-sumlogs
+- ledge-refreshlogs
+- ledge-pushlogs
+
+Logs are kept in a docker volume committed to an image. To avoid sync issues
+each projects' logs are kept in a separate container, but may be merged by a
+coordinated build.
+
+The above commands operate on that one image and pull or push logs from the
+local sd-logsdir spec.
+
+List all tags for image::
+
+  docker-hub tags dotmpe/ledge
+
+- FIXME: GIT commit-amend and push-force lets travis rebuild correctly without
+  additional commit, however Travis still believes its git-commit-range starts
+  at the last known commit sha (which has been undone).
+
+..

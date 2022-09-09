@@ -1,8 +1,28 @@
 #!/bin/sh
 
 
+htd_functions_lib_load()
+{
+  lib_require function functions functions-htd
+}
 
-htd_functions()
+ht_functions() { htd__functions "$@"; }
+
+htd_man_1__functions='List functions, group, filter, and use `source` to get
+source-code info.
+
+   list-functions|list-func|ls-functions|ls-func FUNC FILE
+     List shell functions in files.
+   find-functions GREP-NAME SCRIPTS...
+     List functions matching grep pattern in files
+   list-groups [ Src-Files... ]
+     List distinct values for "grp" attribute. See box-list-function-groups.
+   list-attr [ Src-Files... ]
+     See box-list-functions-attrs.
+
+'
+htd_flags__functions=iAOl
+htd__functions()
 {
   test -n "$1" || set -- copy
   case "$1" in
@@ -10,7 +30,7 @@ htd_functions()
     list|list-functions|list-func|ls-functions|ls-func ) shift ;
         functions_list "$@"
       ;;
-    find|find-functions ) shift ; find_functions "$@" ;;
+    find|grep-name|find-functions ) shift ; functions_grep "$@" ;;
     attrs|list-attr ) shift ; test -n "$1" || warn "Scanning htd script itself"
         box_list_functions_attrs "$@" ;;
     groups|list-groups ) shift ; test -n "$1" || warn "Scanning htd script itself"
@@ -26,10 +46,10 @@ htd_functions()
       ;;
 
     ranges ) shift ; functions_ranges "$@" ;;
-    ranges ) shift ; functions_ranges "$@" ;;
     filter-ranges ) shift ; functions_filter_ranges "$@" ;;
 
-    * ) s= p= prefixes=functions_ try_subcmd_prefixes "$@" ;;
+    * ) s= p= subcmd_prefs=functions_ try_subcmd_prefixes "$@" ;;
 	# error "'$1'?" 1 ;;
   esac
 }
+htd_libs__functions=functions

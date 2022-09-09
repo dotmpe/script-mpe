@@ -23,10 +23,10 @@ htd_find_ignores()
 {
   error "deprecated, see find_ignores usage" 124
 
-  test -z "$find_ignores" || return
+  test -z "${find_ignores:-}" || return
 
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE.merged" && {
-    find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+    find_ignores="$(ignores_find $IGNORE_GLOBFILE)"
   } || warn "Missing or empty IGNORE_GLOBFILE '$IGNORE_GLOBFILE'"
 
   find_ignores="-path \"*/.git\" -prune $find_ignores "

@@ -5,7 +5,7 @@ workspace:
 pipeline:
 
   build:
-    image: bvberkum/treebox:latest
+    image: dotmpe/treebox:latest
     volumes:
      - ${HOME}/bin:/srv/docker-volumes-local/user-script/
     commands:
@@ -25,19 +25,19 @@ pipeline:
      - SCR_SYS_SH=bash-sh
      - export LOG=/srv/docker-volumes-local/user-script/log.sh
      - cd /srv/docker-volumes-local/user-script ;
-       EXIT_ON_ERROR=0 . ./.htd/tools/env.sh ;
+       . "${DRONE_ENV:=".meta/package/envs/main.sh"}" ;
        scriptname="before-install" ;
        . ./tools/sh/init.sh ;
        . ./tools/sh/env.sh ;
        . ./tools/ci/parts/init.sh ;
        scriptname=install ;
        mkdir /home/treebox/build ;
-       sudo=sudo UCONFDIR=$HOME/etc Build_Deps_Default_Paths=1 . ./tools/ci/parts/install.sh
+       sudo=sudo UCONF=$HOME/etc Build_Deps_Default_Paths=1 . ./tools/ci/parts/install.sh
 
 #       . ./tools/ci/parts/install.sh
 
 #  hackyhack:
-#    image: bvberkum/alpine-docker:edge
+#    image: dotmpe/alpine-docker:edge
 #    volumes:
 #     - /var/run/docker.sock:/var/run/docker.sock
 #    commands:

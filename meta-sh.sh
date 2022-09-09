@@ -1,11 +1,7 @@
-#!/bin/sh
-meta_sh__source=$_
-
+#!/usr/bin/env make.sh
 # Using meta-sh (on Darwin)
 
-set -e
-
-
+set -eu
 
 version=0.0.4-dev # script-mpe
 
@@ -64,7 +60,7 @@ meta_sh__annex_update_video()
 {
   test -n "$1" || error "Expected path" 1
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     meta_sh__video_info "$1"
 
@@ -80,25 +76,13 @@ meta_sh__annex_update_video()
 
 # Generic subcmd's
 
-meta_sh_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-meta_sh_spc__help='-h|help [ID]'
-meta_sh__help()
-{
-  (
-    base=meta_sh \
-      choice_global=1 std__help "$@"
-  )
-}
-meta_sh_als___h=help
-
-
-meta_sh_man_1__version="Version info"
-meta_sh_spc__version="-V|version"
-meta_sh__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
+meta_sh_als____version=version
 meta_sh_als___V=version
+meta_sh_grp__version=ctx-main\ ctx-std
+
+meta_sh_als____help=help
+meta_sh_als___h=help
+meta_sh_grp__help=ctx-main\ ctx-std
 
 
 meta_sh_man_1__edit_main="Edit the main script file"
@@ -112,112 +96,24 @@ meta_sh__edit_main()
 meta_sh_als___E=edit-main
 
 
-### Main
+# Script main parts
 
+main-init-env \
+  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
+INIT_LIB="\$default_lib main box meta std stdio logger-theme ctx-std"
 
-meta_sh__main()
-{
-  local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-  meta_sh_init || return $?
+main-default info
 
-  local scriptname=meta-sh base=$(basename $0 .sh) verbosity=5
+main-init \
+  test -z "${BOX_INIT-}" || return 1 \
+  test -n "$scriptpath" || return
 
-  case "$base" in
-    $scriptname )
+main-load \
+  test -n "${UCONF-}" || UCONF=$HOME/.conf/ \
+  test -n "${INO_CONF-}" || INO_CONF=$UCONF/meta_sh \
+  test -n "${APP_DIR-}" || APP_DIR=/Applications \
+  hostname="$(hostname -s | tr 'A-Z.-' 'a-z__' | tr -s '_' '_' )" \
+  test -n "${EDITOR-}" || EDITOR=vim
 
-        local subcmd_def=info \
-          subcmd_pref= subcmd_suf= \
-          subcmd_func_pref=${base}__ subcmd_func_suf=
-
-        meta_sh_lib
-
-        # Execute
-        main_run_subcmd "$@"
-      ;;
-
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-# FIXME: Pre-bootstrap init
-meta_sh_init()
-{
-  test -z "$BOX_INIT" || return 1
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
-  lib_load
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load main box meta
-}
-
-# FIXME: 2nd boostrap init
-meta_sh_lib()
-{
-  # -- meta_sh box lib sentinel --
-  set --
-}
-
-
-# Pre-exec: post subcmd-boostrap init
-meta_sh_load()
-{
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -n "$INO_CONF" || INO_CONF=$UCONFDIR/meta_sh
-  test -n "$APP_DIR" || APP_DIR=/Applications
-
-  hostname="$(hostname -s | tr 'A-Z.-' 'a-z__' | tr -s '_' '_' )"
-
-  test -n "$EDITOR" || EDITOR=vim
-  # -- meta_sh box load sentinel --
-  set --
-}
-
-# Post-exec: subcmd and script deinit
-meta_sh_unload()
-{
-  local unload_ret=0
-
-  #for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  #do case "$x" in
-  # ....
-  #    f )
-  #        clean_failed || unload_ret=1
-  #      ;;
-  #esac; done
-
-  clean_failed || unload_ret=$?
-
-  unset subcmd subcmd_pref \
-          def_subcmd func_exists func \
-          failed base
-
-  env | grep -i 'meta'
-
-  return $unload_ret
-}
-
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in
-    load-ext ) ;;
-    * )
-      meta_sh__main "$@" ;;
-
-  esac ;;
-esac
-
+main-load-epilogue \
 # Id: script-mpe/0.0.4-dev meta-sh.sh

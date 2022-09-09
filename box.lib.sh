@@ -1,30 +1,34 @@
 #!/bin/sh
 
+# box - Shell framwork wip
+
 
 box_lib_load()
 {
+  test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
+  test -n "${box_name-}" || box_name=$hostname
+}
+
+box_lib_init()
+{
+  test "${box_lib_init-}" = "0" && return
+
+  box_run_sh_test || return
+  lib_assert src || return
+
+  test -z "${DEBUG-}" || {
+    test "$PWD" = "$(pwd -P)" || warn "current dir seems to be aliased"
+  }
+
   test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -z "$DEBUG" || {
-    test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
-  }
-  mkvid $(pwd)
+
+  mkvid $PWD
   nid_cwd=$vid
   unset vid
 
-  #lib_load src
-
-  test -n "$box_name" || box_name=$hostname
-
-  test -e "$BOX_DIR/bin/$box_name" \
-    && box_file="$BOX_DIR/bin/$box_name" || true
-}
-
-box_docs()
-{
-  true
-  #echo 'Docs:'
+  test ! -e "$BOX_DIR/bin/$box_name" ||
+      box_file="$BOX_DIR/bin/$box_name"
 }
 
 
@@ -34,14 +38,14 @@ box_find_localscript()
 {
   # XXX: or scan for function before determining script
   test -e "$local_script" && return || {
-    warn "No local_script for $hostname:$(pwd)"
+    warn "No local_script for $hostname:$PWD"
     return 1
   }
 }
 
 box_find_namedscript()
 {
-  test -n "$named_script" || named_script=$BOX_BIN_DIR/$script_name
+  test -n "${named_script-}" || named_script=$BOX_BIN_DIR/$script_name
   test -e "$named_script" && return || {
     warn "No named_script for $script_name"
     return 1
@@ -61,7 +65,7 @@ box_req_files_localscript()
   box_find_namedscript && {
     log "Including named-script $named_script"
     . $named_script
-    script_files="$script_files $named_script"
+    script_files="${script_files:-}${script_files:+" "}$named_script"
   } || r=$(( $r + 1 ))
 
   test -e "$uconf_script" && {
@@ -80,7 +84,7 @@ box_init_local()
   test -n "$uconf_script" || uconf_script=$BOX_DIR/$script_name-localscripts.sh
   test -e $uconf_script && warn "TODO clean $uconf_script"
 
-  case "$1" in 1 )
+  case "${1-}" in 1 )
         test -e "$named_script" || touch $named_script
         box_req_files_localscript
       ;;
@@ -111,11 +115,11 @@ box_add_function()
 
   fnmatch "*:[0-9]*" $2 && {
 
-    info "Inserting funtion $1"
+    std_info "Inserting funtion $1"
     add_function "$1" "$2" "$3"
   } || {
 
-    info "Appending funtion $1 for $2"
+    std_info "Appending funtion $1 for $2"
 
     echo "$1()" >> $2
     echo "{" >> $2
@@ -144,11 +148,11 @@ box_grep()
 # Return line-nr before function
 box_script_insert_point() # File Sub-Cmd Property Box-Prefix
 {
-  test -e "$1" || { error "box-script-insert-point: file-arg required"
-    return 1 ; }
+  test -e "$1" ||
+      error "box-script-insert-point: file-arg required <$1>" 1
   local subcmd_func= grep_file=$1
   shift
-  local subcmd_func=$(echo_local "$@")
+  local subcmd_func=$(main_local "$3" "$2" "$1")
   local where_line= line_number= p='^'${subcmd_func}'()$'
   box_grep "$p" "$grep_file" || {
     error "box-script-insert-point: invalid $subcmd_func ($grep_file)" 1
@@ -167,19 +171,19 @@ box_sentinel_indent()
 
 box_name_args()
 {
-  test -n "$1" && {
+  test -n "${1-}" && {
     name="$1" ; shift 1 ; c=$(( $c + 1 ))
   } || name="${hostname}"
 
-  test -n "$1" \
+  test -n "${1-}" \
     && { cmd="$1"; shift 1; c=$(( $c + 1 )); } \
     || note "using default cmd='run'"
 }
 
 box_run_cwd()
 {
-  test -n "$1" || error "box-run-cwd: req name" 1
-  test -n "$2" || error "box-run-cwd: req cmd" 1
+  test -n "${1-}" || error "box-run-cwd: req name" 1
+  test -n "${2-}" || error "box-run-cwd: req cmd" 1
   local func=$(echo $func_pref$1__$2 | tr '/-' '__')
   local tcwd=$1
   test -d $tcwd || error "box-run-cwd: no dir $tcwd" 1
@@ -188,29 +192,26 @@ box_run_cwd()
   $func "$*"
 }
 
-box_init_args()
+box_init_args () # [Sub-Cmd | "run"] [Script-Name | hostname]
 {
   # subcmd-name
-  test -n "$1" && {
-    subcmd="$1" ; c=$(( $c + 1 ))
-  } || subcmd=run
+  test -n "${1-}" && {
+    script_subcmd_name="$1"
+  }
+
   # script-name
-  test -n "$2" && {
-    script_name="$2" ; c=$(( $c + 1 ))
+  test -n "${2-}" && {
+    script_name="$2"
   } || {
     script_name="${hostname}"
   }
 }
 
 # Extract source lines from {base}-load routine in frontend script
-box_list_libs()
+box_list_libs() # Script-File Box-Prefix
 {
-  test -n "$1" || {
-    set -- "$0" "$2"
-    test -e "$1" || set -- "$(which "$1")" "$2"
-    test -e "$1" || error "Cannot find script for '$0'" 1
-  }
-  test -n "$2" || set -- "$1" "$(basename "$1" .sh)"
+  test -n "${1-}" || error "Script-File required" 1
+  test -n "${2-}" || error "Box-Prefix required" 1
 
   local \
     line_offset="$(box_script_insert_point $1 "" lib $2)" \
@@ -224,14 +225,14 @@ box_list_libs()
   fnmatch "-*" "$line_diff" &&
     error "box-list-libs: negative line_diff: $line_diff" 1 || true
 
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "named_script='$1'"
     debug "scan after line $line_offset"
     debug "scan up to line $line_number"
     debug "scan total lines $line_diff"
     debug "nid_cwd='$nid_cwd'"
     debug "'$BOX_BIN_DIR/*'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
 
   test $line_diff -eq 0 || {
@@ -244,18 +245,18 @@ box_list_libs()
 
 box_init()
 {
-  test -n "$UCONFDIR" || error "box-init: UCONFDIR" 1
-  cd $UCONFDIR
+  test -n "${UCONF-}" || error "box-init: UCONF" 1
+  cd $UCONF
 }
 
 
 box_update()
 {
-  test -n "$UCONFDIR" || error "box-update: UCONFDIR" 1
-  cd $UCONFDIR
+  test -n "${UCONF-}" || error "box-update: UCONF" 1
+  cd $UCONF
 
-  test -n "$box_host" || box_host=$hostname
-  test -n "$box_user" || box_user=$(whoami)
+  test -n "${box_host-}" || box_host=$hostname
+  test -n "${box_user-}" || box_user=$(whoami)
 
   #on_host "$box_host" || ssh_req $box_host $box_user
   #run_cmd "$box_host" "cd \$HOME/.conf && git fetch --all && git pull"
@@ -278,15 +279,15 @@ box_lib()
 # return source paths, extract from lines found by box-list-libs
 box_lib_src()
 {
-  dry_run= box_list_libs "$@" | while read src arg args
-    do case "$src" in
+  dry_run= box_list_libs "$@" | while read dir arg args
+    do case "$dir" in
       . | source ) eval echo $arg ;;
       dir_load ) test -n "$args" || args=.sh
           for scr in $(eval echo $arg/*$args) ; do
               echo $scr
           done ;;
       lib_load ) for lib in $arg $args ; do
-            eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib
+            echo XXX: eval lookup_test=lib_path_exists lookup_path SCRIPTPATH $lib >&2
           done ;;
       * ) ;;
     esac; done
@@ -297,17 +298,17 @@ box_bg_setup()
 {
   not_trueish "$no_background" && {
 
-    test ! -e "$main_sock" || error "pd meta bg already running" 1
+    test ! -e "$main_sock" || error "box: pd meta bg already running" 1
     $main_bg &
     PID=$!
     while test ! -e $main_sock
-    do note "Waiting for server.." ; sleep 1 ; done
-    info "Backgrounded $main_bg (PID $PID)"
+    do note "box: Waiting for server.." ; sleep 1 ; done
+    std_info "box: Backgrounded $main_bg (PID $PID)"
 
   } || {
-    note "Forcing foreground/cleaning up background"
+    note "box: Forcing foreground/cleaning up background"
     test ! -e "$main_sock" || $main_bg exit \
-      || error "Exiting old" $?
+      || error "box: Exiting old" $?
   }
 }
 
@@ -317,16 +318,15 @@ box_bg_teardown()
   test ! -e "$main_sock" || {
     $main_bg exit
     while test -e $main_sock
-    do note "Waiting for background shutdown.." ; sleep 1 ; done
-    info "Closed background metadata server"
-    test -z "$no_background" || warn "no-background on while pd-sock existed"
+    do note "box: Waiting for background shutdown.." ; sleep 1 ; done
+    std_info "box: Closed background metadata server"
+    test -z "$no_background" || warn "box: no-background on while pd-sock existed"
   }
 }
 
 box_lib_current_path()
 {
-  # test "$(pwd)" = "$(pwd -P)" || warn "current dir seems to be aliased"
-
+  # test "$PWD" = "$(pwd -P)" || warn "current dir seems to be aliased"
   set -- $( ( while true ; do pwd && cd .. ; test "$PWD" != '/' || break; done ) |
       while read -r path
       do

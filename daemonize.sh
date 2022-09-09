@@ -1,6 +1,5 @@
 #!/bin/sh
 
-. ~/bin/std.sh load-ext
 
 # Testing daemonization of shell script, for no particular reason.
 # Using netcat at Darwin works somewhat:
@@ -19,7 +18,7 @@
 
 daemonize__info()
 {
-  note "Running at $$"
+  note "Deamonize info $$"
 }
 
 daemonize__edit()
@@ -167,23 +166,25 @@ daemonize__spawn()
 
 # Main
 
-daemonize__init()
+daemonize_main()
 {
-  daemonize_init || return 0
+  local \
+      scriptname=daemonize \
+      base=$(basename $0 .sh) \
+      scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
 
-  local scriptname=daemonize base=$(basename $0 .sh) verbosity=5 \
-    scriptpath="$(dirname "$(realpath "$0")")"
+  daemonize_init || return
 
   case "$base" in $scriptname )
 
-    local subcmd_def= \
+    local subcmd_default= \
       subcmd_pref= subcmd_suf= \
       subcmd_func_pref=daemonize__ subcmd_func_suf=
 
       daemonize_lib
 
       # Execute
-      main_run_subcmd "$@"
+      main_subcmd_run "$@"
       ;;
 
     #* )
@@ -194,34 +195,38 @@ daemonize__init()
 
 daemonize_init()
 {
+  local scriptname_old=$scriptname; export scriptname=daemonize-init
   test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/tools/sh/box.env.sh
-  . $scriptpath/util.sh
-  box_run_sh_test
-  lib_load main box darwin
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+  lib_load logger-theme main box darwin match || return
   # -- daemonize box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 daemonize_lib()
 {
-  . $scriptpath/match.sh load-ext
+  local scriptname_old=$scriptname; export scriptname=daemonize-lib
+  local __load_lib=1
+  INIT_LOG=$LOG lib_init || return
   # -- daemonize box lib sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
-daemonize_load()
+daemonize_subcmd_load()
 {
+  local scriptname_old=$scriptname; export scriptname=daemonize-load
+
   sock=/tmp/daemonize.sock
   fifo=/tmp/f
 
   # -- daemonize box load sentinel --
-  set --
+  export scriptname=$scriptname_old
 }
 
 case "$0" in "" ) ;; "-*" ) ;; * )
-  daemonize__init "$@"
+  daemonize_main "$@"
       ;;
 esac
 
-
+# Id: script-mpe/0.0.4-dev daemonize.sh

@@ -3,7 +3,7 @@
 :created: 2015-11-30
 :updated: 2016-06-06
 
-Python helper to query/update Projectdir metadatadocument '.projects.yaml'
+Python helper to query/update Projectdir metadatadocument
 
 Usage:
     projectdir-meta [options] get-repo <prefix>
@@ -13,6 +13,7 @@ Usage:
     projectdir-meta [options] (enabled|disabled) <prefix>
     projectdir-meta [options] (enable|disable) <prefix>
     projectdir-meta [options] clean-mode <prefix> [<mode>]
+    projectdir-meta [options] list-basedirs [<root>]
     projectdir-meta [options] list-prefixes [<root>]
     projectdir-meta [options] list-enabled [<root>]
     projectdir-meta [options] list-disabled [<root>]
@@ -37,10 +38,12 @@ Options:
                 server intance, and the result output and return code
                 returned to client. [default: /var/run/pd-serv.sock]
   --background  Turns script into socket server. This does not fork, detach
-                or do anything else but enter an infinite server loop.
+                or do anything else but enter an infinite server loop. Commands
+                are invoked the same way as with regular command-line arguments,
+                but written to the socket.
   -f PD, --file PD
                 Give custom path to projectdir document file
-                [default: ./.projects.yaml]
+                [default: ~/.conf/etc/projects.yaml]
   --filesystem PATH
                 Run filesystem server and mount at path. A background process
                 must be running. TODO: no vfs impl. yet.
@@ -277,7 +280,7 @@ def toggle_state(newstate, pdhdata, ctx):
     if newstate+'d' != state:
         set_toggle_state( pdhdata['repositories'][prefix], newstate+'d' )
         yaml_safe_dumps(pdhdata,
-                open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+                open(os.path.expanduser(ctx.opts.flags.file), 'w+'), default_flow_style=False)
     return True
 
 def toggle_host(newstate, pdhdata, ctx):
@@ -303,7 +306,8 @@ def check_host(record, ctx):
     return False
 
 def yaml_commit(pdhdata, ctx):
-    yaml_safe_dumps(pdhdata, open(ctx.opts.flags.file, 'w+'), default_flow_style=False)
+    yaml_safe_dumps(pdhdata, os.path.expanduser(open(ctx.opts.flags.file),
+        'w+'), default_flow_style=False)
 
 def yaml_sort(doc, key, recurse=True):
     o = dict(doc[key])
@@ -547,9 +551,30 @@ def H_sort(pdhdata, ctx):
     yaml_sort(pdhdata, 'repositories')
     yaml_commit(pdhdata, ctx)
 
-def H_list_prefixes(pdhdata, ctx):
-    # List all project repo prefixes
+def H_list_basedirs(pdhdata, ctx):
     for k in list(pdhdata['repositories'].keys()):
+        if prefix_match( k, ctx.opts.args.root, ctx.opts ):
+            ctx.out.write(k + "\n")
+
+def list_prefixes_recurse(data, ctx):
+    for k in list(data.keys()):
+        if k in ( 'symlinks', 'description', 'status' ): continue
+        if not isinstance(data[k], dict):
+            ctx.err.write("Not a mapping object: %r\n" % data[k])
+            continue
+        if 'enabled' in data[k] or 'disabled' in data[k] \
+                or 'remotes' in data[k] \
+                or 'src' in data[k]:
+            yield k
+        else:
+            for k2 in list_prefixes_recurse(data[k], ctx):
+                yield "%s/%s" % ( k, k2 )
+
+def H_list_prefixes(pdhdata, ctx):
+    """Recurse into base-dirs to each checkout and print path.
+    """
+    # List all project repo prefixes
+    for k in list_prefixes_recurse(pdhdata['repositories'], ctx):
         if prefix_match( k, ctx.opts.args.root, ctx.opts ):
             ctx.out.write(k + "\n")
 
@@ -617,7 +642,6 @@ def H_x_conv(pdhdata, ctx):
                 assert sk != 'enable', 'FIXME'
                 assert sk != 'disable', 'FIXME'
                 r[sk] = sv
-            #if sk in ('origin', 'original', 'brix', 'bvberkum')
         sd['remotes'] = r
         newd['repositories'][k] = sd
     yaml_commit(newd, ctx)
@@ -774,7 +798,7 @@ def prerun(ctx, cmdline):
     ctx.opts = libcmd_docopt.get_opts(ctx.usage, argv=argv)
 
     if not pdhdata:
-        pdhdata = yaml_load(open(ctx.opts.flags.file))
+        pdhdata = yaml_load(open(os.path.expanduser(ctx.opts.flags.file)))
 
     return [ pdhdata ]
 
@@ -826,7 +850,7 @@ def main(ctx):
 
     else:
         # Normal execution
-        pdhdata = yaml_load(open(ctx.opts.flags.file))
+        pdhdata = yaml_load(open(os.path.expanduser(ctx.opts.flags.file)))
         func = ctx.opts.cmds[0]
         assert func in handlers
         return handlers[func](pdhdata, ctx)

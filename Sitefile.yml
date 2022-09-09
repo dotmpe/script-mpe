@@ -1,5 +1,5 @@
 #!/usr/bin/env sitefile
-sitefile: 0.0.5-dev
+sitefile: 0.0.7-dev
 port: 4500
 upstream: '*'
 #  - 'http://localhost:2000'
@@ -10,6 +10,7 @@ upstream: '*'
 #  metadata: '/data/meta'
 routes: 
   static: static:./
+  _md: markdown-it:**/*.md
   _du: docutils:**/*.rst
   _gv: graphviz:**/*.gv
   _pu: plantuml:**/*.plantuml
@@ -37,6 +38,9 @@ routes:
   'r:app/(.*).sass.css': sass:sitefile-lib:client/
   'r:app/(.*).pug.html': pug:sitefile-lib:client/
   'sh/': sh.cmd:#
+
+  Sitefile/debug/resource/pug-opts: sitefile.pug-opts:#
+
 options:
   global:
     docutils:
@@ -45,24 +49,49 @@ options:
       link_stylesheets: true
       flags:
       - "--no-toc-backlinks"
-      $ref: '#/options/global/pug/merge'
+      stylesheets:
+        $ref: '#/defs/stylesheets/default'
+      scripts:
+        $ref: '#/defs/scripts/default'
     pug:
       merge:
         meta:
           $ref: '#/defs/app/v0/meta'
-        scripts: [] # $ref: '#/defs/scripts/default'
-        stylesheets:
-          $ref: '#/defs/stylesheets/default'
         clients:
           $ref: '#/defs/app/v0/clients'
+        scripts:
+          $ref: '#/defs/scripts/default'
+        stylesheets:
+          $ref: '#/defs/stylesheets/default'
+    sitefile:
+      pug:
+        $ref: '#/options/global/pug'
+    markdown:
+      pug:
+        $ref: '#/options/global/pug'
+    markdown-it:
+      pug:
+        $ref: '#/options/global/pug'
   local:
     app/v0:
       merge:
         $ref: '#/options/global/pug/merge'
 defs:
+  scripts:
+    default:
+      - /vendor/jquery.js
+      - /vendor/jquery-ui.js
+      - /vendor/jquery-terminal.js
+      - /vendor/jq-console.js
+      - /vendor/bootstrap.js
+      - /vendor/bootstrap-table.js
+      #- /vendor/coffee-script.js
+      - /vendor/highlight-js.js
+      - /vendor/highlight-js-lang-vim.js
   stylesheets:
     default:
       - url: /vendor/bootstrap.css
+      - url: /vendor/highlight-js-style-xcode.css
   app:
     v0:
       meta:

@@ -1,10 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2015-12-14
-lst__src="$_"
-
-set -e
-
-
 
 version=0.0.4-dev # script-mpe
 
@@ -27,7 +22,7 @@ Group
 See ignores.rst
 '
 lst_spc__names="names GROUP.."
-lst_load__names=iI
+lst_flags__names=iI
 lst__names()
 {
   note "$@"
@@ -42,7 +37,7 @@ lst__names()
 lst_man_1__globs="Write globs (in group) to file and output"
 lst_als__list=globs
 lst_spc__globs="[GROUP]"
-lst_load__globs=iI
+lst_flags__globs=iI
 lst__globs()
 {
   local ext=
@@ -54,7 +49,7 @@ lst_als__init_ignores=globs
 
 
 lst_man_1__local="List globs from local file only, without inherited patterns"
-lst_load__local=iI
+lst_flags__local=iI
 lst__local()
 {
   local ext=
@@ -77,7 +72,7 @@ only while status was non-zero, and if falseish the opposite; run only while it
 was zero.
 "
 lst_spc__watch="FILE|DIR [ GLOB [ CMD [ TEST ]]]"
-lst_load__watch=iI
+lst_flags__watch=iI
 lst__watch()
 {
   test -n "$lst_watch_be" || error "'watch' backend required" 1
@@ -89,7 +84,7 @@ lst__watch()
 }
 
 lst_spc__watch_fswatch="FILE|DIR [GLOB [CMD]]"
-lst_load__watch_fswatch=iI
+lst_flags__watch_fswatch=iI
 lst__watch_fswatch()
 {
   req_path_arg "$@" || return $?
@@ -136,7 +131,7 @@ lst__watch_fswatch()
 }
 
 lst_spc__watch_inotify="FILE|DIR [GLOB [CMD]]"
-lst_load__watch_inotify=iI
+lst_flags__watch_inotify=iI
 lst__watch_inotify()
 {
   req_path_arg "$@" || return $?
@@ -165,14 +160,14 @@ lst__watch_inotify()
 
 
 # List all paths; -dfl or with --tasks filters
-lst_load__list_paths=iO
+lst_flags__list_paths=iO
 lst__list_paths()
 {
   opt_args "$@"
   set -- "$(cat $arguments)"
   req_cdir_arg "$@"
   shift 1; test -z "$@" || error surplus-arguments 1
-  local find_ignores="$(find_ignores $IGNORE_GLOBFILE) $(lst__list_paths_opts)"
+  local find_ignores="$(ignores_find $IGNORE_GLOBFILE) $(lst__list_paths_opts)"
   # FIXME: some nice way to get these added in certain contexts
   find_ignores="-path \"*/.git\" -prune $find_ignores "
   find_ignores="-path \"*/.bzr\" -prune -o $find_ignores "
@@ -226,69 +221,13 @@ lst_als___e=edit
 
 # Script main functions
 
-lst_main()
-{
-  local \
-      scriptname=list \
-      scriptalias=lst \
-      base=lst \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      failed=
-
-  test -n "$verbosity" || verbosity=5
-
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh
-  util_init
-
-  lst_init || exit $?
-
-  case "$base" in
-
-    $scriptname | $scriptalias )
-
-        test -n "$1" || set -- list
-
-        lst_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-# FIXME: Pre-bootstrap init
-lst_init()
-{
-  test -n "$scriptpath"
-  . $scriptpath/tools/sh/box.env.sh
-  lib_load box main
-  box_run_sh_test
-  # -- lst box init sentinel --
-}
-
-# FIXME: 2nd boostrap init
-lst_lib()
-{
-  local __load_lib=1
-  lib_load date meta list
-  lib_load ignores
-  #lst_load
-  # -- lst box lib sentinel --
-  set --
-}
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "$__load_lib" || {
-    lst_main "$@" || exit $?
-  }
-  ;;
-esac
+MAKE-HERE
+  INIT_ENV="init-log 0 0-src 0-u_s 0-std ucache scriptpath box" \
+INIT_LIB="\\$default_lib ctx-main ctx-std"
+main-lib
+  lib_load box main str-htd src htd || return
+main-load
+  lib_load date meta list ignores str-htd || return
+  INIT_LOG=$LOG lib_init || return
+main-epilogue
+# Id: script-mpe/0.0.4-dev list.sh

@@ -1,9 +1,0 @@
-#!/bin/sh
-#
-
-# only called when no commit-msg present
-#cat $1
-#echo abort
-# TODO: get names of updated scripts, run specs
-
-#exit 1

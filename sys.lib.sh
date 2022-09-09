@@ -1,155 +1,64 @@
 #!/bin/sh
 
-# Sys: dealing with vars, functions, env.
+## Sys: dealing with vars, functions, env.
 
 sys_lib_load()
 {
-  export _14MB=14680064
-  export _6MB=7397376
-  export _5k=5120
-
-  #test -n "$MIN_SIZE" || MIN_SIZE=1
-  test -n "$MIN_SIZE" || MIN_SIZE=$_6MB
-
-  test -n "$uname" || uname="$(uname -s)"
-  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
-  test -n "$username" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
-  test -n "$hostname" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
-  test -n "$arch" || arch="$(uname -p)"
-  test -n "$mach" || mach="$(uname -m)"
-
-  test -n "$SCR_SYS_SH" ||  {
-    test -n "$SHELL" &&
-        SCR_SYS_SH="$(basename "$SHELL")" ||
-        SCR_SYS_SH=bash
-  }
-
-  test -n "$TMPDIR" && {
-    test -z "$RAM_TMPDIR" && {
-      require_fs_casematch $TMPDIR
-    } || {
-      test -d "$RAM_TMPDIR" || error "Not a dir $RAM_TMPDIR" 1
-      require_fs_casematch "$RAM_TMPDIR"
-    }
-  } || {
-    test -d /tmp || error "No /tmp" 1
-    TMPDIR=/tmp
-    $LOG info "$scriptname" "TMPDIR=$TMPDIR (should be in shell profile)" >&2
-  }
+  : "${LOG:?"No LOG env"}"
+  : "${uname:=$(uname -s)}"
+  : "${HOST:=$(hostname -s)}"
+  : "${hostname:=$(hostname -s | tr '[:upper:]' '[:lower:]')}"
 }
 
-
-require_fs_casematch()
+sys_lib_init()
 {
-  local CWD="$(pwd)"
-  test -n "$1" && {
-    cd "$1"
-  }
-  test -e ".fs-casematch" || {
-    test -e ".fs-nocasematch" && {
-      $LOG warn "$scriptname" "Case-insensitive fs '$1' detected!" >&2
-    } || {
+  test "${sys_lib_init-}" = "0" || {
 
-      echo 'ok' > abc
-      echo 'notok' > ABC
-      test "$(echo $( cat abc ABC))" = "ok notok" && {
-        $LOG debug "$scriptname" "Case-sensitive fs '$1' OK" >&2
-        rm abc ABC || true
-        touch .fs-casematch
-      } || {
-        test "$(echo $( cat abc ABC))" = "notok notok" && {
-          rm abc || true
-          $LOG warn "$scriptname" "Case-insensitive fs '$1' detected!" >&2
-          touch .fs-nocasematch
-        } || {
-          rm abc ABC || true
-          cd "$CWD"
-          $LOG error "$scriptname" "Unknown error" 1 >&2
-        }
-      }
-    }
+    sys_tmp_init &&
+    $LOG debug "" "Initialized sys.lib" "$0"
   }
-  cd "$CWD"
 }
 
 # Sh var-based increment
-incr()
+incr() # VAR [AMOUNT=1]
 {
-  local incr_amount
-  test -n "$2" && incr_amount=$2 || incr_amount=1
+  local v incr_amount
+  test -n "${2-}" && incr_amount=$2 || incr_amount=1
   v=$(eval echo \$$1)
   eval $1=$(( $v + $incr_amount ))
 }
 
 getidx()
 {
-  test -n "$1" || error getidx-array 1
-  test -n "$2" || error getidx-index 1
-  test -z "$3" || error getidx-surplus 1
+  test -n "${1-}" || error getidx-array 1
+  test -n "${2-}" || error getidx-index 1
+  test -z "${3-}" || error getidx-surplus 1
   local idx=$2
   set -- $1
   eval echo \$$idx
 }
 
-# test for var decl, io. to no override empty
-var_isset()
-{
-    test "$1" = "base" && return 1
-  test -n "$1" || error "var-isset arg expected" 1
-  # [2017-02-03] somehow Sh compatible setup broke so (testing at least) so
-  #   split it up into bash, and expanded on testing. And some more testing and
-  #   fiddling. Using SCR_SYS_SH=bash-sh to make some frontend exceptions.
-  case "$SCR_SYS_SH" in
-
-    bash-sh|sh|zsh )
-        # Aside from declare or typeset in newer reincarnations,
-        # in posix or modern Bourne mode this seems to work best:
-        ( set | grep -q '\<'"$1"'=' ) || return 1
-      ;;
-
-    bash )
-        # Bash: https://www.cyberciti.biz/faq/linux-unix-howto-check-if-bash-variable-defined-not/
-        [[ ! ${!1} && ${!1-unset} ]] && return 1 || return 0
-        #$HOME/bin/tools/sh/var-isset.bash "$1"
-      ;;
-
-    * )
-        error "SCR_SYS_SH='$SCR_SYS_SH'" 12
-      ;;
-
-  esac
-}
-
-# require vars to be initialized, regardless of value
-req_vars()
-{
-  while test $# -gt 0
-  do
-    var_isset "$1" || return 1
-    shift
-  done
-}
-
 # Error unless non-empty and true-ish value
 trueish() # Str
 {
-  test -n "$1" || return 1
+  test $# -eq 1 -a -n "${1-}" || return
   case "$1" in [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1) return 0;;
     * ) return 1;;
   esac
 }
+# Id: sh-trueish
 
 # No error on empty, or not trueish match
 not_trueish()
 {
-  test -n "$1" || return 0
+  test -n "${1-}" || return 0
   trueish "$1" && return 1 || return 0
 }
 
 # Error unless non-empty and falseish
 falseish()
 {
-  test -n "$1" || return 1
+  test $# -eq 1 -a -n "${1-}" || return 1
   case "$1" in
     [Oo]ff|[Ff]alse|[Nn]|[Nn]o|0)
       return 0;;
@@ -161,13 +70,17 @@ falseish()
 # No error on empty, or not-falseish match
 not_falseish() # Str
 {
-  test -n "$1" || return 0
+  test -n "${1-}" || return 0
   falseish "$1" && return 1 || return 0
 }
 
 cmd_exists()
 {
-  test -x $(which $1) || return $?
+  test -n "${1-}" || return
+
+  set -- "$1" "$(which "$1")" || return
+
+  test -n "$2" -a -x "$2"
 }
 
 func_exists()
@@ -179,65 +92,65 @@ func_exists()
 
 try_exec_func()
 {
-  test -n "$1" || return 97
-  debug "try-exec-func '$1'"
-  func_exists $1 || return $?
+  test -n "${1-}" || return 97
+  func_exists "$1" || return
   local func=$1
   shift 1
-  $func "$@" || return $?
+  $func "$@" || return
 }
 
-try_var()
+# Check for RAM-fs or regular temporary directory, or set to given
+# directory which must also exist. Normally, TMPDIR will be set on Unix and
+# POSIX systems. If it does not exist then TMPDIR will be set to whatever
+# is given here or whichever exists of /dev/shm/tmp or $RAM_TMPDIR. But the
+# directory will not be created.
+sys_tmp_init () # DIR
 {
-  local value="$(eval echo "\$$1")"
-  test -n "$value" || return 1
-  echo $value
+  local tag=:sys.lib:tmp-init
+  test -n "${RAM_TMPDIR:-}" || {
+    # Set to Linux ramfs path
+    test -d "/dev/shm" && {
+      RAM_TMPDIR=/dev/shm/tmp
+    }
+  }
+
+  test -z "${RAM_TMPDIR:-}" || {
+    # XXX: find first existing parent dir
+    _RAM_TMPDIR="$(set -- $RAM_TMPDIR; while test ! -e "$1"; do set -- $(dirname "$1"); done; echo "$1")"
+    test -w "$_RAM_TMPDIR" && {
+      test -d "$RAM_TMPDIR" || mkdir $RAM_TMPDIR
+    } || {
+      test -d "$RAM_TMPDIR" && {
+        $sys_lib_log warn $tag "Cannot access RAM-TmpDir" "$RAM_TMPDIR"
+      } ||
+        $sys_lib_log warn $tag "Cannot prepare RAM-TmpDir" "$RAM_TMPDIR"
+    }
+    unset _RAM_TMPDIR
+  }
+
+  test -e "${1-}" -o -z "${RAM_TMPDIR-}" || set -- "$RAM_TMPDIR"
+  test -e "${1-}" -o -z "${TMPDIR-}" || set -- "$TMPDIR"
+  test -n "${1-}" && {
+    test -n "${TMPDIR-}" || export TMPDIR=$1
+  }
+  test -d "$1" || {
+    $LOG warn $tag "No RAM tmpdir/No tmpdir found" "" 1
+  }
+  sys_tmp="$1"
 }
 
-# echo value of varname $1 on stdout if non empty
-test_out()
+# setup-tmpd [ SUBDIR [ (RAM_)TMPDIR ]]
+# Get (create) fresh subdir in TMPDIR or fail.
+setup_tmpd () # Unique-Name
 {
-  test -n "$1" || error test_out 1
-  local val="$(echo $(eval echo "\$$1"))"
-  test -z "$val" || eval echo "\\$val"
-}
-
-create_ram_disk()
-{
-  test -n "$1" || error "Name expected" 1
-  test -n "$2" || error "Size expected" 1
-  test -z "$3" || error "Surplus arguments '$3'" 1
-
-  case "$uname" in
-
-    Darwin )
-        local size=$(( $2 * 2048 ))
-        diskutil erasevolume 'Case-sensitive HFS+' \
-          "$1" `hdiutil attach -nomount ram://$size`
-      ;;
-
-      # Linux
-      # mount -t tmpfs -o size=512m tmpfs /mnt/ramdisk
-
-    * )
-        error "Unsupported platform '$uname'" 1
-      ;;
-
-  esac
-}
-
-# setup-tmp [(RAM_)TMPDIR]
-setup_tmpd()
-{
-  test -n "$1" || set -- "$base-$(get_uuid)" "$2"
-  test -n "$2" -o -z "$RAM_TMPDIR" || set -- "$1" "$RAM_TMPDIR"
-  test -n "$2" -o -z "$TMPDIR" || set -- "$1" "$TMPDIR"
-  test -n "$2" || {
-        warn "No RAM tmpdir/No tmpdir settings found"
-        test -w "/dev/shm" && RAM_TMPDIR=/dev/shm/tmp
-      }
-  test -d $2/$1 || mkdir -p $2/$1
-  test -n "$2" -a -d "$2" || error "Not a dir: '$2'" 1
+  test $# -le 2 || return 98
+  test -n "${2-}" || set -- "${1-}" "$sys_tmp"
+  test -d "$2" ||
+    $LOG error sys "Need existing tmpdir, got: '$2'" "" 1
+  test -n "${1-}" || set -- "$base-$SH_SID" "${2-}"
+  test ! -e "$2/$1" ||
+    $LOG error sys "Unique tmpdir sub exists: '$2'" "" 1
+  mkdir -p $2/$1
   echo "$2/$1"
 }
 
@@ -246,27 +159,29 @@ setup_tmpd()
 # setup-tmp [ext [uuid [(RAM_)TMPDIR]]]
 setup_tmpf() # [Ext [UUID [TMPDIR]]]
 {
+  test $# -le 3 || return
+  while test $# -lt 3 ; do set -- "$@" "" ; done
+
   test -n "$1" || set -- .out "$2" "$3"
   test -n "$2" || set -- $1 $(get_uuid) "$3"
-  test -n "$1" -a -n "$2" || error "empty arg(s)" 1
-  test -z "$4" || error "surplus arg(s) '$3'" 1
+  test -n "$1" -a -n "$2" || $LOG error sys "empty arg(s)" "" 1
 
-  test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
-  test -n "$3" -a -d "$3" || error "Not a dir: '$3'" 1
+  test -n "$3" || set -- "$1" "$2" "$sys_tmp"
+  test -n "$3" -a -d "$3" || $LOG error sys "Not a dir: '$3'" "" 1
 
   test -n "$(dirname $3/$2$1)" -a "$(dirname $3/$2$1)" \
     || mkdir -p "$(dirname $3/$2$1)"
-  echo $3/$2$1
+  echo "$3/$2$1"
 }
 
-# sys-prompt PROMPT [VAR=choice_confirm]
+# sys-prompt PROMPT [VAR=returned]
 sys_prompt()
 {
-  test -n "$1" || error "sys-prompt: arg expected" 1
-  test -n "$2" || set -- "$1" choice_confirm
-  test -z "$3" || error "surplus-args '$3'" 1
+  test -n "${1-}" || $LOG error sys "sys-prompt: arg expected" "" 1
+  test -n "$2" || set -- "$1" returned
+  test -z "$3" || $LOG error sys "surplus-args '$3'" "" 1
   echo $1
-  read $2
+  read -n 1 $2
 }
 
 # sys-confirm PROMPT
@@ -277,59 +192,11 @@ sys_confirm()
   trueish "$choice_confirm"
 }
 
-# If any of VALUES it not in variable LIST, add it
-assert_list() # LIST VALUES...
-{
-	local to_add= list=$1 items="$(eval echo "\$$1")"
-	shift 1
-	to_add="$( for value in $@;
-		do
-			fnmatch "* $value *" " $items " && continue;
-			echo $value;
-		done )"
-	eval $list="$(echo $items $to_add)"
-}
-
-# If ITEM is in items of LIST, add VALUES not already in list
-expand_item() # LIST ITEM VALUES...
-{
-	local to_add= list=$1 item=$2 items="$(eval echo "\$$1")"
-	shift 2
-	fnmatch "* $item *" " $items " && {
-		assert_list $list "$@"
-	} || true
-}
-
-pretty_print_var()
-{
-  var_isset kvsep || kvsep='='
-  pretty_var="$(printf -- "$1" | tr -s '_' '-')"
-  falseish "$2" && {
-    printf "!$pretty_var\n"
-  } || {
-    trueish "$2" && {
-      printf "$pretty_var\n"
-    } || {
-      value="$(printf -- "$2" | sed 's/\ /\\ /g')"
-      printf "$pretty_var$kvsep$value\n"
-    }
-  }
-}
-
-print_var()
-{
-  case "$2" in
-    *'"'*|*" "*|*"'"* )
-      printf -- '%s\n' "$1=\"$2\"" ;;
-    * )
-      printf -- '%s\n' "$1=$2" ;;
-  esac
-}
-
 # Add an entry to PATH, see add-env-path-lookup for solution to other env vars
 add_env_path() # Prepend-Value Append-Value
 {
-  test -e "$1" -o -e "$2" || {
+  test $# -ge 1 -a -n "$1" -o -n "${2-}" || return 64
+  test -e "$1" -o -e "${2-}" || {
     echo "No such file or directory '$*'" >&2
     return 1
   }
@@ -346,18 +213,14 @@ add_env_path() # Prepend-Value Append-Value
       esac
     }
   }
-  # XXX: to export or not to launchctl
-  #test "$uname" != "Darwin" || {
-  #  launchctl setenv "$1" "$(eval echo "\$$1")" ||
-  #    echo "Darwin setenv '$1' failed ($?)" >&2
-  #}
 }
 
 # Add an entry to colon-separated paths, ie. PATH, CLASSPATH alike lookup paths
 add_env_path_lookup() # Var-Name Prepend-Value Append-Value
 {
+  test $# -ge 2 -a $# -le 3 || return 64
   local val="$(eval echo "\$$1")"
-  test -e "$2" -o -e "$3" || {
+  test -e "$2" -o -e "${3-}" || {
     echo "No such file or directory '$*'" >&2
     return 1
   }
@@ -377,29 +240,68 @@ add_env_path_lookup() # Var-Name Prepend-Value Append-Value
 }
 
 # List individual entries/paths in lookup path env-var (ie. PATH or CLASSPATH)
-lookup_path_list() # VAR-NAME
+lookup_path_list () # VAR-NAME
 {
-  test -n "$1" || error "lookup-path varname expected" 1
+  test $# -eq 1 -a -n "${1-}" || error "lookup-path varname expected" 1
   eval echo \"\$$1\" | tr ':' '\n'
+}
+
+# Translate Lookup path element and given/local name to filesystempath,
+# or return err-stat.
+lookup_exists () # NAME DIRS...
+{
+  local name="$1" r=1
+  shift
+  while test $# -gt 0
+  do
+    test -e "$1/$name" && {
+      echo "$1/$name"
+      test ${lookup_first:-1} -eq 1 && return || r=0
+    }
+    shift
+  done
+  return $r
 }
 
 # lookup-path List existing local paths, or fail if second arg is not listed
 # lookup-test: command to test equality with, default test_exists
 # lookup-first: boolean setting to stop after first success
-lookup_path() # VAR-NAME LOCAL-PATH
+lookup_path () # ~ VAR-NAME LOCAL-PATH
 {
-  test -n "$lookup_test" || lookup_test="test_exists"
-  lookup_path_list $1 | while read _PATH
-  do
-    eval $lookup_test \""$_PATH"\" \""$2"\" && {
-      trueish "$lookup_first" && return 0 || continue
-    } || continue
-  done
+  test $# -eq 2 || return 64
+  test -n "${lookup_test-}" || local lookup_test="lookup_exists"
+  func_exists "$lookup_test" || {
+    $LOG error "" "No lookup-test handler" "$lookup_test"
+    return 1
+  }
+
+  local path ; for path in $( lookup_path_list $1 )
+    do
+      eval $lookup_test \""$2"\" \""$path"\" && {
+        test ${lookup_first:-1} -eq 1 && break || continue
+      } || continue
+    done
+}
+
+lookup_paths () # Var-Name Local-Paths...
+{
+  test $# -ge 2 || return 64
+  test -n "${lookup_test-}" || local lookup_test="lookup_exists"
+  local varname=$1 base path ; shift ; for base in $( lookup_path_list $varname )
+    do
+      for path in $@
+      do
+        eval $lookup_test \""$path"\" \""$base"\" && {
+          test ${lookup_first:-1} -eq 1 && break 2 || continue
+        } || continue
+      done
+    done
 }
 
 # Test if local path/name is overruled. Lists paths for hidden LOCAL instances.
 lookup_path_shadows() # VAR-NAME LOCAL
 {
+  test $# -eq 2 || return 64
   local r=
   tmpf=$(setup_tmpf .lookup-shadows)
   lookup_first=false lookup_path "$@" >$tmpf
@@ -415,25 +317,31 @@ lookup_path_shadows() # VAR-NAME LOCAL
   return $r
 }
 
-# Return 1 if env was provided, or 0 if default was set
-default_env() # VAR-NAME DEFAULT-VALUE
+# Return non-zero if default was set, or present value does not match default
+default_env() # VAR-NAME DEFAULT-VALUE [Level]
 {
-  test -n "$1" -a $# -eq 2 || error "default-env requires two args ($*)" 1
-  local vid= sid= id=
-  trueish "$title" && upper= || {
-    test -n "$upper" || upper=1
+  test -n "${1-}" -a $# -eq 2 || error "default-env requires two args ($*)" 1
+  local vid= cid= id= v= c=0
+  trueish "${title-}" && upper= || {
+    test -n "${upper-}" || upper=1
   }
   mkvid "$1"
-  mksid "$1"
+  mkcid "$1"
   unset upper
-  test -n "$(eval echo \$$vid)" || {
-    debug "No $sid env ($vid), using '$2'"
-    eval $vid="$2"
+  v="$(eval echo \$$vid 2>/dev/null )"
+  test -n "${3-}" || set -- "$1" "$2" "debug"
+  test -n "$v" && {
+    test "$v" = "${2-}" || c=$?
+      test $c -eq 0 &&
+        $3 "Default $cid env ($vid)" ||
+        $3 "Custom $cid env ($vid): '${2-}'"
+    return $c
+  } || {
+    $3 "No $cid env ($vid), using default '${2-}'"
+    eval $vid="${2-}"
     return 0
   }
-  return 1
 }
-
 
 get_kv_k() # Key-Value-Str
 {
@@ -494,16 +402,6 @@ rnd_passwd()
   cat /dev/urandom | LC_ALL=ascii tr -cd 'a-z0-9' | head -c $1
 }
 
-min()
-{
-  p= s= act=echo foreach_do "$@" | sort -r | tail -n 1
-}
-
-max()
-{
-  p= s= act=echo foreach_do "$@" | sort | tail -n 1
-}
-
 # Capture cmd/func output in file, return status. Set out_file to provide path.
 # The fourth argument signals to pass current stdin or the given file to the
 # subshell pipeline.
@@ -520,7 +418,7 @@ capture() # CMD [RET-VAR=ret_var] [OUT-FILE-VAR=out_file] [-|FILE]
   local return_status=
   test -n "$input" && {
     test "$input" != "-" && {
-      test -f "$input" || error "Input file '$input' expected" 1
+      test -f "$input" || $LOG error sys "Input file '$input' expected" "" 1
     } || {
       input=$(setup_tmpf .capture-input)
       cat >"$input"
@@ -544,7 +442,7 @@ capture_var() # CMD [RET-VAR=ret_var] [OUT-VAR=out_var] [ARGS...]
   test -n "$2" || set -- "$1" "ret_var" "$3"
   local cmd_name="$1" _ret_var_="$2" _out_var_="$3"
 
-  note "Capture: $1 $2 $3"
+  $LOG note sys "Capture: $1 $2 $3"
   shift 3
   test -n "$_out_var_" || {
     fnmatch "* *" "$cmd_name" && _out_var_=out_var || _out_var_=$cmd_name
@@ -559,7 +457,7 @@ capture_var() # CMD [RET-VAR=ret_var] [OUT-VAR=out_var] [ARGS...]
       local tmp="$($cmd_name "$@" || echo $?>$failed)"
     }
 
-  note "Captured: $_out_var_: $tmp"
+  $LOG note sys "Captured: $_out_var_: $tmp"
 
   # Set return var and cleanup
   test -e "$failed" && {
@@ -590,17 +488,33 @@ exec_arg_lines()
 # Execute arguments, or return on first failure, empty args, or no cmdlines
 exec_arg() # CMDLINE [ -- CMDLINE ]...
 {
-  test -n "$*" || return 2
+  test $# -gt 0 || return 98
   local execs=$(setup_tmpf .execs) execnr=0
   exec_arg_lines "$@" | while read -r execline
     do
       test -n "$execline" || continue
       echo "$execline">>"$execs"
       execnr=$(count_lines "$execs")
-      debug "Execline: $execnr. '$execline'"
+      $LOG debug sys "Execline: $execnr. '$execline'"
       $execline || return 3
     done
   test ! -e "$execs" || { execnr=$(count_lines "$execs"); rm "$execs"; }
-  info "Exec-arg: executed $execnr lines"
+  $LOG info sys "Exec-arg: executed $execnr lines"
   test $execnr -gt 0 || return 1
 }
+
+env_var_mapping_update ()
+{
+  local IFS=$'\n' from to; for mapping in ${!1}
+  do
+    IFS=$' \t\n'; to="${mapping// *}"; from="${mapping//* }"
+    test "${!to-}" = "$(echo ${!from})" || {
+      test -n "${!to-}" &&
+        echo "${!to} != ${!from}" ||
+          echo "${to}=\"$(echo ${!from})\""
+      eval "${to}=\"$(echo ${!from})\""
+    }
+  done
+}
+
+# Sync: U-S:src/sh/lib

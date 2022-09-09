@@ -1,10 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2017-02-25
-srv__source=$_
-
-set -e
-
-
 
 version=0.0.4-dev # script-mpe
 
@@ -82,28 +77,13 @@ srv__update_services()
 
 # Generic subcmd's
 
-srv_man_1__help="Usage help. "
-srv_spc__help="-h|help"
-srv__help()
-{
-  test -z "$dry_run" || stderr note " ** DRY-RUN ** " 0
-  (
-    base=srv \
-      choice_global=1 std__help "$@"
-  )
-}
-#srv_als__h=help
-# FIXME:
-#srv_als__help=help
+srv_als____version=version
+srv_als___V=version
+srv_grp__version=ctx-main\ ctx-std
 
-
-srv_man_1__version="Version info"
-srv__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
-#srv_als___V=version
-#srv_als____version=version
+srv_als____help=help
+srv_als___h=help
+srv_grp__help=ctx-main\ ctx-std
 
 
 srv__edit()
@@ -113,105 +93,18 @@ srv__edit()
 srv_als___e=edit
 
 
-# Script main functions
+## Main parts
 
-srv_main()
-{
-  local
-      scriptname=srv \
-      base=$(basename $0 .sh) \
-      verbosity=5 \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      failed=
-
-  srv_init || exit $?
-
-  case "$base" in
-
-    $scriptname )
-
-        test -n "$1" || set -- list
-
-        srv_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-
-  esac
-}
-
-# FIXME: Pre-bootstrap init
-srv_init()
-{
-  test -n "$LOG" ||
-    export LOG=/srv/project-local/mkdoc/usr/share/mkdoc/Core/log.sh
-
-  test -n "$scriptpath"
-  . $scriptpath/util.sh load-ext
-  lib_load
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load main meta box doc date table remote
-  # -- srv box init sentinel --
-}
-
-# FIXME: 2nd boostrap init
-srv_lib()
-{
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
+INIT_LIB="\\$default_lib main meta box doc date table remote std stdio"
+main-local
+failed= dry_run=
+main-lib
   local __load_lib=1
-  # -- srv box lib sentinel --
-  set --
-}
-
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-srv_load()
-{
-  # -- srv box lib sentinel --
-  set --
-}
-
-# Post-exec: subcmd and script deinit
-srv_unload()
-{
-  local unload_ret=0
-
-  #for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  #do case "$x" in
-  # ....
-  #    f )
-  #        clean_failed || unload_ret=1
-  #      ;;
-  #esac; done
-
+  INIT_LOG=$LOG lib_init || return
+main-unload
   clean_failed || unload_ret=$?
-
-  unset subcmd subcmd_pref \
-          def_subcmd func_exists func \
-          failed
-
-  return $unload_ret
-}
-
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in
-    load-ext ) ;;
-    * )
-      srv_main "$@" ;;
-
-  esac ;;
-esac
-
+  unset failed
+main-epilogue
 # Id: script-mpe/0.0.4-dev srv.sh
-

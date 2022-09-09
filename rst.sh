@@ -1,7 +1,4 @@
-#!/bin/sh
-c_rst__source="$_ $0 $@"
-
-set -e
+#!/usr/bin/env make.sh
 
 version=0.0.4-dev # script-mpe
 
@@ -9,16 +6,16 @@ version=0.0.4-dev # script-mpe
 ### User commands
 
 
-c_rst_man_1__test="rst test? "
-c_rst__test()
+rst_man_1__test="rst test? "
+rst__test()
 {
   test -z "$dry_run" || note " ** DRY-RUN ** " 0
   note "TODO box_run_cwd /home/.../bin Bats_test $@"
 }
 
 
-c_rst_man_1__date="Print date"
-c_rst__date()
+rst_man_1__date="Print date"
+rst__date()
 {
     echo 1
   test -z "$1" && {
@@ -46,74 +43,29 @@ c_rst__date()
 ### User help functions
 
 
-c_rst_als___h=help
-c_rst_spc__help='-h|help [ID]'
-c_rst__help()
-{
-  std__help rst "$@"
-}
+rst_als____version=version
+rst_als___V=version
+rst_grp__version=ctx-main\ ctx-std
+
+rst_als____help=help
+rst_als___h=help
+rst_grp__help=ctx-main\ ctx-std
 
 
-c_rst_als___e=edit
-c_rst_spc__edit='-e|edit'
-c_rst__edit()
+rst_als___e=edit
+rst_spc__edit='-e|edit'
+rst__edit()
 {
   $EDITOR $0 "$@"
 }
-
-
-c_rst_man_1__version="Version info"
-c_rst__version()
-{
-  echo "box-rst/$version"
-}
-c_rst_als___V=version
 
 
 
 ### Main
 
 
-rst_main()
-{
-  local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-  rst_init || return 0
-  local scriptname=rst base=$(basename $0 .sh) dirname=$(dirname $0)
-  case "$base" in $scriptname )
-      local subcmd_func_pref=c_${base} verbosity=5 c_rst_default=version
-      rst_lib
-      main_run_subcmd "$@" ;;
-  esac
-}
-
-rst_init()
-{
-  test -z "$BOX_INIT" || return 1
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh
-  util_init
-  . $scriptpath/tools/sh/box.env.sh
-  . $scriptpath/box.lib.sh
-  box_run_sh_test
-  . $scriptpath/main.lib.sh load-ext
-  # -- rst box init sentinel --
-}
-
-rst_lib()
-{
-  # -- rst box lib sentinel --
-  set --
-}
-
-rst_load()
-{
-  # -- rst box load sentinel --
-  set --
-}
-
-# Use hyphen to ignore source exec in login shell
-if [ -n "$0" ] && [ $0 != "-bash" ]; then
-  rst_main "$@"
-fi
-
-
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box" \
+INIT_LIB="\\$default_lib box src-htd"
+main-local
+subcmd_default=version

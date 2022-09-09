@@ -6,8 +6,8 @@ import decimal
 
 import uriref
 
-import mb
-import dt
+from . import mb
+from . import dt
 
 
 def is_native_or_class(type_):
@@ -81,7 +81,7 @@ typebuilders = {
     'dec':     (mb.num_r('dec',True), decimal.Decimal, 0),
     'float':   (mb.num_r('float',True), float, 0),
     'hex':     (mb.num_r('hex',True), hex, 0),
-    'long':    (mb.num_r('long',True), long, 0),
+    #'long':    (mb.num_r('long',True), long, 0),
     'sci-dec': (mb.num_r('sci-dec'), decimal.Decimal, 0),
     'complex': (mb.num_r('complex'), complex, 0),
 

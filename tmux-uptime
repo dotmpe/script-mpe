@@ -1,5 +1,0 @@
-#!/bin/sh
-
-# Select group from uptime output: 1: days/hours up; 2: users; 3: load avgs
-# TODO: move to shell profile export, test with tmux
-echo $(uptime | sed 's/^.*\(up .*\),\ *\([0-9]*\ user[s]*\).*load[^0-9]*\(.*\)$/\'$1'/')

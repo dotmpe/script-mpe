@@ -7,13 +7,13 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
     
     Scenario: list local repositories
 
-        When the user runs "htd gitrepo --dir=/srv/scm-git-local bvberkum/*.git"
+        When the user runs "htd gitrepo --dir=/srv/scm-git-local dotmpe/*.git"
         Then each `output` line matches the pattern '.*.git$'
         And `stderr` is empty
         And `output` has the lines:
         """
-        /srv/scm-git-local/bvberkum/script-mpe.git
-        /srv/scm-git-local/bvberkum/mkdoc.git
+        /srv/scm-git-local/dotmpe/script-mpe.git
+        /srv/scm-git-local/dotmpe/mkdoc.git
         """
 
     Scenario: list local repositories (defaults)
@@ -24,24 +24,24 @@ Feature: Htd helper for local repositories and vendorized checkout dirs
         Then `output` equals:
         """
         t
-        bvberkum
+        dotmpe
         """
 
         When the user runs "htd gitrepo"
         Then `stderr` is empty
         And `output` has the lines:
         """
-        /srv/scm-git-local/bvberkum/script-mpe.git
-        /srv/scm-git-local/bvberkum/mkdoc.git
+        /srv/scm-git-local/dotmpe/script-mpe.git
+        /srv/scm-git-local/dotmpe/mkdoc.git
         """
 
     Scenario: list repositories in dir and/or for glob
 
-        When the user runs "htd gitrepo --dir=/src/github.com bvberkum/*/.git"
+        When the user runs "htd gitrepo --dir=/src/github.com dotmpe/*/.git"
         Then `stderr` is empty
         And `output` has the lines:
         """
-        /src/github.com/bvberkum/mkdoc/.git
+        /src/github.com/dotmpe/mkdoc/.git
         """
 
         When the user runs "htd gitrepo --dir=/src */*/x-meta/.git"

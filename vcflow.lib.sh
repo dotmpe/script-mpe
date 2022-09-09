@@ -6,18 +6,18 @@
 # Set default vars
 vcflow_lib_load()
 {
-  test -n "$VCFLOW_DOC_EXTS" || VCFLOW_DOC_EXTS=".tab .txt"
-  test -n "$vcflow_feature_re" || vcflow_feature_re='^feature[s]?/.*'
-  test -n "$vcflow_devline_re" || vcflow_devline_re='^r([0-9])\.([0-9])'
+  test -n "${VCFLOW_DOC_EXTS-}" || VCFLOW_DOC_EXTS=".tab .txt"
+  test -n "${vcflow_feature_re-}" || vcflow_feature_re='^feature[s]?/.*'
+  test -n "${vcflow_devline_re-}" || vcflow_devline_re='^r([0-9])\.([0-9])'
   # Try to init lib
-  test -n "$scm" || { vc_getscm || return 0; }
+  test -n "${scm-}" || { vc_getscm || return 0; }
 }
 
 
 # Start env session for any gitflow file basename
 vcflow_file_default() # Basename
 {
-  test -n "$1" || { shift ; set -- ${scm}flow ; }
+  test -n "${1-}" || { shift ; set -- ${scm}flow ; }
   test -e "$1" || {
     for base in ./ ./. ./.local/ config/
     do
@@ -80,7 +80,7 @@ gitflow_foreach_downstream()
   test -n "$1" || set -- gitflow.tab "$2" "$3"
   test -e "$1" || error "foreach-downstream: missing gitflow file ($1)" 1
   test -n "$3" || set -- "$1" "$2" "$(git rev-parse --abbrev-ref HEAD)"
-  info "foreach-downstream: reading downstream for '$3' from '$1'"
+  std_info "foreach-downstream: reading downstream for '$3' from '$1'"
   read_nix_style_file "$1" | while read -r upstream downstream isfeature
   do
     test "$upstream" = "$3" || continue
@@ -120,7 +120,7 @@ gitflow_clean_local_features()
         git branch -d "$fb"
       }
     } || {
-      info "Local changes on '$fb'"
+      std_info "Local changes on '$fb'"
     }
   done
 }

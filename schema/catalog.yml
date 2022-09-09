@@ -37,13 +37,21 @@ items:
     file-size:
       type: number
       description: The file size in bytes
+    include:
+      description: Name is path to include for scan/sort
+    exclude:
+      description: Name is path to exclude for scan/sort
     tags:
-      type: array
-      items: [ type: string ]
+      oneOf:
+      - type: "null"
+      - type: string
+        description: A space, not comma, separated sequence of tags in YAML string. Tagss with space should be escaped or wrapped a YAML array instead.
+      - type: array
+        items: [ type: string ]
     keys:
       type: object
       description: |
         Global ID's for file, including content checksums.
-#      patternProperties:
+#      patternProperties: # AJV does not like this?
 #        '^[A-Za-z0-9,\._-]+$': 
-#          - type: string
+#        - type: string

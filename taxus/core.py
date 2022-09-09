@@ -18,13 +18,12 @@ from .util import ORMMixin
 from script_mpe import lib, log
 
 
+@zope.interface.implementer(iface.Node)
 class Node(SqlBase, CardMixin, ORMMixin, object):
 
     """
     Provide lookup on numeric ID, and standard dates.
     """
-
-    zope.interface.implements(iface.Node)
 
     __tablename__ = 'nodes'
 
@@ -78,13 +77,12 @@ class Folder(Node):
 groupnode(Folder, name='folder', keyattr='title')
 
 
+@zope.interface.implementer(iface.IID)
 class ID(SqlBase, CardMixin, ORMMixin):
 
     """
     A global system identifier stored in varchar(255)
     """
-
-    zope.interface.implements(iface.IID)
 
     __tablename__ = 'ids'
     id_id = Column('id', Integer, primary_key=True)
@@ -293,7 +291,7 @@ class Topic(Tag):
 
     @classmethod
     def proc_context(klass, item):
-        print 'TODO: Topic.proc_context', item
+        print('TODO: Topic.proc_context %s' % item)
 
     def __init__(self, name=None, supernode=None):
         super(Topic, self).__init__(name)

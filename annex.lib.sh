@@ -1,20 +1,26 @@
 #!/bin/sh
 
+## Annex: GIT annex wrappers (consolidate and lock media-file versions)
+
 
 annex_lib_load()
 {
-  content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos $ANNEX_DIR/NathalieH $ANNEX_DIR/enemies"
+  content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos"
 
-    # TODO: scan for .annex/objects folder, move this to user-conf
+  # TODO: scan for .annex/objects folder, move this to user-conf
   #content_annices="$()"
+}
 
+annex_init()
+{
+  #shellcheck disable=SC1090 # follow non-constant source
   . ~/.local/composure/find_by_sha2.inc
 }
 
 htd_annex_files()
 {
   # Annex queries remotes, which may give errors (no network/mounts missing)
-  git annex list $@ --fast 2>/dev/null | while read prefix file
+  git annex list "$@" --fast 2>/dev/null | while ${read:-read -r} prefix file
   do
     test -e "$file" -o -h "$file" && echo "$file"
   done
@@ -50,7 +56,7 @@ annex_metadata()
     metadata="$(echo "$metadata_" | grep '^ ')"
     test -n "$metadata$key_metadata_" || continue
     test -n "$metadadata" && metadadata="$metadadata\\n"
-    printf -- "name=$file\\n$metadata$key_metadata_\\n\\f\\n"
+    printf -- "name=%s\\n%s\\n\\f\\n" "$file" "$metadata$key_metadata_"
   done |
     grep -v '.*lastchanged='
 }
@@ -142,12 +148,10 @@ git_annex_unusedkeys_findlogs() # Key-List-File...
 {
   test -s "$1" || { error "git_annex_unusedkeys_findlogs File expected" ; return 1; }
   local x=0
-  while test -n "$1"
-    do
-    while read -r key rest
-    do
-      test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
-      x=$(( $x + 1 ))
+  while test $# -gt 0
+    do while read -r key rest
+      do test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
+      x=$(( x + 1 ))
       echo Key $x: $key
       test -e "$log" || git log --stat -S"$key" > "$log"
       cat "$log"
@@ -165,7 +169,7 @@ annex_dropbykey() # File Key
   note "Dropping '$1'.."
   # NOTE: content does need to be present, key should exist ofcourse
   annex_parsekey "$2" || return
-  info "Dropping KEY=$2.."
+  std_info "Dropping KEY=$2.."
   git annex dropkey --force "$2" || echo dropkey-exit=$?
   test -n "$dropped" || dropped=./.catalog/dropped.sha2list
   test -n "$1" || set -- "$keyext" "$2"
@@ -195,11 +199,11 @@ git_annex_unusedkeys_drop_ifloggrep() # Key-List-File Grep...
   while read -r key rest
   do
     test -n "$key" -a "$(echo "${key}" | cut -c1 )" != "#" || continue
-    x=$(( $x + 1 ))
+    x=$(( x + 1 ))
     echo Key $x: $key
     log=.cllct/annex-unused/$key.log
     test -e "$log" || git log --stat -S"$key" > "$log"
-    for pat in $@
+    for pat in "$@"
     do
       grep "$pat" "$log" && {
         git annex dropkey --force "$key" || true
@@ -216,7 +220,7 @@ git_annex_unusedkeys_backupfiles() # Key-List-File
   #test -n "$target" || target=$HOME/htdocs/cabinet/.git/annex/
   test -n "$target" || target="/srv/$(readlink /srv/annex-local)/backup/.git/annex"
   path=
-  while test -n "$1"
+  while test $# -gt 0
   do
     while read -r key path
     do
@@ -266,19 +270,39 @@ git_annex_unusedkeys_backupfiles() # Key-List-File
 
 annex_contentexists() # Dir SHA256E-Key
 {
-  local cwd="$(pwd)"
   content_location="$(cd "$1" && git annex contentlocation "$2" || true)"
-  cd "$cwd"
   test -n "$content_location" -a -s "$1/$content_location" || return $?
 }
 
 annex_keyexists() # Dir SHA256E-Key
 {
-  local cwd="$(pwd)"
   content_location="$(cd "$1" && git annex contentlocation "$2" || true)"
-  cd "$cwd"
   stderr 0 "Content Location $content_location"
   test -n "$content_location" || return $?
+}
+
+annexed_file ()
+{
+  # XXX: this assumes the usual SHA256(E) backend
+  test -h "$1" || return 1
+  case "$(realpath -m "$1")" in */.git/annex/objects/* ) ;; ( * ) return 1 ;; esac
+  #objectdir="$(dirname "$(dirname "$(dirname "$(dirname "$(realpath -mq "$1")")")")")"
+  #gitdir="$(dirname "$(dirname "$(dirname "$objectdir")")")"
+  #test "${objectdir:${#gitdir}}" = "/.git/annex/objects"
+}
+
+annex_file_is_here ()
+{
+  test -h "$1" || return 0
+  test -e "$1"
+}
+
+annex_files_are_here ()
+{
+  find "$1" -type f -o -type l | while read -r f
+    do
+        test -s "$f" || return
+    done
 }
 
 annex_info_parsehere()
@@ -286,17 +310,6 @@ annex_info_parsehere()
   info_raw="$(git annex info | grep here)"
   info_uuid="$(echo $info_raw | cut -d ' ' -f1  )"
   info_descr="$(echo $info_raw | cut -d ' ' -f3- )"
-}
-
-annex_unused_cachelist()
-{
-  mkdir -vp .cllct/annex-unused
-  test -n "$info_uuid" || annex_info_parsehere
-  out=.cllct/annex-unused/repo-$info_uuid.list
-  git annex unused > $out
-  unused=$(count_lines $out)
-  test $unused -gt 1 &&
-    stderr 0 "Unused files: $(( $unused - 1 )) <$out>" || rm "$out"
 }
 
 annex_fsckfast_cache()
@@ -312,7 +325,7 @@ annex_fsckfast_cache()
 annex_dropkeys_fromother() # Other-Annex
 {
   test -n "$1" || stderr 0 "Other-Annex expected" 1
-  find $1/.git/annex/objects -type f | while read cl
+  find $1/.git/annex/objects -type f | while read -r cl
   do
     test -n "$cl" -a -e "$cl" || continue
     key="$(basename "$cl")"
@@ -336,24 +349,24 @@ annexdir_update()
     test -d "$x/.git/annex" || { warn "Not an annex '$x'" ; continue; }
 
     # TODO: may want to check package for init script
-    (
-      cd "$x"
-      package_file . || {
-        warn "No package for '$x'"
+    package_file "$x" || {
+        warn "No package file found in '$x'"
         continue
       }
-      test .htd/tools/env.sh -nt "$metaf" &&
-        note "Package up-to-date for $x" || {
 
-          package_sh_list_exists "init" && {
-            htd.sh run init || return
-          } || {
-            htd.sh package update
-            htd.sh package remotes-reset
-            vc.sh regenerate
-          }
+    # XXX: which env to load? TOOLS_SUITE=main?
+    test $x/.meta/package/envs/main.sh -nt "$metaf" &&
+      note "Package up-to-date for $x" || {
+
+        package_sh_list_exists "init" && {
+          ( cd "$x" && htd.sh run init ) || return
+        } || {
+          ( cd "$x" &&
+              htd.sh package update &&
+              htd.sh package remotes-reset &&
+              vc.sh regenerate ) || return
         }
-    )
+      }
   done
   return $r
 }
@@ -364,8 +377,7 @@ annexdir_sync()
   do
     test -d "$x/.git/annex" || { warn "Not an annex '$x'" ; continue; }
     (
-      cd $x
-      git annex sync
+      cd "$x" && git annex sync
     )
   done
   return $r
@@ -374,9 +386,9 @@ annexdir_get()
 {
   test -n "$1" || set -- --auto
   #test -n "$1" || set -- .
-  info "Annexdir get '$*'..."
+  std_info "Annexdir get '$*'..."
   # From Annex/* dir, sync and an get all
-  for a in $(pwd)/*/
+  for a in "$PWD"/*/
   do
     echo "$a"
     test -e "$a/.git" || continue
@@ -386,7 +398,7 @@ annexdir_get()
 }
 annexdir_getpref()
 {
-  annexdir_getpref --auto
+  annexdir_get --auto
 }
 annexdir_run()
 {
@@ -398,8 +410,7 @@ annexdir_run()
     test -d "$x/.git/annex" || warn "Not an annex '$x'"
     basename "$x"
     (
-      cd $x
-      exec "$@"
+      cd "$x" && command "$@"
     )
   done
   return $r
@@ -445,8 +456,8 @@ annices_findbysha2list()
 # contentlocation will be set to the local file path.
 annices_lookup_by_key()
 {
-  info "Lookup by key '$1'.."
-  for annex in $ANNEX_DIR/*/
+  std_info "Lookup by key '$1'.."
+  for annex in "$ANNEX_DIR"/*/
   do
     test -d "$annex/.git/annex/objects" || {
       continue # No content in annex
@@ -474,8 +485,8 @@ annices_lookup_by_key()
 # instead key is a sha2. Set env backendfile and KEY as well.
 annices_lookup_by_sha2()
 {
-  info "Lookup by SHA-256 '$1'.."
-  for annex in $ANNEX_DIR/*/
+  std_info "Lookup by SHA-256 '$1'.."
+  for annex in "$ANNEX_DIR"/*/
   do
     test -d "$annex/.git/annex/objects" || {
       continue # No content in annex
@@ -505,16 +516,34 @@ annices_lookup_by_sha2()
 annices_scan_for_sha2()
 {
   test -n "$1" || stderr 0 "SHA2 expected" 1
-  local cwd="$(pwd)"
+  local cwd="$PWD"
   for annex in $content_annices
   do
-    cd "$annex"
+    cd "$annex" &&
     git grep -q "$1" && {
       cd "$pwd";
       stderr 0 "SHA2 for $fn found at $annex"
       return;
     } || continue
   done
-  cd "$cwd"
+  cd "$cwd" || return
   return 1
 }
+
+annex_status ()
+{
+  annex_unused_cachelist
+}
+
+annex_unused_cachelist()
+{
+  mkdir -vp .cllct/annex-unused
+  test -n "$info_uuid" || annex_info_parsehere
+  out=.cllct/annex-unused/repo-$info_uuid.list
+  git annex unused > $out
+  unused=$(count_lines $out)
+  test $unused -gt 1 &&
+    stderr 0 "Unused files: $(( unused - 1 )) <$out>" || rm "$out"
+}
+
+#

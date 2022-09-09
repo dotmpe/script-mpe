@@ -1,0 +1,12 @@
+# mkvar assignment II - Expansion tests
+
+# Expand to foo foo foo
+VAR2_1a    =    $(VAR2a)
+VAR2a      =    foo
+VAR2_2b    =    $(VAR2a)
+
+# Expand to '' foo foo
+VAR2_2a    :    $(VAR2b)
+VAR2b      :    foo
+VAR2_2b    :    $(VAR2b)
+

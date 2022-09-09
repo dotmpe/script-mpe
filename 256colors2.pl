@@ -12,13 +12,13 @@
 # colors 16-231 are a 6x6x6 color cube
 for ($red = 0; $red < 6; $red++) {
     for ($green = 0; $green < 6; $green++) {
-	for ($blue = 0; $blue < 6; $blue++) {
-	    printf("\x1b]4;%d;rgb:%2.2x/%2.2x/%2.2x\x1b\\",
-		   16 + ($red * 36) + ($green * 6) + $blue,
-		   ($red ? ($red * 40 + 55) : 0),
-		   ($green ? ($green * 40 + 55) : 0),
-		   ($blue ? ($blue * 40 + 55) : 0));
-	}
+        for ($blue = 0; $blue < 6; $blue++) {
+            printf("\x1b]4;%d;rgb:%2.2x/%2.2x/%2.2x\x1b\\",
+                   16 + ($red * 36) + ($green * 6) + $blue,
+                   ($red ? ($red * 40 + 55) : 0),
+                   ($green ? ($green * 40 + 55) : 0),
+                   ($blue ? ($blue * 40 + 55) : 0));
+        }
     }
 }
 
@@ -27,14 +27,14 @@ for ($red = 0; $red < 6; $red++) {
 for ($gray = 0; $gray < 24; $gray++) {
     $level = ($gray * 10) + 8;
     printf("\x1b]4;%d;rgb:%2.2x/%2.2x/%2.2x\x1b\\",
-	   232 + $gray, $level, $level, $level);
+           232 + $gray, $level, $level, $level);
 }
 
 
 # display the colors
 
 # first the system ones:
-print "System colors:\n";
+print "System colors (2x8):\n";
 for ($color = 0; $color < 8; $color++) {
     print "\x1b[48;5;${color}m  ";
 }
@@ -45,24 +45,28 @@ for ($color = 8; $color < 16; $color++) {
 print "\x1b[0m\n\n";
 
 # now the color cube
-print "Color cube, 6x6x6:\n";
+print "Color cube, 6x6x6 (213; 16-232):\n";
 for ($green = 0; $green < 6; $green++) {
     for ($red = 0; $red < 6; $red++) {
-	for ($blue = 0; $blue < 6; $blue++) {
-	    $color = 16 + ($red * 36) + ($green * 6) + $blue;
-	    print "\x1b[48;5;${color}m  ";
-	}
-	print "\x1b[0m ";
+        for ($blue = 0; $blue < 6; $blue++) {
+            $color = 16 + ($red * 36) + ($green * 6) + $blue;
+            print "\x1b[48;5;${color}m  ";
+        }
+        print "\x1b[0m ";
     }
     print "\n";
 }
-
+for ($block = 0; $block < 6; $block++) {
+    printf "%12s ", ( 16 + ( ($block + 1) * 36 ))
+}
+print "\n";
+print "\n";
 
 # now the grayscale ramp
-print "Grayscale ramp:\n";
+print "Grayscale ramp (24; 232-255):\n";
 for ($color = 232; $color < 256; $color++) {
     print "\x1b[48;5;${color}m  ";
 }
 print "\x1b[0m\n";
 
-
+#

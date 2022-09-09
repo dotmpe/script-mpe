@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Radical
 =======
@@ -156,7 +156,7 @@ Issues
 
 Further comments
 ----------------
-- Handles only Unix likebreaks. Could do a lot better con literal parsing,
+- Handles only Unix-like breaks. Could do a lot better con literal parsing,
   perhaps something enfiladic or based on parallel streams.. for now it should
   help this results in some content ranges.
 
@@ -247,8 +247,8 @@ class TagInstance(object):
     Represent a matched tag in a source document.
     """
 
-    def __init__(self, source, slug, char_span):
-        self.source = source
+    def __init__(self, srcdoc, slug, char_span):
+        self.srcdoc = srcdoc
         self.slug = slug
         self.start = char_span[0]
         self.end = char_span[1]
@@ -257,13 +257,14 @@ class TagInstance(object):
     def char_span(self):
         return self.start, self.end
 
-    def raw(self, data):
+    @property
+    def raw(self):
         "Retrieve raw string from data"
-        return data[slice(*self.char_span)]
+        return self.srcdoc.data[slice(*self.char_span)]
 
-    def canonical(self, data):
+    def canonical(self):
         "Clean-up raw tag"
-        tag = self.raw(data)
+        tag = self.raw
         # Strip ends
         ctag = tag
         for p in '^'+tag_chars, tag_sepchars:
@@ -274,7 +275,38 @@ class TagInstance(object):
         return ctag
 
     def __str__(self):
-        return "<TagInstance %s %s#c%s-%s>" % ( self.slug, self.source, self.start, self.end)
+        return "<TagInstance %s %s#c%s-%s>" % ( self.slug,
+                self.srcdoc.source_name, self.start, self.end)
+
+    def to_dict(self, raw_match=False):
+        d = {
+            'srcdoc': {
+                'name': self.srcdoc.source_name,
+                'lines': self.srcdoc.line_count,
+                'characters': len(self.srcdoc)
+            },
+            'tag': {
+                'id': self.canonical(),
+                'slug': self.slug,
+                'span': list(self.char_span),
+            }
+        }
+        if raw_match: d['tag']['raw-match'] = self.raw
+        return d
+
+    # TODO: work-out tag formats and setup tests, also update for issue:full-sh
+    formats = {
+        'id': lambda tag, srcdoc, rc, opts: str(tag),
+        'full-sh': lambda tag, srcdoc, rc, opts: ':'.join([
+                    '',
+                    srcdoc.source_name,
+                    "%i+%i" % tag.char_span,
+                    tag.slug
+            ]),
+        'json-stream': lambda tag, srcdoc, rc, opts: res.js.dumps(tag.to_dict(opts.raw_match)),
+    }
+
+
 
 #indices_comments = Table('indices_comments', Base.metadata,
 #        Column('tag', ForeignKey('tags.tagname'), index=True),
@@ -334,6 +366,8 @@ class SrcDoc:
 
         self.scei = []
 
+    def __len__(self):
+        return len(self.data)
 
 class CommentTag:
     """ TODO: hold some types of tags
@@ -350,22 +384,23 @@ class EmbeddedIssue:
     Holder for specific tagged comment found in source.
     """
 
-    def __init__(self, srcdoc, comment_char_span, comment_line_span,
-            description_span, comment_flavour, inline, tags):
+    def __init__(self, srcdoc, comment_char_range, comment_line_range,
+            description_range, comment_flavour, inline, tags):
         self.srcdoc = srcdoc
-        self.description_span = description_span
-        self.comment_char_span = comment_char_span
-        self.comment_line_span = comment_line_span
+        self.description_span = range_to_span(*description_range)
+        self.comment_char_span = range_to_span(*comment_char_range)
+        self.comment_line_span = range_to_span(*comment_line_range)
         self.comment_flavour = comment_flavour
         self.inline = inline
         self.tags = tags
         self.validate()
 
-    def to_dict(self):
-        return {
+    def to_dict(self, raw_match=None):
+        d = {
             'srcdoc': {
                 'name': self.srcdoc.source_name,
-                'lines': self.srcdoc.line_count
+                'lines': self.srcdoc.line_count,
+                'characters': len(self.srcdoc)
             },
             'description': {
                 'span': list(self.description_span)
@@ -377,6 +412,10 @@ class EmbeddedIssue:
             },
             'inline': self.inline, 'tags': self.tags
         }
+        if raw_match:
+            d['comment']['raw-match'] = self.raw
+            d['description']['raw-match'] = self.srcdoc.data[slice(*span_to_range(*self.description_span))]
+        return d
 
     def __cmp__(self):
         pass
@@ -388,8 +427,8 @@ class EmbeddedIssue:
 
     @property
     def line_span(self):
-        assert self.comment_line_span, self
-        return [ i + 1 for i in self.comment_line_span ]
+        sl, le = self.comment_line_span
+        return ( sl+1, le )
 
     @property
     def char_span(self):
@@ -399,12 +438,12 @@ class EmbeddedIssue:
     @property
     def raw(self):
         assert self.comment_char_span, self
-        return self.srcdoc.data[slice(*self.comment_char_span)]
+        return self.srcdoc.data[slice(*span_to_range(*self.comment_char_span))]
 
     @property
     def descr(self):
         assert self.description_span, self
-        return self.srcdoc.data[slice(*self.description_span)]
+        return self.srcdoc.data[slice(*span_to_range(*self.description_span))]
 
     def scei_id(self, full=True):
         # NOTE: turn ranges from 0-index into 1-indexed (lines, chars, etc)
@@ -420,48 +459,63 @@ class EmbeddedIssue:
 
 
     formats = {
-            'id': lambda cmt, data, rc, opts: cmt.scei_id(False),
-            'full-id': lambda cmt, data, rc, opts: cmt.scei_id(),
-            'full-sh': lambda cmt, data, rc, opts: ":".join(
-                map(str, [
-                    '',
-                    cmt.srcdoc.source_name,
-                    # NOTE: 0 to 1-indexed, and add spans for Sh
-                    "%i-%i" % tuple(cmt.line_span),
-                    "%i-%i" % tuple(cmt.description_span),
-                    '', # line-offset-descr-span
-                    '', # cmnt-span
-                    '', # line-offset-cmnt-span
-                    ' '+repr(cmt.descr)[1:-1]
-                ])),
-            'grep': lambda cmt, data, rc, opts: ":".join([
-                    cmt.srcdoc.source_name,
-                    "%i" % cmt.line_span[0],
-                    ' '+repr(cmt.descr)[1:-1]
-                ]),
-            'todo.txt': lambda cmt, data, rc, opts: " ".join([
-                    # FIXME: cleanup & parsing in EmbeddedIssue re.sub(r'\s+', ' ', cmt.descr),
-                    re.sub(r'\s+', ' ', cmt.raw),
-                    opts.todotxt_paths and
-                        opts.todotxt_pathpref+cmt.srcdoc.source_name or '',
-                    opts.todotxt_lines and
-                        "line:%i-%i" % tuple(cmt.line_span) or '',
-                    opts.todotxt_chars and
-                        "char:%i-%i" % tuple(cmt.description_span) or ''
-                ]),
-            'raw': lambda cmt, data, rc, opts: " ".join(
-                map(str, [ cmt.srcdoc.source_name,
-                    cmt.line_span, \
-                    cmt.comment_flavour, \
-                    repr(cmt.raw), \
-                    repr(cmt.descr) ])),
-            'raw2': lambda cmt, data, rc, opts: " ".join([ cmt.comment_flavour ] + [
-                "%s '%s' <%s> %s" %(
-                    tag, tag.raw, tag.canonical(data), cmt
-                ) for tag in cmt.tags ]),
-            'json-stream': lambda cmt, data, rc, opts: res.js.dumps(cmt.to_dict()),
-            'null': lambda cmt, data, rc, opts: None,
-        }
+        'id': lambda cmt, data, rc, opts: cmt.scei_id(False),
+        'full-id': lambda cmt, data, rc, opts: cmt.scei_id(),
+# TODO: full-sh format
+# <1-prefix>
+# <2-file>
+# <3-line-span>
+# <4-descr-span>
+# <5-descr-line-offset-span>
+# <6-cmnt-span>
+# <7-cmnt-line-offset-span>
+# <8-tag-span>
+# <9-slug-span>
+# <10-match>
+        'full-sh': lambda cmt, data, rc, opts: ":".join(
+            map(str, [
+                '', # 1. Prefix
+                cmt.srcdoc.source_name, # 2. Filename
+                # NOTE: 0 to 1-indexed, and add spans for Sh
+                "%i+%i" % cmt.line_span, # 3. Startline to endline
+                "%i+%i" % cmt.description_span, # 4.
+                '', # 5. line-offset-descr-span
+                '', # 6. cmnt-span
+                '', # 7. line-offset-cmnt-span
+                '', # 8. tag span
+                '', # 9. slug span
+                ' '+repr(cmt.descr)[1:-1] # 10. match
+            ])),
+        'grep': lambda cmt, data, rc, opts: ":".join([
+                cmt.srcdoc.source_name,
+                "%i" % cmt.line_span[0],
+                ' '+repr(cmt.descr)[1:-1]
+            ]),
+        'txt': 'todo.txt', 'todotxt': 'todo.txt', 'todo': 'todo.txt',
+        'todo.txt': lambda cmt, data, rc, opts: " ".join([
+                # FIXME: cleanup & parsing in EmbeddedIssue re.sub(r'\s+', ' ', cmt.descr),
+                re.sub(r'\s+', ' ', cmt.raw),
+                ( opts.todotxt_paths and  cmt.srcdoc.source_name ) and (
+                    opts.todotxt_path_fmt % cmt.srcdoc.source_name ) or '',
+                opts.todotxt_lines and
+                    "line:%i-%i" % tuple(cmt.line_span) or '',
+                opts.todotxt_chars and
+                    "char:%i-%i" % tuple(cmt.description_span) or ''
+            ]),
+        'raw': lambda cmt, data, rc, opts: " ".join(
+            map(str, [ cmt.srcdoc.source_name,
+                cmt.line_span, \
+                cmt.comment_flavour, \
+                repr(cmt.raw), \
+                repr(cmt.descr) ])),
+        'raw2': lambda cmt, data, rc, opts: " ".join([ cmt.comment_flavour ] + [
+            "%s '%s' <%s> %s" %(
+                tag, tag.raw, tag.canonical(), cmt
+            ) for tag in cmt.tags ]),
+        'json-stream': lambda cmt, data, rc, opts:
+            res.js.dumps(cmt.to_dict(opts.raw_match)),
+        'null': lambda cmt, data, rc, opts: None,
+    }
 
     def validate(self):
         assert self.line_span or self.char_span
@@ -475,7 +529,7 @@ class EmbeddedIssue:
             )
         if self.line_span:
             assert (
-                isinstance(self.line_span, list) and len(self.line_span) == 2
+                isinstance(self.line_span, tuple) and len(self.line_span) == 2
             )
             assert (
                 isinstance(self.line_span[0], int) and
@@ -494,7 +548,7 @@ class EmbeddedIssue:
             raw_ei = self.to_dict()
 
             # Cleanup the SEI's Id, ie. normalize our tag-id
-            refId = tag.canonical(self.srcdoc.data)
+            refId = tag.canonical()
 
             # Find issue based on Tag-Id
             if refId == tag.slug:
@@ -583,6 +637,13 @@ class EmbeddedIssueOld:
             if not description.endswith(' '):
                 description += ' '
         return description
+
+
+def range_to_span(offset, endpos):
+    return (offset, endpos - offset + 1)
+
+def span_to_range(offset, width):
+    return (offset, offset + width - 1)
 
 
 # Storage & service IO
@@ -701,15 +762,15 @@ def get_tagged_comment(offset, width, data, lines, language_keys, ignored_scans,
         scan_spec = matchbox[language_key]
         search_line, search_start, search_end = scan_spec
 
-        data = lines[tag_line]
+        line_data = lines[tag_line]
         start_line = tag_line
 
         if search_line:
             # scan for line-style comment, concatenate multiple lines
-            line_start = search_line(data)
+            line_start = search_line(line_data)
 
             if line_start:
-                #print 'search_line', language_key, data, start_line, line_start.span()
+                #print('search_line', language_key, line_data, start_line, line_start.span())
                 comment_offset = line_offset + line_start.start()
                 description_offset = offset
                 last_line = tag_line
@@ -717,66 +778,67 @@ def get_tagged_comment(offset, width, data, lines, language_keys, ignored_scans,
                 description_end = comment_end
                 if last_line == 0 or last_line == lineslen-1:
                     break
-                data = lines[last_line+1]
-                while search_line(data):
+                line_data = lines[last_line+1]
+                while search_line(line_data):
                     last_line += 1
-                    comment_end = len(data) + 1
-                    data = lines[last_line+1]
+                    comment_end = len(line_data) + 1
+                    line_data = lines[last_line+1]
 
-                #print "Line-match ", language_key, tag_line, lines[tag_line]
+                #print("Line-match ", language_key, tag_line,
+                #        lines[tag_line:last_line+1],
+                #        comment_offset, comment_end,
+                #        data[comment_offset:comment_end])
                 break
 
             else:
-                #print "No line-match at", language_key, tag_line, lines[tag_line]
+                #print("No line-match at", language_key, tag_line, lines[tag_line])
                 continue
 
         else: # seek multiline block comment
 
             comment_offset = line_offset
-            while data:
-                #print 'comment_offset', comment_offset, 'len-data', len(data)
-                start = search_start(data)
+            line_data = data
+            while line_data:
+                #print 'comment_offset', comment_offset, 'len-line_data', len(line_data)
+                start = search_start(line_data)
                 if start:
                     description_offset = comment_offset + start.end()
                     comment_offset += start.start()
                     comment_end = comment_offset
-                    data = data[start.start():]
+                    line_data = line_data[start.start():]
                     break
                 if start_line == 0:
                     break
                 start_line -= 1
-                data = lines[start_line]
-                comment_offset -= len(data) + 1
+                line_data = lines[start_line]
+                comment_offset -= len(line_data) + 1
 
             if comment_end == -1:
                 continue
-            #print 'Start match', comment_end, comment_offset, start_line, data
+            #print 'Start match', comment_end, comment_offset, start_line, line_data
 
             if not search_end:
                 search_end = search_start
 
             last_line = start_line
-            while data:
-                end = search_end(data)
+            while line_data:
+                end = search_end(line_data)
                 if end:
                     description_end = comment_end + end.start()
                     comment_end += end.end()
                     break
-                comment_end += len(data) + 1
+                comment_end += len(line_data) + 1
                 if len(lines) == last_line+1:
                     break
                 last_line += 1
-                data = lines[last_line]
+                line_data = lines[last_line]
 
-            #print 'End match', comment_end, last_line, data
-
+            #print('End match', comment_end, last_line, line_data)
             break
 
     if comment_end > -1 and description_end > -1:
-        #print language_key, 'found comment', start_line, comment_offset, \
-        #            last_line, comment_end,\
-        #            lines[start_line:last_line+1]
-        return language_key, (comment_offset, comment_end), \
+        return language_key, \
+                (comment_offset, comment_end), \
                 (description_offset, description_end), \
                 (start_line, last_line)
 
@@ -794,7 +856,8 @@ def scan_for_tag(tags, matchbox, data):
         return pos
 
 
-def trim_comment(match, data, (start, end)):
+def trim_comment(match, data, t):
+    (start, end) = t
     comment_data = data[start:end]
 
     match_start = match[0] or match[1]
@@ -876,7 +939,7 @@ class SEIParser:
                 # The matched text includes only the tag...
                 # print(tag_match.string[slice(*tag_match.span())])
                 tag_span = tag_match.start(), tag_match.end()
-                yield TagInstance(self.source_name, tagname, tag_span)
+                yield TagInstance(self.srcdoc, tagname, tag_span)
 
     def for_tag(self, tag, matchbox, rc):
         "retrieve comment for TagInstance TODO: map streams"
@@ -889,11 +952,13 @@ class SEIParser:
             return
 
         comment_flavour, comment_span, descr_span, lines = comment
+        #print('found %s %s %s %s' % ( comment_flavour, comment_span, descr_span, lines ))
 
         # Clean comment from markup and adjust source span
         comment_data, comment_span = \
                 trim_comment(self.matchbox[comment_flavour], self.data,
                                                             comment_span)
+        #print('cleaned up %s %s %s %s' % ( comment_flavour, comment_span, descr_span, lines ))
         (comment_start, comment_end) = comment_span
 
         # Create instance with refs to srcdoc and helpers to access
@@ -1000,10 +1065,10 @@ def find_tagged_comments(session, matchbox, source, data, lines=None):
                     (tag_match.start(), tag_match.end()),
                     (tag_match.end(), description_end),
                     inline, comment_flavour, lines)
-            continue
+            continue # XXX:
 
             # FIXME:
-            #  Get and further clean the issue text from the source data
+            # Get and further clean the issue text from the source data
             tag_data = clean_comment(rc.comment_scan[comment_flavour],
                     data[tag_match.end():description_end].lstrip())
             if inline:
@@ -1033,12 +1098,19 @@ def find_tagged_comments(session, matchbox, source, data, lines=None):
 
 def plain_text_flavor(peek, source):
     try:
-        peek.decode('ascii')
+        peek#.decode('ascii')
         return True
     except UnicodeDecodeError as e:
         pass
 
-def get_peek(source):
+def unicode_text_flavor(peek, source):
+    try:
+        peek.decode('utf-8')
+        return True
+    except UnicodeDecodeError as e:
+        pass
+
+def take_peek(source):
     try:
         filesize = os.path.getsize(source)
         bytes = 1024
@@ -1094,6 +1166,7 @@ def append_ignored_scan(option, value, parser):
     log.stderr("TODO append_ignored_scan ", (option, value, parser))
     return -1
 
+
 # Static metadata
 
 """
@@ -1127,18 +1200,21 @@ STD_COMMENT_SCAN = {
         'unix_generic': [ '(\#\s)' ],
         'c_line': [ '(\/\/)' ]
     }
+
 # Tag pattern, format and index type
 DEFAULT_TAG_RE = r'''
-  (?: ^|\s+ )
-  (?:
-        (%s)
-        (?:
-              (?: [:\.,_-] )
-            | (?: [\s:\.,_-]* [\s\._0-9-]+ )
-            | (?: [:\.,_-]* [^\ ]+ )
-        )?
+  ( ^|\s+ )                                # After line-start or space
+  (
+      (%s)                                 # Starting with TAG, ie. "slug"
+      (?:                                  # Followed either by:
+          (?: : )                          # - semi-colon delimiter, or
+        | (?: [:_-]+ [:_\.\+a-z0-9-]+ : )  # - delimiters with any form of
+                                           #   alhanumeric Id. including
+                                           # space, underscore, period...
+                                           # XXX: more?
+      )?
   )
-  (?: $|\s+ )
+  ( $|\s+ )                                # until space, or line-end.
 '''
 
 DEFAULT_TAGS = {
@@ -1160,8 +1236,8 @@ STD_IGNORE_SCANS = {
 # FIXME: do away with global rc in radical
 rc = confparse.Values()
 
-tag_chars = 'A-Za-z0-9\/:\._-'
-tag_sepchars = ':\.'
+tag_chars = 'A-Za-z0-9\/:_-'
+tag_sepchars = ':\-'
 tag_clean_re = re.compile('[^%s]' % tag_chars)
 tag_match_re = re.compile('[%s]{2,}' % tag_chars)
 
@@ -1170,14 +1246,14 @@ tag_match_re = re.compile('[%s]{2,}' % tag_chars)
 
 # TODO see bookmarks, basename-reg, mimereg, flesh out Txs
 
-
+@zope.interface.implementer(res.iface.ISimpleCommand)
 class Radical(rsr.Rsr):
 
-    zope.interface.implements(res.iface.ISimpleCommand)
+    # XXX: py2 zope.interface.implements(res.iface.ISimpleCommand)
 
-    NAME = 'rdc'#radical'
+    NAME = 'rdc'#radical' # Handler name prefix
     PROG_NAME = os.path.splitext(os.path.basename(__file__))[0]
-    OPT_PREFIX = 'rdc'
+    OPT_PREFIX = 'rdc' # Option prefix
 
     VERSION = "0.1"
     USAGE = """Usage: %prog [options] paths """
@@ -1194,12 +1270,17 @@ class Radical(rsr.Rsr):
 
     DEPENDS = dict(
             rdc_init = [ 'rsr_session' ],
+            rdc_run_tag_scan = [
+                'rdc_init', '_rdc_paths', 'rsr_session', 'prepare_output' ],
+            rdc_tags = [
+                'rdc_init', '_rdc_paths', 'rsr_session', 'prepare_output' ],
             rdc_run_embedded_issue_scan = [
-                'rdc_init', 'rdc_paths', 'rsr_session', 'prepare_output' ],
+                'rdc_init', '_rdc_paths', 'rsr_session', 'prepare_output' ],
             rdc_list_flavours = [ 'rdc_init', 'load_config', 'prepare_output' ],
             rdc_list_scans = [ 'load_config', 'prepare_output' ],
             rdc_list_ignores = [ 'load_config', 'prepare_output' ],
             rdc_list_formats = [ 'load_config', 'prepare_output' ],
+            rdc_list_tag_formats = [ 'load_config', 'prepare_output' ],
             rdc_info = [ 'rdc_init' ]
         )
 
@@ -1225,6 +1306,10 @@ class Radical(rsr.Rsr):
                     'metavar': 'FILE',
                     'dest': 'input',
                     'help': "Read path arguments from file (or '-' for stdin)." }),
+                p(('--ignore-empty',),{
+                    'action': 'store_true',
+                    'dest': 'ignore_empty',
+                    'help': "Ignore empty files (otherwise generates unreadable file error)." }),
 
                 p(('-t', '--tag'),{
                     'metavar': 'TAG',
@@ -1250,15 +1335,22 @@ class Radical(rsr.Rsr):
 
                 p(('--list-flavours',), libcmd.cmddict(inheritor.NAME)),
                 p(('--list-scans',), libcmd.cmddict(inheritor.NAME)),
-                p(('--list-formats',), libcmd.cmddict(inheritor.NAME)),
                 p(('--list-ignores',), libcmd.cmddict(inheritor.NAME)),
-                p(('--info',), libcmd.cmddict(inheritor.NAME)),
 
+                p(('--list-formats',), libcmd.cmddict(inheritor.NAME)),
                 p(('-u', '--issue-format'), {
                     'metavar': 'FMT',
                     'dest': 'issue_format',
                     'action': 'store',
                     'default': 'full-id',
+                    'help': "" }),
+
+                p(('--list-tag-formats',), libcmd.cmddict(inheritor.NAME)),
+                p(('-Y', '--tag-format',), {
+                    'metavar': 'FMT',
+                    'dest': 'tag_format',
+                    'action': 'store',
+                    'default': 'full-sh',
                     'help': "" }),
 
                 p(('--todotxt-paths',), {
@@ -1270,9 +1362,9 @@ class Radical(rsr.Rsr):
                     'action': 'store_false',
                     'help': "Add path-context to TODO.txt lines" }),
 
-                p(('--todotxt-pathpref',), {
-                    'dest': 'todotxt_pathpref',
-                    'default': '@', 'help': "Use for path prefix" }),
+                p(('--todotxt-path-format',), {
+                    'dest': 'todotxt_path_fmt',
+                    'default': '<%s>', 'help': "Use for path prefix" }),
 
                 p(('--todotxt-lines',), {
                     'dest': 'todotxt_lines',
@@ -1288,15 +1380,39 @@ class Radical(rsr.Rsr):
                     'default': False, 'action': 'store_true',
                     'help': "Add character-range meta to TODO.txt lines" }),
 
-
                 p(('--todotxt-store',), {
                     'dest': 'todotxt_store',
                     'default': 'todo.txt',
                     'help': "Set another file for todo-txt backend" }),
 
+                (('--raw',),{'action':'store_true', 'dest': 'raw_match',
+                    'help': "Include raw data as JSON attribute"}),
+
+                p(('--info',), libcmd.cmddict(inheritor.NAME)),
+                (('--tags',),{'action':'store_true', 'dest': 'list_tags'}),
+                (('--internal',),{'action':'store_true', 'dest': 'internal'}),
+                (('--internal_arguments',),{'action':'store_true', 'dest': 'internal_arguments'}),
+                (('--internal_dependencies',),{'action':'store_true', 'dest': 'internal_dependencies'}),
                 #(('--no-recurse',),{'action':'store_false', 'dest': 'recurse'}),
                 #(('-r', '--recurse'),{'action':'store_true', 'default': True,
                 #    'help': 'Recurse into directory paths (default: %default)'}),
+                p(('-X', '--add-excluded-path'),{
+                    'action': 'append',
+                    'metavar': 'PATH',
+                    'dest': 'excluded_paths',
+                    'help': "Filter out these paths (or path globs)" }),
+
+                p(('--excludes',),{
+                    'action': 'append',
+                    'metavar': 'GLOBFILE',
+                    'dest': 'excludes',
+                    'help': "Add lines to excluded-path" }),
+
+                p(('-N', '--add-excluded-name',),{
+                    'action': 'append',
+                    'metavar': 'NAME',
+                    'dest': 'excluded_names',
+                    'help': "Filter out these filenames/globs" }),
             )
 
     def init_config_defaults(self, prog, opts):
@@ -1311,6 +1427,9 @@ class Radical(rsr.Rsr):
         ))
         # self.settings['(radical-static)'] = self.rc
         return rc
+
+
+    ## Command handlers
 
     def rdc_list_flavours(self, args=None, opts=None):
         for flavour in self.rc.comment_scan:
@@ -1346,9 +1465,20 @@ class Radical(rsr.Rsr):
 
     def rdc_list_formats(self, opts=None):
         for key in EmbeddedIssue.formats:
+            if isinstance(EmbeddedIssue.formats[key], str):
+                continue # alias
             print(key)
 
-    def rdc_paths(self, opts=None, *paths):
+    def rdc_list_tag_formats(self, opts=None):
+        for key in TagInstance.formats:
+            if isinstance(TagInstance.formats[key], str):
+                continue # alias
+            print(key)
+
+    def _rdc_paths(self, opts=None, *paths):
+        """
+        Get paths from arguments, and --input [-|FILE].
+        """
         if paths:
             paths = list(paths)
         else:
@@ -1361,13 +1491,21 @@ class Radical(rsr.Rsr):
         yield dict( paths=paths )
 
     def rdc_init(self, opts=None, issue_format=None):
+        """
+        Check arg/opts for run-embedded-issue-scan, and preload any services for
+        the tags that will be matching for.
+        """
         # XXX: start db session, see rsr-session
         #dbsession = get_session(self.rc.dbref)
         #yield dict( dbsession=dbsession )
 
+        issue_format = issue_format.lower()
         if issue_format not in EmbeddedIssue.formats:
             raise Exception("Unknown format '%r', %s" % (issue_format,
                 EmbeddedIssue.formats.keys()))
+        # Resolve aliases
+        while isinstance(EmbeddedIssue.formats[issue_format], str):
+            issue_format = EmbeddedIssue.formats[issue_format]
 
         services = confparse.Values({})
         for tagname in self.rc.tags:
@@ -1379,27 +1517,41 @@ class Radical(rsr.Rsr):
 
         yield dict( services=services )
 
-    def walk_paths(self, paths):
+    def walk_paths(self, paths, ignore_empty=False):
         # Recurse dirs, return all file paths
         sources = []
-        for p in paths:
-            if not os.path.isdir(p):
-                sources.append(p)
+        for p_ in paths:
+            p = res.fs.INode.factory(p_)
+            if ignore_empty and p.implements == 'file' and p.is_empty():
+                continue
+            elif p.implements != 'dir':
+                sources.append(p.path)
             else:
-                for p2 in res.fs.Dir.walk(p, opts=dict(recurse=True, files=True)):
-                    sources.append(p2)
+                log.debug("Walking dir: %s", p.path)
+                for s in p.walk(opts=dict(recurse=True, files=True)):
+                    if ignore_empty and os.path.getsize(s) < 1:
+                        log.debug("Ignore empty file: %s", s)
+                    sources.append(s)
 
+        # Yield on paths with plain-text sources
         for source in sources:
-            peek = get_peek(source)
+            peek = take_peek(source)
             if not peek:
                 log.err("Error reading %s" % source)
                 continue
 
-            if not plain_text_flavor(peek, source):
-                log.warn("Ignored non-ascii %s" % source)
+            if not plain_text_flavor(peek, source) and not unicode_text_flavor(peek, source):
+                log.warn("Ignored non-ascii/non-unicode text at %s" % source)
                 continue
 
             yield source
+
+    def rdc_tags(self, sa, issue_format=None, opts=None, services=None, paths=[]):
+        """
+        """
+        log.stdout('Radical tags: %r %r', prog, sa)
+        r = self.execute('rdc_run_embedded_issue_scan')
+        log.stdout(r)
 
     def rdc_run_embedded_issue_scan(self, sa, issue_format=None, opts=None,
             services=None, paths=[]):
@@ -1411,11 +1563,12 @@ class Radical(rsr.Rsr):
         if not paths:
             raise Exception("Pathname argument(s) expected")
 
+        self.update_static_ignores(opts)
+        ret = 0
         # TODO: make ascii peek optional, charset configurable
         # TODO: implement contexts, ref per source
         context = ''
-        source_iter = self.walk_paths(paths)
-
+        source_iter = self.walk_paths(paths, opts.ignore_empty)
         # pre-compile patterns XXX: per context
         matchbox = compile_rdc_matchbox(self.rc)
         taskdocs = {}
@@ -1425,8 +1578,13 @@ class Radical(rsr.Rsr):
         #for embedded in find_files_with_tag(sa, matchbox, paths):
 
         for source in source_iter:
-            data = open(source).read()
-
+            assert isinstance(source, str), str
+            log.debug("Scanning source: %s", source)
+            try:
+                data = open(source).read()
+            except UnicodeDecodeError:
+                log.err("Decoding source: %s" % source)
+                continue
             lines = get_lines(data)
 
             srcdoc = SrcDoc( source, len(lines), data )
@@ -1436,6 +1594,11 @@ class Radical(rsr.Rsr):
 
             # Run over TagInstances
             for tag in parser.find_tags(self.rc):
+                if opts.list_tags:
+                    # Print requested format to stdout
+                    self._rdc_tag(tag, srcdoc, tag_format=opts.tag_format,
+                            opts=opts)
+                    continue
 
                 # Get EmbeddedIssue instance for tag
                 try:
@@ -1445,34 +1608,102 @@ class Radical(rsr.Rsr):
                         log.err("Unable to find comment span for tag '%s' at %s:%s " % (
                             parser.data[tag.start:tag.end], srcdoc.source_name, tag.char_span))
                         traceback.print_exc()
+                    ret = 1
                     continue
 
-                if not cmt:
-                    continue
+                if not cmt: continue # assert cmt
 
                 srcdoc.scei.append(cmt)
 
                 # Print requested format to stdout
-                self.rdc_issue(cmt, data, issue_format=issue_format,
+                self._rdc_issue(cmt, data, issue_format=issue_format,
                         opts=opts)
 
                 # Process comment with tracker service(s)
                 cmt.store(tag, services)
 
-    def rdc_issue(self, cmt, data, issue_format='id', opts=None):
+        return ret
+
+    def _rdc_issue(self, cmt, data, issue_format='id', opts=None):
+        """Handle comment-issue output. """
+        issue_format = issue_format.lower()
         if issue_format not in EmbeddedIssue.formats:
             raise Exception("Unknown format '%r', %s" % (issue_format,
                 EmbeddedIssue.formats.keys()))
+        # Resolve aliases
+        while isinstance(EmbeddedIssue.formats[issue_format], str):
+            issue_format = EmbeddedIssue.formats[issue_format]
         cmt.validate()
         formatted = EmbeddedIssue.formats[issue_format](cmt, data, self.rc, opts)
-        if formatted:
-            assert not re.match('[\r\n]', formatted)
-            print(formatted)
+        if not formatted:
+            log.warn("No output for %r" % tag)
+            return 1
+        assert not re.match('[\r\n]', formatted)
+        print(formatted)
 
-    def rdc_info(self, prog, sa):
-        log.stdout('Radical info', prog, sa)
-        r = self.execute('rdc_run_embedded_issue_scan')
-        log.stdout(r)
+    def _rdc_tag(self, tag, data, tag_format='id', opts=None):
+        """Handle tag-match output. """
+        if tag_format not in TagInstance.formats:
+            raise Exception("Unknown tag format '%r', %s" % (tag_format,
+                TagInstance.formats.keys()))
+        # Resolve aliases
+        while isinstance(TagInstance.formats[tag_format], str):
+            tag_format = TagInstance.formats[tag_format]
+        formatted = TagInstance.formats[tag_format](tag, data, self.rc, opts)
+        if not formatted:
+            log.warn("No output for %r" % tag)
+            return 1
+        assert not re.match('[\r\n]', formatted)
+        print(formatted)
+
+    def rdc_info(self, prog, sa, opts=None):
+        """
+        Print info for session or some script internals.
+
+        Usage:
+            radical --info [--internal | --internal-arguments | --internal-dependencies]
+        """
+        if opts.internal:
+            print(prog.todict())
+        elif opts.internal_arguments:
+            print(opts.todict())
+        elif opts.internal_dependencies: # XXX: move/copy to rsr handler
+            print(self.DEPS)
+        else:
+            # TODO: look at rsr session info handlers and get those in here
+            log.stdout('Radical info: %r %r', prog, sa)
+
+    def update_static_ignores(self, opts):
+        """
+        Load ignore names/globs from options onto fs.INode subclasses.
+        """
+        ignore_names = [ opts.todotxt_store ]
+        if opts.excluded_names:
+            ignore_names.extend(opts.excluded_names)
+        for name in ignore_names:
+            res.fs.File.ignore_names += ( name, )
+
+        if opts.excluded_paths:
+            for name in opts.excluded_paths:
+                res.fs.Dir.ignore_paths += ( name, )
+            for name in opts.excluded_paths:
+                res.fs.File.ignore_paths += ( name, )
+
+        if opts.excludes:
+            for globfile in opts.excludes:
+                log.debug("Reading excludes from: %s", globfile)
+                for name in open(globfile).readlines():
+                    name = name.strip()
+                    if name.endswith(os.sep):
+                        name += '*'
+                        if not name.startswith(os.sep):
+                            name = '*/'+name
+                    if name.startswith(os.sep):
+                        name = '.'+name
+                    if os.sep in name:
+                        res.fs.Dir.ignore_paths += ( name, )
+                    else:
+                        res.fs.Dir.ignore_names += ( name, )
 
 
 if __name__ == '__main__':

@@ -1,0 +1,12 @@
+# varspec                                      cmdspec                        #
+
+
+verbosity=4                                    . ./sh-ci
+#scriptname=sh-ci                               true
+# . tools/sh/env.sh
+#  sh_include env-ci                            
+#   true                                        . sh-ci
+
+#  unset LOG INIT_LOG CWD U_S
+
+# Sync: U-S: vim:ft=bash:nowrap:

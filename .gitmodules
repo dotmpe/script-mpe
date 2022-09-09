@@ -1,10 +1,21 @@
+# XXX: cleanup
 #[submodule "munin/rsyslog"]
 #	path = munin/rsyslog
-#	url = git@github.com:bvberkum/munin-plugins.git
-
+#
+#	url = git@github.com:dotmpe/munin-plugins.git
 #	url = git@github.com:jonschipp/munin-plugins.git
+#
 [submodule "thirdparty/macos-wherefrom"]
 	path = thirdparty/macos-wherefrom
-  url = https://github.com/jakepetroules/wherefrom.git
+    url = https://github.com/jakepetroules/wherefrom.git
 
+[submodule "tools/chrome/htdocs"]
+	path = tools/chrome/htdocs
+    url = https://github.com/dotmpe/google-chrome-htdocs.git
 
+[submodule "gherkin-assert"]
+	path = lib/gherkin-assert
+	url = https://github.com/dotmpe/gherkin-assert.git
+    branch = master
+
+#

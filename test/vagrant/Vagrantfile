@@ -127,7 +127,7 @@ Vagrant.configure("2") do |config|
 
     test -e ~/bin || {
       ssh-keyscan github.com >> ~/.ssh/known_hosts
-      git clone git@github.com:bvberkum/script-mpe ~/bin
+      git clone git@github.com:dotmpe/script-mpe ~/bin
     }
     cd ~/bin/;git pull
     sudo pip install -r requirements.txt
@@ -165,7 +165,7 @@ Vagrant.configure("2") do |config|
 
     #sudo sh -c "cp /home/vagrant/.ssh/id_* /home/vagrant/.ssh/known_* /root/.ssh/"
     #sudo npm install -g coffee-script
-    #sudo npm install -g bvberkum/node-sitefile\#f_gv
+    #sudo npm install -g dotmpe/node-sitefile\#f_gv
 
     cd ~/project
     #projectdir.sh enable ....

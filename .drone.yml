@@ -14,7 +14,7 @@ pipeline:
     # - CS=dark
      - verbosity=5
     # - sudo=sudo
-    # - UCONFDIR=$HOME/etc
+    # - UCONF=$HOME/etc
     # - Build_Deps_Default_Paths=1
     # - TEST_RESULTS=shippable/testresults/test.tap
     # - DEBIAN_FRONTEND=noninteractive

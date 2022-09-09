@@ -116,3 +116,4 @@ Scenario Outline: statusdir behaves normally
     @todo
     Scenario: statusdir records simple JSON structures
 
+#                                                                               vim:cc=13

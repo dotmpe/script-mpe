@@ -1,4 +1,8 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
+# Build matrix experiment.
+
+# XXX: cleanup, cons. run.sh +htdocs_mpe
 
 scriptname=ci:run
 . $scriptpath/tools/sh/run.inc.sh "$@"
@@ -12,3 +16,4 @@ done
 
 note "Done"
 
+# Sync:

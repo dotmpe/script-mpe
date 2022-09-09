@@ -23,7 +23,5 @@ setup()
 
   run check_clean test/var/build-lib/ test/build*
   test_ok_empty || stdfail
-}
 
-#@test "$base: " {
-#}
+}

@@ -5,14 +5,14 @@
 # File: some wrappers for os.lib.sh etc.
 
 
-htd_file_name_precaution() {
+file_name_precaution() {
   echo "$1" | grep -E '^[]\[{}\(\)A-Za-z0-9\.,!@#&%*?:'\''\+\ \/_-]*$' > /dev/null || return 1
 }
 
-htd_file_test_name()
+file_test_name()
 {
   match_grep_pattern_test "$1" || return 1
-  htd_file_name_precaution "$1" || return 1
+  file_name_precaution "$1" || return 1
   test "$cmd" = "test-name" && {
     echo 'name ok'
   }
@@ -20,7 +20,7 @@ htd_file_test_name()
 }
 
 # True if second path(s) is newer (mtime) than SECONDS, or mtime of first path
-htd_file_newer_than() # Seconds-or-Path PATHS...
+file_newer_than() # Seconds-or-Path PATHS...
 {
   s_or_path=$1 ; shift
   test -e "$1" || error "htd file newer-than file expected '$1'" 1
@@ -32,7 +32,7 @@ htd_file_newer_than() # Seconds-or-Path PATHS...
         seconds="$(eval echo \"\$_$s_or_path\")" || seconds="$s_or_path"
   }
 
-  htd_file_newer_than_inner()
+  file_newer_than_inner()
   {
     test -z "$DEBUG" || debug "newer_than '$1' '$seconds'"
     newer_than "$1" "$seconds" || {
@@ -40,11 +40,11 @@ htd_file_newer_than() # Seconds-or-Path PATHS...
     }
   }
 
-  act=htd_file_newer_than_inner foreach_do "$@"
+  p='' s='' act=file_newer_than_inner foreach_do "$@"
 }
 
 # True if second path(s) is older (mtime) than SECONDS, or mtime of first path
-htd_file_older_than() # Seconds-or-Path PATHS...
+file_older_than() # Seconds-or-Path PATHS...
 {
   local s_or_path="$1" ; shift
   test -e "$1" || error "htd file older-than file expected '$1'" 1
@@ -56,7 +56,7 @@ htd_file_older_than() # Seconds-or-Path PATHS...
         seconds="$(eval echo \"\$_$s_or_path\")" || seconds="$s_or_path"
   }
 
-  htd_file_older_than_inner()
+  file_older_than_inner()
   {
     test -z "$DEBUG" || debug "older_than '$1' '$seconds'"
     older_than "$1" "$seconds" || {
@@ -64,10 +64,10 @@ htd_file_older_than() # Seconds-or-Path PATHS...
     }
   }
 
-  act=htd_file_older_than_inner foreach_do "$@"
+  p='' s='' act=file_older_than_inner foreach_do "$@"
 }
 
-htd_file_newest()
+file_newest()
 {
   test -n "$1" || set -- . "$2"
   test -n "$2" || set -- "$1" 10
@@ -77,7 +77,7 @@ htd_file_newest()
       head -n $2
 }
 
-htd_file_largest()
+file_largest()
 {
   test -n "$1" || set -- . "$2"
   test -n "$2" || set -- "$1" 10
@@ -88,61 +88,61 @@ htd_file_largest()
 }
 
 # file_names=[01] file_deref=[01] htd file format FILE...
-htd_file_format()
+file_format()
 {
-  act=fileformat foreach_do "$@"
+  p='' s='' act=fileformat foreach_do "$@"
 }
 
 # file_names=[01] file_deref=[01] htd file mediatype FILE...
-htd_file_mtype()
+file_mtype()
 {
-  act=filemtype foreach_do "$@"
+  p='' s='' act=filemtype foreach_do "$@"
 }
 
 # file_names=[01] file_deref=[01] htd file mtime FILE...
-htd_file_mtime()
+file_mtime()
 {
-  p= s= act=filemtime foreach_do "$@"
+  p='' s='' act=filemtime foreach_do "$@"
 }
 
-htd_file_mtime_relative()
+file_mtime_relative()
 {
   test -n "$datefmt_suffix" || datefmt_suffix='\n'
   # XXX: allow file_names=1, or prefix-filename or something with foreach_do?
   file_names=0
-  act=filemtime foreach_do "$@" |
-  act=fmtdate_relative foreach_do -
+  p='' s='' act=filemtime foreach_do "$@" |
+  p='' s='' act=fmtdate_relative foreach_do -
 }
 
 # file_names=[01] file_deref=[01] htd file btime FILE...
-htd_file_btime()
+file_btime()
 {
-  act=filebtime foreach_do "$@"
+  p='' s='' act=filebtime foreach_do "$@"
 }
 
-htd_file_btime_relative()
+file_btime_relative()
 {
   test -n "$datefmt_suffix" || datefmt_suffix='\n'
-  act=filebtime foreach_do "$@" |
-  act=fmtdate_relative foreach_do -
+  p='' s='' act=filebtime foreach_do "$@" |
+  p='' s='' act=fmtdate_relative foreach_do -
 }
 
 # file_names=[01] file_deref=[01] htd file size FILE...
-htd_file_size()
+file_size()
 {
-  act=filesize foreach_do "$@"
+  p='' s='' act=filesize foreach_do "$@"
 }
 
 
-htd_file_dirnames()
+file_dirnames()
 {
-  act=dirname foreach_do "$@"
+  p='' s='' act=dirname foreach_do "$@"
 }
 
 
 # Sort filesizes into histogram, print percentage of bins filled
 # Bin edges are fixed
-htd_file_size_histogram()
+file_size_histogram()
 {
   test -n "$1" || set -- "/"
   log "Getting filesizes in '$*'"
@@ -150,17 +150,17 @@ htd_file_size_histogram()
   return $?
 }
 
-htd_file_find()
+file_find()
 {
-  foreach "$@" | catalog_sha2list /dev/fd/1 | htd_file_find_by_sha2list
+  foreach "$@" | catalog_sha2list /dev/fd/1 | file_find_by_sha2list
 }
 
-htd_file_find_by_sha2list() # SHA2LIST...
+file_find_by_sha2list() # SHA2LIST...
 {
   cat "$@" | annices_findbysha2list
 }
 
-htd_file_find_by_sha256e()
+file_find_by_sha256e()
 {
   foreach "$@" | while read -r KEY
   do
@@ -170,7 +170,7 @@ htd_file_find_by_sha256e()
 
 # Read filenames at args or stdin, and drop file. See htd help file,
 # and also annex-dropbyname for Annex backend links,
-htd_file_drop()
+file_drop()
 {
   annex="$( go_to_dir_with .git/annex && pwd )" || return 61
   git="$( go_to_dir_with .git && pwd )" || return 62
@@ -199,7 +199,7 @@ htd_file_drop()
   return
 }
 
-htd_file_status()
+file_status()
 {
   # Search for by name
   echo TODO track htd__find "$localpath"
@@ -208,12 +208,12 @@ htd_file_status()
   echo TODO track htd__content "$localpath"
 }
 
-htd_file_extensions()
+file_extensions()
 {
   filenamext "$@"
 }
 
-htd_file_stripext()
+file_stripext()
 {
   filestripext "$1"
 }

@@ -15,19 +15,18 @@ from script_mpe import confparse
 from script_mpe import lib
 from script_mpe import log
 from script_mpe.lib import Prompt
-from script_mpe.res import iface, dt
+from . import iface, dt
 
 
 PATH_R = re.compile("[A-Za-z0-9\/\.,\[\]\(\)_-]")
 
 
+@zope.interface.implementer(iface.Node)
 class INode(object):
 
     """
     Represents an inode on the filesystem.
     """
-
-    zope.interface.implements(iface.Node)
 
     def __init__(self, path):
         self.path = path
@@ -67,11 +66,11 @@ class INode(object):
     def decode_path( klass, path, opts ):
         return path
         # XXX: decode from opts.fs_enc
-        assert isinstance(path, basestring)
+        assert isinstance(path, str)
         try:
             path = unicode(path, 'utf-8')
             #path = path.decode('utf-8')
-        except UnicodeDecodeError, e:
+        except UnicodeDecodeError as e:
             log.warn("Ignored non-unicode path %s", path)
         finally:
             assert isinstance(path, unicode)
@@ -88,7 +87,7 @@ class INode(object):
 
     @classmethod
     def stat(self, path):
-        if not isinstance(path, basestring) and hasattr(path, 'path'):
+        if not isinstance(path, str) and hasattr(path, 'path'):
             path = path.path
         st = os.stat(path)
         d = {
@@ -130,8 +129,8 @@ def __register__():
     gsm.registerAdapter(getService, [iface.Node], iface.ILocalNodeService)
 
 
+@zope.interface.implementer(iface.Node, iface.ILeaf)
 class File(INode):
-    zope.interface.implements(iface.Node, iface.ILeaf)
     implements = 'file'
 
     ignore_paths = (
@@ -145,17 +144,12 @@ class File(INode):
             '.crdownload',
             '.DS_Store',
             '*.sw[pon]',
-            '*.r[0-9]*[0-9]',
             '*.pyc',
             '*~',
             '*.tmp',
             '*.part',
             '*.crdownload',
-            '*.incomplete',
-            '*.torrent',
-            '*.uriref',
-            '*.meta',
-            '.symlinks'
+            '*.incomplete'
         )
 
     @classmethod
@@ -170,6 +164,9 @@ class File(INode):
         for p in klass.ignore_names:
             if name is p or fnmatch(name, p):
                 return True
+
+    def is_empty(self):
+        return os.path.getsize(self.path) < 1
 
 
 pathdepth = lambda s: s.strip('/').count('/')
@@ -204,29 +201,21 @@ def exclusive ( opts, filters ):
                 opts[n] = True
 
 
+@zope.interface.implementer(iface.Node, iface.ITree)
 class Dir(INode):
-    zope.interface.implements(iface.Node, iface.ITree)
     implements = 'dir'
 
     ignore_paths = File.ignore_paths
 
     ignore_names = (
-            '.metadata',
-            '.conf',
             'RECYCLER',
             '.TemporaryItems',
             '.Trash*',
-            '.build',
-            'build',
-            '.cllct',
             '.git',
             '.svn',
             '.hg',
             '.bzr',
-            '.vim',
             '.cache',
-            #'vendor',
-            #'node_modules',
             'System Volume Information',
             '*com.docker.docker'
         )
@@ -259,20 +248,20 @@ class Dir(INode):
     @classmethod
     def prompt_recurse(klass, opts):
         v = Prompt.query("Recurse dir?", ("Yes", "No", "All"))
-        if v is 2:
+        if v == 2:
             opts.recurse = True
             return True
-        elif v is 0:
+        elif v == 0:
             return True
         return False
 
     @classmethod
     def prompt_ignore(klass, opts):
         v = Prompt.query("Ignore dir?", ["No", "Yes"])
-        return v is 1
+        return v == 1
 
     @classmethod
-    def check_ignored(klass, filepath, opts):
+    def Check_ignored(klass, filepath, opts):
         #if os.path.islink(filepath) or not os.path.isfile(filepath):
         if os.path.islink(filepath) or ( not os.path.isfile(filepath) and not os.path.isdir(filepath)) :
             log.warn("Ignored non-regular path %r", filepath)
@@ -327,7 +316,7 @@ class Dir(INode):
         return opts_
 
     @classmethod
-    def walk(klass, path, opts={}, filters=(None,None)):
+    def Walk(klass, path, opts={}, filters=(None,None)):
         """
         Build on os.walk, this goes over all directories and other paths
         non-recursively.
@@ -338,7 +327,7 @@ class Dir(INode):
         # XXX if not opts.descend:
         #    return self.walkRoot( path, opts=opts, filters=filters )
 
-        assert isinstance(path, basestring), (path, path.__class__)
+        assert isinstance(path, str), (path, path.__class__)
         opts = klass.get_walk_opts(**opts)
         file_filters, dir_filters = filters
 
@@ -366,7 +355,8 @@ class Dir(INode):
                         log.err("Error: reported non existant node %s", dirpath)
                         if node in dirs: dirs.remove(node)
                         continue
-                    elif klass.check_ignored(dirpath, opts):
+                    elif klass.Check_ignored(dirpath, opts):
+                        log.info("Ignored dir: %s", dirpath)
                         if node in dirs: dirs.remove(node)
                         continue
                     elif not klass.check_recurse(dirpath, opts):
@@ -376,25 +366,21 @@ class Dir(INode):
                         continue
 #                    continue # exception to rule excluded == no yield
 # caller can sort out wether they want entries to subpaths at this level
-                    assert isinstance(dirpath, basestring)
-                    try:
-                        dirpath = unicode(dirpath)
-                    except UnicodeDecodeError, e:
-                        log.err("Ignored non-ascii/illegal filename %s", dirpath)
-                        continue
+                    assert isinstance(dirpath, str)
+                    dirpath = klass.decode_path(dirpath, opts)
+                    if not dirpath: continue
                     assert isinstance(dirpath, unicode)
                     try:
                         dirpath.encode('ascii')
-                    except UnicodeDecodeError, e:
-                        log.err("Ignored non-ascii filename %s", dirpath)
-                        continue
-                    dirpath = klass.decode_path(dirpath, opts)
+                    except UnicodeDecodeError as e:
+                        log.err("Warning: non-ascii dirname %s", dirpath)
                     yield dirpath
 
                 for leaf in list(files):
                     filepath = join(root, leaf)
                     if file_filters:
                         if not File.filter(filepath, *file_filters):
+                            log.info("Filtered file %r", filepath)
                             files.remove(leaf)
                             continue
                     if not os.path.exists(filepath):
@@ -405,23 +391,27 @@ class Dir(INode):
                         else:
                             files.remove(leaf)
                         continue
-                    elif klass.check_ignored(filepath, opts):
+                    elif klass.Check_ignored(filepath, opts):
                         log.info("Ignored file %r", filepath)
                         files.remove(leaf)
                         continue
                     filepath = klass.decode_path(filepath, opts)
+                    if not filepath: continue
                     if not opts.files: # XXX other types
                         continue
-                    #try:
-                    #    filepath.encode('ascii')
-                    #except UnicodeEncodeError, e:
-                    #    log.err("Ignored non-ascii/illegal filename %s", filepath)
-                    #    continue
+                    try:
+                        filepath.encode('ascii')
+                    except UnicodeDecodeError as e:
+                        log.err("Warning: non-ascii filename %s", filepath)
                     yield filepath
+
+    # XXX: made instance entry, but all options (e.g ignores) are static still
+    def walk(self, opts={}, filters=(None,None)):
+        return self.__class__.Walk(self.path, opts, filters)
 
     @classmethod
     def walkRoot(klass, path, opts=walk_opts, filters=(None, None)):
-        "Walks rootward; ie. dirs only. "
+        "Walks rootward; dirs only. "
         "Yields dirs rootward along a single path, unless resolve links"
         paths = [path]
         while paths:
@@ -530,8 +520,8 @@ class StatCache:
         """
         Get stat object and cache, return path.
         """
-        if isinstance( path, unicode ):
-            path = path.encode( 'utf-8' )
+        #if isinstance( path, str ):
+        #    path = path.encode( 'utf-8' )
         # canonize path
         p = path
         if path in klass.path_stats:
@@ -552,7 +542,7 @@ class StatCache:
             assert isinstance( p, str )
             klass.path_stats[ p ] = statv
         assert isinstance( p, str )
-        return p.decode( 'utf-8' )
+        return p
     @classmethod
     def exists( klass, path ):
         try:
@@ -607,7 +597,7 @@ class StatCache:
         p = klass.init( path ).encode( 'utf-8' )
         for x in klass.modes:
             modefunc = getattr(stat, klass.modes[ x ] )
-            if modefunc( klass.path_stats[ p ].st_mode ):
+            if modefunc( klass.path_stats[ p.decode() ].st_mode ):
                 # return mode name
                 return x[2:]
 

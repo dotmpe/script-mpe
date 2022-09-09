@@ -18,7 +18,7 @@ fixed_table_hd_offset()
   test "$1" = "$2" \
     && echo 0 \
     || echo $($ggrep -m 1 -E '^# ?'$2' [^\!\/\.,]+$' $3 |
-    $gsed -E 's/^(.*)\ \<'$1'\>( .*|$)/\1/g' | wc -c)
+        $gsed -E 's/^(.*)\ \<'$1'\>( .*|$)/\1/g' | wc -c)
 }
 
 # fixed_table_hd_offsets TAB HD...
@@ -103,33 +103,45 @@ fixed_table_cuthd()
 # on the headers that precludes using the standard header parsing provided here
 # and makes providing `cut` arguments based on the header row more cumbersome.
 # See htd proc.
-fixed_table()
+fixed_table() # fields= ~ Table-File [ Cut-File | Columns... ]
 {
   test -e "$1" -o "$1" = "-" || error "fixed-table Table file expected" 1
   local tab="$1" cutf=
-  test -n "$2" -a -e "$2" && cutf="$2" || {
-    # Get headers from first comment if not given
-    test -n "$2" || {
-      test -n "$fields" || fields="$(fixed_table_hd_ids "$1")"
+  test -n "${2-}" -a -e "${2-}" && cutf="$2" || {
+
+    test "$1" = "-" && {
+
+      $LOG error "" "TODO: parse cutfile from stdin..." 1
+      test -n "${2-}" || {
+        test -n "${fields-}" || local fields="$(head -n 1 "$1")"
+      }
       set -- "$1" "$fields"
+
+    } || {
+      # Get headers from first comment if not given
+      test -n "${2-}" || {
+        test -n "${fields-}" || local fields="$(fixed_table_hd_ids "$1")"
+        set -- "$1" "$fields"
+      }
+      # Assemble COL-ID CUTFLAG table (if missing or stale)
+      fixed_table_cuthd "$@"
     }
-    # Assemble COLID CUTFLAG table (if missing or stale)
-    fixed_table_cuthd "$@"
   }
   # expand contained code, var references on eval
-  upper=0 default_env expand 1
-  trueish "$expand" && _q='\\"' || _q='\'\'
+  # XXX: upper=0 default_env expand 1
+  trueish "${expand:-1}" && _q='\\"' || _q='\'\'
   # Walk over rows, columns and assemble Sh vars, include raw-src in $line
   local row_nr=0
-  cat "$tab" | grep -v '^\s*\(#.*\)\?$' | while read line
+  grep -v '^\s*\(#.*\)\?$' "$tab" | while read line
   do
     row_nr=$(( $row_nr + 1 ))
     cat "$cutf" | grep -v '^\s*\(#.*\)\?$' | while read col args
       do
-        printf " $col=$_q$(echo $(echo "$line" | cut $args) | sed 's/[%]/&/g')$_q "
+        printf " $col=$_q$(echo $(echo "$line" | cut $args) | sed 's/[%]/&/g')$_q"
       done
-      printf " row_nr=$row_nr "
-      printf " line=$_q$(echo "$line" | sed 's/[%]/&/g')$_q "
+      printf " src_f=$_q$tab$_q"
+      printf " row_nr=$row_nr"
+      printf " line=$_q$(echo "$line" | sed 's/[%]/&/g')$_q"
       echo
   done
 }

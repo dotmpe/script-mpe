@@ -8,7 +8,7 @@ extracted by a shell script function.
 import os
 
 from script_mpe import lib, log
-from fs import Dir
+from .fs import Dir
 
 
 class Repo(Dir):
@@ -89,7 +89,7 @@ class Repo(Dir):
     @classmethod
     def walk(Klass, path, bare=False, max_depth=-1, recursive=False,
             max_repo_depth=-1, s=False):
-        # XXX: maybe rewrite to Dir.walk
+        # XXX: maybe rewrite to Dir.Walk
         """
         Walk all paths, yield basedirs which have version-control metadir.
         The Repo.repo_type attribute maps the directory names to VCS
@@ -160,7 +160,7 @@ class Repo(Dir):
         If ignore_basesymlinks is on, symlinks outside root are ignored too.
 
         Maybe hook in with symlinks.tab, but others too. Global excludes
-        should be done in fs.{File,Dir} btw. Boils down to 1. Dir.walk filters
+        should be done in fs.{File,Dir} btw. Boils down to 1. Dir.Walk filters
         and 2. CLI parameterization. With filters and transforms, can then
         rewrite these Repo.walk_* routines.
 

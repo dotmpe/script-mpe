@@ -55,6 +55,7 @@ cmd_default_settings = dict(
 
 
 def cmd_urllist(LIST, g):
+    global ctx
     prsr = res.lst.URLListParser()
     l = list(prsr.load_file(LIST))
     g.tp = 'locator'
@@ -63,6 +64,7 @@ def cmd_urllist(LIST, g):
     ctx.flush()
 
 def cmd_todolist(LIST, g):
+    global ctx
     # TODO: extend new res.txt2 parser base
     prsr = res.todo.TodoListParser()
     l = list(prsr.load_file(LIST))
@@ -74,12 +76,11 @@ def cmd_todolist(LIST, g):
 def cmd_todotxt(TXT, g):
     prsr = res.todo.TodoTxtParser()
     TXT = TXT or 'todo.txt'
-    list(prsr.load(TXT))
-    for o in prsr.items():
-        #print(o.todotxt())
-        #print(res.js.dumps(prsr[k].attrs))
-        ctx.out(o)
-    ctx.flush()
+    items = list(prsr.load(TXT))
+    for o in items:
+        print(o)
+        #ctx.out(o)
+    #ctx.flush()
 
 def cmd_proc(LIST, g):
     prsr = res.lst.ListTxtParser()
@@ -120,6 +121,7 @@ def cmd_doctree(LIST, DIR, g):
                 continue # XXX: skipping duplicate dir where-files index/ReadMe/main
 
         if name in catalog:
+            print(name, path)
             catalog.verify_docentry(name, path)
             continue
 
@@ -170,11 +172,14 @@ def cmd_fold(OUTLINE, LIST, g):
     """
     TODO: Parse nested plain text format.
     """
+    global ctx
+
     import scrow
     from scrow.resolve import resolve
     from scrow.aparse import indented_blocks
 
-	# TODO: remove ctx from scrow API
+    # TODO: remove ctx from scrow API
+    ctx.opts.args.URI = OUTLINE
     cstream, null = resolve(ctx, False)
 
     lines = scrow.translit.Lines()
@@ -232,6 +237,7 @@ def defaults(opts, init={}):
     opts.flags.update(cmd_default_settings)
     ctx.settings.update(opts.flags)
     opts.flags.update(ctx.settings)
+    ctx.opts = opts
 
     return init
 

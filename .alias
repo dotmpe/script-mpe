@@ -1,13 +1,33 @@
+# Alias box scripts and refresh compiled scripts behind alias automatically
+_shc_update_and_run ()
+{
+  test -s "$b.sh" || return 64
+  test $b.shc -nt $b.sh || {
+    make_echo=1 $b.sh > $b.shc
+    test -x $b.shc || chmod +x $b.shc
+    $LOG "note" "" "Updated box script, regenerated" "$b.shc"
+  }
+  $b.shc "$@"
+}
+
 alias htd=htd.sh
-alias ht=ht.sh
-alias statusdir=statusdir.sh
-alias sd=statusdir.sh
-alias vc=vc.sh
-alias box=box.sh
+
+alias ht="b=$HOME/bin/ht _shc_update_and_run"
+alias statusdir="b=$HOME/bin/statusdir _shc_update_and_run"
+test "$(type -t sd)" || alias sd=statusdir # otherwise gives trouble with compo:sd.inc
+#alias vc=vc.sh TODO: rename scm
+alias vc="b=$HOME/bin/vc _shc_update_and_run"
+alias box="b=$HOME/bin/box _shc_update_and_run"
+alias docker-sh="b=$HOME/bin/docker-sh _docker-sh_update_and_run"
+alias dckr=docker-sh
+alias disk="b=$HOME/bin/disk _shc_update_and_run"
+alias ino="b=$HOME/bin/ino _shc_update_and_run"
+alias meta-sh="b=$HOME/bin/meta-sh _shc_update_and_run"
+
 alias topic=topic.py
-alias dckr=docker-sh.sh
 alias tm=treemap.py
 alias lst=list.sh
+alias tb=treebox
 
 alias rabo2myLedger=rabo2myLedger.py
 
@@ -17,8 +37,13 @@ alias dictdiff-yaml.php=dictdiff.php
 alias finfo-app.py=finfo.py
 alias jsotk=jsotk.py
 alias libcmd_stacked_test.py=libcmd_test.py
-alias meta-sh=meta-sh.sh
 alias pd=projectdir.sh
 alias projectdir-meta=pd_meta.py
 alias topics=topics.sh
 alias vagrant-sh=vagrant-sh.sh
+
+alias yaml2yaml='jsotk dump -Oyaml --ignore-aliases --pretty'
+
+alias yaml2js="python -c 'import sys, yaml, json; json.dump(yaml.load(sys.stdin), sys.stdout, indent=4)'"
+
+test -z "${USER_CONF_DEBUG-}" || $LOG "info" "" "Done sourcing" "~/bin/.alias"

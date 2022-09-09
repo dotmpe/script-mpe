@@ -43,7 +43,7 @@ Feature: paths can be named by prefix, and each local name tracked when opened
         [A-Za-z0-9\._-]+:\/Users\/berend\/ HOME
         """
 
-        When user runs "htd prefixes expand UCONFDIR:pathnames.tab"
+        When user runs "htd prefixes expand UCONF:pathnames.tab"
         Then `output` matches '.*\/.conf\/pathnames.tab'
 
         When the user runs "htd prefixes name $HOME/bin"

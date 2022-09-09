@@ -1,0 +1,5 @@
+#!/bin/sh
+
+./sh-main run-script
+
+# Sync: U-S: vim:ft=bash:

@@ -57,4 +57,3 @@ build_ssh_tunnel_teardown()
 	kill $tunnel_pid
 	note "Killed SSH Tunnel running at PID $tunnel_pid"
 }
-

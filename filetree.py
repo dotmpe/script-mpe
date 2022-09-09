@@ -47,7 +47,7 @@ class FSTopicTreeFe(libcmd.StackedCommand):
         )
 
     def run_fstree(self, opts=None):
-        print(opts)
+        print(opts.todict())
 
 
 if __name__ == '__main__':

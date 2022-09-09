@@ -1,0 +1,110 @@
+### Shellcheck config
+
+## Disable checks
+
+# 1007: I'm not sure; why should I always put empty string? I'm lazy.
+disable=SC1007
+
+disable=SC2001 # See if you can use ${variable//search/replace} instead.
+
+# XXX: Variable syntax is not needed in math expr. Not sure if true, but
+# following for now (while it works on Bash).
+#disable=SC2004
+
+# 2005: Useless echo is not useless if I lazily clean up whitespace with it.
+# XXX: Maybe should do something else sometime...
+disable=SC2005
+
+# 2015: I use shell pipeline segments as boolean expressions all the time.
+disable=SC2015
+# SC2016
+
+# SC2029 # Note that, unescaped, this expands on the client side
+# 2030: Local shell is local. Big surpise. Welcome to shell scripting.
+# XXX: not sure if this does a proper static analysis to look for variable,
+# so may want to inspect some incidences of this failure but then
+# if it does see SC2154 anyway.
+disable=SC2030
+disable=SC2031
+
+# Variables may properly be set and still appearantly unused if they are
+# expected by some dynamic script and/or to assert initial state i.e. to clear
+# possible left-over state from previous runs.
+disable=SC2034 # unused, unexported var
+
+disable=SC2086 # Not going to quote every var, also i'll use double quotes to prevent expansion when needed; see 2046
+
+disable=SC2088 # Tilde does not expand in quotes. Use $HOME.
+
+# NOTE: SC2119 also triggers on $#.
+disable=SC2119 # 2119: No "$@" noob help. Special functions accept either/both argv & stdin
+disable=SC2120
+
+# SC2046: I'll quote when appropiate; if some variable unexpectedly has spaces
+# or special characters the script should complain about syntax during execution.
+disable=SC2046
+# SC2046 # Quote this to prevent word splitting
+
+# SC2059 # Don't use variables in the printf format string. Use printf "..%s.." "$foo"
+
+# SC2068 # Double quote array expansions to avoid re-splitting elements
+
+# SC2086 # double-quote to prevent globbing and word splitting
+disable=SC2086 # Not going to quote every var, also i'll use double quotes to prevent expansion when needed; see 2046
+
+disable=SC2088 # Tilde does not expand in quotes. Use $HOME.
+
+# SC2119 # Use "$@" if function's $1 should mean script's $1
+# SC2119: may be a bit too smart, some functions I write accept both.
+disable=SC2119 # 2119: No "$@" noob help
+
+# SC2120 # func references arguments, but none are ever passed
+# SC2129
+# SC2116 # Useless echo in cmd-args; is not useless while normalizing unquoted whitespace for printf
+
+# SC2140: Detects what may look like broken escapes maybe? but misunderstands
+# SC2140: single line strings split over lines as broken markup
+disable=SC2140
+
+# SC2154: Cant tell if var exists/is assinged static if its dynamic duh
+disable=SC2154 # undefined var
+
+# SC2155 # declare separately to avoid return masking
+# SC2155: Separate declaration from assignment is Good advice[TM] but I don't always follow
+disable=SC2155
+
+# XXX: have a look at what shells what, some day
+disable=SC2166 # Prefer [ p ] && [ q ] as [ p -a q ] is not well defined
+
+disable=SC2209 # 2209: Use var=$(command) to assign output (or quote to assign string)
+
+# SC2230 # which is non-standard
+
+# I know what I'm doing doesn't look like POSIX. Thanks.
+disable=SC2039 # In POSIX sh, 'local' is undefined
+#disable=SC3028 # In POSIX sh, SHLVL is undefined.
+disable=SC3033 # In POSIX sh, naming functions outside [a-zA-Z_][a-zA-Z0-9_]* is undefined.
+# XXX: Don't use pipefail option in sh-mode, OK. Except I know and am trying
+# something
+disable=SC3040
+disable=SC3043 # In POSIX sh, 'local' is undefined
+disable=SC3045
+disable=SC3053 # In POSIX sh, indirect expansion is undefined
+disable=SC3059
+disable=SC3060 # In POSIX sh, string replacement is undefined.
+
+
+## Source path settings
+
+# XXX: This gives a significant performance hit with syntastic for my large
+# scripts. so maybe do this
+# at CI build but defaulting to disabled for now
+#external-sources=true
+disable=1090
+disable=1091
+
+source-path=/srv/conf-local
+source-path=/srv/home-local/bin
+source-path=/srv/project-local/user-conf-dev
+
+#

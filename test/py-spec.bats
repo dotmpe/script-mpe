@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
+base=py-spec
 load init
-
+init
 
 setup()
 {

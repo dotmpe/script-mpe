@@ -136,7 +136,8 @@ cmd_default_settings = dict(
         quiet=False,
         database_tables=False,
         default_input_format=False,
-        default_output_format=False )
+        default_output_format=False
+    )
 
 
 ### CLI Subcommands

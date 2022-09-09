@@ -1,50 +1,46 @@
-#!/bin/sh
-box__source=$_
-# Box: create namespaced script commands
-
+#!/usr/bin/env make.sh
+## Box - create namespaced script commands
 # Id: script-mpe/0.0.4-dev box.sh
-
-set -e
-
-
-
 version=0.0.4-dev # script-mpe
 
+set -eu
 
 # Script subcmd's funcs and vars
 
 box_man_1__stat="Stat local host script file"
-box_spc_stat="-S|stat"
-box__als__S=stat
+box_spc__stat="-S|stat"
+box_als___S=stat
 box__stat()
 {
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  test -n "$box_file" || error "no box for '$box_name'" 1
-
-  $box_file status
-
-  return $?
-
-  note "FIXME this is more like a info list. need something more actual for stat. think about keeping state in files.."
+  test -z "${dry_run-}" || note " ** DRY-RUN ** " 0
+  test -n "${box_file-}" || error "no box for '$box_name'" 1
 
   local_file=$BOX_DIR/$(hostname -s | tr 'A-Z' 'a-z')/${nid_cwd}.sh
 
-  test -n "$local_file" && {
+  test -s "$local_file" && {
     subcmd_func_pref=c_$(hostname -s | tr 'A-Z' 'a-z')__ choice_all=1 \
       std__commands $local_file
+    return $?
   } || {
-    error "No local file" 1
+    error "No local file"
+  }
+
+  test -s "$box_file" && {
+    echo $box_file >&2
+    return $?
+  } || {
+    error "No box file" 1
   }
 }
 
 
 box_man_1__edit="Edit localscript and box script or abort. "
-box_spc_edit="-e|edit [<name>:]<script>"
+box_spc__edit="-e|edit [<name>:]<script>"
 box__edit()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
-  box_init_args $@
+  box_init_args "$@"; shift 2
   test $c -eq 0 || shift $c ; c=0
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
@@ -70,66 +66,66 @@ box__edit()
       -c "'"wincmd h"'
   }
 
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "files='$files'"
     debug "evoke='$evoke'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
   note "starting '$EDITOR' for $scope files of $box_name/$subbox_name"
   note "invoking '$evoke'"
   eval $evoke $files $lib_files
 }
-box__als__e="edit"
+box_als___e="edit"
 
 
 box_man_1__edit_main="Edit box script and local scripts. "
-box_spc_edit_main="-E|edit-main"
+box_spc__edit_main="-E|edit-main"
 box__edit_main()
 {
   local c=0 script_files= \
     local_script= named_script= uconf_script=
-  box_init_args $@
+  box_init_args "$@"; shift 2
   test $c -eq 0 || shift $c ; c=0
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
   local files="$fn $script_files"
   local evoke="$EDITOR -O2"
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "files='$files'"
     debug "evoke='$evoke'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
   note "starting '$EDITOR' for $files"
   note "invoking '$evoke'"
   $evoke $files
 }
-box__als__E=edit-main
+box_als___E=edit-main
 
 
 # FIXME: expect this is broken
-box__als__i=init
-box__main_1_init="Add script function, optionally providing command and script name"
-box_spc_init="-i|init [<cmd>=run [<name>=$hostname]]"
+box_als___i=init
+box_man_1__init="Add script function, optionally providing command and script name"
+box_spc__init='-i|init [<cmd>=run [<name>=$hostname]]'
 box__init()
 {
   local c=0 script_name= subcmd= \
     global_func_name= local_func_name= \
     local_script= named_script= uconf_script=
 
-  box_init_args $@
-  test $c -eq 0 || shift $c ; c=0
+  box_init_args "$@"; shift 2
+  #test $c -eq 0 || shift $c ; c=0
   box_init_local 2 || error "error during box-init-local" $?
 
   script_subcmd_func=$(echo $script_subcmd_name | tr '/-' '__')
   global_func_name=c_${script_name}__${script_subcmd_func}
   local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_func}
 
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "script_subcmd_func=$script_subcmd_func"
     debug "global_func_name='$global_func_name'"
     debug "local_func_name='$local_func_name'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
 
   error "FIXME" 1
@@ -200,8 +196,8 @@ EOF
 # FIXME new script
 
 box__main_1_new="Initialize new localscript"
-box_spc_new="-n|new [<name>=$hostname]"
-box__als__n=new
+box_spc__new='-n|new [<name>=$hostname]'
+box_als___n=new
 box__new()
 {
   local name= cmd=run c=0 script=
@@ -210,10 +206,10 @@ box__new()
   local script=$BOX_BIN_DIR/$name
   test -e $script || box_init_script $script
   local func="${nid_cwd}_${name}_${cmd}"
-  test -z "$dry_run" || {
+  test -z "${dry_run-}" || {
     debug "script='$script'"
     debug "func='$func'"
-    info "** DRY RUN ends **" 0
+    std_info "** DRY RUN ends **" 0
   }
   note "TODO check for existing function"
   box_add_function $func $script "$(cat <<-EOF
@@ -228,7 +224,7 @@ EOF
 
 
 box__main_1_function="Initialize function for current location"
-box_spc_function="-n|function [[<name>=$hostname] <cmd>=run]"
+box_spc__function='-n|function [[<name>=$hostname] <cmd>=run]'
 box__function()
 {
   local name= cmd=run c=0
@@ -239,32 +235,30 @@ box__function()
   echo TODO add function to script
   echo "# -- $base $scope $action sentinel"
 }
-box__als__f=function
+box_als___f=function
 
 
 box_man_1__list="."
-box_spc_list="list <Name>"
+box_spc__list="list <Name>"
 box__list()
 {
-  test -z "$dry_run" || {
-    debug "nid_cwd='$nid_cwd'"
-    debug "'$BOX_BIN_DIR/*'"
-    info "** DRY RUN ends **" 0
-  }
-  info "TODO box list: get script names for local box command"
-  grep -srI ${nid_cwd} $BOX_BIN_DIR/*
+  local c=0 script_name= \
+    local_script= named_script= uconf_script=
+  box_init_args "$@"; shift 2
+  box_init_local || return
+  lib_require functions || return
+  list_functions_foreach $named_script $BOX_DIR/$script_name/*.sh
 }
-box__als__l=list
+box_als___l=list
 
 
 box_man_1__list_libs="List includes for script."
-box_spc_list_libs="list-libs"
+box_spc__list_libs="list-libs"
 box__list_libs()
 {
-  local c=0 script_files= \
+  local script_files= \
     local_script= named_script= uconf_script=
-  box_init_args $@
-  test $c -eq 0 || shift $c ; c=0
+  box_init_args "$@"; shift 2
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
@@ -290,20 +284,15 @@ box_man_1__run="Run local or global function.
 
 For local, require localscript and exec. given function.
 "
-box_spc_run="-r|run [<cmd>=run [<name>=$hostname]]"
+box_spc__run='-r|run [<cmd>=run [<name>=$hostname]]'
 box__run()
 {
   local c=0 \
-    global_func_name= local_func_name= \
+    global_func_name= local_func_name= func_name= scope= \
     local_script= named_script= uconf_script=
 
-  test -n "$script_name" || script_name=${base}
-  named_script=$PREFIX/bin/box
-  local_script=$BOX_DIR/$(hostname -s | tr 'A-Z' 'a-z')/${nid_cwd}.sh
+  box_init_args "$@"; shift 2
 
-  #box_init_args $@
-  test $c -eq 0 || shift $c ; c=0
-  test -n "$script_subcmd_name" || script_subcmd_name=$subcmd
   box_init_local || { r=$?
     test $r -eq 0 || error "$r error during box-init-local" $r
   }
@@ -311,51 +300,48 @@ box__run()
   global_func_name=c_${script_name}__${script_subcmd_func}
   local_func_name=c_${script_name}__local__${nid_cwd}__${script_subcmd_func}
 
-  test -n "$choice_global" && {
-    func_name=$global_func_name scope=global
-    note "Using **global** scope"
-  } || {
+  grep -q "$local_func_name" "$local_script" && {
     func_name=$local_func_name scope=local
+  } || {
+    grep -q "$global_func_name" "$named_script" && {
+      func_name=$global_func_name scope=global
+    } || {
+      error "no $script_subcmd_name command $subbox_name"
+    }
   }
 
-  test -z "$dry_run" || {
-    debug "box_name=$box_name"
+  test -z "${dry_run-}" || {
     debug "subbox_name=$subbox_name"
+    debug "named_script=$named_script"
+    debug "local_script=$local_script box_lib=$box_lib"
+    debug "uconf_script=$uconf_script"
     debug "func_name=$func_name"
     debug "scope=$scope"
-    debug "box_src=$box_src box_lib=$box_lib"
-    info "** DRY RUN ends **" 0
-  }
-
-  # test for function
-  type $func_name 2> /dev/null 1> /dev/null || {
-    r=$?
-    error "no $scope command $subbox_name"
-    return $r
+    std_info "** DRY RUN ends **" 0
   }
 
   # run function
   $func_name $@ && {
-    test -n "$choice_global" && {
-      info "command $subbox_name completed"
+    test global = "$scope" && {
+      std_info "command $subbox_name completed"
     } || {
-      info "command $subbox_name in $(pwd) completed"
+      std_info "command $subbox_name in $PWD completed"
     }
   } || {
     r=$?
-    error "running $scope command $box_name"
+    error "running $scope $subbox_name command"
     return $r
   }
 }
 
 
 box_man_1__="Default: (local) run"
-box_als__c=run
+box_als___c=run
 
 
 
 box_man_1__complete="Testing bash complete with sh compatible script."
-box_spc_complete=complete
+box_spc__complete=complete
 box__complete()
 {
   cmds=""
@@ -363,7 +349,7 @@ box__complete()
 
 
 box_man_1__check_install="Run internal tests."
-box_spc_check_install=check-install
+box_spc__check_install=check-install
 box__check_install()
 {
   {
@@ -372,7 +358,7 @@ box__check_install()
     test -d "$BOX_BIN_DIR/" || error "not a dir" 1
     test -x "$BOX_BIN_DIR/" || error "not accessible" 1
     box new BoxTest || error "unable to init BoxTest"
-    info "initialized BoxTest"
+    std_info "initialized BoxTest"
     test "$(which BoxTest)" = "$BOX_BIN_DIR/BoxTest" \
       || error "expected BoxTest on PATH"
     BoxTest || error "unable to run BoxTest" 1
@@ -381,7 +367,7 @@ box__check_install()
   } && {
 
     std_demo
-    info "install checks OK"
+    std_info "install checks OK"
 
   } || {
     rm -vf $BOX_BIN_DIR/BoxTest
@@ -389,11 +375,12 @@ box__check_install()
   }
 }
 
+# TEST: box
 
 box__log_demo()
 {
   debug "Debug msg"
-  info "Info msg"
+  std_info "Info msg"
   note "Notice msg"
   warn "Warning msg"
   error "Error msg"
@@ -426,7 +413,66 @@ box__d()
 
 box__specs()
 {
-  htd list-functions "$@" | box__d specs -
+  htd functions list "$@" | box__d specs -
+}
+
+
+box_man_1__context='
+'
+box__context()
+{
+  subcmd_default=list subcmd_prefs=${base}_context_\ htd_context_\ context_ try_subcmd_prefixes "$@"
+}
+
+box_flags__context=l
+box_libs__context=statusdir\ statusdir-uc\ sys-uc\ context\ context-uc\ htd-context
+
+
+box_man_1__cwd='
+  list
+  exists
+  init
+'
+box__cwd()
+{
+  local boxtab=$BOX_DIR/$hostname.list
+  subcmd_default=list subcmd_prefs=${base}_cwd_ try_subcmd_prefixes "$@"
+}
+
+box_cwd_list()
+{
+  box_cwds_tab_assert || return
+  test $# -eq 0 || return 3
+  read_nix_style_file $boxtab
+}
+
+box_cwd_exists()
+{
+  box_cwds_tab_assert || return
+  test -n "$*" || set -- "$PWD"
+  test $# -eq 1 || return 3
+  grep -qF "$1" "$boxtab"
+}
+
+box_cwd_init()
+{
+  test -n "$*" || set -- "$PWD"
+  test $# -eq 1 || return 3
+  box_cwd_exists "$@" && {
+    error "Cannot create entry exists" 1
+  }
+  test -e $1/load.sh -o -e $1/load.$SHELL_NAME || return 2
+  # XXX: lots of auto-detect potential for cwds here with hooked
+  # handles:
+  #test -e package.sh
+  #test -e package.yml -o -e package.yaml
+  #test -e package.json
+  echo "$1" | tee -a $boxtab
+}
+
+box_cwds_tab_assert()
+{
+  test -e $boxtab || warn "No initialized cwds" 20
 }
 
 
@@ -444,7 +490,6 @@ box_man_1__help="Box: Generic: Help
                       extended output. "
 box__help()
 {
-  note "1: $box_lib"
   choice_global=1 std__help $*
 }
 # XXX compile these from human readable cl-option docstring, provide bash
@@ -460,82 +505,44 @@ box__commands()
 {
   choice_global=1 std__commands
 }
-# FIXME: non-flag subcmd aliases
-box__als_c=commands
+box_als___c=commands
 
 
 search="htd\ box\ insert\ sentinel"
 
 
-
-# Script main functions
-
-box_main()
-{
-  local scriptname=box base=$(basename "$0" .sh) \
-      scriptpath="$(cd $(dirname "$0"); pwd -P)" box_sock= box_lib=
-
-  # FIXME: only one instnce
-  box_sock=/tmp/box-serv.sock
-  box_init || return 0
-  var_isset verbosity || verbosity=5
-
-  case "$base" in $scriptname )
-        box_lib box || error "box-src-lib $scriptname" 1
-        # Execute
-        main_run_subcmd "$@"
-      ;;
-
-    * )
-        error "not a frontend for $base"
-      ;;
-  esac
+box__here()
+{ true
 }
 
-box_init()
-{
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  export SCRIPTPATH=$scriptpath
-  __load_mode=boot . $scriptpath/util.sh
-  lib_load box main src
-  # -- box box init sentinel --
-}
 
-box_lib()
-{
-  # -- box box lib sentinel --
-  box_lib_current_path
-}
+# Script main parts
 
-# Pre-exec: post subcmd-boostrap init
-box_load()
-{
-  # -- box box load sentinel --
-  box_name="${base}:${subcmd}"
+main-init-env \
+  INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
+  INIT_LIB="\$default_lib str-htd logger-theme main box src-htd ctx-main ctx-std"
+main-local \\
+  box_sock= box_lib=
+main-init box_sock=/tmp/box-serv.sock
+main-lib \
+  box_lib_current_path \
+  script_subcmd_name=$subcmd
+main-load \
+  sh_include_path_langs="htd main ci bash sh" \
 
-  local flags="$(try_value "${subcmd}" run ${base} | sed 's/./&\ /g')"
-  test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
-  for x in $flags
-  do case "$x" in
+main-load-flags \
+    f ) # failed: set/cleanup failed varname \
+        export failed=$(setup_tmpf .failed) \
+      ;; \
+    l ) sh_include subcommand-libs || return ;; \
+      \
+    * ) error "No load flag <$x>" 3 ;; \
 
-    f ) # failed: set/cleanup failed varname
-        export failed=$(setup_tmpf .failed)
-      ;;
+main_unload unset box_name
+main_unload_flags \
+    f ) clean_failed || unload_ret=1 ;; \
+    l ) ;; \
+    * ) error "No unload flag <$x>" 3 ;; \
 
-    esac
-  done
-}
-
-# Main entry - bootstrap script if requested
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  case "$1" in load-ext ) ;;
-    * ) box_main "$@" ;;
-
-  esac ;;
-esac
-
-# Id: script-mpe/0.0.4-dev box.sh
+main_load_epilogue \
+# Id: script-mpe/0.0.4-dev box.sh                                  ex:ft=bash:

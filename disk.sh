@@ -1,9 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2016-02-22
-disk__source=$_
-
-set -e
-
 
 
 version=0.0.4-dev # script-mpe
@@ -23,13 +19,13 @@ disk__status()
     disk_id_=$(printf "%-19s\n" $disk_id)
     num_=$(printf "%4s\n" $num)
     test -e $dev || error "No such device? $dev" 1
-    echo "$dev" >>$disk
-    mnts="$(echo $(find_mount $dev))"
-    stderr ok "${grey}[$disk_id_] Disk #$num: $(echo $mnts | count_words) known partition(s) (${nrml}$size ${grey}$dev)"
-    disk_list_part_local $dev | while read vol_dev
+    #echo "$dev" >>$disk
+    mnts="$(echo $(disk_mountpoint $dev))"
+    stderr ok "${grey}[$disk_id_] Disk #$num: $(echo $mnts | count_words) known partition(s) (${default}$size ${grey}$dev)"
+    out_fmt=dev disk_list_part_local $dev | while read vol_dev
     do
       test -e "$vol_dev" || error "No such volume device '$vol_dev'" 1
-      mount=$(find_mount $vol_dev)
+      mount=$(disk_mountpoint $vol_dev)
       # FIXME: shomehow fstype is not showing up. Also, want part size/free
       fstype="$(disk_partition_type "$vol_dev")"
       vol_idx=$(echo $vol_dev | sed -E 's/^.*([0-9]+)$/\1/')
@@ -37,15 +33,17 @@ disk__status()
       vsize=$(disk_partition_size $vol_dev)
       vusg=$(disk_partition_usage $vol_dev)
       case "$fstype" in
+
         swap* )
-          info "[$disk_id_] $num_.$vol_idx: swap space ($vsize $vusg%% $fstype $vol_dev)"
-          echo "$vol_dev" >>$swap
+          std_info "[$disk_id_] $num_.$vol_idx: swap space ($vsize $vusg%% $fstype $vol_dev)"
+          #echo "$vol_dev" >>$swap
           echo "$num.$vol_idx: $vol_dev swap $vsize $vusg ($fstype) [$disk_id]" >>$list
           ;;
+
         * )
           test -n "$mount" \
             && {
-              info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bnrml}$vol_id${grey} ($vsize ${bnrml}$vusg%% ${grey}$fstype $vol_dev)"
+              std_info "[$disk_id_] ${grn}$num_.$vol_idx${grey}: ${bdefault}$vol_id${grey} ($vsize ${bdefault}$vusg%% ${grey}$fstype $vol_dev)"
               test -e "$mount/.volumes.sh" && {
                 echo "$vol_dev" >>$volume
                 echo "$num.$vol_idx: $vol_id: $vol_dev $vsize $vusg ($fstype) [$disk_id]" >>$list
@@ -55,11 +53,11 @@ disk__status()
               }
             } || {
               fnmatch "* extended partition table *" " $($dev_pref file -sL $vol_dev) " && {
-                info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
+                std_info "[$disk_id_] $num_.$vol_idx: extended table ($fstype $vol_dev)"
                 echo "$vol_dev" >>$ext
                 echo "$num.$vol_idx: $vol_dev extended table [$disk_id]" >>$list
               } || {
-                info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
+                std_info "[$disk_id_] ${ylw}$num_.$vol_idx${grey} (unmounted or unrecognized: $fstype $vol_dev)"
                 echo "$vol_dev" >>$unknown
                 echo "$num.$vol_idx: $vol_dev unrecognized ($vsize $fstype) [$disk_id]" >>$list
               }
@@ -72,13 +70,13 @@ disk__status()
   cat $list | sort -n
   rm $list
 }
-disk_load__status=Rfo
+disk_flags__status=Rfo
 disk_outf__status="unknown uncataloged swap ext volume disk list"
 
 
 disk_man_1__id="Print the disk ID of a given device or path. "
 disk_spc__id="id [PATH|MOUNT|DEV]"
-disk_load__id=R
+disk_flags__id=R
 disk__id()
 {
   test -b "$1" || {
@@ -148,57 +146,53 @@ disk_spc__prefix="prefix DEV"
 disk__prefix()
 {
   test -n "$1" || error "disk expected" 1
-  disk_info $1 prefix
+  disk_catalog_field $1 prefix
 }
 
 
 disk_man_1__info="Get single attribute from catalog disk record by DISK_ID KEY"
-disk__info()
+disk__metadata ()
 {
-  disk_info "$@"
+  disk_catalog_field "$@"
 }
 
 
-disk_man_1__local="Show disk info TODO: test this works at every platform"
+disk_man_1__local="Loop over local block devices and tabulate some disk info"
 disk__local()
 {
-  test -n "$1" || set -- $(os_disk_list)
-  info "Devices: '$*'"
+  test $# -gt 0 -a -n "${1-}" || set -- $(disk_list)
+  std_info "Devices: '$*'"
   {
     echo "#NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MOUNT_CNT"
     {
       while test $# -gt 0
       do
         test -n "$1" || continue
-        disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C ||
+        disk_info "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C ||
           echo "disk:local:$1" >>$failed
         shift
       done
     } | sort -n
   } | column -tc 3
 }
-disk_load__local=f
+disk_flags__local=f
 
 
-disk_man_1__list_local="Tabulate disk info for local disks (e.g. from /dev/)"
-disk_spc__list_local=list-local
-disk__list_local()
+disk_man_1__list='List local block devices or partitions
+
+Pass 1 as `list` argument to list partitions instead of disks, or 3 for both.
+For numbers see disk_numbers and /proc/devices.'
+disk__list_devices () # [List] [Major-Number]
 {
-  disk__local || return && echo "# Disks at $(hostname), $(datetime_iso)"
+  disk_list "$@"
 }
-disk_load__list_local=f
 
-
-disk_man_1__list='List local devices'
-disk__local_devices()
-{
-  os_disk_list
-}
 
 disk__mounts()
 {
-  disk_mounts
+  disk_mounts "$@"
 }
+
 
 # FIXME: can get at Darwin LVM (physical) ID, but not at osxfuse sshfs mounts
 # Need to skip/alternate some steps ie. for Htd ls-volumes
@@ -211,17 +205,17 @@ disk__x_local()
     darwin_disk_table
 
   } || {
-    test -n "$1" || set -- $(os_disk_list)
+    test -n "$1" || set -- $(disk_list)
     while test $# -gt 0
     do
       test -n "$1" || continue
-      disk_local "$1" DISK_ID
+      disk_info "$1" DISK_ID
       shift
     done
     return
   }
 }
-disk_load__x_local=f
+disk_flags__x_local=f
 
 
 disk_man_1__list_local_mounts='Print info for local partitions (using mount).
@@ -294,7 +288,7 @@ disk__list()
       unset host disk_id disk_index prefix volumes description
     done
   } | sort -n | column -tc 3
-  echo "# Catalog at $(hostname):$DISK_CATALOG, $(datetime_iso)"
+  echo "# Catalog at $(hostname):$DISK_CATALOG, $(date_iso)"
 }
 
 
@@ -347,80 +341,110 @@ disk__copy_fs()
 {
   test -n "$1" || error "Device or disk-id required" 1
   test -n "$2" || error "Filename required" 1
-  test -n "$3" || set -- "$1" "$2" "$(setup_tmpd)"
+  test -n "$3" || set -- "$1" "$2" "$sys_tmp"
   test -z "$4" || error "surplus arguments '$4'" 1
 
   copy_fs "$1" "$2" "$3"
   note "Copied '$2' to '$3'"
 }
 
-disk_man_1__check="
-Return wether disk catalog looks up to date;
-ie. wether current catalog matches with available disks
-"
+disk_man_1__check='TODO: Report on local disks, update if interactive.
+
+1. Check for ``.volumes.sh`` root file on partition if mounted, use prefix to retrieve catalog entry. Or
+2. Use mountpoint basename to query for and retrieve catalog entry.
+3. and if not interactive, look for matching volume ID (using ``/dev/disk/by-uuid/*``)
+
+Then stop there if non-interactive, returning failure or success status.
+Otherwise if no entry was retrieved get root with sudo, and query for disk serial and partition checksum (part-UUID).
+Create an entry if none exists, asking for prefix and domain.
+Otherwise if interactive/sudo: check values for serial and part-UUID.
+If non-interactive: check values for volume UUIDs
+
+'
 disk__check()
 {
-  {
-    disk__check_all \
-      || return $?
-  } > ~/.conf/disk/$hostname.txt
-}
+  disk_list | {
 
-disk_man_1__check_all="
-FIXME: check only, see init/update
-Sort of wizard, check/init vol(s) interactively for current disks
-"
-disk__check_all()
-{
-  os_disk_list | while read dev
-  do
-    # Get disk meta
+    local dev parts
+    while read dev
+    do parts="$(disk_list_part_local "$dev")"
+      local partdev mount_point volume_meta disk_cat
 
-    disk_id=$(disk_id $dev)
-    test "$disk_id" = "" && {
-      error "Unknown type or unreadable partition table on disk '$dev'" 1
-    } || {
-      echo "$disk_id $dev $(disk_tabletype $dev) "
+      for partdev in $parts
+      do
+        mount_point="$(disk_mountpoint $partdev|cut -d' ' -f2)"
+        test -n "$mount_point" && {
 
-    }
+          test -e "$mount_point/.volumes.sh" && {
+            volume_meta="$mount_point/.volumes.sh"
+            #echo "Found root-file for $partdev"
+          } || {
+            #echo "Trying by mounted prefix"
+            disk_prefix=$(basename $mount_point | sed 's/-[0-9]\+$//')
+            disk_cat=$(grep -l "^disk_prefix=\"\?$mount_point\"\?$" "$DISK_CATALOG"/disk/*.sh) || {
+                true
+                #echo "No catalog entry"
+            }
+          }
+        } || {
+          #echo "Trying by partition IDs"
+          for uuid in $(disk_partition_uuids "$dev")
+          do
+            disk_cat=$(grep -l "^partition_[0-9]*_id=\"\?$uuid\"\?$" "$DISK_CATALOG"/disk/*.sh) && break
+          done
+        }
+        echo $dev $partdev $mount_point ${disk_cat-}
+      done
 
-    #}
-    #  # Get partition meta
+      continue
 
-    #  fstype=$(disk_partition_type $dev)
-    #  is_mounted $dev && {
+      # Get disk meta
+      disk_id=$(disk_id $dev)
+      test "$disk_id" = "" && {
+        error "Unknown type or unreadable partition table on disk '$dev'" 1
+      } || {
+        echo "$disk_id $dev $(disk_tabletype $dev) "
 
-    #    mount=$(find_mount $dev)
-    #    disk_catalog_import $mount/.volumes.sh && {
+      }
 
-    #      # Note: disk_id is set in preceeding look
-    #      #. $DISK_CATALOG/$disk_id-.sh
+      #}
+      #  # Get partition meta
 
-    #      stderr ok "$mount ($fstype at $dev)"
+      #  fstype=$(disk_partition_type $dev)
+      #  is_mounted $dev && {
 
-    #    } || {
+      #    mount=$(disk_mountpoint $dev)
+      #    disk_catalog_import $mount/.volumes.sh && {
 
-    #      stderr ok "$mount ($fstype at $dev)"
-    #    }
+      #      # Note: disk_id is set in preceeding look
+      #      #. $DISK_CATALOG/$disk_id-.sh
 
-    #  } || {
+      #      stderr ok "$mount ($fstype at $dev)"
 
-    #    # FIXME: get proper way of detecting supported fs types
-    #    case "$fstype" in
-    #      ext* | vfat | ntfs | iso9660 )
-    #          note "TODO: $fstype copy_fs $dev '.package.{y*ml,sh}'"
-    #        ;;
-    #      '' | swap )
-    #          info "Ignored partition $dev ($fstype)";;
-    #      * )
-    #          error "Unhandled fs type '$fstype'"
-    #        ;;
-    #    esac
-    #  }
+      #    } || {
 
-    #} || {
+      #      stderr ok "$mount ($fstype at $dev)"
+      #    }
 
-  done
+      #  } || {
+
+      #    # FIXME: get proper way of detecting supported fs types
+      #    case "$fstype" in
+      #      ext* | vfat | ntfs | iso9660 )
+      #          note "TODO: $fstype copy_fs $dev '.package.{y*ml,sh}'"
+      #        ;;
+      #      '' | swap )
+      #          info "Ignored partition $dev ($fstype)";;
+      #      * )
+      #          error "Unhandled fs type '$fstype'"
+      #        ;;
+      #    esac
+      #  }
+
+      #} || {
+
+    done
+  }
 
   echo
 }
@@ -435,17 +459,7 @@ disk__update_all()
 
 # Generic subcmd's
 
-disk_man_1__help="Usage help. "
-disk_spc__help="-h|help"
-disk_als___h=help
-disk__help()
-{
-  test -z "$dry_run" || note " ** DRY-RUN ** " 0
-  choice_global=1 std__help "$@"
-}
-
-
-disk_man_1__edit="Edit $base script file plus arguments. "
+disk_man_1__edit="Edit disk script file plus arguments. "
 disk_spc__edit="-e|edit \[<file>..]"
 disk__edit()
 {
@@ -461,174 +475,93 @@ disk__edit()
 disk_als___e=edit
 
 
+# ----
 
 # Script main functions
 
-disk_main()
-{
-  local \
-      scriptname=disk \
-      base=$(basename $0 .sh) \
-      scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-      subcmd=
+main-init-env \
+  INIT_ENV=dev\ 0-std INIT_LIB="\$default_lib disk date str-htd sys-htd os-htd table darwin remote ctx-std std stdio main"
 
-  case "$base" in
+main-default status
 
-    $scriptname )
+main-init \
+  set -euo pipefail \
+  true "${SUITE:="Main"}" \
+  true "${CWD:="$scriptpath"}" \
+  . ~/.local/etc/profile.d/_local.sh
 
-        # invoke with function name first argument,
-        local scsep=__ bgd= \
-          subcmd_pref=${scriptalias} \
-          disk_default=status \
-          func_exists= \
-          func= \
-          sock= \
-          c=0
-
-				SCRIPTPATH=$scriptpath
-        . $scriptpath/util.sh
-        util_init
-        disk_init "$@" || error "init failed" $?
-        shift $c
-
-        disk_lib || exit $?
-        main_run_subcmd "$@" || exit $?
-      ;;
-
-    * )
-        echo "$scriptname: not a frontend for $base" >&2
-        exit 1
-      ;;
-
-  esac
-}
-
-### Main init, libs
-
-# FIXME: Pre-bootstrap init
-disk_init()
-{
-  local __load_lib=1
-  . $scriptpath/tools/sh/box.env.sh
-  . $scriptpath/box.lib.sh
-  box_run_sh_test
-  lib_load main htd meta box date doc table disk darwin remote match
-  test -n "$verbosity" || verbosity=6
-  # -- disk box init sentinel --
-}
-
-# FIXME: 2nd boostrap init
-disk_lib()
-{
-  local __load_lib=1
-  . ~/bin/util.sh
-  . ~/bin/box.lib.sh
-  # -- disk box lib sentinel --
-}
-
-
-### Subcmd init, deinit
-
-# Pre-exec: post subcmd-boostrap init
-disk_load()
-{
-  #test -x "/sbin/parted" || error "parted required" 1
-  #test -x "/sbin/fdisk" || error "fdisk required" 1
-  test -n "$disk_session_id" || disk_session_id=$(get_uuid)
-  disk__inputs="arguments options"
-  disk__outputs="errored failed"
-
-  test -n "$choice_interactive" || {
-    # By default look at TERM
-    test -z "$TERM" || {
-      # may want to look at stdio t(ty) vs. f(ile) and p(ipe)
-      # here we trigger by non-tty stderr
-      test "$stdio_2_type" = "t" &&
-        choice_interactive=1 || choice_interactive=0
-    }
+main-load \
+  #test -x "/sbin/parted" || error "parted required" 1 \
+  #test -x "/sbin/fdisk" || error "fdisk required" 1 \
+  test -n "${disk_session_id-}" || disk_session_id=$(get_uuid) \
+  disk__inputs="arguments options" \
+  disk__outputs="errored failed" \
+ \
+  test -n "${choice_interactive-}" || { \
+    # By default look at TERM \
+    test -z "$TERM" || { \
+      # may want to look at stdio t(ty) vs. f(ile) and p(ipe) \
+      # here we trigger by non-tty stdout \
+      test -t 1 && \
+        choice_interactive=1 || choice_interactive=0 \
+    } \
   }
 
-  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
-  do case "$x" in
-
-    R ) # Device read access
-        test -n "$dev_pref" || {
-          ( for device in $(os_disk_list)
-          do
-            test -r "$device" && {
-              stderr ok "Read/Write at $device"
-            } || {
-              exit 1
-            }
-          done
-          ) || {
-            dev_pref="sudo"
-            sudo echo >/dev/null || {
-              note "Got r00t? (need sudo for /dev/* read-access)"
-              sudo printf "Got it."
-            }
-          }
-        }
+main-load-flags \
+    R ) # Device read access \
+        test -n "$dev_pref" || { \
+          ( for device in $(disk_list) \
+          do \
+            test -r "$device" && { \
+              stderr ok "Read/Write at $device" \
+            } || { \
+              exit 1 \
+            } \
+          done \
+          ) || { \
+            dev_pref="sudo" \
+            sudo echo >/dev/null || { \
+              note "Got r00t? (need sudo for /dev/* read-access)" \
+              sudo printf "Got it." \
+            } \
+          } \
+        } \
+      ;; \
+ \
+    f ) \
+        failed=$(setup_tmpf .failed) \
+      ;; \
+ \
+    i ) # io-setup: set all requested io varnames with temp.paths \
+        setup_io_paths $subcmd-${disk_session_id} \
+        # XXX: inherit? export $disk__inputs $disk__outputs \
+      ;; \
+ \
+    o ) # \
+        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")" \
+        test -n "$subcmd_outf" || error "List of output names expected" 1 \
+        disk__inputs= disk__outputs="$subcmd_outf" \\
+          setup_io_paths $subcmd-${disk_session_id} \
+        export $subcmd_outf \
       ;;
 
-    f )
-        failed=$(setup_tmpf .failed)
+main-unload-flags \
+    R ) ;; \
+    f ) \
+        clean_failed || unload_ret=1 \
+      ;; \
+ \
+    i ) # remove named IO buffer files; set status vars \
+        clean_io_lists $disk__inputs $disk__outputs \
+        disk_report $disk__inputs $disk__outputs || subcmd_result=$? \
+      ;; \
+ \
+    o ) # idem. but for subcmd \
+        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")" \
+        test -n "$subcmd_outf" || error "List of output names expected" 1 \
+        clean_io_lists $subcmd_outf \
+        disk_report $subcmd_outf || subcmd_result=$? \
       ;;
 
-    i ) # io-setup: set all requested io varnames with temp.paths
-        setup_io_paths $subcmd-${disk_session_id}
-        # XXX: inherit? export $disk__inputs $disk__outputs
-      ;;
-
-    o ) #
-        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")"
-        test -n "$subcmd_outf" || error "List of output names expected" 1
-        disk__inputs= disk__outputs="$subcmd_outf" \
-          setup_io_paths $subcmd-${disk_session_id}
-        export $subcmd_outf
-      ;;
-
-    esac
-  done
-}
-
-disk_unload()
-{
-  local unload_ret=0
-  for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
-  do case "$x" in
-
-    i ) # remove named IO buffer files; set status vars
-        clean_io_lists $disk__inputs $disk__outputs
-        disk_report $disk__inputs $disk__outputs || subcmd_result=$?
-      ;;
-
-    o ) # idem. but for subcmd
-        local subcmd_outf="$(eval echo "\$$(echo_local $subcmd outf)")"
-        test -n "$subcmd_outf" || error "List of output names expected" 1
-        clean_io_lists $subcmd_outf
-        disk_report $subcmd_outf || subcmd_result=$?
-      ;;
-
-  esac; done
-  clean_failed || unload_ret=1
-  unset subcmd_pref \
-          def_subcmd func_exists func
-  return $unload_ret
-}
-
-
-# Main entry - bootstrap script if requested
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  # NOTE: arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-      disk_main "$@"
-    ;;
-  esac ;;
-esac
-
+main-epilogue \
 # Id: script-mpe/0.0.4-dev disk.sh

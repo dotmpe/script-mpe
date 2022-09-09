@@ -1,24 +1,35 @@
 #!/bin/sh
 
 
-projectdir_lib_load()
+projectdir_lib_load ()
 {
-  projectdir_lib_init || return
   # Local pdoc name, used by most command to determine pdir
-  test -n "$pdoc" || pdoc=.projects.yaml
+  test -n "${UCONF-}" || UCONF=$HOME/.conf
+  test -n "${pdoc-}" || pdoc=$UCONF/etc/projects.yaml
+  test -n "${PD_TMPDIR-}" || PD_TMPDIR=$(setup_tmpd $base)
+  test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
 }
 
-projectdir_lib_init()
+projectdir_lib_init ()
 {
-  . $scriptpath/projectdir-fs.inc.sh &&
-  . $scriptpath/projectdir-git.inc.sh &&
-  . $scriptpath/projectdir-git-versioning.inc.sh &&
-  . $scriptpath/projectdir-grunt.inc.sh &&
-  . $scriptpath/projectdir-npm.inc.sh &&
-  . $scriptpath/projectdir-make.inc.sh &&
-  . $scriptpath/projectdir-lizard.inc.sh &&
-  . $scriptpath/projectdir-vagrant.inc.sh &&
-  . $scriptpath/projectdir-bats.inc.sh
+  lib_assert main date || return
+  test -n "${PD_SYNC_AGE-}" || export PD_SYNC_AGE=$_3HOUR
+  true "${SCRIPT_MPE:=$HOME/bin}"
+  projectdir_lib_parts_load || return
+}
+
+# Load support includes
+projectdir_lib_parts_load()
+{
+  . $SCRIPT_MPE/projectdir-fs.inc.sh
+  . $SCRIPT_MPE/projectdir-git.inc.sh &&
+  . $SCRIPT_MPE/projectdir-git-versioning.inc.sh &&
+  . $SCRIPT_MPE/projectdir-grunt.inc.sh &&
+  . $SCRIPT_MPE/projectdir-npm.inc.sh &&
+  . $SCRIPT_MPE/projectdir-make.inc.sh &&
+  . $SCRIPT_MPE/projectdir-lizard.inc.sh &&
+  . $SCRIPT_MPE/projectdir-vagrant.inc.sh &&
+  . $SCRIPT_MPE/projectdir-bats.inc.sh
 }
 
 no_act()
@@ -44,7 +55,7 @@ pd_clean()
 {
   # Stage one, show just the modified files (always consider mode tracked)
   (cd "$1" && git diff --quiet) && {
-    info "No modifications found ($1)"
+    std_info "No modifications found ($1)"
   } || {
     dirty="$(cd "$1" && git diff --name-only)"
     return 1
@@ -106,7 +117,8 @@ backup_if_comments()
 
 # Generate/install GIT hook scripts from env (loaded from package.yaml)
 
-test -n "$GIT_HOOK_NAMES" || GIT_HOOK_NAMES="apply-patch commit-msg post-update pre-applypatch pre-commit pre-push pre-rebase prepare-commit-msg update"
+test -n "${GIT_HOOK_NAMES-}" ||
+    GIT_HOOK_NAMES="apply-patch commit-msg post-update pre-applypatch pre-commit pre-push pre-rebase prepare-commit-msg update"
 
 generate_git_hooks()
 {
@@ -152,7 +164,7 @@ install_git_hooks()
         continue
       }
     }
-    test -d .git || error $(pwd)/.git 1
+    test -d .git || error $PWD/.git 1
     mkdir -p .git/hooks
     ( cd .git/hooks; ln -s ../../$t $script )
     echo "Installed GIT hook symlink: $script -> $t"
@@ -161,7 +173,7 @@ install_git_hooks()
 
 pd_regenerate()
 {
-  debug "pd-regenerate pwd=$(pwd) 1=$1"
+  debug "pd-regenerate pwd=$PWD 1=$1"
 
   # Regenerate .git/info/exclude
   vc.sh "$1" || echo "pd-regenerate:$1" 1>&6
@@ -183,7 +195,7 @@ pd_package_meta()
   test -s .package.sh || return 2
   local value=
   eval $(cat .package.sh)
-  while test -n "$1"
+  while test $# -gt 0
   do
     value="$(eval echo "\$package_pd_meta_$1")"
     test -n "$value" && echo "$value" || return 1
@@ -192,7 +204,7 @@ pd_package_meta()
 }
 
 pd_defargs__env=pd_prefix_args
-pd_load__env=yiap
+pd_flags__env=yiap
 pd_spc__env="[ PREFIX ]..."
 # Show env for prefix[es]
 pd__env()
@@ -255,7 +267,7 @@ pd_list_upstream()
   done
 }
 
-# Find and move to Pd root
+# Find and move to Pd root, where also a copy/symlink of/to pdoc is.
 pd_finddoc()
 {
   # set/check for Pd for subcmd
@@ -299,7 +311,7 @@ pd_update_record()
 
   local path=$1; shift; local values="$*"
 
-  { while test -n "$1"
+  { while test $# -gt 0
     do
       fnmatch "/*" "$1" && {
         error "Missing relative prefix on '$1'"
@@ -317,7 +329,7 @@ pd_update_records()
 {
   local kv=$1 states=
   shift
-  states="$( while test -n "$1"
+  states="$( while test $# -gt 0
   do
     echo $(normalize_relative "$1")/$kv
     shift
@@ -331,16 +343,22 @@ pd_sets="init check test"
 pd_init__sets=
 pd_check__sets=
 pd_test__sets=
+pd_sync__sets=
+pd_build__sets=
 
 pd_register()
 {
   local mod=$1 registry=
   shift
-  while test -n "$1"
+  while test $# -gt 0
   do
     fnmatch "*$1*" "$pd_sets" || pd_sets="$pd_sets $1"
-    registry="$(echo_local sets $1)"
-    eval export $registry="\"\$$registry $mod\""
+    #main_var $(main_local pd $1 sets) pd $1 sets
+    registry="$(main_local pd $1 sets)" || {
+        $LOG error "" "Cannot register Pd" "$1"
+        return 1
+    }
+    eval export $registry="\"\${$registry-} $mod\""
     shift
   done
 }
@@ -403,7 +421,7 @@ pd_debug()
   local debug=$1 target=$2 env_keys=$3 vars=
   shift 3
   set -- "$@" $(cat /tmp/env-keys/$env_keys | lines_to_words )
-  while test -n "$1"
+  while test $# -gt 0
   do
     vars="$vars $1=$(eval echo \$$1)"
     shift
@@ -434,7 +452,7 @@ pd_globstar_search()
   shift
   test -n "$1" && {
     note "Getting args for '$@' ($pd_trgtglob)"
-    while test -n "$1"
+    while test $# -gt 0
     do
       test -e "$1" && {
         echo $1
@@ -463,7 +481,7 @@ pd_globstar_names()
   shift
   test -n "$1" || set -- "*"
   note "Getting names '$@' ($pd_trgtglob)"
-  while test -n "$1"
+  while test $# -gt 0
   do
     set -f
     for glob in $pd_trgtglob
@@ -515,13 +533,13 @@ pd_autodetect()
   local named_sets= targets= func= target=
   test -n "$1" || set -- $(pd__ls_sets | lines_to_words )
 
-  while test -n "$1"; do
+  while test $# -gt 0; do
 
     targets="$(eval echo $(try_value sets $1) | words_to_lines)"
 
     for target in $targets; do
 
-      func=$(echo_local $target-autoconfig $1)
+      func=$(main_local pd $1 $target-autoconfig)
       try_func $func || continue
 
       (
@@ -577,7 +595,7 @@ pd_prefix_filter_args()
       set -- "." # default arg in subdir
     }; }
 
-  while test -n "$1"
+  while test $# -gt 0
   do
     for expanded_arg in $(echo $go_to_before/$1)
     do
@@ -599,13 +617,13 @@ pd_registered_prefix_target_spec="[ PREFIX | [:]TARGET ]..."
 pd_registered_prefix_target_args()
 {
 # FIXME: quoting possible?
-  #set -- $(while test -n "$1"
+  #set -- $( while test $# -gt 0
   #do
   #  #case "$1" in --registered ) ;; esac
   #  fnmatch "-*" "$1" && echo "$1" >>$options || printf "\"$1\" "
   #  shift
   #done)
-  test -n "$choice_reg" || choice_reg=1
+  test -n "${choice_reg-}" || choice_reg=1
   pd_prefix_target_args "$@" || return $?
 }
 
@@ -615,7 +633,7 @@ pd_prefix_target_args()
 {
   test -n "$choice_reg" || choice_reg=0
   local states=""
-  while test -n "$1"
+  while test $# -gt 0
   do
     fnmatch "*:*" "$1" && {
       states="$states $1"
@@ -639,7 +657,7 @@ pd_prefix_target_args()
 
     test -z "$1" && set -- "$go_to_before"
 
-    while test -n "$1"
+    while test $# -gt 0
     do
       pd_prefix_arg="$(normalize_relative $1)"
       shift
@@ -664,7 +682,7 @@ pd_prefix_target_args()
 pd_options_v()
 {
   set -- "$(cat $options)"
-  while test -n "$1"
+  while test $# -gt 0
   do
     case "$1" in
       --stm-yaml ) format_stm_yaml=1 ;;
@@ -722,7 +740,7 @@ pd_run()
         # NOTE: pd run sh automatically accepts env decl. beacuse 's/:/ /g'
         local shcmd="$(echo "$1" | cut -c 4- | tr ':' ' ')"
         record_key=$(printf "$1" | cut -d ':' -f 2 )
-        info "Running Sh '$shcmd' ($1)"
+        std_info "Running Sh '$shcmd' ($1)"
         (
           unset $pd_inputs $pd_inputs
           export \
@@ -771,15 +789,10 @@ pd_run()
         # Consume components and look for local function
         while true
         do
-          # Resolve aliases
-          while true
-          do
-            als=$(echo_local $comp als)
-            var_isset $als || break
-            comp=$(try_value $comp als)
-          done
-
-          func=$(echo_local $comp "")
+          # Resolve alias
+          main_var comp pd als $comp $comp
+          # Get function name
+          func=$(main_local pd "" $comp)
 
           comp_idx=$(( $comp_idx + 1 ))
           ncomp="$(echo "$1" | cut -d ':' -f $comp_idx)"
@@ -788,7 +801,7 @@ pd_run()
           }
 
           try_func "$func" && {
-            try_func $(echo_local $comp:$ncomp "") || break
+            try_func $(main_local pd "" $comp:$ncomp) || break
           }
 
           comp="$comp:$ncomp"
@@ -813,7 +826,7 @@ pd_run()
           unset verbosity
           subcmd="$pd_prefix#$comp"
 
-          record_key="$(eval echo "\"\$$(echo_local "$comp" stat)\"")"
+          record_key="$(main_value pd stat "" $comp)"
           test -n "$record_key" \
             || record_key=$(printf "$comp" | tr -c 'a-zA-Z0-9-' '/')
           states= values=
@@ -822,7 +835,7 @@ pd_run()
           eval local $(for io_name in $pd_inputs $pd_outputs; do
             printf -- " $io_name= "; done) $comp_env
 
-          subcmd=$comp pd_load "$args" || {
+          subcmd=$comp pd_subcmd_load "$args" || {
             error "Pd-load failed for '$1'"; echo "$1" >>$errored; return 1
           }
           test -e "$arguments" || {
@@ -836,7 +849,7 @@ pd_run()
 
           {
             cd "$pd_realdir"
-            info "Updating Pdoc $pd_prefix"
+            std_info "Updating Pdoc $pd_prefix"
 
             # Update status result
             test -n "$states" && {
@@ -860,14 +873,14 @@ pd_run()
 
         for io_name in $pd_outputs; do
           out=$(try_var ${io_name})
-          test ! -e $(setup_tmpd)/pd-*$sub_session_id.$io_name || {
-            cat $(setup_tmpd)/pd-*$sub_session_id.$io_name >> $out
-            rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+          test ! -e $sys_tmp/pd-*$sub_session_id.$io_name || {
+            cat $sys_tmp/pd-*$sub_session_id.$io_name >> $out
+            rm $sys_tmp/pd-*$sub_session_id.$io_name
           }
         done
         for io_name in $pd_inputs; do
-          test ! -e $(setup_tmpd)/pd-*$sub_session_id.$io_name \
-            || rm $(setup_tmpd)/pd-*$sub_session_id.$io_name
+          test ! -e $sys_tmp/pd-*$sub_session_id.$io_name \
+            || rm $sys_tmp/pd-*$sub_session_id.$io_name
         done
       ;;
 
@@ -883,7 +896,7 @@ pd_run()
 
 pd_run_suite()
 {
-  test -n "$1" || error "pd-run-suite: Suite ID expected" 1
+  test -n "${1-}" || error "pd-run-suite: Suite ID expected" 1
   local r=0 suite=$1; shift
   echo "$@" >$arguments
   subcmd=$suite:run pd__run || return $?
@@ -896,11 +909,11 @@ pd_run_suite()
 # TODO: duplicate from htd_find_ignores, while further devving
 pd_find_ignores()
 {
-  test -z "$find_ignores" || return
-  test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" && {
+  test -z "${find_ignores-}" || return
+  test -n "${IGNORE_GLOBFILE-}" -a -e "${IGNORE_GLOBFILE-}" && {
     #mv $a.merged $a.tmp
     #sort -u $a.tmp > $a.merged
-    find_ignores="$(find_ignores $IGNORE_GLOBFILE)"
+    find_ignores="$(ignores_find $IGNORE_GLOBFILE)"
   } || warn "Missing or empty IGNORE_GLOBFILE '$IGNORE_GLOBFILE'"
 
   find_ignores="-path \"*/.git\" -prune $find_ignores "

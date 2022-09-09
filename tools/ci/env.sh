@@ -1,31 +1,56 @@
+#!/usr/bin/env bash
+
 # Boilerplate env for CI scripts
-test -x "$(which gdate)" && gdate=gdate || gdate=date
 
-start_time=$($gdate +"%s.%N")
+test -z "${ci_env_:-}" && ci_env_=1 || exit 98 # Recursion
 
-test -n "$PS1" && _PS1=$PS1
-PS1=$_PS1
-test "$SHIPPABLE" = true &&
-    export LOG=/root/src/bitbucket.org/dotmpe-personal/script-mpe/log.sh ||
-    export LOG=$PWD/log.sh
-{
-  test "$SHIPPABLE" = true ||
-  python -c 'import sys
-if not hasattr(sys, "real_prefix"): sys.exit(1)'
-} || {
-  test -d ~/.pyvenv/htd || virtualenv ~/.pyvenv/htd
-  . ~/.pyvenv/htd/bin/activate
+# FIXME: generate local static env
+true "${BIN:="$HOME/bin"}"
+test ! -e $HOME/.local/etc/profile.d/_local.sh || . $HOME/.local/etc/profile.d/_local.sh
+
+: "${CS:="dark"}"
+export CS
+: "${CWD:="$PWD"}"
+: "${LOG:="$CWD/tools/sh/log.sh"}"
+
+sh_include env-strict debug-exit \
+  env-0-1-lib-sys env-gnu
+
+test -n "${U_S-}" || {
+  $LOG "error" "" "Expected U-S env" "" 1 || return
 }
-. ./tools/sh/init.sh &&
-lib_load std str sys shell build projectenv env-deps web
-test -n "$BASH_SH" || error "Need to know shell dist" 1
-test 0 -eq $BASH_SH && {
-   export SCR_SYS_SH=sh || export SCR_SYS_SH=bash-sh
-} || true
 
-env_time=$($gdate +"%s.%N")
-. ./tools/sh/env.sh
+ci_env_ts=$($gdate +"%s.%N")
+ci_stages="${ci_stages:-} ci_env"
 
-end_time=$($gdate +"%s.%N")
-note "CI Env load time: $(echo "$end_time - $start_time"|bc) seconds"
-note "Tools-Sh Env load time: $(echo "$end_time - $env_time"|bc) seconds"
+: "${SUITE:="CI"}"
+: "${keep_going:=1}" # No-Sync
+
+sh_env_ts=$($gdate +"%s.%N")
+ci_stages="$ci_stages sh_env"
+
+. "${CWD}/tools/sh/env.sh"
+
+sh_env_end_ts=$($gdate +"%s.%N")
+
+test -n "${ci_util_:-}" || {
+
+  . "$U_S/tools/ci/util.sh"
+}
+
+: ${INIT_LOG:="$CWD/tools/sh/log.sh"}
+
+test -n "${IS_BASH:-}" || $INIT_LOG error "Not OK" "Need to know shell dist" "" 1
+
+# XXX: lib_load build-htd env-deps web # No-Sync
+
+$INIT_LOG note "" "CI Env pre-load time: $(echo "$sh_env_ts - $ci_env_ts"|bc) seconds"
+ci_env_end_ts=$($gdate +"%s.%N")
+
+$INIT_LOG note "" "Sh Env load time: $(echo "$ci_env_end_ts - $ci_env_ts"|bc) seconds"
+test -z "${CI:-}" || {
+  test ${verbosity:-${v:-3}} -lt 4 ||
+    print_yellow "ci:env:${SUITE}" "Starting: $0 ${_ENV-} #$#:'$*'" >&2
+}
+# Sync: U-S:
+# Id: Script.mpe/0.0.4-dev tools/ci/env.sh

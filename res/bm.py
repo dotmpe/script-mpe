@@ -12,12 +12,13 @@ Issues
     rSt format does not print dl but nested list
 """
 import re
+from datetime import datetime
 from script_mpe import log, confparse
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 from . import js
-from .dt import iso8601_from_stamp
-from .. import lib
+from .dt import parse_chrome_microsecondstamp, iso8601_from_stamp
+from script_mpe import lib
 from ..taxus.model import Bookmark
 from ..taxus.core import Tag, Name
 from ..taxus.net import Locator, Domain
@@ -88,22 +89,74 @@ class MozJSONExport(object):
 
 
 
-def rst_print(bm, i=1):
+def rst_print(bm, l=0):
     """
     Print MozJSONExport as a rSt-reminiscent nested list
     """
-    print i*'  ', '-', '`'+bm.name + ('url' in bm and ' <'+bm.url+'>`_' or '`')
-    if 'children' in bm and bm.children:
-        print
+    print(" ".join((
+            l*'  ', '-',
+            str(bm.date_added),
+            bm.date_modified and str(bm.date_modified) or '-',
+            '`'+bm.name + ('url' in bm and ' <'+bm.url+'>`_' or '`')
+        )))
+    if 'children' in bm and bm.children: # type==folder
+        print()
         for sb in bm.children:
-            rst_print(confparse.Values(sb), i+1)
-        print
+            rst_print(confparse.Values(sb), l+1)
+        print()
+
+
+def repr_print(bm, l=0):
+    if 'children' in bm and bm.children: # type==folder
+        for sb in bm.children:
+            repr_print(confparse.Values(sb), l+1)
+    elif bm.type == 'url':
+        print(repr(bm.todict()))
+
+
+def outline_print(bm, l=0, groups=[]):
+    """
+    Print URLs JSON folder outline only.
+    """
+    if 'children' in bm and bm.children: # type==folder
+        print("".join('  '*l, bm.name))
+        for sb in bm.children:
+            outline_print(confparse.Values(sb), l+1)
+
+tag_re = re.compile('^[A-Za-z0-9\/:\._-]+$')
+
+def todotxt_print(bm, l=0, groups=[]):
+    """
+    Print URLs as todo.txt formatted lines.
+    """
+    if bm.type == 'url':
+        # Remove windows-epoch timestamps
+        print \
+            (bm.date_added == u'11644473600000000' and '-' or \
+                parse_chrome_microsecondstamp(int(bm.date_added)).isoformat()) \
+            + ' '+bm.name \
+            + ('url' in bm and ' <'+bm.url+'>' or '') \
+            + ('guid' in bm and ' #'+bm.guid+'' or '') \
+            + ' '+(
+                ' '.join(map(lambda x: '`%s`'%x, filter(lambda s: not
+                        tag_re.match(s), groups)))+
+                ' '+
+                ' '.join(map(lambda x: '@'+x, filter(tag_re.match, groups)))
+            )
+    elif 'children' in bm and bm.children:
+        groups.append(bm.name)
+        for sb in bm.children:
+            todotxt_print(confparse.Values(sb), l, list(groups))
+
 
 moz_json_printer = dict(
     item={
+        'repr': lambda group: repr_print(group),
         'rst': lambda group: rst_print(group),
         'json': lambda group: js.dump(group),
-        'outline': lambda group: rst_print(group)
+        'outline': lambda group: outline_print(group),
+        'todotxt': lambda group: todotxt_print(group),
+        'todo.txt': lambda group: todotxt_print(group)
     })
 
 _ttuple = lambda text, attrs: tuple(( text, attrs ))
@@ -125,7 +178,7 @@ class TxtBmOutline(object):
     @classmethod
     def from_beautifulsoup(klass, s, output_format, print_leafs=True):
         return '\n'.join( [ '- '+s.title.text, '', ] +
-                TxtBmOutline.bm_html_soup_format_dl(s, output_format, print_leafs ) )
+                TxtBmOutline.bm_html_soup_dl_fmt(s, output_format, print_leafs ) )
 
     format = dict( folder={
       'tree': lambda dl,i: (i*'  ')+dl.h3.text,
@@ -153,86 +206,148 @@ class TxtBmOutline(object):
         return klass.format['leaf'][kwds['output_format']](dt, i)
 
     @classmethod
-    def bm_html_soup_dlitem_gen(klass, dl, i=1, **kwds):
+    def bm_html_soup_item_fmt(klass, dl, i=1, **kwds):
         """
         Generate lines in requested format for outline tree found in Soup
         element dl.
         """
-        if not dl:
-            return
         of = kwds['output_format']
-        if dl.h3:
-            #if of == 'rst':
-            #    yield ''
-            yield klass.format_folder_item(dl, i, **kwds)
-        elif dl.a:
-            if kwds['print_leafs']:
-                yield klass.format_leaf_item(dl, i, **kwds)
+        assert dl.name == 'dl', dl
+        terms_root = dl.find('dt')
+        if not terms_root: return
+        terms_root = terms_root.parent
+        terms = terms_root.find_all('dt', recursive=False)
+        for term in terms:
+            h3 = term.find('h3')
+            if h3:
+                #if of == 'rst':
+                #    yield ''
+                yield klass.format_folder_item(dl, i, **kwds)
+                # Recurse
+                subdl = nextSibling(h3)
+                #sub = dl.find('dl', recursive=False)
+                if subdl:
+                    for s in klass.bm_html_soup_item_fmt(subdl, i+1,
+                            **kwds):
+                        yield s
 
-        # Recurse
-        sub = dl.find('dl', recursive=False)
-        if sub:
-            terms = sub.findAll('dt', recursive=False)
-            for dt in terms:
-                sl = klass.bm_html_soup_dlitem_gen(dt, i+1, **kwds)
-                for l in sl:
-                    yield l
-            #if terms:
-            #    if of == 'rst':
-            #        yield ''
+                    #terms = subdl.find_all('dt', recursive=False)
+                    #for dt in terms:
+                    #    sl = klass.bm_html_soup_item_fmt(dt, i+1, **kwds)
+                    #    for l in sl:
+                    #        yield l
+                    #if terms:
+                    #    if of == 'rst':
+                    #        yield ''
+
+            else:
+                a = term.find('a')
+                if a:
+                    if kwds['print_leafs']:
+                        yield klass.format_leaf_item(term, i, **kwds)
 
     @classmethod
-    def bm_html_soup_format_dl(klass, s, output_format, print_leafs):
+    def bm_html_soup_dl_fmt(klass, s, output_format, print_leafs):
         """Format a plain-text nested list from BeautifulSoup. Returns list of
         lines. """
-        subs = s.findAll('dl', recursive=False)
+        dls_root = s.find('dl').parent
+        dls = dls_root.find_all('dl', recursive=False)
         ls = []
-        if subs:
-            for sub in subs:
-                g = klass.bm_html_soup_dlitem_gen(sub, 1,
+        if dls:
+            for dl in dls:
+                g = klass.bm_html_soup_item_fmt(dl, 1,
                         output_format=output_format, print_leafs=print_leafs)
                 if g:
                     ls.extend( list(g) )
         return ls
 
     @classmethod
-    def bm_html_soup_items_gen(klass, s, folder_class=_ttuple,
-            item_class=_ttuple):
-        lists = s.findAll('dl', recursive=False)
-        if not lists:
-            return
-        for dl in lists:
-            return klass.bm_html_soup_dlitems_gen(dl, folder_class=folder_class,
-                    item_class=item_class)
-
-    @classmethod
-    def bm_html_soup_dlitems_gen(klass, dl, folder_class=_ttuple,
-            item_class=_ttuple, stack=[]):
+    def bm_html_soup_dlitems_gen(klass, dl, folder_f=_ttuple,
+            item_f=_ttuple, stack=[]):
         assert dl.name == 'dl', dl
-        terms = dl.findAll('dt', recursive=False)
+        terms_root = dl.find('dt')
+        if not terms_root: return
+        terms_root = terms_root.parent
+        terms = terms_root.find_all('dt', recursive=False)
         for term in terms:
-            if term.find('h3', recursive=False):
-                attrs = term.h3._getAttrMap()
+            h3 = term.find('h3')
+            if h3:
                 if stack:
-                    attrs['parent'] = stack[-1]
-                stack.append(folder_class(term.h3.text, attrs))
-                yield stack[-1]
-                subdl = nextSibling(term.h3)
+                    h3.attrs['parent'] = stack[-1]
+                    stack.append( stack[-1] + " / " + h3.text )
+                else:
+                    stack.append( h3.text )
+                new_f = folder_f(h3.text, dict(h3.attrs))
+                yield new_f
+                subdl = nextSibling(h3)
                 if subdl:
                     for it in klass.bm_html_soup_dlitems_gen(subdl,
-                            folder_class=folder_class, item_class=item_class,
+                            folder_f=folder_f, item_f=item_f,
                             stack=stack):
                         yield it
                 stack.pop()
 
-            elif term.a:
-                attrs = term.a._getAttrMap()
-                if stack:
-                    attrs['parent'] = stack[-1]
-                yield item_class(term.a.text, attrs)
+            else:
+                a = term.find('a')
+                if a:
+                    if stack:
+                        a.attrs['parent'] = stack[-1]
+                    yield item_f(a.text, dict(a.attrs))
 
         return
 
+    @classmethod
+    def bm_html_soup_items_gen(klass, s, folder_f=_ttuple,
+            item_f=_ttuple):
+        lists_root = s.find('dl').parent
+        lists = lists_root.find_all('dl', recursive=False)
+        if not lists:
+            return
+        for dl in lists:
+            return klass.bm_html_soup_dlitems_gen(dl, folder_f=folder_f,
+                    item_f=item_f)
+
+    @classmethod
+    def bm_html_soup_parse_to_sa(klass, soup, sa):
+        importer = BmImporter(sa)
+
+        def _folder(label, attrs):
+            return label, attrs
+
+        def _item(label, attrs):
+            href = attrs['href']
+            del attrs['href']
+
+            # Dump data we will not handle
+            if 'parent' in attrs:
+                del attrs['parent']
+            if 'icon' in attrs:
+                del attrs['icon']
+
+            if 'add_date' in attrs:
+                ad = datetime.fromtimestamp(int(attrs['add_date']))
+                del attrs['add_date']
+            else:
+                ad = None
+
+            if 'last_modified' in attrs:
+                lmd = datetime.fromtimestamp(int(attrs['last_modified']))
+                del attrs['last_modified']
+            else:
+                lmd = None
+
+            lctr = importer.init_locator(href, datetime.now())
+            if not lctr:
+                return
+
+            bm = importer.init_bookmark(lctr, ad, label, None, None)
+            #print(bm.name, lctr.to_dict())
+            return bm
+
+        items = klass.bm_html_soup_items_gen(soup, folder_f=_folder, item_f=_item)
+        if not items:
+            raise Exception("No definition lists in %s" % HTML)
+        for it in items: pass
 
 
 # Formatters for BeautifulSoup fragments of bookmarks.html
@@ -250,6 +365,10 @@ html_soup_formatters = {
 ###
 
 class BmImporter(object):
+
+    """
+    Helper during import of bookmarks into SQLAlchemy database.
+    """
 
     def __init__(self, sa):
         self.sa = sa
@@ -299,7 +418,8 @@ class BmImporter(object):
         else:
             bm = Bookmark.fetch((Bookmark.name == name,), exists=False)
             if bm:
-                log.std("Name already exists: %r" % name)
+                log.std("Name already exists: %r at <%s>, not <%s>" % (name,
+                    bm.location.ref, locator.ref))
                 return
             bm = Bookmark(
                     location=locator,
@@ -338,8 +458,12 @@ class BmImporter(object):
         if domain_offset > 0:
             return domain_offset
         # Prepare domain stats
-        avgDomainFreq = sum(self.domains_stat.values())/(len(self.domains_stat)*1.0)
-        hiDomainFreq = max(self.domains_stat.values())
+        if not self.domains_stat:
+            avgDomainFreq = 0
+            hiDomainFreq = 0
+        else:
+            avgDomainFreq = sum(self.domains_stat.values())/(len(self.domains_stat)*1.0)
+            hiDomainFreq = max(self.domains_stat.values())
         log.std("Found domain usage (max/avg): %i/%i", hiDomainFreq, avgDomainFreq)
         if domain_offset == 0:
             domain_offset = hiFreq
@@ -380,8 +504,12 @@ class BmImporter(object):
         if tag_offset > 0:
             return tag_offset
         # Prepare tag stats
-        avgFreq = sum(self.tags_stat.values())/(len(self.tags_stat)*1.0)
-        hiFreq = max(self.tags_stat.values())
+        if not self.tags_stat:
+            avgFreq = 0
+            hiFreq = 0
+        else:
+            avgFreq = sum(self.tags_stat.values())/(len(self.tags_stat)*1.0)
+            hiFreq = max(self.tags_stat.values())
         log.std("Found tag usage (max/avg): %i/%i", hiFreq, avgFreq)
         if tag_offset == 0:
             tag_offset = hiFreq

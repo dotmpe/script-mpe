@@ -34,7 +34,7 @@ def print_gnu_cash_import_csv(csvfile, description_delimiter='\n', opts=None):
 
 def set_account_category(opts, account, category=None):
 	# account must exist
-	if isinstance(account, basestring):
+	if isinstance(account, str):
 		account = opts._sa.query(Account).filter(Account.account_number == account).one()
 		print(account)
 	if not category:

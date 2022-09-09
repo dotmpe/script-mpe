@@ -1,4 +1,7 @@
 #!/bin/sh
 
-exec docker inspect --format '{{ .State.Pid }}' "$@"
+# Usage:
+#   docker-pid <Container>
 
+exec docker inspect --format '{{ .State.Pid }}' "$@"
+#

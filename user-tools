@@ -1,0 +1,252 @@
+#!/bin/sh
+
+
+
+forecast () # ~
+{
+  forecast_tab |
+    while read -r time code desc
+    do
+      # shellcheck disable=2086,2046
+      echo $time $(date-util relative-ts-abbrev "" "$time" "") $code $desc
+    done
+}
+
+forecast_tab ()
+{
+  location_weather_info | jq -r \
+    '.weather[0].hourly[] | "\(.time) \(.weatherCode) \(.weatherDesc[0].value)"'
+}
+
+location_weather_info ()
+{
+  curl "v2n.wttr.in/${wttr_loc-}?format=j1"
+}
+
+weather () # ~
+{
+  location_weather | cut -d ':' -f 2 | sed 's/^ //' | lines_to_words
+}
+
+weatherdata () # ~
+{
+  location_weather_info | jq .
+}
+
+# Weather is name for location, unicode symbol and temperature.
+location_weather ()
+{
+  curl -sSf "v2n.wttr.in/${wttr_loc-}?format=3" | lines_to_words
+}
+
+moon ()
+{
+  curl -sSf "v2n.wttr.in/${wttr_loc-}?format=%m" | lines_to_words
+}
+
+
+location ()
+{
+  test -n "${GEO_HOME:-}" || return
+}
+
+
+# TODO: tags for times of day
+
+# To provide names for every hour, the choice is what time measurement, and which
+# periods to count, and name. The basic Western scheme of a 12 hour day and 12
+# hour night is pretty common. Anyway this includes three schemes to name periods.
+# Each can be combined with administrative (local) time, or with real
+# (calculated) solar time.
+
+# Basic: {day {morning,afternoon},evening,night}
+#   Four six hour periods
+#
+# Astronomical: {day {morning,afternoon,evening{, dusk twillight},night{, dawn twillight}}
+#   Two periods of 3 uneven parts: morning 1/4, afternoon and evening of 1/8th
+#   each. And night divided into dusk and twillight.
+#
+#
+# Roman: {day {prime,terce,sext,none},evening,night}
+timeofday () # ~ [<Hour>]
+{
+  ${UC_TOD:-"basic_hours"} "$@"
+}
+
+#
+basic_hours () # ~ [<Hour>]
+{
+  roman_hours "$@" | cut -d' ' -f1,2
+}
+
+#
+astronomical_hours () # ~ [<Hour>]
+{
+  test $# -gt 0 || set -- $(solar_time -d "${DT_NOW:-now}" +"%H")
+
+  false
+}
+
+#
+roman_hours () # ~ [<Hour>]
+{
+  test $# -gt 0 || set -- $(time_hours)
+
+  test $# -gt 0 || {
+    test "${SOLAR_TIME:-0}" = "1" && {
+      set -- $(solar_time "${DT_NOW:-now}" "%H")
+    } || {
+      set -- $(date -d "${DT_NOW:-now}" +"%H"|sed 's/^0//')
+    }
+  }
+
+  case "$1" in
+
+     6| 7| 8 ) echo day morning prime ;;
+     9|10|11 ) echo day morning terce ;;
+    12|13|14 ) echo day afternoon sext ;;
+    15|16|17 ) echo day afternoon none ;;
+    18|19|20 ) echo evening ;;
+    21|22|23 ) echo evening ;;
+     0| 1| 2 ) echo night ;;
+     3| 4| 5 ) echo night ;;
+
+     *) return 1 ;;
+  esac
+}
+
+
+timeofyear () # ~
+{
+  ${UC_TOY:-"season"}
+}
+
+season () # ~
+{
+  season_"${UC_SEASON:-meteorological}"
+}
+
+season_meteorological () # ~ [<Month>]
+{
+  test $# -gt 0 || set -- $(date -d "${DT_NOW:-now}" +"%m"|sed 's/^0//')
+
+  case "$1" in
+
+     3| 4| 5 ) echo spring ;;
+     6| 7| 8 ) echo summer ;;
+     9|10|11 ) echo autumn ;;
+    12| 1| 2 ) echo winter ;;
+
+    * ) return 1 ;;
+  esac
+}
+
+# Use to check light conditions at users location.
+#
+# Not sure yet what to do with twillight. And light conditions depend on
+# weather as well.
+# Twillight may end or start at -3 or -6 degrees, depending on local horizon
+# too i guess. And depending on weather early morning may still be dark as
+# well.
+#
+# Alternatively, a service like wttr.in reports weather but things like dusk
+# and dawn as well.
+actual_darktime () # ~ [<Datetime>]
+{
+  location || {
+    stdmsg '*err' "Please provide GEO_HOME"
+    return 1 # XXX: autodetect location
+    timezone || return
+    eval $(timezone_to_location) || return
+  }
+
+  TWILLIGHT_HORIZON=${HORIZON:-"-3"} ${python3_bin:-python3} \
+      ~/bin/ephem-day-times.py night "$@"
+}
+
+timezone_to_location ()
+{
+  false
+}
+
+state ()
+{
+
+  test "${NERD_FONT:-1}" != "0" && {
+    state_icon_${NERD_FONT_STATUS:-fa} "$1"
+  } || {
+    echo "$1"
+  }
+}
+
+state_icon_fa ()
+{
+  case "${1:-}" in
+      ( ok ) printf "%s" "$nf_fa_check" ;;
+      ( failed ) env printf $nf_fa_close ;;
+  esac
+}
+
+
+## User-script parts
+
+user_tools_maincmds="forecast help location weather season version"
+user_tools_shortdescr='User tools.'
+
+user_tools_aliasargv ()
+{
+  case "$1" in
+      ( m|media ) shift; set -- us_media "$@" ;;
+      ( sort|media-sort ) shift; set -- catalog_uc_sort "$@" ;;
+      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+
+  esac
+}
+
+user_tools_loadenv ()
+{
+  test $# -gt 0 || set -- "$script_cmd"
+  while test $# -gt 0
+  do
+    case "$1" in
+
+      ( catalog )
+          user_script_libload $UCONF/script/catalog-uc.lib.sh &&
+              catalog_uc_lib_load ;;
+      ( media )
+          user_script_libload $UCONF/script/media-uc.lib.sh \
+                $US_BIN/contexts/ctx-playerctl.lib.sh &&
+                media_uc_lib_load && ctx_playerctl_lib_load ;;
+      ( nerdfonts )
+          . "$US_BIN"/nerdfonts.lib.sh &&
+              nerdfonts_lib_load && nerdfonts_lib_init ;;
+
+      ( all ) set -- "" nerdfonts media catalog ;;
+      ( user_script_handlers ) set -- "" all ;;
+      ( catalog_uc_sort ) set -- "$@" catalog ;;
+      ( us_media ) set -- "$@" media ;;
+
+      ( * ) set -- "" nerdfonts ;;
+    esac
+    shift
+  done
+}
+
+
+# Main entry (see user-script.sh for boilerplate)
+
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
+}
+
+! script_isrunning "user-tools" || {
+  # Pre-parse arguments
+  script_defcmd=check
+  script_fun_xtra_defarg=user_tools_aliasargv
+  script_xtra_defarg=aliasargv
+
+  eval "set -- $(user_script_defarg "$@")"
+}
+
+script_entry "user-tools" "$@"

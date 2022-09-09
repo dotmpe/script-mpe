@@ -1,3 +1,5 @@
+:Created: 2016-09-11
+
 .. include:: .default.rst
 
 Tasks
@@ -41,8 +43,9 @@ Some things about TODO.txt are a bit too specific for my taste.
 - Use ``<closed>`` as due-date, as long as the ticket is not closed.
 
   A plain text task format and no syntax to set due-date, except by metadata
-  field name convention. There is a translation issue with 'due:', and also
-  what about `at` or `when`.
+  field name convention. That is wrong. There are a translation issues with
+  'due:', and also what about `at` or `when` etc.
+
   Generalizing the format, any sequence of dates could be allowed and all can
   have a specific meaning (within some domain). TODO.txt specifies two optional
   dates, creation and completed. And the latter is given before the second.

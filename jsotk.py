@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 jsotk
 =====
@@ -97,6 +97,8 @@ Options:
   --no-head     Do not print header/column line at start.
   --socket      Use socket server with 'serve'
   --fifo        Use FIFO IO with 'serve'
+  --stacktrace  Dump entire stack-trace after catching exception.
+  --info        Chat a bit more (but don't enable stacktraces).
   -V, --version
                 Print version
 
@@ -159,11 +161,18 @@ Dev
   etc.
 
 """
-from StringIO import StringIO
+try:
+    from io import StringIO
+except:
+    # ImportError or ModuleNotFoundError
+    from StringIO import StringIO
 import traceback
 import types
 
-from objectpath import Tree
+try:
+    from objectpath import Tree
+except: # XXX py3? ModuleNotFoundError:
+    pass
 
 import libcmd_docopt, confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
@@ -395,7 +404,8 @@ def H_path(ctx):
     if not ctx.opts.flags.quiet:
         res += [ stdout_data( data, ctx, outf=outfile ) ]
 
-    return max(res)
+    if res:
+        return max(res)
 
 
 def H_keys(ctx):
@@ -408,7 +418,7 @@ def H_keys(ctx):
     if not data:
         return 1
     if isinstance(data, dict):
-        return stdout_data( data.keys(), ctx, outf=outfile )
+        return stdout_data( list(data.keys()), ctx, outf=outfile )
     elif isinstance(data, list):
         return stdout_data( range(0, len(data)), ctx, outf=outfile )
     else:
@@ -551,7 +561,7 @@ def H_version(ctx):
 
 
 handlers = {}
-for k, h in locals().items():
+for k, h in list(locals().items()):
     if not k.startswith('H_'):
         continue
     handlers[k[2:].replace('_', '-')] = h
@@ -631,8 +641,28 @@ if __name__ == '__main__':
     try:
         sys.exit( main( ctx.opts.cmds[0], ctx ) )
     except Exception as err:
+        print(err)
         if not ctx.opts.flags.quiet:
-            tb = traceback.format_exc()
-            sys.stderr.write(tb)
-            sys.stderr.write('Unexpected Error: %s\n' % err)
+            if ctx.opts.flags.stacktrace:
+                tbstr = traceback.format_exc()
+                sys.stderr.write(tbstr)
+
+            tb = traceback.extract_tb( sys.exc_info()[2] )
+            jsotk_tb = filter(None, map(
+                lambda t: t[2].startswith('H_') and "%s:%i" % (t[2], t[1]),
+              tb))
+            if not len(jsotk_tb):
+              jsotk_tb = filter(None, map(
+                  lambda t: 'jsotk' in t[0] and "%s:%i" % (
+                      t[2].replace('<module>', 'jsotk.py'), t[1]), tb))
+              # Remove two main lines (__main__ entrypoint and main() handler)
+              jsotk_tb = jsotk_tb[2:]
+
+            if ctx.opts.flags.info:
+                sys.stderr.write('jsotk %s: Unexpected Error: %s (%s)\n' % (
+                    ' '.join(sys.argv[1:]), err, ', '.join(jsotk_tb)))
+            else:
+                sys.stderr.write('jsotk: Unexpected Error: %s (%s)\n' % (
+                    err, ', '.join(jsotk_tb)))
+
         sys.exit(1)

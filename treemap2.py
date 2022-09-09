@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """
+TODO: treemap in SQL / relational DB.
 
 Relational model:
 

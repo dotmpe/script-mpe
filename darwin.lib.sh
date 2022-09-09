@@ -1,15 +1,16 @@
 #!/bin/sh
 
+# BSD/Darwin specific
 
 darwin_lib_load()
 {
-  test -n "$os" || os="$(uname -s | tr 'A-Z' 'a-z')"
-  test -n "$xattr" || xattr=xattr-2.7
-  test -n "$STATUSDIR_ROOT" || STATUSDIR_ROOT=$HOME/.statusdir
-  test -d "$STATUSDIR_ROOT/logs/$hostname" ||
-      mkdir -p "$STATUSDIR_ROOT/logs/$hostname"
-  test -n "$sleeplog" || sleeplog=$HOME/.statusdir/logs/$hostname/sleep.log
-  test -n "$locklog" || locklog=$HOME/.statusdir/logs/$hostname/lock.log
+  : "${uname:=$(uname -s)}"
+  test -n "${xattr-}" || xattr=xattr-2.7
+  test -n "${STATUSDIR_ROOT-}" || STATUSDIR_ROOT=$HOME/.statusdir
+  test -d "${STATUSDIR_ROOT-}logs/$hostname" ||
+      mkdir -p "${STATUSDIR_ROOT}logs/$hostname"
+  test -n "${sleeplog-}" || sleeplog=$HOME/.statusdir/logs/$hostname/sleep.log
+  test -n "${locklog-}" || locklog=$HOME/.statusdir/logs/$hostname/lock.log
 }
 
 darwin_locklog_env()
@@ -167,7 +168,7 @@ darwin_sata_data()
 darwin_disk_table()
 {
   #disk_local "$1" NUM DEV DISK_ID DISK_MODEL SIZE TABLE_TYPE MNT_C
-  for disk in $(os_disk_list)
+  for disk in $(disk_list)
   do
     system_profiler SPSerialATADataType | grep -q $(basename $disk)'\>' && {
       echo SerialATA disk=$disk
@@ -455,7 +456,7 @@ htd_darwin_locklog() #
     }
   } || {
     note "Initializing lock log..."
-    for locklog_raw in $STATUSDIR_ROOT/logs/$hostname/lock-raw-*.log
+    for locklog_raw in ${STATUSDIR_ROOT}logs/$hostname/lock-raw-*.log
     do note "Parsing '$(basename "$locklog_raw")'..."
       htd_darwin_locklog_raw | htd_darwin_locklog_raw2state
     done > "$locklog"
@@ -486,10 +487,10 @@ darwin_boottime()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Do nothing if loaded by lib-load
-  test -n "$__load_lib" || {
+  test -n "${__load_lib-}" || {
 
     # Otherwise set action with env __load
-    test -n "$__load" || {
+    test -n "${__load-}" || {
 
       # Sourced or executed without __load* env.
 
@@ -517,7 +518,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
             echo "Error loading $scriptname: $1" 1>&2
             exit 1
           }
-          __load=boot . ./util.sh
+          util_mode=boot . ./util.sh
           lib_load std sys os
         ;;
 

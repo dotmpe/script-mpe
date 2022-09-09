@@ -1,5 +1,4 @@
-
-File and path Ignore rules
+File and path ignore rules
 
 - Ignored filename or directory patterns. Base is directory of dotignore file
   or working directory.

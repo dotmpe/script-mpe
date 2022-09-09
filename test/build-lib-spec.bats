@@ -8,7 +8,7 @@ setup()
 {
   init &&
   lib_load &&
-  lib_load build setup-sh-tpl &&
+  lib_load build-htd setup-sh-tpl &&
   build_init
 }
 

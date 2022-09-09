@@ -1,3 +1,10 @@
-TODO.* shadow-tasks
+Package-Id: script-2008b-mpe
+App-Id: Script.mpe
+Symbol: BIN
+App-Version: 0.0.4-dev # Script.mpe
 
+VFS-Map: TODO.* shadow-tasks
 
+Components-Txt: .components.txt
+
+# Id: Script.mpe/0.0.4-dev .attributes                     vim:ft=asis:nowrap:

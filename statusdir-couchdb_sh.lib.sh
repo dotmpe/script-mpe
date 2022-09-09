@@ -1,13 +1,10 @@
 #!/bin/sh
 
-set -e
-
-
-couchdb_sh()
+sd_couchdb_sh()
 {
-  test -n "$sd_be_timeout" || sd_be_timeout=3
-  test -n "$ccurl_f" || ccurl_f=--connect-timeout\ $sd_be_timeout
-  #test -n "$sd_be_maxtime" || sd_be_maxtime=15
+  test -n "${sd_be_timeout-}" || sd_be_timeout=3
+  test -n "${ccurl_f-}" || ccurl_f=--connect-timeout\ $sd_be_timeout
+  #test -n "${sd_be_maxtime-}" || sd_be_maxtime=15
   #test -n "$ccurl_f" || ccurl_f=--max-time\ 7\ --connect-timeout\ 3
 
   curl="curl -sf $ccurl_f"
@@ -60,6 +57,7 @@ couchdb_sh()
             return $?
       ;;
     ping )
+        test -n "${COUCH_URL-}" -a -n "${COUCH_DB-}" || return
         $curl -So/dev/null "$COUCH_URL/$COUCH_DB" || return
       ;;
     list ) error "TODO couchdb $@" 1
@@ -75,9 +73,33 @@ couchdb_sh()
 }
 
 
-statusdir_couchdb_sh_lib_load()
+statusdir_couchdb_sh_lib_load ()
 {
-  test -n "$COUCH_DB" || error "Couch-DB expected" 1
-  test -n "$COUCH_URL" || export COUCH_URL=http://localhost:5984
-  test -n "$COUCH_SD_VKEY" || export COUCH_SD_VKEY=value
+  test -n "${COUCH_DB-}" || error "Couch-DB expected" 1
+  test -n "${COUCH_URL-}" || export COUCH_URL=http://localhost:5984
+  test -n "${COUCH_SD_VKEY-}" || export COUCH_SD_VKEY=value
+  Statusdir__backend_types["couchdb"]=CouchDB.Bash
 }
+
+class.Statusdir.CouchDB.Bash () # Instance-Id Message-Name Arguments...
+{
+  test $# -gt 0 || return
+  test $# -gt 1 || set -- $1 .default
+  local name=Statusdir.CouchDB.Bash
+  local self="class.$name $1 " id=$1 m=$2
+  shift 2
+
+  case "$m" in
+    .$name ) Statusdir__params[$id]="$*" ;;
+
+    .default | \
+    .info )
+        echo "class.$name <#$id> ${Statusdir__params[$id]}"
+      ;;
+
+    * )
+        $LOG error "" "No such endpoint '$m' on" "$($self.info)" 1
+      ;;
+  esac
+}
+

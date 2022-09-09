@@ -78,7 +78,7 @@ class mkDoc(libcmd.SimpleCommand):
             if os.path.isdir(path):
                 walk_opts = res.fs.Dir.walk_opts.copy()
                 walk_opts.update(dict(recurse=True, files=True))
-                sources_ = list( res.fs.Dir.walk(path,
+                sources_ = list( res.fs.Dir.Walk(path,
                     confparse.Values(walk_opts)))
                 [ sources.append(s) for s in sources_ if s.endswith('.rst') ]
             elif os.path.isfile(path):

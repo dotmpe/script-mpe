@@ -1,0 +1,41 @@
+# mkvar assignment I d. - OS
+
+#VAR3   !=   apply value from this shell command (make shorthand for := $(shell ...))
+
+#VAR3   !   apply value from this shell command (make shorthand for := $(shell ...))
+
+VAR1d_x = continue \
+            svp
+
+Varx1  ?= fooo
+
+Varx1  %%?= fooo
+
+VARx1  ++= mwahah
+VARx1  %%= mwahah
+
+VARx1  %.= mwahah
+VARx1  %%.= mwahah
+
+VARx1   +  mwahah
+VARx1  ++  mwahah
+VARx1   %  mwahah
+VARx1  %%  mwahah
+
+VARx1  @++= /dev/note
+VARx1  @++ /dev/note
+VARx1  ++@ /dev/note
+
+VARx1  @%%= /dev/note
+
+VARx1  VARx2?  = blah
+VARx1  VARx2@  = blah
+VARx1  VARx2*  = blah
+VARx1  !VARx2  = blah
+
+VARx1  VARx2?  := blah
+VARx1  VARx2@  := blah
+VARx1  VARx2*  := blah
+VARx1  !VARx2  := blah
+
+#

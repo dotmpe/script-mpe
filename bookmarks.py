@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 :Created: 2013-12-30
 :Updated: 2018-03-09
@@ -23,12 +23,20 @@ __short_description__ = "..."
 __version__ = '0.0.4-dev' # script-mpe
 __db__ = '~/.bookmarks.sqlite'
 __couch__ = 'http://localhost:5984/the-registry'
-chrome_bookmarks_path= '~/Library/Application Support/Google/Chrome/Default/Bookmarks'
-chrome_history_path=   '~/Library/Application Support/Google/Chrome/Default/History'
+import os
+if os.uname()[0] == 'Darwin':
+    chrome_bookmarks_file= '~/Library/Application Support/Google/Chrome/Default/Bookmarks'
+    chrome_history_path=   '~/Library/Application Support/Google/Chrome/Default/History'
+elif os.uname()[0] == 'Linux':
+    chrome_bookmarks_file= '~/.config/google-chrome/Default/Bookmarks'
+    chrome_history_path=   '~/.config/google-chrome/Default/History'
+#elif os.uname()[0] == 'Win'
+    # C:\Users\xyz\AppData\Local\Google\Chrome\User Data\Default
+
 __usage__ = """
 
 Usage:
-  bookmarks.py [-v... options] list [NAME] --tags=TAG...
+  bookmarks.py [-v... options] list [NAME] [ --tags=TAG... ]
   bookmarks.py [-v... options] (add|modify|assert|show) REF [ NAME ] [ TAGS... ]
   bookmarks.py [-v... options] remove REF
   bookmarks.py [-v... options] tags [TAGS...]
@@ -39,9 +47,9 @@ Usage:
   bookmarks.py [-v... options] (tag|href|domain) [NAME]
   bookmarks.py [-v... options] x [ARG...]
   bookmarks.py [-v... options] dlcs (parse|import FILE|export)
-  bookmarks.py [-v... options] chrome (all|roots|groups) [--group-name NAME]...
-  bookmarks.py [-v... options] html (tree|groups|import) HTML
-  bookmarks.py [-v... options] sql (stats|couch)
+  bookmarks.py [-v... options] chrome (all|roots|groups|import) [--chrome-bookmarks-root NAME]
+  bookmarks.py [-v... options] html (tree|stats|groups|import|export) HTML
+  bookmarks.py [-v... options] sql (stats|couch|cleanup)
   bookmarks.py [-v... options] couch (sql|stats|list|update|init)
   bookmarks.py [-v... options] couch (add|modify) REF [ NAME [ TAGS... ] ]
   bookmarks.py [-v... options] info | init | stats | clear | memdebug
@@ -67,14 +75,12 @@ Options:
   --domain-offset INT
                 Typical --*-offset, see before.
                 Defaults to avgFreq. [default: -1]
-  --chrome-bookmarks-path PATH
+  --chrome-bookmarks-file PATH
                 [default: %s]
   --chrome-bookmarks-root GROUP
-                [default: bookmark_bar]
-  --group-name NAME
-                Group name [default: bookmark_bar other]
+                Ie. bookmark_bar or other. [default: ]
   -O FMT, --output-format FMT
-                json, repr [default: rst]
+                json, outline, todo.txt, repr [default: rst]
   -i N, --interval N
                 Be verbose at least every N records [default: 100]
   --interactive
@@ -123,26 +129,27 @@ Options:
   --ignore-last-seen
   --dry-run     Echo but don't make actual changes. This does all the
                 document/record operations, but no commit.
-  -v, --verbose  Increase verbosity, 3 is maxumim.
+  -v, --verbose  Increase verbosity, 3 is maximum.
   -q, --quiet   Turn off verbosity. Overrides verbosity flags.
+  --print-memory
+                Print memory usage just before program ends.
   -h --help     Show this usage description.
                 For a command and argument description use the command 'help'.
   --version     Show version (%s).
-""" % ( __db__, __couch__, chrome_bookmarks_path, __version__, )
-import os
+""" % ( __db__, __couch__, chrome_bookmarks_file, __version__, )
 import sys
 import hashlib
 import urllib
-import urllib2
+# import urllib2 TODO: rewrite to Py3
 from datetime import datetime, timedelta
 
 import uriref
-from pydelicious import dlcs_parse_xml
-import BeautifulSoup
+from pydelicious_xml import dlcs_parse_xml
+import bs4
 
 from script_mpe.libhtd import *
 from script_mpe.bookmarks_model import *
-from script_mpe.res import bm_chrome
+from script_mpe.res import bm, bm_chrome
 
 ctx = Taxus(version='bookmarks')
 
@@ -153,6 +160,7 @@ cmd_default_settings = dict(
     )
 
 
+# XXX: old rsr bookmarks class
 class bookmarks(rsr.Rsr):
 
     #zope.interface.implements(res.iface.ISimpleCommand)
@@ -296,7 +304,7 @@ class bookmarks(rsr.Rsr):
     def add_lctr_ref_md5(self, opts=None, sa=None, *refs):
         "Add locator and ref_md5 attr for Locators"
         if refs:
-            if isinstance( refs[0], basestring ):
+            if isinstance( refs[0], str ):
                 opts.ref_md5 = True
                 lctrs = [ ret['lctr'] for ret in self.add_lctrs(sa, opts, *refs) ]
                 return
@@ -401,16 +409,17 @@ def cmd__dlcs_import(FILE, opts, g):
         if not bm:
             continue
 
-        # commit every x records
+        # commit every x records (if not dry-run)
         importer.batch_flush(g)
 
     log.std("Checked %i locator references", len(data['posts']))
+    # Commit (if not dry-run)
     importer.flush(g)
 
-    # proc/fetch/init Domains
+    # Commit (proc/fetch/init) Domain list, see --domain-offset.
     importer.flush_domains(g)
 
-    # proc/fetch/init Tags
+    # Commit (proc/fetch/init) Tag list, see  --tag-offset
     importer.flush_tags(g)
 
 
@@ -418,84 +427,150 @@ def cmd__html_groups(HTML, g):
     """
     TODO: work on just the groups (folders) extracted from the bookmark.html.
     """
-    soup = BeautifulSoup.RobustHTMLParser(open(HTML))
-    print(res.bm.html_soup_formatters[g.output_format](soup))
+    soup = bs4.BeautifulSoup(open(HTML), "html5lib")
+    items = bm.TxtBmOutline.bm_html_soup_items_gen(soup)
+    if not items:
+        raise Exception("No definition lists in %s" % HTML)
+    paths = []
+    for lbl, attr in items:
+        if 'href' in attr: continue
+        if 'parent' in attr:
+            path = attr['parent'] +" / "+ lbl
+        else:
+            path = lbl
+        if path in paths: continue
+        paths.append(path)
+    print("\n".join(paths))
 
 def cmd__html_tree(HTML, g):
     """
     Extract folder/bookmark item lines from HTML.
     """
-    soup = BeautifulSoup.RobustHTMLParser(open(HTML))
-    print(res.bm.html_soup_formatters[g.output_format](soup))
+    soup = bs4.BeautifulSoup(open(HTML), "html5lib")
+    print(bm.html_soup_formatters[g.output_format](soup))
 
 def cmd__html_import(HTML, g):
     """
+    Import bookmarks from HTML
     """
     global ctx
-    soup = BeautifulSoup.RobustHTMLParser(open(HTML))
-    importer = res.bm.BmImporter(ctx.sa_session)
+    soup = bs4.BeautifulSoup(open(HTML), "html5lib")
+    bm.TxtBmOutline.bm_html_soup_parse_to_sa(soup, ctx.sa_session)
 
+def cmd__html_stats(HTML, g):
+    """
+    Show stats for bookmarks HTML
+    """
+    global ctx
+    soup = bs4.BeautifulSoup(open(HTML), "html5lib")
+
+    ctx.folders_cnt = 0
     def _folder(label, attrs):
-        return label, attrs
+        global ctx
+        ctx.folders_cnt += 1
+
+    ctx.items_cnt = 0
     def _item(label, attrs):
-        href = attrs['href']
-        del attrs['href']
-        if 'parent' in attrs:
-            del attrs['parent']
-        if 'icon' in attrs:
-            del attrs['icon']
+        global ctx
+        ctx.items_cnt += 1
 
-        if 'add_date' in attrs:
-            ad = datetime.fromtimestamp(int(attrs['add_date']))
-            del attrs['add_date']
-        else:
-            ad = None
-
-        if 'last_modified' in attrs:
-            lmd = datetime.fromtimestamp(int(attrs['last_modified']))
-            del attrs['last_modified']
-        else:
-            lmd = None
-
-        lctr = importer.init_locator(href, datetime.now())
-        if not lctr:
-            return
-        print(label, attrs)
-
-        bm = importer.init_bookmark(lctr, ad, label, None, None)
-        return bm
-
-    items = res.bm.TxtBmOutline.bm_html_soup_items_gen(soup,
-            folder_class=_folder, item_class=_item)
+    items = bm.TxtBmOutline.bm_html_soup_items_gen(soup,
+            folder_f=_folder, item_f=_item)
     if not items:
         raise Exception("No definition lists in %s" % HTML)
-    for it in items:
-        pass#print(it)
+    for it in items: pass
+
+    print("%i items" % ctx.items_cnt)
+    print("%i folders" % ctx.folders_cnt)
+
+def cmd__html_export(HTML, g):
+    """
+    Export bookmarks to HTML
+    """
+    global ctx
+
+    bms_iter = Bookmark.all()
+    for bm in bms_iter:
+        print(bm)
+        # TODO: save folders
 
 
 def cmd__chrome_all(g):
     "List Chrome bookmarks (from JSON) in different formats"
-    fn = os.path.expanduser(g.chrome_bookmarks_path)
-    bms = confparse.Values(res.js.load(open(fn)))
-    # BUG: docopt 0.6.2. should split repeatable opt vals
-    if not isinstance(g.group_name, list):
-        g.group_name = g.group_name.split(' ')
-    for group_name in g.group_name:
-        group = confparse.Values(bms.roots[group_name])
-        res.bm.moz_json_printer['item'][g.output_format](group)
+    bms = bm_chrome.BookmarksJSON.load(g.chrome_bookmarks_file)
+    if g.chrome_bookmarks_root:
+        roots = [ g.chrome_bookmarks_root ]
+    else:
+        roots = dict(bms.roots()).keys()
+
+    for root in roots:
+        group = confparse.Values(bms.data['roots'][root])
+        bm.moz_json_printer['item'][g.output_format](group)
+
+def cmd__chrome_roots(g):
+    bms = bm_chrome.BookmarksJSON.load(g.chrome_bookmarks_file)
+    for k, v in bms.data['roots'].items():
+        if v['type'] == 'folder': print(k)
 
 def cmd__chrome_groups(g):
-    "List Chrome bookmarks folder paths (from JSON)"
-    fn = os.path.expanduser(g.chrome_bookmarks_path)
-    bms = bm_chrome.BookmarksJSON.load(fn)
-
+    """
+    List Chrome bookmarks folder paths (from JSON). See also outline format with
+    ``bookmarks.py chrome all``.
+    """
+    bms = bm_chrome.BookmarksJSON.load(g.chrome_bookmarks_file)
     for it in bm_chrome.flatten_norecurse(list(bms.groups())):
         print(it)
 
+def cmd__chrome_import(g):
+    """
+    Import Chrome Bookmarks JSON to SQL.
+    """
+
+    global ctx
+
+    importer = res.bm.BmImporter(ctx.sa_session)
+    bms = bm_chrome.BookmarksJSON.load(g.chrome_bookmarks_file)
+
+    if g.chrome_bookmarks_root:
+        datagen = bms.urls_gen(bms.data['roots'][g.chrome_bookmarks_root])
+    else:
+        datagen = bms.urls_gen()
+
+    # Validate URL, track tag/domain and create records where missing
+    urlcnt, bmcnt = 0, 0
+    for groups, bm in datagen:
+        urlcnt += 1
+        dt = res.dt.parse_chrome_microsecondstamp(int(bm['date_added']))
+        lctr = importer.init_locator(bm['url'], dt)
+        if not lctr:
+            continue
+
+        tagcsv = ', '.join(groups[1:])
+        bm = importer.init_bookmark(lctr, dt, bm['name'], None, tagcsv)
+        if not bm:
+            continue
+        bmcnt += 1
+
+        # commit every x records (if not dry-run)
+        importer.batch_flush(g)
+
+    log.std("Checked %i urls", urlcnt)
+    log.std("Added %i bookmarks", bmcnt)
+    # Commit (if not dry-run)
+    importer.flush(g)
+
+    # Commit (proc/fetch/init) Domain list, see --domain-offset.
+    importer.flush_domains(g)
+
+    # Commit (proc/fetch/init) Tag list, see  --tag-offset
+    importer.flush_tags(g)
+
 
 def cmd__sql_stats(g):
+
     global ctx
     sa = ctx.sa_session
+
     for stat, label in (
                 (sa.query(Locator).count(), "Number of Locators: %s"),
                 (sa.query(Bookmark).count(), "Number of bookmarks: %s"),
@@ -503,12 +578,16 @@ def cmd__sql_stats(g):
                 (sa.query(Tag).count(), "Number of tags: %s"),
             ):
         log.std(label, stat)
-    #for lctr in sa.query(Locator).filter(Locator.global_id==None).all():
-    #    lctr.delete()
-    #    log.note("Deleted Locator without global_id %s", lctr)
-    #for bm in sa.query(Bookmark).filter(Bookmark.ref_id==None).all():
-    #    bm.delete()
-    #    log.note("Deleted bookmark without ref %s", bm)
+
+
+def cmd__sql_cleanup(g):
+
+    global ctx
+    sa = ctx.sa_session
+
+    for bm in sa.query(Bookmark).filter(Bookmark.locator_id==None).all():
+        bm.delete()
+        log.note("Deleted bookmark without ref %s", bm)
 
 
 def cmd__href(NAME, g):
@@ -594,6 +673,8 @@ def cmd__urls(REF, g, opts):
         cnt = ctx.sa_session.query(Locator).filter(*filters).count()
         log.std("Records matched: %s", cnt)
         return
+
+    rs = Bookmark.all(filters=filters)
     if not rs:
         log.stdout("{yellow}Nothing found{default}")
         if g.strict: return 1
@@ -614,6 +695,8 @@ def cmd__list(NAME, g, opts):
     global ctx
 
     filters = ctx.opts_to_filters(Bookmark)
+    for f in filters:
+        print(f)
     if g.tags:
         filters += tuple([ sql_like_val(Bookmark.tags, T) for T in g.tags ])
     if NAME:
@@ -641,11 +724,13 @@ def cmd__list(NAME, g, opts):
 def cmd__add(REF, NAME, TAGS, g, sa=None):
     global ctx
     bm = Bookmark.forge(REF, NAME, TAGS, g, ctx.sa_session)
+    # TODO: ctx.sa.commit
     print(ctx.get_renderer('bookmark')(bm.to_dict()))
+    #if not g.dry_run: sa.commit()
 
 
 def cmd__modify(REF, g):
-    assert 'todo'
+    assert 'todo' # TODO: bookmarks.py modify HREF
 
 
 def cmd__remove(REF, g):
@@ -661,7 +746,7 @@ def cmd__remove(REF, g):
     if not g.dry_run:
         sa.add(lctr)
         sa.add(bm)
-        sa.commit()
+        if not g.dry_run: sa.commit()
         ctx.note("Deleted %s", REF)
     print(lctr, bm)
 
@@ -772,9 +857,10 @@ def cmd__check(NAME, g):
     for i, r in enumerate(rs):
         ref = r.location.href()
         print(i, r.status, r.deleted, r.last_access, ref)
-        if i and ( i % 10 ) == 0:
-            sa.commit()
-            print('committed at %s items, %i to go' % ( i, len(rs)-i ))
+        if not g.dry_run:
+            if i and ( i % 10 ) == 0:
+                sa.commit()
+                print('committed at %s items, %i to go' % ( i, len(rs)-i ))
 
         try:
             urlinfo = urllib2.urlopen(ref, timeout=9)
@@ -815,7 +901,8 @@ def cmd__check(NAME, g):
             sa.add(r)
 
         #print i, r.status, r.deleted, r.last_access, ref
-    sa.commit()
+    if not g.dry_run:
+        sa.commit()
 
 
 def cmd__assert(REF, NAME, TAGS, g):
@@ -871,7 +958,6 @@ def cmd__webarchive(NAME, g):
 
     """
     Sort out and rewrite web.archive locators.
-
 
     http://web.archive.org/web/20030208015752/
     """
@@ -959,6 +1045,7 @@ def cmd__webarchive(NAME, g):
     ctx.note("Found %i instances", i)
 
 
+# TODO: bookmarks.py sync/update
 def cmd__sync(g): pass
 def cmd__update(g): pass
 def cmd__x(g):
@@ -966,7 +1053,28 @@ def cmd__x(g):
     """
     XXX: hacky hack hack
     """
+    global ctx
+    sa = ctx.sa_session
 
+    bms = bm_chrome.BookmarksJSON.load(g.chrome_bookmarks_file)
+    chrome_refs = []
+    for groups, href in bms.urls_gen('url'):
+        chrome_refs.append(href)
+
+    for lctr in Locator.all():
+        if lctr.href in chrome_refs:
+            continue
+
+        print(lctr)
+        continue
+
+        lctr = Locator.fetch((Locator.ref==href,), sa=sa, exists=False)
+        if not lctr:
+            print(href)
+        continue
+
+
+# WIP: bookmarks.py couchdb
 
 def cmd__couch_stats(g):
     global ctx
@@ -1244,7 +1352,7 @@ def cmd__couch_update(g):
                 elif 'tags' in doc:
                     u += 1
                     tags = doc['tags']
-                    assert isinstance(tags, basestring), tags
+                    assert isinstance(tags, str), tags
                     assert ', ' in tags, tags
                     doc['tag_list'] = tags.split(', ')
                     del doc['tags']
@@ -1340,6 +1448,10 @@ def cmd__shaarli_sync(NAME, opts, g):
     """
 
 
+def cmd__stats(g):
+    cmd__sql_stats(g)
+
+
 ### Transform cmd__ function names to nested dict
 
 commands = libcmd_docopt.get_cmd_handlers(globals(), 'cmd__')
@@ -1392,15 +1504,20 @@ def main(opts):
     ctx.ws = ws
     ctx.settings = settings = opts.flags
     ctx.init()
-    return libcmd_docopt.run_commands(commands, settings, opts)
+    ret = libcmd_docopt.run_commands(commands, settings, opts)
+    if settings.print_memory:
+        libcmd_docopt.cmd_memdebug(settings)
+    return ret
 
 def get_version():
     return 'bookmarks.mpe/%s' % __version__
 
 
 if __name__ == '__main__':
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
+    #from importlib import reload
+    #reload(sys)
+    # sys.setdefaultencoding('utf-8') FIXME: see 'why we should not use ...'
+
     usage = __description__ +'\n\n'+ __short_description__ +'\n'+ \
             libcmd_docopt.static_vars_from_env(__usage__,
         ( 'BM_DB', __db__ ),

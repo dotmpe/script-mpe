@@ -1,0 +1,373 @@
+#!/usr/bin/env bash
+CMD_ARG=$_
+# bin/sh
+
+### Helpers to launch user terminal, shells and configure them
+
+
+# This doesnt really try hard at being sensible but its a start
+sensible () # ~ # XXX: start urxvt bash session. see Env
+{
+  test -n "${UC_NIGHTTIME:-}" || {
+    sensible_colorscheme || true
+  }
+  run "$@"
+}
+
+# Set UC_NIGHTTIME variable to a function that can check wether dark or light
+# mode is appropiate. Return non-zero if no user-defined setting was found.
+sensible_colorscheme () # ~ # Look for function to determine current night-time
+{
+  #shellcheck disable=2015
+  test -n "${DAY_START:-}" -o -n "${DAY_END:-}" && {
+
+    UC_NIGHTTIME=nighttime
+  } || {
+
+    test -n "${GEO_HOME:-}" || return
+
+    case "$(python3 -V 2>/dev/null)" in ( "Python 3"* ) ;; ( * ) false ;; esac &&
+        python3_bin=python3
+    case "$(python -V 2>/dev/null)" in ( "Python 3"* ) ;; ( * ) false ;; esac &&
+        python3_bin=python
+    test -n "${python3_bin:-}" || return
+
+    #shellcheck disable=1090
+    . $US_BIN/user-tools
+    UC_NIGHTTIME=actual_darktime
+  }
+}
+
+run () # ~ [<Env...>] [ -- <Shell-Argv>... ]
+{
+  #shellcheck disable=2086
+  exportargs "$@" && shift $argc
+  test $# -gt 0 || set -- -l
+  termexec "$@"
+}
+
+day () # ~ <Run-Argv...>
+{
+  cs=light sensible "$@"
+}
+
+night () # ~ <Run-Argv...>
+{
+  cs=dark sensible "$@"
+}
+
+terminal () # ~ <Name> <Run-Argv...> # Start with given terminal
+{
+  term=$1
+  shift
+  UC_TERM=$term sensible "$@"
+}
+
+name () # ~ <Name> <Run-Argv...> # Start terminal with WM instance name
+{
+  name=$1
+  shift
+  UC_TERM_NAME=$name sensible "$@"
+}
+
+# This is not for stuff with quotes. Add some exports before starting terminal,
+# so that these are set in the terminal and shell's environment. A standard set
+# is given as termexec as well.
+exportargs () # ~ [VAR=...] --
+{
+  cnt=$#
+  #shellcheck disable=2163
+  while test $# -gt 0 -a "${1:-}" != -- # Stop argv shifting bef sec argopts seq
+  do export "$1"
+    shift
+  done
+  test $# -eq 0 -o "${1-}" != -- || shift
+  argc=$(( cnt - $# ))
+  unset cnt
+}
+
+colorscheme () # ~ # 'dark' for night-time, 'light' otherwise
+{
+  ${UC_NIGHTTIME:=nighttime} && echo "dark" || echo "light"
+}
+
+# Naive function to check for day vs night time based on DAY_{START,END} hours
+nighttime () # ~ [<Hour>]
+{
+  #shellcheck disable=2046
+  test $# -gt 0 || set -- $(date +%k|tr -d ' ')
+  #shellcheck disable=2086
+  test $1 -lt ${DAY_START:-6} -o $1 -ge ${DAY_END:-18}
+}
+
+# Replace current shell
+shellexec () # ~ [<Env>] -- [<Command>] # Just execute shell
+{
+  exportargs "$@" && shift $argc
+  test $# -gt 0 || set -- -l
+
+  true "${UC_SHELL:="bash"}"
+  true ${bin:=$(command -v $UC_SHELL)}
+
+  #shellcheck disable=2145
+  eval "exec $bin \"$@\""
+}
+
+# Continue execution at terminal program running shell command
+#shellcheck disable=2086
+termexec ()
+{
+  true "${UC_TERM:="urxvt"}"
+  true "${UC_SHELL:="bash"}"
+  true ${bin:=$(command -v $UC_SHELL)}
+  true ${cs:=${CS:-$(colorscheme)}}
+
+  test -z "${UC_TERM_NAME:-}" || export UC_TERM_NAME
+
+  # Re-quote arguments for eval
+  #set -- "$(argv_dump "$@")"
+  #eval "echo \"Running '$(uc_term_$UC_TERM) $bin $1'\"" >&2
+
+  # Eval exec command with uc_term_* part
+  # NOTE: urxvt does not require quotes around command and arguments.
+  eval "CS=$cs exec $(uc_term_$UC_TERM) $bin \"\$@\""
+}
+
+# Echo URxvt command-line
+uc_term_urxvt ()
+{
+  set -- "$(command -v urxvt)"
+
+  # TODO: find another way to manage background
+  test -z "${UC_TERM_BG:-}" && {
+
+    case "${cs:-dark}" in
+
+      ( "dark" )
+          set -- "$* -background Black -foreground White -cursorColor White -shading 9"
+          ;;
+
+      ( "light" )
+          # For light scheme, turn blacks up a bit and second white down a bit.
+          set -- "$* -color0 '#555753' -color15 '#babdb6' -color8 '#888a85'"
+          set -- "$* -background White -foreground Black -cursorColor Black -shading 180"
+          ;;
+    esac
+  }
+
+  # Name ends up on the WM-Class property
+  test -z "${UC_TERM_NAME:-}" || set -- "$* -name '$UC_TERM_NAME'"
+
+  echo "$* ${UC_TERM_OPTS:-} -e"
+}
+
+query () # ~ <OSC-Parameters...> # Query running terminal for settings (using Xterm OS-Commands)
+{
+  TTY=$(tty) term_oscmd "$@"
+}
+
+get_colors () # ~ # Get color settings from current terminal (Xterm OSC).
+{
+  # Without retries, even TTY_RDELAY=0.01 was not enough to capture all of
+  # the values most of the time.
+  term_resource_retries=4 term_resource
+}
+
+set_colors () # ~ <Theme-Name> # Set colors for running terminal (Xterm OSC) from theme file
+{
+  load_color_theme "$@" && term_load_resources
+
+  term_send_osc 39 "$foreground"
+  term_send_osc 49 "$background"
+}
+
+load_color_theme ()
+{
+  test $# -eq 1 -a -n "${1-}" || return 64
+  test -e "$THEME_DIR/$1/uc-system-terminal.sh" || return
+  . "$THEME_DIR/$1/uc-system-terminal.sh"
+}
+
+save_color_theme ()
+{
+  test $# -eq 1 -a -n "${1-}" || return 64
+  test -d "$THEME_DIR/$1" || mkdir "$THEME_DIR/$1" || return
+  term_resource_f=1 get_colors > "$THEME_DIR/$1/uc-system-terminal.sh"
+}
+
+# Clear env from all res-keys
+unset_color_theme ()
+{
+  for reskey in background foreground cursor \
+     mouse_background mouse_foreground highlight border \
+     color0 color1 color2 color3 color4 color5 color6 color7 \
+     color8 color9 color10 color11 color12 color13 color14 color15
+  do
+    test -z "$(eval "echo \"\${$reskey-}\"")" || unset $reskey
+  done
+  unset reskey
+}
+
+switch_color_theme ()
+{
+  unset_color_theme && load_color_theme "$@"
+}
+
+# See term.lib:term-resource
+osc_res () # ~ # Echo resource keys for current terminal
+{
+  echo $TERM_RES
+}
+
+background () # ~
+{
+
+  set_background "$img"
+}
+
+# XXX: OSC 20 and 50 requires a recent rxvt.
+# I compiled v9.30 from GitHub src and hacked in 706 (shade) and 707 (blurradius)
+
+set_background () # ~ #
+{
+  term_send_osc 20 "$@"
+}
+
+# Tint requires rgb:rrrr/gggg/bbbb value, doesnt parse hex
+set_background_tint ()
+{
+  term_send_osc 705 "$1"
+}
+
+set_font () # ~ #
+{
+  term_send_osc 50 "$1"
+  #printf '\33]50;%s\007' "9x15bold,xft:Kochi Gothic"
+}
+
+# Extension on customized URxvt
+set_shade () # ~ <Percentage> # Change shading (patched URxvt only)
+{
+  term_send_osc 706 "$1"
+}
+
+# Extension on customized URxvt
+set_blur () # ~ <Pixels> # Change blur radius (patched URxvt only)
+{
+  term_send_osc 707 "$1"
+}
+
+night () # ~ # Switch to dark colorscheme
+{
+  colorscheme dark
+}
+
+day () # ~ # Switch to light colorscheme
+{
+  colorscheme light
+}
+
+colorscheme () # ~ ([dark]|light)
+{
+  case "${1:-dark}" in
+      ( dark ) set_colors Tango-dark && set_shade 15 ;;
+      ( light ) set_colors Tango-light && set_shade 188 ;;
+  esac
+}
+
+shells ()
+{
+  WS=`command -v whatshell.sh`
+  test -x "$WS" || {
+    echo "Cannot find <whatshell.sh>" >&2
+    return 1
+  }
+
+  for p in /bin /usr/bin /usr/local/bin /sbin /usr/sbin
+  do
+    for sh in $p/*sh $p/ksh*
+    do
+      { case $sh in */*.* ) false ;; * ) ;; esac && test -e "$sh"
+      } || continue
+
+      test "${REVIEW:-0}" = "0" || {
+        echo "$sh"
+        continue
+      }
+
+      case $sh in
+          */sh | \
+          */[akz]sh | \
+          */[bdlmr][akz]sh | \
+          */[r][blm][ak]sh | \
+          */ksh2020 )
+      ;; * ) continue
+      ;; esac
+
+      test "${PERFORM_WS:-0}" = "1" || {
+        echo "$sh"
+        continue
+      }
+
+      test -h "$sh" &&
+          p="$sh (-> $(realpath --relative-base=$(dirname "$sh") "$sh"))" ||
+          p="$sh"
+
+      echo "$p: `$sh $WS 2>/dev/null`"
+    done
+  done
+}
+
+
+
+system_terminal_usage ()
+{
+  printf \
+'    %s <Command <Arg...>>
+    %s (sensible|day|night) [ENV...]
+      Start terminal, in dark or light mode.
+    %s terminal EXEC <Run-Argv...>
+      Start terminal instance of EXEC.
+    %s name NAME <Run-Argv...>
+      Start terminal with name.
+
+Helper to launch user terminal and have it run certain env, shell,
+WM-attr, colors, etc.
+
+Much of the get/set-colors setup was inspired by
+<https://github.com/sos4nt/dynamic-colors>
+It has a trick to cycle colors for URxvt users as well, uses a Perl script.
+
+TODO: Using Xresources looks more sensible, but would be URxvt specifi
+<https://gitlab.com/trobador/urxvt-theme/-/blob/master/theme>
+
+Env:
+    UC_TERM urxvt
+    UC_SHELL bash
+    UC_NIGHTTIME "" Depends on env and system, see sensible-colorscheme
+    GEO_HOME <lat>,<long> Provided by the user
+    UC_TERM_NAME <Name> Window name for terminal (should be made available on
+        the windows WM_CLASS attribute).
+' "$base" "$base" "$base" "$base"
+}
+
+
+# Main entry (see user-script.sh for boilerplate)
+
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
+
+  . ~/bin/user-script.lib.sh
+  . ~/bin/term.lib.sh
+  # Stick themes among all others.
+  true "${THEME_DIR:="$HOME/.local/share/themes"}"
+}
+
+! script_isrunning "system-terminal" || {
+  script_defcmd=sensible
+  eval "set -- $(user_script_defarg "$@")"
+}
+
+script_entry "system-terminal" "$@"
+#

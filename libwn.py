@@ -1,9 +1,47 @@
+"""
+:Created: 2017
+:Updated: 2020
+
+Some utils for nltk.corpus to query WordNet dataset, and output helpers for
+wordnet.py
+
+Wordnet has definitions and relations between 'sense' terms, and can return
+a list of such terms given a word. For example, if we look for the definition
+of 'word' we get 11 'Synset' items. The Python documentation explains this type
+and the database in more detail\ [#]_. The summary for here is that aside from
+any english word, a query with the following format is possible and which will
+return one specific definition only instead of a set:
+
+    <lemma>.<pos>.<number>
+
+Position tells about the use of the word together with others.
+So we say they can be nouns and verbs, or ajdectives, adverbs, and adjective sattelites.
+(If you know what all that is.)
+All numbers tells us how many definitions there are.
+
+The output of 'wordnet.py define word.n.01'::
+
+  WORD. (noun.communication; word.n.01): a unit of language that native speakers can identify
+    n. a unit of language that native speakers can identify
+
+      "words are the blocks from which sentences are made"
+      "he hardly said ten words all morning"
+
+As you can see in the dump from 'wordnet info word.n.01' as well,
+there is a lot of stuff that can be queried.
+
+.. [#] See pydoc nltk.corpus.reader.wordnet.Synset
+"""
+# Get nltk.corpus.reader.api.CorpusReader instance, prepared by nltk module
 from nltk.corpus import wordnet as wn
 
 import log
 
 
 def syn_or_syns(word):
+    """
+    Retrieves synonym sets for words, or a specific sense given a synset name.
+    """
     if '.' in word:
         syn = wn.synset(word)
         syns = [ syn ]
@@ -13,14 +51,41 @@ def syn_or_syns(word):
     return syn, syns
 
 
-def short_def(s, w=None):
-    lemmas = ", ".join( [ n for n in s.lemma_names() if n != w] )
-    info = "{blue}({yellow}%s{blue}; {magenta}%s{blue}): {cyan}%s{blue}"%(
-            s.lexname(), s.name(), s.definition())
-    if lemmas:
-        return '{green}'+lemmas +' '+ info
-    return info
+synset_field_attr_map = (
+        ('Definition', 'definition', 0),
+        ('Examples', 'examples', 4),
+        ('Entailments', 'entailments', 1),
+        ('Similar to', 'similar_tos', 1),
+        ('See also', 'also_sees', 1),
+        ('Lexicographer filename', 'lexname', 0),
+        ('Offset', 'offset', 0),
+        ('Frame IDs', 'frame_ids', 4),
+        ('Attributes', 'attributes', 1),
+        ('Max depth', 'max_depth', 0),
+        ('Verb groups', 'verb_groups', 1),
+        ('Hyponyms', 'hyponyms', 1),
+        ('Hyponyms (instance)', 'instance_hyponyms', 1),
+        ('Hypernyms', 'hypernyms', 1),
+        ('Hypernyms (instance)', 'instance_hypernyms', 1),
+        ('Hypernyms (root)', 'root_hypernyms', 1),
+        ('Hypernym distances', 'hypernym_distances', 2),
+        ('Hypernym paths', 'hypernym_paths', 3),
+        #('Hypernym (common)', 'common_hypernyms', 1),
+        #('Hypernym (lowest common)', 'lowest_common_hypernyms', 1),
+        ('Holonyms (substance)', 'substance_holonyms', 1),
+        ('Holonyms (member)', 'member_holonyms', 1),
+        ('Holonyms (part)', 'part_holonyms', 1),
+        ('Meronyms (substance)', 'substance_meronyms', 1),
+        ('Meronyms (member)', 'member_meronyms', 1),
+        ('Meronyms (part)', 'part_meronyms', 1),
+        ('Topic domains', 'topic_domains', 1),
+        ('Region domains', 'region_domains', 1),
+        ('Usage domains', 'usage_domains', 1),
+        #('Hypernym (common)', 'common_hypernyms', 0),
+    )
 
+# Helpers to traverse WN parts and chat about it on stderr, and print formatted
+# results to stdout
 
 INDENT = 2
 
@@ -29,7 +94,7 @@ def print_short_def(s, d=0, i=None, w=None):
         indent = (str(i+1)+'. ').ljust(d*INDENT)
     else:
         indent = (' '*INDENT*d)
-    log.stdout( indent + short_def(s, w=w) )
+    log.stdout( indent + short_def(s, w=w) + '{default}' )
 
 
 def print_word_tree(s, t=None, d=0, i=None, w=None):
@@ -54,7 +119,7 @@ def printcmd_word_trees(WORD, g):
     if g.head:
         if syn:
             WORD = wn_sense(WORD, syn)
-        log.stdout('{green}'+WORD+'{blue}')
+        log.stdout('{green}'+WORD+'{default}')
         d = 1
     for i, s in enumerate(syns):
         d_ = d
@@ -70,7 +135,7 @@ def printcmd_word_meanings(WORD, g):
     if g.head:
         if syn:
             WORD = wn_sense(WORD, syn)
-        log.stdout('{green}'+WORD+'{blue}')
+        log.stdout('{green}'+WORD+'{default}')
         d = 1
     for i, s in enumerate(syns):
         d_ = d
@@ -78,6 +143,41 @@ def printcmd_word_meanings(WORD, g):
         else: d_ = d+1
         print_short_def(s, d=d_, i=i, w=WORD)
     log.stdout('{default}')
+
+
+# Helpers to process WN parts
+
+def u_q_w(WORD, g):
+    "user-query-word handler"
+    if not WORD: return 1, ()
+    syn, syns = syn_or_syns(WORD)
+    if not syn and not syns:
+        log.stderr('{yellow}No results{default}')
+        return 1, ( None, None )
+    return 0, (syn, syns)
+
+def u_o_ml(fieldlabel, listval, g):
+    "user-o-maxlist"
+    if not len(listval):
+        return ()
+
+    msl = int(g.max_sublist)
+    if len(listval) > msl:
+        # FIXME: not every set has an index
+        #print('%s (%i more):' % (fieldlabel, len(listval)-msl))
+        #return listval[:msl]
+        pass
+
+    print('%s (%i):' % (fieldlabel, len(listval)))
+    return listval
+
+def short_def(s, w=None):
+    lemmas = ", ".join( [ n for n in s.lemma_names() if n != w] )
+    info = "{blue}({yellow}%s{blue}; {magenta}%s{blue}): {cyan}%s{blue}"%(
+            s.lexname(), s.name(), s.definition())
+    if lemmas:
+        return '{green}'+lemmas +' '+ info
+    return info
 
 wn_positions_abbrev = {
         wn.ADJ: 'adj.',

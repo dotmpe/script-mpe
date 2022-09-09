@@ -16,7 +16,7 @@ build_main()
     grep -q "^$1()" "$lib" && {
       note "Found '$1' at '$lib'"
       lib_load $(basename "$lib" .lib.sh) &&
-        info "Loaded $lib" || error "Loading $lib"
+        std_info "Loaded $lib" || error "Loading $lib"
     } || continue
   done
 
@@ -24,11 +24,11 @@ build_main()
       *static )
           ;;
 
-      * )   test "1" = "$build_test_lib_loaded" && {
+      * )   test "0" = "$build_test_lib_loaded" && {
 
               build_test_init || return
             } || {
-              test "1" = "$build_lib_loaded" && {
+              test "0" = "$build_lib_loaded" && {
 
                 build_init || return
               } || {
@@ -45,4 +45,5 @@ build_main()
   "$@"
 }
 
+echo build_main "$@"
 build_main "$@"

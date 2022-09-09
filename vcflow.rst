@@ -1,5 +1,7 @@
+vcflow - up-/downstream version control and workflow
 
-Shell script functions for GIT flow
+Generic version control workflows and checks.
+Shell script functions for GIT flow.
 
 ``vc.lib.sh`` provides plumbing functions for common tasks and checkouts and
 repositories, etc. Based on that, vcflow automates up-/downstream rebases or

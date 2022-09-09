@@ -1,0 +1,74 @@
+# Parts                     Sh  U-S CI  Main Test                             #
+
+# 0. Env:
+init-ctx                    009 009 009 009  009
+init-git                    010 011 010 010  010
+init-statusdir              012 012 012 012  012
+debug-exit                  013 013 013 013  -
+env-init-log                -   015 -   -    -  
+env-log-reinit              016 016 016 016  016
+std-ci-helper               -   -   020 020  -
+env-ucache                  020 -   020 020  020
+env-dev                     020 -   020 020  020
+unique-paths                020 -   020 -    020
+remove-dupes                020 -   020 -    020
+env-ci                      020 -   020 020  025
+env-0                       020 -   020 020  026
+env-0-u_s                   -   030 -   -    030
+env-docker-hub              -   -   030 -    -
+env-test-bats               030 -   030 -    030
+env-test                    030 -   030 -    030
+python-virtualenv           050 -   050 -    -
+env-scriptpath-deps         060 -   060 -    -
+lib-load                    070 -   070 070  -
+
+# 1. Init:
+env-info                    -   -   10  10   -  
+check-git                   -   -   10  11   -
+parse-commit                -   -   12  12   102
+db-log-announce             -   -   -   -    -
+init-docker-cache           -   -   15  -    -
+clear-cache                 -   -   16  -    -
+restore-cache               -   -   18  -    -
+
+# 2. Install:
+init-all                    -   -   21  -    21
+init-dependencies           -   -   27  23   -
+unset SCRIPTPATH            -   -   29  -    -
+env-scriptpath-deps         -   -   29  -    -  
+
+# 3. Check/Before script:
+init-information            -   -   30  30   -
+check-all                   -   -   31  -    31
+
+# Parts                     Sh  U-S CI  Main Test                             #
+
+# 4. Script: build/test
+# FIXME: script & build, actual project lib testing
+. ./sh-main                 -   -   410 -    410
+run-baseline                -   -   420 -    420
+run-test                    -   -   430 -    -
+
+# Smoke test everything again with make..
+# - make test/baseline/realpath.tap
+# - make base
+# - make lint
+# - make units
+# - make specs
+
+# Cleanup and run again with redo
+# - git clean -dfx test/
+# - redo
+
+
+# 5. Before-cache:
+
+# 6a. After Success:
+# 6b. After Failure:
+
+# 7. After
+
+
+# Parts                     Sh  U-S CI  Main Test                             #
+
+# Sync: U-S:             vim:ft=todo.txt:nowrap:tw=79:cc=28,32,36,40,45,50,79:

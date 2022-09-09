@@ -18,7 +18,7 @@ from script_mpe.res.ws import AbstractYamlDocs
 
 
 from . import iface
-from iface import registry as reg, gsm
+from .iface import registry as reg, gsm
 from . import init
 from . import util
 from . import out
@@ -70,6 +70,13 @@ class CouchMixin(object):
         return self.couches[self.couch[0]]['server']
 
 
+def dict_tree_map(data, _type, _map):
+    for k in data:
+        if isinstance(data[k], datetime):
+            data[k] = getattr(data[k], _map)()
+        elif isinstance(data[k], dict):
+            dict_tree_map(data[k], _type, _map)
+
 class OutputMixin(object):
     def __init__(self, *args, **kwds):
         super(OutputMixin, self).__init__()
@@ -117,14 +124,15 @@ class OutputMixin(object):
             else: d = r.to_dict()
 
         if of in ( 'json', 'json-stream' ):
-            for k in d:
-                if isinstance(d[k], datetime):
-                    d[k] = d[k].isoformat()
+            dict_tree_map(d, datetime, 'isoformat')
 
         elif of in ('repr',):
             d = repr(d)
         elif of in ('str',):
             d = str(d)
+
+        else:
+            raise Exception("No such output-format %r" % of)
 
         self.output_buffer.append(d)
 
@@ -132,7 +140,7 @@ class OutputMixin(object):
         g = self.settings ; of = g.output_format
 
         if of == 'json':
-            js.dumps(self.output_buffer)
+            print(js.dumps(self.output_buffer))
 
         elif of == 'json-stream':
             for it in self.output_buffer:

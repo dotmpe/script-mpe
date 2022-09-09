@@ -48,8 +48,8 @@ script_bats__parse_name()
   test_file "$1"
   check_argc 1
   # FIXME: dev this on *nix first
-  #var_isset spec_name || local spec_name=
-  #var_isset feat_cat || local feat_cat=
+  #sh_isset spec_name || local spec_name=
+  #sh_isset feat_cat || local feat_cat=
   #local bn="$(basename "$1")"
   spec_name="$(basename "$1" -spec.bats | sed 's/^[0-9\.]*_//')"
   feat_cat="$(basename "$1" -spec.bats | sed -E 's/^([0-9\.]+)*(.*)?$/\1/')"
@@ -96,7 +96,7 @@ script_bats__features()
 script_bats__colorize()
 {
   # TODO: rename to libexec/
-  $scriptpath/bats-colorize.sh
+  $scriptpath/tools/sh/bats-colorize.sh
 }
 
 
@@ -112,8 +112,8 @@ script_bats_main()
   case "$base" in
     $scriptname )
       local scriptpath="$(dirname $0)"
-      script_bats_init || return $?
-      main_run_subcmd "$@" || return $?
+      script_bats_main_init || return $?
+      main_subcmd_run "$@" || return $?
       ;;
     * )
       echo "$scriptname: not a frontend for $base"
@@ -123,21 +123,13 @@ script_bats_main()
 }
 
 
-script_bats_init()
+script_bats_main_init()
 {
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  . $scriptpath/util.sh load-ext
-  lib_load
+  test -n "$scriptpath" || return
+  . $scriptpath/tools/sh/init.sh || return
+  lib_load $default_lib || return
   lib_load table
   # -- htd box init sentinel --
-  set --
-}
-
-script_bats_lib()
-{
-  # -- htd box lib sentinel --
-  set --
 }
 
 # Use hyphen to ignore source exec in login shell

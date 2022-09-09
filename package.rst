@@ -1,5 +1,5 @@
 ``package.y*ml``: YAML file for project metadata
-=================================================
+================================================
 
 Root level is a list, with at least one object.
 TODO: if no ``main`` attribute is given it is equal to the current checkout dirs
@@ -47,7 +47,7 @@ User commands via ``htd``, see help. Eg::
 Other subcommands can use ``package.lib.sh`` and access JSON and Shell script
 variant generated from the main ``package.{y*ml,json}``.
 
-The variants are re-written by ``update``, and stored at ``$PWD/.htd/package*``.
+The variants are re-written by ``update``, and stored at ``$PWD/.meta/package/*``.
 
 Pre-processing is done on ``#include NAME`` directives. If found, lines like
 these are substituted by the file contents retrieved at `NAME`.
@@ -90,15 +90,14 @@ Attributes
 -----------------------------
 
 environments
-  Name(s) for environment(s). If given, first is the default, unless ENV_NAME
-  is set.
+  Name(s) for environment(s). If given, first is the default, unless ENV_NAME is set. These are only names, that together with ``env`` to provide control to set/define the environment for scripts.
 
 env
   Script lines to initialize environment. At this stage ENV_NAME is set, but
   nothing else is sourced yet. If a cmd line or script is provided, it should
   update (load/modify/execute) the env setup for the other package scripts.
 
-  If not given, the default is effectively ``. $PACKMETA_SH``, to make all of
+  If not given, the default is effectively ``. $PACK_SH``, to make all of
   the package's main settings available under ``package_*=...``.
 
 scripts
@@ -272,4 +271,55 @@ status
   And there is publish when uploading to NPM registry.
   stop/start, and restart.
 
+Environment Attributes
+---------------------------------------------------------------------------
+In addition to a ``main`` package declaration with metadata, it can be
+usefull to track environments for this package. Using YAML aliases
+it is also possible to re-use (parts of) environment definitions.
 
+cwd
+  ..
+version
+  While project ``version`` metadata does not reflect checkout directly, with `git.lib` either version setting can be used to create a special checkout at `Local-Source`_.
+env
+  ..
+env-name
+  ..
+scripts
+  ..
+
+Variables
+---------------------------------------------------------------------------
+Static globals, should be managed in user shell profile.
+
+Should only change by reloading ``ENV``, or maybe by resetting some ``ENV_*`` and calling some partial reinit, with hooks..
+
+.. _Env:
+
+- ``$ENV``:
+
+.. _Env-Name:
+
+- ``$ENV_NAME``:
+
+.. _Vnd-Gh-Src:
+
+- ``$VND_GH_SRC``: default: ``/src/github.com``
+
+.. _Local-Source:
+
+- ``$LOCAL_SOURCE``: default: ``/src/local``
+
+.. _Projects:
+
+- ``$PROJECTS``: PATH-like var for project dirs
+
+  default: ``$HOME/project:/srv/project-local:/src/*.*/:/src/local/``
+
+.. _Project-Dir:
+
+- ``$PROJECT_DIR``: preferred dir for project
+
+  default: ``/srv/project-local`` if exists else ``~/project/``
+
+..

@@ -33,18 +33,17 @@ pd_test__npm_autoconfig()
 
 
 
-pd_load__npm_test=i
+pd_flags__npm_test=i
 pd__npm_test()
 {
   npm test || return $?
 }
 
 
-pd_load__npm_script=i
+pd_flags__npm_script=i
 pd__npm_script()
 {
   npm run "$@" || return $?
 }
 
-
-
+#

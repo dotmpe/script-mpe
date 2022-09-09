@@ -16,8 +16,7 @@ setup()
 
 @test "CRC32 Commonly used, in ZIP and other software CRCs ('asd\\n' = 355327694 / 0x152DDECE)" {
 
-skip "FIXME"
-  run echo cksum.py -a rhash-crc32 $testf
+  run cksum.py -a rhash-crc32 $testf
   { test_ok_nonempty && test_lines "$crc32_zip $size $testf" 
   } || stdfail rhash-crc32
 
@@ -37,7 +36,7 @@ skip "FIXME"
 }
 
 @test "Crazy UNIX cksum CRC32 compatible algo ('asd\\n' = 1814461271 / 0x6C267B57)" {
-skip "FIXME"
+
   run cksum $testf
   test "${lines[*]}" = "$crc32_ck $size $testf" || stdfail cksum
   run cksum.py $testf
@@ -48,7 +47,6 @@ skip "FIXME"
 
 @test "CRC32 Used in Ethernet packet CRCs ('asd\\n' = 1531968134 / 0x5B4FFA86)" {
 
-skip "FIXME"
   run cksum.py -a php-crc32 $testf
   test "${lines[*]}" = "$crc32_eth $size $testf" || stdfail php-crc32
 

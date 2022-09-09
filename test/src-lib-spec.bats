@@ -2,15 +2,13 @@
 
 load init
 base=src.lib
-init
 
 testf="test/var/nix_comments.txt"
 testf_expected_header_md5="082a6d7b5ff8c0c85a6acf1daa151586"
 
 setup()
 {
-  load helper &&
-  lib_load src
+  init && lib_load src
 }
 
 

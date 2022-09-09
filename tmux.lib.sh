@@ -67,12 +67,12 @@ htd_tmux_init()
   test -z "$4" || error "surplus arguments: '$4'" 1
   tmux_env_req 0
   # set window working dir
-  test -e $UCONFDIR/script/htd/tmux-init.sh &&
-    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
+  test -e $UCONF/script/htd/tmux-init.sh &&
+    . $UCONF/script/htd/tmux-init.sh || error TODO 1
   test -n "$3" || {
     set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
   }
-  out=$(setup_tmpd)/htd-tmux-init-$$
+  out=$(setup_tmpf .out htd-tmux-init-$$)
   $tmux has-session -t "$1" >/dev/null 2>&1 && {
     logger "Session $1 exists"
     note "Session $1 exists"
@@ -180,15 +180,15 @@ htd_tmux_get()
     test -e "$TMUX_SOCK" &&
       $tmux has-session -t "$1" >/dev/null 2>&1
   } && {
-    info "Session '$1' exists"
+    std_info "Session '$1' exists"
     logger "Session '$1' exists"
     # See if window is there with session
     htd_tmux_session_list_windows "$1" "$2" && {
-      info "Window '$2' exists with session '$1'"
+      std_info "Window '$2' exists with session '$1'"
       logger "Window '$2' exists with session '$1'"
     } || {
       $tmux new-window -c "$cwd" -t "$1" -n "$2" "$3"
-      info "Created window '$2' with session '$1'"
+      std_info "Created window '$2' with session '$1'"
       logger "Created window '$2' with session '$1'"
     }
   } || {
@@ -223,8 +223,8 @@ htd_tmux_winit()
   test -n "$1" || error "Session <arg1> required" 1
   test -n "$2" || error "Window <arg2> required" 1
   # set window working dir
-  test -e $UCONFDIR/script/htd/tmux-init.sh &&
-    . $UCONFDIR/script/htd/tmux-init.sh || error TODO 1
+  test -e $UCONF/script/htd/tmux-init.sh &&
+    . $UCONF/script/htd/tmux-init.sh || error TODO 1
   test -n "$3" || {
     set -- "$@" "$(htd_uconf__tmux_init_cwd "$@")"
   }

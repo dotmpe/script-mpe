@@ -106,8 +106,8 @@ Formatters.names['identity'] = RecordFields
 
 
 # XXX moved from taxus.iface
+@zope.interface.implementer(iface.IFormatted)
 class PrimitiveFormatter(object):
-    implements(iface.IFormatted)
 
     __used_for__ = iface.Node
 
@@ -127,8 +127,8 @@ class PrimitiveFormatter(object):
         return str(self.adaptee)
 
 
+@zope.interface.implementer(iface.IFormatted)
 class IDFormatter(object):
-    implements(iface.IFormatted)
 
     __used_for__ = iface.IID
 
@@ -144,8 +144,8 @@ class IDFormatter(object):
             return "<%s>"%(ad.ref)
 
 
+@zope.interface.implementer(iface.IFormatted)
 class NodeFormatter(object):
-    implements(iface.IFormatted)
 
     __used_for__ = iface.Node
 
@@ -165,9 +165,8 @@ class NodeFormatter(object):
         header = "Node <%s>" % ( ad.id ,)
         return "[%s\n\t%s]" % (header, '\n\t'.join(fields))
 
-
+@zope.interface.implementer(iface.IFormatted)
 class NodeSetFormatter(object):
-    implements(iface.IFormatted)
 
     __used_for__ = iface.INodeSet
 
@@ -181,8 +180,8 @@ class NodeSetFormatter(object):
         return strbuf
 
 
+@zope.interface.implementer(iface.IFormatted)
 class OutputFormatter(object):
-    implements(iface.IFormatted)
 
     __used_for__ = iface.INodeSet
 
@@ -197,7 +196,7 @@ def get_template(name):
     engine = Engine( loader=FileLoader([tpl_dir]), extensions=[ CoreExtension() ] )
     try:
         return engine.get_template(name)
-    except IOError, e:
+    except IOError as e:
         pass
 
 

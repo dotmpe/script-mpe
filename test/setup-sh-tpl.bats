@@ -1,24 +1,15 @@
 #!/usr/bin/env bats
 
 base=setup-sh-tpl.lib
-
 load init
 
 setup()
 {
-  init &&
-  load assert &&
-  lib_load setup-sh-tpl
+  init 1 0 &&
+  lib_load log std date setup-sh-tpl &&
+  load stdtest extra assert
 }
 
-# TODO: test envs are isolated, use other service to record status so
-# next test can query for prev. test state.
-#teardown()
-#{
-#  diag "BATS_TEST_COMPLETED=$BATS_TEST_COMPLETED"
-#  diag "BATS_ERROR_STATUS=$BATS_ERROR_STATUS"
-#  diag "BATS_COUNT_ONLY=$BATS_COUNT_ONLY"
-#}
 
 @test "$base: setup-sh-tpl: simple files: 1. parts" {
 
@@ -26,8 +17,7 @@ setup()
   test_ok_nonempty "setup_sh_tpl_1_" || stdfail 1.1.1
 
   # Test template part and setup-sh-tpl functions
-  verbosity=3
-  . ./test/var/build-lib/setup-sh-tpl-1.sh
+  . $SHT_PWD/var/build-lib/setup-sh-tpl-1.sh
 
   run setup_sh_tpl_name_index "File Name" setup_sh_tpl_
   test_ok_nonempty "1" || stdfail 1.2.1
@@ -66,12 +56,12 @@ setup()
   tmpd
 
   # Test entire templae
-  run setup_sh_tpl "test/var/build-lib/setup-sh-tpl-1.sh" setup_sh_tpl_ "$tmpd"
-  test_ok_nonempty || stdfail 2.
+  run setup_sh_tpl "$SHT_PWD/var/build-lib/setup-sh-tpl-1.sh" setup_sh_tpl_ "$tmpd"
+  test_ok_empty || stdfail 2.
   assert_file_exist "$tmpd/File Name"
   assert_file_exist "$tmpd/Other Path/File Name"
 
-  . ./test/var/build-lib/setup-sh-tpl-1.sh
+  . $SHT_PWD/var/build-lib/setup-sh-tpl-1.sh
   assert_equal "$(cat "$tmpd/File Name")" "$(echo "$setup_sh_tpl__1__contents")"
   assert_equal "$(cat "$tmpd/Other Path/File Name")" "$(echo "$setup_sh_tpl__2__contents")"
 

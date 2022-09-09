@@ -55,7 +55,7 @@ class Outline(SqlBase, CardMixin, ORMMixin):
                 topic.add_self_to_session()
         elif item.cites:
             if len(item.cites) != 1:
-                print 'too manu cites:', repr(item), item.cites
+                print('too many cites: %s %s' % (repr(item), item.cites))
                 return
             group = OutlineFolder.get_instance(name=item.cites[0])
             if item.hrefs:
@@ -63,7 +63,7 @@ class Outline(SqlBase, CardMixin, ORMMixin):
                 sa = klass.get_session()
                 bm = sa.query(OutlineBookmark).filter(OutlineBookmark.href==item.hrefs[0]).all()
                 if bm:
-                    print "Dupe", bm, item.hrefs
+                    print("Dupe %s %s" % (bm, item.hrefs))
                     return
                 bm = OutlineBookmark(description=item.text, parent=group, href=item.hrefs[0])
                 bm.add_self_to_session()

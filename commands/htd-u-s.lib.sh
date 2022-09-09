@@ -1,17 +1,17 @@
 #!/bin/sh
 
 # Get alias and show command, set (add/update) alias or list all
-htd_alias() # [ ALIAS=CMD | ALIAS [ CMD ] ]
+htd_alias() # [ ALIAS=CMD | ALIAS [ CMD ] | --all ]
 {
-  test -n "$1" && {
-    test -n "$2" || {
+  test -n "${1-}" && {
+    test -n "${2-}" || {
       fnmatch "*=*" "$1" && set -- "$(printf "$1" | cut -d'=' -f1)" \
         "$(printf "$1" | cut -d'=' -f2-)" || false
     }
   }
 
-  test -n "$1" && {
-    test -n "$2" && {
+  test -n "${1-}" && {
+    test -n "${2-}" && {
       alias_set "$@"
       return $?
     }
@@ -21,7 +21,7 @@ htd_alias() # [ ALIAS=CMD | ALIAS [ CMD ] ]
     return $?
   }
 
-  trueish "$all" && {
+  trueish "${all-}" && {
     note "Listing aliases for '$scriptname'.."
     scriptname='.*' alias_list
     return $?

@@ -1,0 +1,128 @@
+# varspec                     cmdspec                                         #
+
+# Variable- and command specs for treebox/CI prototype suite. +U_s
+
+
+# varspec                     cmdspec                                         #
+
+true                          . ~/.bash_profile
+# export DEBUG=1 verbosity=7
+
+script_util=$PWD/tools/sh
+  ci_tools=$PWD/tools/ci
+    true                      . "./tools/sh/env.sh"
+    true                      . "./tools/ci/env.sh"
+
+
+# varspec                     cmdspec                                         #
+
+    true                      ./tools/sh/parts/init.sh init-git
+    true                      ./tools/sh/parts/init.sh init-basher
+    true                      ./tools/sh/parts/init.sh init-redo
+    true                      ./tools/sh/parts/init.sh init-dependencies
+
+#    true                      ./tools/sh/parts/init.sh init-golang
+#    true                      ./tools/sh/parts/init.sh init-github-release
+#    true                      ./tools/sh/parts/init.sh init-symlinks
+
+#true                          . ./sh-treebox-us-inner
+
+ENV_NAME=testing              . ./sh-treebox-ci
+# export DEBUG=1 verbosity=7
+
+# XXX: Cruft.
+#  util_mode=boot scriptpath=$PWD . ./util.sh
+#
+#  failed=/tmp/htd-build-test-$(uuidgen).failed
+#  lib_load build-test && build_test_init
+#  htd package update
+#  export verbosity=7
+#  htd project-stats build
+#  exit $?
+#
+#  scriptpath=
+#  SCRIPTPATH=
+#  for x in test/{sys,os,str}*.bats
+#  do
+#    echo bats "$x"
+#    bats "$x"
+#  done
+#
+#  exit $?
+#  #
+#  util_mode=ext scriptpath=$PWD . ./util.sh
+#  lib_load && lib_load mkvar make
+#
+#  #mkvar_preproc <"test/var/mkvar/test1.kv"
+#  #mkvar_preproc <"test/var/mkvar/test1b.kv"
+#  #mkvar_preproc <"test/var/mkvar/test1c.kv"
+#  mkvar_preproc <"test/var/mkvar/test1d.kv"
+#  #mkvar_preproc <"test/var/mkvar/test2.kv"
+#  exit $?
+#
+#  #shells=bash test_shells ./build.sh required_tests
+#
+#  docker pull dotmpe/treebox:dev &&
+#  docker run --rm \
+#      -w /dut \
+#      -v $(pwd -P)/tools/ci/docker.sh:/dut/run.sh \
+#      dotmpe/treebox:dev sh ./run.sh
+#  exit $?
+#
+#  . ./tools/sh/env.sh
+#  test_any_feature "$@"
+#  exit $?
+#
+#  p='' s='' act=$component_tests foreach_do "$@" |
+#        p='' s='' act=$component_test foreach_do
+#  exit $?
+#
+#  projectdir.sh run :git:status
+#  exit $?
+#
+#  projectdir.sh run :bats:specs
+#  vendor/bin/behat --dry-run --no-multiline
+#
+#  htd status
+#  htd rules
+#  htd run-rules ~/.conf/user/rules/boreas.tab
+#
+#  #  test sh -nt build.lib.sh
+#  #exec_watch_poll testme echo "\$foo" -- touch build.lib.sh
+#  #poll_sleep=2 #lib_load vc #reload() #exec_watch_scm reload
+#  exec_watch_scm
+#  exit $?
+#
+#  htd tasks --Check-All-Tags --Check-All-Files --update
+#
+#  #redo doc/src/sh/default.dot.gv
+#  exit $?
+#
+#  lib_load build
+#  project_test mod_jsotk jsotk-py jsotk-xml
+#  exit $?
+#
+#  # TODO: create mediameta records, metadata cards with id, format, key, date info etc.
+#  finfo-app.py --name-and-categorize .
+#  exit $?
+#
+#  test sh-finfo.sqlite || db_sa.py --dbref=sh-finfo.sqlite init
+#  finfo.py --dbref=sh-finfo.sqlite --update .
+#  exit $?
+#
+#  hier.py import tags.list
+#  exit $?
+#
+#  # https://explainshell.com/explain?cmd=rst2html+--record-dependencies%3DFILE
+#  exit $?
+#
+#  # TODO: record as benchmark or other report, onto docker image
+#  failed=/tmp/htd-build-test-$(uuidgen).failed
+#  lib_load build-test && build_test_init
+#  htd package update
+#  export verbosity=7
+#  htd project-stats build
+
+# varspec                     cmdspec                                         #
+#
+# Sync: U-S: vim:ft=bash:

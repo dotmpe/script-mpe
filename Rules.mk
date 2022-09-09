@@ -134,7 +134,7 @@ test_other_bats_$d::
 # Make SA do a test on the repo
 DB_SQLITE_TEST=.test/db.sqlite
 
-DB_SQLITE_DEV=/home/berend/.bookmarks.sqlite
+DB_SQLITE_DEV=$(HOME)/.bookmarks.sqlite
 test_sa_$d::
 	@$(call log_line,info,$@,Testing SQLAlchemy repository..)
 	@\
@@ -201,7 +201,7 @@ symlinks: $/.symlinks
 	@\
 	$(call log,header1,$@,Symlinking from,$^);\
 	#SCRIPT_MPE=/srv/project-mpe/script-mpe
-	SCRIPT_MPE=$(pwd) ./init-symlinks.sh .symlinks
+	SCRIPT_MPE=$PWD ./init-symlinks.sh .symlinks
 
 .PHONY: symlinks
 INSTALL += symlinks

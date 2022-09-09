@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+. /srv/project-local/script-mpe/tools/sh/init-include.sh
+
+sh_include remove-dupes
+
+U_S=/srv/project-local/user-scripts
+LOG=$U_S/tools/sh/log.sh
+INIT_LOG=$LOG
+
+# Reset script-path for testing scripts
+SCRIPTPATH=
+. /srv/project-local/script-mpe/load.bash
+. $U_S/load.bash
+#SCRIPTPATH=/srv/project-local/script-mpe:/srv/project-local/script-mpe/commands:/srv/project-local/script-mpe/contexts:/srv/project-local/user-scripts/src/sh/lib:/srv/project-local/user-scripts/commands
+
+. $U_S/tools/sh/init.sh
+
+lib_load composure std src vc-htd function functions ck ck-htd shell git volume oil docker-sh
+lib_load package
+lib_init
+composure_check_name_scripts
+
+#vc_tracked
+
+lib_load build-htd
+lib_init
+build_init
+
+#list_sh_files
+#expand_spec_src script_libs
+build_package_script_lib_list
+
+# Sync: U-S: vim:ft=bash:

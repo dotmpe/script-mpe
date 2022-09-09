@@ -1,7 +1,5 @@
-#!/bin/sh
-match_src=$_
-
-set -e
+#!/usr/bin/env make.sh
+# Created: 2015-08-10
 
 version=0.0.4-dev # script-mpe
 
@@ -139,70 +137,25 @@ req_arg()
   }
 }
 
+match_als____version=version
+match_als___V=version
+match_grp__version=ctx-main\ ctx-std
+
+match_als____help=help
+match_als___h=help
+match_grp__help=ctx-main\ ctx-std
+
 
 ### Main
 
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
 
-match_main()
-{
-  local scriptname=match base="$(basename "$0" .sh)" verbosity=4 \
-    scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
+main-lib
+  lib_load box os date doc table match main std stdio src-htd || return
 
-  match_lib || return $(( $? - 1 ))
+main-load
+  INIT_LOG=$LOG lib_init || return
 
-  case "$base" in $scriptname )
-
-      match_init || return $?
-
-      # Execute
-      main_run_subcmd "$@"
-      ;;
-
-  esac
-}
-
-match_lib()
-{
-  test -z "$__load_lib" || return 1
-  test -n "$scriptpath" || return 1
-  export SCRIPTPATH=$scriptpath
-  __load=ext . $scriptpath/util.sh
-  util_init
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  . $scriptpath/main.lib.sh load-ext
-  # -- match box init sentinel --
-}
-
-match_init()
-{
-  local __load_lib=1
-  test -n "$scriptpath" || return 13
-  #lib_load box match os date doc table
-  . $scriptpath/box.lib.sh "$@"
-  . $scriptpath/match.lib.sh "$@"
-  . $scriptpath/os.lib.sh
-  . $scriptpath/date.lib.sh
-  . $scriptpath/doc.lib.sh
-  . $scriptpath/table.lib.sh
-  # -- match box lib sentinel --
-  set --
-}
-
-#test "$match_src" != "$0" && {
-#  set -- load-ext
-#}
-#case "$1" in "." | "source" )
-#  match_src=$2
-#  set -- load-ext
-#;; esac
-
-# Ignore login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "$__load_lib" || {
-    match_main "$@" || exit $?
-  }
-;; esac
+main-epilogue
+# Id: script-mpe/0.0.4-dev match.sh

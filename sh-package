@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+unset  U_S  LOG  INIT_LOG  SCRIPTPATH
+
+ENV_DEV=1
+: "${U_S:="$HOME/project/user-scripts"}"
+: "${LOG:="$U_S/tools/sh/log.sh"}"
+: "${INIT_LOG:="$LOG"}"
+
+export  U_S  LOG  INIT_LOG
+export verbosity=7
+. $U_S/tools/sh/init.sh
+$LOG "ok" "" OK
+
+lib_load composure std src vc-htd function functions ck-htd ck shell git volume oil docker-sh
+lib_load package
+lib_init
+#composure_check_name_scripts
+
+#vc_tracked
+
+# FIXME: oil_docker_init
+
+
+# Find missing functions.
+
+redo-ifchange .cllct/src/sh-libs.list
+cut -d"	" -f1 .cllct/src/sh-libs.list | while read libid
+do
+  redo-ifchange .cllct/src/functions/$libid-lib.func-list
+  while read caller
+  do
+    redo-ifchange .cllct/src/functions/$libid-lib/$caller.func-deps
+  done <.cllct/src/functions/$libid-lib.func-list
+done
+
+
+# Determine lib deps
+
+cut -d"	" -f1 .cllct/src/sh-libs.list | while read libid
+do
+  redo-ifchange .cllct/src/functions/$libid-lib.lib-deps
+  redo-ifchange .cllct/src/functions/$libid-lib.missing-deps
+done
+
+
+wc -l .cllct/src/functions/*.func-list | sort
+wc -l .cllct/src/functions/*/*.func-deps | sort
+wc -l .cllct/src/functions/*.missing-deps | sort
+wc -l .cllct/src/functions/*.lib-deps | sort
+
+# Sync: U-S: vim:ft=bash:

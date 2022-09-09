@@ -1,0 +1,29 @@
+#!/bin/sh
+
+set -e
+
+exec ./tools/sh/init-here.sh $HOME/bin "" "" "$(cat <<EOM
+
+  lib_load composure
+  lib_load script logger str logger-std
+  lib_load env-d build user-env make mkvar
+  lib_init
+
+  #. ./tools/ci/env.sh
+
+  #env_d_boot
+
+  #env_d_complete
+
+
+  #echo '. ./tools/ci/env.sh ; redo \$(patsubst %.bats, %.tap,\$(wildcard test/*/*.bats))' | make_op "" recipe
+
+
+  lib_load std package build-test
+  lib_init
+
+  echo OK
+EOM
+)"
+
+# Sync: U-S: vim:ft=bash:

@@ -2,5 +2,5 @@
 (A) 2017-03-19 X-TRCK-1001: rewrite +jelly layer to +peanut, improve @coverage
 (D) clean up old code XXX-jybtyDKFdOCC XXX-ZnV3whzhLzOM XXX-KSPpSK8SiElJ
 (F) foo meta:bar meta2:x some.thing:value other/thing:value +AnotherPrefTag @DifferentPrefTag
-+prj1 +prj2 +prj3 +prj4
-@ctx-1 @ctx2 @ctx3 @ctx4
+Edit edit edit +prj1 +prj2 +prj3 +prj4
+x Minor edit to commit @ctx-1 @ctx2 @ctx3 @ctx4

@@ -1,0 +1,26 @@
+#!/bin/sh
+verbosity=7
+
+U_S=$HOME/project/user-scripts
+SCRIPTPATH=$U_S/src/sh/lib:$HOME/bin:$PWD/script
+SCRIPTPATH=$SCRIPTPATH:$HOME/bin/commands:$HOME/bin/contexts
+
+exec $U_S/tools/sh/init-here.sh "$SCRIPTPATH" "" "" "$(cat <<EOM
+
+  note "Initialized, loading more libs..."
+
+  lib_load env-d user-env make mkvar build
+
+  note "OK"
+
+  #echo '. ./.htd/env.sh ; export LOG; redo \$(patsubst %.bats, %.tap,\$(wildcard test/*/*.bats))' | make_op "" recipe
+
+  #lib_load build package build-test
+  #package_init
+  #build_test_init
+
+  note "Done"
+EOM
+)"
+
+# Sync: U-S: vim:ft=bash:

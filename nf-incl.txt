@@ -1,0 +1,16 @@
+nf_\(fa\|mdi\|oct\)_alert\>
+nf_\(fa\|mdi\|oct\)_battery\(\>\|_[0-9]\)
+nf_\(fa\|mdi\|oct\)_check\>
+nf_.*_email\>
+nf_.*_gear\>
+nf_.*_plug
+nf_fa_flash
+nf_fa_close
+nf_fa_exclamation_triangle
+nf_oct_zap
+nf_oct_stop
+nf_oct_circle_slash
+nf_oct_x
+nf_oct_alert
+nf_ple_left_half_circle_thick
+nf_ple_right_half_circle_thick

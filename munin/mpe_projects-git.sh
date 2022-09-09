@@ -13,7 +13,7 @@ function update() # NAME BRANCH
 	fi
 }
 
-p=$(pwd)
+p=$PWD
 find ~/project/ -iname .git | while read f
 do
 	F=$(dirname $f)

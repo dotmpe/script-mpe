@@ -1,14 +1,7 @@
 #!/usr/bin/env bats
 
 base=util.lib
-
-setup()
-{
-# Minimal test env
-  load init
-  test_env_init
-  true
-}
+load init
 
 
 # Test init.bash, helper.bash
@@ -24,7 +17,6 @@ setup()
 @test "$base: baseline: script env load-ext" {
 
   skip "FIXME"
-  load helper
   load assert
   load init-tester
 
@@ -34,7 +26,6 @@ setup()
 
 @test "$base: baseline: script env util boot" {
 
-  load helper
   load assert
   load init-tester
 

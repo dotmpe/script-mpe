@@ -1,7 +1,10 @@
-Feature: disk
 
-    Background: The default command for now is status, see that feature
+     Feature: disk
+
+  Background: The default command for now is status, see that feature
 
     Scenario: disk.sh
-        When the user runs "disk.sh"...
 
+        When the user runs "disk.sh --version"
+
+# vim:cc=13

@@ -1,0 +1,207 @@
+#!/bin/sh
+
+## Helper for VLC control using olrdrc module
+
+# vlctl is fork of vlctransc.py
+
+# this allows any script to play/pause/jog as far as VLC controls allow to
+# to things.
+# afaik VLC can do anything but play backward or report actual frame number.
+#
+# vlctl can do pause, (advance) frame, faster or slower, jog or skip fwd/bwd.
+
+# vlctransc uses a mouse-macro to presumably control some plugin?
+# I do have jumper.lua by lubozle plugin installed, which can do custom
+# values for fwd/bwd skip and jump to timestamp including miliseconds.
+#
+# Using
+
+
+status () # ~ # Show file and playing time info
+{
+  eval "$(status_sh)"
+  test "$status" = "0" || echo "error: $status_desc"
+
+  echo "title: $(vlctl raw get_title)"
+  eval "$(info_sh)"
+  echo "window: $_0_Buffer_afmetingen"
+  echo "video: $_0_Video_resolutie ${_0_Beeldsnelheid}fps"
+  echo "audio: ${_1_Bits_per_sample}bit ${_1_Kanalen}"
+
+  test "${pause_state:-0}" = 0 -a "${stop_state:-0}" = 0 && {
+
+      echo "state: $(state "$play_state")"
+      echo "time: $(vlctl time)"
+
+      test -z "$new_input" || {
+          echo "input-url: $new_input"
+
+          file="$(urldecode "$new_input")"
+          test -e "$file" ||
+              stdmsg '*err' "Unable to get file for $new_input"
+          echo "filename: $(basename "$file")"
+          echo "filedir: $(dirname "$file")"
+      }
+
+    } || {
+
+      test "${pause_state:-0}" = 0 || echo "state: paused"
+      test "${stop_state:-0}" = 0 || echo "state: stopped"
+    }
+}
+
+state ()
+{
+  case "$1" in
+     ( 3 ) echo playing ;;
+     ( * ) echo unknown ;;
+  esac
+}
+
+status_rc () # ~ # Show VLC status (almost) exactly as RC reports it
+{
+  status_raw | status_rc_fields
+  test ${v:-0} -lt 6 || info
+}
+
+status_raw ()
+{
+  ${vlc_be:-"vlctl"} status | fixlines
+}
+
+info_rc ()
+{
+  info_raw | stream_rc_fields
+}
+
+info () # ~ # Display info about streams. Probably always one video and one audo?
+{
+  info_rc
+}
+
+
+# Print raw stram info
+info_raw ()
+{
+  ${vlc_be:-"vlctransc.py"} info | fixlines
+}
+
+# Translate RC status lines into proper fields
+status_rc_fields ()
+{
+  tr -s '\n\r' '\n' | sed '
+        s/status change: ( \(.*\) )/\1/
+        s/status: returned \([0-9]*\) (\(.*\))/status: \1\nstatus-desc: \2/
+
+        s/^.* .pause. .*/play state: paused/
+    '
+}
+
+# Translate RC info lines into proper fields
+stream_rc_fields ()
+{
+  sed 's/^| *//' |
+  while read -r line
+  do
+      case "$line" in
+          ( "" ) continue ;;
+
+          ( "+----[ Stream "* )
+                streamid=$(echo "$line" | cut -d' ' -f3)
+                continue
+              ;;
+
+          ( "+----[ end of stream info ]"* ) break;;
+
+          # XXX: unfortunately, i18n causes some problems here. Looks like the
+          # field keys are encoded directly from labels. Some contain non-ascii
+          ( * )
+                fieldname=$(echo "$line" | cut -d':' -f1)
+                fieldvalue=$(echo "$line" | cut -d':' -f2- --output-delimiter=':')
+
+                echo "$streamid $fieldname:$fieldvalue"
+              ;;
+
+      esac
+  done
+}
+
+status_sh () # ~ # Print RC status fields as Shell variables
+{
+  status_rc | conv_fields_shell
+}
+
+info_sh () # ~ # Print RC info fields as Shell variables
+{
+  info_rc | sed 's/^/_/' | conv_fields_shell
+}
+
+eval "$(compo typeset conv_fields_shell)"
+
+# Send RC command over socket (using Py client)
+vlc_rc_ssend ()
+{
+  vlctl raw "$@"
+}
+
+raw () # ~ <Cmd> <Arg...> # Send RC command
+{
+  vlc_rc_ssend "$@"
+}
+
+
+host=localhost
+port=9999
+pass=secret
+
+vlc_rc_netsend ()
+{
+  {
+  cat <<EOM
+$pass
+$1
+quit
+EOM
+  } | nc $host $port
+}
+
+
+cwd () # ~
+{
+  act="lsof -p" s= p= foreach_do $(pgrep '^vlc$') | grep 'cwd' | sed 's/.* //'
+}
+
+
+# Utils.
+
+urldecode_chars ()
+{
+  echo "$1" | sed 's@+@ @g;s@%@\\x@g' | xargs -0 printf "%b"
+}
+
+urldecode ()
+{
+  case "$1" in
+
+    ( "file://"* ) urldecode_chars "$1" | cut -c8- ;;
+  esac
+}
+
+fixlines ()
+{
+  tr -s '\n\r' '\n'
+}
+
+
+# Main entry (see user-script.sh for boilerplate)
+
+test -n "${user_script_loaded:-}" || {
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
+}
+
+! script_isrunning "vlc-cli" ||
+    eval "set -- $(user_script_defarg "$@")"
+
+script_entry "vlc-cli" "$@"
+#

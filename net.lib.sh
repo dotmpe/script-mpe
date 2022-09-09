@@ -1,6 +1,12 @@
 #!/bin/sh
 
 
+net_lib_load()
+{
+  true
+}
+
+
 # Get the gateway IP for default route
 default_route()
 {

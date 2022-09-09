@@ -1,5 +1,4 @@
-#!/bin/sh
-test_src="$_"
+#!/usr/bin/env bash
 
 set -e
 
@@ -15,42 +14,35 @@ test___V() { test__version; }
 test____version() { test__version; }
 
 
-test__ack()
+test__test()
 {
   echo Ack.
 }
 
-test___h()
-{
-  test__help
-}
-test__help()
-{
-  echo Help?
-}
 
+## Main
 
 test_main()
 {
   # Do something if script invoked as 'x-test.sh'
-  local scriptname=x-test base="$(basename "$0" .sh)" \
-    subcmd=$1
+  local scriptname=x-test \
+      base="$(basename "$0" .sh)" \
+      CWD subcmd=$1
+
+  test_init || return
 
   case "$base" in $scriptname )
 
-        test -n "$scriptpath" || \
-            scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
-            pwd=$(pwd -P) ppwd=$(pwd) spwd=.
+        #test -n "$scriptpath" || \
+        #    scriptpath="$(cd "$(dirname "$0")"; pwd -P)" \
 
-        export SCRIPTPATH=$scriptpath
-        #. $scriptpath/util.sh load-ext
-        test -n "$verbosity" || verbosity=5
+        #test -n "$verbosity" || verbosity=5
 
         local func=$(echo test__$subcmd | tr '-' '_') \
             failed= \
             ext_sh_sub=
 
-        lib_load str match main std stdio sys os src
+        # lib_load str match main std stdio sys os src
 
         type $func >/dev/null 2>&1 && {
           shift 1
@@ -70,19 +62,27 @@ test_main()
   esac
 }
 
+test_init()
+{
+  local scriptname_old=$scriptname; export scriptname=$1-main-init
+
+  CWD="$(dirname "$0")"
+INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \
+INIT_LIB="\$default_lib str str-htd logger-theme match main std stdio sys os box src src-htd" \
+    . $CWD/tools/sh/init.sh || return
+  export scriptname=$scriptname_old
+}
 
 
-
-# Ignore login console interpreter
+# Main entry - bootstrap script if requested
+# Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
-  test -n "$f_lib_load" || {
-    __load_mode=main . $(dirname "$0")/util.sh
-    test "$1" = "$__load_mode" ||
-      set -- "$__load_mode" "$@"
 
-    case "$1" in
-      main ) shift ; test_main "$@" ;;
-    esac
+  # Ignore 'load-ext' sub-command
+  test "$1" != load-ext || __load_lib=1
+  test -n "${__load_lib-}" || {
+    test_main "$@"
+  }
+;; esac
 
-  } ;;
-esac
+# Id: script-mpe/0.0.4-dev x-test.sh

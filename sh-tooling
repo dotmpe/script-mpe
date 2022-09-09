@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+
+usage()
+{
+  echo 'Usage:'
+  echo '  ./sh-tooling [<function name>]'
+}
+usage-fail() { usage && exit 2; }
+
+
+
+# Sync
+
+#diff -bqr ~/bin/tools/sh/ ~/project/user-scripts/tools/sh/
+
+#diff -bqr \
+#  ~/project/user-scripts-incubator/tools/ci/ \
+#  ~/project/user-scripts/tools/ci/
+#
+#
+#diff -bqr \
+#  ~/project/user-scripts-incubator/tools/sh/ \
+#  ~/project/user-scripts/tools/sh/
+
+
+vimdiff .travis.yml ~/bin/ ~/project/user-scripts/$x
+
+compare()
+{
+  diff -bqr "$@" && { echo OK $*
+    return
+  }
+
+  set -- "$@" ~/bin/$x
+  vimdiff "$@"
+}
+
+sync()
+{
+  compare "$@"
+  #set -- $x ~/project/user-scripts/$x
+  #compare "$@"
+}
+
+sh_tooling_neighbours()
+{
+  case "$(basename "$PWD")" in
+
+    script-mpe )
+        echo $HOME/build/dotmpe/user-scripts
+        echo $HOME/build/dotmpe/user-scripts-incubator
+      ;;
+
+    user-scripts )
+        echo $HOME/build/dotmpe/script-mpe
+        echo $HOME/build/dotmpe/user-scripts-incubator
+      ;;
+
+    user-scripts-incubator )
+        echo $HOME/build/dotmpe/script-mpe
+        echo $HOME/build/dotmpe/user-scripts
+      ;;
+  esac
+}
+
+default()
+{
+  test -n "$*" || set -- $(sh_tooling_neighbours)
+
+  for x in tools/sh/*.sh
+  do
+    sync $x "$@"
+    continue
+  done
+
+  for x in tools/sh/parts/*.sh
+  do
+    sync $x "$@"
+    continue
+  done
+}
+
+# Main
+
+. "${TEST_ENV:=tools/ci/env.sh}"
+# Fallback func-name to init namespace to avoid overlap with builtin names
+main_ "sh-tooling" "$@"
+# Sync: U-S: vim:ft=bash:

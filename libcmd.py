@@ -48,6 +48,7 @@ from confparse import Values
 import collections
 
 
+#@zope.interface.implementer(iface.IProgramHandlerResultProcessor)
 class HandlerReturnAdapter(object):
     """
     Adapter return value/generator from handler back to program.
@@ -62,7 +63,6 @@ class HandlerReturnAdapter(object):
             {first,last,all}-key{,s}
 
     """
-    #zope.interface.implements(iface.IProgramHandlerResultProcessor)
     def __init__(self, globaldict):
         self.globaldict = globaldict
         self.generated = []
@@ -94,11 +94,11 @@ class HandlerReturnAdapter(object):
                     self.generated = res
 
 
+@zope.interface.implementer(iface.IReporter)
+#@zope.interface.implementer(iface.IFormatted)
 class ResultFormatter(object):
-    zope.interface.implements(iface.IReporter)
     __used_for__ = iface.IReportable
 
-    #zope.interface.implements(iface.IFormatted)
     #__used_for__ = iface.IReportable, iface.
 
     def append(self, res):
@@ -518,7 +518,7 @@ class SimpleCommand(object):
             raise e
         # XXX:
         result_adapter = HandlerReturnAdapter( self.globaldict )
-        #if isinstance( result_adapter, basestring ):
+        #if isinstance( result_adapter, str ):
         #    result_adapter = getUtility(IResultAdapter, name=result_adapter)
         if return_mode:
             result_adapter.set_return_mode( return_mode )
@@ -614,7 +614,7 @@ class SimpleCommand(object):
 
     def parse_options( self, prog ):
         # XXX
-        #if optionparser and isinstance( optionparser, basestring ):
+        #if optionparser and isinstance( optionparser, str ):
         #    parser = getUtility(IOptionParser, name=optionparser)
         #elif optionparser:
         #    #assert provides IOptionParser
@@ -638,6 +638,7 @@ class SimpleCommand(object):
         If set but path is non-existant, call self.INIT_RC if exists.
         """
         if self.INIT_RC and hasattr(self, self.INIT_RC):
+            log.note("Using config %r", self.INIT_RC)
             self.default_rc = getattr(self, self.INIT_RC)(prog, opts)
         else:
             self.default_rc = dict()
@@ -652,6 +653,7 @@ class SimpleCommand(object):
 
             prog.config_file = self.find_config_file(opts.config_file)
             self.load_config_( prog.config_file, opts )
+            log.info("Loaded config %r", prog.config_file)
             yield dict(settings=self.settings)
 
     def find_config_file(self, rc):
@@ -693,14 +695,15 @@ class SimpleCommand(object):
     def prepare_output( self, prog, opts ):
 # XXX
         default_reporter = ResultFormatter()
-        #if isinstance( default_reporter, basestring ):
+        #if isinstance( default_reporter, str ):
         #    self.globaldict.prog.default_reporter_name = default_reporter
         #    default_reporter = getUtility(IReporter)
         #elif not default_reporter:
         #    default_reporter = self
 
         prog.output = [ default_reporter ]
-        log.category = 7-opts.message_level
+        # XXX: opts.message_level should be an integer
+        log.category = 7-int(opts.message_level)
         #print 'log level', log.category
 
         import taxus.core

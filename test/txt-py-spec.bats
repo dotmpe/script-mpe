@@ -5,21 +5,25 @@ load init
 
 setup()
 {
+  init &&
   fixture=test/var/urls1
 }
 
+
 @test "txt urllist" {
   run ./$base urllist ${fixture}.list
-  test_ok_nonempty || stdfail
+  test_ok_nonempty 6 || stdfail
 }
 
 @test "txt doctree" {
+  TODO walk catalogs
   # run ./$base doctree docs.list .
   run ./$base doctree .
   test_ok_nonempty || stdfail
 }
 
 @test "txt fold urls" {
+  TODO
   run ./$base fold ${fixture}.outline ${fixture}.list
   test_ok_empty || stdfail
 }
@@ -33,8 +37,3 @@ setup()
   run ./$base todolist todo.txt
   test_ok_nonempty || stdfail
 }
-
-# FIXME: @test "txt todotxt" {
-#  run ./$base todotxt todo.txt
-#  test_ok_nonempty || stdfail
-#}

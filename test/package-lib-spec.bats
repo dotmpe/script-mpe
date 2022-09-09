@@ -2,93 +2,164 @@
 
 load init
 base=package.lib
-init
-load assert
-lib_load package sys
 
-
-setup()
+setup ()
 {
-  export package_id=
+  init &&
+  load assert &&
+  lib_require match package
+}
+
+teardown ()
+{
+  test ${package_lib_init:-1} -ne 0 || {
+    package_env_unset && package_lib_unset &&
+    package_lib_init= ENV_LIBS= package_lib_auto= package_lib_init
+    unset package_lib_init
+  }
+  test "${package_id+"set"}" != "set" || unset -v package_id
 }
 
 
 @test "$base: lib-load sets env" {
 
-  assert_equal "./package.yaml" "$PACKMETA"
-  #assert_equal "py" "$out_fmt" 
+  assert_equal "py" "$out_fmt" 
+  assert_equal ".meta" "$META_DIR"
 }
 
 
-@test "$base: lib-set-local sets env" {
+@test "$base: lib-init sets env" {
 
-  package_lib_set_local "."
+  package_lib_auto= lib_init package
 
-  assert_equal "package" "$PACKMETA_BN"
-  assert_equal "./.htd/package.main.json" "$PACKMETA_JS_MAIN"
-  assert_equal "./.htd/package.sh" "$PACKMETA_SH"
-  assert_equal "script-mpe" "$package_id"
+  assert_equal "$ENV_LIBS"   "package"          
+  assert_equal "$LCACHE_DIR" "$META_DIR/cache"  
+  assert_equal "$PACK_DIR"   "$META_DIR/package"
+  test -z "${package_id-}"
 }
 
 
-@test "$base: package-sh" {
+@test "$base: lib-init autoloads package meta" {
+
+  lib_init package
+
+  assert_equal "$PACKAGE_JSON"  ".meta/cache/package.json" 
+  assert_equal "$package_id"    "script-2008b-mpe"               
+  assert_equal "$PACK_JSON"     ".meta/package/$package_id.json"  
+  assert_equal "$PACK_SH"       ".meta/package/$package_id.sh"    
+
+  teardown
+
+  package_lib_auto=1 lib_init package
+}
+
+
+@test "$base: package-sh (I)" {
+
+  load stdtest
+  lib_require sys-htd str-htd
   cd /tmp
 
-  PACKMETA_BN="$(package_basename)"
-  PACKMETA_SH=./.$PACKMETA_BN.sh
+  PACK_SH=package.sh
 
-  echo "package_id=foo" > .package.sh
+  echo "package_id=foo" > $PACK_SH
   run package_sh id
   test_ok_nonempty "id=foo" || stdfail 1
 
-  echo "package_id=\"foo bar\" " > .package.sh
+  echo "package_id=\"foo bar\" " > $PACK_SH
   run package_sh id
   test_ok_nonempty "id=\"foo bar\"" || stdfail 2.1
 
-  echo "package_id=foo\ bar" > .package.sh
+  echo "package_id=foo\ bar" > $PACK_SH
   run package_sh id
   test_ok_nonempty "id=\"foo bar\"" || stdfail 2.2
 
-  echo "package_id='foo bar'" > .package.sh
+  echo "package_id='foo bar'" > $PACK_SH
   run package_sh id
   test_ok_nonempty "id=\"foo bar\"" || stdfail 2.3
+
+  rm $PACK_SH
+}
+
+
+@test "$base: package-sh (II)" {
+
+  load stdtest
+  lib_require log std sys-htd str-htd
+  lib_init package
+  package_update_sh
+
+  run package_sh id
+  test_ok_nonempty "id=script-2008b-mpe" || stdfail 1
 }
 
 
 @test "$base: package test/var dirs" {
+# FIXME: test var package 2: "Main is used as ID"
+# FIXME: test var package 3: "Main is also ID"
 
-  cd test/var/package/0
-  package_lib_load
-  package_lib_set_local .
-  run package_sh id
-  test_ok_nonempty "*id=script-bvb-test-0" || stdfail 1
+  load stdtest
+  lib_require log std sys-htd str-htd
+
+  local i pwd=$PWD
+  for i in 0 1
+  do
+    cd $pwd/test/var/package/$i
+    lib_init package
+    test -s "$PACKAGE_JSON"
+    test -n "$package_id"
+    package_update_json
+    test -s "$PACK_JSON"
+    package_update_sh
+    test -s "$PACK_SH"
+
+    run package_sh id
+    test_ok_nonempty "id=script-bvb-test-$i*" || stdfail 2.$i
+
+    teardown && cd "$pwd" && git clean -dfx test/var/package/$i
+  done
 }
 
 
 @test "$base: package test/var/package/1 - main and secondary project" {
 
-  cd test/var/package/1
+  load stdtest
+  lib_require log std sys-htd str-htd
 
-  package_lib_load
-  package_lib_set_local .
+  cd test/var/package/1
+  lib_init package
+  test -s "$PACKAGE_JSON"
+  package_update_json
+  test -s "$PACK_JSON"
+  package_update_sh
+  test -s "$PACK_SH"
 
   run package_sh id key
   test_ok_nonempty "*id=script-bvb-test-1-a key=foo" || stdfail 2
 
+  teardown
   export package_id=script-bvb-test-1-b
-  package_lib_set_local .
+  lib_init package
+  package_update_json
+  test -s "$PACK_JSON"
+  package_update_sh
   run package_sh id key
   test_ok_nonempty "*id=script-bvb-test-1-b key=bar" || stdfail 3
 
   # XXX: also allows non-typed entries but don't rely on this?
-  export package_id=other
-  package_lib_set_local .
-  run package_sh id key
-  test_ok_nonempty "*id=other key=baz" || stdfail 4
+  #teardown
+  #export package_id=other
+  #lib_init package
+  #package_update_json
+  #test -s "$PACK_JSON"
+  #package_update_sh
+  #run package_sh id key
+  #test_ok_nonempty "*id=other key=baz" || stdfail 4
 }
 
 @test "$base: package_sh_list" {
 
+  load stdtest
   . test/var/package-1-tpl.sh
   echo "$package_1_tpl__1__contents" > /tmp/package.sh
 

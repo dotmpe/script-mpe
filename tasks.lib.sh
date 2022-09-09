@@ -2,10 +2,10 @@
 
 tasks_lib_load()
 {
-  lib_load os str std list
-  test -n "$TASK_EXT" || TASK_EXT="ttxtm"
-  test -n "$TASK_EXTS" || TASK_EXTS=".ttxtm .list .txt"
-  test -n "$tasks_hub" || {
+  test -n "${TASK_EXT-}" || TASK_EXT="ttxtm"
+  test -n "${TASK_EXTS-}" || TASK_EXTS=".ttxtm .list .txt"
+  test -n "${tasks_hub-}" || {
+      # XXX: static init only, move elsewhere or add $PWD
     test ! -e "to" || tasks_hub=to
   }
 }
@@ -18,7 +18,7 @@ tasks_package_defaults()
 }
 
 # Return TODO.txt tags (contexts and projects) from file(s) or stdin
-tasks_todotxt_tags()
+tasks_todotxt_tags() # Grep for tags in file
 {
   test -n "$*" || set -- -
 
@@ -99,4 +99,60 @@ todo_read_line()
   test "$ln" -eq "$ln" 2> /dev/null \
     || error "Please include line-numbers in the TODO.list" 1
   comment=${line:$((  ${#fn} + ${#ln} + 2  ))}
+}
+
+
+# [tasks_echo] [tasks_modify]
+tasks_add_dates_from_scm_or_def() # [date] ~ TODO.TXT [date_def]
+{
+  trueish "$tasks_echo" && tasks_modify=0 || tasks_modify=1
+  vc_getscm && {
+    vc_commit_for_line "$1" 1 >/dev/null # Setup cache now
+  } || {
+    test -n "$2" && date="$2"
+    test -n "$date" || error "Nothing to get date from" 1
+  }
+  local tmpf="$(setup_tmpf .tasks-add-dates)"
+  cp "$1" "$tmpf"
+
+  local lnr=0 todotxt= date_def=$date date=
+  while read todotxt
+  do
+    lnr=$(( $lnr + 1 ))
+    date="$(echo "$todotxt" | todo_txt_grep_date)"
+    { # Unless we have a date or comment line, lookup the commit ISO date
+      test -n "$date" || echo "$todotxt" | $ggrep -q '^\s*\(#.*\)\?$'
+    } || {
+      sha1=$(vc_commit_for_line "$1" "$lnr") || continue
+      date="$(vc_author_date "$sha1" | cut -d' ' -f1)"
+      test -n "$date" && {
+        echo "$todotxt" | todo_txt_set_created "$date"
+      } || {
+        echo "$todotxt" | todo_txt_set_created "$date_def"
+      }
+      continue
+    }
+    echo "$todotxt"
+  done <"$tmpf" | {
+    trueish "$tasks_modify" && {
+      cat >"$1.tmp" || return
+      # Dont update during pipeline, wait for cat to complete.
+      cat "$1.tmp"> "$1"
+      rm "$1.tmp"
+
+    } || cat
+  }
+  rm "$tmpf"
+}
+
+
+# Go over entries and update/add new(er) entries in SRC to DEST.
+# SRC may have changes, DEST should have clean SCM status.
+tasks_sync_from_to() # SRC DEST
+{
+  # both files unchanged:
+  # could check for merge points maybe? Use object sha1 to find which is newer/
+  # what changed.
+
+  true
 }

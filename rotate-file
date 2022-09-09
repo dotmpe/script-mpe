@@ -7,11 +7,13 @@ set -e
 main_entry()
 {
   local scriptpath=$HOME/bin
-  . $scriptpath/os.lib.sh
-  rotate_file "$@" || return
+  true "${U_S:=/srv/project-local/user-scripts/src/sh/lib}"
+  . $U_S/os.lib.sh
+  . $scriptpath/os-htd.lib.sh
+  file_rotate "$@" || return
 }
 
 
-test "$(basename $0)" = "rotate-file" && {
-  main_entry $@ || exit $?
+test "$(basename -- "$0" .sh)" = "rotate-file" && {
+  main_entry "$@" || exit $?
 }

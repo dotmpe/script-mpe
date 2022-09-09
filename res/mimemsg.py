@@ -1,5 +1,5 @@
 import os
-from persistence import PersistedMetaObject
+from .persistence import PersistedMetaObject
 
 
 class MIMEHeader(PersistedMetaObject):

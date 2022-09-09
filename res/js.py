@@ -16,7 +16,7 @@ try:
     dumps = simplejson.dumps
     load = simplejson.load
     dump = simplejson.dump
-except Exception, e:
+except Exception as e:
     pass#log.warn("Failed loading simplejson %r", e)
 
 try:
@@ -26,7 +26,7 @@ try:
     load = ujson.load
     dump = ujson.dump
 
-except Exception, e:
+except Exception as e:
     pass#log.warn("Failed loading ujson %r", e)
 
 try:
@@ -35,11 +35,14 @@ try:
     loads = json_.loads
     dumps = json_.dumps
     load = json_.load
-    dump = json_.dump
     parse = loads
+    import sys
+    def dump(data):
+        json_.dump(data, sys.stdout)
 
-except Exception, e:
+except Exception as e:
     pass#log.warn("Failed loading json %r", e)
+
 
 if not loads:
     log.err("No known json library installed. Plain Python printing.")

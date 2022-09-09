@@ -1,0 +1,37 @@
+jobs:
+  build:
+    # Circle CI (base image):
+    # Each command line is run in `/bin/bash -eo pipefail`.
+    # The start dir is ~/project, there is a helper to create the checkout
+    docker:
+      - image: cimg/base:2020.01
+    steps:
+
+    - run: sudo apt-get update && sudo apt-get install -y bc rhash tidy tree uuid-runtime moreutils curl renameutils virtualenv python python-pip
+
+    - checkout
+    - run:
+        name: Move checkout
+        command: |
+            echo "$(whoami)@$(hostname -f):$PWD"; cd; \
+            mv ~/project/ ~/script-mpe; \
+            mkdir ~/project; \
+            mv ~/script-mpe/ ~/project/; \
+            ln -s ~/project/script-mpe ~/bin; \
+            cd ~/project/script-mpe
+
+    - run:
+        name: Build
+        command: |
+            cd ~/project/script-mpe; \
+            set -euo pipefail; \
+            export TERM=xterm \
+              VND_SRC_PREFIX=$HOME/build \
+              U_S=$HOME/build/dotmpe/user-scripts \
+              ENV_DEV=1 \
+              CS=dark \
+              CTX_PID=$$ \
+              CTX_P= \
+            ; ./sh-ci
+
+# Sync: U-S:

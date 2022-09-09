@@ -62,7 +62,7 @@ class TreeNodeDict(dict):
             # XXX: perhaps re-use QNames objects for regular attribute names
             #if not IAttribute.providedBy( key ):
             #    yield key
-            if isinstance( key, basestring ):
+            if isinstance( key, str ):
                 if not key.startswith(self.__prefix__):
                     yield key
             else:
@@ -163,6 +163,7 @@ class TreeNodeDict(dict):
                 d[k] = None
         return d
 
+
 class TreeTraveler(object):
     zope.interface.implements(res_iface.ITraveler)
     def travel(self, root, visitor):
@@ -209,7 +210,7 @@ def translate_xml_nesting(tree):
         v = tree[k]
         if k.startswith('@'):
             if v:
-                assert isinstance(v, (int,float,basestring)), v
+                assert isinstance(v, (int,float,str)), v
             assert k.startswith('@'), k
             newtree[k[1:]] = v
         else:

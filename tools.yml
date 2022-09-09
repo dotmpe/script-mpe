@@ -1,10 +1,11 @@
 id: "#"
 description: Named prerequisite packages and metadata on provisioning. See tools.rst
+scriptpath: .
+libs:
 
 tools:
-
+# XXX: cleanup
 #https://raw.githubusercontent.com/aspiers/git-config/master/bin/git-annex-finddups
-
   aha:
     installer: git+make
     description: |
@@ -13,40 +14,80 @@ tools:
         installers directly.
     src: https://github.com/theZiz/aha.git
 
+  ajv:
+    installer: NPM
+
+  ajv-cli:
+    installer: NPM
+    bin: ajv-cli
+
+  Bash:
+    required: true
+
+  Basher:
+    bin: basher
+    installer: Git
+    branch: feature/better-package-env
+    repo: https://github.com/dotmpe/basher.git
+    base: $HOME/.basher
+    post-install:
+    - export PATH=$BASHER_BASE/bin:$BASHER_BASE/cellar/bin:$PATH
+
+  Bats:
+    installer: Git
+    branch: master
+    repo: https://github.com/dotmpe/bats-core.git
+    base: $SRC_PREFIX/github.com/dotmpe/bats-core
+    post-install: |
+      ( cd $BATS_BASE && ${pref} ./install.sh $PREFIX && git clean -dfx )
+
+  Curl:
+    required: true
+
+  Docker:
+    installer: Curl+Sh
+    url: https://get.docker.com/
+
+  Docker-Compose:
+    install: |
+      curl -L https://github.com/docker/compose/releases/download/$2/docker-compose-`uname -s`-`uname -m` >"$1"
+      chmod +x "$1"
+
   gcalcli:
-    installer: pip
+    installer: Pip
 
-  jsonwidget:
-    id: jsonwidget
-    installer: pip
-    bin:
-      - jsonedit
-      - jsonaddress
+  Git:
+    required: true
+
+  git-annex-finddups:
+    url: https://rawgit.com/aspiers/git-config/master/bin/git-annex-finddups
+
+  go-up:
+    bin: up
+    path: ~/go/bin
     description: |
-      Generate forms from JSON schema with Python+Urwid.
-      Does not work out of the box, it seems.
-      No SCM. Around 2010.
+      Interactive pipes TUI app, pass a stdin and continue literally editing a
+      "pipeline" while lines below update from the command after pressing return.
+    install:
+    - go get -u github.com/akavel/up
 
-      https://pypi.python.org/pypi/jsonwidget/
-      http://blog.robla.net/2010/jsonwidget-python/
+  go-bane:
+    installer: go-get
+    id: github.com/genuinetools/bane
 
-
-  todotxt-machine:
-    id: todotxt-machine
-    bin: True
-    installer: pip
-    description: |
-      Python+Urwid plain text todo keeper. Nice client.
-      Just the features needed for editing a single TODO list.
-      Has projects, contexts, filters, priorities A-F.
-      And some keys: due:<YYYY-M-D>
-
-      https://github.com/AnthonyDiGirolamo/todotxt-machine
+  jolt:
+    id: bazaarvoice/jolt
+    bin: jolt
+    installer: Basher
+    description: "Transforms for JSON (Java)"
+    post-install:
+    - cd ~/.basher/cellar/packages/bazaarvoice/jolt/
+    - git pull
+    - mvn clean package
 
   json-spec:
-    id: json-spec
     bin: jsonspec
-    installer: pip
+    installer: Pip
     post-install:
     - "test -w /usr/local/bin && PREFIX=/usr/local || PREFIX=~/.local"
     - "echo '#!/bin/sh' > $PREFIX/jsonspec"
@@ -61,38 +102,66 @@ tools:
   jsonspec-validate:
     dep: json-spec
 
+  jsonwidget:
+    id: jsonwidget
+    installer: Pip
+    bin:
+      - jsonedit
+      - jsonaddress
+    description: |
+      Generate forms from JSON schema with Python+Urwid.
+      Does not work out of the box, it seems.
+      No SCM. Around 2010.
+
+      https://pypi.python.org/pypi/jsonwidget/
+      http://blog.robla.net/2010/jsonwidget-python/
+
+  MacBrew:
+    required: true
+    bin: brew
+
   # TODO: would want to use basher, but cannot use gist url. Only GH package.
   membash:
-    id: membash
     bin: membash
     src: membash.sh
-    installer: git
-    url: 'https://gist.github.com/bvberkum/045284c6522b1c24a3b5a56352d273e5'
+    installer: Git+Bin
+    url: 'https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5'
     
-  jolt:
-    id: jolt
-    bin: jolt
-    installer: basher
-    description: "Transforms for JSON (Java)"
-    post-install:
-    - cd ~/.basher/cellar/packages/bazaarvoice/jolt/
-    - git pull
-    - mvn clean package
-
-  ajv:
-    installer: npm
-  ajv-cli:
-    installer: npm
-    bin: ajv-cli
-
   memcached:
     id: memcached
-    installer: brew
+    installer: MacBrew
     post-install:
     - V=$(memcached --version | cut -f2 -d ' ')
     - cp /usr/local/Cellar/memcached/$V/homebrew.mxcl.memcached.plist ~/Library/LaunchAgents/
     - launchctl load -w ~/Library/LaunchAgents/homebrew.mxcl.memcached.plist
     - echo $V
 
-  git-annex-finddups:
-    url: https://rawgit.com/aspiers/git-config/master/bin/git-annex-finddups
+  NodeJS:
+    required: true
+
+  NPM:
+    required: true
+    depends: NodeJS
+
+  Pip:
+    required: true
+    depends: Python
+
+  Python:
+    required: true
+
+  todotxt-machine:
+    id: todotxt-machine
+    bin: True
+    installer: Pip
+    description: |
+      Python+Urwid plain text todo keeper. Nice client.
+      Just the features needed for editing a single TODO list.
+      Has projects, contexts, filters, priorities A-F.
+      And some keys: due:<YYYY-M-D>
+
+      https://github.com/AnthonyDiGirolamo/todotxt-machine
+
+  x11docker:
+    installer: url
+    url: https://raw.githubusercontent.com/mviereck/x11docker/master/x11docker

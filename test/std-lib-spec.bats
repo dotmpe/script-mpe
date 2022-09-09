@@ -3,7 +3,10 @@
 load init
 base=std
 
-init
+setup()
+{
+  init && load extra-old
+}
 
 
 @test "${lib}/${base} - std_v <n> should return 1 if <n> <= <verbosity>. No output." {

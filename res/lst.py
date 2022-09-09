@@ -3,17 +3,17 @@ res.lst - ordered or indexed user-data struct from plain-text files
 
 See `list` frontend and docs.
 """
-from zope.interface import implements
+from zope.interface import implementer
 
 import uriref
 
 from script_mpe.confparse import Values
 
-import d
-import js
-import mb
-import txt
-import txt2
+from . import d
+from . import js
+from . import mb
+from . import txt
+from . import txt2
 
 from pprint import pformat
 
@@ -21,6 +21,7 @@ from pprint import pformat
 # Define parser for items (lines, rows) and for lists of items
 
 
+@implementer(txt2.ITxtLineParser)
 class ListItemTxtParser_Old(
         txt.AbstractTxtSegmentedRecordParser_Old,
         txt.AbstractTxtRecordParser_Old,
@@ -29,13 +30,12 @@ class ListItemTxtParser_Old(
 ):
     fields = ("sections refs contexts projects cites hrefs attrs "
         "date:creation_date date:deleted_date id:item_id").split(' ')
-    implements(txt2.ITxtLineParser)
     def __init__(self, raw, **attrs):
         super(ListItemTxtParser_Old, self).__init__(raw, **attrs)
 
 
+@implementer(txt2.ITxtListParser)
 class ListTxtParser_Old(txt.AbstractIdStrategy_Old):
-    implements(txt2.ITxtListParser)
     item_parser = ListItemTxtParser_Old
     def __init__(self, **kwds):
         super(ListTxtParser_Old, self).__init__(**kwds)
@@ -58,7 +58,7 @@ class URLListItemParser(
 
     def __init__(self, *args, **kwds):
         self.field_names.update(dict(
-            uriref= (self.uriref_r, uriref.URIRef, 1),
+            uriref= (self.uriref_r, uriref.URIRef, 2),
         ))
         super(URLListItemParser, self).__init__(*args, **kwds)
 

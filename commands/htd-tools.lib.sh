@@ -1,16 +1,44 @@
 #!/bin/sh
 
-htd_tools_list()
+htd_man_1__tools='Tools manages simple installation scripts from YAML and is
+usable to keep scripts in a semi-portable way, that do not fit anywhere else.
+
+It works from a metadata document that is a single bag of IDs mapped to
+objects, whose schema is described in schema/tools.yml. It can be used to keep
+multiple records for the same binary, providing alternate installations for
+the same tools.
+
+  install [TOOL...]
+  uninstall [TOOL...]
+  installed [TOOL...]
+  validate
+  outline
+    Transform tools.json into an outline compatible format.
+  script
+
+'
+
+htd_tools_help ()
+{
+  echo "$htd_man_1__tools"
+}
+
+htd_tools_list ()
 {
   tools_list
 }
 
+htd_tools_list_all ()
+{
+  tools_list_all
+}
+
 htd_tools_installed()
 {
-  test -n "$1" || set -- $(tools_list) ; test -n "$*" || return 2 ;
-  test "$out_fmt" = "yml" && echo "tools:" ; while test -n "$1"
+  test -n "${1-}" || set -- $(tools_list) ; test -n "$*" || return 2 ;
+  test "$out_fmt" = "yml" && echo "tools:" ; while test $# -gt 0
   do
-    installed $B/tools.json "$1" && {
+    tools_installed $B/tools.json "$1" && {
       note "Tool '$1' is present"
       test "$out_fmt" != "yml" || printf "  $1:\n    installed: true\n"
     } || {
@@ -22,27 +50,25 @@ htd_tools_installed()
 
 htd_tools_install()
 {
-  local verbosity=6
-  while test -n "$1"
+  while test $# -gt 0
   do
-    install_bin $B/tools.json $1 \
-      && info "Tool $1 is installed" \
-      || info "Tool $1 install error: $?"
+    tools_install $B/tools.json $1 \
+      && std_info "Tool $1 is installed" \
+      || std_info "Tool $1 install error: $?"
     shift
   done
 }
 
 htd_tools_uninstall()
 {
-  local verbosity=6
-  while test -n "$1"
+  while test $# -gt 0
   do
-    uninstall_bin $B/tools.json "$1" \
-      && info "Tool $1 is not installed" \
+    tools_uninstall $B/tools.json "$1" \
+      && std_info "Tool $1 is not installed" \
       || { r=$?;
         test $r -eq 1 \
-          && info "Tool $1 uninstalled" \
-          || info "Tool uninstall $1 error: $r" $r
+          && std_info "Tool $1 uninstalled" \
+          || std_info "Tool uninstall $1 error: $r" $r
       }
     shift
   done
@@ -66,7 +92,7 @@ htd_tools_outline()
   rm $B/tools.json
   out_fmt=yml htd_tools_installed | jsotk update --pretty -Iyaml $B/tools.json -
   { cat <<EOM
-{ "id": "$(htd_prefix "$(pwd -P)")/tools.yml",
+{ "id": "$(prefix_resolve "$(pwd -P)")/tools.yml",
   "hostname": "$hostname", "updated": ""
 }
 EOM
@@ -79,4 +105,16 @@ EOM
 } > $B/tools-outline-pug-options.json
   pug -E xml --out $B/ \
     -O $B/tools-outline-pug-options.json var/tpl/pug/tools-outline.pug
+}
+
+htd_tools_generate()
+{
+  test $# -eq 1 -a -n "${1-}" || return 64
+  tools_generate_script $B/tools.json "$1"
+}
+
+htd_tools_depends()
+{
+  test $# -eq 1 -a -n "${1-}" || return 64
+  tools_depends $B/tools.json "$1"
 }

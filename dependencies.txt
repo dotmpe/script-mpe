@@ -1,0 +1,17 @@
+# basher user-tools/user-scripts
+# basher user-tools/user-scripts-incubator
+# basher user-tools/user-conf
+
+basher dotmpe/git-versioning
+
+git dotmpe/user-scripts feature/docker-ci # No-Sync
+#git dotmpe/user-scripts r0.0 # No-Sync
+# git dotmpe/user-scripts-incubator test
+# git dotmpe/user-conf
+
+git ztombol/bats-file
+git ztombol/bats-support
+git ztombol/bats-assert
+
+# Sync: U-S:
+# Id: dependencies.txt vim:ft=sh:

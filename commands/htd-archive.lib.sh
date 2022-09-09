@@ -2,8 +2,44 @@
 
 # Archive files, list/update contents, unpack and cleanup; frontend routines.
 
+htd_man_1__archive='Deal with archive files (tar, zip)
 
-htd_archive_list()
+  test-unpacked ARCHIVE [DIR]
+    Given archive, note files out of sync
+  clean-unpacked ARCHIVE [DIR]
+  note-unpacked ARCHIVE [DIR]
+'
+
+htd_archive__help ()
+{
+  #echo "$htd_man_1__archive"
+  std_help archive
+}
+
+
+htd__archive()
+{
+  test -n "$1" || set -- help
+  case "$1" in
+    ( find ) shift; archive_paths "${1:-"."}" "find" || return ;;
+    ( find-first ) shift; archive_paths "${1:-"."}" "find-first" || return ;;
+    ( locate ) shift; archive_paths "${1:-"."}" "locate" || return ;;
+    ( locate-first ) shift; archive_paths "${1:-"."}" "locate-first" || return ;;
+    ( find-unpacked ) shift; archive_paths_unpacked "$1" || return ;;
+    ( list ) shift; archive_list "$@" || return ;;
+    ( list-basedirs ) shift; archive_list_basedirs "$@" || return ;;
+    ( * )
+          subcmd_prefs=${base}_archive_ try_subcmd_prefixes "$@" ;;
+  esac
+}
+htd_flags__archive=fl
+htd_libs__archive=date-htd\ list\ ignores\ archive\ htd-archive
+
+
+#htd_env__clean_unpacked='P'
+
+
+htd_archive_verbose_list() # ~ ARCHIVE FIELDS...
 {
   archive_verbose_list "$@"
 }
@@ -28,7 +64,7 @@ htd_test_unpacked() # ARCHIVE [DIR]
 
   set -- "$(cd "$(dirname "$1")"; pwd -P)/$archive" "$2"
 
-  local oldwd="$(pwd)" dirty=
+  local oldwd="$PWD" dirty=
   #"$(statusdir.sh file htd test-unpacked)"
   #test ! -e "$dirty" || rm "$dirty"
 
@@ -38,7 +74,7 @@ htd_test_unpacked() # ARCHIVE [DIR]
 
   cd $oldwd
 
-  test -z "$dirty" && info "OK $1" || warn "Crufty $1" 1
+  test -z "$dirty" && std_info "OK $1" || warn "Crufty $1" 1
 }
 
 
@@ -62,8 +98,8 @@ htd__clean_unpacked() # ARCHIVE [DIR]
   # Resolve symbolic parts:
   set -- "$(cd "$dir"; pwd -P)/$archive" "$2"
 
-  local oldwd="$(pwd)" \
-      cnt=$(setup_tmpf .cnt) \
+  local oldwd="$PWD" \
+      cntf=$(setup_tmpf .cnt) \
       cleanup=$(setup_tmpf .cleanup) \
       dirty=$(setup_tmpf .dirty)
   test ! -e "$cleanup" || rm "$cleanup"
@@ -109,8 +145,8 @@ List archive contents, and look for existing files.
 '
 htd__note_unpacked() # ARCHIVE [DIR]
 {
-  test -n "$1" || error "note-unpacked 'ARCHIVE'" 1
-  test -n "$2" || set -- "$1" "$(dirname "$1")"
+  test -n "${1:-}" || error "note-unpacked 'ARCHIVE'" 1
+  test -n "${2:-}" || set -- "$1" "$(dirname "$1")"
 
   test -e "$1" && {
     test -f "$1" || error "not a file: '$1'" 1
@@ -125,7 +161,7 @@ htd__note_unpacked() # ARCHIVE [DIR]
 
   set -- "$(cd "$(dirname "$1")"; pwd -P)/$archive" "$2"
 
-  local oldwd="$(pwd)" dirty="$(statusdir.sh file htd note-unpacked)"
+  local oldwd="$PWD" dirty="$(statusdir.sh file htd note-unpacked)"
   test ! -e "$dirty" || rm "$dirty"
 
   cd "$2"
@@ -137,12 +173,12 @@ htd__note_unpacked() # ARCHIVE [DIR]
       touch $dirty
       # check for changes?
     } || {
-      debug "No file $(pwd)/$file"
+      debug "No file $PWD/$file"
       continue
     }
   done
 
   cd "$oldwd"
 
-  test ! -e "$dirty" && info "OK $1" || warn "Crufty $1" 1
+  test ! -e "$dirty" && std_info "OK $1" || warn "Crufty $1" 1
 }

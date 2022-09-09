@@ -1,7 +1,6 @@
 #!/usr/bin/env bats
 
 load init
-load helper
 base=libcmd_stacked_test.py
 init
 

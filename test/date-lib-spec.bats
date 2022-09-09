@@ -2,13 +2,15 @@
 
 base=date.lib
 load init
+init
 
 setup()
 {
-  init && lib_load date
+  load stdtest extra && lib_require date date-htd
 }
 
-@test "${base}: date_id" {
+
+@test "${base}: date-id" {
 
   dt=$( $gdate -u --iso=date -d @1519855200 )
   run date_id $dt
@@ -18,7 +20,7 @@ setup()
   { test_ok_nonempty && test "${lines[*]}" = "20181008-1629+02" ; } || stdfail
 }
 
-@test "${base}: date_idp" {
+@test "${base}: date-idp" {
 
   run date_idp "20180101+02"
   { test_ok_nonempty && test "${lines[0]}" = "2018-01-01T00+02" ; } || stdfail
@@ -35,7 +37,7 @@ setup()
   { test_ok_nonempty && test "${lines[0]}" = "2018-01-01T01:01:01+02" ; } || stdfail
 }
 
-@test "${base}: date_pstat" {
+@test "${base}: date-pstat" {
 
   run date_pstat "20180301+01"
   { test_ok_nonempty && test "${lines[0]}" = "1519858800" ; } || stdfail
@@ -54,15 +56,6 @@ setup()
 
   run date_pstat "20180101-010101+01"
   { test_ok_nonempty && test "${lines[0]}" = "1514764861" ; } || stdfail
-}
-
-@test "$base: gdate weekdays baseline" {
-
-skip "FIXME"
-  run $gdate -d monday -d -1day "+%A"
-  test_ok_nonempty "Sunday" || stdfail 0.1
-  run $gdate -d monday -d +1week "+%A"
-  test_ok_nonempty "Monday" || stdfail 0.2
 }
 
 @test "$base: date-fmt" {

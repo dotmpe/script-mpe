@@ -1,4 +1,12 @@
 #!/bin/bash
+
+string_load ()
+{
+  set -e
+  . "${US_BIN:-"$HOME/bin"}"/str-htd.lib.sh
+  test -z "${DEBUG:-}" || set -x
+}
+
 # Bash stringtools
 function rpad {
     if [ "$1" ]; then
@@ -11,7 +19,7 @@ function rpad {
         len=$((`echo $2 | sed 's/[^0-9]//g'`));
     else
         len=${#word};
-    fi; 
+    fi;
 
     if [ "$3" ]; then
         padding="$3";
@@ -25,7 +33,7 @@ function rpad {
     while [ ${#word} -gt $len ]; do
         word=${word:0:$((${#word}-1))}
     done;
-    echo "$word"; 
+    echo "$word";
 }
 function lpad {
     if [ "$1" ]; then
@@ -38,7 +46,7 @@ function lpad {
         len=$((`echo $2 | sed 's/[^0-9]//g'`));
     else
         len=${#word};
-    fi; 
+    fi;
 
     if [ "$3" ]; then
         padding="$3";
@@ -65,7 +73,7 @@ function cpad {
         len=$((`echo $2 | sed 's/[^0-9]//g'`));
     else
         len=${#word};
-    fi; 
+    fi;
 
     if [ "$3" ]; then
         padding="$3";
@@ -85,15 +93,38 @@ function cpad {
             word=${word:1:$((${#word}-1))}
         fi;
     done;
-  
+
     echo "$word";
 }
-if [ ${0:${#0}-9} == "string.sh" ]
+
+
+
+if [ "$(basename -- "$0")" == "string" ]
 then
-    $1 ${@:2}
-#else 
-# XXX: function scope is local, but still overriden by any like-named symlinks
-#    string_sh=$(readlink $0)
-#    echo $0 $string_sh
-#    $string_sh $0 ${@:1}
+  string_load
+
+  case "${1-}" in
+
+    len ) str_len "$2" ;;
+    tmux-len ) str_fmt=tmux str_len "$2" ;;
+
+    sh-clean ) str_sh_clean "$2" ;;
+    tmux-clean ) str_tmux_clean "$2" ;;
+
+    str-padd-left ) str_sh_padd_ch "$2" "$3" "$4" ;;
+    str-padd-right ) str_sh_padd_ch "$2" "" "$4" "$3" ;;
+    tmux-str-padd-left ) str_tmux_padd_ch "$2" "$3" "$4" ;;
+    tmux-str-padd-right ) str_tmux_padd_ch "$2" "" "$4" "$3" ;;
+
+    append-if-len ) test -z "$2" && return; echo "$2$3" ;;
+    prepend-if-len ) test -z "$2" && return; echo "$3$2" ;;
+
+    * | "" ) exit 64 ;;
+
+  esac
+
+elif [ "$(basename -- "$0")" == "string.sh" ]
+then
+  string_load
+  "$@"
 fi

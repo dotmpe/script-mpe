@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # Created: 2016-04-09
 box_instance__source="$_"
 
@@ -12,7 +12,7 @@ version=0.0.4-dev # script-mpe
 # Script subcmd's funcs and vars
 
 box_instance_man_1__x=abc
-box_instance_load__x=f
+box_instance_flags__x=f
 box_instance_spc__x="x ARG [ARG..]"
 box_instance__x()
 {
@@ -24,7 +24,7 @@ box_instance__x()
   }
 }
 
-box_instance_load__y=f
+box_instance_flags__y=f
 box_instance__y()
 {
   test -z "$1" && {
@@ -39,7 +39,7 @@ box_instance__y()
 # Generic subcmd's
 
 box_instance_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-box_instance_load__help=f
+box_instance_flags__help=f
 box_instance_spc__help='-h|help [ID]'
 box_instance__help()
 {
@@ -76,7 +76,7 @@ box_instance_main()
   case "$base" in
     $scriptname )
       box_instance_init || return $?
-      main_run_subcmd "$@" || return $?
+      main_subcmd_run "$@" || return $?
       ;;
     * )
       echo "$scriptname: not a frontend for $base"
@@ -85,22 +85,20 @@ box_instance_main()
   esac
 }
 
-# FIXME: Pre-bootstrap init
 box_instance_init()
 {
-  __load=ext . $scriptpath/util.sh
-  lib_load main std str sys stdio src
-  . $scriptpath/tools/sh/box.env.sh
-  lib_load box
-  box_run_sh_test
+  local scriptname_old=$scriptname; export scriptname=box-instance-init
+
+  INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
+  INIT_LIB="\$default_lib logger-theme main std str sys stdio src-htd box" \
+    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
   # -- box_instance box init sentinel --
+  export scriptname=$scriptname_old
 }
 
 # Pre-exec: post subcmd-boostrap init
 box_instance_load()
 {
-  local __load_lib=1
-  . $scriptpath/match.sh load-ext
   # -- box_instance box load sentinel --
 
   for x in $(try_value "${subcmd}" load | sed 's/./&\ /g')
@@ -110,7 +108,7 @@ box_instance_load()
         debug "Preparing failed report for subcmd $subcmd"
         # Preset name to subcmd failed file placeholder
         req_vars base subcmd
-        test -n "$box_instance" && {
+        test -n "${box_instance-}" && {
           req_vars p
           failed=/tmp/${base}-$p-$subcmd.failed
         } || {
@@ -125,7 +123,7 @@ box_instance_load()
   #PATH=$PWD:$PATH
 
   hostname=$(hostname -s)
-  uname=$(uname)
+  : "${uname:=$(uname -s)}"
 }
 
 box_instance_unload()

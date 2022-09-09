@@ -17,8 +17,8 @@ def func();
 # NOTE this is a comment
 
 /* TODO 123 foo */
-/** TODO-45 bar */
-/** TODO 6 baz */
+/** TODO-45: bar */
+/** BUG 6 baz */
 /* XXX 7 baz */
 /* TODO 17 baz 
 */

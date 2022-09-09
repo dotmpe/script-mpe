@@ -198,7 +198,7 @@ def txs_pwd(prog=None, sa=None, ur=None, opts=None, settings=None):
 def txs_ls(pwd=None, ur=None, opts=None):
     log.debug("{bblack}txs{bwhite}:ls{default}")
     node = ur.getDir(pwd, opts)
-    if isinstance(node, basestring):
+    if isinstance(node, str):
         print("Dir", node)
     else:
         print('txt: path:', node.local_path)
@@ -222,7 +222,7 @@ def txs_run(sa=None, ur=None, opts=None, settings=None):
     log.info("{bblack}Tagging paths in {green}%s{default}",
             os.path.realpath('.') + sep)
     cwd = os.getcwd()
-    assert isinstance(cwd, basestring), cwd
+    assert isinstance(cwd, str), cwd
     try:
         for pathstr in res.Dir.walk_tree_interactive(cwd, opts):
             path = ur.get(pathstr, opts)

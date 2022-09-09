@@ -1,5 +1,7 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 # Created: 2015-12-14
+
+version=0.0.4-dev # script-mpe
 
 
 ### Sub-commands
@@ -10,7 +12,7 @@ gv__edit()
   $EDITOR $0 ~/bin/graphviz.inc.sh $(which graphviz.py) "$@"
 }
 
-gv_run__meta=G
+gv_flags__meta=G
 # Defer to python
 gv__meta()
 {
@@ -18,7 +20,7 @@ gv__meta()
   graphviz.py --file $graph --address $sock "$@" || return $?
 }
 
-gv_run__bg=G
+gv_flags__bg=G
 # Defer and wait
 gv__bg()
 {
@@ -30,10 +32,10 @@ gv__bg()
   do note "Waiting for Bg at $sock"; sleep 2;
   done
 
-  info "Backgrounded"
+  std_info "Backgrounded"
 }
 
-gv_run__info=G #b
+gv_flags__info=G #b
 # Test argv
 gv__info()
 {
@@ -50,6 +52,11 @@ gv__usage()
   echo "  $scriptname.sh <cmd> [<args>..]"
 }
 
+gv_grp__version="ctx-main ctx-std"
+gv_als____version=version
+gv_als___V=version
+
+
 gv__help()
 {
   gv__usage
@@ -60,35 +67,25 @@ gv__help()
   echo '  edit                             edit main script'
   echo '  meta                             call backend service with query'
   echo '  info                             query for info'
-  test -z "$1" || std__help "$@"
+  test -z "${1-}" || std__help "$@"
 }
+gv_als___h=help
+gv_als____help=help
 
 
-# Pre-run: Initialize from argv/env to run subcmd
-gv_init()
-{
-  local parse_all_argv= \
-    scsep=__ \
-    subcmd_pref=${scriptalias} \
-    def_subcmd=status
+### Main
 
-  gv_preload || {
-    error "preload" $?
-  }
+MAKE-HERE
+INIT_ENV="init-log 0 0-src 0-u_s dev ucache scriptpath std box" \
+INIT_LIB="\\$default_lib logger-theme graphviz date"
 
-  gv_parse_argv "$@" || {
-    error "parse-argv" $?
-  }
+main-bases
+graphviz gv main std
 
-  shift $c
+main-local
+failed= box_prefix=gv
 
-  test -n "$subcmd_func" || {
-    error "subcmd-func required" $?
-  }
-
-  gv__lib "$@" || {
-    error "lib error '$@'" $?
-  }
+main-load
 
   local tdy="$(try_value "${subcmd}" "" today)"
 
@@ -99,93 +96,28 @@ gv_init()
     touch -t $tdate $today
   }
 
-  uname=$(uname)
+  # box_lib $script $box_prefix
 
-  box_lib gv
-}
+  # gv_parse_argv "$@" || {
+  #   error "parse-argv" $?
+  # }
 
-# Init stage 1: Preload libraries
-gv_preload()
-{
-  local __load_lib=1
-  test -n "$scriptpath"
-  test -n "$BIN" || BIN=$scriptpath
-  . $scriptpath/main.lib.sh
-  . $scriptpath/graphviz.inc.sh "$@"
-  . $scriptpath/date.lib.sh
-  . $BIN/match.sh load-ext
-  . $BIN/vc.sh load-ext
-  test -n "$verbosity" || verbosity=6
-  # -- gv box init sentinel --
-}
+  # shift $c
+  test -n "$subcmd_func" || {
+    error "subcmd-func required" $?
+  }
 
-# Pre-run stage 3: more libraries, possibly for subcmd.
-gv__lib()
-{
-  local __load_lib=1
-  . $BIN/box.lib.sh
-  # -- gv box lib sentinel --
-}
-
-
-### Main
-
-gv_main()
-{
-  test -z "$__load_lib" || return 1
-
-  local scriptname=graphviz scriptalias=gv base=gv \
-    subcmd=$1 \
-    scriptpath="$(dirname "$(realpath "$0")")"
-
-
-  case "$base" in
-
-    $scriptname | $scriptalias )
-
-        # invoke with function name first argument,
-        local subcmd_func= c=0
-
-  		export SCRIPTPATH=$scriptpath
-		__load_mode=boot . $scriptpath/util.sh
-
-        gv_init "$@" || {
-          error "init error '$@'" 1
-        }
-
-        shift $c
-
-        $subcmd_func "$@" || r=$?
-          #XXX: choice_quiet?
-          #gv_unload || error "unload on error failed: $?"
-          #error "exec error $subcmd_func: $r" $r
-
-        gv_unload || {
-          error "unload error"
-        }
-
-        exit $r
-
+main-load-flags
+    f ) # failed: set/cleanup failed varname
+        export failed=$(setup_tmpf .failed)
       ;;
+    l ) sh_include subcommand-libs || return ;;
+    * ) error "No load flag <$x>" 3 ;;
 
-    * )
-      echo "Not a frontend for $base ($scriptname)"
-      exit 1
-      ;;
+main-unload-flags
+    f ) clean_failed || unload_ret=1 ;;
+    l ) ;;
+    * ) error "No unload flag <$x>" 3 ;;
 
-  esac
-}
-
-case "$0" in "" ) ;; "-"* ) ;; * )
-
-  # Ignore 'load-ext' sub-command
-  # XXX arguments to source are working on Darwin 10.8.5, not Linux?
-  # fix using another mechanism:
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-
-      gv_main "$@"
-    ;;
-
-  esac ;;
-esac
+main-epilogue
+# Id: script-mpe/0.0.4-dev topics.sh

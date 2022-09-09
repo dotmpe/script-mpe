@@ -11,7 +11,7 @@ pd_autoconfig__lizard()
 }
 
 
-pd_load__lizard=iI
+pd_flags__lizard=iI
 pd__lizard()
 {
   pd_autoconfig__lizard || error pd-lizard 12

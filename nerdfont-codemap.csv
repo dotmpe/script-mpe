@@ -1,0 +1,23 @@
+# Enabled Name Filename Exact SymStart SymEnd SrcStart SrcEnd ScaleGlyph Attr
+True,"Seti-UI + Custom","original-source.otf",False,0xE4FA,0xE531,0xE5FA,0xE631,None,SYM_ATTR_DEFAULT
+True,"Devicons","devicons.ttf",False,0xE600,0xE6C5,0xE700,0xE7C5,DEVI_SCALE_LIST,SYM_ATTR_DEFAULT
+self.args.powerline,"Powerline Symbols","powerline-symbols/PowerlineSymbols.otf",True,0xE0A0,0xE0A2,None,None,None,SYM_ATTR_POWERLINE
+self.args.powerline,"Powerline Symbols","powerline-symbols/PowerlineSymbols.otf",True,0xE0B0,0xE0B3,None,None,None,SYM_ATTR_POWERLINE
+self.args.powerlineextra,"Powerline Extra Symbols","PowerlineExtraSymbols.otf",True,0xE0A3,0xE0A3,None,None,None,SYM_ATTR_POWERLINE
+self.args.powerlineextra,"Powerline Extra Symbols","PowerlineExtraSymbols.otf",True,0xE0B4,0xE0C8,None,None,None,SYM_ATTR_POWERLINE
+self.args.powerlineextra,"Powerline Extra Symbols","PowerlineExtraSymbols.otf",True,0xE0CA,0xE0CA,None,None,None,SYM_ATTR_POWERLINE
+self.args.powerlineextra,"Powerline Extra Symbols","PowerlineExtraSymbols.otf",True,0xE0CC,0xE0D4,None,None,None,SYM_ATTR_POWERLINE
+self.args.pomicons,"Pomicons","Pomicons.otf",True,0xE000,0xE00A,None,None,None,SYM_ATTR_DEFAULT
+self.args.fontawesome,"Font Awesome","font-awesome/FontAwesome.otf",True,0xF000,0xF2E0,None,None,FONTA_SCALE_LIST,SYM_ATTR_FONTA
+self.args.fontawesomeextension,"Font Awesome Extension","font-awesome-extension.ttf",False,0xE000,0xE0A9,0xE200,0xE2A9,None,SYM_ATTR_DEFAULT
+self.args.powersymbols,"Power Symbols","Unicode_IEC_symbol_font.otf",True,0x23FB,0x23FE,None,None,None,SYM_ATTR_DEFAULT
+self.args.powersymbols,"Power Symbols","Unicode_IEC_symbol_font.otf",True,0x2B58,0x2B58,None,None,None,SYM_ATTR_DEFAULT
+self.args.material,"Material","materialdesignicons-webfont.ttf",False,0xF001,0xF847,0xF500,0xFD46,None,SYM_ATTR_DEFAULT
+self.args.weather,"Weather Icons","weather-icons/weathericons-regular-webfont.ttf",False,0xF000,0xF0EB,0xE300,0xE3EB,None,SYM_ATTR_DEFAULT
+self.args.fontlinux,"Font Logos (Font Linux)","font-logos.ttf",self.fontlinuxExactEncodingPosition,0xF100,0xF12D,0xF300,0xF32D,None,SYM_ATTR_DEFAULT
+self.args.octicons,"Octicons","octicons.ttf",self.octiconsExactEncodingPosition,0xF000,0xF105,0xF400,0xF505,OCTI_SCALE_LIST,SYM_ATTR_DEFAULT
+self.args.octicons,"Octicons","octicons.ttf",self.octiconsExactEncodingPosition,0x2665,0x2665,None,None,OCTI_SCALE_LIST,SYM_ATTR_DEFAULT
+self.args.octicons,"Octicons","octicons.ttf",self.octiconsExactEncodingPosition,0X26A1,0X26A1,None,None,OCTI_SCALE_LIST,SYM_ATTR_DEFAULT
+self.args.octicons,"Octicons","octicons.ttf",self.octiconsExactEncodingPosition,0xF27C,0xF27C,0xF4A9,0xF4A9,OCTI_SCALE_LIST,SYM_ATTR_DEFAULT
+self.args.codicons,"Codicons","codicons/codicon.ttf",True,0xEA60,0xEBEB,None,None,None,SYM_ATTR_DEFAULT
+self.args.custom,"Custom",self.args.custom,True,0x0000,0x0000,0x0000,0x0000,None,CUSTOM_ATTR

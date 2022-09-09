@@ -1,32 +1,34 @@
 #!/bin/sh
 
+# Project Test Scripts tooling wip
+
 
 # Initialize Project Test Script shell modules
 build_test_lib_load()
 {
-  lib_load build-checks
+  lib_load build-htd build-checks
 }
 
 # Initialize build-test settings, set Test-Specs
 build_test_init() # Specs...
 {
-  test -n "$base" || base=build-test.lib
-  test -n "$build_init" || build_init
+  test -n "${base-}" || base=build-test.lib
+  test -n "${build_init-}" || build_init
 
   # Set function to retrieve test paths/names (all or those for given component)
-  test -n "$component_tests" || component_tests=component_testnames
+  test -n "${component_tests-}" || component_tests=component_testnames
 
   # Set function to resolve test path/name runner and execute
-  test -n "$component_test" || component_test=component_test_exec
+  test -n "${component_test-}" || component_test=component_test_exec
 
   # Set functions to run after test pass/fail/error/bail, or for components
   # without any test
-  test -n "$project_test_ok" || project_test_ok=project_test_ok
-  test -n "$project_test_nok" || project_test_nok=project_test_nok
-  test -n "$project_test_error" || project_test_error=project_test_error
-  test -n "$project_test_none" || project_test_none=project_test_none
+  test -n "${project_test_ok-}" || project_test_ok=project_test_ok
+  test -n "${project_test_nok-}" || project_test_nok=project_test_nok
+  test -n "${project_test_error-}" || project_test_error=project_test_error
+  test -n "${project_test_none-}" || project_test_none=project_test_none
   # Bail covers skipped and TODO tagged tests, but does not indicate error
-  test -n "$project_test_bail" || project_test_bail=project_test_bail
+  test -n "${project_test_bail-}" || project_test_bail=project_test_bail
   # Process files before adding to stage, or comitting. These should return 0
   # so can be used to abort git add/update or commit. (XXX: except there is no
   # pre-add or pre-update hook afaik so that only works through the build
@@ -34,30 +36,37 @@ build_test_init() # Specs...
 
   # XXX: TDD, lists, built-init
 
-  test -n "$project_watch_mode" || project_watch_mode=
-  test -n "$default_watch_poll_sleep" || default_watch_poll_sleep=5
+  test -n "${project_watch_mode-}" || project_watch_mode=
+  test -n "${default_watch_poll_sleep-}" || default_watch_poll_sleep=5
 
-  case "$component_map" in component_map_list )
-      test -n "$component_map_list" || component_map_list=$HOME/bin/test-map.list
-  ;; esac
-  test -n "$component_map" || component_map=component_map_basenameid
+  test "${component_map-}" = component_map_list  && {
+      test -n "$component_map_list-}" || component_map_list=$PWD/test-map.list
+  }
+  test -n "${component_map-}" || component_map=component_map_basenameid
 
-  test -n "$package_build_unit_spec" || # XXX: renamed.
+  test -z "${package_build_unit_spec-}" || # XXX: renamed.
       package_specs_units=$package_build_unit_spec
-  test -n "$package_specs_units" ||
+
+  test -n "${package_specs_units-}" ||
       package_specs_units="test/py/\${id}.py test/\${id}-lib-spec.bats \
                            test/\${id}-spec.bats test/\${id}.bats"
-  test -n "$package_specs_features" || package_specs_features='${1}.feature'
-  test -n "$package_specs_tests_other" || package_specs_tests_other='${1}.do'
+  test -n "${package_specs_features-}" || package_specs_features='${1}.feature'
+  test -n "${package_specs_tests_other-}" || package_specs_tests_other='${1}.do'
 
-  test -n "$package_specs_baselines" ||
+  test -n "${package_specs_baselines-}" ||
       package_specs_baselines="test/\${id}-baseline.*"
 
-  test -n "$package_specs_tests_other" ||
+  test -n "${package_specs_tests_other-}" ||
       package_specs_tests_other="test/\${1}.do"
 
-  test -n "$package_specs_ignore" ||
+  test -n "${package_specs_ignore-}" ||
       package_specs_ignore='*/_[a-z]* _[a-z]*'
+
+  # Enable BATS 'load' helper
+  . $CWD/test/init.bash
+  true "${TEST_ENV:="$_ENV"}"
+  load_init
+  BATS_LIB_PATH=$BATS_LIB_PATH:$CWD/test:$CWD/test/helper
 
   build_test_init=ok
 }
@@ -147,7 +156,7 @@ test_shells()
     test -x "$(which $sh)" && {
       $sh -c "$@" || return
     } || {
-      docker run --workdir /dut -v $(pwd):/dut bvberkum/treebox:dev \
+      docker run --workdir /dut -v $PWD:/dut dotmpe/treebox:dev \
         $sh -c "$@" || return
     }
   done
@@ -230,7 +239,7 @@ exec_watch_poll() # TEST CMD...
 {
   test -n "$poll_sleep" || poll_sleep=$default_watch_poll_sleep
   local test=$1 ; shift 1
-  info "Run '$*' if $test evaluates OK; sleep $poll_sleep, and restart"
+  std_info "Run '$*' if $test evaluates OK; sleep $poll_sleep, and restart"
   while true
   do
     eval $test && {
@@ -332,7 +341,7 @@ project_test() # [Units...|Comps..]
   }
   test -n "$testruns" || get_tmpio_env testruns test-run
 
-  info "Starting project-test: '$component_test' for '$*'"
+  std_info "Starting project-test: '$component_test' for '$*'"
 
   p='' s='' act=$component_tests foreach_do "$@" |
       p='' s='' act=$component_test foreach_do
@@ -359,19 +368,19 @@ component_test_exec() # Test-Files...
     case "$1" in
 
         *.feature )
-            info "Feature: '$TEST_FEATURE' -- '$1'"
+            std_info "Feature: '$TEST_FEATURE' -- '$1'"
             eval $TEST_FEATURE "$1"
             #component_set_status "$testruns" "$1" "$?"
           ;;
 
         *.py )
-            info "Unit: python script '$1'"
+            std_info "Unit: python script '$1'"
             python "$1"
             #component_set_status "$testruns" "$1" "$?"
           ;;
 
         *.bats )
-            info "Unit: bats '$1'"
+            std_info "Unit: bats '$1'"
             bats "$1"
             #component_set_status "$testruns" "$1" "$?"
             #test "$(get_stdio_type)" = "t" && {
@@ -382,7 +391,7 @@ component_test_exec() # Test-Files...
           ;;
 
         *.do )
-            info "Redo script '$1'"
+            std_info "Redo script '$1'"
             redo "$(basename "$1" .do)"
             #component_set_status "$testruns" "$1" "$?"
           ;;
@@ -398,8 +407,8 @@ component_test_exec() # Test-Files...
 # Record status
 component_set_status() # Tab Entry-Id Stat
 {
-  stattab_entry_exists "$2" "$1" && {
-    stattab_entry "$2"  "$1"
+  stattab_exists "$1" "" "$2"&& {
+    stattab_entry "$2" "$1"
   } || {
     stattab_append
   }
@@ -409,7 +418,7 @@ component_set_status() # Tab Entry-Id Stat
 test_any_feature()
 {
   test -n "$TEST_FEATURE" || error "Test-Feature env required" 1
-  info "Test any feature '$*'"
+  std_info "Test any feature '$*'"
   test -n "$1" && {
 
     #local features="$(any_feature "$@" | tr '\n' ' ')"
@@ -471,7 +480,7 @@ any_component() # Spec-Set Comp-Id...
   while test $# -gt 0
   do
     mkid "$1" "" "-_*"; mksid "$1" ; mkvid "$1"
-    info "Looking for $_c component '$1' '$id' '$sid' '$vid'"
+    std_info "Looking for $_c component '$1' '$id' '$sid' '$vid'"
     for x in $spec
     do
       x="$(eval echo $x)"
@@ -483,12 +492,6 @@ any_component() # Spec-Set Comp-Id...
 }
 
 # TODO: revise test specset setup
-
-redo_deps()
-{
-  lib_load redo &&
-  redo_deps "$@"
-}
 
 tested()
 {
@@ -508,7 +511,7 @@ totest()
 build_test()
 {
   test -n "$testruns" || get_tmpio_env "testruns" "build-test"
-  $component_tests "$1" | p='' s='' act=$component_test foreach_do
+  $component_tests "$@" | p='' s='' act=$component_test foreach_do
 }
 
 ## Specs for report but not counting in final test-result judgement
@@ -594,6 +597,7 @@ test_status()
 
 all_tests_static()
 {
+  pwd -P &&
   static &&
   all &&
   baselines &&

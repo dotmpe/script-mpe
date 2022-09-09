@@ -5,7 +5,7 @@ load init
 init
 setup()
 {
-  . $lib/match.lib.sh
+  . $scriptpath/match.lib.sh
 }
 
 

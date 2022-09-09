@@ -3,7 +3,7 @@
 # Initialize build-checks settings
 build_checks_lib_load()
 {
-  lib_load build table
+  lib_load build-htd table
 }
 
 # Quick test for no (non-id/numered) tags at all

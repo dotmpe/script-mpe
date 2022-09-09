@@ -1,9 +1,16 @@
 #!/bin/sh
 
+## Validate against JSON schema
 
-schema_lib_load()
+schema_lib_load ()
 {
-  test -n "$ajv_cli" || ajv_cli=$scriptpath/node_modules/ajv-cli/index.js
+  test -n "${ajv_cli-}" || ajv_cli=$scriptpath/node_modules/ajv-cli/index.js
+}
+
+schema_lib_init ()
+{
+  test -x "$ajv_cli" ||
+      $LOG error "" "Installation needed" "ajv-cli" 1
 }
 
 schema_fordoc()
@@ -13,10 +20,10 @@ schema_fordoc()
 
 htd_schema_validate()
 {
-  test -n "$1" || error "document expected" 1
+  test -n "${1-}" || error "document expected" 1
   test -f "$1" || error "document file expected: '$1'" 1
   #test -n "$2" || set -- "$1" "$(schema_fordoc "$1")"
-  test -f "$2" || error "schema file expected: '$2'" 1
+  test -f "${2-}" || error "schema file expected: '$2'" 1
 
   local jsonf="$(get_jsonfile "$1")" jsonschemaf="$(get_jsonfile "$2")"
 

@@ -46,7 +46,7 @@ class UpgradedPickle:
         return state
 
 
-class Object(object, UpgradedPickle):
+class Object(UpgradedPickle):
 
     store = None
 
@@ -95,14 +95,14 @@ class PersistedMetaObject(Object):
         if not name:
             name = klass.default_store
         if name not in PersistedMetaObject.stores:
-            print PersistedMetaObject.stores
+            print(PersistedMetaObject.stores)
             assert dbref, "store does not exists: %s" % name
             import bsddb3 as bsddb
             try:
                 store = shelve.open(dbref,
                 # read-only, or create if not exist and open read/write
                         ro and 'r' or 'n')
-            except bsddb.db.DBNoSuchFileError, e:
+            except bsddb.db.DBNoSuchFileError as e:
                 assert not e, "cannot open store: %s, %s, %s" %(name, dbref, e)
             PersistedMetaObject.stores[name] = store
         else:

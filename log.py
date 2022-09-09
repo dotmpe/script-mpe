@@ -180,7 +180,7 @@ def log(level, msg, *args):
     global out, category, formatting_enabled
     g = out.settings
 
-    if not isinstance(msg, (basestring, int, float)):
+    if not isinstance(msg, (str, int, float)):
         msg = str(msg)
     title = {
             0:'{bred}Emergency{bwhite}',

@@ -1,9 +1,17 @@
 Edit Decision Lists
 ===================
+:Created: 2016-12-16
+:Updated: 2020-06-29
+:Log:
+  - 2020-06-29 Added defs
+  - 2018-11-11 #55600ccd Added intro paragraphs.
+  - 2018-08-14 #e9e33e4e Moved links, punctuation.
+  - 2016-12-30 #aacc69fe Blank line added
+  - 2016-12-27 #1e407c09 Added figures and scrow links on localhost.
+  - 2016-12-16 #ecf9ce43 Initial version
 
-.. figure:: edl/comp.svg
-
-.. figure:: edl/comp-1.svg
+.. figure:: compo:viz/edl.svg
+  :target: compo:viz/edl.plantuml
 
 transquoter EDL are lists of clinks (content-links), referencing pieces of
 text (ie. char ranges at URL's or files).
@@ -28,25 +36,38 @@ Lets define
 - *ranges* as start and end position;
 - *Spans* are offset (same as start) and length (ie. end - start + 1 ).
 - All serialized references should have 1-indexed offsets.
+- All positions refer to decoded character positions.
 
-* To keep character count down, only serialize spans, and allow to leave out
-  the second number and '-' (if length is 1).
+* To keep character count down, use spans instead of range serializations. Also allow '1'-length spans of just the offset number.
 
-- Still some (redundant) variants of spans and ranges are usually preferable to
-  have, in particular the offset(s) relative to a particular line.
-
+* Need to deal with several string indexes at once: characters, lines+characters and
+  perhaps even other segmentations. While character indexing is is the most absolute,
+  lots of time the line range is more convenient to deal with instead.
   Conventional shell tools like sed, grep and cut are all line based.
-  While the algoritm proposed by `transquoter` disregards all whitespace.
-  To resolve a standard span requires a `read` command that 1. decodes all
-  bytes to symbols and 2. then collapses all whitespace.
+  Also, absolute character offset tracking is often lost somewhere in the
+  software stack and unavailable to script.
+  Then yet another problem can be presented tracking byte position with (decoded) character positions.
+
+  The algorithm proposed by `transquoter` disregards all whitespace.
+  Presenting yet another text-indexing method. Words or tokens may be
+  another.
+
+- For a simple app with decoded data the following would do::
+
+    <1-prefix>
+    <2-file>
+    <3-line-span>
+    <4-col-span>
+    <5-char-span>
+    <6-literal>
 
 * Living with ASCII source code, we can allow to forgo the bytestream to
-  character stream mapping.
+  character stream mapping. But with unicode we get into grey waters.
 
-- But to handle line-wrapped content, either the `read` utility is required,
-  or the spans available should be based on lines. Iow. a shell compatible
-  references list both a line range or span, and a character range or span
-  within these lines.
+  Not all shell tools may behave. And some interfaces may require byte
+  positions while we deal with character positions.
+
+
 
 With the above in mind, the initial format expands on the `grep -rn` output.
 E.g.::

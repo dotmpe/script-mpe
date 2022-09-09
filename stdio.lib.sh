@@ -1,13 +1,24 @@
+#!/bin/sh
 
-# stdio.lib.sh: additional io for shell scripts
+### stdio.lib: additional io for shell scripts
+
+
+stdio_lib_init()
+{
+  test "${stdio_lib_init-}" = "0" && return
+  lib_assert log || return
+
+  local us_log=; req_init_log
+  $us_log info "" "Loaded stdio.lib" "$0"
+}
 
 
 # setup-io-paths: helper names all temp. IO files (setup_tmpf)
-setup_io_paths() # Tmp-Prefix Base
+setup_io_paths () # ~ Tmp-Prefix Base
 {
-  test -n "$1" || error "Unique prefix for proc expected" 1
+  test -n "${1-}" || error "Unique prefix for proc expected" 1
   fnmatch "*/*" "$1" && error "Illegal chars" 12
-  for io_name in $(try_value inputs "" $base) $(try_value outputs "" $base)
+  for io_name in $(try_value "" inputs $base) $(try_value "" outputs $base)
   do
     tmpname=$(setup_tmpf .$io_name $1)
     touch $tmpname
@@ -49,7 +60,7 @@ close_io_descrs()
 clean_failed()
 {
   test -z "$failed" -o ! -e "$failed" && return || {
-    test -n "$1" || set -- "Failed: "
+    test -n "${1-}" || set -- "Failed: "
     test -s "$failed" && {
       count="$(sort -u $failed | wc -l | awk '{print $1}')"
       test "$count" -gt 2 && {
@@ -81,8 +92,8 @@ rm_failed()
 clean_io_lists()
 {
   local count= path=
-  debug "clean-io-list '$*'"
-  while test -n "$1"
+  test -z "$DEBUG" || $us_log debug "" "clean-io-lists" "$*"
+  while test $# -gt 0
   do
     count=0 path="$(eval echo \$$1)"
     test -s "$path" && {
@@ -108,6 +119,7 @@ clean_io_lists()
     eval ${1}_count="$count"
     shift
   done
+  test -z "$DEBUG" || $us_log info "$0" "clean-io-lists OK" "$*"
 }
 
 
@@ -188,7 +200,7 @@ _failed_=_failed_
 std_passed_rule()
 {
   test $passed_count -gt 0 \
-    && info "Passed ($passed_count): $passed_abbrev"
+    && std_info "Passed ($passed_count): $passed_abbrev"
 }
 
 std_skipped_rule()

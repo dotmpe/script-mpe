@@ -5,19 +5,13 @@ load init
 
 setup()
 {
-  init &&
-  load helper &&
-  lib_load sys &&
-
-  # var/table-1.tab: File with 5 comment lines, 3 rows, 1 empty and 1 blank (ws)
-  testf1="test/var/table-1.tab" &&
-
-  # Several blocks of comments and two content lines, 4 empty lines (no ws.)
-  testf2=test/var/nix_comments.txt
+  init 0 && load stdtest extra &&
+  lib_load sys os
 }
 
 
 @test "$base: read-nix-style-file strips blank and octothorp comment lines" {
+  test "$(whoami)" = "travis" && skip
   run read_nix_style_file "$testf1"
   { test_ok_nonempty 3
   } || stdfail
@@ -34,7 +28,7 @@ setup()
     test_lines \
         '789.1      -XYZ           x y z' \
         '   ' \
-        '#:vim:ft=todo.txt:'
+        '# vim:ft=todo.txt:'
 
   } || stdfail 1.2.
   run lines_slice "" 9 "$testf1"
@@ -57,7 +51,7 @@ setup()
     test_lines \
         '789.1      -XYZ           x y z' \
         '   ' \
-        '#:vim:ft=todo.txt:'
+        '# vim:ft=todo.txt:'
 
   } || stdfail 1.2.
   run __test__ "" 9 "$testf1"
@@ -75,7 +69,7 @@ setup()
 
   # Pipeline setup testing lines-while directly
   cat "$testf2" | {
-    r= ; lines_while 'echo "$line" | grep -qE "^\s*#.*$"' || r=$?
+    r= ; lines_count_while_eval 'echo "$line" | grep -qE "^\s*#.*$"' || r=$?
 
   # Should point last line before first content line.
     assert_equal "$r" ""
@@ -97,7 +91,7 @@ setup()
 
   # Pipeline setup testing lines-while directly
   cat "$testf2" | {
-    r= ; lines_while 'echo "$line" | grep -q "^not-in-file$"' || r=$?
+    r= ; lines_count_while_eval 'echo "$line" | grep -q "^not-in-file$"' || r=$?
 
   # Should point to no line, non-zero
     assert_equal "$line_number" "0"
@@ -118,7 +112,7 @@ setup()
 
   # Pipeline setup testing lines-while directly
   cat "$testf2" | {
-    r= ; lines_while 'echo "$line" | grep -q "^.*$"' || r=$?
+    r= ; lines_count_while_eval 'echo "$line" | grep -q "^.*$"' || r=$?
 
   # Should point to last line
     assert_equal "$r" ""
@@ -135,6 +129,7 @@ setup()
 
 
 @test "$base: line_count" {
+  load extra
   tmpd
   out=$tmpd/line_count
 
@@ -152,6 +147,7 @@ setup()
 
 
 @test "$base: filesize" {
+  load extra
   tmpd
   out=$tmpd/filesize
   printf "1\n2\n3\n4" >$out
@@ -215,4 +211,5 @@ setup()
   } || stdfail
 }
 
+# Sync: U-S:test/unit/os-lib.bats 0.0.1-35-g023b832
 # Id: script-mpe/0.0.4-dev test/os-lib-spec.bats

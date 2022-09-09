@@ -7,7 +7,7 @@ init
 
 setup()
 {
-  . $lib/util.sh
+  . $scriptpath/util.sh &&
 
   pd=$(pwd)/projectdir.sh \
   testid="$(echo $BATS_TEST_DESCRIPTION | cut -f 1 -d ' ')"
@@ -33,14 +33,14 @@ repositories:
     default: sandbox
     disabled: true
     remotes:
-      origin: https://github.com/bvberkum/user-conf.git
+      origin: https://github.com/dotmpe/user-conf.git
     sync: true
     clean: untracked
   script-mpe:
     default: dev
     disabled: true
     remotes:
-      origin: https://github.com/bvberkum/script-mpe.git
+      origin: https://github.com/dotmpe/script-mpe.git
     sync: true
     clean: untracked
 EOF

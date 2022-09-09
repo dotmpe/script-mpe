@@ -33,11 +33,10 @@ pd__grunt_init_package()
 }
 
 
-pd_load__grunt_test=i
+pd_flags__grunt_test=i
 pd__grunt_test()
 {
   grunt test || return $?
 }
 
-
-
+#

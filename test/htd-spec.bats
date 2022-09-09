@@ -9,6 +9,7 @@ pwd=$(cd .;pwd -P)
 version=0.0.4-dev # script-mpe
 
 setup() {
+  load stdtest extra assert
   scriptname=test-$base
 
   #type require_env >/dev/null 2>&1 && {
@@ -20,6 +21,7 @@ setup() {
   #  . ./tools/ci/env.sh &&
   #  project_env_bin node npm lsof
   #}
+  htd_eval() { v=4 htd_flags__eval=$1 $bin eval "echo \$$2"; }
 }
 
 @test "$bin no arguments no-op" {
@@ -341,6 +343,35 @@ setup() {
   test_ok_empty || stdfail
 }
 
+@test "$bin eval" {
+  # Test eval command by getting type for htd's eval command handler
+  # function, which should be 'function' ofcourse.
+  run_() { v=4 $BATS_TEST_DESCRIPTION "type -t htd__eval"; }; run run_
+  test_ok_nonempty "function" || stdfail
+}
+
+@test "$bin: main: flags 'i' prepares htd-inputs and htd-outputs files" {
+  # This flag is required by other subcmd load flags. It prepares a list of
+  # paths for additional output streams.
+  run htd_eval iAO arguments
+  test_ok_nonempty "/*arguments*" || stdfail inputs.1
+  run htd_eval iAO htd_inputs
+  test_ok_nonempty "arguments prefixes options" || stdfail inputs.2
+
+  run htd_eval iAO passed
+  test_ok_nonempty || stdfail outputs.1
+  run htd_eval iAO htd_outputs
+  test_ok_nonempty "passed skipped error failed" || stdfail outputs.2
+}
+
+@test "$bin: main: flags 'iAO' parse options to choices (default htd-optsv)" {
+
+  run_(){ v=4 htd_flags__eval=iAO htd eval --foo echo \$choice_foo; }; run run_
+  test_ok_nonempty "1" || stdfail 1
+
+  run_(){ v=4 htd_flags__eval=iAO htd eval --bar=baz echo \$choice_bar; }; run run_
+  test_ok_nonempty "baz" || stdfail 2
+}
 
 #@test "${lib}/${base} - function should ..." {
 #  check_skipped_envs || \

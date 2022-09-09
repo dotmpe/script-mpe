@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 :created: 2018-05-09
 
@@ -23,6 +23,13 @@ Options:
     -c, --check
                  Verify that extension matches one known to be in use for
                  file mediatype.
+    -o FMT, --output-format FMT
+                 Format output line as csv, text, ext, or type/mime/mediatype.
+    -H           Always print filename headers with output lines.
+    -h, --no-filename
+                 Never print filename headers (i.e. filenames) with output lines.
+    -G, --grep-prefix
+                 Print filename with ':' if prefixed and format is not csv.
     --num-exts NUM
                  ..
     --no-mime-check
@@ -32,7 +39,7 @@ Options:
                  setting can be changed by BASENAME_YAML env [default: %s]
     --print-memory
                  Print memory usage just before program ends.
-    -h --help    Show this usage description.
+    -? --help    Show this usage description.
                  For a command and argument description use the command 'help'.
     --version    Show version (%s).
 """ % (__config__, __version__)
@@ -92,11 +99,16 @@ def cmd_check(PATH, g, opts):
     for a in PATH:
         if not os.path.isfile(a): continue
 
-        mime = libfile.filemtype(a)
+        mime = None
         name_parts = a.lower().split('.')#[1:][::-1]
         name = name_parts.pop(0)
         exts, unknown_exts, mime_mismatch = [], [], []
         n = a
+        odict = lambda: {
+            'path': a, 'name': name,
+            'mime': mime, 'mediatype': mime,
+            'exts': " ".join(exts)
+        }
         while name_parts:
             e = name_parts.pop()
             if not e.strip(): continue
@@ -112,8 +124,10 @@ def cmd_check(PATH, g, opts):
             if ce in db['mime_ext_reg']:
                 # Found known extension, XXX: can only check MIME for outer mediatype
                 if exts or not g.mime_check:
+                    mime = db['mime_ext_reg'][ce]
                     exts.insert(0, ce)
                 else:
+                    mime = libfile.filemtype(a)
                     if db['mime_ext_reg'][ce] == mime:
                         # Found known extension for mime
                         exts.append(ce)
@@ -140,15 +154,39 @@ def cmd_check(PATH, g, opts):
                         print("Unknown mime %s" % ( mime, ), file=sys.stderr)
                 # Found new extension
                 unknown_exts.append(ce)
-     
+
         if not ( mime_mismatch or unknown_exts ):
+            """
+            for ext in exts:
+                mime = opts.database['mime_ext_reg'][ext]
+                exts, cat, descr = opts.database['mime_xref'][mime]
+                print(mime)
+
+            """
             if g.quiet < 2:
-                print("%s  %s" % (a, " ".join(exts)))
+                if not g.output_format:
+                    g.output_format = 'text'
+                ofmt = g.output_format.lower()
+
+                fmt = ""
+                if not g.no_filename:
+                    if ofmt == 'csv': fmt = "%(path)s,"
+                    elif g.grep_prefix: fmt = "%(path)s: "
+                    else: fmt = "%(path)s  "
+
+                if ofmt  == 'csv': fmt += "%(name)s,%(mime)s,%(exts)s"
+                elif ofmt == 'text': fmt += "%(exts)s"
+                elif ofmt == 'ext': fmt += "%(exts)s"
+                elif ofmt in ( 'mediatype', 'mime', 'type'): fmt += "%(mime)s"
+                else:
+                    raise Exception("No output-format %r" % ofmt)
+
+                print(fmt % odict())
         else:
             v = False
             if g.quiet < 2:
                 print("%s: Failed" % (a,))
-    
+
     return v
 
 
@@ -174,6 +212,11 @@ def defaults(opts, init={}):
     opts.database = yaml.safe_load(open(opts.database_fn))
     if hasattr(opts.flags, 'no_mime_check'):
         opts.flags.mime_check = not opts.flags.no_mime_check
+    if hasattr(opts.flags, 'H'):
+        opts.flags.no_filename = not opts.flags.H
+    else:
+        opts.flags.no_filename = len(opts.args.PATH) <= 1
+
     return init
 
 def main(opts):

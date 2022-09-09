@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+
+# Shell script wrapper for $PWD/sh-* scripts and other project/CI tooling
+
+usage() # Short usage help or spec list for (partial) command name ~ [Command]
+{
+  test $# -le 1 || return 98
+  test $# -eq 0 && {
+    echo 'Usage:'
+    echo '  ./sh-main <function name> <func args>'
+    echo '  ./sh-main ( usage [command] | commands )'
+    echo ''
+    echo 'Allowing for any profile and functions to be loaded to particular or generic scripts'
+  } ||  {
+    src= sh_cmd_funcs "$1"
+  }
+}
+
+spec() # Combine and execute var/cmd specs with test-shell ~ ...
+{
+  test $# -gt 0 || set -- sh-baseline.tab
+  test $# -gt 1 || set -- "$1" "*"
+  test $# -eq 2 -a -f "$1" || return 98
+
+  sh_include std-stack std-runner
+
+  sh_spec "$1"|grep -v '^\s*\(#.*\|\s*\)$'|while read scriptline; do
+
+    case "$scriptline" in $2 ) ;; * ) continue ;; esac
+
+    c-run "$scriptline" || return
+
+  done
+}
+
+lines() # Print specs that would have been run ~ [build.tab] [Suite] [Prefix]
+{
+  test $# -eq 1 -a -f "$1" || return 98
+  sh_include std-stack std-runner
+  sh_spec "$1"|grep -v '^\s*\(#.*\|\s*\)$'
+}
+
+# Run parts or spec-lines in docker container. u-s dckr runs at U-S checkout
+# inside container (ie. install and/or CI build path), but this runs local code
+# mounted at the U-S dut path.
+treebox()
+{
+  falseish "${refresh:=}" || {
+    print_yellow "" "Refreshing ${sh_treebox_img:-image}..."
+    docker pull ${sh_treebox_img:="dotmpe/sandbox:dev"} || return
+    print_green "OK"
+  }
+
+  sh_include env-scriptpath-deps lib-load || return
+  . "./commands/u_s-ledge.lib.sh" || return
+  . "./commands/u_s-dckr.lib.sh" || return
+  docker_image=$sh_treebox_img dckr_load || return
+
+  test $# -gt 0 || set -- run-parts $build_txt "$SUITE"
+  test ! -e "$1" -o -x "$1" -o -e "${2:-}" || {
+    specfile="$1"; shift
+    set -- "$(ci_file_exec "$specfile")" "$specfile" "$@"
+    unset specfile
+  }
+
+  local c_run="$1" ; shift ;
+  c-run "$@"
+}
+
+# Same as run-suite, but test each step (like spec with c-run and passed/failed log session)
+run-parts() # only show suite ~ Tab Suite Phases...
+{
+  test $# -ge 2 || return 98
+  local parts= tab="$1" suite="$2" ; shift 2
+  test $# -gt 0 || set -- 0
+
+  test -n "$tab" -a -e "$tab" || return 96
+  test -n "$suite" || suite="${SUITE:-}"
+  head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
+
+  local stage c_lbl
+
+  for phase in $@
+  do
+    stage=$suite.$phase
+    c_lbl="$stage"
+    parts=$( suite_from_table "$tab" Parts "$suite" "$phase" ) || return
+    for part in $parts
+    do
+      c_run=sh_include c-run "$part"
+    done
+    unset stage parts
+  done
+}
+
+show-parts() # Table Suite Prefix
+{
+  test $# -ge 2 || return 98
+  local parts= tab="$1" suite="$2" ; shift 2
+  test -n "$tab" -a -e "$tab" || return 96
+  head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
+
+  test $# -gt 0 && for phase in $@
+  do
+    suite_from_table "$tab" "Parts" "$suite" "$phase" ||
+      return
+  done ||
+    suite_from_table "$tab" "Parts" "$suite"
+}
+
+# Run init, check, baselines or other part
+run-suite() # Table Suite Prefix
+{
+  run_suite "$@"
+}
+
+# Run baselines from var/cmd-spec table
+run-baseline() # Spec
+{
+  local r=
+  c_lbl=Baseline spec sh-baseline.tab "$@" &&
+     print_green "OK" "Baselines '${1:-*}'" || { r=$?
+       print_red "Not OK: $?" "Baselines '${1:-*}'"
+       return $r
+  }
+}
+
+# Run test cmd-lines from var/cmd-spec table
+run-test()
+{
+  local r=
+  c_lbl="Project test" spec sh-project.tab "$@" &&
+     print_green "OK" "Project tests '${2:-*}'" || { r=$?
+       print_red "Not OK: $?" "Project tests '${2:-*}'"
+       return $r
+  }
+}
+
+# Run entire CI suite build scripts
+run-ci()
+{
+  test $# -gt 0 || set -- sh-ci.tab
+  local r=
+  c_lbl="CI suite" spec "$@" &&
+     print_green "OK" "CI suite '${2:-*}'" || { r=$?
+       print_red "Not OK: $?" "CI suite '${2:-*}'"
+       return $r
+  }
+}
+
+
+# Main: wrap/exec cmd or func matching first argument
+
+case "$(basename -- "$0" .sh)" in
+  -bash ) ;;
+
+  sh-* ) test -z "${sh_main:-}" || return 0 ; sh_main=1
+
+      # Get minimal env using Main suite.
+      : "${SUITE:="Main"}"
+      : "${keep_going:=1}" # No-Sync
+      #: "${stage:=}"
+      : "${dry_run:=1}"
+      . "${sh_tools:="$PWD/tools/sh"}/env.sh"
+
+      test $# -gt 0 || set -- $sh_main_cmdl
+
+      ci_file_exec()
+      {
+        case "$1" in
+          *.txt ) echo run-parts ;;
+          *.tab|*.list ) echo spec ;;
+        esac
+      }
+
+      # XXX: test ! -e "$PWD"/"$1" test local only?
+      test ! -e "$1" -o -x "$1" || {
+        specfile="$1"; shift
+        set -- "$(ci_file_exec "$specfile")" "$specfile" "$@"
+        unset specfile
+      }
+
+      : "${SCRIPT_NAME:=$(basename "$SCRIPT_SHELL")}"
+
+      echo "shell-cmd handler: $SCRIPT_NAME-c()" >&2
+      eval "$(cat <<EOM
+$SCRIPT_NAME-c() # Command-Line...
+{
+  $SCRIPT_SHELL -c "\$@"
+}
+EOM
+)"
+
+      # Execute/wrap unknown first-argv as shell command
+      test -x "$1" -o "$(type -t "$1")" = "function" || set -- $SCRIPT_NAME-c "$@"
+
+      ci_exec "$@"
+    ;;
+esac
+
+# Sync: U-S:                                                        ex:ft=bash:

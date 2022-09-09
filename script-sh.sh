@@ -1,8 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env make.sh
 
-script_sh_src=$_
-
-set -e
+set -eu
 
 
 
@@ -132,25 +130,9 @@ s/^([\ [:punct:]]+)\ ([0-9]+)\ ([A-Za-z0-9_]+)/\\033[34m\1\ \\033[33m\2\ \\033[3
 
 # Generic subcmd's
 
-script_sh_man_1__help="Echo a combined usage and command list. With argument, seek all sections for that ID. "
-script_sh_spc__help='-h|help [ID]'
-script_sh__help()
-{
-  (
-    base=script_sh \
-      choice_global=1 std__help "$@"
-  )
-}
+script_sh_als____help=help
 script_sh_als___h=help
-
-
-script_sh_man_1__version="Version info"
-script_sh_spc__version="-V|version"
-script_sh__version()
-{
-  echo "script-mpe:$scriptname/$version"
-}
-script_sh_als___V=version
+script_sh_grp__help=ctx-main\ ctx-std
 
 
 script_sh_man_1__edit_main="Edit the main script file"
@@ -165,125 +147,27 @@ script_sh_als___E=edit-main
 
 
 
-### Main
+# Script main parts
 
-
-script_sh_main()
-{
-  local scriptpath="$(cd "$(dirname "$0")"; pwd -P)"
-  script_sh_init || return $?
-
-  local scriptname=script-sh base=$(basename "$0" .sh) verbosity=
-  case "$base" in
-    $scriptname )
-        local \
-          subcmd= failed= \
-          subcmd_pref= subcmd_suf= \
-          subcmd_func_pref=${base}__ subcmd_func_suf=
-
-        test -n "$1" || set -- main-doc
-        script_sh_lib "$@" || error script-sh-lib $?
-
-        try_subcmd "$@" && {
-          box_lib script-sh || error "box-src-lib script-sh" 1
-          shift 1
-          script_sh_load "$@" || error "script-sh-load" $?
-          var_isset verbosity || local verbosity=5
-
-          test -z "$arguments" -o ! -s "$arguments" || {
-            info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
-            set -f; set -- $(cat $arguments | lines_to_words) ; set +f
-          }
-
-          $subcmd_func "$@" || r=$?
-          script_sh_unload || r=$?
-          exit $r
-        }
-      ;;
-    * )
-        error "not a frontend for $base ($scriptname)" 1
-      ;;
-  esac
-}
-
-# FIXME: Pre-bootstrap init
-script_sh_init()
-{
-  test -z "$BOX_INIT" || return 1
-  test -n "$scriptpath"
-  export SCRIPTPATH=$scriptpath
-  test -n "$SCRIPT_ETC" || SCRIPT_ETC="$scriptpath/etc"
-
-  . $scriptpath/util.sh load-ext
-  lib_load
-  . $scriptpath/tools/sh/box.env.sh
-  box_run_sh_test
-  lib_load box
-
+main_init_env \
+    INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std box" \\
+    INIT_LIB="\$default_lib logger-theme main box htd str-htd list ignores std stdio"
   #lib_load htd meta box date doc table disk remote ignores package
-  # -- script-sh box init sentinel --
-}
 
+main-default main-doc
 
-script_sh_lib()
-{
-  local __load_lib=1
-  . $scriptpath/match.sh load-ext
-  lib_load list ignores
-  # -- script-sh box lib sentinel --
-  set --
-}
+main_load \
+          # XXX: cleanup: box_lib script-sh script.sh || error "box-src-lib script-sh" 1 \
+          sh_isset verbosity || local verbosity=5
 
+#          test -z "$arguments" -o ! -s "$arguments" || {
+#            std_info "Setting $(count_lines $arguments) args to '$subcmd' from IO"
+#            set -f; set -- $(cat $arguments | lines_to_words) ; set +f
+#          }
 
-# Pre-exec: post subcmd-boostrap init
-script_sh_load()
-{
-  test -n "$UCONFDIR" || UCONFDIR=$HOME/.conf/
-  test -n "$INO_CONF" || INO_CONF=$UCONFDIR/script_sh
-  test -n "$APP_DIR" || APP_DIR=/Applications
+main_init \
+  test -z "${BOX_INIT-}" || return 1 \
+  test -n "${SCRIPT_ETC-}" || SCRIPT_ETC="$scriptpath/etc"
 
-  hostname="$(hostname -s | tr 'A-Z.-' 'a-z__' | tr -s '_' '_' )"
-
-  test -n "$EDITOR" || EDITOR=vim
-  # -- script_sh box load sentinel --
-  set --
-}
-
-
-# Post-exec: subcmd and script deinit
-script_sh_unload()
-{
-  local unload_ret=0
-
-  #for x in $(try_value "${subcmd}" "" run | sed 's/./&\ /g')
-  #do case "$x" in
-  # ....
-  #    f )
-  #        clean_failed || unload_ret=1
-  #      ;;
-  #esac; done
-
-  clean_failed || unload_ret=$?
-
-  env | grep -i 'meta'
-
-  unset subcmd subcmd_pref \
-          def_subcmd func_exists func \
-          failed
-
-  return $unload_ret
-}
-
-
-
-
-# Use hyphen to ignore source exec in login shell
-case "$0" in "" ) ;; "-"* ) ;; * )
-  # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
-  case "$1" in load-ext ) ;; * )
-    script_sh_main "$@"
-  ;; esac
-;; esac
-
+main_load_epilogue \
 # Id: script-mpe/0.0.4-dev script-sh.sh

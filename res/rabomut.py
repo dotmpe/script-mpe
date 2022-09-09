@@ -3,8 +3,8 @@ import csv
 import hashlib
 from datetime import datetime
 
-from idxattr import IndexAttributeWrapper
-from attrmap import AttributeMapWrapper
+from .idxattr import IndexAttributeWrapper
+from .attrmap import AttributeMapWrapper
 
 
 DTFMT = '%Y%m%d'

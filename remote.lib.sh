@@ -1,29 +1,29 @@
 #!/bin/sh
 
 
-on_host()
+on_host ()
 {
-  test "$hostname" = "$1" || return 1
+  test "${hostname:?}" = "${1:?}" || return 1
 }
 
-req_host()
+req_host ()
 {
-  on_host "$1" || error "$0 runs on $1 only" 1
+  on_host "${1:?}" || error "$0 runs on $1 only" 1
 }
 
-on_system()
+on_system ()
 {
-  test "$uname" = "$1" || return 1
+  test "${uname:?}" = "${1:?}" || return 1
 }
 
 # Run command at another host
-run_cmd()
+run_cmd ()
 {
-  test -n "$1" || set -- "$hostname" "$2"
-  test -n "$2" || set -- "$1" "whoami"
-  test -n "$host_addr_info" || host_addr_info=$hostname
+  test -n "${1-}" || set -- "$hostname" "$2"
+  test -n "${2-}" || set -- "$1" "whoami"
+  true "${host_addr_info:=${hostname:?}}"
 
-  test -z "$dry_run" && {
+  test -z "${dry_run-}" && {
     on_host "$1" && {
       eval "$2" \
         && debug "Executed locally: '$2'" \
@@ -46,9 +46,9 @@ run_cmd()
 }
 
 # Set host_addr_info for SSH connection
-ssh_req()
+ssh_req ()
 {
-  test -n "$host_addr_info" || {
+  test -n "${host_addr_info-}" || {
     test -n "$1" || set -- "$hostname" "$2"
     test -n "$2" || set -- "$1" "$(whoami)"
     host_addr_info="$1"
@@ -58,13 +58,15 @@ ssh_req()
 }
 
 # Wait for host to come online
-wait_for()
+wait_for ()
 {
-  test -n "$1" || set -- "$hostname"
-  while [ 1 ]
+  test -n "${1-}" || set -- "${hostname:?}"
+  while true
   do
     ping -c 1 $1 >/dev/null 2>/dev/null && break
     note "Waiting for $1.."
     sleep 7
   done
 }
+
+#

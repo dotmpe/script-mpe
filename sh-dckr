@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+# Shell script wrapper for $PWD/sh-* scripts and other project/CI tooling
+
+unset CWD script_util U_S
+
+: "${CWD:="$PWD"}"
+: "${script_util:="$CWD/tools/sh"}"
+: "${LOG:="${script_util}/log.sh"}"
+: "${INIT_LOG:="${LOG}"}"
+
+. ./test/helper/extra.bash
+
+. "${script_util}/util.sh"
+. "${script_util}/parts/print-color.sh"
+. "${script_util}/parts/env-0.sh"
+. "${script_util}/parts/env-dev.sh"
+
+docker_sh_c_inspect() # Expr [Container]
+{
+  test -n "$2" || set -- "$1" $docker_sh_c
+  test -n "$2" || set -- "$1" $docker_name
+  ${dckr_pref}docker inspect --format "$1" "$2"
+}
+
+# Interactive execute in U-s container instance on PWD
+dckr_exec() # [Cmd...]
+{
+  ${dckr_pref}docker exec -ti -w "$repo_base" "$docker_name" "$@"
+}
+
+# Interactive login shell executed in U-s container (see dckr-exec)
+dckr_shell()
+{
+  test -n "$dckr_log" || return 103
+  $dckr_log "note" "" "Executing '$*'" "$docker_shell"
+
+  dckr_exec $docker_shell -li "$@"
+}
+
+# Run command in interactive container login shell (see dckr-shell)
+dckr_cmd()
+{
+  dckr_shell -c "$*"
+}
+
+treebox-update()
+{
+  : "${repo_rev:="features/docker-ci"}"
+  : "${repo_id:="24-2"}"
+  : "${repo_url:="/srv/scm-git-24-2-notus-brix/dotmpe/script-mpe"}"
+  : "${repo_base:="/src/github.com/dotmpe/script-mpe"}"
+
+  : "${docker_pref:=""}"
+  : "${docker_shell:="/bin/bash"}"
+  : "${docker_name:="u-s-dckr"}"
+  : "${docker_image:="dotmpe/sandbox:dev"}"
+
+  trueish "$( docker_sh_c_inspect '{{.State.Running}}' "$@" )"
+
+  dckr_cmd 'echo "Container U-s version and branch where at: $(git describe --always | tr "\\n" " " && git rev-parse --abbrev-ref HEAD )" >&2'
+
+  dckr_exec git config --get remote.$repo_id.url >/dev/null || {
+
+    dckr_exec git remote add "$repo_id" "$repo_url" || return
+    $LOG "info" "$repo_id:$repo_rev" "$docker_name remote GIT added" "$repo_url"
+  }
+  $LOG "debug" "$repo_id:$repo_rev" "$docker_name fetching GIT..." "$repo_url"
+  dckr_exec git fetch "$repo_id" || return
+  dckr_exec git fetch --tags "$repo_id" || return
+  $LOG "note" "$repo_id:$repo_rev" "$docker_name resetting GIT..." "$repo_url"
+  dckr_exec git reset --hard $repo_id/$repo_rev || return
+  $LOG "info" "$repo_id:$repo_rev" "$docker_name reset to defaults" "$repo_url"
+
+  dckr_cmd 'echo "Container U-s version and branch now at: $(git describe --always | tr "\\n" " " && git rev-parse --abbrev-ref HEAD )" >&2'
+}
+
+treebox-update
+
+# Sync: U-S: vim:ft=bash:
