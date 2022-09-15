@@ -1,6 +1,7 @@
 # Start user-script early because we're using aliased script parts
 test -n "${user_script_loaded:-}" || {
-  ALIASES=1 ; . "${US_BIN:="$HOME/bin"}"/user-script.sh && user_script_shell_env
+  ALIASES=1 ; . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
+      user_script_shell_env
 }
 
 # Use alsdefs set to cut down on small multiline boilerplate bits.
@@ -10,7 +11,7 @@ user_script_alsdefs \
 
 ## Main handlers
 
-disk_uc_add () # ~
+disk_uc_add () # (u) ~
 {
   local actdef=diskdoc lkn=add; sa_a1_act_lk
   case "$act" in

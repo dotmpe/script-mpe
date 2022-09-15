@@ -791,8 +791,16 @@ script_version () # ~ # Output {name,version} from script-baseenv
 user_script_alsdefs ()
 {
   us_shell_alias_defs \
-    sa_a1_act_lk   l-argv1-lk   act :-\$actdef "" \${lkn:-\$act} -- \
-    sa_a1_act_lk_2 l-argv1-lk   act :-\$actdef :-\$base:\$act "" -- \
+  \
+    sa_a1_act_lk   l-argv1-lk   act :-\$actdef ""         \${lkn:-\$act} -- \
+    sa_a1_act_lk_2 l-argv1-lk   act :-\$actdef :-\$base:\$act  "" -- \
+  \
+    sa_a1_d_lk     de-argv1-lk      \$_1def    :?         \${lkn:-\$1} -- \
+    sa_a1_d_lk_b   de-argv1-lk      \$_1def    :-\$base   \${lkn:-\$1} -- \
+  \
+    sa_E_nschc err-u-nsk \$lk "No such choice" "" 67 -- \
+    sa_E_nsact err-u-nsk \$lk "No such action" \$act 67 -- \
+  \
     "$@"
 }
 
@@ -814,7 +822,19 @@ us_shell_alsdefs ()
   uc_shell_alsdefs[l-argv1-lk]='
     local ${1:?}=\${1${2:?}}
     test \$# -eq 0 || shift
-    local lk="\${lk${3:-:-\$base}}:${4:-}"
+    local lk=\"\${lk${3:-":-\$base"}}${4:+:}${4:-}\"
+  '
+
+  uc_shell_alsdefs[d-argv1-lk]='
+    test -n "\${1:-}" || {
+      test $# -eq 0 || shift; set -- \"${1:?}\" "$@";
+    }
+    local lk=\"\${lk${2:-:-\$base}}${3:+:}${3:-}\"
+  '
+
+  uc_shell_alsdefs[de-argv1-lk]='
+    test \$# -gt 0 || set -- \"${1:?}\"
+    local lk=\"\${lk${2:-:-\$base}}${3:+:}${3:-}\"
   '
 
   # Take first argument and set to variable, and test for block device.
@@ -825,6 +845,12 @@ us_shell_alsdefs ()
       \$LOG warn \"${3:-\$base}\" \"Block device expected\" \"\" \$?
       return ${4:-3}
     }
+  '
+
+  # Generic error+return
+  uc_shell_alsdefs[err-u-nsk]='
+    \$LOG error \"${1:-\$lk}\" \"${2:-"No such key/alias"}\" \"${3:-\$1}\";
+    return ${4:-1}
   '
 }
 
@@ -838,6 +864,7 @@ us_shell_alias_def ()
 }
 
 # Call us-shell-alias-def for each argv sequence (separated by '--')
+# XXX: a better version would use arrays I guess
 us_shell_alias_defs ()
 {
   while test $# -gt 0

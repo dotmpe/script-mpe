@@ -5,6 +5,7 @@
 
 annex_lib_load()
 {
+  : "${ANNEX_DIR:?}"
   content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos"
 
   # TODO: scan for .annex/objects folder, move this to user-conf
