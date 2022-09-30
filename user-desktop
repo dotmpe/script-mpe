@@ -1,6 +1,6 @@
 #!/bin/sh
 
-### Helper for desktop settings
+### User desktop: helper commands for appearance and window manager
 
 
 background () # ~ <-info>
@@ -148,7 +148,7 @@ screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
   stdmsg '*note' "Moved screenshot $dt to Pictures"
 }
 
-switch_cs ()
+update_for_cs ()
 {
   test $CS = "light" && {
     theme Greybird
@@ -167,6 +167,13 @@ switch_cs ()
     background set \
       /home/hari/Pictures/Aesthetics/Backgrounds/31313-full_4-things-you-can-never-recover-tom-b.jpg
   }
+}
+
+switch_cs ()
+{
+  # XXX: should probably track UC_DESKTOP_CS here or something.
+  # update config as well, see ~/.conf/etc/i3/start.sh
+  update_for_cs && i3-msg reload
 }
 
 theme ()
@@ -205,6 +212,7 @@ user_desktop_aliasargv ()
       ( b|bg ) shift; set -- background "$@" ;;
       ( bgs ) shift; set -- backgrounds "$@" ;;
       ( preview ) shift; set -- backgrounds preview "$@" ;;
+      ( update-for-cs ) shift; set -- update_for_cs "$@" ;;
       ( switch-cs ) shift; set -- switch_cs "$@" ;;
       ( set-bg ) shift; set -- background set "$@" ;;
       ( themes ) shift; set -- list_themes "$@" ;;

@@ -2,15 +2,16 @@
 """
 Print table with twillight and suntimes in GMT and local time.
 Also helpers to extract useful information based on user location.
+(Note that date-times in most comments will be GMT)
 
-All parameters are from the environment, except the first argument is parsed
-as date and an optional prefix. The default command is 'printtable'.
+All parameters are from the environment, but the first argument to command
+is parsed as date. The default command is 'table'.
 
 Commands:
   - daytime - tests next sunset is before sunrise
   - nighttime - tests next sunrise is before sunset
-  - twillight - tests for and reports dusk or dawn (and nothing else)
-  - night - tests for actual nighttime, excluding twillight
+  - twillight - tests for and reports dusk or dawn (but not day or night)
+  - night - tests for actual nighttime (night excluding twillight)
   - sun - report RA,DEC,AZ,ALT for sun
   - moon - report RA,DEC,AZ,ALT for moon
   - tags - report tags associated with current time of day
@@ -20,7 +21,7 @@ Usage:
   ephem-day-times.py help
 
 Environment:
-  GEO_HOME provide lat-long pair in decimal separated by comma
+  GEO_LOC provide lat-long pair in decimal separated by comma
   HORIZON set horizon angle. Normally day start/end are at 0 degrees, but other
     values may be appropiate to get actual daylight conditions depending on
     local horizon.
@@ -29,6 +30,7 @@ Environment:
   COORD set coordinate system for reporting degrees, 1 for local Az-Alt or
     2 for celestial RA-Dec.
   DEGREE set to 1 to use degree instead of time notation for degrees.
+  SHIFT_TIME Advance or delay given or current time by seconds
 """
 import os
 import sys
@@ -177,8 +179,8 @@ else:
     print("Usage: %s", " | ".join(cmds))
     sys.exit(1)
 
-if 'GEO_HOME' in os.environ:
-    latlong = os.environ['GEO_HOME'].split(',')
+if 'GEO_LOC' in os.environ:
+    latlong = os.environ['GEO_LOC'].split(',')
 else:
     sys.exit("Please provide latlong setting")
 
@@ -200,12 +202,17 @@ if cmd == 'table':
 
 loc.date = ephem.Date(dt)
 
+shift_seconds = int(os.environ.get('SHIFT_TIME', '0'))
+if shift_seconds:
+    shift_days = shift_seconds / 86400
+    loc.date += shift_days
+
 # No elevation or horizon added.. yet
 loc.pressure = 0
 loc.lat, loc.lon = latlong
 
-loc_horizon = os.environ.get('HORIZON', '0')
-twillight_horizon = os.environ.get('TWILLIGHT_HORIZON', '-6')
+loc_horizon = int(os.environ.get('HORIZON', '0'))
+twillight_horizon = int(os.environ.get('TWILLIGHT_HORIZON', '-6'))
 
 sun = ephem.Sun()
 

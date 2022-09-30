@@ -51,7 +51,7 @@ test -n "${user_script_loaded:-}" || {
           . /srv/project-local/conf-wtwta/script/Generic/server.sh
 }
 
-! script_isrunning "box-us" .sh || {
+! script_isrunning "box.us" .sh || {
 
   # Strip extension from scriptname (and baseid)
   script_baseext=.sh
@@ -66,6 +66,6 @@ test -n "${user_script_loaded:-}" || {
   eval "set -- $(user_script_defarg "$@")"
 }
 
-script_entry "box-us" "$@"
+script_entry "box.us" "$@"
 
 #

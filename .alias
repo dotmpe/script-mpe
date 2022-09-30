@@ -18,6 +18,7 @@ test "$(type -t sd)" || alias sd=statusdir # otherwise gives trouble with compo:
 #alias vc=vc.sh TODO: rename scm
 alias vc="b=$HOME/bin/vc _shc_update_and_run"
 alias box="b=$HOME/bin/box _shc_update_and_run"
+alias box.us=box.us.sh
 alias docker-sh="b=$HOME/bin/docker-sh _docker-sh_update_and_run"
 alias dckr=docker-sh
 alias disk="b=$HOME/bin/disk _shc_update_and_run"

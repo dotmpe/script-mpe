@@ -1,5 +1,6 @@
 #!/bin/sh
 
+### User tools: commands for generic desktop ops, config and misc. scripts
 
 
 forecast () # ~
@@ -47,7 +48,7 @@ moon ()
 
 location ()
 {
-  test -n "${GEO_HOME:-}" || return
+  test -n "${GEO_LOC:-${GEO_HOME:-}}" || return
 }
 
 
@@ -143,25 +144,36 @@ season_meteorological () # ~ [<Month>]
 
 # Use to check light conditions at users location.
 #
-# Not sure yet what to do with twillight. And light conditions depend on
-# weather as well.
-# Twillight may end or start at -3 or -6 degrees, depending on local horizon
-# too i guess. And depending on weather early morning may still be dark as
-# well.
+# Not sure yet what to do with twillight. Also light conditions depend on
+# weather, and more. Current impl. uses astronomical algorithms and has
+# one mode with parameters:
 #
-# Alternatively, a service like wttr.in reports weather but things like dusk
-# and dawn as well.
+#   GEO_HOME the decimal latitude and longitude to measure from
+#   HORIZON the degrees a line to the center of the sun makes relative to the
+#     local horizon(tal pane). Default is -6 for the usual standard 'civil
+#     twillight'. HOME_HORIZON may be used to change sunrise/sunset.
+#   SHIFT delay or advance the moments
+#
+# XXX: think the most natural is anticipate the next phase of te day by some
+# period, ie. act before the moment instead of making a symmetrical switch at
+# dawn and dusk.
 actual_darktime () # ~ [<Datetime>]
 {
+  test $# -eq 0 || return ${_E_GAE:-$?}
+
   location || {
-    stdmsg '*err' "Please provide GEO_HOME"
-    return 1 # XXX: autodetect location
+    stdmsg '*err' "Please provide GEO_{LOC,HOME}"
+    return 1 # XXX: autodetect/select approx. location using locale
     timezone || return
     eval $(timezone_to_location) || return
   }
 
-  TWILLIGHT_HORIZON=${HORIZON:-"-3"} ${python3_bin:-python3} \
-      ~/bin/ephem-day-times.py night "$@"
+  # Test for actual nighttime, excluding daytime and twillight
+  TWILLIGHT_HORIZON=${HORIZON:-"-3"} \
+  HORIZON=${HOME_HORIZON:-"0"} \
+  SHIFT_TIME=${SHIFT:-${DARKTIME_SHIFT:-"0"}} \
+  GEO_LOC=${GEO_LOC:-${GEO_HOME:?}} \
+    ${python3_bin:-python3} ~/bin/ephem-day-times.py ${EPHEM_CMD:-"night"} "$@"
 }
 
 timezone_to_location ()
@@ -198,6 +210,9 @@ user_tools_aliasargv ()
   case "$1" in
       ( m|media ) shift; set -- us_media "$@" ;;
       ( sort|media-sort ) shift; set -- catalog_uc_sort "$@" ;;
+      ( darktime ) # ~
+          # Test wether dark or light colorscheme (CS) should be used
+          shift; set -- actual_darktime "$@" ;;
       ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
 
   esac

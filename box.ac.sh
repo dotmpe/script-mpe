@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# box-comp - auto-completion scripts for readline
+# box.ac - auto-completion scripts for readline
 # Created: 2015-09-05
+
 
 __box_init () # ~ <Exec-Name>
 {
@@ -49,13 +50,13 @@ __box_bash_auto_complete ()
   COMPREPLY=( $(compgen -W "$(__box_cmds) $(__box_aliases) $(__box_options)" -- $cur) )
 }
 
-__box_ac_def () # ~ <Exec-Name> <Handle> # Add completions for box execname
+__box_pref_ac_def () # ~ <Exec-Name> <Handle> # Add completions for box execname
 {
   test -n "${2-}" || set -- "$1" "__box_bash_auto_complete"
   local box scriptname base
   box="$(which "$1.sh")"
   scriptname="$(basename "$box" .sh)"
-  base="$(echo "$scriptname" | tr '-' '_')"
+  base="$(echo "$scriptname" | tr '.-' '_')"
   eval "$(cat <<EOM
 __box_ac_${base} ()
 {
@@ -68,15 +69,20 @@ EOM
 }
 
 
-BOX_EXECS="box diskdoc docker-sh esop graphviz htd htd ino list match meta-sh"\
-" redmine rst script-sh srv tasks topics twitter vagrant-sh vc x-test"
+BOX_EXECS="box box.us*"\
+" diskdoc docker-sh esop graphviz htd htd ino list match meta-sh"\
+" redmine rst script-sh srv tasks topics twitter"\
+" vagrant-sh vc x-test"
 
 __uc_ac_init ()
 {
   local box
   for box in "$@"
   do
-    __box_ac_def $box
+    case "$box" in
+      ( *"*" ) __box_fun_ac_def ${box/\*} ;;
+      ( * ) __box_pref_ac_def $box ;;
+    esac
   done
 }
 
@@ -87,6 +93,22 @@ __uc_execnames_check ()
   user_scripts_check
 }
 
-uc_lib_load str-uc std-uc && __uc_ac_init $BOX_EXECS
+
+test -n "${user_script_loaded:-}" ||
+  . "${US_BIN:="$HOME/bin"}"/user-script.sh
+
+script_isrunning "box.ac" .sh && {
+  base=box.ac
+  script_baseext=.sh
+  script_cmdals=
+  script_defcmd=
+
+} || {
+
+  # Running interactively probably? Initialize auto completion.
+  uc_lib_load str-uc std-uc && __uc_ac_init $BOX_EXECS
+}
+
+script_entry "box.ac" "$@"
 
 # Id: script-mpe/0.0.4-dev box-completion.sh                       ex:ft=bash:
