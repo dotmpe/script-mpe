@@ -59,6 +59,8 @@ Options:
   --no-indices  [default: false]
   --serialize-datetime=FMT
                 [default: %Y-%m-%dT%H:%M:%SZ]
+  --serialize-date=FMT
+                [default: %Y-%m-%dZ]
   --detect-format
   --no-detect-format
                 Auto-detect input/output format based on file-name extension
@@ -451,6 +453,8 @@ def H_objectpath(ctx):
     assert data
     q = Tree(data)
     assert q.data
+    print("Query:", ctx.opts.args.expr )
+    o = q.compile( ctx.opts.args.expr )
     o = q.execute( ctx.opts.args.expr )
     if isinstance(o, types.GeneratorType):
         for s in o:
@@ -648,9 +652,9 @@ if __name__ == '__main__':
                 sys.stderr.write(tbstr)
 
             tb = traceback.extract_tb( sys.exc_info()[2] )
-            jsotk_tb = filter(None, map(
+            jsotk_tb = list(filter(None, map(
                 lambda t: t[2].startswith('H_') and "%s:%i" % (t[2], t[1]),
-              tb))
+              tb)))
             if not len(jsotk_tb):
               jsotk_tb = filter(None, map(
                   lambda t: 'jsotk' in t[0] and "%s:%i" % (

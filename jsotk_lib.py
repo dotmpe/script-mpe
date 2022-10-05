@@ -11,7 +11,7 @@ except ImportError:
     sys.path.append(os.path.expanduser('~/lib/py'))
 from script_mpe.res import js
 from script_mpe.confparse import yaml_dumps
-from script_mpe.res.dt import obj_serialize_datetime
+from script_mpe.res.dt import obj_serialize_dates
 
 import ruamel.yaml
 
@@ -516,7 +516,7 @@ def json_writer(data, file, ctx):
         kwds.update(dict(indent=2))
     data = output_prefix(data, ctx.opts)
     # FIXME: handle datetimes
-    # data = obj_serialize_datetime(data, ctx)
+    data = obj_serialize_dates(data, ctx)
     if not data and ctx.opts.flags.empty_null:
         file.write('\n')
     else:

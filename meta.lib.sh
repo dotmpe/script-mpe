@@ -58,6 +58,9 @@ meta_api_man_1='
   emby-list-images [$DKCR_VOL/emby/config]
 '
 
+# .attributes is a local asis property file, to set metadata for a directory.
+# It is used by various scripts to get local configuration settings, and for
+# example to override package.yaml project metadata.
 meta_attribute()
 {
   test -e .attributes || return

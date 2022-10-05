@@ -123,11 +123,11 @@ annex_listkeys()
 
 annex_size()
 {
-  true
+  false
 }
 annex_dirsum()
 {
-  true
+  false
 }
 # Sum (byte)size for annexed content in Dir (and every subdir). Store JSON with
 # metafile, relative to CWD
@@ -545,6 +545,26 @@ annex_unused_cachelist()
   unused=$(count_lines $out)
   test $unused -gt 1 &&
     stderr 0 "Unused files: $(( unused - 1 )) <$out>" || rm "$out"
+}
+
+git_annex_find_keys ()
+{
+  find .git/annex/${1:?} -type f -iname "${2:?}"
+}
+
+git_annex_find_objects ()
+{
+  git_annex_find_keys "objects" "$@"
+}
+
+git_annex_find_corrupt ()
+{
+  git_annex_find_keys "bad" "$@"
+}
+
+git_annex_add_at () # ~ <Src> <Dest>
+{
+  rsync -avzui --no-group "$1" "$2" && git annex add "$2"
 }
 
 #

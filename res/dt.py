@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 
 ISO_8601_DATETIME = '%Y-%m-%dT%H:%M:%SZ'
@@ -59,23 +59,30 @@ def parse_isodatetime(s):
 def obj_serialize_datetime_list(l, ctx):
     r = []
     for n, i in enumerate(l):
-      r.append(obj_serialize_datetime(i, ctx))
+      r.append(obj_serialize_dates(i, ctx))
     return r
 
 def obj_serialize_datetime_dict(o, ctx):
     r = {}
     for k, v in o.items():
-      r[k] = obj_serialize_datetime(v, ctx)
+      r[k] = obj_serialize_dates(v, ctx)
     return r
 
-def obj_serialize_datetime(o, ctx):
-    if hasattr(o, 'items'):
+def obj_serialize_dates(o, ctx):
+    import sys
+    if isinstance(o, str):
+      return o
+    elif hasattr(o, 'items'):
       return obj_serialize_datetime_dict(o, ctx)
     elif hasattr(o, 'iter') or hasattr(o, '__iter__'):
       return obj_serialize_datetime_list(o, ctx)
     else:
       if isinstance(o, datetime):
         o = o.strftime(ctx.opts.flags.serialize_datetime)
+      elif isinstance(o, date):
+        o = o.strftime(ctx.opts.flags.serialize_date)
+      #else:
+      #  print("serialize", o, type(o), ctx, file=sys.stderr)
       return o
 
 human_time_period_specs = dict(

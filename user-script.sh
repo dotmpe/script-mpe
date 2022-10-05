@@ -462,6 +462,8 @@ user_script_longhelp () # ~ [<Name>]
 }
 
 # This should be run before calling any function
+# TODO: rename user-script-helper-env
+
 user_script_shell_env ()
 {
   ! test "${user_script_shell_env:-}" = "1" || return 0
