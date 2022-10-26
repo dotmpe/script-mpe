@@ -7,4 +7,7 @@ VFS-Map: TODO.* shadow-tasks
 
 Components-Txt: .components.txt
 
+Project cache: .meta/cache
+Build boot: attributes
+
 # Id: Script.mpe/0.0.4-dev .attributes                     vim:ft=asis:nowrap:

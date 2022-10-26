@@ -1,79 +1,101 @@
 #!/usr/bin/env bash
-# Created: 2020-08-31
-set -euo pipefail
 
 # The main project redo script controls project lifecycle and workflows.
 
-version="Script.mpe/0.1-alpha"
+# Created: 2020-08-31
 
-default_do_include () # Build-Part Target-File Target-Name Temporary
+default_do_env () # ~ # Prepare shell profile with build-target handler
 {
-  local build_part="$1"
+  true "${ENV:="dev"}"
+  true "${APP:="Script.mpe/0.1-alpha"}"
+  true "${ENV_BUILD:="tools/redo/env.sh"}"
 
-  $LOG "info" ":part:$2" "Building include" "$1"
-  build-ifchange "$build_part" || return
-  shift
+  true "${BUILD_ENV_DEF:="attributes build-rules rule-params defaults redo--"}"
+  true "${BUILD_TOOL:=redo}"
+  true "${PROJECT_CACHE:=.meta/cache}"
 
-  $LOG "debug" ":part:$1" "Sourcing include" "$build_part"
-  source "$build_part"
+  CWD=$REDO_BASE
+
+  # Use ENV-BUILD as-is when given, or fall-back to default built-in method.
+  test -e "$ENV_BUILD" && {
+    . "$ENV_BUILD" || return
+  } || {
+    default_do_env_default
+  }
+}
+
+default_do_env_default () # ~ # Default method to prepare redo shell profile
+{
+  true "${REDO_ENV_CACHE:="${PROJECT_CACHE:-".meta/cache"}/redo-env.sh"}"
+
+  # Built-in recipe for redo profile
+  test "${REDO_TARGET:?}" = "$REDO_ENV_CACHE" && {
+
+    #true "${ENV_BUILD_ENV:="tools/redo/build-env.sh"}"
+
+    # Allow to build build-env profile as well.
+    #test "${ENV_BUILD_BUILD_ENV:-0}" != "1" || {
+    #  build-ifchange "$ENV_BUILD_ENV" || return
+    #}
+
+    #test ! -e "$ENV_BUILD_ENV" || {
+    #  . "$ENV_BUILD_ENV" || return
+    #}
+
+    # Add current file to deps
+    #redo-ifchange "${REDO_BASE:?}/tools/redo/env.sh" &&
+
+    # Finally run some steps to generate the profile
+    source "${U_S:?}/src/sh/lib/build.lib.sh" &&
+    quiet=true build_env
+    exit
+
+  } || {
+
+    # For every other target, source the built profile and continue.
+    redo-ifchange "$REDO_ENV_CACHE" &&
+    source "$REDO_ENV_CACHE"
+  }
 }
 
 default_do_main ()
 {
-  : ${CWD:=$PWD}
+  redo-ifchange "${REDO_BASE:?}/default.do" || return
 
-  command -v build- >/dev/null || build- () {
-    build_entry_point=build- \
-      source "${U_S:?}/src/sh/lib/build.lib.sh"; }
+  BUILD_TARGET=$1
+  BUILD_TARGET_BASE=$2
+  BUILD_TARGET_TMP=$3
 
-  true "${BUILD_TOOL:=redo}"
-  true "${BUILD_TARGET:=$1}"
+  set -euo pipefail
 
-  # TODO: use boot-for-target to load script deps
-  redo_env="$(quiet=true build- boot)" || {
-    $LOG "error" "" "While loading build-env" "E$?" $?
-    return
-  }
+  default_do_env || return
 
-  eval "$redo_env" || {
-    $LOG "error" "" "While reading build-env" "E$?" $?
-    return
-  }
-
-
-  # Keep short build sequences in this file (below in the case/easc), but move
-  # larger build-scripts to separate files to prevent unnecessary builds from
-  # updates to the default.do
-  # Alternatively we fall back to build-components from build.lib.sh that reads
-  # rules to generate source-to-target build specs.
-
-  local target="$(echo ${BUILD_TARGET:?} | tr './' '_')" part
-  part=$( build_part_lookup $target.do ${build_parts_bases:?} ) && {
-
-    { build_init__redo_env_target_ || return
-      build_init__redo_libs_ "$@" || return
-    } >&2
-
-    $LOG "notice" ":part:$1" "Building part" "$PWD:$0:$part"
-    default_do_include $part "$@"
-    exit $?
-  }
-
-  $LOG "info" ":main:$1" "Selecting target" "$PWD:$0"
   case "$1" in
 
     # 'all' is the only special redo-builtin (it does not show up in
     # redo-{targets,sources}), everything else are proper targets. Anything
     # seems to be accepted, '-' prefixed arguments are parsed as redo options
-    # but after '--' to separate arguments those can start with '-' as well.
+    # but after '--' we can pass targets that start with '-' as well.
 
-    :env )     build-always && build_env_sh >&2  ;;
-    :info )    build-always && build_info ;;
-    :sources ) build-always && build-sources >&2 ;;
-    :targets ) build-always && build-targets >&2 ;;
-    # XXX: see also build-whichdo, build-log
+    -env )     build-always && build_env_sh >&2  ;;
+    -info )    build-always && build_info >&2 ;;
+    -ood )     build-always && build-ood >&2 ;;
+    -sources ) build-always && build-sources >&2 ;;
+    -targets ) build-always && build-targets >&2 ;;
 
-    help|:help )    build-always
+    "??"* )
+        BUILD_TARGET=${BUILD_TARGET:1}
+        BUILD_TARGET_BASE=${BUILD_TARGET_BASE:1}
+        BUILD_TARGET_TMP=${BUILD_TARGET_TMP:1}
+        build_which "$BUILD_TARGET" >&2 ;;
+
+    "?"* )
+        BUILD_TARGET=${BUILD_TARGET:1}
+        BUILD_TARGET_BASE=${BUILD_TARGET_BASE:1}
+        BUILD_TARGET_TMP=${BUILD_TARGET_TMP:1}
+        build_for_target >&2 ;;
+
+    help|-help )    build-always
               echo "Usage: $BUILD_TOOL [${build_main_targets// /|}]" >&2
       ;;
 
@@ -87,46 +109,17 @@ default_do_main ()
           "tools/redo/parts/_build_tests_*.tap.do" "$@"
       ;;
 
-
-    # Build without other do-files, based on .build-rules.txt
     * )
-        build_rules_for_target "$@" || return
-
-        test "$1" != "${BUILD_RULES-}" -a -s "${BUILD_RULES-}" || {
-          # Prevent redo self.id != src.id assertion failure
-          $LOG alert ":build-component:$1" \
-            "Cannot build rules table from empty table" "${BUILD_RULES-null}" 1
-          return
-        }
-
-        # Shortcut execution for simple aliases, but takes literal values only
-        { build_init__redo_env_target_ || return
-        } >&2
-        build_env_rule_exists "$1" && {
-          build_env_targets
-          exit
-        }
-
-        # Run build based on matching rule in BUID_RULES table
-
-        build_rule_exists "$1" || {
-          #print_err "error" "" "Unknown target, see '$BUILD_TOOL help'" "$1"
-          $LOG "error" "" "Unknown target, see '$BUILD_TOOL help'" "$1" $?
-          return
-        }
-
-        $LOG "notice" ":exists:$1" "Found build rule for target" "$1"
-
-        { build_init__redo_libs_ "$@" || return
-        } >&2
-        build_components "$1" "" "$@"
+        # Build target using alternative methods if possible.
+        build_target
         exit
       ;;
 
   esac
 }
 
-default_do_main "$@"
+test -z "${REDO_RUNID:-}" ||
+    default_do_main "$@"
 
 # Id: BIN:default.do                                               ex:ft=bash:
 # Sync: U-s

@@ -266,7 +266,7 @@ htd_als__week_nr='Show current journal week/day id (ISO)'
 htd__week_nr() # Date
 {
   test $# -gt 0 || set -- now
-  $LOG note "" "Weeknr is ISO (01-53)/Sunday-weeks (00-53)" "$(date +%V/%U -d "$1" )"
+  $LOG note "" "Weeknr is ISO (01-53)/Sunday-weeks (00-53)" "${1:?}:$(date +"%V/%U (%A)" -d "$1" )"
   date +%V -d "$*"
 }
 
