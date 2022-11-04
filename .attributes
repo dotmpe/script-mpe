@@ -4,7 +4,6 @@ Symbol: BIN
 App-Version: 0.0.4-dev # Script.mpe
 
 VFS-Map: TODO.* shadow-tasks
-
 Components-Txt: .components.txt
 
 Project cache: .meta/cache

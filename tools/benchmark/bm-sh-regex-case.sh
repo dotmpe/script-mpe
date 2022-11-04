@@ -1,11 +1,9 @@
 
 # Looking at how fast a regex test does for a simple two-char check.
 
-
-# regex 1.7s/100000 = 17 microseconds
-# test  1.5s/100000 = 15 microseconds
-# case  1.2s/100000 = 12 microseconds
-
+# regex 1.7s/100000 = 1.7 ms
+# test  1.5s/100000 = 1.5 ms
+# case  1.2s/100000 = 1.2 ms
 
 test_regex ()
 {
@@ -27,21 +25,8 @@ test_case ()
   esac
 }
 
-run_test ()
-{
-  local iter=${1:?}
-  shift || return
-  while test "$iter" -gt "0"
-  do
-    test_${1:?} || true
-    iter=$(( $iter - 1 ))
-  done
-}
-
+source tools/benchmark/_lib.sh
 runs=100000
-echo -e "\nTesting regex..."
-time run_test $runs regex
-echo -e "\nTesting test..."
-time run_test $runs test
-echo -e "\nTesting case..."
-time run_test $runs case
+echo -e "\nTesting regex..."; time run_test $runs regex
+echo -e "\nTesting test..."; time run_test $runs test
+echo -e "\nTesting case..."; time run_test $runs case

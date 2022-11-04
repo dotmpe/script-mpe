@@ -1,14 +1,14 @@
-# Components local for BIN
-# Cols: Target-Name Target-Type Target-Value...
+## Components local to BIN
+
 init alias install check
 install alias install-deps
 check alias lint
-build alias check src-sh manual
+build alias check src-sh manual &current &urls &worktree
 test alias test/baselines test/required
 pack alias
 dist alias
 
-current alias .meta/cache/ledges.list
+&current alias .meta/cache/ledges.list
 
 # test-bats
 
@@ -16,7 +16,9 @@ install-deps function build_install build-uc
 .cllct/src/sh-stats function build_sh_stats u_s-stats
 # bats-baseline simpleglob .build/tests/baseline-*.tap test/baseline/%.bats
 # bats-unit simpleglob .build/tests/unit-*.tap test/unit/%.bats
-urls alias .meta/cache/urls-context.list
+&urls alias .meta/cache/urls-context.list
+&worktree alias .meta/cache/worktree.list
+&worktree:* defer worktree-local
 
 # Sync-From: U-S:
-# Id: Script.mpe/ .components.txt ex:ft=todo:
+# Id: Script.mpe/ .components.txt ex:ft=less.txt:

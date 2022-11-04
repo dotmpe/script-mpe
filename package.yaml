@@ -24,7 +24,8 @@
     required: util 1_1-helper str sys os std stdio argv shell list match vc matchbox
       src main box box-cmd box-lib box-src pd-meta finfo table package
   prefixes: {}
-  slug-id: BIN
+  symbol: BIN
+  slug-id: script-mpe
   version: 0.0.4-dev # Script.mpe
   build: redo "\$@"
   env:
