@@ -1,16 +1,13 @@
 
-# Fzf env var for user preferences
-: "${FZF_DEFAULT_OPTS:=--exact -i}"
-    #--layout=reverse-list
-
-# Additinal options for fzf-edit-* functions
-: "${FZF_EDIT_OPTS:=--multi}"
+# FIXME: seems like regexes are not passed/quoted correctly from fzf
 
 #: "${FZF_DEFAULT_COMMAND:=}"
 # FZF_CTRL_T_COMMAND
 # FZF_CTRL_T_OPTS
 
 
+# Quick file-select and edit for given (Fzf and Vim) query string(s), using
+#
 # Start search using query and edit single match, or run Fzf prompt to manually
 # select file(s) to edit. If second argument is given, a Vim forward-search
 # command option is passed upon invoking $EDITOR.
@@ -20,22 +17,24 @@ fzf_edit_preview () # ~ <Fzf-query-> <Vim-search-re->
 {
   local fzf_q="${1:-}" fzf_a vim_q="${2:-}" vim_a
 
-  # Common FZF user options (see also FZF_DEFAULT_OPTS)
+  # Customize UI (see also FZF_DEFAULT_OPTS for user options)
   set -- --header "Choose file(s) to edit" --prompt='> ' \
 
-  # If query is already provided, let Fzf skip editing query for 1-item set.
+  # If query is already provided, let Fzf skip query-edit
+  # if result is 1-item set.
   test -z "$fzf_q" \
     && set -- "$@" ${FZF_EDIT_OPTS:-} \
     || set -- "$@" ${FZF_EDIT_OPTS:-} --select-1 --query "$fzf_q"
 
-  #shellcheck disable=2046
   # Get filename(s) from FZF or return
+  #shellcheck disable=2046
   set -- $(fzf-preview $fzf_a "$@") &&
     test $# -gt 0 || return
 
-  # Query within document as well
+  # Query within first document using Vim query
   test -z "$vim_q" || set -- -c "/$vim_q" "$@"
-  command $EDITOR $vim_a "$@"
+
+  ${fork:-true} && exec $EDITOR $vim_a "$@" || command $EDITOR $vim_a "$@"
 }
 
 # Same as fzf-edit-preview, but provide dirs to search as well.

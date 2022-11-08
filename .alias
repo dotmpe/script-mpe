@@ -1,3 +1,13 @@
+__=~/bin/.alias
+test  "${C_INC:?"$0[$$]: ${__}: User includes env expected (required)"}}"
+
+#test    "${U_C:?"$0[$$]: ${__}: User config env expected (required)"}}"
+#test  "${UCONF:?"$0[$$]: ${__}: User config env expected (required)"}}"
+
+#test "${US_BIN:?"$0[$$]: ${__}: User scripts env expected (required)"}}"
+#test    "${U_S:?"$0[$$]: ${__}: User scripts env expected (required)"}}"
+
+
 # Alias box scripts and refresh compiled scripts behind alias automatically
 _shc_update_and_run ()
 {

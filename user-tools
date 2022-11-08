@@ -91,7 +91,7 @@ astronomical_hours () # ~ [<Hour>]
 #
 roman_hours () # ~ [<Hour>]
 {
-  test $# -gt 0 || set -- $(time_hours)
+  test $# -gt 0 || set -- $(date +'%H')
 
   test $# -gt 0 || {
     test "${SOLAR_TIME:-0}" = "1" && {
