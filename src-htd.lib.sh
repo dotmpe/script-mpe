@@ -613,10 +613,10 @@ resolve_fileref () # ~ <Ref> <From> <Directive>
       && fileref=$1 \
       || fileref=$(dirname -- "$2")/$1 # make abs path
 
-  file="$(eval "echo \"$fileref\"" | sed 's#\~/#'"$HOME"'#')" # expand vars, user
+  file="$(eval "echo \"$fileref\"" | sed 's#\~/#'"$HOME"'/#')" # expand vars, user
 
   test -e "$file" || {
-    $LOG warn "" "Cannot resolve reference" "ref:$1 file:$1"
+    $LOG warn "" "Cannot resolve reference" "ref:$1 file:$file"
     return 9
   }
 

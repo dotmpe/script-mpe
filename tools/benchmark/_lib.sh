@@ -18,6 +18,11 @@ run_test ()
   run_all test_ "$@"
 }
 
+run_test_q ()
+{
+  run_test "$@" >/dev/null
+}
+
 run_test_io_V () # ~ <Pref> <Iter> <Data> <Cmd>
 {
   local pref=${1:?} iter=${2:?} data=${3:?} cmd=${4:?}

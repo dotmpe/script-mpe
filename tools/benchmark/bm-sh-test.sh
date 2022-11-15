@@ -9,6 +9,6 @@ runs=100000
 # 1000000 11s
 
 # So extrapolating lowest measurable gives about
-# 1 call 9 us
+# 1 call 9 us (t460s)
 
 time run_test $runs -- test -n "null"
