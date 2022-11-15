@@ -20,12 +20,15 @@
 
 :install-deps function build_install build-uc
 
-# @at.lint: lint-tags shellcheck
+# @at.lint: &lint shellcheck
 
 # @at.test-bats: %test-baselines %test-units
 
 %bats-baseline simpleglob .build/tests/baseline-*.tap test/baseline/%.bats
 %bats-unit simpleglob .build/tests/unit-*.tap test/unit/%.bats
+
+&lint alias .meta/cache/lint-errors.list
+&lint:* defer lint-tags
 
 &urls alias .meta/cache/urls-context.list
 
