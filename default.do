@@ -26,14 +26,13 @@ default_do_attrs ()
 default_do_env () # ~ # Prepare shell profile with build-target handler
 {
   CWD=${REDO_STARTDIR:?}
-  default_do_attrs || return
   BUILD_STARTDIR=$CWD
-  BUILD_BASE=$REDO_BASE
+  BUILD_BASE=${REDO_BASE:?}
   BUILD_ID=$REDO_RUNID
+  default_do_attrs || return
   true "${ENV:="dev"}"
   true "${APP:="Script.mpe/0.0.4-dev"}"
   true "${ENV_BUILD:="tools/redo/env.sh"}"
-
   true "${BUILD_ENV_DEF:="attributes build-rules rule-params defaults redo--"}"
   BUILD_TOOL=redo
   local sub="${BUILD_STARTDIR:${#BUILD_BASE}}"
@@ -79,6 +78,12 @@ default_do_env_default () # ~ # Default method to prepare redo shell profile
     exit
 
   } || {
+
+    test -e "$BUILD_ENV_CACHE" || {
+      #build_env_targets_default &&
+      build_env_default
+      return
+    }
 
     # For every other target, source the built profile and continue.
     redo-ifchange "$BUILD_ENV_CACHE" || return
@@ -165,9 +170,11 @@ build_source ()
   declare rp bll
   test "${1:0:1}" != "/" || set -- "$(realpath "$1" --relative-to "${CWD:?}")"
 
-  redo-ifchange "$1" && rp=$(realpath "$1") || {
-    $LOG error :build:source "Error during redo-ifchange" "$1:E$?" ; return 1
-  }
+  rp=$(realpath "$1")
+  # XXX:
+  #redo-ifchange "$1" && rp=$(realpath "$1") || {
+  #  $LOG error :build:source "Error during redo-ifchange" "$1:E$?" ; return 1
+  #}
   test -n "${build_source[$rp]-}" && return
   $LOG info :build:source "Found build source" "$1"
   {
@@ -253,10 +260,10 @@ sh_mode ()
 
 build_error_handler ()
 {
-  local r=$?
+  local r=$? lastarg=$_
   ! sh_fun stderr_ ||
-    stderr_ "! $0: Error in recipe for '${BUILD_TARGET:?}': E$r"
-  $LOG error ":on-error" "In recipe for '${BUILD_TARGET:?}'" "E$r"
+    stderr_ "! $0: Error in recipe for '${BUILD_TARGET:?}': E$r" 0
+  $LOG error ":on-error" "In recipe for '${BUILD_TARGET:?}' ($lastarg)" "E$r"
   exit $r
 }
 
