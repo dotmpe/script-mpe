@@ -30,6 +30,8 @@
 
 source tools/benchmark/_lib.sh
 
+sh_mode strict
+
 runs=10000
 
 test_isfun ()

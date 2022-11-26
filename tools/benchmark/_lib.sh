@@ -38,3 +38,41 @@ run_test_io ()
 {
   run_test_io_V "$@" >/dev/null || true
 }
+
+#REDO_RUNID= source ./default.do
+sh_mode ()
+{
+  test $# -eq 0 && {
+    # XXX: sh-mode summary
+    echo "$0: sh-mode: $-" >&2
+    trap >&2
+  } || {
+    while test $# -gt 0
+    do
+      case "${1:?}" in
+          ( test|build|ci )
+                set -CET &&
+                trap "test_error_handler" ERR
+              ;;
+          ( dev|debug )
+                set -hET &&
+                shopt -s extdebug
+              ;;
+          ( strict ) set -euo pipefail ;;
+          ( * ) stderr_ "! $0: sh-mode: Unknown mode '$1'" 1 || return ;;
+      esac
+      shift
+    done
+  }
+}
+# Copy: sh-mode
+
+test_error_handler ()
+{
+  local r=$? lastarg=$_
+  $LOG error ":on-error" "In test" "E$r:$lastarg:$0:$*"
+  exit $r
+}
+# Derive: error-handler
+
+# ID:

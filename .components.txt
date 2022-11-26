@@ -1,39 +1,42 @@
 ## Components local to BIN
 
-# @main: all help check build test
-# @all: check build test
+# @main: all help @Config @Check build test
+# @all: @Check test
 
-# @build: check src-sh manual &current &urls &worktree
-# @check: @lint
-# @test: @test
+# @build: @Config @Check src-sh manual &current &urls &worktree
+# @at.Check: @lint
+# @at.Test: *test-bats
 
-# @at.init: @install @check
+# @at.Config: *config
+# @at.init: @install @Check
 # @at.install: :install-deps
-# @at.test: @test-bats
 
 # @pack:
 # @dist:
 
-&current alias .meta/cache/ledges.list
 
 .cllct/src/sh-stats function build_sh_stats u_s-stats
 
+&current alias .meta/cache/ledges.list
+
 :install-deps function build_install build-uc
-
-# @at.lint: &lint shellcheck
-
-# @at.test-bats: %test-baselines %test-units
 
 %bats-baseline simpleglob .build/tests/baseline-*.tap test/baseline/%.bats
 %bats-unit simpleglob .build/tests/unit-*.tap test/unit/%.bats
 
+*build-env expand ${PROJECT_CACHE:?}/{attributes,params,redo-env}.sh
+*config alias *build-env
+
+# @at.lint: &lint
 &lint alias .meta/cache/lint-errors.list
-&lint:* defer lint-tags
+&lint:* part lint-tags
+
+*test-bats alias %test-baselines %test-units
 
 &urls alias .meta/cache/urls-context.list
 
 &worktree alias .meta/cache/worktree.list
-&worktree:* defer worktree-local
+&worktree:* part worktree-local
 
 # Sync-From: U-S:
 # Id: Script.mpe/ .components.txt ex:ft=less.txt:
