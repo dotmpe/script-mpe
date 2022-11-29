@@ -37,5 +37,4 @@ cron ()
 
 test $# -gt 0 || set -- u_s
 
-test -z "${BUILD_ID:-}" || return 0
-"$@"
+test -n "${BUILD_ID:-}" || "$@"

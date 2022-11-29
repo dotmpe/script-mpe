@@ -1,18 +1,20 @@
 ## Components local to BIN
 
 # @main: all help @Config @Check build test
-# @all: @Check test
+# @all: build @Check test
 
-# @build: @Config @Check src-sh manual &current &urls &worktree
-# @at.Check: @lint
-# @at.Test: *test-bats
-
-# @at.Config: *config
+# @build: @build-env @Check @Config src-sh manual &current &urls &worktree
 # @at.init: @install @Check
 # @at.install: :install-deps
+# @at.Check: @lint
+# @at.Config: @build-env
+# @at.Test: *test-bats
 
 # @pack:
 # @dist:
+
+
+@build-env eval $LOG warn :build-env Finished ENV=${ENV:-}:${XDG_SESSION_TYPE:-}:${UC_PROFILE_TP:-}:@${HOST:-}+${HOSTTYPE:-}:v=${v:-}
 
 
 .cllct/src/sh-stats function build_sh_stats u_s-stats
@@ -24,8 +26,7 @@
 %bats-baseline simpleglob .build/tests/baseline-*.tap test/baseline/%.bats
 %bats-unit simpleglob .build/tests/unit-*.tap test/unit/%.bats
 
-*build-env expand ${PROJECT_CACHE:?}/{attributes,params,redo-env}.sh
-*config alias *build-env
+*caches expand ${PROJECT_CACHE:?}/{attributes,params,redo-env}.sh
 
 # @at.lint: &lint
 &lint alias .meta/cache/lint-errors.list
