@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 
-# The HtDocs redo script
+# The Us-bin redo script
 
 # Created: 2016-09-16
 
-# Remove settings from file so they don't affect very build.
+# Remove settings from file so they don't affect all builds.
+
+
+# XXX: keep in .build-static.sh for now for projects that don't depend on @dev
+. ./.build-static.sh >&2 || exit $?
 
 for BUILD_SEED in \
   ${REDO_STARTDIR:?}/.env.sh \
@@ -17,5 +21,5 @@ done
 # Start standardized redo for build.lib
 . "${UCONF:?}/tools/redo/local.do"
 
-# Sync: UCONF
-# Id: Composure-inc:default.do                                     ex:ft=bash:
+# Sync: US
+# Id: Us-bin:default.do                                     ex:ft=bash:
