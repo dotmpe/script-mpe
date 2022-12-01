@@ -27,6 +27,6 @@ test_case ()
 
 source tools/benchmark/_lib.sh
 runs=100000
-echo -e "\nTesting regex..."; time run_test $runs regex
-echo -e "\nTesting test..."; time run_test $runs test
-echo -e "\nTesting case..."; time run_test $runs case
+echo -e "\nRunning regex..."; time run_test $runs regex
+echo -e "\nRunning test..."; time run_test $runs test
+echo -e "\nRunning case..."; time run_test $runs case
