@@ -46,15 +46,20 @@
 # some testing of regex builtin vs. grep/awk/sed/perl/ag/rg/... some day
 # but regex'ing is not too important right away.
 
+# Update: added ${var@A} expansion, only performs slightly worse than var/arr
+# caching.
+# But so littering env with chached opts may be sub optimal.
+# Of course, nothing is said yet about large arrays.
 
 source tools/benchmark/_lib.sh
 
 sh_mode strict
 
-# A. 10000 x ~<8s
-# B. 10000 x 0.4s
-# C. 10000 x >0.4s
-
+# A. 10000x ~<8s
+# B. 10000x 0.4s
+# C. 10000x >0.4s
+# D.1,2 (other test)
+# E. 10000x 0.4s
 runs=10000
 
 myTestVariable=2e39486d4b881953965441509f9dd13bd0ccab5c62078339abc7ee41db2494d0
@@ -107,7 +112,7 @@ test_C_cache_vars ()
   } || {
     dopts=${!var}
   }
-  is_arr "$dopts" || true
+  is_arr "$dopts"
 }
 
 test_C_is_working ()
@@ -119,8 +124,49 @@ test_C_is_working ()
   echo n:${dname:-unset} ${dopts:-unset} d:${decl:-unset}
 }
 
+
+typeset -A my_d_cache
+
+test_D_caching_declare_F ()
+{
+  typeset val
+  true "${val:=${my_d_cache["$1"]-unset}}"
+  test "$val" = unset && {
+    declare -F "${1:?}" >/dev/null 2>&1 && {
+        exists=true
+    } || {
+        exists=false
+    }
+    my_d_cache["$1"]=$exists
+  } || {
+    exists="${my_d_cache["$1"]:?}"
+  }
+  ${exists:?}
+}
+
+test_E_str_expansion ()
+{
+  typeset var=${1:?} dopts
+  dopts="${!var@A}"
+  is_arr
+}
+
+echo "Run raw typeset -p read (no cache)"
 time run_test $runs -- test_A_raw myTestVariable
+echo "Run from cached typeset -p (assoc arr)"
 time run_test $runs -- test_B_cache_arr myTestVariable
+echo "Run from cached typeset -p (plain var)"
 time run_test $runs -- test_C_cache_vars myTestVariable
+
+echo "D. Test raw call vs array key lookup (no opts caching, only keying)"
+# When caching result of built-in call only (no str I/O), array caching gives
+# negative speed optimization: ~0.2 vs ~0.3 seconds / 10000x.
+# declare -p has similar execution time to raw (declare -F)
+time run_test_q $runs -- declare -F run_test
+time run_test $runs -- test_D_caching_declare_F run_test
+time run_test_q $runs -- declare -p myTestVariable
+
+echo "E. Run raw str expansion (no cache)"
+time run_test $runs -- test_E_str_expansion myTestVariable
 
 #
