@@ -27,6 +27,7 @@
 %bats-unit simpleglob .build/tests/unit-*.tap test/unit/%.bats
 
 *caches expand ${PROJECT_CACHE:?}/{attributes,params,redo-env}.sh
+%func-lists expand-all us_shlibs_list -- .meta/src/functions/%*-lib.func-list
 
 # @at.lint: &lint
 &lint alias .meta/cache/lint-errors.list
