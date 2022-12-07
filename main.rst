@@ -1,6 +1,6 @@
 Intro
 -----
-This is a heavy work in progress.
+Dumping ground for all kinds for scripts.
 
 Background
 ----------

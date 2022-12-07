@@ -2,8 +2,8 @@
 
 ## Write playlist file based on times and tags
 
-#
 # This writes extended .m3u files
+
 
 time2seconds ()
 {
@@ -29,7 +29,7 @@ stdtime ()
 matches ()
 {
   any=false
-  for a in $@
+  for a in "$@"
   do
     case " $comment " in
       ( *" $a "* ) any=true ; break ;;
@@ -85,20 +85,21 @@ readtab () # ~ [<Tags...>]
   true "${rest_empty:="#"}"
 
   typeset -a extra=()
-  grep -vE '^\s*(|# .*)$' | sed -e 's/^ *//' -e 's/ *$//' | while read line
+  grep -vE '^\s*(|# .*)$' |
+    sed -e 's/^ *//' -e 's/ *$//' -e 's/^#/# # #/' |
+    while read st et f rest
   do
-    test "${line:0:1}" = "#" && {
-      test "${line:1:1}" != ":" || {
-        eval_doc_pi "$line" || return
+    test "${st:0:1}" = "#" && {
+      test "${f:1:1}" != ":" || {
+        eval_doc_pi "$f $rest" || return
         echo "#$VAR $VAL"
       }
       continue
     }
-    read st et f rest <<< "$line"
 
     test -e "$st" && {
       # Special case, set current file-path if first value exists, ignore rest
-      p="$st"
+      p="${Dir:-}${Dir:+/}$st"
       extra=()
       continue
     }
@@ -110,17 +111,23 @@ readtab () # ~ [<Tags...>]
     esac
 
     test -z "$f" && {
-      test -e "$p" || return 123
+      test -e "${p:-}" || {
+        test -h "${p:-}" && continue
+        $LOG error "" "No such file" "$st $et $f $rest"
+        continue
+      }
     } || {
       test -e "$f" || {
         test -n "${Dir:-}" -a -e "${Dir:-}/$f" && {
+          echo Found f="$Dir/$f" >&2
           f="$Dir/$f"
         } || {
+          test -z "${Dir:-}" || echo Invalid Dir path, missing f="$Dir/$f" >&2
           f=$(find . -iname "$f" -print -quit)
         }
       }
       test -e "$f" || {
-        echo "Not a file <$f>" >&2
+        echo "No such file <$f>" >&2
         continue
       }
       p="$f"
@@ -150,9 +157,7 @@ readtab () # ~ [<Tags...>]
 
     # Don't include timespec with playlist entry (play entire file)
     test "$st $et" = "* *" && {
-      exit 123
-      # echo "$p"
-      continue
+      st=0 et=-
     }
 
     printf "%s\t%s\t%s%s\n" "$st" "$et" "$p" "$(printf "\\t%s" "${extra[@]:-}")"
@@ -179,7 +184,15 @@ writepl_kv ()
   while IFS=$'\t\n' read -r st et p extra
   do
     test "${st:0:1}" = "#" && continue
-    echo "start=$st end=$et path=$p extra=$extra"
+    test "$st" = "0" && {
+      test "${et:--}" = "-" && {
+        echo "path=$p extra=$extra"
+      } || {
+        echo "end=$et path=$p extra=$extra"
+      }
+    } || {
+      echo "start=$st end=$et path=$p extra=$extra"
+    }
   done
 }
 
@@ -188,6 +201,7 @@ writepl_sh_mpv ()
 {
   declare docvar
   echo "set -e"
+  echo "cd \"$PWD\" || exit"
   echo "mpv --fs \\"
   while IFS=$'\t\n' read -ra fields
   do
@@ -210,8 +224,20 @@ writepl_sh_mpv ()
     }
     p="${fields[2]}"
     bn=$(basename "$p")
-    bn=${bn//.*}
-    echo "  --\{ --start=${fields[0]} --end=${fields[1]} --force-media-title=\"${title:-$bn}\" \"$p\" --\} \\"
+    bn=${bn%.*}
+    test "${fields[0]}" = "0" && {
+      test "${fields[1]:--}" = "-" && {
+        echo "  --\{ --force-media-title=\"${title:-$bn}\" \"$p\" --\} \\"
+      } || {
+        echo "  --\{ --end=${fields[1]} --force-media-title=\"${title:-$bn}\" \"$p\" --\} \\"
+      }
+    } || {
+      test "${fields[1]:--}" = "-" && {
+        echo "  --\{ --start=${fields[0]} --force-media-title=\"${title:-$bn}\" \"$p\" --\} \\"
+      } || {
+        echo "  --\{ --start=${fields[0]} --end=${fields[1]} --force-media-title=\"${title:-$bn}\" \"$p\" --\} \\"
+      }
+    }
   done
   echo
   echo "# Generated: $(date) $0 writepl-m3u-vlc"
@@ -239,76 +265,27 @@ writepl_m3u_vlc ()
   echo "#PLAYLIST:${M3U_TITLE:-${bn}}"
   while IFS=$'\t\n' read -r st et p extra
   do
-    sts=$(time2seconds "$(stdtime "$st")")
-    ste=$(time2seconds "$(stdtime "$et")")
-    cat <<EOM
-#EXTVLCOPT:start-time=$sts
-#EXTVLCOPT:stop-time=$ste
-$p
-EOM
+    test "$st" = "0" || {
+      sts=$(time2seconds "$(stdtime "$st")")
+      echo "#EXTVLCOPT:start-time=$sts"
+    }
+    test "${et:--}" = "-" || {
+      ste=$(time2seconds "$(stdtime "$et")")
+      echo "#EXTVLCOPT:stop-time=$ste"
+    }
+    echo "$p"
   done
   echo "#EXT-X-ENDLIST"
   echo "# Generated: $(date) $0 writepl-m3u-vlc"
 }
-
-writepl_m3u_ext ()
-{
-  echo "#EXTM3U"
-  echo "#EXTENC:utf-8"
-  echo "#PLAYLIST:${M3U_TITLE:-${bn}}"
-  echo "#EXT-X-VERSION:6"
-  while IFS=$'\t\n' read -r st et p extra
-  do
-    sts=$(time2seconds "$(stdtime "$st")")
-    ste=$(time2seconds "$(stdtime "$et")")
-    cat <<EOM
-#EXT-X-START:TIME-OFFSET=$sts
-$p
-EOM
-  done
-  echo "#EXT-X-ENDLIST"
-  echo "# Generated: $(date) $0 writepl-m3u-vlc"
-}
-
-
-# m3u #EXT-X-START
-#
 
 # XXX: here is some docs on chapter files, but not much for playlists.
+# Not sure what the purpose for M3U #EXT-X-START is
 #
 # <https://docs.fileformat.com/audio/m3u/>
 #
 # Chapters files for mpv player https://github.com/mpv-player/mpv/issues/4446
 # FFMPEG chapters: http://ffmpeg.org/ffmpeg-formats.html#Metadata-1
-
-writepl_ttxt_chapters ()
-{
-  echo
-  echo "# Generated: $(date) $0 writepl-ttxt-chapters"
-}
-
-writepl_ogg_chapters ()
-{
-  false
-}
-
-writepl_zoom_chapters ()
-{
-  false
-}
-
-writepl_nero_chapters ()
-{
-  typeset n=0
-  while read -r st et p rest
-  do
-    n=$(( n + 1 ))
-    #sts=$(time2seconds "$(stdtime "$st")")
-    #ste=$(time2seconds "$(stdtime "$et")")
-    echo "CHAPTER${n}=$st"
-    echo "CHAPTER${n}NAME=$rest"
-  done
-}
 
 
 # Main script entry
@@ -361,5 +338,5 @@ test $# -eq 0 && {
     }
   }
 }
-#
+
 #
