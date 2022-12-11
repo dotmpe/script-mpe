@@ -41,9 +41,9 @@ alias git-commit-m='git commit -m' # ~ <Commit-message>
 
 ## Sync
 
-alias git-pull-v='git-v ; git pull ${git_opt:?}'
-alias git-push-v='git-v ; git push ${git_opt:?}'
-alias git-fetch-v='git-v ; git fetch ${git_opt:?}'
+alias git-pull-v='git-v ; git pull ${git_opt?}'
+alias git-push-v='git-v ; git push ${git_opt?}'
+alias git-fetch-v='git-v ; git fetch ${git_opt?}'
 
 
 # Tracking config allows for different local/remote name pairings, but this
