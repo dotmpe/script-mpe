@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# Terminal Multiplexer shell routines
+## Terminal Multiplexer shell routines
+
 
 tmux_lib_load()
 {
@@ -165,7 +166,7 @@ htd_tmux_session_list_windows() # Session [] [Output-Spec]
 }
 
 
-htd_tmux_get()
+htd_tmux_get() # ~ # Attach to running or get new session
 {
   test -n "$1" || set -- "$HTD_TMUX_DEFAULT_SESSION" "$2" "$3"
   test -n "$2" || set -- "$1" "$HTD_TMUX_DEFAULT_WINDOW" "$3"
@@ -427,3 +428,5 @@ tmux_resurrect_restore() #
     p="" to="$TMUX_RESURRECT/" rsync_a=-iaL rsync_pairs "$@"
   chmod ug+w "$TMUX_RESURRECT"/*.txt
 }
+
+#
