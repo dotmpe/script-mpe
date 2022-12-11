@@ -5,6 +5,8 @@
 . ${US_BIN:?}/fzf.lib.sh
 
 
+: "${FZF_DEFAULT_COMMAND:=find . -not -type l}"
+
 # Fzf env var for user preferences
 : "${FZF_DEFAULT_OPTS:=--exact -i}"
     #--layout=reverse-list
@@ -39,7 +41,8 @@ alias fzf-view="fzf-tmux --preview='feh --title feh-preview -B ${feh_bg:-} -Z {}
 # 3. Open the file(s) in Vim
 fzf_ripgrep_preview ()
 {
-  RG_PREFIX="rg --column --line-number --no-heading --color=always --smart-case "
+  RG_PREFIX="rg --column --line-number --no-heading --color=always --smart-case"
+  echo RG_PREFIX=$RG_PREFIX >&2
   INITIAL_QUERY="${*:-}"
   IFS=: read -ra selected < <(
     FZF_DEFAULT_COMMAND="$RG_PREFIX $(printf %q "$INITIAL_QUERY")" \

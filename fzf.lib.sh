@@ -5,6 +5,8 @@
 # FZF_CTRL_T_COMMAND
 # FZF_CTRL_T_OPTS
 
+typeset -x FZF_DEFAULT_OPTS FZF_DEFAULT_COMMAND
+
 
 # Quick file-select and edit for given (Fzf and Vim) query string(s), using
 #
