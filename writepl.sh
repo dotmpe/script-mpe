@@ -59,13 +59,13 @@ eval_pi ()
 
 eval_doc_pi ()
 {
-  eval_pi "${1/\#:/\#:list:}"
+  eval_pi "${1}"
 }
 
 eval_item_pi ()
 {
   eval_pi "${1/\#:/\#:item:}" || return
-  declare docvar="list__${VAR:6}" docval
+  declare docvar="${VAR:6}" docval
 
   # Combine with document level value when
   # 1. starts with space, 2. substitue every ~ occurence
@@ -119,7 +119,6 @@ readtab () # ~ [<Tags...>]
     } || {
       test -e "$f" || {
         test -n "${Dir:-}" -a -e "${Dir:-}/$f" && {
-          echo Found f="$Dir/$f" >&2
           f="$Dir/$f"
         } || {
           test -z "${Dir:-}" || echo Invalid Dir path, missing f="$Dir/$f" >&2
@@ -207,10 +206,10 @@ writepl_sh_mpv ()
   do
     unset ${reset_fields:-title tags}
     test "${fields[0]:0:1}" = "#" && {
-      #test "${fields[0]:0:19}" = "#list__reset_fields" && {
+      #test "${fields[0]:0:19}" = "#reset_fields" && {
       #  declare
       #}
-      test "${fields[0]:0:10}" = "#list__mpv" || continue
+      test "${fields[0]:0:10}" = "#mpv" || continue
       declare docvar="${fields[0]:7}"
       docvar="${docvar/ /=}"
       echo "  --${docvar/mpv__} \\"
