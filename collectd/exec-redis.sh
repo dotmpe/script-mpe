@@ -5,11 +5,17 @@
 HOSTNAME="${COLLECTD_HOSTNAME:-$(hostname -f)}"
 INTERVAL="${COLLECTD_INTERVAL:-10}"
 PORT=6379
+HOST=127.0.0.1
+
+nc -zv ${HOST:?} ${PORT:?} || {
+    $LOG error "" "Unable to connect service" "redis:$HOST:$PORT"
+    exit 1
+}
 
 while sleep "$INTERVAL"
 do
 
-	info=$(echo info|nc -w 1 127.0.0.1 $PORT)
+	info=$(echo info|nc -w 1 ${HOST:?} ${PORT:?})
 	connected_clients=$(echo "$info"|awk -F : '$1 == "connected_clients" {print $2}')
 	connected_slaves=$(echo "$info"|awk -F : '$1 == "connected_slaves" {print $2}')
 	uptime=$(echo "$info"|awk -F : '$1 == "uptime_in_seconds" {print $2}')

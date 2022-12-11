@@ -8,8 +8,7 @@ ctx_statusdir_depends=@Shell
 
 ctx_statusdir_lib_init ()
 {
-  lib_require date &&
-  class.Statusdir.init
+  lib_require date && class.Statusdir.env
 }
 
 at_Statusdir__init ()
@@ -73,7 +72,7 @@ at_Statusdir__report_var () # Format [Record-Type [Record-Name]] [@Tags...] -- C
   esac
 }
 
-class.Statusdir.load ()
+class.Statusdir.env ()
 {
   declare -g -A Statusdir__params=()
   declare -g -A Statusdir__backends=()
@@ -94,8 +93,14 @@ class.Statusdir () # Instance-Id Message-Name Arguments...
       ;;
 
     .set_backend )
-        local backend=$1 && lib_require statusdir-$backend && shift &&
-        set -- $($self.get_backend_type "$backend") "$@" &&
+        local backend=${1:?} type
+        lib_require statusdir-"$backend" &&
+        lib_init statusdir-"$backend" || {
+            $LOG error "" "Loading SD BE" "$backend" 1 || return
+        }
+        shift &&
+        type="$($self.get_backend_type "$backend")" || return
+        set -- "$type" "$@" &&
         create "Statusdir__backends[$id]" "$@"
       ;;
 
@@ -104,6 +109,9 @@ class.Statusdir () # Instance-Id Message-Name Arguments...
       ;;
 
     .get_backend_type )
+        test unset != "${Statusdir__backend_types[${1,,}]:-unset}" || {
+            $LOG error "" "No such SD BE type" "$1" 1 || return
+        }
         echo "Statusdir.${Statusdir__backend_types[${1,,}]}"
       ;;
 

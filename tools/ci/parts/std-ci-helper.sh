@@ -10,19 +10,7 @@ export_stage()
   ci_stages="${ci_stages-}${ci_stages+" "}$stage_id"
 }
 
-announce_time()
-{
-  test -n "${travis_ci_timer_ts-}" && {
-
-    deltamicro="$(echo "$1 - $travis_ci_timer_ts" | bc )"
-    print_yellow "$scriptname:$stage" "${deltamicro}s: $2"
-  } || {
-
-    print_yellow "$scriptname:$stage" "???s: $2"
-  }
-}
-
-announce_stage()
+announce_stage () # ~
 {
   test $# -le 2 || return 98
 
@@ -32,6 +20,18 @@ announce_stage()
 
   local ts="$(eval echo \$${2}_ts)"
   announce_time "$ts" "Starting stage... <$stage>"
+}
+
+announce_time () # ~ # Report time since start
+{
+  test -n "${travis_ci_timer_ts-}" && {
+
+    deltamicro="$(echo "$1 - $travis_ci_timer_ts" | bc )"
+    print_yellow "$scriptname:$stage" "${deltamicro}s: $2"
+  } || {
+
+    print_yellow "$scriptname:$stage" "???s: $2"
+  }
 }
 
 close_stage()
@@ -78,8 +78,7 @@ ci_cleanup()
 
 ci_env() # Var
 {
-  : ${INIT_LOG:="$CWD/tools/sh/log.sh"}
-  $INIT_LOG "header2" "${2:-}$1" "$(eval echo \"\$$1\")"
+  ${INIT_LOG:?} "header2" "${2:-}$1" "$(eval echo \"\$$1\")"
 }
 
 ci_check() # Label Command-Line...
@@ -112,16 +111,15 @@ ci_tags() # Str Tags...
   return 1
 }
 
-# Execute/test one cmdline
-c-run()
+ci-run () # ~ <Test-cmd <...>> # Execute/test one cmdline
 {
   test $# -ge 1 -a -n "${1:-}" || return 98
-  : "${c_lbl:="Step"}"
-  : "${c_run:="$SCRIPT_SHELL -c"}"
-  print_yellow "" "Running $c_lbl $c_run '$1'..."
+  : "${ci_lbl:="Step"}"
+  : "${ci_run:="$SCRIPT_SHELL -c"}"
+  print_yellow "" "Running $ci_lbl $ci_run '$1'..."
 
   {
-    $c_run "$@" | {
+    $ci_run "$@" | {
       # NOTE: output stderr at lvl >= 3, stdout at 4 and above
       test ${verbosity:-4} -ge 3 && {
         test ${verbosity:-4} -ge 4 && {
@@ -134,18 +132,18 @@ c-run()
       }
     }
   } && {
-    c-pass "$c_lbl $c_run $1"
-    print_green "OK" "$c_lbl: $c_run '$1'"
+    ci-pass "$ci_lbl $ci_run $1"
+    print_green "OK" "$ci_lbl: $ci_run '$1'"
 
   } || {
 
-    c-fail "$c_lbl $c_run $*"
-    print_red "Not OK: $failed_ret" "$c_lbl: $c_run '$1'"
+    ci-fail "$ci_lbl $ci_run $*"
+    print_red "Not OK: $failed_ret" "$ci_lbl: $ci_run '$1'"
     trueish "$keep_going" || return $failed_ret
   }
 }
 
-c-pass()
+ci-pass()
 {
   passed_cmd="$_" passed_ret=$?
   test $# -eq 0 || passed_cmd="$1"
@@ -153,7 +151,7 @@ c-pass()
   echo "$passed_ret $passed_cmd" >>"$passed"
 }
 
-c-fail()
+ci-fail()
 {
   failed_cmd="$_" failed_ret=$?
   test $# -eq 0 || failed_cmd="$1"
@@ -164,7 +162,8 @@ c-fail()
 # TODO: manage TAP reports
 ci_test()
 {
-  local out=$B/reports/$SUITE/$(for t in $@;do basename $t .bats;done|tr '\n' '-'|sed 's/-$//').tap
+  local out
+  out="${B:?}/reports/$SUITE/$(for t in "${@:?}";do basename "$t" .bats;done|tr '\n' '-'|sed 's/-$//').tap"
 
   { bats "$@" || r=$?
   } | {
@@ -180,7 +179,7 @@ ci_test()
 ci_test_negative()
 {
   local r= out
-  out=$B/reports/$SUITE/$(for t in $@;do basename $t .bats;done|tr '\n' '-'|sed 's/-$//').tap
+  out="$B/reports/$SUITE/$(for t in "$@";do basename "$t" .bats;done|tr '\n' '-'|sed 's/-$//').tap"
   test ! -e "$out" || return 97
 # TODO: check for failure of all tests, not just one or a couple.
 # TODO: check for expected failure(s)

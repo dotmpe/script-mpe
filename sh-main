@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 
+## Wrapper for low-level script integration.
+
 # Shell script wrapper for $PWD/sh-* scripts and other project/CI tooling
 
-usage() # Short usage help or spec list for (partial) command name ~ [Command]
+usage () # Short usage help or spec list for (partial) command name ~ [Command]
 {
   test $# -le 1 || return 98
   test $# -eq 0 && {
@@ -16,19 +18,19 @@ usage() # Short usage help or spec list for (partial) command name ~ [Command]
   }
 }
 
-spec() # Combine and execute var/cmd specs with test-shell ~ ...
+spec () # ~ [<tab> [<match>]] # Combine and execute var/cmd specs with test-shell
 {
   test $# -gt 0 || set -- sh-baseline.tab
   test $# -gt 1 || set -- "$1" "*"
   test $# -eq 2 -a -f "$1" || return 98
 
-  sh_include std-stack std-runner
+  sh_include std-stack std-runner || return
 
   sh_spec "$1"|grep -v '^\s*\(#.*\|\s*\)$'|while read scriptline; do
 
     case "$scriptline" in $2 ) ;; * ) continue ;; esac
 
-    c-run "$scriptline" || return
+    ci-run "$scriptline" || return
 
   done
 }
@@ -36,7 +38,7 @@ spec() # Combine and execute var/cmd specs with test-shell ~ ...
 lines() # Print specs that would have been run ~ [build.tab] [Suite] [Prefix]
 {
   test $# -eq 1 -a -f "$1" || return 98
-  sh_include std-stack std-runner
+  sh_include std-stack std-runner || return
   sh_spec "$1"|grep -v '^\s*\(#.*\|\s*\)$'
 }
 
@@ -63,11 +65,11 @@ treebox()
     unset specfile
   }
 
-  local c_run="$1" ; shift ;
-  c-run "$@"
+  local ci_run="$1" ; shift ;
+  ci-run "$@"
 }
 
-# Same as run-suite, but test each step (like spec with c-run and passed/failed log session)
+# Same as run-suite, but test each step (like spec with ci-run and passed/failed log session)
 run-parts() # only show suite ~ Tab Suite Phases...
 {
   test $# -ge 2 || return 98
@@ -78,16 +80,16 @@ run-parts() # only show suite ~ Tab Suite Phases...
   test -n "$suite" || suite="${SUITE:-}"
   head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
 
-  local stage c_lbl
+  local stage ci_lbl
 
-  for phase in $@
+  for phase in "$@"
   do
     stage=$suite.$phase
-    c_lbl="$stage"
+    ci_lbl="$stage"
     parts=$( suite_from_table "$tab" Parts "$suite" "$phase" ) || return
     for part in $parts
     do
-      c_run=sh_include c-run "$part"
+      ci_run=sh_include ci-run "$part" || return
     done
     unset stage parts
   done
@@ -100,7 +102,7 @@ show-parts() # Table Suite Prefix
   test -n "$tab" -a -e "$tab" || return 96
   head -n 1 "$tab" | grep -q "\<$suite\>" || return 97
 
-  test $# -gt 0 && for phase in $@
+  test $# -gt 0 && for phase in "$@"
   do
     suite_from_table "$tab" "Parts" "$suite" "$phase" ||
       return
@@ -118,7 +120,7 @@ run-suite() # Table Suite Prefix
 run-baseline() # Spec
 {
   local r=
-  c_lbl=Baseline spec sh-baseline.tab "$@" &&
+  ci_lbl=Baseline spec sh-baseline.tab "$@" &&
      print_green "OK" "Baselines '${1:-*}'" || { r=$?
        print_red "Not OK: $?" "Baselines '${1:-*}'"
        return $r
@@ -129,7 +131,7 @@ run-baseline() # Spec
 run-test()
 {
   local r=
-  c_lbl="Project test" spec sh-project.tab "$@" &&
+  ci_lbl="Project test" spec sh-project.tab "$@" &&
      print_green "OK" "Project tests '${2:-*}'" || { r=$?
        print_red "Not OK: $?" "Project tests '${2:-*}'"
        return $r
@@ -141,7 +143,7 @@ run-ci()
 {
   test $# -gt 0 || set -- sh-ci.tab
   local r=
-  c_lbl="CI suite" spec "$@" &&
+  ci_lbl="CI suite" spec "$@" &&
      print_green "OK" "CI suite '${2:-*}'" || { r=$?
        print_red "Not OK: $?" "CI suite '${2:-*}'"
        return $r
@@ -154,7 +156,10 @@ run-ci()
 case "$(basename -- "$0" .sh)" in
   -bash ) ;;
 
-  sh-* ) test -z "${sh_main:-}" || return 0 ; sh_main=1
+  sh-* ) test -z "${sh_main:-}" || {
+          $LOG warn "" "Illegal recursion into sh-main (ignored)" "$0"
+          return 0
+      }; sh_main=1
 
       # Get minimal env using Main suite.
       : "${SUITE:="Main"}"
@@ -180,16 +185,15 @@ case "$(basename -- "$0" .sh)" in
         unset specfile
       }
 
-      : "${SCRIPT_NAME:=$(basename "$SCRIPT_SHELL")}"
-
-      echo "shell-cmd handler: $SCRIPT_NAME-c()" >&2
-      eval "$(cat <<EOM
-$SCRIPT_NAME-c() # Command-Line...
-{
-  $SCRIPT_SHELL -c "\$@"
-}
-EOM
-)"
+#      : "${SCRIPT_NAME:=$(basename "$SCRIPT_SHELL")}"
+#      echo "shell-cmd handler: $SCRIPT_NAME-c()" >&2
+#      eval "$(cat <<EOM
+#$SCRIPT_NAME-c() # Command-Line...
+#{
+#  $SCRIPT_SHELL -c "\$@"
+#}
+#EOM
+#)"
 
       # Execute/wrap unknown first-argv as shell command
       test -x "$1" -o "$(type -t "$1")" = "function" || set -- $SCRIPT_NAME-c "$@"
