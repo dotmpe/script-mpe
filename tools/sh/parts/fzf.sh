@@ -42,15 +42,15 @@ alias fzf-view="fzf-tmux --preview='feh --title feh-preview -B ${feh_bg:-} -Z {}
 fzf_ripgrep_preview ()
 {
   RG_PREFIX="rg --column --line-number --no-heading --color=always --smart-case"
-  echo RG_PREFIX=$RG_PREFIX >&2
   INITIAL_QUERY="${*:-}"
   IFS=: read -ra selected < <(
     FZF_DEFAULT_COMMAND="$RG_PREFIX $(printf %q "$INITIAL_QUERY")" \
 
+    # FZF_* may not be exported, so insert them in subshell command explicitly
     fzf-preview ${FZF_EDIT_OPTS:-} \
-
     fzf \
-    -e -m --ansi \
+        ${FZF_DEFAULT_OPTS:-} \
+        ${FZF_EDIT_OPTS:-} \
         --query "$INITIAL_QUERY" \
         --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
         --delimiter : \
