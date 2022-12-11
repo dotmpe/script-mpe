@@ -58,7 +58,7 @@ fzf_ripgrep_preview ()
   #[ -n "${selected[*]}" ] && "${EDITOR:?}" "${selected[@]}" "+${selected[1]}"
 }
 
-eval "ripgrep+file+${EDITOR:?} () { fzf_ripgrep_edit \"\$@\"; }"
+eval "ripgrep_file_${EDITOR:?} () { fzf_ripgrep_edit \"\$@\"; }"
 
 
 #

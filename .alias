@@ -57,4 +57,7 @@ alias yaml2yaml='jsotk dump -Oyaml --ignore-aliases --pretty'
 
 alias yaml2js="python -c 'import sys, yaml, json; json.dump(yaml.load(sys.stdin), sys.stdout, indent=4)'"
 
-test -z "${USER_CONF_DEBUG-}" || $LOG "info" "" "Done sourcing" "~/bin/.alias"
+test -z "${USER_CONF_DEBUG-}" || {
+  $LOG "info" "" "Done sourcing" "~/bin/.alias"
+  $LOG "info" :bin:alias "Done sourcing" "~/bin/.alias"
+}
