@@ -20,9 +20,9 @@ alias gitbase='git rev-parse --show-toplevel'
 
 alias git-current-branch='git rev-parse --abbrev-ref HEAD'
 
-alias git-staged-q='git diff --quiet --exit-code'
-alias git-status-q='git diff-index --cached --quiet --exit-code HEAD --'
-alias git-status-q-nsm='git diff-index --ignore-submodules --cached --quiet --exit-code HEAD --'
+alias git-clean-q='git diff --quiet --exit-code' # No changed files
+alias git-committed-q='git diff-index --cached --quiet --exit-code HEAD --' # No staged changes
+alias git-committed-q-nsm='git diff-index --ignore-submodules --cached --quiet --exit-code HEAD --'
 
 
 # List all remote-references for current branch (based on name, not git branch-tracking)
