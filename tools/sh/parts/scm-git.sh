@@ -2,8 +2,18 @@
 
 ##
 
-alias git-v='{ std_V 6 && git_opt=--verbose || {
-    std_v 5 && git_opt= || git_opt=--quiet; }; }'
+
+# Normally WARN/4 is quiet, NOTICE/5 normal and INFO/6 is verbose. For specific
+# applications output threshold can be raised one (--verbose is 7/DEBUG and
+# 5/NOTICE is --quiet) so that scripts can use NOTICE for specific LOG output
+# while keep GIT quiet, by setting git_chatty=false
+alias git-v='{
+  { ${git_chatty:-true} && std_V 6 || std_V 7; } && git_opt=--verbose || {
+    { ${git_chatty:-true} && std_V 5 || std_v 6; } &&
+      git_opt= ||
+      git_opt=--quiet
+  }
+}'
 
 
 ## Global
