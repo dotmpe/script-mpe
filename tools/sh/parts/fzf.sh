@@ -15,6 +15,8 @@
 # Additional options for fzf-edit-* functions
 : "${FZF_EDIT_OPTS:=--multi}"
 
+typeset -x FZF_DEFAULT_OPTS FZF_DEFAULT_COMMAND
+
 
 alias fzf_chdir='cd $(FZF_DEFAULT_COMMAND="find ./ -type d" FZF_CTRL_T_COMMAND="cd" fzf)'
 
@@ -45,8 +47,7 @@ fzf_ripgrep_preview ()
   INITIAL_QUERY="${*:-}"
   IFS=: read -ra selected < <(
     FZF_DEFAULT_COMMAND="$RG_PREFIX $(printf %q "$INITIAL_QUERY")" \
-
-    # FZF_* may not be exported, so insert them in subshell command explicitly
+    # These FZF_* may not be exported, so insert them in subshell command explicitly
     fzf-preview ${FZF_EDIT_OPTS:-} \
     fzf \
         ${FZF_DEFAULT_OPTS:-} \
