@@ -1,50 +1,44 @@
 
+### Comparing regex tools
+
+
+# Cannot get any benefit from ripgrep, for simple queries it underperforms by
+# one, almost two magnitudes. Silversearch is even much worse.
+#
+# Cannot get ripgrep benchsuite to run without diving into source, but looking
+# at the provided benchmark summaries and by doing some local test runs I don't
+# see any speed benefit to ripgrep, in fact the opposite. It does not even run
+# at similar speeds to grep but takes about 500 times longer!
+
+
 source tools/benchmark/_lib.sh
 
-runs=1000
+runs=1
+
+true "${testf:=htd.sh}"
+bre='^ *\(#.*\)\?$'
+re='^ *(#.*)?$'
 
 test_1a_grep ()
 {
-  grep -v '^ *\(#.*\)\?$' htd.sh
+  grep -v "$bre" "${testf:?}"
 }
 
 test_1b_egrep ()
 {
-  grep -Ev '^ *(#.*)?$' htd.sh
+  grep -Ev "$re" "${testf:?}"
 }
 
 test_2_ripgrep ()
 {
-  rg -v '^ *(#.*)?$' htd.sh
+  rg -v "$re" "${testf:?}"
 }
 
 test_3_silversearcher ()
 {
-  ag -v '^ *(#.*)?$' htd.sh
+  ag -v "$re" "${testf:?}"
 }
 
-test_4a_sh ()
-{
-    while read -r line
-    do
-        case "$line" in
-            ( "" | "# "* ) ;;
-            ( * ) echo "$line" ;;
-        esac
-    done < htd.sh
-}
-
-test_4b_sh ()
-{
-    while IFS=$'\t\n' read -r line_
-    do
-        line=${line_/[ ]}
-        case "$line" in
-            ( "" | "# "* ) ;;
-            ( * ) echo "$line_" ;;
-        esac
-    done < htd.sh
-}
 
 echo "Grep ($(test_1a_grep | wc -l) lines)"
 time run_test_q $runs 1a_grep
@@ -57,16 +51,18 @@ echo "Rg ($(test_2_ripgrep | wc -l) lines)"
 time run_test_q $runs 2_ripgrep
 echo
 
-echo "Ag ($(test_3_silversearcher | wc -l) lines)"
-time run_test_q $runs 3_silversearcher
+#echo "Ag ($(test_3_silversearcher | wc -l) lines)"
+#time run_test_q $runs 3_silversearcher
+#echo
+
+re='\w+\s+Холмс\s+\w+'
+
+echo "2. Grep -E ($(test_1b_egrep | wc -l) lines)"
+time run_test_q $runs 1b_egrep
 echo
 
-echo "Sh (lossy) ($(test_4a_sh | wc -l) lines)"
-time run_test_q $runs 4a_sh
-echo
-
-echo "Sh ($(test_4b_sh | wc -l) lines)"
-time run_test_q $runs 4b_sh
+echo "2. Rg ($(test_2_ripgrep | wc -l) lines)"
+time run_test_q $runs 2_ripgrep
 echo
 
 #
