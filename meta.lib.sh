@@ -1,23 +1,32 @@
 #!/bin/sh
 
+### Old media lib, new attributes/metadir setup
+
 
 meta_lib_load ()
 {
-  test -n "${META_DIR-}" || META_DIR=.meta
+  true "${META_DIR:=.meta}"
 }
 
-# Return mime-type (from BSD/GNU file) on Linux and Darwin
-file_mime()
+meta_lib_init ()
 {
-  test -e "$1" || error "expected existing path <$1>" 1
-  case "$uname" in
+  test -d "$META_DIR"
+}
 
-    Darwin ) file -b --mime-type "$1" ;;
-    Linux ) file -bi "$1" ;;
 
-    * ) error "No file MIME-type on $uname" 1 ;;
+meta_magic_description ()
+{
+  fileformat "${1:?}"
+}
 
-  esac
+meta_magic_extensions ()
+{
+  fileextensions "${1:?}"
+}
+
+meta_magic_mediatype ()
+{
+  filemtype "${1:?}"
 }
 
 

@@ -25,7 +25,7 @@ illustrate:
 
 This would make your (executable) script run at script-entry, if invoked as
 `my.sh` (or when included in a script invoked as such). But not when called or
-sourced otherwise. Basically only if scriptname == entry-argument.
+sourced otherwise. Basically only if SCRIPTNAME == entry-argument.
 
 Generic env settings:
     DEBUG - To enable some bash-specific trace/debug shell settings.
@@ -38,10 +38,10 @@ Before entry, user-script-shell-env can be executed to get access at other
 functions in the pre-entry stage, such as pre-processing arguments (w. defarg)
 
 Without defarg, there are only one or two more env settings at this point:
-    script_baseext - Set to strip ".ext" from name
-    scriptname - Should be no need to set this
+    SCRIPT_BASEEXT - Set to strip ".ext" from name
+    SCRIPTNAME - Should be no need to set this
 
-At script-entry first the scriptname is set and checked with first argument.
+At script-entry first the SCRIPTNAME is set and checked with first argument.
 user-script-shell-env then gets to run again (if needed), but it only does
 some basics for generic user-script things like the help function and
 the simple argument pre processing.
@@ -55,7 +55,7 @@ preparations.
 This runs the <baseid>-loadenv hook so custom scripts can do their own stuff.
 
 At that point these variables are provided:
-    base{,id} - Same as scriptname, and an ID created from that
+    base{,id} - Same as SCRIPTNAME, and an ID created from that
     script-cmd{,id,alsid} - The first argument, and an ID created from that.
         And also from an alias if set (see defarg)
 
@@ -103,14 +103,14 @@ TODO: fix help usage/maincmd so each gives proper info. Some tings mixed up now
 '
 
 
-# Execute when script is sourced, when given base matches scriptname.
+# Execute when script is sourced, when given base matches SCRIPTNAME.
 # If the handlers prefixes don't match the exec name, use
 # base var to change that.
 script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Arg...>
 {
-  local scriptname=${scriptname:-}
+  local SCRIPTNAME=${SCRIPTNAME:-}
   script_name || return
-  if test "$scriptname" = "$1"
+  if test "$SCRIPTNAME" = "$1"
   then
     user_script_shell_env || return
     shift
@@ -126,7 +126,7 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Arg...>
 script_baseenv ()
 {
   local vid var var_ _baseid
-  mkvid "${base:="$scriptname"}"; baseid=$vid
+  mkvid "${base:="$SCRIPTNAME"}"; baseid=$vid
 
   # Get instance vars
   for var in name version shortdescr
@@ -134,8 +134,8 @@ script_baseenv ()
     var_=${baseid}_$var;
     test -z "${!var_:-}"  || eval "script_$var=\"${!var_}\""
   done
-  : "${script_name:="$user_script_name:$scriptname"}"
-  : "${script_shortdescr:="User-script '$scriptname' has no description. "}"
+  : "${script_name:="$user_script_name:$SCRIPTNAME"}"
+  : "${script_shortdescr:="User-script '$SCRIPTNAME' has no description. "}"
 
   # Get inherited vars
   for var in maincmds
@@ -149,8 +149,8 @@ script_baseenv ()
     done
   done
 
-  local scriptname_ext=${script_baseext:-}
-  : "${script_src:="$scriptname$scriptname_ext user-script.sh"}"
+  local SCRIPTNAME_ext=${SCRIPT_BASEEXT:-}
+  : "${script_src:="$SCRIPTNAME$SCRIPTNAME_ext user-script.sh"}"
   # TODO: write us_load function ${script_lib:=user-script.lib.sh}
   script_lib=
 }
@@ -186,10 +186,13 @@ script_edit () # ~ # Invoke $EDITOR on script source(s)
 
 # Check if given argument equals zeroth argument.
 # Unlike when calling script-name, this will not pollute the environment.
-script_isrunning () # [scriptname] ~ <Scriptname> [<Name-ext>]# argument matches zeroth argument
+script_isrunning () # [SCRIPTNAME] ~ <Scriptname> [<Name-ext>]# argument matches zeroth argument
 {
-  local scriptname script_baseext="${2:-}"
-  script_name && test "$scriptname" = "$1"
+  test $# -ge 1 -a $# -le 2 || return ${_E_GAE:-3}
+  test $# -eq 2 && {
+    SCRIPT_BASEEXT="${2:?}"
+  }
+  script_name && test "$SCRIPTNAME" = "$1"
 }
 
 # Undo env setup for script-entry (inverse of script-doenv)
@@ -213,7 +216,7 @@ script_unenv ()
 
 script_name ()
 {
-  : "${scriptname:="$(basename -- "$0" ${script_baseext:-})"}"
+  : "${SCRIPTNAME:="$(basename -- "$0" ${SCRIPT_BASEEXT:-})"}"
 }
 
 
@@ -976,8 +979,8 @@ usage ()
   #. "${US_BIN:="$HOME/bin"}"/user-script.sh
   user_script_shell_env
 
-  # Strip extension from scriptname (and baseid)
-  script_baseext=.sh
+  # Strip extension from SCRIPTNAME (and baseid)
+  SCRIPT_BASEEXT=.sh
   # Default value used when argv is empty
   #script_defcmd=usage
   # Extra handlers for user-script-aliases to extract from

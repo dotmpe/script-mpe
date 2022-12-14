@@ -131,10 +131,10 @@ file_rotate () # ~ <Name> [<.Ext>]
 }
 
 # Use `stat` to get birth time (in epoch seconds)
-filebtime() # File
+filebtime() # ~ <File-path>
 {
   local flags=- ; file_stat_flags
-  case "$uname" in
+  case "${uname:?}" in
     Darwin )
         trueish "${file_names-}" && pat='%N %B' || pat='%B'
         stat -f "$pat" $flags "$1" || return 1
@@ -149,11 +149,11 @@ filebtime() # File
 }
 
 # Use `stat` to get inode change time (in epoch seconds)
-filectime() # File
+filectime() # ~ <File-path>
 {
   while test $# -gt 0
   do
-    case "$uname" in
+    case "${uname:?}" in
       Darwin )
           stat -L -f '%c' "$1" || return 1
         ;;
@@ -165,11 +165,24 @@ filectime() # File
   done
 }
 
+filextensions () # ~ <File-path>
+{
+  test -e "$1" || error "expected existing path <$1>" 1
+  case "${uname:?}" in
+
+    Darwin ) file -b --mime-type "$1" ;;
+    Linux ) file -bi "$1" ;;
+
+    * ) error "No file MIME-type on $uname" 1 ;;
+
+  esac
+}
+
 # Description of file contents, format
-fileformat ()
+fileformat () # ~ <File-path>
 {
   local flags= ; file_tool_flags
-  case "$uname" in
+  case "${uname:?}" in
     Darwin | Linux )
         file -${flags} "$1" || return 1
       ;;
@@ -178,12 +191,12 @@ fileformat ()
 }
 
 # Use `stat` to get modification time (in epoch seconds)
-filemtime() # File
+filemtime() # ~ <File-path <...>>
 {
   local flags=- ; file_stat_flags
   while test $# -gt 0
   do
-    case "$uname" in
+    case "${uname:?}" in
       Darwin )
           trueish "${file_names-}" && pat='%N %m' || pat='%m'
           stat -f "$pat" $flags "$1" || return 1
@@ -198,10 +211,10 @@ filemtime() # File
 }
 
 # Use `file` to get mediatype aka. MIME-type
-filemtype () # File..
+filemtype () # ~ <File-path>
 {
   local flags= ; file_tool_flags
-  case "$uname" in
+  case "${uname:?}" in
     Darwin )
         file -${flags}I "$1" || return 1
       ;;
@@ -213,12 +226,12 @@ filemtype () # File..
 }
 
 # Use `stat` to get size in bytes
-filesize () # File
+filesize () # ~ <File-path <...>>
 {
   local flags=- ; file_stat_flags
   while test $# -gt 0
   do
-    case "$uname" in
+    case "${uname:?}" in
       Darwin )
           stat -L -f '%z' "$1" || return 1
         ;;
@@ -971,7 +984,7 @@ xargs_fun () # (s) ~ <Command <Argv...>> # Suffix lines to argv and run
 # BSD helper
 xsed_rewrite () # ~ <Sed-argv...>
 {
-  case "$uname" in
+  case "${uname:?}" in
     Darwin ) sed -i.applyBack "$@";;
     Linux ) sed -i "$@";;
     * ) return 60 ;;

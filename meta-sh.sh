@@ -43,7 +43,7 @@ meta_sh__video_info()
 
   durms="$(mediadurationms "$1")"
   dar="$(mediadisplayaspectratio "$1")"
-  ft="$(file_mime "$1")"
+  ft="$(meta_magic_mediatype "$1")"
   res="$(mediaresolution "$1")"
   test -n "$durms" || error "No duration <$1>" 1
   test -n "$res" || error "No resolution <$1>" 1

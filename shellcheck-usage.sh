@@ -56,8 +56,7 @@ test -n "${user_script_loaded:-}" || {
 }
 
 # Parse arguments
-! script_baseext=.sh script_isrunning "shellcheck-usage" || {
-  script_baseext=.sh
+! script_isrunning "shellcheck-usage" .sh || {
   eval "set -- $(user_script_defarg "$@")"
 }
 
