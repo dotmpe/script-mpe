@@ -5,6 +5,20 @@
 # FZF_CTRL_T_COMMAND
 # FZF_CTRL_T_OPTS
 
+fzf_start ()
+{
+  fnmatch "* --color=*" "$FZF_DEFAULT_OPTS" || {
+    FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS $FZF_CHAUVET"
+  }
+
+  # Defined by Fzf
+  test -n "${FZF_DEFAULT_OPTS:-}" || declare -gx FZF_DEFAULT_OPTS
+  test -n "${FZF_DEFAULT_COMMAND:-}" || declare -gx FZF_DEFAULT_COMMAND
+  # Defined by this lib
+  test -n "${FZF_EDIT_OPTS:-}" || declare -gx FZF_EDIT_OPTS
+
+}
+
 
 # Quick file-select and edit for given (Fzf and Vim) query string(s), using
 #

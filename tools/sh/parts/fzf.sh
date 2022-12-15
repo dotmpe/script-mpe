@@ -9,8 +9,19 @@
 
 # Fzf env var for user preferences
 : "${FZF_DEFAULT_OPTS:=--exact -i}"
-    #--layout=reverse-list
+#--layout=reverse-list
 # XXX: I think --ansi is default?
+
+# Initial Chauvet theme for Fzf
+FZF_CHAUVET='
+    --color=bg:#121212,bg+:#303030,info:#4e4e4e,border:#6c6c6c,spinner:#ffd700
+    --color=hl:#ff8700,fg:#D9D9D9,fg+:#D9D9D9
+    --color=marker:#75f000,prompt:#d78700,header:#d7d75f
+    --color=pointer:#ffd700,hl+:#8787ff'
+
+test ${BG:-0} -eq 1 ||
+  # Transparent
+  export FZF_CHAUVET=$FZF_CHAUVET' --color=bg:-1'
 
 # Additional options for fzf-edit-* functions
 : "${FZF_EDIT_OPTS:=--multi}"
