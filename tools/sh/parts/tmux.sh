@@ -1,8 +1,12 @@
 
+# Show all global options currently set
 alias tmux-options='tmux show-options -g'
 
-alias tmux-set-autolock='tmux set-option -g lock-after-time'
+# Key bindings are normally listed with <Prefix> ?
 
+alias tmux-set-autolock='tmux set-option -g lock-after-time' # <Seconds>
+
+# Turn visual lock on/off
 alias tmux-toggle-autolock='{
 
   test -z "${tmux_lock_timeout:-}" && {
