@@ -2,7 +2,10 @@
 
 ## Write playlist file based on times and tags
 
-# This writes extended .m3u files and shell scripts.
+# This writes extended .m3u files and shell scripts using pl.lib.sh
+
+# Usage: writepl <basename> [<tabfile> [<output>]]
+# See `pl write`
 
 
 writepl_raw ()
@@ -134,54 +137,10 @@ set -euo pipefail
 
 true "${US_BIN:="$HOME/bin"}"
 . "${US_BIN:?}/pl.lib.sh"
-. "${US_BIN:?}/tools/sh/parts/fnmatch.sh"
+. "${US_BIN:?}/pl.sh"
 
-
-bn=${1:-main}
-test $# -eq 0 || shift
-
-ext=${bn#*.}
-bn=${bn%%.*}
-ext=${ext:-vlc.m3u}
-reader=$(printf '%s\n' ${ext//./ } | tac)
-reader=${reader//$'\n'/_}
-
-test $# -eq 0 && {
-  test -e ${bn:?}.${ext:?} \
-    -a ${bn:?}.${ext:?} -nt ${bn:?}.tab && {
-
-    echo "File '${bn}.${ext}' is up to date with $bn.tab" >&2
-
-  } || {
-    echo "Writing '${bn}.${ext}' from $bn.tab (writepl_${reader//$'\n'/_})" >&2
-    {
-      readtab < ${bn:?}.tab
-    } | writepl_${reader} > ${bn:?}.${ext:?}
-  }
-} || {
-  # echo "Output as '${bn}.${ext}' from $bn.tab (writepl_${reader//$'\n'/_})" >&2
-  {
-    test "${1:-}" = "-" && {
-      cat || $LOG error "" "" "E$?" $?
-      exit $?
-    } || {
-      test -z "${1:-}" && {
-        readtab < ${bn:?}.tab || $LOG error "" "Reading tab" "E$?:$bn.tab" $?
-        exit $?
-      } || {
-        readtab < "${1}" || $LOG error "" "Reading tab" "E$?:$1" $?
-        exit $?
-      }
-    }
-  } | writepl_${reader} | {
-    test "${2:-}" = "-" && {
-      cat || $LOG error "" "" "E$?" $?
-      exit $?
-    } || {
-      #test -z "${1:-}" && {
-      cat >> "${2:?}"
-    }
-  }
-}
+test $# -gt 0 || set -- main
+pl_loadenv
+update "$@"
 
 #

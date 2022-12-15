@@ -22,13 +22,14 @@ stdtime ()
   echo "$1"
 }
 
-matches ()
+matches () # (Values) ~ <Query <...>>
 {
   any=false
-  for a in "$@"
+  read -r tags
+  for q in "$@"
   do
-    case " $comment " in
-      ( *" $a "* ) any=true ; break ;;
+    case " $tags " in
+      ( *" $q "* ) any=true ; break ;;
       ( * ) ;;
     esac
   done
@@ -81,7 +82,7 @@ readtab () # ~ [<Tags...>]
   true "${rest_empty:="#"}"
 
   typeset -a extra=()
-  grep -vE '^\s*(|# .*)$' |
+  grep -vE '^\s*(# .*)?$' |
     sed -e 's/^ *//' -e 's/ *$//' -e 's/^#/# # #/' |
     while read st et f rest
   do
@@ -93,7 +94,7 @@ readtab () # ~ [<Tags...>]
       continue
     }
 
-    test -e "$st" && {
+    test -e "${Dir:-}${Dir:+/}$st" && {
       # Special case, set current file-path if first value exists, ignore rest
       p="${Dir:-}${Dir:+/}$st"
       extra=()
@@ -101,6 +102,7 @@ readtab () # ~ [<Tags...>]
     }
 
     # Another special case, comments or parse additional data for current item
+    test "$f" != "#" || f="#:Tags:"
     case "$f" in
       ( "#:"* ) rest="$f $rest"; f= ;;
       ( "#"* ) continue ;;
@@ -108,8 +110,11 @@ readtab () # ~ [<Tags...>]
 
     test -z "$f" && {
       test -e "${p:-}" || {
-        test -h "${p:-}" && continue
-        $LOG error "" "No such file" "$st $et $f $rest"
+        test -h "${p:-}" && {
+          $LOG debug "" "Skipped missing symlink" "$p"
+        } || {
+          $LOG error "" "No such file (ignored)" "$st $et $f $rest"
+        }
         continue
       }
     } || {
@@ -117,7 +122,8 @@ readtab () # ~ [<Tags...>]
         test -n "${Dir:-}" -a -e "${Dir:-}/$f" && {
           f="$Dir/$f"
         } || {
-          test -z "${Dir:-}" || echo Invalid Dir path, missing f="$Dir/$f" >&2
+          test -z "${Dir:-}" ||
+            $LOG error "" "Invalid Dir path (missing, ignored)" "f=$Dir/$f"
           f=$(find . -iname "$f" -print -quit)
         }
       }
@@ -135,15 +141,12 @@ readtab () # ~ [<Tags...>]
     }
 
     # Match for tags?
-    #test $# -eq 0 || {
+    test 0 -eq $# || {
+      test 0 -eq ${#extra[@]} && continue
+      test "Tags=" = "${extra[0]:0:5}" || continue
 
-    #  test -n "$rest" || rest=$rest_default
-    #  test "$rest" != "#" || rest=$rest_empty
-
-    #  case "$rest" in ( "#"* )
-    #      comment="$rest" matches "$@" || continue
-    #  ;; esac
-    #}
+      echo "${extra[0]:5}" | matches "${@:?}" || continue
+    }
 
     # Just set file, dont output; timespecs follow
     test "$st $et" = "- -" && {
@@ -156,6 +159,8 @@ readtab () # ~ [<Tags...>]
     }
 
     printf "%s\t%s\t%s%s\n" "$st" "$et" "$p" "$(printf "\\t%s" "${extra[@]:-}")"
+
+    extra=()
   done
 }
 

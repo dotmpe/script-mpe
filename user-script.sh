@@ -493,7 +493,7 @@ user_script_shell_env ()
 
   } || eval `sh_gen_abort '' "Loading libs status '$?'"`
 
-  #PID_CMD=$(ps -q $$ -o command= | cut -d ' ' -f 1)
+  PID_CMD=$(ps -q $$ -o command= | cut -d ' ' -f 1)
   test "${SHELL_NAME:=$(basename -- "$SHELL")}" = "$PID_CMD" || {
     test "$PID_CMD" = /bin/sh && {
       $LOG note "" "$SHELL_NAME running in special sh-mode"
