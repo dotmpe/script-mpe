@@ -2,50 +2,114 @@
 . ${US_BIN:=${HOME:?}/bin}/_lib.sh
 
 
-# Run command X times. Ignore status.
-run_all ()
+test_q ()
 {
-  local pref=${1:?} iter=${2:?} cmd=${3:?} handler
-  shift 3 || return
+  sh_null "$@"
+}
+
+sh_null ()
+{
+  "$@" >/dev/null
+}
+
+# Run command X times. Ignore status. Does nothing for IO, see
+# Either Cmd or function test_<name> is executed <Iter-count> times, remaining
+# argv is passed to invocation for both cases.
+run_all () # ~ <Iter-count> [ <Prefix-prefix> <Test-name> | -- ] [ <Cmd <...>> ]
+{
+  local iter=${1:?} cmd=${2:?} handler
+  shift 2 || return
   handler=$(test "$cmd" = "--" && echo false || echo true)
   $handler &&
-    $LOG notice "Starting" "${pref}${cmd} $*" ||
-    $LOG notice "Starting" "$*"
+    $LOG notice "Starting" "$*" || {
+      cmd=${cmd}${1:-}
+      shift
+      $LOG notice "Starting" "$cmd $*"
+    }
   while test "$iter" -gt "0"
   do
     ! $handler && {
       "$@" || true
     } || {
-      ${pref}${cmd} "$@" || true
+      ${cmd} "$@" || true
     }
-    iter=$(( $iter - 1 ))
+    iter=$(( iter - 1 ))
   done
 }
 
-run_test ()
+# Mostly like run-all, except before starting any test, get data at <Prefix>_data,
+# <cmd ...> or from current stdin and save as string var
+run_all_with_input () # ~ [ <Data-Prefix> | <Data-cmd> -- | -- ] \
+  # <Iter-count> [ <Test-Prefix> <Test-name> | -- ] [ <Cmd <...>> ]
+{
+  local data
+
+  test "${1:?}" = '--' && {
+    read -r data
+  } || {
+    test_q declare -F "${1:?}data" && {
+      data=$(${1}data)
+    } || {
+      declare -ga data_cmd=()
+      while test "$1" != '--'
+      do
+        data_cmd+=( "$1" )
+        shift
+      done
+      data=$("${data_cmd[@]}") || return
+    }
+    shift
+  }
+
+  local iter=${1:?} cmd=${2:?} handler
+  shift 2 || return
+  handler=$(test "$cmd" = "--" && echo false || echo true)
+  $handler && {
+      cmd=${cmd}${1:-}
+      shift
+      $LOG notice "Starting" "$cmd $*"
+    } || {
+      $LOG notice "Starting" "$*"
+    }
+  while test "$iter" -gt "0"
+  do
+    echo "$data" | {
+      ! $handler && {
+        "$@" || true
+      } || {
+        ${cmd} "$@" || true
+      }
+    }
+    iter=$(( iter - 1 ))
+  done
+}
+# Derive: run_all
+
+
+## Test helpers
+
+# run-all but set prefix to 'test_'
+run_test () # ~ <Iter-count> [ <Test-name> | -- ] [ <Cmd <...>> ]
 {
   run_all test_ "$@"
 }
 
-run_test_q ()
+# Like run-all but the argv has to be prefixed with data spec for
+# run-all-with-input. This is just a silenced invocation of run-test-io-V.
+run_test_io () # ~ ( <Data-Prefix> | <Data-cmd> -- | -- ) \
+  # <Iter-count> [ <Test-name> | -- ] [ <Cmd <...>> ]
 {
-  run_test "$@" >/dev/null
+  sh_null run_test_io_V "$@"
 }
 
-run_test_io_V () # ~ <Pref> <Iter> <Data> <Cmd>
+# Like run-all but the argv has to be prefixed with data spec for
+# run-all-with-input.
+run_test_io_V () # ~ ( <Data-Prefix> | <Data-cmd> -- | -- ) \
+  # <Iter-count> [ <Test-name> | -- ] [ <Cmd <...>> ]
 {
-  local pref=${1:?} iter=${2:?} data=${3:?} cmd=${4:?}
-  shift 4 || return
-  while test "$iter" -gt "0"
-  do
-    ${data}
-    iter=$(( $iter - 1 ))
-  done | ${pref}${cmd} "$@"
-}
-
-run_test_io ()
-{
-  run_test_io_V "$@" >/dev/null || true
+  local dpref=${1:-test_}
+  shift
+  run_all_with_input $dpref "$@"
 }
 
 # ID:

@@ -24,7 +24,7 @@
 # sed        1.8s / "
 
 # awk-sub is only slightly ahead awk-strl, sed is almost 0.1s slower.
-# Readline with Bash string slicing is still the winner.
+# Readline with Bash string slicing is the winner.
 
 
 test_awk_sub ()
@@ -58,31 +58,36 @@ test_rev_cut ()
 }
 
 
-# Util
-
-test_data ()
-{
-  echo "foo/"
-}
-
-test_io ()
-{
-  test_data | "$@" >/dev/null
-}
+## Util
 
 source tools/benchmark/_lib.sh
 
-runs=1000
-for tc in awk_sub awk_strl sed rev_cut read_strl
-do
-  echo -e "\nTesting $tc..."
-  time run_test $runs io test_$tc
-done
-exit
+test_data ()
+{
+  echo "foo/bar/baz/"
+}
 
-runs=100000
-for tc in awk_sub awk_strl sed rev_cut read_strl
-do
-  echo -e "\nTesting $tc..."
-  time run_test_io test_ $runs test_data $tc
-done
+run ()
+{
+  for tc in awk_sub awk_strl sed rev_cut read_strl
+  do
+    echo -e "\nTesting $tc..."
+    time run_test_io "" $runs test_ $tc
+  done
+}
+
+#run_all_with_input test_ 1 test_ awk_sub
+#run_test_io_V test_ 1 test_ awk_sub
+#run_test_io_V test_ 1 awk_sub
+#test_data | run_test_io_V -- 1 awk_sub
+
+echo One iteration
+runs=1 run
+echo
+
+echo Thousand iterations
+runs=1000 run
+
+#runs=100000 run
+
+#
