@@ -12,10 +12,10 @@ fzf_start ()
   }
 
   # Defined by Fzf
-  test -n "${FZF_DEFAULT_OPTS:-}" || declare -gx FZF_DEFAULT_OPTS
-  test -n "${FZF_DEFAULT_COMMAND:-}" || declare -gx FZF_DEFAULT_COMMAND
+  test -z "${FZF_DEFAULT_OPTS:-}" || declare -gx FZF_DEFAULT_OPTS
+  test -z "${FZF_DEFAULT_COMMAND:-}" || declare -gx FZF_DEFAULT_COMMAND
   # Defined by this lib
-  test -n "${FZF_EDIT_OPTS:-}" || declare -gx FZF_EDIT_OPTS
+  test -z "${FZF_EDIT_OPTS:-}" || declare -gx FZF_EDIT_OPTS
 
 }
 
