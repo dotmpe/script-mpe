@@ -46,19 +46,24 @@ test_3_silversearcher ()
 
 
 echo "Grep ($(test_1a_grep | wc -l) lines)"
+time sh_null test_1a_grep
 time sh_null run_test $runs 1a_grep
+time sh_null run_test 10 1a_grep
 echo
 
 echo "Grep -E ($(test_1b_egrep | wc -l) lines)"
-time sh_null run_test $runs 1b_egrep
+time sh_null test_1b_egrep
+#time sh_null run_test $runs 1b_egrep
 echo
 
 echo "Rg ($(test_2_ripgrep | wc -l) lines)"
-time sh_null run_test $runs 2_ripgrep
+time sh_null test_2_ripgrep
+#time sh_null run_test $runs 2_ripgrep
 echo
 
 echo "Rg -j1 -uuu ($(test_2b_ripgrep | wc -l) lines)"
-time sh_null run_test $runs 2b_ripgrep
+time sh_null test_2b_ripgrep
+#time sh_null run_test $runs 2b_ripgrep
 echo
 
 #echo "Ag ($(test_3_silversearcher | wc -l) lines)"
@@ -68,11 +73,13 @@ echo
 re='\w+\s+Холмс\s+\w+'
 
 echo "2. Grep -E ($(test_1b_egrep | wc -l) lines)"
-time sh_null run_test $runs 1b_egrep
+time sh_null test_1b_egrep
+#time sh_null run_test $runs 1b_egrep
 echo
 
 echo "2. Rg ($(test_2_ripgrep | wc -l) lines)"
-time sh_null run_test $runs 2_ripgrep
+time sh_null test_2_ripgrep
+#time sh_null run_test $runs 2_ripgrep
 echo
 
 #
