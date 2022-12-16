@@ -20,11 +20,12 @@ run_all () # ~ <Iter-count> [ <Prefix-prefix> <Test-name> | -- ] [ <Cmd <...>> ]
   local iter=${1:?} cmd=${2:?} handler
   shift 2 || return
   handler=$(test "$cmd" = "--" && echo false || echo true)
-  $handler &&
-    $LOG notice "Starting" "$*" || {
+  $handler && {
       cmd=${cmd}${1:-}
       shift
       $LOG notice "Starting" "$cmd $*"
+    } || {
+      $LOG notice "Starting" "$*"
     }
   while test "$iter" -gt "0"
   do
@@ -91,7 +92,9 @@ run_all_with_input () # ~ [ <Data-Prefix> | <Data-cmd> -- | -- ] \
 # run-all but set prefix to 'test_'
 run_test () # ~ <Iter-count> [ <Test-name> | -- ] [ <Cmd <...>> ]
 {
-  run_all test_ "$@"
+  local iter=${1:?}
+  shift
+  run_all $iter test_ "$@"
 }
 
 # Like run-all but the argv has to be prefixed with data spec for
