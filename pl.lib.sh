@@ -124,6 +124,10 @@ readtab () # ~ [<Tags...>]
         } || {
           test -z "${Dir:-}" ||
             $LOG error "" "Invalid Dir path (missing, ignored)" "f=$Dir/$f"
+          ${pl_find:-true} || {
+            $LOG warn "" "Ignored missing" "$f"
+            continue
+          }
           f=$(find . -iname "$f" -print -quit)
         }
       }
