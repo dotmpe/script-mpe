@@ -14,10 +14,15 @@ runs=10
 
 # Tried to get some results but there is too much noise currently on my dev.
 # With bench tool a lot of variance (>95%) as well.
+# See bm-sh-grep.suite.sh
 
 true "${testf:=htd.sh}"
 bre='^ *\(#.*\)\?$'
 re='^ *(#.*)?$'
+
+# Max. resamples
+bench_opt="--resamples 1000000"
+
 
 test_1a_grep ()
 {
@@ -66,32 +71,36 @@ test_3_silversearcher ()
 }
 
 
+
+
 ## 1. grep
 
 
+run ()
+{
 echo "Grep ($(test_1a_grep | wc -l) lines)"
 #time sh_null test_1a_grep
 #time sh_null run_test $runs 1a_grep
 #time sh_null run_test 10 1a_grep
-bench "$(funbody test_1a_grep)"
+bench ${bench_opt:-} "$(funbody test_1a_grep)" --output test_1a_grep.html
 echo
 
 echo "Grep ($(test_1a2_grep_C | wc -l) lines)"
 #time sh_null test_1a2_grep_C
 #time sh_null run_test $runs 1a2_grep_C
-bench "$(funbody test_1a2_grep_C)"
+bench ${bench_opt:-} "$(funbody test_1a2_grep_C)" --output test_1a2_grep_C.html
 echo
 
 echo "Grep -E ($(test_1b_egrep | wc -l) lines)"
 #time sh_null test_1b_egrep
 #time sh_null run_test $runs 1b_egrep
-bench "$(funbody test_1b_egrep)"
+bench ${bench_opt:-} "$(funbody test_1b_egrep)" --output test_1b_egrep.html
 echo
 
 echo "Grep -E ($(test_1b2_egrep_C | wc -l) lines)"
 #time sh_null test_1b2_egrep_C
 #time sh_null run_test $runs 1b2_egrep_C
-bench "$(funbody test_1b2_egrep_C)"
+bench ${bench_opt:-} "$(funbody test_1b2_egrep_C)" --output test_1b2_egrep_C.html
 echo
 
 
@@ -100,19 +109,19 @@ echo
 echo "Rg (C)($(test_2b1_ripgrep_C | wc -l) lines)"
 #time sh_null test_2b1_ripgrep_C
 #time sh_null run_test $runs 2b1_ripgrep_C
-bench "$(funbody test_2b1_ripgrep_C)"
+bench ${bench_opt:-} "$(funbody test_2b1_ripgrep_C)" --output test_2b1_ripgrep_C.html
 echo
 
 echo "Rg -j1 -uuu ($(test_2b2_ripgrep | wc -l) lines)"
 #time sh_null test_2b2_ripgrep
 #time sh_null run_test $runs 2b2_ripgrep
-bench "$(funbody test_2b2_ripgrep)"
+bench ${bench_opt:-} "$(funbody test_2b2_ripgrep)" --output test_2b2_ripgrep.html
 echo
 
 echo "Rg ($(test_2b3_ripgrep | wc -l) lines)"
 #time sh_null test_2b3_ripgrep
 #time sh_null run_test $runs 2b3_ripgrep
-bench "$(funbody test_2b3_ripgrep)"
+bench ${bench_opt:-} "$(funbody test_2b3_ripgrep)" --output test_2b3_ripgrep.html
 echo
 
 
@@ -131,5 +140,16 @@ echo
 #time sh_null test_2_ripgrep
 ##time sh_null run_test $runs 2_ripgrep
 #echo
+}
 
+case "$(basename -- "$0" .sh)" in
+
+  ( bm-sh-grep ) run ;;
+
+  ( * )
+      case "${1:-}" in
+        ( test_* ) "$1" ;;
+      esac
+    ;;
+esac
 #

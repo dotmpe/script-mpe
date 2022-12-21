@@ -117,7 +117,7 @@ run_test_io_V () # ~ ( <Data-Prefix> | <Data-cmd> -- | -- ) \
 
 funbody ()
 {
-  declare -f uc_profile_start | tail -n +3 | head -n -1
+  declare -f "${1:?}" | tail -n +3 | head -n -1 | sed 's/^\s*//'
   #typeset -f "${1:?}" | sed 's/^\(\('"$1"' *() *\)\|\({ *\)\|}\)$//' | grep -v '^ *$'
 }
 
