@@ -175,7 +175,7 @@ get_colors () # ~ # Get color settings from current terminal (Xterm OSC).
 
 set_colors () # ~ <Theme-Name> # Set colors for running terminal (Xterm OSC) from theme file
 {
-  load_color_theme "$@" && term_load_resources
+  load_color_theme "$@" && term_load_resources || return
 
   term_send_osc 39 "$foreground"
   term_send_osc 49 "$background"
