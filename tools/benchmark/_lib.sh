@@ -115,4 +115,10 @@ run_test_io_V () # ~ ( <Data-Prefix> | <Data-cmd> -- | -- ) \
   run_all_with_input $dpref "$@"
 }
 
+funbody ()
+{
+  declare -f uc_profile_start | tail -n +3 | head -n -1
+  #typeset -f "${1:?}" | sed 's/^\(\('"$1"' *() *\)\|\({ *\)\|}\)$//' | grep -v '^ *$'
+}
+
 # ID:

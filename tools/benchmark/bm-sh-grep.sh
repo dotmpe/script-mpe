@@ -13,6 +13,7 @@ source tools/benchmark/_lib.sh
 runs=10
 
 # Tried to get some results but there is too much noise currently on my dev.
+# With bench tool a lot of variance (>95%) as well.
 
 true "${testf:=htd.sh}"
 bre='^ *\(#.*\)\?$'
@@ -67,25 +68,30 @@ test_3_silversearcher ()
 
 ## 1. grep
 
+
 echo "Grep ($(test_1a_grep | wc -l) lines)"
 #time sh_null test_1a_grep
-time sh_null run_test $runs 1a_grep
+#time sh_null run_test $runs 1a_grep
 #time sh_null run_test 10 1a_grep
+bench "$(funbody test_1a_grep)"
 echo
 
 echo "Grep ($(test_1a2_grep_C | wc -l) lines)"
 #time sh_null test_1a2_grep_C
-time sh_null run_test $runs 1a2_grep_C
+#time sh_null run_test $runs 1a2_grep_C
+bench "$(funbody test_1a2_grep_C)"
 echo
 
 echo "Grep -E ($(test_1b_egrep | wc -l) lines)"
 #time sh_null test_1b_egrep
-time sh_null run_test $runs 1b_egrep
+#time sh_null run_test $runs 1b_egrep
+bench "$(funbody test_1b_egrep)"
 echo
 
 echo "Grep -E ($(test_1b2_egrep_C | wc -l) lines)"
 #time sh_null test_1b2_egrep_C
-time sh_null run_test $runs 1b2_egrep_C
+#time sh_null run_test $runs 1b2_egrep_C
+bench "$(funbody test_1b2_egrep_C)"
 echo
 
 
@@ -93,17 +99,20 @@ echo
 
 echo "Rg (C)($(test_2b1_ripgrep_C | wc -l) lines)"
 #time sh_null test_2b1_ripgrep_C
-time sh_null run_test $runs 2b1_ripgrep_C
+#time sh_null run_test $runs 2b1_ripgrep_C
+bench "$(funbody test_2b1_ripgrep_C)"
 echo
 
 echo "Rg -j1 -uuu ($(test_2b2_ripgrep | wc -l) lines)"
 #time sh_null test_2b2_ripgrep
-time sh_null run_test $runs 2b2_ripgrep
+#time sh_null run_test $runs 2b2_ripgrep
+bench "$(funbody test_2b2_ripgrep)"
 echo
 
 echo "Rg ($(test_2b3_ripgrep | wc -l) lines)"
 #time sh_null test_2b3_ripgrep
-time sh_null run_test $runs 2b3_ripgrep
+#time sh_null run_test $runs 2b3_ripgrep
+bench "$(funbody test_2b3_ripgrep)"
 echo
 
 
