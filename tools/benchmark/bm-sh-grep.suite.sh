@@ -11,10 +11,16 @@ source "$bm"
 # GNU Grep (unicode)     3.1ms
 # Ripgrep               ~5ms
 
+# Ran on an as quietly possible dev laptop with desktop and container services
+# turned off, only SSH user login process, i7-7820HQ. Some strange ramping
+# in regression graph plots; not sure if due to freq scaling or some heuristic
+# artefact.
+
 # Conclusion: unicode (GNU toolkit) has less than an effect from what I
 # expected or have seen before. Ripgrep does not perform significantly different
 # for ASCII or UTF-8. Had to include sh -c to get env to work with bench, so
 # there is some overhead there.
+
 
 echo "bench \
   ${bench_opt:-} \
