@@ -186,8 +186,8 @@ system_display_usage ()
 FIXME: have been meaning to list actual monitor names iso. link names but
 found only incomplete data with read-edid.
 But e.g.
-xconf-query -lvc displays
-and other config tools do provide actual monitor names.
+xfconf-query -lvc displays
+and other config tools do provide actual monitor names (have EDID data)
 ' "$base"
 }
 
