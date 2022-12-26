@@ -46,6 +46,7 @@ eval_pi ()
   var=${dir%:*}
   var=${var//:/__}
   var=${var//[^[:alnum:]_]/_}
+
   val="${dir/*:}"
   val="${val/ }"
   shift
@@ -88,7 +89,7 @@ readtab () # ~ [<Tags...>]
   do
     test "${st:0:1}" = "#" && {
       test "${f:1:1}" != ":" || {
-        eval_doc_pi "$f $rest" || return
+        eval_doc_pi "$f${rest:+ }$rest" || return
         echo "#$VAR $VAL"
       }
       continue
@@ -124,6 +125,10 @@ readtab () # ~ [<Tags...>]
         } || {
           test -z "${Dir:-}" ||
             $LOG error "" "Invalid Dir path (missing, ignored)" "f=$Dir/$f"
+          ${pl_find:-true} || {
+            $LOG warn "" "Ignored missing" "$f"
+            continue
+          }
           f=$(find . -iname "$f" -print -quit)
         }
       }

@@ -53,10 +53,12 @@ writepl_sh_mpv ()
       #test "${fields[0]:0:19}" = "#reset_fields" && {
       #  declare
       #}
-      test "${fields[0]:0:10}" = "#mpv" || continue
-      declare docvar="${fields[0]:7}"
-      docvar="${docvar/ /=}"
-      echo "  --${docvar/mpv__} \\"
+      test "${fields[0]:0:4}" = "#mpv" || continue
+      declare docvar="${fields[0]:6}"
+      test "${docvar:$(( ${#docvar} - 1 ))}" = " " &&
+        docvar="${docvar:0:$(( ${#docvar} - 1 ))}" ||
+        docvar="${docvar/ /=}"
+      echo "  --${docvar//_/-} \\"
       continue
     }
     test 3 -eq ${#fields} || {
