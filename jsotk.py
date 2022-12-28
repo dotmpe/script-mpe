@@ -539,7 +539,11 @@ Usage:
 
 Options:
     """
+    #print(ctx.todict())
+    infile, outfile = get_src_dest_defaults(ctx)
+    print(infile, outfile)
     destfile = get_dest(ctx, 'r')
+    print(destfile, ctx.opts.flags.input_format)
     data = load_data( ctx.opts.flags.input_format, destfile, ctx )
     if ctx.opts.flag.fifo:
         jsotk_serve.fifo(ctx, data, __doc__, handlers)

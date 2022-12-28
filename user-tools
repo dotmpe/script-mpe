@@ -103,14 +103,14 @@ roman_hours () # ~ [<Hour>]
 
   case "$1" in
 
-     6| 7| 8 ) echo day morning prime ;;
-     9|10|11 ) echo day morning terce ;;
+    06|07|08 ) echo day morning prime ;;
+    09|10|11 ) echo day morning terce ;;
     12|13|14 ) echo day afternoon sext ;;
     15|16|17 ) echo day afternoon none ;;
     18|19|20 ) echo evening ;;
     21|22|23 ) echo evening ;;
-     0| 1| 2 ) echo night ;;
-     3| 4| 5 ) echo night ;;
+     0|01|02 ) echo night ;;
+    03|04|05 ) echo night ;;
 
      *) return 1 ;;
   esac
