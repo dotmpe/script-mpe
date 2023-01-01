@@ -37,27 +37,24 @@ disable=SC2031
 # expected by some dynamic script and/or to assert initial state i.e. to clear
 # possible left-over state from previous runs.
 disable=SC2034 # unused, unexported var
+disable=SC2039 # In POSIX sh, 'local' is undefined
 
 # SC2046: I'll quote when appropiate; if some variable unexpectedly has spaces
 # or special characters the script should complain about syntax during execution.
-disable=SC2046
-# SC2046 # Quote this to prevent word splitting
+disable=SC2046 # Quote this to prevent word splitting
 
 # SC2059 # Don't use variables in the printf format string. Use printf "..%s.." "$foo"
 
 # SC2068 # Double quote array expansions to avoid re-splitting elements
 
-# SC2086 # double-quote to prevent globbing and word splitting
-disable=SC2086 # Not going to quote every var, also i'll use double quotes to prevent expansion when needed; see 2046
-
+# Not going to quote every var, also i'll use double quotes to prevent expansion when needed; see 2046
+disable=SC2086 # double-quote to prevent globbing and word splitting
 disable=SC2088 # Tilde does not expand in quotes. Use $HOME.
 
-# SC2119 # Use "$@" if function's $1 should mean script's $1
 # SC2119: may be a bit too smart, some functions I write accept both.
-disable=SC2119 # 2119: No "$@" noob help
-disable=SC2119 # 2119: No "$@" noob help. Special functions accept either/both argv & stdin
-# SC2120 # func references arguments, but none are ever passed
-disable=SC2120
+# No "$@" noob help. Special functions accept either/both argv & stdin
+disable=SC2119 # Use "$@" if function's $1 should mean script's $1
+disable=SC2120 # func references arguments, but none are ever passed
 # SC2129
 # SC2116 # Useless echo in cmd-args; is not useless while normalizing unquoted whitespace for printf
 
@@ -80,11 +77,9 @@ disable=SC2209 # 2209: Use var=$(command) to assign output (or quote to assign s
 # SC2230 # which is non-standard
 disable=SC2231 # Quote expansions in this for loop glob to prevent wordsplitting, e.g. "$dir"/*.txt .
 
-# I know what I'm doing doesn't look like POSIX. Thanks.
-disable=SC2039 # In POSIX sh, 'local' is undefined
 disable=SC3003 # In POSIX sh, $'..' is undefined.
 disable=SC3011 # In POSIX sh, here-strings are undefined.
-#disable=SC3028 # In POSIX sh, SHLVL is undefined.
+disable=SC3028 # In POSIX sh, SHLVL is undefined.
 disable=SC3030 # In POSIX sh, arrays are undefined.
 disable=SC3033 # In POSIX sh, naming functions outside [a-zA-Z_][a-zA-Z0-9_]* is undefined.
 # XXX: Don't use pipefail option in sh-mode, OK. Except I know and am trying
@@ -96,9 +91,12 @@ disable=SC3043 # In POSIX sh, 'local' is undefined.
 disable=SC3044 # In POSIX sh, 'declare' is undefined.
 disable=SC3045 # In POSIX sh, type -t is undefined.
 disable=SC3046 # In POSIX sh, 'source' in place of '.' is undefined.
+disable=SC3051 # In POSIX sh, 'source' in place of '.' is undefined.
 disable=SC3053 # In POSIX sh, indirect expansion is undefined
+disable=SC3054 # In POSIX sh, array references are undefined.
+disable=SC3055 # In POSIX sh, array key expansion is undefined.
 disable=SC3057 # In POSIX sh, string indexing is undefined.
-#disable=SC3059
+disable=SC3059 # In POSIX sh, case modification is undefined.
 disable=SC3060 # In POSIX sh, string replacement is undefined.
 
 

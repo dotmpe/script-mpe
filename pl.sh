@@ -57,8 +57,8 @@ update () # ~ <Basename>.<Ext> [ <Alt-tabfile> [ <Alt-output> ]]
   bn=${1:?}
   shift
 
+  test ${bn:0:2} != ./ || bn=${bn:2}
   ext=${bn#*.}
-  bn=${bn%%.*}
   ext=${ext:-vlc.m3u}
   reader=$(printf '%s\n' ${ext//./ } | tac)
   reader=${reader//$'\n'/_}
