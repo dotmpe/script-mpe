@@ -22,7 +22,7 @@ disable=SC2005
 disable=SC2006 # Use $(...) notation instead of legacy backticks `...`.
 
 # 2015: I use shell pipeline segments as boolean expressions all the time.
-disable=SC2015
+disable=SC2015 # Note that A && B || C is not if-then-else. C may run when A is true.
 # SC2016
 
 # SC2029 # Note that, unescaped, this expands on the client side
@@ -72,16 +72,15 @@ disable=SC2155
 # XXX: have a look at what shells what, some day
 disable=SC2166 # Prefer [ p ] && [ q ] as [ p -a q ] is not well defined
 
+disable=SC2209 # 2209: Use var=$(command) to assign output (or quote to assign string)
 # TODO: fix bashbang shell for stuff
 # SC2230 # which is non-standard
-
-disable=SC2209 # 2209: Use var=$(command) to assign output (or quote to assign string)
-
 disable=SC2231 # Quote expansions in this for loop glob to prevent wordsplitting, e.g. "$dir"/*.txt .
 
 disable=SC3003 # In POSIX sh, $'..' is undefined.
 disable=SC3011 # In POSIX sh, here-strings are undefined.
 disable=SC3028 # In POSIX sh, SHLVL is undefined.
+disable=SC3030 # In POSIX sh, arrays are undefined.
 disable=SC3033 # In POSIX sh, naming functions outside [a-zA-Z_][a-zA-Z0-9_]* is undefined.
 # XXX: Don't use pipefail option in sh-mode, OK. Except I know and am trying
 # something
