@@ -2,6 +2,14 @@
 # Show all global options currently set
 alias tmux-options='tmux show-options -g'
 
+# Show normal mode keys
+alias tmux-keys-normal='tmux list-keys -T root'
+
+# Show prefix and copy mode keys
+alias tmux-keys-prefix='tmux list-keys -T prefix'
+alias tmux-keys-copy='tmux list-keys -T copy-mode && tmux list-keys -T copy-mode-vi'
+
+
 # Key bindings are normally listed with <Prefix> ?
 
 alias tmux-set-autolock='tmux set-option -g lock-after-time' # <Seconds>
