@@ -14,11 +14,14 @@ true "${LINES:=$(tput lines)}"
 data=$(<"${@:-/dev/stdin}")
 lines=$(echo "$data" | wc -l)
 #echo "cat-if pager read $lines lines" >&2
+maxlines=${USER_LINES:-${UC_OUTPUT_LINES:-${LINES:?}}}
 
-test ${USER_LINES:-${UC_OUTPUT_LINES:-${LINES:?}}} -le $lines && {
-  PAGER=cat
-} || {
+test $maxlines -le $lines && {
+  test ${v:-${verbosity:-3}} -lt 6 ||
+      echo "cat-if read $lines lines, max inline output is $maxlines" >&2
   PAGER=less
+} || {
+  PAGER=cat
 }
 echo "$data" | exec $PAGER
 #
