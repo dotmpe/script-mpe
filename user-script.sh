@@ -481,6 +481,15 @@ user_script_shell_env ()
   }
 
   . "$US_BIN"/os-htd.lib.sh || return
+  user_script_libload \
+      "${U_S:?}"/tools/sh/parts/fnmatch.sh \
+      "${U_S:?}"/tools/sh/parts/sh-mode.sh &&
+  test "${DEBUG:-0}" = "0" && {
+      sh_mode strict || return
+    } || {
+      sh_mode strict dev || return
+    }
+
   {
     . "$US_BIN"/str-htd.lib.sh &&
     . "$US_BIN"/argv.lib.sh &&
@@ -496,7 +505,7 @@ user_script_shell_env ()
   PID_CMD=$(ps -q $$ -o command= | cut -d ' ' -f 1)
   test "${SHELL_NAME:=$(basename -- "$SHELL")}" = "$PID_CMD" || {
     test "$PID_CMD" = /bin/sh && {
-      $LOG note "" "$SHELL_NAME running in special sh-mode"
+      ${LOG:?} note "" "$SHELL_NAME running in special sh-mode"
     }
     # I'm relying on these in shell lib but I keep getting them in the exports
     # somehow

@@ -8,6 +8,8 @@ scriptenv_t460s ()
 {
   echo export UCONF=/srv/conf-25-5
   echo export U_S=/srv/project-25-5/user-scripts
+  echo export U_C=/srv/project-25-5/user-conf-dev
+  echo export LOG=\$U_S/tools/sh/log.sh
 }
 
 scriptenv ()
@@ -26,6 +28,7 @@ dbus () # ~ <Wm>
 cron ()
 {
   scriptenv
+  echo export v=4 # log level to error
 
   set -- i3
   wm_pid=$(ps -C ${1:?} -o pid:1=)

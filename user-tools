@@ -225,6 +225,14 @@ user_tools_loadenv ()
   do
     case "$1" in
 
+      #( sh-mode )
+      #      user_script_libload "${U_S:?}"/tools/sh/parts/sh-mode.sh ;;
+      #( error-handler )
+      #      declare -f sh_mode >/dev/null && {
+      #        sh_mode dev || return
+      #      } || set -- "" sh-mode "$@"
+      #    ;;
+
       ( catalog )
           user_script_libload $UCONF/script/catalog-uc.lib.sh &&
               catalog_uc_lib_load ;;
@@ -232,6 +240,7 @@ user_tools_loadenv ()
           user_script_libload $UCONF/script/media-uc.lib.sh \
                 $US_BIN/contexts/ctx-playerctl.lib.sh &&
                 media_uc_lib_load && ctx_playerctl_lib_load ;;
+
       ( nerdfonts )
           . "$US_BIN"/nerdfonts.lib.sh &&
               nerdfonts_lib_load && nerdfonts_lib_init ;;
