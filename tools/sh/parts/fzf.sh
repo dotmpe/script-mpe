@@ -4,7 +4,6 @@
 
 . ${US_BIN:?}/fzf.lib.sh
 
-
 : "${FZF_DEFAULT_COMMAND:=find . -not -type l}"
 
 # Fzf env var for user preferences
@@ -32,8 +31,8 @@ typeset -x FZF_DEFAULT_OPTS FZF_DEFAULT_COMMAND
 alias fzf_chdir='cd $(FZF_DEFAULT_COMMAND="find ./ -type d" FZF_CTRL_T_COMMAND="cd" fzf)'
 
 # Edit files after interactive selection on name
-alias fzf-edit='$EDITOR $(fzf -e -m)'
-alias fzf-edit-preview='$EDITOR $(fzf-preview -e -m)'
+alias fzf-edit='$EDITOR $(fzf $FZF_EDIT_OPTS)'
+alias fzf-edit-preview='$EDITOR $(fzf-preview $FZF_EDIT_OPTS)'
 
 # Use batcat to preview highlighted plain-text files
 alias fzf-preview="fzf --preview='${BAT_BIN:-bat} --color always --style numbers {}'"

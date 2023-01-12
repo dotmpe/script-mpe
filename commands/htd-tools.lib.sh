@@ -33,7 +33,7 @@ htd_tools_list_all ()
   tools_list_all
 }
 
-htd_tools_installed()
+htd_tools_installed ()
 {
   test -n "${1-}" || set -- $(tools_list) ; test -n "$*" || return 2 ;
   test "$out_fmt" = "yml" && echo "tools:" ; while test $# -gt 0
