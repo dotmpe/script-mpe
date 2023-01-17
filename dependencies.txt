@@ -1,3 +1,8 @@
+#scm dotmpe/basher.git feature/better-package-env @Basher
+#scm dotmpe/bats-core.git master @Bats
+#
+#world htts://get.docker.com [XXX:key] @Docker
+
 # basher user-tools/user-scripts
 # basher user-tools/user-scripts-incubator
 # basher user-tools/user-conf

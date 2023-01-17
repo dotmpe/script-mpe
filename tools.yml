@@ -1,9 +1,31 @@
+# Configures (system) provisioning relative to the ~/bin project
+# For definitions, see dependencies.txt and requirements*txt as well.
+#
+#
 id: "#"
 description: Named prerequisite packages and metadata on provisioning. See tools.rst
 scriptpath: .
 libs:
 
 tools:
+
+  # Configure Tools builtins
+  apt:
+      enabled: true
+  yum:
+      enabled: false
+  brew:
+      enabled: false
+  basher:
+      enabled: true
+  scm:
+      enabled: true
+  inet:
+      enabled: false
+  world:
+      enabled: false
+
+
 # XXX: cleanup
 #https://raw.githubusercontent.com/aspiers/git-config/master/bin/git-annex-finddups
   aha:
@@ -126,7 +148,7 @@ tools:
     src: membash.sh
     installer: Git+Bin
     url: 'https://gist.github.com/dotmpe/045284c6522b1c24a3b5a56352d273e5'
-    
+
   memcached:
     id: memcached
     installer: MacBrew
