@@ -75,7 +75,7 @@ true "${MUNIN_LIBDIR:=/usr/share/munin}"
 # true "${MUNIN_PLUGSTATE:=/var/run/munin}"
 true "${PLUGSTATE:=${MUNIN_PLUGSTATE:-/tmp}}"
 
-set -e
+set -euo pipefail
 
 case ${1:-print} in
 
@@ -99,7 +99,7 @@ bt_tx_rate.label Bytes/sec send
 EOM
         ;;
 
-    ( print | update ) load && assert_helper &&
+    ( print | update ) load && assert_helper && assert_running || exit $?
             update ${PLUGSTATE:?}/transmissionbt_xfer_rates.stats
         ;;
 

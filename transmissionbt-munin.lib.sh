@@ -108,9 +108,14 @@ assert_helper ()
   test -x "$helper_py" \
     && echo "# Helper $helper_py" \
     || {
-        echo "# Missing transmissionbt.py"
+        echo "# Missing transmissionbt.py helper"
         return 1
       }
+}
+
+assert_running ()
+{
+  "$helper_py" ping
 }
 
 stderr_ ()

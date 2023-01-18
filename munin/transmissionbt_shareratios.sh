@@ -73,7 +73,7 @@ true "${MUNIN_LIBDIR:=/usr/share/munin}"
 # true "${MUNIN_PLUGSTATE:=/var/run/munin}"
 true "${PLUGSTATE:=${MUNIN_PLUGSTATE:-/tmp}}"
 
-set -e
+set -euo pipefail
 
 case ${1:-print} in
 
@@ -101,7 +101,8 @@ total_shareratio.label Cumulative share ratio
 EOM
         ;;
 
-    ( print | update ) load && assert_helper && update ;;
+    ( print | update ) load && assert_helper && assert_running || exit $?
+        update ;;
 
     ( v | validate ) test $# -eq 0 || shift; load && validate "$@" ;;
 

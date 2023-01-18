@@ -384,6 +384,10 @@ def handle_stats (c, s, *selectids):
         v = stats[field_id][1](c, s)
         metric_formatters[c.fmt](c, s, stats, field_id, v)
 
+def handle_ping(c, s):
+    "Only start client to test if RPC is working"
+
+
 metric_formatters = {
         'text': lambda c, s, stats, k, v: print('%s:' % stats[k][0], v),
         'sh': lambda c, s, stats, k, v: print('%s=%s' % (k, v)),
@@ -480,7 +484,10 @@ if __name__ == '__main__':
             action = parse_cmdarg(k)
             break
     if action not in ('help', 'long_help',):
-        c, s = init_client ()
+        try:
+            c, s = init_client ()
+        except transmission_rpc.error.TransmissionConnectError as e:
+            sys.exit(2)
     else:
         c, s = None, None
     locals()['handle_%s' % action](c, s, *args)
