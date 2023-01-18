@@ -243,88 +243,112 @@ fmtdate_relative () # ~ [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
   fi
 }
 
-# Turn spec into seconts (time-parse-seconds) and give human readable
+# Turn spec with float into seconds (time-parse-seconds)
+# and give human readable delta
 fmtdate_relative_f () # ~ <Time-Spec>
 {
   local ms=${1//*./}
   seconds_fmt_relative_f "$(time_parse_seconds "${1//.*/}").$ms"
 }
 
+# There has to be something more functional, but this works and requires only
+# printf, Bash string-expansions and bc. And covers a reasonable range...
+# from nanoseconds to years. But may want generic one to go from yocto to yotta
+# describe what ranges to print, be verbose or terse and use abbr. etc.
+# (ie. 10E-24 to 10E+24)
 # XXX: want more resolution for fmtdate_relative.
 # Also printing several orders together. But not a lot of customization.
-seconds_fmt_relative_f () # ~ <Seconds>
+seconds_fmt_relative_f () # ~ <Timestamp> <Delta>
 {
-  test -z "${1-}" || {
-      echo "No supported" >&2
+  test -z "${1-}" && shift || {
+    test -n "${2:-}" && shift ||
+      set -- $(echo "scale=24; $(epoch_microtime) - $1"|bc) "$3"
+    test "${1:0:1}" != "-" ||
+      stderr_ "! $0: seconds-fmt-relative-f input ts was before epoch" $? || return
   }
-  test -n "${2:-}" || return 64
+  test -n "${1:-}" -a $# -le 2 || return 64
+  test -n "${2:-}" || set -- "$1" ""
+  test ${1:0:1} != "-" ||
+    stderr_ "! $0: seconds-fmt-relative-f takes only positive delta values" $? || return
 
-  test ${2//.*} -gt 0 && {
+  test ${1//.*} -gt 0 && {
     # Seconds
-
-    test ${2//.*} -gt 60 && {
-      # Minutes
-
-      test ${2//.*} -gt 3600 && {
-        # Hours
-
-        test ${2//.*} -gt 86400 && {
-          # Days
-
-          test ${2//.*} -gt 604800 && {
-            # Weeks
-
-            test ${2//.*} -gt 31536000 && {
-              # Years
-
+    test ${1//.*} -gt 60 && {
+      # Minutes / seconds
+      test ${1//.*} -gt 3600 && {
+        # Hours / minutes / seconds
+        test ${1//.*} -gt 86400 && {
+          # Days / hours / minutes / seconds
+          test ${1//.*} -gt 604800 && {
+            # Weeks / days / hours / minutes
+            test ${1//.*} -gt 31536000 && {
+              # Years / weeks / days / hours
               printf '%.0f years, %.0f weeks, %.0f days, %.0f hours%s' \
-                "$(echo "$2 / 31536000"|bc)" \
-                  "$(echo "$2 % 31536000 / 604800"|bc)" \
-                    "$(echo "$2 % 31536000 % 604800 / 86400"|bc)" \
-                      "$(echo "$2 % 31536000 % 604800 % 86400 / 3600"|bc)" "$3"
-
+                "$(echo "$1 / 31536000"|bc)" \
+                  "$(echo "$1 % 31536000 / 604800"|bc)" \
+                    "$(echo "$1 % 31536000 % 604800 / 86400"|bc)" \
+                      "$(echo "$1 % 31536000 % 604800 % 86400 / 3600"|bc)" "$2"
             } || {
               printf '%.0f weeks, %.0f days, %.0f hours, %.0f minutes%s' \
-                "$(echo "$2 / 604800"|bc)" \
-                  "$(echo "$2 % 604800 / 86400"|bc)" \
-                    "$(echo "$2 % 604800 % 86400 / 3600"|bc)" \
-                      "$(echo "$2 % 604800 % 86400 % 3600 / 60"|bc)" "$3"
+                "$(echo "$1 / 604800"|bc)" \
+                  "$(echo "$1 % 604800 / 86400"|bc)" \
+                    "$(echo "$1 % 604800 % 86400 / 3600"|bc)" \
+                      "$(echo "$1 % 604800 % 86400 % 3600 / 60"|bc)" "$2"
             }
           } || {
             printf '%.0f days, %.0f hours, %.0f minute, %.0f seconds%s' \
-              "$(echo "$2 / 86400"|bc)" \
-                "$(echo "$2 % 86400 / 3600"|bc)" \
-                  "$(echo "$2 % 86400 % 3600 / 60"|bc)" \
-                    "$(echo "$2 % 86400 % 3600 % 60"|bc)" "$3"
+              "$(echo "$1 / 86400"|bc)" \
+                "$(echo "$1 % 86400 / 3600"|bc)" \
+                  "$(echo "$1 % 86400 % 3600 / 60"|bc)" \
+                    "$(echo "$1 % 86400 % 3600 % 60"|bc)" "$2"
           }
         } || {
           printf '%.0f hours, %.0f minutes, %.0f seconds%s' \
-            "$(echo "$2 / 3600"|bc)" \
-              "$(echo "$2 % 3600 / 60"|bc)" \
-                "$(echo "$2 % 3600 % 60"|bc)" "$3"
+            "$(echo "$1 / 3600"|bc)" \
+              "$(echo "$1 % 3600 / 60"|bc)" \
+                "$(echo "$1 % 3600 % 60"|bc)" "$2"
         }
       } || {
         printf '%.0f minutes, %.0f seconds%s' \
-          "$(echo "$2 / 60"|bc)" "$(echo "$2 % 60"|bc)" "$3"
+          "$(echo "$1 / 60"|bc)" "$(echo "$1 % 60"|bc)" "$2"
       }
     } || {
-      printf '%.3f seconds%s' "$2" "$3"
+      printf '%.3f seconds%s' "$1" "$2"
     }
 
   } || {
-    # Miliseconds
-    set -- "$1" "0$(echo "$2 * 1000" | bc)" $3
-    test ${2//.*} -gt 0 && {
-      printf '%.3f miliseconds%s' "$2" "$3"
+    # Miliseconds (1/1000th second, ie. 10-3)
+    set -- "$(echo "$1 * 1000" | bc)" "$2"
+    test ${1//.*} -gt 0 && {
+      printf '%.3f miliseconds%s' "$1" "$2"
     } || {
-      # Microseconds
-      set -- "$1" "0$(echo "$2 * 1000" | bc)" $3
-      test ${2//.*} -gt 0 && {
-        printf '%.3f microseconds%s' "$2" "$3"
+      # Microseconds (1/1.000.000th second, ie. 10-6)
+      set -- "$(echo "$1 * 1000" | bc)" "$2"
+      test ${1//.*} -gt 0 && {
+        printf '%.3f microseconds%s' "$1" "$2"
       } || {
-        # Nanoseconds
-        set -- "$1" "0$(echo "$2 * 1000" | bc)" $3
-        printf '%.3f nanoseconds%s' "$2" "$3"
+        # Nanoseconds (1/1.000.000.000th second, ie. 10-9)
+        set -- "$(echo "$1 * 1000" | bc)" "$2"
+        test ${1//.*} -gt 0 && {
+          printf '%.3f nanoseconds%s' "$1" "$2"
+        } || {
+          # Picoseconds (1/1.000.000.000.000th second, ie. 10-12)
+          set -- "$(echo "$1 * 1000" | bc)" "$2"
+          test ${1//.*} -gt 0 && {
+            printf '%.3f picoseconds%s' "$1" "$2"
+          } || {
+            # Femtoseconds (1/1.000.000.000.000th second, ie. 10-15)
+            set -- "$(echo "$1 * 1000" | bc)" "$2"
+            test ${1//.*} -gt 0 && {
+              printf '%.3f femtoseconds%s' "$1" "$2"
+            } || {
+
+              # XXX: may want to add terse and verbose format options
+              #printf '<1fs%s' "$2"
+              printf 'less than 1 femtosecond%s' "$2"
+            }
+          }
+        }
       }
     }
   }
