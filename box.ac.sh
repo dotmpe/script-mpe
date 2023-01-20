@@ -86,11 +86,23 @@ __uc_ac_init ()
   done
 }
 
+# Find user-scripts
+__uc_execnames_find ()
+{
+  user_script_find
+}
+
+# TODO: Fix descriptions
 __uc_execnames_check ()
 {
-  uc_lib_load user-scripts &&
-  user_scripts_lib_init &&
-  user_scripts_check
+  sh_fun ${lib_load:-uc_lib_load} || {
+    PATH=$PATH:$PWD:$U_C/script
+    uc_func () { sh_fun "$@"; }
+    source "uc-lib.lib.sh" && uc_lib_init || return
+  }
+  $lib_load list htd ignores user-script &&
+  user_script_lib_init &&
+  user_script_check
 }
 
 
@@ -108,6 +120,10 @@ script_isrunning "box.ac" .sh && {
   # Running interactively probably? Initialize auto completion.
   uc_lib_load str-uc std-uc && __uc_ac_init $BOX_EXECS
 }
+
+# XXX This operates without defarg so command aliases and defcmd do not work
+# so probably should overide help
+#! script_isrunning "box.ac" || eval "set -- $(user_script_defarg "$@")"
 
 script_entry "box.ac" "$@"
 

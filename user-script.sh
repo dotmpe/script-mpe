@@ -150,7 +150,8 @@ script_baseenv ()
   done
 
   local SCRIPTNAME_ext=${SCRIPT_BASEEXT:-}
-  : "${script_src:="$SCRIPTNAME$SCRIPTNAME_ext user-script.sh"}"
+  : "${script_src:="$SCRIPTNAME$SCRIPTNAME_ext"}"
+  test "$script_src" = user-script.sh || script_src="$script_src user-script.sh"
   # TODO: write us_load function ${script_lib:=user-script.lib.sh}
   script_lib=
 }
@@ -271,12 +272,13 @@ user_script_bases ()
   echo "$script_bases"
 }
 
-user_script_commands ()
+# TODO: commands differs from handlers in that it lists maincmds and aliases
+user_script_commands () # ~
 {
   # FIXME: maincmds list are not functions, use aliases to resolve handler names
   test $# -gt 0 || set -- $script_maincmds
-user_script_resolve_aliases
-  script_lib= user_script_handlers "$@"
+  user_script_resolve_aliases &&
+  user_script_handlers "$@"
 }
 
 # Output argv line after doing 'default' stuff. Because these script snippets
@@ -380,11 +382,12 @@ user_script_envvars () # ~ # Grep env vars from loadenv
   }
 }
 
-# Transform glob to regex and invoke script-listfun for source files.
+# Transform glob to regex and invoke script-listfun for libs and other source
+# files. This turns on script-listfun flag h by default.
 user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main script
 {
   test $# -eq 0 && {
-    set -- "[A-Za-z_:-][A-Za-z0-9_:-]*"
+    set -- "[A-Za-z_$US_EXTRA_CHAR][A-Za-z0-9_$US_EXTRA_CHAR]*"
   } || {
     set -- "$(grep_or "$@")"
   }
@@ -932,6 +935,9 @@ stdstat () # ~ <Status-Int> <Status-Message> # Exit handler
   exit $1
 }
 
+# Lists name, spec and gist fields separated by tabs.
+# Fun flag t turns off column formatting
+# Fun flag h enables an alternative semi-readable help outline format
 script_listfun () # (s) ~ [<Grep>] # Wrap grep for function declarations scan
 {
   local script_src="${1:-"$(script_source)"}"
@@ -999,6 +1005,8 @@ usage ()
 
   # Pre-parse arguments and reset argv: resolve aliased commands or sets default
   eval "set -- $(user_script_defarg "$@")"
+
+  true "${US_EXTRA_CHAR:=:-}"
 
   # Execute argv and end shell
   script_entry "user-script" "$@" || exit

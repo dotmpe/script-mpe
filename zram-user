@@ -1,0 +1,383 @@
+#!/usr/bin/env bash
+
+
+### Helpers for ecdye/zram-config
+
+
+
+# Test for running service or not, check all mounts and for stale devices, and
+# stale mountpoints if not running.
+status ()
+{
+  declare fail
+
+  sudo -v || return
+
+  run-check "Checking zram-config service is running" \
+      service-running zram-config || fail=true
+
+  run-check "Checking config status" zram-config-status || fail=true
+
+  run-check "Checking status of dependent services" \
+      services-status || fail=true
+
+  run-check "Getting mount info" mount-info || fail=true
+  echo
+  echo "Mount info:"
+  cat "$stdout"
+
+  rm /tmp/$$-*.std{err,out}
+  ! ${fail:-false} || return
+}
+
+# Run checks and stop+show on first problem
+diag () # ~ # Check for running zram-config, get all data on mounts and test those exists
+{
+  declare fail=false
+  service-running zram-config || {
+    err_ "! $0: diag: zram-config is not running" || fail=true
+  }
+  zram-config-diag || return
+  while read dir algo memlmt dsksz td bd old
+  do
+    ztab-mount-find "$td" || {
+      fail=true
+      continue
+    }
+    mountpoint -q "${ZDIR:?}$bd" || {
+      stderr_ "! $0: diag: overlay device not mounted <$bd> (for $mntp, $zdev)"
+      fail=true
+      continue
+    }
+    mountpoint -q "${zmntp:?}" || {
+      stderr_ "! $0: diag: zram device not mounted <$zmntp> (for $mntp, $zdev)"
+      fail=true
+      continue
+    }
+    stderr_ "OK $mntp ($mntsrc with $zdev $algo at $zmntp)"
+  done <<< "$(read-ztab)"
+  ! ${fail:?} || return
+}
+
+mount-info () # ~ # Read mount targets from ztab and use ztab-mount-find and du/df to list some stats
+{
+  declare zen
+  service-running zram-config && zen=true || zen=false
+  while read -r dir algo memlmt dsksz td bd old
+  do
+    $zen && {
+        ztab-mount-find "$td" || return
+        echo "zram device $zdev ($mntsrc) at $td: " &&
+        echo "Storage size/data/compressed/total: $dsksz $datab $datac $datat"
+    } || {
+        echo "zram at target $td is offline"
+    }
+    du_hs=$(sudo du -hs "$td/" | cut -d$'\t' -f1) &&
+    du_hsi=$(sudo du --inodes -hs "$td/" | cut -d$'\t' -f1) &&
+    echo "Disk usage (bytes): $du_hs" &&
+    echo "Disk usage (inodes): $du_hsi" &&
+    $zen && {
+      df_h=$(sudo df -h "$td" | tail -n1 | awk '{print $2" "$3" "$4" "$5}') &&
+      df_hi=$(sudo df -hi "$td" | tail -n1 | awk '{print $2" "$3" "$4" "$5}') &&
+      echo "Disk size/use/avail/use-% (bytes): $df_h" &&
+      echo "Disk size/use/avail/use-% (inodes): $df_hi"
+    }
+    echo
+  done <<< "$(read-ztab)"
+}
+
+read-ztab () # [ZTAB:] ~ # Read zram-config table
+{
+  stderr_ "Reading ztab... <$ZTAB>
+"
+  < $ZTAB grep -Ev '^ *(#.*)?$'
+}
+
+read-srvtab () # [SRVTAB:] ~ # List users' services for host
+{
+  stderr_ "Reading user services table... <$SRVTAB>
+"
+  < $SRVTAB grep "^${1:-${HOST:?}} "
+}
+
+run-check ()
+{
+  declare label=${1:?} b=/tmp/$$-$RANDOM
+  stdout=$b.stdout stderr=$b.stderr
+  shift
+  printf '%s' "$label"
+  "$@" > "$stdout" 2> "$stderr"  && {
+    test -s "$stderr" &&
+    printf ' [OK] but output on stderr\n' ||
+    printf ' [OK]\n'
+  } || {
+    printf ' [FAIL] E%i\n' "$?"
+  }
+}
+
+# To track servics dependent on zram mounts, the bind basename is shared with
+# a user services table as a volume Id. Now services can be shutdown before
+# zram-config using scripting, but main purpose is to configure systemd units
+# to do so automatically but only while zram-config/ztab is active.
+services ()
+{
+  test $# -le 1 || return 98
+  services-${1:-status} && stderr_ "OK"
+}
+
+services-check ()
+{
+  declare fail
+  while read -r srvr unit zvols
+  do
+    test "$srvr" = systemd ||
+        err_ "! $self: Unknown framework '$srvr'" || return
+    sudo systemctl show $unit |
+      grep '^After' | grep -q '\( \|=\)zram-config\.service\( \|$\)' && {
+      stderr_ "OK $unit"
+    } || {
+      stderr_ "! Not configured $unit"
+      fail=false
+    }
+  done <<< "$(services-list)"
+  ! ${fail:-false} || return
+}
+
+# Get all services that have zram volumes and check service runner status for
+# unit.
+services-status () # ~ # Status of services depending on zram-config
+{
+  declare self srvr zvols unit fail
+  self="$0: services-status"
+  while read -r srvr unit zvols
+  do
+    case "$srvr" in
+        ( systemd )
+            sstat="$(sudo systemctl is-active "$unit")" || true
+            stderr_ "$srvr $unit $sstat"
+            test "$sstat" = active || fail=true ;;
+
+        ( * ) stderr_ "! $self: Unknown framework '$srvr'"
+            return 2 ;;
+    esac
+  done <<< "$(services-list)"
+  ! ${fail:-false} || return
+}
+
+# Get all services that have zram volumes
+services-list () # ~ # List service that depend on zram volumes
+{
+  declare \
+      host srvr unit volumes \
+      vname ztab
+  ztab=$(read-ztab)
+  while read -r host srvr unit volumes
+  do
+    # Filter out services with no ztab volume
+    test -n "${volumes:-}" || continue
+    zvolumes=$(for vname in $volumes
+      do
+        echo "$ztab" | grep -Eq " \/$vname.bind( |$)" && echo "$vname"
+        true
+      done)
+    test -n "$zvolumes" || continue
+    echo $srvr $unit $zvolumes
+  done <<< "$(read-srvtab)"
+}
+
+services-start ()
+{
+  declare self srvr unit zvols
+  self="$0: services-start"
+  while read -r srvr unit zvols
+  do
+    test "$srvr" = systemd ||
+        err_ "! $self: Unknown framework '$srvr'" || return
+    sudo systemctl start "$unit"
+  done <<< "$(services-list)"
+}
+
+services-stop ()
+{
+  declare self srvr unit zvols
+  self="$0: services-stop"
+  while read -r srvr unit zvols
+  do
+    test "$srvr" = systemd ||
+        err_ "! $self: Unknown framework '$srvr'" || return
+    sudo systemctl stop "$unit"
+  done <<< "$(services-list)"
+}
+
+# Add Requires, Wants and Parts relations between units, so that services
+# using zram shutdown, start or restart together with zram-config.
+services-update-units () # ~ <Add-zram-config=true>
+{
+  declare self srvr unit zvols zcen=${1:-true}
+  self="$0: services-update-units"
+  while read -r srvr unit zvols
+  do
+    test "$srvr" = systemd || {
+        err_ "! $self: Unknown framework '$srvr'" || return
+    }
+    ${zcen:?} && {
+      services-config-unit "$unit" || return
+    } || {
+      services-deconfig-unit "$unit" || return
+    }
+  done <<< "$(services-list)"
+}
+
+service-running ()
+{
+  test "$(sudo systemctl is-active ${1:?})" = active
+}
+
+services-config-unit ()
+{
+  unitdeps=$(sudo systemctl show "${1:?}" | grep '^\(After\|Wants\|PartOf\)')
+  echo "$unitdeps" | grep '^After' | grep -q '\( \|=\)zram-config\.service\( \|$\)' && {
+    stderr_ "$1 is configured"
+    return
+  }
+  ovrconf=/tmp/zram-config-dep-override.conf
+  { echo "[Unit]"
+    echo "After=zram-config.service"
+    echo "Requires=zram-config.service"
+    echo "PartOf=zram-config.service"
+  } > $ovrconf
+  sudo env SYSTEMD_EDITOR="mv $ovrconf" systemctl edit $1 && {
+    stderr_ "$0: services-config-unit: Updated $1 to be part of zram-config"
+  } || {
+    stderr_ "! $0: services-config-unit: Failed editing $1"
+  }
+}
+
+services-deconfig-unit ()
+{
+  false #sudo systemctl show "${1:?}" | grep ''
+}
+
+start ()
+{
+  sudo systemctl start zram-config &&
+    services-start
+}
+
+zramctl-cleanup () # ~ # Reset unmounted zram devices
+{
+  declare zdev algo dsksz datab datac datat streams zmntp
+  while read -r zdev algo dsksz datab datac datat streams zmntp
+  do
+    test -z "${zmntp:-}" || continue
+    stderr_ "Not mounted: $zdev, removing device"
+    sudo zramctl -r "$zdev"
+  done <<< "$(sudo zramctl | tail -n +2 )"
+}
+
+zram-config-cleanup () # ~ # Remove stray bind mounts when service is offline
+{
+  declare zen
+  service-running zram-config && zen=true || zen=false
+  $zen && {
+    stderr_ "TODO: check for stale mounts aside of running config"
+    return 9
+  }
+  while read -r dir algo memlmt dsksz td bd old
+  do
+    mountpoint -q "${ZDIR:?}$bd" || continue
+    stderr_ "! $0: zram-config-diag: Mounted but service is off-line: $td"
+    sudo umount -v "${ZDIR:?}$bd" || return
+  done <<< "$(read-ztab)"
+}
+
+zram-config-status ()
+{
+  fail_first=false zram-config-diag
+}
+
+zram-config-diag () # ~ # Check all zram devices are mounted
+{
+  declare zen
+  service-running zram-config && zen=true || zen=false
+  $zen && {
+    # If running get mountpoints using zramctl and check
+    declare zdev zmntp fail
+    while read -r zdev zmntp
+    do
+      test -n "${zmntp:-}" || {
+        err_ "! $0: zram-config-diag: Device is not mounted <$zdev>" || {
+          ! ${fail_first:-true} && { fail=true; continue; } || return
+        }
+      }
+    done <<< "$(sudo zramctl | tail -n +2 | awk '{print $1" "$8}' )"
+  } || {
+    # Read bind dirs from ztab to look for stray mounts
+    while read -r dir algo memlmt dsksz td bd old
+    do
+      mountpoint -q "${ZDIR:?}$bd" || continue
+      stderr_ "! $0: zram-config-diag: Mounted but service is off-line: $td"
+      ! ${fail_first:-true} && { fail=true; continue; } || return
+    done <<< "$(read-ztab)"
+  }
+  ! ${fail:-false} || return
+}
+
+ztab-mount-find () # ~ <Target> # Read info from zramctl, using findmnt to find overlay and zram device number
+{
+  declare self="$0: ztab-mount-find"
+  mountpoint -q "$1" || {
+    err_ "! $self: Not mounted '$1'" || return
+  }
+  read mntp mntsrc fstype mntopts <<< "$(findmnt -nf "$1/")"
+  test "$fstype" = overlay || {
+    err_ "! $self: Expected overlayfs source for $1" || return
+  }
+  # User overlay number to get zram device
+  zrcl=$(sudo zramctl | grep '^\/dev\/zram'${mntsrc//overlay})
+  test -n "$zrcl" || {
+    err_ "! $self: Cannot find zram device of mount $mnt for $mntsrc" || return
+  }
+  read zdev _ _ datab datac datat _ zmntp <<< "$zrcl"
+}
+
+
+## Util.
+
+stderr_ () # ~ <Messsage> [ <Status> ]
+{
+  printf '%s\n' "$1" >&2
+  test -z "${2:-}" || return $2
+}
+
+err_ () # [?:] ~ <Message>
+{
+  stderr_ "$1" $?
+}
+
+
+true "${HOST:=$(hostname)}"
+true "${US_EXTRA_CHAR:=-}"
+true "${ZTAB:=/etc/ztab}"
+true "${ZDIR:=/opt/zram}"
+true "${SRVTAB:=${UCONF:?}/user/servicetab}"
+
+set -euo pipefail
+
+help ()
+{
+  stderr_ "$0: help: env, function and argument specs for all commands:
+"
+
+  grep '^[[:alpha:]_][[:alnum:]_'"$US_EXTRA_CHAR"']* *()' "$0" | sed '
+    s/^\([^ ]*\) *()  *#  *\([^ ]*\) *~  *\([^#]*\) */\2\t\1\t\3/
+  '
+}
+
+test $# -gt 0 || {
+  stderr_ "$0: No command, default to 'status'. List all with 'help'.
+"
+  set -- status
+}
+
+"$@"

@@ -12,27 +12,30 @@ user_script_lib_load()
 
 user_script_lib_init ()
 {
+  $lib_require ignores || return
+
   test "${user_script_lib_init-}" = "0" && return
 
   true "${uname:="$(uname -s)"}"
   true "${US_BIN:=$HOME/bin}"
   true "${SCRIPT_ETC:=$US_BIN/etc}"
-  lib_load ignores
 }
 
 
 user_script_check () # ~ # See that every script has a description
 {
-  user_script_find | user_script_filter | user_script_check_description
+  user_script_find_exec | user_script_filter | user_script_check_description
 }
 
 user_script_check_description () # ~ #
 {
   while IFS= read -r execname
   do
-    grep -q '^###* [A-Z]' "$execname" || {
-        echo "No matches for <$execname>" >&2
-        echo "$execname"
+    grep -q '^###* [A-Z]' "$execname" && {
+      true #echo "Found headers in $execname"
+    } || {
+      # echo "No matches for <$execname>" >&2
+      echo "Missing headers in $execname"
     }
   done
 }
@@ -45,12 +48,12 @@ user_script_filter () # ~ #
     mime=$(file -bi "$execname")
 
     fnmatch "application/*" "$mime" && {
-        echo "Skipping check of binary file <$execname>" >&2
+        # echo "Skipping check of binary file <$execname>" >&2
         continue
     }
 
     fnmatch "text/*" "$mime" ||  {
-        echo "Unexpected type <$execname>" >&2
+        # echo "Unexpected type <$execname>" >&2
         continue
     }
 
@@ -59,7 +62,7 @@ user_script_filter () # ~ #
             {
                 head -n 1 "$execname" | grep -q '\<\(bash\|sh\)\>'
             } || {
-                echo "Skipping non-shell scripts for now <$execname>" >&2
+                true #echo "Skipping non-shell scripts for now <$execname>" >&2
             }
         }
     }
@@ -68,7 +71,16 @@ user_script_filter () # ~ #
   done
 }
 
-user_script_find () # ~ # Find executables from user-dirs
+user_script_find () # ~ # Find user-scripts in user-dirs
+{
+  user_script_find_exec | while read -r execname
+  do
+    grep -q 'script_entry' "$execname" || continue
+    echo "$execname"
+  done
+}
+
+user_script_find_exec () # ~ # Find executables from user-dirs
 {
   test $# -gt 0 || set -- $US_BIN $UCONF/script $UCONF/path/$uname
   # $UCONF/script/$uname $UCONF/script/Generic
