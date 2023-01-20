@@ -78,9 +78,9 @@ mount-info () # ~ # Read mount targets from ztab and use ztab-mount-find and du/
     echo "Disk usage (inodes): $du_hsi" &&
     $zen && {
       df_h=$(sudo df -h "$td" | tail -n1 | awk '{print $2" "$3" "$4" "$5}') &&
-      df_hi=$(sudo df -hi "$td" | tail -n1 | awk '{print $2" "$3" "$4" "$5}') &&
+      df_Hi=$(sudo df -Hi "$td" | tail -n1 | awk '{print $2" "$3" "$4" "$5}') &&
       echo "Disk size/use/avail/use-% (bytes): $df_h" &&
-      echo "Disk size/use/avail/use-% (inodes): $df_hi"
+      echo "Disk size/use/avail/use-% (inodes): $df_Hi"
     }
     echo
   done <<< "$(read-ztab)"

@@ -75,8 +75,9 @@ user_script_find () # ~ # Find user-scripts in user-dirs
 {
   user_script_find_exec | while read -r execname
   do
-    grep -q 'script_entry' "$execname" || continue
-    echo "$execname"
+    scre=$(grep '^ *script_entry [^ ]* "$@"\( \|$\)' "$execname") || continue
+    read -r _ scrna _ <<< "$scre"
+    eval "echo $scrna $execname"
   done
 }
 
