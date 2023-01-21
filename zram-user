@@ -127,7 +127,8 @@ services ()
 
 services-check ()
 {
-  declare fail
+  declare fail self
+  self="$0: services-check"
   while read -r srvr unit zvols
   do
     test "$srvr" = systemd ||
@@ -169,7 +170,7 @@ services-list () # ~ # List service that depend on zram volumes
 {
   declare \
       host srvr unit volumes \
-      vname ztab
+      vname ztab found
   ztab=$(read-ztab)
   while read -r host srvr unit volumes
   do
@@ -182,7 +183,10 @@ services-list () # ~ # List service that depend on zram volumes
       done)
     test -n "$zvolumes" || continue
     echo $srvr $unit $zvolumes
+    found=true
   done <<< "$(read-srvtab)"
+  ${found:-false} ||
+    err_ "! $0: services-list: No servicetab entries for $HOST"
 }
 
 services-start ()
