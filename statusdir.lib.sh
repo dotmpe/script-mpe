@@ -5,6 +5,8 @@
 
 statusdir_lib_load ()
 {
+  lib_require sys || return
+
   # Setup static STATUSDIR_ROOT env to directory (including trailing-/)
   true "${STATUSDIR_DEFAULT="$HOME/.local/statusdir"}"
   true "${STATUSDIR_ROOT:="$STATUSDIR_DEFAULT/"}"
@@ -26,6 +28,7 @@ statusdir_lib_load ()
 
 statusdir_lib_init()
 {
+  lib_require sys || return
   test ${statusdir_lib_init:-1} -eq 0 || {
     test -n "$INIT_LOG" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
 
