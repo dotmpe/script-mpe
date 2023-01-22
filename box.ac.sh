@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
-# box.ac - auto-completion scripts for readline
+
+## box.ac - auto-completion scripts for readline
+
+# Auto-completion is loaded automatically for shells in interactive mode,
+# see in bash-ac group and profile.tab from UConf.
+# Initializes when sourced in shell that is not runnin as box.ac, otherwise
+# behaves as simple user command script.
+
 # Created: 2015-09-05
 
 
