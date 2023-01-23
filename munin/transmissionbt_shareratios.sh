@@ -62,8 +62,9 @@ update ()
 load ()
 {
   true "${US_BIN:=/srv/home-local/bin}"
-  test -e "$MUNIN_LIBDIR/plugins/transmissionbt-munin.lib.sh" &&
-      . "$MUNIN_LIBDIR/plugins/transmissionbt-munin.lib.sh" ||
+  test -e "$MUNIN_LIBDIR/plugins/transmissionbt-munin.lib.sh" && {
+      . "$MUNIN_LIBDIR/plugins/transmissionbt-munin.lib.sh" || return
+  } ||
       . "$US_BIN/transmissionbt-munin.lib.sh"
 }
 
