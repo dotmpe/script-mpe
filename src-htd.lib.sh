@@ -613,7 +613,7 @@ resolve_fileref () # ~ <Ref> <From> <Directive>
       && fileref=$1 \
       || fileref=$(dirname -- "$2")/$1 # make abs path
 
-  file="$(eval "echo \"$fileref\"" | sed 's#\~/#'"$HOME"'/#')" # expand vars, user
+  file="$(eval "echo \"$fileref\"" | sed 's#^\~/#'"${HOME:?}"'/#')" # expand vars, user
 
   test -e "$file" || {
     $LOG warn "" "Cannot resolve reference" "ref:$1 file:$file"
@@ -638,7 +638,13 @@ grep_preproc () # ~ <Directive> <File>
 expand_preproc () # ~ <Directive> <File> [<Resolver>]
 {
   # Get include lines, reformat to sed commands, and execute sed-expr on input
-  preproc_sed "${@:?}" | "${gsed:?}" -f - "${2:?}"
+  {
+    preproc_sed "${@:?}" ||
+      $LOG error :expand-preproc "Error generating sed script" "E$?:($#):$*" $? || return
+  } | {
+    "${gsed:?}" -f - "${2:?}" ||
+      $LOG error :expand-preproc "Error executing sed script" "E$?:($#):$*" $? || return
+  }
 }
 
 preproc_sed () # ~ <Directive> <File> [<Resolver>]
@@ -650,7 +656,10 @@ preproc_sed () # ~ <Directive> <File> [<Resolver>]
         # Include plain files as is,
         # but use resolver to get alt file for processed files
         grep -q '^ *#'"${1:-include}"' ' "$file" && {
-          file=$(cache=1 "${3:-resolve_fileref}" "$ref" "$2" "$1") || return
+          file=$(cache=1 "${3:-resolve_fileref}" "$ref" "$2" "$1") &&
+          test -s "$file" || {
+            $LOG error :preproc-sed "No such file" "$ref:$file" $? || return
+          }
         }
         # XXX: would love to insert Source/sentinel lines here but not sure
         # how to make sed run two commands for a match. But both r and e command

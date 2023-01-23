@@ -49,10 +49,9 @@ context_tab () # ~
 {
   test -n "${context_tab-}" || local context_tab="$CTX_TAB"
 
-  grep -q '^#include\ ' "$context_tab" && {
-    expand_preproc include "$context_tab" | grep -Ev '^\s*(#.*|\s*)$'
-    ignore_sigpipe
-    return $?
+  grep -q '^#include\ ' "${context_tab:?}" && {
+    { expand_preproc include "$context_tab" | grep -Ev '^\s*(#.*|\s*)$'
+    } || ignore_sigpipe || return
   } || {
     read_nix_style_file "$context_tab"
   }
