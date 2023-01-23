@@ -320,6 +320,15 @@ failed () # ~ # Oneline report of state and failed unit names
   echo $1: $(systemd-failed)
 }
 
+service ()
+{
+  sudo systemctl status "${@:?}"
+}
+
+unit ()
+{
+  sudo systemctl show "${@:?}"
+}
 
 systemd-status-icon-oct () # ~ [<State>] # Print Octicon for SystemD state
 {

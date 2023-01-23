@@ -457,6 +457,9 @@ user_script_libload ()
 user_script_loadenv ()
 {
   true "${US_BIN:="$HOME/bin"}" &&
+  true "${PROJECT:="$HOME/project"}" &&
+  true "${U_S:="$PROJECT/user-scripts"}" &&
+  true "${LOG:="$U_S/tools/sh/log.sh"}" &&
     test -d "$US_BIN" &&
 
   user_script_loaded=1
