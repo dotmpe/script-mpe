@@ -30,7 +30,7 @@ statusdir_lib_init()
 {
   lib_require sys || return
   test ${statusdir_lib_init:-1} -eq 0 || {
-    test -n "$INIT_LOG" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
+    test -n "${INIT_LOG:-}" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
 
     test -d "${STATUSDIR_ROOT-}" || {
       $sd_log  "error" "" "No root directory" "$STATUSDIR_ROOT"

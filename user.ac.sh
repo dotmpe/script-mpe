@@ -6,20 +6,25 @@ alias user="echo user"
 # There are many completion groups already,
 declare -gA __UC_UM_ROOT
 __UC_UM_ROOT=(
-    [alias]="-a"
-    [command]="-c"
-    [file]="-f"
-    [directory]="-d"
-    [export]="-x"
-    [job]="-j"
-    [variable]="-v"
-    [function]="-A function"
-    [service]="-A service"
-    [useralias]="-A userAlias"
-    [arrayvar]="-A arrayvar"
-    [builtin]="-b"
-    [keywords]="-k"
-    [menu]=""
+  [compgen]=""
+)
+
+__UC_UM_COMPGEN=(
+  ["alias"]="compgen:-a"
+  ["command"]="compgen:-c"
+  ["file"]="compgen:-f"
+  ["directory"]="compgen:-d"
+  ["export"]="compgen:-x"
+  ["job"]="compgen:-j"
+  ["variable"]="compgen:-v"
+  ["function"]="compgen:-A function"
+  ["service"]="compgen:-A service"
+  ["arrayvar"]="compgen:-A arrayvar"
+  ["builtin"]="compgen:-b"
+  ["keywords"]="compgen:-k"
+  ["user"]="compgen:-A user"
+  ["group"]="compgen:-A group"
+  ["menu"]=""
 )
 
 # TODO: need to handle associative arrays, could use maybe to map/translate
@@ -45,6 +50,12 @@ __UC_UM_MENU_FOO=(
 #    esac
 #done
 
+__uc_user_menu__compgen ()
+{
+  mapfile COMPREPLY <<< "$(compgen "${@:?}" -- $cur)"
+  #COMPREPLY=( $(compgen "${@:?}" -- $cur) )
+}
+
 __uc_user_menu ()
 {
   declare cur
@@ -57,11 +68,12 @@ __uc_user_menu ()
   declare prev
   prev=${COMP_WORDS[$((COMP_CWORD-1))]}
   test $COMP_CWORD -eq 2 && {
-    declare compopts
-    compopts=${__UC_UM_ROOT[$prev]}
-    test -z "$compopts" || {
-      COMPREPLY=( $(compgen ${compopts} -- $cur) )
-      return
+    declare ref dir
+    ref=${__UC_UM_ROOT[$prev]}
+    test -z "$ref" || {
+      dir=${ref//:*}
+      echo __uc_user_menu__${dir:?} ${ref/*:} >&2
+      __uc_user_menu__${dir:?} ${ref/*:}
     }
   }
   test $COMP_CWORD -gt 2 && {
@@ -127,6 +139,6 @@ __uc_user_menu ()
   return 1
 }
 
-complete -F __uc_user_menu user
+#complete -F __uc_user_menu user
 
 #
