@@ -7,8 +7,14 @@ alias user="echo user"
 declare -gA __UC_UM_ROOT
 __UC_UM_ROOT=(
   [compgen]=""
+  [alias]="uc:alias"
 )
 
+#declare -gA __UC_UM_ALIAS
+#__UC_UM_ALIAS=(
+#)
+
+declare -gA __UC_UM_COMPGEN
 __UC_UM_COMPGEN=(
   ["alias"]="compgen:-a"
   ["command"]="compgen:-c"
@@ -50,10 +56,30 @@ __UC_UM_MENU_FOO=(
 #    esac
 #done
 
-__uc_user_menu__compgen ()
+__uc_um_ac__uc ()
+{
+  __uc_um_ac__compgen -a
+}
+
+__uc_um_ac__compgen ()
 {
   mapfile COMPREPLY <<< "$(compgen "${@:?}" -- $cur)"
   #COMPREPLY=( $(compgen "${@:?}" -- $cur) )
+}
+
+__uc_um_complete ()
+{
+  declare ref mvar mname=${1:-root} prev=${2:?} cur=${3:-}
+  mvar=__UC_UM_${mname^^}
+  #eval "menu=( \"\${${mvar}[@]}\" )"
+  eval "ref=\${${mvar}[\$prev]}" &&
+  echo "mvar=$mvar ref=$ref prev=$prev cur=$cur" >&2
+  test -n "$ref" && {
+    dir=${ref//:*}
+    echo __uc_um_ac__${dir:?} ${ref/*:} >&2
+    __uc_um_ac__${dir:?} ${ref/*:} || return
+  }
+  true
 }
 
 __uc_user_menu ()
@@ -67,14 +93,10 @@ __uc_user_menu ()
   }
   declare prev
   prev=${COMP_WORDS[$((COMP_CWORD-1))]}
+  echo cword=$COMP_CWORD >&2
   test $COMP_CWORD -eq 2 && {
     declare ref dir
-    ref=${__UC_UM_ROOT[$prev]}
-    test -z "$ref" || {
-      dir=${ref//:*}
-      echo __uc_user_menu__${dir:?} ${ref/*:} >&2
-      __uc_user_menu__${dir:?} ${ref/*:}
-    }
+    __uc_um_complete "" "$prev" "$cur" || return
   }
   test $COMP_CWORD -gt 2 && {
     declare group
@@ -139,6 +161,6 @@ __uc_user_menu ()
   return 1
 }
 
-#complete -F __uc_user_menu user
+complete -F __uc_user_menu user
 
 #
