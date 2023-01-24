@@ -620,11 +620,12 @@ resolve_fileref () # ~ <Ref> <From> <Directive>
     return 9
   }
 
+  echo "$file"
 # FIXME:
-  { test ${cache:-0} -eq 1 && grep -q '^ *#'"${3:?}"' ' "$file"
-  } \
-      && echo "TODO:$file" \
-      || echo "$file"
+  #{ test ${cache:-0} -eq 1 && grep -q '^ *#'"${3:?}"' ' "$file"
+  #} \
+  #    && echo "TODO:$file" \
+  #    || echo "$file"
 }
 
 # List values for directive from root file
@@ -637,6 +638,33 @@ grep_preproc () # ~ <Directive> <File>
 # per include line in between.
 expand_preproc () # ~ <Directive> <File> [<Resolver>]
 {
+  # Awk does not leave sentinel line
+  awk -v HOME=$HOME -v v=${verbosity:-${v:-3}} '
+    function insert_file (file)
+    {
+        if (v > 4)
+            print "Reading \""file"\" for "FILENAME"..." >> "/dev/stderr"
+        gsub(/~\//,HOME"/",file)
+        if (system("[ -s \""file"\" ]") == 1) {
+            if (v > 2)
+                print "No such include for "FILENAME" named "file >> "/dev/stderr"
+            exit 4
+        }
+        if (file in sources) {
+            if (v > 2)
+                print "Recursion from "FILENAME" into already loaded "file >> "/dev/stderr"
+            exit 3
+        }
+        sources[file]=1
+        while (getline line < file)
+            print line
+        close(file)
+        if (v > 5)
+            print "Closed \""file"\"" >> "/dev/stderr"
+    }
+    /#'"${1:-include}"'/ { insert_file($2); next; }' "${2:?}"
+  return
+
   # Get include lines, reformat to sed commands, and execute sed-expr on input
   {
     preproc_sed "${@:?}" ||
