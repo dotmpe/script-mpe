@@ -4704,8 +4704,13 @@ htd_init()
   true "${CWD:="$scriptpath"}"
   true "${SUITE:="Main"}"
   true "${PACK_MAIN_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
-  test ! -e $PACK_MAIN_ENV || { source $PACK_MAIN_ENV || return; }
-  test -n "${HTD_CONF:-}" || { htd__conf || return; }
+  test ! -e $PACK_MAIN_ENV || {
+    source $PACK_MAIN_ENV ||
+      $htd_log error htd-init "E$? main env" "$PACK_MAIN_ENV" $? || return
+  }
+  test -n "${HTD_CONF:-}" || { htd__conf ||
+      $htd_log error htd-init "E$? htd:conf" "" $? || return
+  }
 
   LOG=$htd_log
 
@@ -4714,7 +4719,9 @@ htd_init()
   INIT_LIB="os sys std log str match src main argv stdio vc std-ht shell"\
 " bash-uc ansi-uc"\
 " date str-htd logger-theme sys-htd vc-htd statusdir os-htd htd ctx-std" \
-. ${CWD:="$scriptpath"}/tools/main/init.sh || return
+. ${CWD:="$scriptpath"}/tools/main/init.sh ||  {
+    $htd_log error htd-init "E$?" "tools/main/init" $? || return
+  }
 
   trap bash_uc_errexit ERR
 
