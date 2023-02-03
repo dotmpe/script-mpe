@@ -7,8 +7,8 @@
 
 fzf_start ()
 {
-  fnmatch "* --color=*" "$FZF_DEFAULT_OPTS" || {
-    FZF_DEFAULT_OPTS="$FZF_DEFAULT_OPTS $FZF_CHAUVET"
+  fnmatch "* --color=*" "${FZF_DEFAULT_OPTS:?}" || {
+    FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:-}${FZF_DEFAULT_OPTS:+ }$FZF_CHAUVET"
   }
 
   # Defined by Fzf
@@ -16,7 +16,6 @@ fzf_start ()
   test -z "${FZF_DEFAULT_COMMAND:-}" || declare -gx FZF_DEFAULT_COMMAND
   # Defined by this lib
   test -z "${FZF_EDIT_OPTS:-}" || declare -gx FZF_EDIT_OPTS
-
 }
 
 

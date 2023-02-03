@@ -1,3 +1,7 @@
+# Directory for CDN node with ontologies as N3/Turtle, OWL and other RDF/XML
+# with associated names. See informal NID assignments in user/namespaces.tab,
+# and as well with further annotation in user/ontologies.n3 for keys.
+
 n3:
   http:
     ext: .n3

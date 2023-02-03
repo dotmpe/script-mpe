@@ -24,11 +24,4 @@ test_data ()
 
 source tools/benchmark/_lib.sh
 
-runs=1000
-
-echo -e "\nAwk"
-time run_test_io "" $runs test_ awk
-echo -e "\nCut"
-time run_test_io "" $runs test_ cut
-
 #

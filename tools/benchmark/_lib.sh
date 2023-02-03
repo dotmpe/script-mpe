@@ -4,12 +4,22 @@
 
 test_q ()
 {
-  sh_null "$@"
+  sh_nout "$@"
 }
 
-sh_null ()
+sh_nout ()
 {
   "$@" >/dev/null
+}
+
+sh_nerr ()
+{
+  "$@" 2>/dev/null
+}
+
+sh_noe ()
+{
+  "$@" >/dev/null 2>&1
 }
 
 # Run command X times. Ignore status. Does nothing for IO, see
@@ -102,7 +112,7 @@ run_test () # ~ <Iter-count> [ <Test-name> | -- ] [ <Cmd <...>> ]
 run_test_io () # ~ ( <Data-Prefix> | <Data-cmd> -- | -- ) \
   # <Iter-count> [ <Test-name> | -- ] [ <Cmd <...>> ]
 {
-  sh_null run_test_io_V "$@"
+  sh_nout run_test_io_V "$@"
 }
 
 # Like run-all but the argv has to be prefixed with data spec for

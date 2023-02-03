@@ -457,10 +457,11 @@ stat_key()
 }
 
 # Write/Parse simple line protocol from main_bg instance at main_sock
-main_bg_writeread()
+# TODO see bg.lib.sh
+main_bg_writeread () # ~ <Cmd ...>
 {
-  printf -- "$@\r\n" | socat -d - "UNIX-CONNECT:$main_sock" \
-    2>&1 | tr "\r" " " | while read line
+  printf -- "$@\r\n" | socat -d - "UNIX-CONNECT:$main_sock" 2>&1 |
+      tr "\r" " " | while read line
   do
     case "$line" in
       *" OK " )

@@ -28,3 +28,5 @@ JSON Schema
 
 JSON Hyperschema
   - links
+
+For content delivery config to serve schema files see cdn.yml
