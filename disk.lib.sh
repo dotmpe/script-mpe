@@ -11,7 +11,7 @@ disk_lib_load ()
   #test -n "${hostname-}" || hostname="$(hostname -s)"
   : "${hostname:=$(hostname -s | tr '[:upper:]' '[:lower:]')}"
 
-  : "${DISK_CATALOG:=$HOME/.diskdoc}"
+  : "${DISK_CATALOG:=$HOME/.local/diskdoc}"
 
   : "${USER_DEVS:=${UCONF:?}/user/devices.list}"
   : "${USER_SDUSB:=${UCONF:?}/user/sdusbtab}"
@@ -21,21 +21,44 @@ disk_lib_load ()
   : "${USER_DISKDEVS:=sd fd sr mmc md mdp blkext}"
   : "${USER_VDISKDEVS:=loop ramdisk device-mapper}"
 
+  disk_catalog_sources=lsblk\ parted\ fdisk
+  disk_catalog_spec=\
+'model	Model description	1	lsblk,parted
+vendor	Vendor description	1	lsblk
+product	Product description	0
+label	Short disk description	1
+tags	Tag list	0
+prefix	Id for mount paths	1
+description	Disk description	0
+id	Identifier for diskdoc/catalog	1
+serial	Serial Id	1	lsblk
+rev	Revision	0	lsblk
+size	Disk size	1	lsblk
+byte-size	Disk size	1	lsblk
+ver	Version	0'
+
   disk_lsblk_keys=KNAME\ TRAN\ RM\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ UUID\ PTTYPE\ STATE
-  disk_lsblk_keys_ext=KNAME\ TRAN\ RM\ RA\ RO\ SCHED\ HCTL\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ UUID\ WWN\ PTTYPE\ STATE
+  disk_lsblk_keys_ext=KNAME\ TRAN\ RM\ RA\ RO\ ROTA\ HOTPLUG\ SCHED\ HCTL\ SIZE\ VENDOR\ MODEL\ REV\ SERIAL\ UUID\ WWN\ PTTYPE\ STATE
 
-  disk_partition_lsblk_keys=KNAME\ PARTTYPE\ PARTLABEL\ PARTUUID\ MOUNTPOINT\ FSTYPE\ PTUUID\ PTTYPE\ UUID\ SIZE
+  disk_partition_lsblk_keys=KNAME\ PARTTYPE\ PARTLABEL\ PARTUUID\ MOUNTPOINT\ FSTYPE\ PTUUID\ PTTYPE\ UUID\ SIZE\ LABEL
 
-  disk_keys=disk_id\ disk_index\ disk_description\ disk_host\ disk_domain\
-\ disk_prefix\ disk_model\ disk_vendor\ disk_revision\ disk_serial\ disk_size\
-\ disk_volumes__0\ disk_volumes__1\ disk_volumes__2\
-\ disk_volumes__4\ disk_volumes__5\ disk_volumes__6
+  disk_keys_req="id index prefix vendor model serial size byte-size"
+  disk_keys=id\ index\ description\ host\ domain\
+\ prefix\ vendor\ model\ revision\ serial\ size\ byte-size
+
+#\ volumes__
+#  0\ disk_volumes__1\ disk_volumes__2\
+#\ disk_volumes__4\ disk_volumes__5\ disk_volumes__6
 
   disk_keys_map=\
 'disk_model MODEL
 disk_size SIZE
+disk_byte_size BSIZE
 disk_vendor VENDOR
 disk_revision REV
+disk_ptuuid	PTUUID
+disk_index DISK_NR
+disk_transport TRAN
 disk_serial SERIAL'
 
   disk_partition_keys=disk_partition_type\ volume_uuid\ volume_partuuid\
@@ -97,6 +120,16 @@ req_blkid()
   blkid="$dev_pref $($dev_pref which blkid)"
 }
 
+
+disk_bootnumber () # # @DEV
+{
+  note "TODO: Getting disk0 boot count-crash count..."
+  eval local $(disk_smartctl_attrs $1)
+  test -z "${Power_Cycle_Count-}" ||
+      echo "$Power_Cycle_Count-$Power_Cycle_Count_Raw"
+  test -z "${Power_Off_Retract_Count-}" ||
+      echo "$Power_Off_Retract_Count-$Power_Off_Retract_Count_Raw"
+}
 
 disk_device_numbers () # () ~
 {
@@ -182,22 +215,24 @@ disk_ignore_numbers () # ~ <Exclude-devnames...>
 
 disk_info ()
 {
-  local disk=$1; shift
-  debug "disk-local-inner disk='$disk'"
+  test $# -gt 2 || return $_E_GAE
+  local disk_dev=${1:?} act="${2:-names}"; shift 2
   while test $# -gt 0
-  do
-    case $(str_lower $1) in
-      num ) disk_catalog_field "$disk" disk_index || echo -1 ;;
-      dev ) printf -- "$disk " || return $?;;
-      disk_id ) disk_id $disk || return $?;;
-      disk_model ) disk_model $disk | tr ' ' '-';;
-      size ) disk_size $disk || return $?;;
-      table_type ) disk_tabletype $disk || return $?;;
-      mnt_c ) disk_mountpoint $disk | count_words ;;
-      * ) error "inner $1?" 1 ;;
-    esac
-    shift
-  done | tr -s '\n' ' '
+  do case "$act" in
+
+    ( names )
+      ;;
+
+      num ) disk_catalog_field "$disk_dev" disk_index || echo -1 ;;
+      dev ) printf -- "$disk_dev " ;;
+      disk_id ) disk_id "$disk_dev" ;;
+      disk_model ) disk_model $disk_dev | tr ' ' '-';;
+      size ) disk_size $disk_dev || return $?;;
+      table_type ) disk_tabletype $disk_dev || return $?;;
+      mnt_c ) disk_mountpoint $disk_dev | count_words ;;
+    ( * ) error "inner $1?" 1 ;;
+  esac || return && shift
+  done
 }
 
 # Use lsblk to list properties for attached devices (without subnode trees)
@@ -216,10 +251,25 @@ disk_lsblk_list () # ~ [<lsblk-argv...>]
   lsblk -o "PATH" -e$excluded_devs ${lsblk_opts:+-}${lsblk_opts:-} "$@"
 }
 
+# Load into env properties from lsblk for disk devices
+disk_lsblk_load () # ~ <Disk-dev> <Columns...>
+{
+  test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
+  local dev=$1 ; shift
+  test $# -gt 0 || set -- $disk_lsblk_keys
+  disk_lsblk_type_load "$dev" disk "$@"
+}
+
 disk_lsblk_partnr () # ~ <Device>
 {
   test -b "${1:?}" || return $_E_GAE
   disk_lsblk_field "$1" MAJ:MIN | cut -d':' -f2
+}
+
+# Print properties from lsblk for disk devices
+disk_lsblk_show () # ~ <Disk-dev> <Columns...>
+{
+  dry_run=1 disk_lsblk_load "$@"
 }
 
 disk_model () # ~ <Device>
@@ -248,51 +298,6 @@ disk_model () # ~ <Device>
       ;;
 
     * ) error "Disk-Model: $uname" 1 ;;
-  esac
-}
-
-disk_serial_id ()
-{
-  test -b "${1:?}" || return $_E_GAE
-  case "$uname" in
-
-    Linux )
-        udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
-          | cut -d '=' -f 2
-      ;;
-
-    Darwin )
-        local bsd_name=$(basename $1) xml=
-        #diskutil info "$1" | grep 'UUID' >&2 || warn "No grep $dev"
-
-        xml=$(darwin_profile_xml "SPSerialATADataType")
-        device_serial="$(Darwin.py spserialata-disk $xml $bsd_name device_serial)" || true
-        test -z "$device_serial" || {
-          debug "SPSerialATADataType $bsd_name device serial '$device_serial'"
-          echo $device_serial; return
-        }
-
-        xml=$(darwin_profile_xml "SPUSBDataType")
-        serial_num="$(Darwin.py spusb-disk $xml $bsd_name serial_num)" || true
-        test -z "$serial_num" || {
-          debug "SPUSBDataType $bsd_name serial number '$serial_num'"
-          echo $serial_num; return
-        }
-
-        xml=$(darwin_profile_xml "SPStorageDataType")
-        serial_num="$(Darwin.py spstorage-disk $xml $bsd_name serial_num)" || true
-        test -z "$serial_num" || {
-          debug "SPStorageDataType $bsd_name serial number '$serial_num'"
-          echo $serial_num; return
-        }
-
-        # Unfortunately need to dig trough volume group/mapping setup here.
-        # Rather going to skip device ID and move to volumes directly.
-
-        error "unkown disk $bsd_name" 1
-      ;;
-
-    * ) error "Disk-fdisk-Id: $uname" 1 ;;
   esac
 }
 
@@ -408,7 +413,6 @@ disk_list_part_local () # ~ # List partition devices
   }
 }
 
-
 disk_partition_type () # (dev) ~ [<Device>]
 {
   req_blkid disk-partition-type || return
@@ -429,46 +433,49 @@ disk_partition_size () # ~ <Device>
   echo $(echo $dftabline | cut -f2 -d\  | sed -e 's/\%//g')
 }
 
-find_partition_ids ()
+disk_serial_id ()
 {
-  find /dev/disk/by-uuid -type l | while read path
-  do
-    test "$(basename $(readlink $path))" != "$(basename $1)" || {
-      echo UUID:$(basename $path)
-    }
-  done
+  test -b "${1:?}" || return $_E_GAE
+  case "$uname" in
 
-  if test -e /dev/disk/by-partuuid
-  then
-    find /dev/disk/by-partuuid -type l | while read path
-    do
-      test "$(basename $(readlink $path))" != "$(basename $1)" || {
-        echo PART-UUID:$(basename $path)
-      }
-    done
-  fi
-}
+    Linux )
+        udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
+          | cut -d '=' -f 2
+      ;;
 
-# TODO handle disk-ids too
+    Darwin )
+        local bsd_name=$(basename $1) xml=
+        #diskutil info "$1" | grep 'UUID' >&2 || warn "No grep $dev"
 
-mount_tmp()
-{
-  test -n "$1" || error "Device or disk-id required" 1
-  test -n "$2" || set -- "$1" 1
-  tmpd=$(setup_tmpd disk/$2)
-  warn "Mounting temporary disk $1"
-  $mnt_pref mount $1 $tmpd || return $?
-  note "Mounted $1 at $tmpd"
-  tmp_mnt=$tmpd
-}
+        xml=$(darwin_profile_xml "SPSerialATADataType")
+        device_serial="$(Darwin.py spserialata-disk $xml $bsd_name device_serial)" || true
+        test -z "$device_serial" || {
+          debug "SPSerialATADataType $bsd_name device serial '$device_serial'"
+          echo $device_serial; return
+        }
 
-is_mounted()
-{
-  test -n "$1" || error "Device or disk-id required" 1
-  test -z "$2" || error "surplus arguments '$2'" 1
-  {
-    mount | grep -q '^'$1
-  } || return $?
+        xml=$(darwin_profile_xml "SPUSBDataType")
+        serial_num="$(Darwin.py spusb-disk $xml $bsd_name serial_num)" || true
+        test -z "$serial_num" || {
+          debug "SPUSBDataType $bsd_name serial number '$serial_num'"
+          echo $serial_num; return
+        }
+
+        xml=$(darwin_profile_xml "SPStorageDataType")
+        serial_num="$(Darwin.py spstorage-disk $xml $bsd_name serial_num)" || true
+        test -z "$serial_num" || {
+          debug "SPStorageDataType $bsd_name serial number '$serial_num'"
+          echo $serial_num; return
+        }
+
+        # Unfortunately need to dig trough volume group/mapping setup here.
+        # Rather going to skip device ID and move to volumes directly.
+
+        error "unkown disk $bsd_name" 1
+      ;;
+
+    * ) error "Disk-fdisk-Id: $uname" 1 ;;
+  esac
 }
 
 # TODO: Get mount point for dev/disk-id
@@ -493,18 +500,7 @@ get_device()
   } || return $?
 }
 
-disk_find_mountpoint() # PATH
-{
-	local p="$1"
-	while test "$p" != "/"
-	do
-		mountpoint -q "$p" && break
-		p="$(dirname "$p")"
-	done
-	echo "$p"
-}
-
-copy_fs()
+disk_copy_fs ()
 {
   test -n "$1" || error "Device or disk-id required" 1
   test -n "$2" || error "Filename required" 1
@@ -522,157 +518,24 @@ copy_fs()
   return $4
 }
 
-
-### Disk Catalog functions
-
-disk_catalog_field ()
+disk_find_mountpoint() # PATH
 {
-  test -n "${1-}" || error "disk-info disk-device" 1
-  test -n "${2-}" || set -- "$1" "prefix"
-  test -d "$DISK_CATALOG" || error "Invalid catalog env ($DISK_CATALOG)" 1
-
-  test -e "$DISK_CATALOG/disk/$1.sh" || { {
-      set -- "$(disk_id_for_dev "$1")" "$2" &&
-      test -e "$DISK_CATALOG/disk/$1.sh"
-    } || { error "No such known disk '$1'"; return 1; }; }
-
-  . $DISK_CATALOG/disk/$1.sh
-  eval echo \$$2
+	local p="$1"
+	while test "$p" != "/"
+	do
+		mountpoint -q "$p" && break
+		p="$(dirname "$p")"
+	done
+	echo "$p"
 }
 
-disk_bootnumber () # DEV
+disk_doc ()
 {
-  note "TODO: Getting disk0 boot count-crash count..."
-  eval local $(disk_smartctl_attrs $1)
-  test -z "${Power_Cycle_Count-}" ||
-      echo "$Power_Cycle_Count-$Power_Cycle_Count_Raw"
-  test -z "${Power_Off_Retract_Count-}" ||
-      echo "$Power_Off_Retract_Count-$Power_Off_Retract_Count_Raw"
-}
-
-disk_doc()
-{
-{ cat <<EOM
+  { cat <<EOM
 host: $hostname
 
 EOM
   } | jsotk yaml2json -
-}
-
-disk_catalog_put_disk()
-{
-  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
-  test -n "$disk_id" || error "disk-id not set" 1
-  test -n "$volumes_main_id" || error "volumes-main-id not set" 1
-  {
-    echo disk_host=\"$disk_host\"
-    echo disk_id=$volumes_main_disk_id
-    echo disk_index=$volumes_main_disk_index
-    test -n "$volumes" \
-      && echo volumes=\"$volumes $volumes_main_id\" \
-      || echo volumes=\"$volumes_main_id\"
-
-  } > $DISK_CATALOG/disk/$disk_id.sh
-}
-
-disk_catalog_update_disk()
-{
-  test "$disk_id" = "$volumes_main_disk_id" || {
-    note "$disk_id != $volumes_main_disk_id"
-    error "disk-id mismatch '$1'" 1
-  }
-
-  test "$disk_index" = "$volumes_main_disk_index" \
-    || error "disk-index mismatch '$1'" 1
-
-  std_info "Current host: '$disk_host'"
-  std_info "Existing volumes: '$disk_volumes'"
-
-  local update=
-  fnmatch *"$volumes_main_id"* "$disk_volumes" || update=1
-  test "$(hostname)" = "$disk_host" || update=1
-
-  test -z "$update" ||  {
-    disk_catalog_put_disk || return $?
-  }
-}
-
-# Check .volumes.sh schema for disk
-disk_catalog_volumes_check()
-{
-  test -n "$volumes_main_id" || error "Volumes doc '$1' missing id" 1
-  test -n "$volumes_main_part_id" \
-    || error "Volumes doc '$1' missing part_id" 1
-  test -n "$volumes_main_part_index" \
-    || error "Volumes doc '$1' missing part_index" 1
-  test -n "$volumes_main_disk_id" \
-    || error "Volumes doc '$1' missing disk_id" 1
-  test -n "$volumes_main_disk_index" \
-    || error "Volumes doc '$1' missing disk_index" 1
-}
-
-disk_catalog_update()
-{
-  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
-  test -n "$1" || error "disk-catalog-update volumes-sh expected" 1
-  #eval $(sed 's/volumes_main_//g' $1)
-  #test -n "$id" || error "Volumes doc '$1' missing id" 1
-  host="$(hostname)"
-  volumes_main_id= volumes_main_part_id= volumes_main_part_index=
-
-  eval $(cat $1)
-  disk_catalog_volumes_check "$1"
-
-  test "$disk_id" = "$volumes_main_disk_id" || {
-    warn "Please fix ID $disk_id != $volumes_main_disk_id ($1)" 1
-    return
-  }
-
-  # Extract disk ID parts from volumes doc
-  test -e "$DISK_CATALOG/disk/$disk_id.sh" \
-    && {
-
-      . "$DISK_CATALOG/disk/$disk_id.sh"
-      disk_catalog_update_disk "$1"
-
-    } || {
-
-      test "$disk_id" = "$volumes_main_disk_id" \
-        || error "disk-id mismatch '$1'" 1
-
-      disk_catalog_put_disk
-    }
-
-}
-
-disk_catalog_update_volume()
-{
-  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
-  test -e "$DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh" \
-    && {
-      part_id="$volumes_main_part_id"
-      . $DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh
-      test "$volumes_main_part_id" = "$part_id" || {
-        warn "Partition changed: $volumes_main_part_id"
-      }
-    } || {
-      cp $1 $DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh
-    }
-}
-
-# evaluate, and use update env to copy file
-disk_catalog_import()
-{
-  test -e "$1" || {
-    error "No metafile $1"
-    return 1
-  }
-  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
-  (
-    disk_catalog_update "$1" || return $?
-    disk_catalog_update_volume "$1" || return $?
-  )
-  std_info "Imported '$1'"
 }
 
 disk_report()
@@ -707,6 +570,16 @@ disk_report()
   return $disk_report_result
 }
 
+# Getting disk0 runtime (days)
+disk_runtime () # DEV
+{
+  eval local $(disk_smartctl_attrs $1) || return
+  #python -c "print $Power_On_Hours_Raw / 24.0"
+  echo "$Power_On_Hours_Raw hours"
+  echo "$(echo "$Power_On_Hours_Raw / 24" | bc) days"
+  #echo "$Power_On_Hours"
+}
+
 disk_smartctl_attrs ()
 {
   ${smartctl_pref:-} smartctl -A "$1" -f old | tail -n +8 | {
@@ -719,16 +592,6 @@ disk_smartctl_attrs ()
         printf "%s " "$(printf "$attr" | tr -cs 'A-Za-z_' '_')=\"$value\""
     done
   }
-}
-
-# Getting disk0 runtime (days)
-disk_runtime () # DEV
-{
-  eval local $(disk_smartctl_attrs $1) || return
-  #python -c "print $Power_On_Hours_Raw / 24.0"
-  echo "$Power_On_Hours_Raw hours"
-  echo "$(echo "$Power_On_Hours_Raw / 24" | bc) days"
-  #echo "$Power_On_Hours"
 }
 
 # Load into env or print on dry-run properties from lsblk output line
@@ -748,22 +611,7 @@ disk_lsblk_type_load () # ~ <Device> <Type> <Columns...>
   } || eval "$data"
 }
 
-# Load into env properties from lsblk for disk devices
-disk_lsblk_load () # ~ <Disk-dev> <Columns...>
-{
-  test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
-  local dev=$1 ; shift
-  test $# -gt 0 || set -- $disk_lsblk_keys
-  disk_lsblk_type_load "$dev" disk "$@"
-}
-
-# Print properties from lsblk for disk devices
-disk_lsblk_show () # ~ <Disk-dev> <Columns...>
-{
-  dry_run=1 disk_lsblk_load "$@"
-}
-
-disk_partition_list ()
+disk_partition_list () # ~ <Disk-dev>
 {
   lsblk_opts=n disk_lsblk_field "$1" PATH,TYPE | grep ' part' | cut -d' ' -f1
 }
@@ -852,5 +700,285 @@ disk_vol_info()
   . $DISK_CATALOG/volume/$1.sh
   eval echo \$volumes_main_$2
 }
+
+
+### Disk Catalog functions
+
+disk_catalog_check_disk ()
+{
+  #echo "$disk_catalog_spec" | while IFS=$'\t\n' read -r media_var var_descr var_sources
+  req_names=$disk_keys_req key=disk_ check_key_vars $disk_keys
+}
+
+disk_catalog_field ()
+{
+  test -n "${1-}" || error "disk-info disk-device" 1
+  test -n "${2-}" || set -- "$1" "prefix"
+  test -d "$DISK_CATALOG" || error "Invalid catalog env ($DISK_CATALOG)" 1
+
+  test -e "$DISK_CATALOG/disk/$1.sh" || { {
+      set -- "$(disk_id_for_dev "$1")" "$2" &&
+      test -e "$DISK_CATALOG/disk/$1.sh"
+    } || { error "No such known disk '$1'"; return 1; }; }
+
+  . $DISK_CATALOG/disk/$1.sh
+  eval echo \$$2
+}
+
+# evaluate, and use update env to copy file
+disk_catalog_import()
+{
+  test -e "$1" || {
+    error "No metafile $1"
+    return 1
+  }
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
+  (
+    disk_catalog_update "$1" || return $?
+    disk_catalog_update_volume "$1" || return $?
+  )
+  std_info "Imported '$1'"
+}
+
+disk_catalog_clrenv_disk () # ~
+{
+  unset $disk_lsblk_keys_ext $(echo "$disk_catalog_spec"|cut -d$'\t' -f1)
+}
+
+disk_catalog_init_disk () # ~
+{
+  eval "$(disk_catalog_initenv_disk)"
+}
+
+disk_catalog_initenv_disk ()
+{
+  echo "$disk_catalog_spec" | {
+    local var src_var f_key f_descr f_req f_src
+    while IFS=$'\t\n' read -r f_key f_descr f_req f_src
+    do
+      var=disk_${f_key//-/_}
+      src_var=
+      if test -z "${!var:-}"
+      then
+        case ",$f_src," in
+          ( *",lsblk,"* )
+              lsblk_var=$(echo "$disk_keys_map" | grep "^$var " | cut -d' ' -f2)
+              test -n "$lsblk_var" && {
+                src_var=$lsblk_var
+              } || {
+                trueish "$f_req" || continue
+                $LOG error "" "Required" "$f_key"
+              }
+            ;;
+        esac
+      fi
+      test -n "${src_var:-}" || continue
+      echo "$var=\"${!src_var:-}\""
+    done
+  }
+}
+
+disk_catalog_load_disk () # ~ <Disk-id>
+{
+  . $DISK_CATALOG/disk/${1:?}.sh
+}
+
+disk_catalog_load_partition () # ~ <Disk-id> <Part-nr>
+{
+  . $DISK_CATALOG/volume/${1:?}-${2:?}.sh
+}
+
+disk_catalog_put_disk () # (dc) ~
+{
+  local outf=${DISK_CATALOG:?}/disk/${disk_id:?}.sh
+  {
+    echo disk_host=\"$disk_host\"
+    echo disk_id=$volumes_main_disk_id
+    echo disk_index=$volumes_main_disk_index
+    test -n "$volumes" \
+      && echo volumes=\"$volumes $volumes_main_id\" \
+      || echo volumes=\"$volumes_main_id\"
+
+  } > "$outf"
+}
+
+disk_catalog_update_disk()
+{
+  test "$disk_id" = "$volumes_main_disk_id" || {
+    note "$disk_id != $volumes_main_disk_id"
+    error "disk-id mismatch '$1'" 1
+  }
+
+  test "$disk_index" = "$volumes_main_disk_index" \
+    || error "disk-index mismatch '$1'" 1
+
+  std_info "Current host: '$disk_host'"
+  std_info "Existing volumes: '$disk_volumes'"
+
+  local update=
+  fnmatch *"$volumes_main_id"* "$disk_volumes" || update=1
+  test "$(hostname)" = "$disk_host" || update=1
+
+  test -z "$update" ||  {
+    disk_catalog_put_disk || return $?
+  }
+}
+
+disk_catalog_update()
+{
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
+  test -n "$1" || error "disk-catalog-update volumes-sh expected" 1
+  #eval $(sed 's/volumes_main_//g' $1)
+  #test -n "$id" || error "Volumes doc '$1' missing id" 1
+  host="$(hostname)"
+  volumes_main_id= volumes_main_part_id= volumes_main_part_index=
+
+  eval $(cat $1)
+  disk_catalog_volumes_check "$1"
+
+  test "$disk_id" = "$volumes_main_disk_id" || {
+    warn "Please fix ID $disk_id != $volumes_main_disk_id ($1)" 1
+    return
+  }
+
+  # Extract disk ID parts from volumes doc
+  test -e "$DISK_CATALOG/disk/$disk_id.sh" \
+    && {
+
+      . "$DISK_CATALOG/disk/$disk_id.sh"
+      disk_catalog_update_disk "$1"
+
+    } || {
+
+      test "$disk_id" = "$volumes_main_disk_id" \
+        || error "disk-id mismatch '$1'" 1
+
+      disk_catalog_put_disk
+    }
+
+}
+
+disk_catalog_update_volume()
+{
+  test -d "$DISK_CATALOG" || error "Missing catalog env" 1
+  test -e "$DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh" \
+    && {
+      part_id="$volumes_main_part_id"
+      . $DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh
+      test "$volumes_main_part_id" = "$part_id" || {
+        warn "Partition changed: $volumes_main_part_id"
+      }
+    } || {
+      cp $1 $DISK_CATALOG/volume/$disk_id-$volumes_main_part_index.sh
+    }
+}
+
+# Check .volumes.sh schema for disk
+disk_catalog_volumes_check ()
+{
+  test -n "$volumes_main_id" || error "Volumes doc '$1' missing id" 1
+  test -n "$volumes_main_part_id" \
+    || error "Volumes doc '$1' missing part_id" 1
+  test -n "$volumes_main_part_index" \
+    || error "Volumes doc '$1' missing part_index" 1
+  test -n "$volumes_main_disk_id" \
+    || error "Volumes doc '$1' missing disk_id" 1
+  test -n "$volumes_main_disk_index" \
+    || error "Volumes doc '$1' missing disk_index" 1
+}
+
+disk_catalog_try_volume () # ~ <Part-dev> [<Expect-mounted>]
+{
+  test -b "${1:?}" || return $_E_GAE
+  local expected=$(trueish "${2:-}" && echo true || echo false)
+  disk_partition_lsblk_load "${1:?}" MOUNTPOINT \
+    && test -n "${MOUNTPOINT:-}" || {
+      $expected && return || return
+    }
+  test -d "${MOUNTPOINT:?"Cannot get MOUNTPOINT for $1"}/" || {
+    $LOG warn "" "No mountpoint" "$1"
+    return 1
+  }
+  test -s "$MOUNTPOINT/.volumes.sh" || {
+    $LOG warn "" "No .volumes.sh" "$1"
+    return 1
+  }
+  vol_sh="$MOUNTPOINT/.volumes.sh"
+}
+
+
+## Util
+
+check_vars () # ~ <Var-names...>
+{
+  local var v
+  for var in "$@"
+  do
+    v=${!var:-}
+    test -n "$v" || {
+      $LOG error "" "Missing or empty value" "$var:$v"
+      return
+    }
+  done
+}
+
+check_key_vars () # [key,req_names] ~ <Name-parts...>
+{
+  local var name val
+  for name in "$@"
+  do
+    var=${key}${name//-/_}
+    val=${!var:-}
+    test -n "$val" || {
+      test -z "${req_names:-}" ||
+        case " $req_names " in ( *" $name "* ) ;; ( * ) continue ;; esac;
+      $LOG error "" "Missing or empty value" "$var:"
+      return
+    }
+  done
+}
+
+find_partition_ids ()
+{
+  find /dev/disk/by-uuid -type l | while read path
+  do
+    test "$(basename $(readlink $path))" != "$(basename $1)" || {
+      echo UUID:$(basename $path)
+    }
+  done
+
+  if test -e /dev/disk/by-partuuid
+  then
+    find /dev/disk/by-partuuid -type l | while read path
+    do
+      test "$(basename $(readlink $path))" != "$(basename $1)" || {
+        echo PART-UUID:$(basename $path)
+      }
+    done
+  fi
+}
+
+# TODO handle disk-ids too
+
+mount_tmp()
+{
+  test -n "$1" || error "Device or disk-id required" 1
+  test -n "$2" || set -- "$1" 1
+  tmpd=$(setup_tmpd disk/$2)
+  warn "Mounting temporary disk $1"
+  $mnt_pref mount $1 $tmpd || return $?
+  note "Mounted $1 at $tmpd"
+  tmp_mnt=$tmpd
+}
+
+is_mounted()
+{
+  test -n "$1" || error "Device or disk-id required" 1
+  test -z "$2" || error "surplus arguments '$2'" 1
+  {
+    mount | grep -q '^'$1
+  } || return $?
+}
+
 
 #
