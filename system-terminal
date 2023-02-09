@@ -318,7 +318,22 @@ shells ()
   done
 }
 
+hasinfo ()
+{
+  </dev/null tput - >/dev/null
+}
 
+importinfo ()
+{
+  test -e "${1:?}" || set -- "${UCONF:?}/etc/terminfo/${:?}"
+  tic "$@"
+}
+
+dumpinfo ()
+{
+  hasinfo &&
+  infocmp > "${UCONF:?}/etc/terminfo/${TERM:?}"
+}
 
 system_terminal_usage ()
 {
