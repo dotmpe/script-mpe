@@ -19,4 +19,4 @@ git ztombol/bats-support
 git ztombol/bats-assert
 
 # Sync: U-S:
-# Id: dependencies.txt vim:ft=sh:
+# Id: dependencies.txt ex:ft=lest-txt:
