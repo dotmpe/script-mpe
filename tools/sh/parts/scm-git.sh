@@ -70,21 +70,36 @@ alias git-update-clone='git-pull-v --all && git-push-v --all'
 # Actually pull (from the remote ref for current branch at) all remotes (ie.
 # only those remotes that have it, as known from the last fetch)
 alias git-pull-every='{
-  current_branch=$(git-current-branch) && for remote in $(git-remotes);
-  do
-    case "$(git config remote.$remote.url)" in http* ) continue;; esac;
-    git-pull-v $remote $current_branch;
-  done; unset remote current_branch;
+  g=$(__gitdir) &&
+  test ! -e $g/MERGE_HEAD && {
+    current_branch=$(git-current-branch) && for remote in $(git-remotes);
+    do
+      test ! -e $g/MERGE_HEAD || {
+        $LOG warn : "Fix merge first" "" 1
+        break
+      }
+      case "$(git config remote.$remote.url)" in http* ) continue;; esac;
+      git-pull-v $remote $current_branch;
+    done; unset remote current_branch;
+  } || {
+    $LOG warn : "Fix merge first" "" 1
+  }
 }'
 
 # Idem. as git-pull-every (for current branch) only now for git-push (again only
 # those remotes that already ahd that branch at last fetch)
 alias git-push-every='{
-  current_branch=$(git-current-branch) && for remote in $(git-remotes);
-  do
-    case "$(git config remote.$remote.url)" in http* ) continue;; esac;
-    git-push-v $remote $current_branch;
-  done; unset remote current_branch;
+  g=$(__gitdir) &&
+  test ! -e $g/MERGE_HEAD && {
+    current_branch=$(git-current-branch) && for remote in $(git-remotes);
+    do
+      case "$(git config remote.$remote.url)" in http* ) continue;; esac;
+      git-push-v $remote $current_branch;
+    done; unset remote current_branch;
+
+  } || {
+    $LOG warn : "Fix merge first" "" 1
+  }
 }'
 
 #

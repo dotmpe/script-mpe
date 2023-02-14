@@ -299,7 +299,7 @@ systemd-short () # ~ # Short indicator for SystemD state
     msg="$1"
 
   test "$1" != "running" &&
-      printf "$msg(%s)" $(systemd-count-failed) ||
+      printf "$msg %s" $(systemd-count-failed) ||
       printf "$msg"
 }
 
