@@ -13,9 +13,9 @@
 __box_init () # ~ <Exec-Name>
 {
   test -n "${1-}" || set -- box
-  box=$(which $1) || {
-    box=$(which $1.sh) || {
-      $LOG warn : "Found no such exec" "$1" $? || return
+  box=$(command -v $1) || {
+    box=$(command -v $1.sh) || {
+      $LOG warn : "Found no such exec" "E$?:$1" $? || return
     }
   }
   cwd="$(dirname "$box")"
