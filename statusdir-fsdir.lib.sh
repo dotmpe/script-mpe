@@ -569,7 +569,7 @@ statusdir_fsdir_lib_init ()
   #    error "StatusDir:FSDir requires @Statusdir@Class" 1
 
   Statusdir__backend_types["fsdir"]=FSDir
-  true "${statusdir_fsdirs:=".meta/stat .statusdir"}"
+  true "${statusdir_fsdirs:=".meta/stat .local/statusdir .statusdir"}"
   LUP=$(cwd_lookup_path $statusdir_fsdirs)
 }
 

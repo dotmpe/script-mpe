@@ -6,16 +6,16 @@ darwin_lib_load()
 {
   : "${uname:=$(uname -s)}"
   test -n "${xattr-}" || xattr=xattr-2.7
-  test -n "${STATUSDIR_ROOT-}" || STATUSDIR_ROOT=$HOME/.statusdir
-  test -d "${STATUSDIR_ROOT-}logs/$hostname" ||
-      mkdir -p "${STATUSDIR_ROOT}logs/$hostname"
-  test -n "${sleeplog-}" || sleeplog=$HOME/.statusdir/logs/$hostname/sleep.log
-  test -n "${locklog-}" || locklog=$HOME/.statusdir/logs/$hostname/lock.log
+  test -n "${STATUSDIR_ROOT-}" || STATUSDIR_ROOT=$HOME/.local/statusdir/
+  test -d "${STATUSDIR_ROOT-}log/$hostname" ||
+      mkdir -p "${STATUSDIR_ROOT}log/$hostname"
+  test -n "${sleeplog-}" || sleeplog=${STATUSDIR_ROOT:?}log/$hostname/sleep.log
+  test -n "${locklog-}" || locklog=${STATUSDIR_ROOT:?}log/$hostname/lock.log
 }
 
 darwin_locklog_env()
 {
-  locklog_raw=$HOME/.statusdir/logs/$hostname/lock-raw-${1}.log
+  locklog_raw=${STATUSDIR_ROOT:?}log/$hostname/lock-raw-${1}.log
 }
 
 setup_launchd_service()
@@ -87,7 +87,7 @@ start_launchd_service()
 darwin_profile_xml()
 {
   local xml=$(setup_tmpf .xml) datatype=$1; shift
-  xml=$HOME/.statusdir/system/$hostname/$datatype.xml
+  xml=${STATUSDIR_ROOT:?}system/$hostname/$datatype.xml
   mkdir -vp $(dirname $xml)
   test -e $xml || system_profiler $datatype -xml > $xml
   echo $xml
@@ -456,7 +456,7 @@ htd_darwin_locklog() #
     }
   } || {
     note "Initializing lock log..."
-    for locklog_raw in ${STATUSDIR_ROOT}logs/$hostname/lock-raw-*.log
+    for locklog_raw in ${STATUSDIR_ROOT}log/$hostname/lock-raw-*.log
     do note "Parsing '$(basename "$locklog_raw")'..."
       htd_darwin_locklog_raw | htd_darwin_locklog_raw2state
     done > "$locklog"

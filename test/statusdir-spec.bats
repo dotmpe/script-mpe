@@ -25,7 +25,7 @@ setup()
 
 @test "statusdir.sh root" {
   run $bin root
-  test_ok_lines "$HOME/.statusdir/" || stdfail
+  test_ok_lines "${STATUSDIR_ROOT:-$HOME/.local/statusdir/}" || stdfail
 }
 
 @test "statusdir.sh assert-state $HOME/project/git-versioning/package.yaml project/git-versioning {}" {
@@ -37,7 +37,7 @@ setup()
 @test "statusdir.sh assert-json" {
   run $bin assert-json
   test ${status} -eq 0
-  test "$HOME/.statusdir/index/state.json" = "${lines[*]}"
+  test "${STATUSDIR_ROOT:-$HOME/.local/statusdir/}index/state.json" = "${lines[*]}"
 }
 
 @test "sd_be=redis statusdir.sh list" {

@@ -92,7 +92,7 @@ cache:
      - $HOME/.npm
      - $HOME/.composer
      - $HOME/.rvm/
-     - $HOME/.statusdir/
+     - $HOME/.local/statusdir/
      - $HOME/lib
      - $HOME/build/apenwarr
      - $HOME/build/ztombol

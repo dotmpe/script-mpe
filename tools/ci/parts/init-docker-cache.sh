@@ -7,7 +7,7 @@ ci_announce "Logging into docker hub '$DOCKER_USERNAME'"
 echo "$DOCKER_PASSWORD" | \
   ${dckr_pref-}docker login --username $DOCKER_USERNAME --password-stdin || exit $?
 
-mkdir -p ~/.statusdir/{log,tree,index}
+mkdir -p "${STATUSDIR_ROOT:-$HOME/.local/statusdir/}"{log,tree,index}
 
 sh_include env-docker-cache
 

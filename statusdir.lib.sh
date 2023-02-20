@@ -98,7 +98,7 @@ statusdir_check ()
 # Generate local PWD path for statusdir folder/file lookup
 statusdir_lookup_path () #
 {
-  cwd_lookup_path .statusdir .meta/stat
+  cwd_lookup_path .meta/stat .local/statusdir .statusdir
 }
 
 # Lookup statusdir folders/files on local PWD path

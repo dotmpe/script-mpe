@@ -50,7 +50,7 @@ statusdir.sh
 
 ..
 
-STATUSDIR_ROOT (~/.statusdir)
+STATUSDIR_ROOT (~/.local/statusdir/)
     | index/<tree>.list
     | tree/<tree>
 

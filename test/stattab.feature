@@ -16,7 +16,7 @@
       Given  `vars` key `new_short` "Some entry" 
 
        When  the user runs `htd sttab new`
-       Then  file '.statusdir/index/stattab.list' lines equal:
+       Then  file '.local/statusdir/index/stattab.list' lines equal:
               """
               # status ctime     entry-id        short  @ctx
               - 20181009-0047+02 test-script-1 Some script @Std
