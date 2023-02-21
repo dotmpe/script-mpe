@@ -20,7 +20,7 @@ pm_suspend_dbus ()
 
 pm_suspend_systemctl ()
 {
-  systemctl suspend
+  sudo systemctl suspend
 }
 
 pm_hibernate_dbus ()
