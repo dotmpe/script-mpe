@@ -5,7 +5,7 @@
 
 main_lib_load()
 {
-  test -n "${subcmd_default-}" || subcmd_default=default-main
+  test -n "${subcmd_default-}" || subcmd_default="default-main"
 }
 
 main_lib_init()
@@ -460,7 +460,8 @@ stat_key()
 # TODO see bg.lib.sh
 main_bg_writeread () # ~ <Cmd ...>
 {
-  printf -- "$@\r\n" | socat -d - "UNIX-CONNECT:$main_sock" 2>&1 |
+  #shellcheck disable=2162
+  printf -- "%\r\n" "$*" | socat -d - "UNIX-CONNECT:$main_sock" 2>&1 |
       tr "\r" " " | while read line
   do
     case "$line" in

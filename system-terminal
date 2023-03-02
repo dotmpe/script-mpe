@@ -239,7 +239,7 @@ set_background_tint ()
   term_send_osc 705 "$1"
 }
 
-set_font () # ~ #
+set_font () # ~ # Request new font setting from urxvt
 {
   term_send_osc 50 "$1"
   #printf '\33]50;%s\007' "9x15bold,xft:Kochi Gothic"

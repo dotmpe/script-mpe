@@ -1,0 +1,114 @@
+---
+
+menus:
+  main:
+    label: Main
+    items:
+
+      - label: User
+        items:
+          - label: Audio
+            items:
+              - label: Master volume
+              - label: Media
+              - label: Notifications
+              - label: Mixer
+
+          - label: Video
+            items:
+              - label: Displays
+
+          - menu-ref: home
+          - label: Cloud
+
+      - menu-ref: host
+      - menu-ref: apps
+
+  env:
+    label: Env
+    items:
+    - label: Summary
+      card: $PWD
+    - label: User
+      card:
+    - label: Path
+      card:
+    - menu-ref: shell
+
+  home:
+    label: Home
+    items:
+      - label: Alarm
+        card: $(who)
+      - menu-ref: root
+
+  host:
+    label: Host
+    items: []
+
+  apps:
+    label: Apps
+    items: []
+
+  root:
+    label: Root
+    items:
+      - menu-ref: user
+      - menu-ref: session
+      - menu-ref: xapps
+
+  session:
+    label: Session
+    items:
+      - label: Restart
+        command: bg.sh run reload
+      - menu-ref: env
+      - label: Conn
+        card:
+    #"Restart Background:exec $0 bg run reload -- $*" \
+    #"Stop Background:exec $0 bg run quit -- $*" \
+    #"Start Background:exec $0 bg start -- $*" \
+    #"Kill all servers:exec $0 bg kill-all-servers -- $*" \
+    #"Back:exec $0 main"
+
+  shell:
+    label: Shell
+    items:
+    - label: Aliases
+      feed: compgen.alias
+    - label: Commands
+    - label: Files
+    - label: Directories
+    - label: Exports
+    - label: Job
+    - label: Variables
+    - label: Functions
+    - label: Services
+    - label: Array variables
+    - label: Built-Ins
+    - label: Keywords
+    - label: Users
+    - label: Groups
+
+  system:
+    label: System
+    items:
+      - label: Domain
+      - label: Services
+
+  user:
+    label: User
+    items: []
+
+  xapps:
+    label: X Apps
+    items:
+      - label: xprop
+        command: sensible-terminal -- xprop
+      - xclock
+      - xeyes
+      - label: oneko
+        command: oneko -fg darkorange -bg gold -tofocus -tora
+
+
+# ex:ts=2:sw=2:
