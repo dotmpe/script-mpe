@@ -170,7 +170,7 @@ script_cmdid ()
 script_doenv ()
 {
   script_baseenv &&
-  script_cmdid "$1" || return
+  script_cmdid "${1:?}" || return
 
   ! sh_fun "${baseid}"_loadenv || {
     "${baseid}"_loadenv || return
