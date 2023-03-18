@@ -164,8 +164,11 @@ update_for_cs ()
   } || {
     theme Greybird-dark
 
-    background set \
-      /home/hari/Pictures/Aesthetics/Backgrounds/31313-full_4-things-you-can-never-recover-tom-b.jpg
+    DE_BG=/usr/share/backgrounds/31313-full_4-things-you-can-never-recover-tom-b.jpg
+    test -e "$DE_BG" ||
+      DE_BG=/home/hari/Pictures/Aesthetics/Backgrounds/31313-full_4-things-you-can-never-recover-tom-b.jpg
+
+    background set "$DE_BG"
   }
 }
 
