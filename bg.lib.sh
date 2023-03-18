@@ -12,9 +12,9 @@
 
 bg_lib_load ()
 {
-  true "${bg_rund:=${XDG_RUNTIME_DIR:-/var/run/$(id -u)}/${SHELL_NAME:?}-bg}"
-  true "${bg_fifo:=$bg_rund.fifo}"
-  true "${bg_sock:=$bg_rund.sock}"
+  true "${BG_RUND:=${XDG_RUNTIME_DIR:-/var/run/$(id -u)}/${SHELL_NAME:?}-bg}"
+  true "${BG_FIFO:=$BG_RUND.fifo}"
+  true "${bg_sock:=$BG_RUND.sock}"
 }
 
 #bg_start ()
@@ -26,14 +26,7 @@ bg_open ()
   socat -u OPEN:/dev/null UNIX-CONNECT:$bg_sock
 }
 
-function setval ()
-{
-  #printf "declare -- %s=%q\n" "$1" "$(cat)"
-  printf -v "$1" "%s" "$(cat)"
-  declare -p "$1"
-}
-
-foo ()
+bg_test_ioret ()
 {
   echo stdout1
   echo stderr1 >&2
@@ -43,51 +36,38 @@ foo ()
   return 123
 }
 
-bg_handle__load ()
+
+bg_handle__cd ()
 {
-  . "${1:?}"
-  echo "$?" > "$bg_fifo"
+  eval "cd ${1:?}"
+  echo "$?" > "$BG_FIFO"
 }
 
 bg_handle__eval ()
 {
-  rm -f stdout stderr
-  mkfifo stdout stderr
-  eval "${1:?}" >stdout 2>stderr &
-  exec {fdout}<stdout {fderr}<stderr
-  rc=$?
-  stdout=$(cat <&$fdout)
-  stderr=$(cat <&$fderr)
-  {
-    echo "$rc ${#stdout} ${#stderr}"
-    test -z "${stdout:-}" || printf '%s' "$stdout"
-    printf '\x1c'
-    test -z "${stderr:-}" || printf '%s' "$stderr"
-  } | tee -a "$bg_fifo"
-  unset stdout stderr
+  eval "${1:?}"
+  echo "$?" > "$BG_FIFO"
 }
 
-bg_handle__bg_eval3 ()
+bg_handle__eval_run ()
 {
-  rm -f stdout stderr
-  mkfifo stdout stderr
-  eval "${1:?}" >stdout 2>stderr &
-  pid=$!
-  exec {fdout}<stdout {fderr}<stderr
-  rm stdout stderr
-  wait $pid
+  outp=${BG_RUND:?}.stdout errp=${BG_RUND:?}.stderr
+  mkfifo "$outp" "$errp"
+  eval "set -- ${1:?}"
+  eval "${@:?}" >"$outp" 2>"$errp" &
+  exec {fdout}<"$outp" {fderr}<"$errp"
   rc=$?
   stdout=$(cat <&$fdout)
   stderr=$(cat <&$fderr)
   {
     echo "$rc ${#stdout} ${#stderr}"
     test -z "${stdout:-}" || printf '%s' "$stdout"
-    printf '\x1c'
+    printf '\x1c' # ASCII FS
     test -z "${stderr:-}" || printf '%s' "$stderr"
-  } | tee -a "$bg_fifo"
-  unset stdout stderr
-
+  } | tee -a "${BG_FIFO:?}"
+  rm -f "$outp" "$errp"
   exec {fdout}<&- {fderr}<&-
+  unset stdout stderr outp errp
 }
 
 bg_handle__exit ()
@@ -96,28 +76,89 @@ bg_handle__exit ()
   exit
 }
 
+bg_handle__load ()
+{
+  eval ". ${1:?}"
+  echo "$?" > "$BG_FIFO"
+}
+
+bg_handle__ping ()
+{
+  echo "pong" > "$BG_FIFO"
+}
+
 bg_handle__reset ()
 {
   echo "Resetting $$..." >&2
-  exec $0 server1
+  exec $0 server 1
+}
+
+
+bg_proc__check ()
+{
+  test -p "${BG_FIFO:?}" && {
+    echo "$0: Named pipe exists" >&2
+    $0 bg-cmd ping || return
+
+    local answer
+    { read -t0.01 answer <"$BG_FIFO" && test -n "${answer:-}"
+    } && {
+      echo "$0: bg process is responding" >&2
+    } || {
+      echo "$0: Cannot contact bg" >&2
+      #cat "$BG_FIFO"
+      return 1
+    }
+  } ||
+    echo "$0: No named pipe" >&2
+}
+
+bg_proc__pwd ()
+{
+  PID=$(<$BG_PID) || return
+  # Show current working directory
+  pwdx $PID | sed "s/^$PID: //"
+  #readlink /proc/$PID/cwd
+}
+
+bg_proc__details ()
+{
+  PID=$(<$BG_PID) || return
+  # List all sorts of file descriptor details for process
+  lsof -p $PID
+}
+
+bg_proc__tree ()
+{
+  PID=$(<$BG_PID) || return
+  pstree -alsp $PID
+}
+
+bg_proc__reset ()
+{
+  PID=$(<$BG_PID) || return
+  main_script=$( lsof -p $PID | grep ' 255r ' | awk '{print $9}' )
+  test -e "$main_script" && return
+  # XXX: '~' suffix indicates original file has been replaced or when changed?
+  $0 bg-cmd reset
 }
 
 # 'server' main loop for single-fifo, 1-to-1 line req/resp messaging
 bg_recv_blocking ()
 {
-  local bg_fifo=${1:?}
+  local BG_FIFO=${1:?}
   while true
   do
     echo "$0[$$]: recv: Waiting for data..." >&2
     # block until command data received
-    read -r rq_h rq_r < "$bg_fifo"
+    read -r rq_h rq_r < "$BG_FIFO"
     # handle request
     declare -f "bg_handle__${rq_h:-}" >/dev/null 2>&1 && {
-        echo "Handling $rq_h '$rq_r" >&2
+        echo "Handling $rq_h${rq_r:+" '"}$rq_r${rq_r:+"'"}" >&2
         bg_handle__${rq_h:?} "${rq_r:-}"
         echo "Handle $rq_h finished E${stat:-$?}" >&2
     } || {
-        echo "? '$rq_h'" | tee -a "$bg_fifo"
+        echo "? '$rq_h'" | tee -a "$BG_FIFO"
     }
   done
   rm /tmp/buffer
