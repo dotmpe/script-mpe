@@ -200,7 +200,9 @@ script_isrunning () # [SCRIPTNAME] ~ <Scriptname> [<Name-ext>]# argument matches
 script_unenv ()
 {
   ! sh_fun "${baseid}"_unload || {
-    "${baseid}"_unload || return
+    "${baseid}"_unload || {
+      $LOG warn ":user-script:unenv($baseid)" "Failure during unload" E$?
+    }
   }
 
   local cmdstat=${script_cmdstat:-0}

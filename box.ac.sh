@@ -160,7 +160,7 @@ script_isrunning "box.ac" .sh && {
 } || {
 
   # Running interactively probably? Initialize auto completion.
-  uc_lib_load str-uc std-uc &&
+  ${lib_load:-uc_lib_load} str-uc std-uc &&
       __uc_ac_init $BOX_EXECS &&
       __us_ac_init $US_EXECS
 }

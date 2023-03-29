@@ -6,11 +6,9 @@
 
 # Remove settings from file so they don't affect all builds.
 
-
 # XXX: keep in .build-static.sh for now for projects that don't depend on @dev
-. ./.build-static.sh >&2 || exit $?
-
 for BUILD_SEED in \
+  ${PWD:?}/.build-static.sh \
   ${REDO_STARTDIR:?}/.env.sh \
   ${REDO_STARTDIR:?}/.build-env.sh
 do

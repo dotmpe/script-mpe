@@ -104,7 +104,13 @@ run_test () # ~ <Iter-count> [ <Test-name> | -- ] [ <Cmd <...>> ]
 {
   local iter=${1:?}
   shift
-  run_all $iter test_ "$@"
+  test "${1:-}" = "--" || set -- test_ "$@"
+  run_all $iter "$@"
+}
+
+run_test_q () # ~ <Iter-count> [ <Test-name> | -- ] [ <Cmd <...>> ]
+{
+  sh_nout run_test "$@"
 }
 
 # Like run-all but the argv has to be prefixed with data spec for
