@@ -12,6 +12,32 @@ update-environment ()
   done
 }
 
+show-preserve-environment ()
+{
+  tmux show -g update-environment
+}
+
+check-environment ()
+{
+  tmux show-env | while read -r setting
+    do
+        varn=${setting//=*}
+        fnmatch "-*" "$varn" && {
+            continue
+        }
+        varc="${!varn:-}"
+        test "$setting" = "$varn=$varc" || {
+            ${list_vars:-false} && echo "$varn"
+            ${list_env:-false} && echo "$setting"
+            echo "Tmux session has changed: '$setting', local: '$varc'" >&2
+        }
+    done
+}
+
+list-update-env ()
+{
+  list_env=true check-environment
+}
 
 test -n "${user_script_loaded:-}" || {
   . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
@@ -24,7 +50,7 @@ test -n "${user_script_loaded:-}" || {
   script_baseext=.sh
   script_cmdals=
   script_defcmd=
-  #eval "set -- $(user_script_defarg "$@")"
+  eval "set -- $(user_script_defarg "$@")"
 }
 
 script_entry "tmux-helper" "$@"
