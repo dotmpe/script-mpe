@@ -101,13 +101,13 @@ bg_main_single ()
     server )
       bg_fifo_single true || return
       echo "Starting server ($$)" >&2
-      test $# -eq 0 || { # Update PID if requested
-        test 0 = "${1:-}" || {
+      #test $# -eq 0 || { # Update PID if requested
+        #test 0 = "${1:-}" || {
           #test -e "$BG_PID" || {
             echo "$$" > "$BG_PID"
           #}
-        }
-      }
+        #}
+      #}
       bg_recv_blocking "$BG_FIFO" || fail=true
       rm "$BG_FIFO"
       ! ${fail:-false} || return $?

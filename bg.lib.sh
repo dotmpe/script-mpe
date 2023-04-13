@@ -1,13 +1,7 @@
 
 ## Routines to do simple text-based IPC in shell
 
-# The half-duplex line client/server may be interesting for keeping shared data
-# (index, tables/trees) in a background process, or for mmultiple processes that
-# can wait and signal to interact in turns. But to speed up other sorts of
-# processing either single client or line-based messaging is not acceptable.
-# But when using client-server to cut-down on startup time then starting new
-# instances per connection defeats the whole purpose as well. Also this does
-# not have asynchronous processing.
+# The half-duplex line client/server
 
 
 bg_lib_load ()
@@ -37,6 +31,8 @@ bg_test_ioret ()
 }
 
 
+# Actions to run with 'server' (bg_recv_blocking routine)
+
 bg_handle__cd ()
 {
   eval "cd ${1:?}"
@@ -51,23 +47,26 @@ bg_handle__eval ()
 
 bg_handle__eval_run ()
 {
-  outp=${BG_RUND:?}.stdout errp=${BG_RUND:?}.stderr
-  mkfifo "$outp" "$errp"
-  eval "set -- ${1:?}"
-  eval "${@:?}" >"$outp" 2>"$errp" &
-  exec {fdout}<"$outp" {fderr}<"$errp"
-  rc=$?
+  outp=${BG_RUND:?}.stdout errp=${BG_RUND:?}.stderr statp=${BG_RUND:?}.stdstat
+  mkfifo "$outp" "$errp" "$statp"
+  #eval set -- "${@:?}"
+  # Blocks bc pipes have no readers yet
+  eval "set +e; echo>$statp; ${*:?}; echo \$? >$statp" >"$outp" 2>"$errp" &
+  # Attach readers to pipes and read data
+  exec {fdout}<"$outp" {fderr}<"$errp" {fdstat}<"$statp"
   stdout=$(cat <&$fdout)
   stderr=$(cat <&$fderr)
+  stdstat=$(cat <&$fdstat)
+  # Response
   {
-    echo "$rc ${#stdout} ${#stderr}"
+    echo "$stdstat ${#stdout} ${#stderr}"
     test -z "${stdout:-}" || printf '%s' "$stdout"
     printf '\x1c' # ASCII FS
     test -z "${stderr:-}" || printf '%s' "$stderr"
-  } | tee -a "${BG_FIFO:?}"
-  rm -f "$outp" "$errp"
-  exec {fdout}<&- {fderr}<&-
-  unset stdout stderr outp errp
+  } >"${BG_FIFO:?}" # | tee -a "${BG_FIFO:?}"
+  rm -f "$outp" "$errp" "$statp"
+  exec {fdout}<&- {fderr}<&- {fdstat}<&-
+  unset stdout stderr outp errp statp
 }
 
 bg_handle__exit ()
@@ -93,6 +92,8 @@ bg_handle__reset ()
   exec $0 server 1
 }
 
+
+# Handlers for bg-simple cliebnt
 
 bg_proc__check ()
 {
@@ -137,13 +138,15 @@ bg_proc__tree ()
 bg_proc__reset ()
 {
   PID=$(<$BG_PID) || return
+  # XXX: Reset if source script was overwritten..
   main_script=$( lsof -p $PID | grep ' 255r ' | awk '{print $9}' )
   test -e "$main_script" && return
   # XXX: '~' suffix indicates original file has been replaced or when changed?
   $0 bg-cmd reset
 }
 
-# 'server' main loop for single-fifo, 1-to-1 line req/resp messaging
+
+# 'server' main loop for single-fifo, synchronous (1-to-1 line req/resp) messaging
 bg_recv_blocking ()
 {
   local BG_FIFO=${1:?}
@@ -152,7 +155,8 @@ bg_recv_blocking ()
     echo "$0[$$]: recv: Waiting for data..." >&2
     # block until command data received
     read -r rq_h rq_r < "$BG_FIFO"
-    # handle request
+    # look for known action, handle request. Each hanlder writes back to
+    # BG_FIFO as needed.
     declare -f "bg_handle__${rq_h:-}" >/dev/null 2>&1 && {
         echo "Handling $rq_h${rq_r:+" '"}$rq_r${rq_r:+"'"}" >&2
         bg_handle__${rq_h:?} "${rq_r:-}"
@@ -164,7 +168,7 @@ bg_recv_blocking ()
   rm /tmp/buffer
 }
 
-# This restarts the process, but keeps same PID (at least on Linux)
+# Restarts the process, but keeps same PID (at least on Linux)
 bg_reload () # ~
 {
   echo "Forking $0[$$] to new server process..." >&2
@@ -176,7 +180,7 @@ bg_writeread () # ~ <Cmd ...>
 {
   printf -- "%s\r\n" "${*@Q}" |
       socat -d - "UNIX-CONNECT:$bg_sock" 2>&1 |
-      tr "\r" " " | while read line
+      tr "\r" " " | while read -r line
   do
     case "$line" in
       *" OK " )

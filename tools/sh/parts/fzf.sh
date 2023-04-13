@@ -2,6 +2,7 @@
 
 ## Fzf utils for use in user-shell
 
+. ${US_BIN:?}/feh.lib.sh
 . ${US_BIN:?}/fzf.lib.sh
 
 : "${FZF_DEFAULT_COMMAND:=find . -not -type l}"
@@ -40,8 +41,6 @@ alias fzf-preview="fzf --preview='${BAT_BIN:-bat} --color always --style numbers
 alias fzf-preview-bat-themes='bat --list-themes | fzf --preview="bat --theme={} --color=always ~/bin/user-script.sh"'
 
 # Feh is a good choice for any WM env I think
-true "${feh_bg:=$(test "${CS:-dark}" = "dark" && echo "#1c1c1c" || echo "#dadada")}"
-
 alias fzf-view-nomux="fzf --preview='feh --title feh-preview -B ${feh_bg:-} -Z {} -.' --preview-window=0"
 alias fzf-view="fzf-tmux --preview='feh --title feh-preview -B ${feh_bg:-} -Z {} -.' --preview-window=0"
 

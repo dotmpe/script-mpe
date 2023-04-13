@@ -14,12 +14,14 @@ tmenu_exists ()
   test -n "${!mvar:-}"
 }
 
-tmenu_new_popup ()
+tmenu_new_popup () # ~ <Label> <9menu-argv...>
 {
-  exec ${_9menu:?} -popup -label "${@:?}"
+  exec ${nmenu:?} -popup -teleport \
+      -fg "$tmenu_fg" -bg "$tmenu_bg" \
+      -label "${@:?}"
 }
 
-main_menu ()
+main_menu () # ~ <Id>
 {
   test $# -gt 0 || set -- home
   tmenu_sh=$(tmenu.py "${1:?}" < user.menu.yml) || return
@@ -30,7 +32,7 @@ main_menu ()
     tmenu+=( "Reload:$0 menu root" )
     tmenu+=( "exit" )
   }
-  LAST=${1:?} tmenu_new_popup "$label menu" -warp "${tmenu[@]}"
+  LAST=${1:?} tmenu_new_popup "$label menu" "${tmenu[@]}"
 }
 
 main_cmd ()
@@ -41,6 +43,7 @@ main_cmd ()
 
 main_run ()
 {
+  echo "Main run: $*" >&2
   fnmatch "* -- *" " $* " && {
       main_seq "$@" || exit $?
   } || {
@@ -71,11 +74,12 @@ main ()
   true "${USER_CONFIG_DIR:=$HOME/.config}"
   true "${USER_DATA_DIR:=$HOME/.local/share}"
 
+  # Try ~/.config/tmenu/env.sh and ~/.conf/etc/tmenu/default.sh for config
   tmenu_conf=$USER_CONFIG_DIR/tmenu/env.sh
   test -e "$tmenu_conf" || tmenu_conf=${UCONF:?}/etc/tmenu/default.sh
   . "$tmenu_conf" || return
 
-  _9menu=9menu\ -font\ "$xfont"
+  nmenu=9menu\ -font\ "$xfont"
   bg=bg.sh
 
   . "${US_BIN:=${HOME:?}/bin}/tools/sh/parts/fnmatch.sh"
