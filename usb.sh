@@ -26,11 +26,13 @@ list ()
     for usbnum2 in $device/*/busnum
     do
       device2=$(dirname "$usbnum2")
+      bn=$(basename $device2)
       usbdev=$(< "$device2/dev")
       usbver=$(< "$device2/version")
       usbsp=$(< "$device2/speed")
       test ! -e "$device2/product" && usbprod= || usbprod=$(< "$device2/product")
-      echo "  $(basename $device2) $usbdev $usbver $usbsp $usbprod"
+      test -e /sys/bus/usb/drivers/usb/$bn && stat=" " || stat=" (offline)"
+      echo "  $bn $usbdev $usbver $usbsp$stat $usbprod"
     done
   done
 }
