@@ -23,13 +23,17 @@ check-environment ()
     do
         varn=${setting//=*}
         fnmatch "-*" "$varn" && {
-            continue
+          #declare -p "${varn:1}" >/dev/null 2>&1 && {
+          #  echo "tmux env sync: unset? $_=${!_}" >&2
+          #  #unset ${_:?}
+          #}
+          continue
         }
         varc="${!varn:-}"
         test "$setting" = "$varn=$varc" || {
-            ${list_vars:-false} && echo "$varn"
-            ${list_env:-false} && echo "$varn=\"$varc\""
-            echo "Tmux session has changed: '$setting', local: '$varc'" >&2
+          ${list_vars:-false} && echo "$varn"
+          ${list_env:-false} && echo "$varn=\"${setting/*=}\""
+          echo "Tmux session has changed: '$setting', local: '$varc'" >&2
         }
     done
 }
