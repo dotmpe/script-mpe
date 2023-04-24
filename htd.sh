@@ -1746,7 +1746,7 @@ htd_als__rndstr=random-str
 htd__random_str()
 {
   test -n "$1" || set -- 12 # Set default htd:random-str length
-  python -c "import os, base64;print base64.urlsafe_b64encode(os.urandom($1))"
+  python2 -c "import os, base64;print base64.urlsafe_b64encode(os.urandom($1))"
 }
 htd_grp__random_str=box
 

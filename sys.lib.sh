@@ -250,13 +250,13 @@ lookup_path_list () # VAR-NAME
 # or return err-stat.
 lookup_exists () # NAME DIRS...
 {
-  local name="$1" r=1
+  local name="${1:?}" r=1
   shift
   while test $# -gt 0
   do
-    test -e "$1/$name" && {
+    test -e "${1:?}/$name" && {
       echo "$1/$name"
-      test ${lookup_first:-1} -eq 1 && return || r=0
+      ${lookup_first:-true} && return || r=0
     }
     shift
   done
@@ -278,7 +278,7 @@ lookup_path () # ~ VAR-NAME LOCAL-PATH
   local path ; for path in $( lookup_path_list $1 )
     do
       eval $lookup_test \""$2"\" \""$path"\" && {
-        test ${lookup_first:-1} -eq 1 && break || continue
+        ${lookup_first:-true} && break || continue
       } || continue
     done
 }
@@ -289,10 +289,10 @@ lookup_paths () # Var-Name Local-Paths...
   test -n "${lookup_test-}" || local lookup_test="lookup_exists"
   local varname=$1 base path ; shift ; for base in $( lookup_path_list $varname )
     do
-      for path in $@
+      for path in "$@"
       do
         eval $lookup_test \""$path"\" \""$base"\" && {
-          test ${lookup_first:-1} -eq 1 && break 2 || continue
+          ${lookup_first:-true} && break 2 || continue
         } || continue
       done
     done
@@ -396,7 +396,7 @@ req_profile() # Name Vars...
   }
 }
 
-rnd_passwd()
+rnd_str () # ~ <Len> # Generate ASCII string with urandom data
 {
   test -n "$1" || set -- 11
   cat /dev/urandom | LC_ALL=ascii tr -cd 'a-z0-9' | head -c $1

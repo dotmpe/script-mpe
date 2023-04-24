@@ -52,7 +52,7 @@ Plumbing
 '
 htd__context()
 {
-  test -n "$1" || set -- list
+  test -n "${1:-}" || set -- list
   subcmd_prefs=${base}_context_\ context_ try_subcmd_prefixes "$@"
 }
 htd_flags__context=l
@@ -61,7 +61,7 @@ htd_libs__context="match match-htd statusdir src src-htd str-htd list prefix con
 # Use docstat built-in to retrieve cached tag list
 htd_context_list()
 {
-  lib_require docstat || return
+  lib_require tasks docstat || return
   docstat_taglist | $gsed 's/^[0-9 -]*\([^ ]*\).*$/\1/g'
 }
 

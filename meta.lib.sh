@@ -1,6 +1,8 @@
 #!/bin/sh
 
-### Old media lib, new attributes/metadir setup
+### Media file attributes
+
+# Old media lib, for new attributes/metadir setup see metadir
 
 
 meta_lib_load ()

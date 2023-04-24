@@ -193,7 +193,10 @@ script_isrunning () # [SCRIPTNAME] ~ <Scriptname> [<Name-ext>]# argument matches
   test $# -eq 2 && {
     SCRIPT_BASEEXT="${2:?}"
   }
-  script_name && test "$SCRIPTNAME" = "$1"
+  script_name && test "$SCRIPTNAME" = "$1" || {
+      test $# -lt 2 || unset SCRIPT_BASEEXT
+      unset SCRIPTNAME; return 1
+  }
 }
 
 # Undo env setup for script-entry (inverse of script-doenv)
@@ -217,7 +220,7 @@ script_unenv ()
   return $cmdstat
 }
 
-script_name ()
+script_name () # ~ <Command-name> # Set SCRIPTNAME env based on current $0
 {
   : "${SCRIPTNAME:="$(basename -- "$0" ${SCRIPT_BASEEXT:-})"}"
 }
@@ -279,8 +282,10 @@ user_script_commands () # ~
 {
   # FIXME: maincmds list are not functions, use aliases to resolve handler names
   test $# -gt 0 || set -- $script_maincmds
-  user_script_resolve_aliases &&
-  user_script_handlers "$@"
+  user_script_resolve_aliases ||
+      $LOG error :commands "Resolving aliases" "E$?" $? || return
+  user_script_handlers "$@" ||
+      $LOG error :commands "Resolving handlers" "E$?" $?
 }
 
 # Output argv line after doing 'default' stuff. Because these script snippets
@@ -325,7 +330,17 @@ user_script_defarg ()
   esac
 
   # Hook-in more from user-script
-  test -z "${script_fun_xtra_defarg:=${script_xtra_defarg-}}" || {
+  test -z "${script_fun_xtra_defarg:-${script_xtra_defarg-}}" || {
+    test -z "${script_fun_xtra_defarg:-}" && {
+      sh_fun "$script_xtra_defarg" || {
+        script_fun_xtra_defarg=$(mkvid "$SCRIPTNAME" &&
+              echo $vid)_$script_xtra_defarg
+      }
+    }
+    sh_fun "$script_fun_xtra_defarg" || {
+      $LOG error :defarg "No such defarg handler" "$script_xtra_defarg" $? ||
+          return
+    }
     eval "$(sh_type_fun_body $script_fun_xtra_defarg)" || return
   }
 
@@ -401,11 +416,13 @@ user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main scr
 
   for name in $script_lib
   do
+    $LOG debug :handlers "Listing from lib" "$name:$1"
     script_listfun "$name" "$1" || true
   done
 
   for name in $script_src
   do
+    $LOG debug :handlers "Listing from source" "$name:$(command -v "$name"):$1"
     script_listfun "$(command -v "$name")" "$1"
   done
 }
@@ -789,7 +806,9 @@ user_script_usage_handlers ()
   # XXX: not loading might speed up a bit, but only as long as AST is not
   # required later. See user-script-usage.
   ! sh_fun "${baseid}"_loadenv || {
-    "${baseid}"_loadenv $handlers || return
+    "${baseid}"_loadenv $handlers || {
+        $LOG error :handlers "Loadenv error" "E$?" $? || return
+    }
   }
 
   # Output handle name(s) with 'spec' and short descr.

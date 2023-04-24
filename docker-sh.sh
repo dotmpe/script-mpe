@@ -536,12 +536,12 @@ docker_sh__mysql()
       #db_root_passwd= \
 
   test -n "$db_user_passwd" || {
-     export db_user_passwd=$(rnd_passwd 8)
+     export db_user_passwd=$(rnd_str 8)
      stderr note "Set random 8-char password for user '$db_user': '$db_user_passwd' (given only once)"
   }
 
   test -n "$db_root_passwd" || {
-     export db_root_passwd=$(rnd_passwd 16)
+     export db_root_passwd=$(rnd_str 16)
      stderr note "Set random 16-char password for root: '$db_root_passwd' (given only once)"
   }
 

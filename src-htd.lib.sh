@@ -3,6 +3,7 @@
 
 src_htd_lib_load ()
 {
+  true "${CACHE_DIR:=${STATUSDIR_ROOT:?}cache}"
   true "${sentinel_comment:="#"}"
   true "${gsed:=sed}"
 }
@@ -581,26 +582,29 @@ diff_where() # Where/Line Where/Span Src-File
 }
 
 # List values for include-type pre-processor directives from file and all
-# included files.
-list_preproc_refs () # ~ <Directive> <File> [<Resolver>]
+# included files (recursively).
+preproc_includes_list () # ~ <Resolver-> <File>
 {
-  local ref file
-  # Resolve all includes recursively
-  for ref in $(grep_preproc "$@")
+  local resolve=${1:-resolve_fileref}; shift 1
+  preproc_recurse preproc_includes $resolve 'echo "$file"' "$@"
+}
+
+preproc_recurse () # ~ <Generator> <Resolve-fileref> <Action-cmd>
+{
+  local select="${1:?}" resolve="${2:?}" act="${3:?}"; shift 3
+
+  grep_f=-HnPo "$select" "$@" | while IFS=$':\n' read -r srcf srcl ref
   do
-    file=$("${3:-resolve_fileref}" "$ref" "$2" "$1") || return
-
-    # Recurse, now pre-proc directives for file at ref
-    list_preproc_refs "${1:-include}" "$file" "${3:-}"
-
-    echo "$ref $file"
+    file=$($resolve "$ref" "$srcf")
+    eval "$act"
   done
 }
 
-# Resolve include reference from file, echo filename with path. If cache=1 and
+# Resolve include reference to use,
+#from file, echo filename with path. If cache=1 and
 # this is not a plain file (it has its own includes), give the path to where
-# the fully pre-processed file shoul be instead.
-resolve_fileref () # ~ <Ref> <From> <Directive>
+# the fully assembled, pre-processed file should be instead.
+resolve_fileref () # [cache=0,cache_key=def] ~ <Ref> <From>
 {
   local fileref
 
@@ -628,17 +632,50 @@ resolve_fileref () # ~ <Ref> <From> <Directive>
   #    || echo "$file"
 }
 
-# List values for directive from root file
-grep_preproc () # ~ <Directive> <File>
+preproc_lines () # [grep_f] ~ <Dir-match> [<File|Grep-argv>] # Select only preprocessing lines
 {
-  $gsed -n 's/^ *#'${1:-include}'\ \(.*\)$/\1/gp' "${2:?}"
+  local grep_re=${1:-"\K[\w].*"}; test $# -eq 0 || shift
+  grep ${grep_f:--Po} '^#'"$grep_re" "$@"
 }
 
-# Replace include directives with file content, using two sed's and some subproc
-# per include line in between.
-expand_preproc () # ~ <Directive> <File> [<Resolver>]
+preproc_includes () # [grep_f] ~ [<File|Grep-argv>] # Select args for preproc lines
 {
-  # Awk does not leave sentinel line
+  preproc_lines 'include \K.*' "$@"
+}
+
+# Recursively resolve and list just the include directives
+preproc_includes_enum () # ~ <Resolver-> <File|Grep-argv...>
+{
+  local resolve=${1:-resolve_fileref}; shift 1
+  preproc_recurse preproc_includes $resolve 'echo "$srcf $srcl $ref $file"' "$@"
+}
+
+preproc_expand () # ~ <Resolver-> <File>
+{
+  # TODO: fix caching
+  preproc_expand_1_sed "${@:?}"
+
+  # TODO: apply recursively
+  #preproc_expand_2_awk "${@:?}"
+}
+
+# Replace include directives with file content, using two sed's and two
+# functions to resolve and dereference the file. See preproc-resolve-sedscript
+preproc_expand_1_sed () # ~ <Resolver-> <File|Grep-argv...>
+{
+  # Get include lines, reformat to sed commands, and execute sed-expr on input
+  {
+    preproc_resolve_sedscript "${@:?}" ||
+      $LOG error :expand-preproc "Error generating sed script" "E$?:($#):$*" $? || return
+  } | {
+    "${gsed:?}" -f - "${2:?}" ||
+      $LOG error :expand-preproc "Error executing sed script" "E$?:($#):$*" $? || return
+  }
+}
+
+preproc_expand_2_awk () # ~ <Directive-tag> <File>
+{
+  # Awk does not leave sentinel line.
   awk -v HOME=$HOME -v v=${verbosity:-${v:-3}} '
     function insert_file (file)
     {
@@ -662,43 +699,37 @@ expand_preproc () # ~ <Directive> <File> [<Resolver>]
         if (v > 5)
             print "Closed \""file"\"" >> "/dev/stderr"
     }
-    /#'"${1:-include}"'/ { insert_file($2); next; }' "${2:?}"
-  return
-
-  # Get include lines, reformat to sed commands, and execute sed-expr on input
-  {
-    preproc_sed "${@:?}" ||
-      $LOG error :expand-preproc "Error generating sed script" "E$?:($#):$*" $? || return
-  } | {
-    "${gsed:?}" -f - "${2:?}" ||
-      $LOG error :expand-preproc "Error executing sed script" "E$?:($#):$*" $? || return
-  }
+    /#'"${1:-include}"'/ { insert_file($2); next; }
+  ' "${2:?}"
 }
 
-preproc_sed () # ~ <Directive> <File> [<Resolver>]
+preproc_hasdir () # ~ <Dir-match> <File|Grep-argv...>
 {
-  list_preproc_refs "${@:?}" |
-      while read -r ref file
-      do
-        ref_re="$(match_grep "$ref")"
-        # Include plain files as is,
-        # but use resolver to get alt file for processed files
-        grep -q '^ *#'"${1:-include}"' ' "$file" && {
-          file=$(cache=1 "${3:-resolve_fileref}" "$ref" "$2" "$1") &&
-          test -s "$file" || {
-            $LOG error :preproc-sed "No such file" "$ref:$file" $? || return
-          }
-        }
-        # XXX: would love to insert Source/sentinel lines here but not sure
-        # how to make sed run two commands for a match. But both r and e command
-        # leave the include-preproc line.
-        #|| {
-        #  printf -- 's/^ *#'${1:-include}'\ %s/# Ref: %s\\n# File: %s\\n&\\n/g\n' \
-        #      "$ref_re" "$ref_re" "$(match_grep "$file")"
-        #}
-        #printf -- '/^ *#'${1:-include}'\ %s/e cat %s\n' "$ref_re" "$file"
-        printf -- '/^ *#'${1:-include}'\ %s/r %s\n' "$ref_re" "$file"
-      done
+  local dir=${1:?}; shift
+  grep -q '^[ \t]*#'"$dir"' ' "$@"
+}
+
+# Generate Sed script to assemble file with include preproc directives.
+# Like preproc
+preproc_resolve_sedscript () # ~ <Resolver> [<File>] # Generate Sed script
+{
+  local resolve=${1:-resolve_fileref}; shift 1
+  preproc_recurse preproc_includes $resolve preproc_resolve_sedscript_item "$@"
+}
+
+preproc_resolve_sedscript_item ()
+{
+  ref_re="$(match_grep "$ref")"
+  test "${preproc_read_include:-file}" = file && {
+    printf '/^[ \t]*#include\ %s/r %s\n' "$ref_re" "$file"
+  } || {
+    printf '/^[ \t]*#include\ %s/e %s' "$ref_re" "${preproc_read_include:?}"
+    printf ' "%s"' "$ref" "$file" "$srcf" "$srcl"
+    printf '\n'
+  }
+  # XXX: cleanup directives
+  #printf 's/^[ \t]*#\(include\ %s\)/#-\1/g\n' "$ref_re"
+  printf 's/^#include /#included /g\n'
 }
 
 # Sync: src.lib.sh

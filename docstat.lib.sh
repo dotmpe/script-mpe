@@ -111,7 +111,7 @@ docstat_entry() # [Doc-Path]
 docstat_fetch() # Doc-Path
 {
   { docstat_entry "$1" && test -n "${mtime-}"
-  } || error "Error parsing <$? $1>" $?
+  } || $LOG error :docstat:fetch "Error parsing <$? $1>" $?
 }
 
 docstat_try_or_default_parse_stat() # [Primary-Ctx]
@@ -133,7 +133,7 @@ docstat_try_or_default_parse_stat() # [Primary-Ctx]
 # Generate line and append entry to statusdir index file
 docstat_init() # Doc-Path
 {
-  note "Initializing $1"
+  $LOG note :docstat "Initializing $1"
   test -n "${docstat_id-}" || docstat_file_env "$1"
   {
     docstat_init_fields_$docstat_fmt "$1"
@@ -148,7 +148,8 @@ docstat_init_fields_rst() # Doc-Path
   docstat_path="$(realpath "$docstat_srcdir")"
   xml=$UCACHE/htd-docstat/${docstat_path////_}-$docstat_name.xml
   warning_level=2 \
-    du_getxml "$1" "$xml" || error "E$? Processing docfile '$1', see <$warnings>" 1
+    du_getxml "$1" "$xml" ||
+    $LOG error :docstat "E$? Processing docfile '$1', see <$warnings>" "" 1
   status="${du_result:-"$status"}"
   # Output lines with descriptor and other entry fields
   docstat_descr
@@ -206,7 +207,7 @@ docstat_primctx() # [Prim-Ctx]
   export tags="$(echo "$*${tags+" "}${tags-}" | words_to_lines | sort -u |
       lines_to_words | normalize_ws_str)"
 
-  note "docstat: Prim-Ctx: Tags: $tags"
+  $LOG note :docstat:primctx "Primary context" "$tags"
 }
 
 
@@ -378,10 +379,16 @@ docstat_rst_tags() # Doc-Path
 docstat_taglist() #
 {
   local taglist="$DOCSTAT/taglist.list"
-  { test -s "$taglist" -a $(filemtime "$taglist") -gt $(filemtime "$DOCSTAT_TAB")
+  { test -s "$taglist" &&
+      test $(filemtime "$taglist") -gt $(filemtime "$DOCSTAT_TAB")
   } || {
-    tasks_todotxt_tags "$DOCSTAT_TAB" | words_to_lines | sort -u > "$taglist"
-    info "Refreshed taglist"
+    {
+      tasks_todotxt_tags "$DOCSTAT_TAB" | words_to_lines | sort -u > "$taglist"
+    } || {
+      $LOG error :docstat:taglist "Failed refreshing taglist" "$taglist"
+      return
+    }
+    $LOG info :docstat:taglist "Refreshed taglist"
   }
   cat "$taglist"
   note "$(count_lines "$taglist") tags (projects & contexts)"

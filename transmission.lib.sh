@@ -8,7 +8,7 @@ transmission_lib_load ()
   : "${SHARE_DIR:=/srv/share-local}"
   : "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"
 
-  : "${TORRENTS_DIR:=$HOME/.config/transmission/torrents}"
+  : "${TRANSMISSIONBT_TORRENTS_DIR:=$HOME/.config/transmission/torrents}"
 }
 
 
@@ -63,7 +63,7 @@ transmission_active () # ~
 }
 
 # Basic scrapter utility for use with list-runner.
-transmission_fix_item_cols () # (std) ~ # Remove whitespace from columns
+transmission_fix_item_cols () # (std) ~ # Remove whitespace from column values
 {
   sed '
         s/\([0-9]\) \([kMGT]B\) /\1\2 /
@@ -150,12 +150,12 @@ transmission_is_item () # ~ [name|hash] <Info-Name-or-Hash>
   local lk=${lk:-}:is-item
   case "$1" in
     ( hash )
-          shift; for i in "$TORRENTS_DIR/"*".${1:0:16}.torrent"
+          shift; for i in "$TRANSMISSIONBT_TORRENTS_DIR/"*".${1:0:16}.torrent"
           do test -e "$i" && return || true; done; return 1
         ;;
 
     ( name )
-          shift; for i in "$TORRENTS_DIR/$1."*".torrent"
+          shift; for i in "$TRANSMISSIONBT_TORRENTS_DIR/$1."*".torrent"
           do test -e "$i" && return || true; done; return 1
         ;;
 

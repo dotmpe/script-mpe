@@ -42,6 +42,22 @@ package_lib_unset () #
   unset -v $PACK_CACHE
 }
 
+# Look at paths and list the first super-directory that has initialized
+# package meta. (This will not check for package.y*ml and initialize dirs)
+package_basedir_for_paths () # ~ <Paths...>
+{
+  #metadir_basedirs "${@:?}"
+  fs_basedir_with ${metadir_default:?}/package/main.json "${@:?}"
+}
+
+#
+package_basedir_split () # ~ <Path>
+{
+  local packagedir
+  packagedir=$(package_basedir_for_paths "${1:?}") || return
+  echo "$packagedir ${1:$(( 1 + ${#packagedir} ))}"
+}
+
 package_init () # [Package-Dir] [Package-Lib-Auto] [Package-Id]
 {
   test $# -gt 0 || set -- .

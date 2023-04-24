@@ -15,7 +15,7 @@ __box_init () # ~ <Exec-Name>
   test -n "${1-}" || set -- box
   box=$(command -v $1) || {
     box=$(command -v $1.sh) || {
-      $LOG warn : "Found no such exec" "E$?:$1" $? || return
+      $LOG warn :box.ac.sh "Found no such exec" "E$?:$1" $? || return
     }
   }
   cwd="$(dirname "$box")"
@@ -66,6 +66,7 @@ __box_pref_ac_def () # ~ <Exec-Name> <Handle> # Add completions for box execname
   test -n "${2-}" || set -- "$1" "__box_bash_auto_complete"
   local box scriptname base
   __box_init "$1" || return
+
   eval "$(cat <<EOM
 __box_ac_${base} ()
 {
@@ -73,7 +74,8 @@ __box_ac_${base} ()
     $2
 }
 EOM
-  )"
+  )" || return
+
   complete -F __box_ac_${base} $1.sh $1
 }
 
@@ -85,14 +87,18 @@ BOX_EXECS="box box.us*"\
 
 __uc_ac_init ()
 {
-  local box
+  local box fail=false
   for box in "${@:?}"
   do
     case "$box" in
-      ( *"*" ) __box_fun_ac_def ${box/\*} ;;
-      ( * ) __box_pref_ac_def $box ;;
+      # FIXME:
+      ( *"*" ) __box_fun_ac_def ${box/\*} || fail=true ;;
+      ( * )
+          $LOG debug :box.ac.sh __box_pref_ac_def $box
+          __box_pref_ac_def $box || fail=true ;;
     esac
   done
+  ! $fail
 }
 
 # TODO: Fix descriptions
@@ -160,9 +166,16 @@ script_isrunning "box.ac" .sh && {
 } || {
 
   # Running interactively probably? Initialize auto completion.
-  ${lib_load:-uc_lib_load} str-uc std-uc &&
-      __uc_ac_init $BOX_EXECS &&
-      __us_ac_init $US_EXECS
+  $LOG note :box.ac.sh "Loading interactive completions" \
+      "$0:${base+$base/${SCRIPTNAME}${SCRIPT_BASEEXT:-.$SCRIPT_BASEEXT}}"
+  ${lib_load:-uc_lib_load} str-uc std-uc && {
+    __uc_ac_init $BOX_EXECS ||
+        $LOG warn :box.ac.sh \
+        "Failed loading (some) Box autocompletions (ignored)" E$?
+    __us_ac_init $US_EXECS ||
+        $LOG warn :box.ac.sh \
+        "Failed loading (some) User-script autocompletions (ignored)" E$?
+  }
 }
 
 # XXX This operates without defarg so command aliases and defcmd do not work

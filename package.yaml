@@ -9,7 +9,6 @@
       targets:
         all: init check build test pack
         main: help all init check build test pack dist
-  id: script-2008b-mpe
   environment:
     development:
     - package_pd_meta_default=dev
@@ -17,6 +16,9 @@
     - BOREAS_SKIP=1
     - DANDY_SKIP=1
     - VS1_SKIP=1
+  version: 0.0.4-dev # Script.mpe
+  id: script-2008b-mpe
+  slug-id: script-mpe
   log: DevLog.rst
   specs:
     units: test/py/\$id.py test/py/mod_\$vid.py test/\$id-lib-spec.bats test/\$id-spec.bats
@@ -25,8 +27,6 @@
       src main box box-cmd box-lib box-src pd-meta finfo table package
   prefixes: {}
   symbol: BIN
-  slug-id: script-mpe
-  version: 0.0.4-dev # Script.mpe
   build: redo "\$@"
   env:
   # XXX: what level wrt to the project root is this stored?
@@ -40,6 +40,8 @@
   main: script-2008b-mpe
   type: application/vnd.org.wtwta.project
   vendor: dotmpe
+  contexts:
+    default: '@Dev @Script +\$package_id <\$package_dir> @Project'
   lists:
     files: scm-all
     index: '@be.src.files'
@@ -218,10 +220,12 @@
     - 'https://choosealicense.com/licenses/gpl-3.0/'
     - 'https://opensource.org/licenses/gpl-license'
   distribution: public
+
 - type: application/vnd.org.wtwta.symlinks
   id: script-mpe-symlinks
   file: .symlinks.tab
   attrs: SRC DEST
+
 - type: application/vnd.org.wtwta.yaml-fragment
   vagrant_scripts:
     info:
@@ -242,6 +246,7 @@
     save:
     - vagrant suspend
   id: package-vagrant-scripts
+
 - scripts:
     info:
     - echo VBOX_DOMAIN=$VBOX_DOMAIN VBOX_LOCAL=$VBOX_LOCAL

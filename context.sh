@@ -2,7 +2,7 @@
 CMD_ARG=$_
 
 
-context_files ()
+context_sh_files ()
 {
   local act="${1:-list}"
   test $# -eq 0 || shift
@@ -12,8 +12,9 @@ context_files ()
           files_existing ".meta/stat/index/{context,ctx}{,-*}.list"
         ;;
     ( l|ls|list )
-        context_files c
-        find .meta/stat/index -iname 'ctx-*.list' ;;
+        context_sh_files c
+        # Look for files and return non-zero if none found
+        find .meta/stat/index -iname 'ctx-*.list' | grep . ;;
     ( c|check )
         test ! -e .meta/stat/index/context.list ||
             $LOG warn "$lk" "Should not have context.list" ;;
@@ -21,15 +22,15 @@ context_files ()
   esac
 }
 
-context_status ()
+context_sh_status () # ~
 {
   local act="${1:-short}"
   test $# -eq 0 || shift
   local lk=${lk:-:context}:status
   case "$act" in
     ( s|short )
-            context_files check
-            wc -l $(context_files a)
+            context_sh_files check
+            wc -l $(context_sh_files a)
         ;;
     ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
   esac
@@ -41,14 +42,13 @@ context_status ()
 #context_sh_name=foo
 #context_sh_version=xxx
 context_sh_maincmds="help short version"
-#context_sh_shortdescr=''
+context_sh_shortdescr='Provide context entities and relations based on tags'
 
 context_sh_aliasargv ()
 {
   case "$1" in
-      ( s|short ) shift; set -- context_status short ;;
-      ( f|files ) shift; set -- context_files "$@" ;;
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+      ( s|short ) shift; set -- context_sh_status short ;;
+      ( f|files ) shift; set -- context_sh_files "$@" ;;
   esac
 }
 
@@ -75,9 +75,10 @@ test -n "${user_script_loaded:-}" || {
   # Default value used if argv is empty
   script_defcmd=short
   # To include all aliases for user_script_defarg
-  script_fun_xtra_defarg=context_sh_aliasargv
+  #script_fun_xtra_defarg=context_sh_aliasargv
   # To extract aliases for help
-  script_xtra_defarg=context_sh_aliasargv
+  #script_xtra_defarg=context_sh_aliasargv
+  script_xtra_defarg=aliasargv
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"
 }

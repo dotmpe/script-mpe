@@ -162,7 +162,7 @@ actual_darktime () # ~ [<Datetime>]
   test $# -eq 0 || return ${_E_GAE:-$?}
 
   location || {
-    stdmsg '*err' "Please provide GEO_{LOC,HOME}"
+    stdmsg '*err' "No user location. Please provide GEO_{LOC,HOME}"
     return 1 # XXX: autodetect/select approx. location using locale
     timezone || return
     eval $(timezone_to_location) || return

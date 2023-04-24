@@ -22,7 +22,14 @@ user_script_lib_init ()
 }
 
 
-user_script_check () # ~ # See that every script has a description
+user_script_check () # ~ # See that all variables are set
+{
+  echo "Base/id: $base ($baseid)"
+  echo "Default command: $script_defcmd"
+  echo "Extra default arguments: ${script_fun_xtra_defarg:-${script_xtra_defarg-}}"
+}
+
+user_script_check_all () # ~ # See that every script has a description
 {
   user_script_find_exec | user_script_filter | user_script_check_description
 }

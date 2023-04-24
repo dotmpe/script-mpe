@@ -386,7 +386,7 @@ foreach_inscol ()
 foreach_line_do ()
 {
   while read -r args
-  do "$@" $args ; done
+  do "$@" $args || return; done
 }
 
 # Execute act/no-act based on expression match, function/command or shell statement
@@ -774,9 +774,18 @@ read_addcol ()
     do printf -- '%s\t%s\n' "$S" "$($act "$S")" ; done
 }
 
+# XXX: rename read-literal
 read_asis ()
 {
   IFS= read -r "$@"
+}
+
+# Prefix/suffix lines with fixed value string
+read_concat () # ~ [<Prefix-str>] [<Suffix-str>] # Concat value to lines
+{
+  local _S
+  while ${read:-read -r} _S
+  do echo "${1:-}${_S}${2:-}"; done
 }
 
 # XXX:
