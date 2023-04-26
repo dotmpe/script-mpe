@@ -194,7 +194,7 @@ list_themes ()
 
 ## User-script parts
 
-user_desktop_maincmds="backgrounds help screenshots themes version"
+user_desktop_maincmds="background backgrounds help screenshots themes update_for_cs switch_cs version"
 user_desktop_shortdescr='User desktop tools'
 
 #shellcheck disable=1091 # env.sh and .meta.sh do not need to exist
@@ -250,9 +250,10 @@ test -n "${user_script_loaded:-}" || {
 }
 
 ! script_isrunning "user-desktop" || {
+
+  user_script_defarg=defarg\ aliasargv
+
   # Pre-parse arguments
-  script_fun_xtra_defarg=user_desktop_aliasargv
-  script_xtra_defarg=aliasargv
   eval "set -- $(user_script_defarg "$@")"
 }
 

@@ -507,8 +507,7 @@ disk_uc_loadenv ()
   # Pre-parse arguments
   base=disk.uc
   script_defcmd=check
-  script_fun_xtra_defarg=disk_uc_aliasargv
-  script_xtra_defarg=aliasargv
+  user_script_defarg=defarg\ aliasargv
 
   eval "set -- $(user_script_defarg "$@")"
 }

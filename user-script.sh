@@ -116,6 +116,10 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Arg...>
     shift
     script_doenv "$@" || return
     stdmsg '*debug' "Entering user-script $(script_version)"
+    sh_fun "$1" || {
+      local funn="${baseid}_$1"
+      sh_fun "$funn" && shift && set -- "$funn" "$@"
+    }
     sh_fun "$1" || set -- usage -- "$@"
     "$@" || script_cmdstat=$?
     script_unenv || return
@@ -237,24 +241,8 @@ user_script_aliases () # ~ [<Name-globs...>] # List handlers with aliases
     set -- "$(grep_or "$*")"
   }
 
-  local bid fun
-  for bid in $(${user_script_bases:-user_script_bases})
-  do
-    for h in ${script_xtra_defarg:-} defarg
-    do
-      sh_fun "${bid}_$h" && fun=${bid}_$h || {
-        sh_fun "$h" && fun=$h || continue
-      }
-      echo "# $fun"
-      sh_type_esacs_als $fun | sed '
-              s/ set -- \([^ ]*\) .*$/ set -- \1/g
-              s/ *) .* set -- /: /g
-              s/^ *//g
-              s/ *| */, /g
-              s/"//g
-          '
-    done
-  done | grep "\<$1\>" | {
+  local bid fun vid
+  user_script_aliases_raw | grep "\<$1\>" | {
 
     # Handle output formatting
     test -n "${u_s_env_fmt:-}" || {
@@ -267,8 +255,38 @@ user_script_aliases () # ~ [<Name-globs...>] # List handlers with aliases
   }
 }
 
+user_script_aliases_raw ()
+{
+  for bid in $(${user_script_bases:-user_script_bases})
+  do
+    for h in ${user_script_defarg:-defarg}
+    do
+      sh_fun "${bid}_$h" && fun=${bid}_$h || {
+        sh_fun "$h" && fun=$h || continue
+      }
+      echo "# $fun"
+      case "${out_fmt:-}" in
+
+          raw ) sh_type_esacs_als $fun ;;
+
+          * )
+              sh_type_esacs_als $fun | sed '
+                      s/ set -- \([^ ]*\) .*$/ set -- \1/g
+                      s/ *) .* set -- /: /g
+                      s/^ *//g
+                      s/ *| */, /g
+                      s/"//g
+                  '
+            ;;
+      esac
+    done
+  done
+}
+
 user_script_bases ()
 {
+  test -n "${baseid:-}" || { local vid baseid
+    mkvid "${base:-${SCRIPTNAME:?}}"; baseid=$vid; }
   script_bases="$baseid"
   test "$baseid" = user_script || {
       script_bases="$script_bases user_script"
@@ -278,14 +296,14 @@ user_script_bases ()
 }
 
 # TODO: commands differs from handlers in that it lists maincmds and aliases
-user_script_commands () # ~
+user_script_commands () # ~ # Resolve aliases and list command handlers
 {
   # FIXME: maincmds list are not functions, use aliases to resolve handler names
   test $# -gt 0 || set -- $script_maincmds
   user_script_resolve_aliases ||
-      $LOG error :commands "Resolving aliases" "E$?" $? || return
+      $LOG error :commands "Resolving aliases" "E$?:$*" $? || return
   user_script_handlers "$@" ||
-      $LOG error :commands "Resolving handlers" "E$?" $?
+      $LOG error :commands "Resolving handlers" "E$?:$*" $?
 }
 
 # Output argv line after doing 'default' stuff. Because these script snippets
@@ -305,7 +323,8 @@ user_script_defarg ()
       # XXX: ( a|all ) shift && set -- user_scripts_all ;;
 
       ( --list-script-bases )
-            test $# -eq 0 || shift; set -- user_script_bases "$@" ;;
+            test $# -eq 0 || shift
+            set -- ${user_script_bases:-user_script_bases} "$@" ;;
 
       # Every good citizen on the executable lookup PATH should have these
       ( "-?"|-h|help )
@@ -317,6 +336,8 @@ user_script_defarg ()
 
       ( --aliases|aliases )
             test $# -eq 0 || shift; set -- user_script_aliases "$@" ;;
+      ( --aliases-raw)
+            test $# -eq 0 || shift; set -- user_script_aliases_raw "$@" ;;
 
       ( --handlers|handlers ) # Display all potential handlers
             test $# -eq 0 || shift; set -- user_script_handlers "$@" ;;
@@ -329,20 +350,22 @@ user_script_defarg ()
 
   esac
 
-  # Hook-in more from user-script
-  test -z "${script_fun_xtra_defarg:-${script_xtra_defarg-}}" || {
-    test -z "${script_fun_xtra_defarg:-}" && {
-      sh_fun "$script_xtra_defarg" || {
-        script_fun_xtra_defarg=$(mkvid "$SCRIPTNAME" &&
-              echo $vid)_$script_xtra_defarg
+  # Hook-in more for current user-script or other bases
+  # Script needs to be sourced or inlined from file to be able to modify
+  # current arguments.
+  local bid fun xtra_defarg
+  for bid in $(${user_script_bases:-user_script_bases})
+  do
+    for h in ${user_script_defarg:-defarg}
+    do
+      sh_fun "${bid}_${h}" || {
+        continue
       }
-    }
-    sh_fun "$script_fun_xtra_defarg" || {
-      $LOG error :defarg "No such defarg handler" "$script_xtra_defarg" $? ||
-          return
-    }
-    eval "$(sh_type_fun_body $script_fun_xtra_defarg)" || return
-  }
+      # Be careful not to recurse to current function
+      test "$h" != defarg -o "$bid" != user_script || continue
+      eval "$(sh_type_fun_body $bid"_"$h)" || return
+    done
+  done
 
   # Print everything using appropiate quoting
   argv_dump "$@"
@@ -372,7 +395,7 @@ user_script_defcmdenv ()
 user_script_envvars () # ~ # Grep env vars from loadenv
 {
   local bid h
-  for bid in $(user_script_bases)
+  for bid in $(${user_script_bases:-user_script_bases})
   do
     for h in loadenv ${script_xtra_envvars:-defaults}
     do
@@ -404,7 +427,7 @@ user_script_envvars () # ~ # Grep env vars from loadenv
 user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main script
 {
   test $# -eq 0 && {
-    set -- "[A-Za-z_$US_EXTRA_CHAR][A-Za-z0-9_$US_EXTRA_CHAR]*"
+    set -- "[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*"
   } || {
     set -- "$(grep_or "$@")"
   }
@@ -423,7 +446,7 @@ user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main scr
   for name in $script_src
   do
     $LOG debug :handlers "Listing from source" "$name:$(command -v "$name"):$1"
-    script_listfun "$(command -v "$name")" "$1"
+    script_listfun "$(command -v "$name")" "$1" || true
   done
 }
 
@@ -996,6 +1019,26 @@ script_listfun () # (s) ~ [<Grep>] # Wrap grep for function declarations scan
   }
 }
 
+user_script_sh_bases ()
+{
+  user_script_bases >/dev/null
+  script_bases="${script_bases:?} user_script_sh"
+  echo "$script_bases"
+}
+
+user_script_sh_aliasargv ()
+{
+  case "$1" in
+
+      ( find|--find-user-scripts ) shift; set -- user_script_find "$@" ;;
+
+      # FIXME: sh-type-esacs-als currently does not match var ref in argv alias
+      ( bases|--list-script-bases ) shift;
+            set -- ${user_script_bases:-user_script_bases} "$@" ;;
+
+  esac
+}
+
 usage ()
 {
   local failcmd ; test "${1-}" != "--" || { shift; failcmd="$*"; shift $#; }
@@ -1023,9 +1066,10 @@ usage ()
   # Default value used when argv is empty
   #script_defcmd=usage
   # Extra handlers for user-script-aliases to extract from
-  #script_xtra_defarg={(user_script_bases)}_defarg
-  # Extra defarg handlers to copy, used by default user-script-defarg impl.
-  #script_fun_xtra_defarg=
+  user_script_defarg=defarg\ aliasargv
+  # Override bases so we can add some additional argv aliases through a second
+  # defarg function for just this command.
+  user_script_bases=user_script_sh_bases
 
   # Pre-parse arguments and reset argv: resolve aliased commands or sets default
   eval "set -- $(user_script_defarg "$@")"

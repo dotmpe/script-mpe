@@ -16,6 +16,7 @@ done
 unset env_d
 
 test -n "${INIT_LOG-}" || INIT_LOG=$script_util/log.sh
+command -v "$INIT_LOG" >/dev/null 2>&1 || INIT_LOG=/etc/profile.d/uc-profile.sh
 
 scriptname=$scriptname \
   $INIT_LOG "info" "" "Env initialized from parts" "${INIT_ENV-}"

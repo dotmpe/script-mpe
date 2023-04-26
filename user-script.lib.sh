@@ -26,7 +26,7 @@ user_script_check () # ~ # See that all variables are set
 {
   echo "Base/id: $base ($baseid)"
   echo "Default command: $script_defcmd"
-  echo "Extra default arguments: ${script_fun_xtra_defarg:-${script_xtra_defarg-}}"
+  echo "Default arg handlers: ${user_script_defarg:-defarg}"
 }
 
 user_script_check_all () # ~ # See that every script has a description
@@ -78,10 +78,13 @@ user_script_filter () # ~ #
   done
 }
 
+# The find-exec part of this routine builds a find command observing
+# htdignore rules.
 user_script_find () # ~ # Find user-scripts in user-dirs
 {
   user_script_find_exec | while read -r execname
   do
+    # Look for exact 'script_entry' with '"$@"' as argument.
     scre=$(grep '^ *script_entry [^ ]* "$@"\( \|$\)' "$execname") || continue
     read -r _ scrna _ <<< "$scre"
     eval "echo $scrna $execname"

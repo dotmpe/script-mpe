@@ -136,7 +136,7 @@ info_sh () # ~ # Print RC info fields as Shell variables
   info_rc | sed 's/^/_/' | conv_fields_shell
 }
 
-eval "$(compo typeset conv_fields_shell)"
+#eval "$(compo typeset conv_fields_shell)"
 
 # Send RC command over socket (using Py client)
 vlc_rc_ssend ()

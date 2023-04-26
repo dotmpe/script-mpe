@@ -66,7 +66,7 @@ test -n "${user_script_loaded:-}" || {
   # Default value used if argv is empty
   script_defcmd=fetch
   # To extract aliases for help
-  script_xtra_defarg=outline_sh_aliasargv
+  user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"
 }

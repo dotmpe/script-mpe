@@ -839,7 +839,7 @@ main-load \
   test -n "${UCONF-}" || UCONF=$HOME/.conf/ \
   test -e "$UCONF" || error "Missing user config dir $UCONF" 1 \
  \
-  test -n "${DCKR_UCONF-}" || DCKR_UCONF=$UCONF/dckr \
+  test -n "${DCKR_UCONF-}" || DCKR_UCONF=$UCONF/tools/dckr \
   test -n "${DCKR_VOL-}" || DCKR_VOL=/srv/docker-volumes-local \
   test -n "${DCKR_CONF-}" || DCKR_CONF=$DCKR_VOL/config \
   test -e "$DCKR_UCONF" || error "Missing docker user config dir $DCKR_UCONF" 1 \

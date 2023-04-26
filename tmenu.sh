@@ -3,9 +3,10 @@
 ### A user menu system
 # XXX: based on metadata and using shell (Bash) process control
 
-true "${TMENU_PREFIX:=tmenu_}"
-true "${TMENU_SEP:=:}"
-true "${TMENU_FKVSEP:=__}"
+: "${TMENU_PREFIX:=tmenu_}"
+: "${TMENU_SEP:=:}"
+: "${TMENU_FKVSEP:=__}"
+: "${TMENU_DATAFILE:=user.menu.yml}"
 
 tmenu_exists ()
 {
@@ -24,7 +25,7 @@ tmenu_new_popup () # ~ <Label> <9menu-argv...>
 main_menu () # ~ <Id>
 {
   test $# -gt 0 || set -- home
-  tmenu_sh=$(tmenu.py "${1:?}" < user.menu.yml) || return
+  tmenu_sh=$(tmenu.py "${1:?}" < ${TMENU_DATAFILE}) || return
   eval "$tmenu_sh" || return
   test -n "${LAST:-}" && {
     tmenu+=( "Back:$0 menu ${LAST:?}" )

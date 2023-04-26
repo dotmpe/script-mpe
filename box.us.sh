@@ -41,6 +41,13 @@ box_us_loadenv ()
   server_sh_loadenv
 }
 
+box_us_bases ()
+{
+  user_script_bases >/dev/null
+  script_bases="${script_bases:?} server_sh"
+  echo "$script_bases"
+}
+
 
 # Main entry (see user-script.sh for boilerplate)
 
@@ -57,10 +64,9 @@ test -n "${user_script_loaded:-}" || {
   script_baseext=.sh
   # Default value used if argv is empty
   script_defcmd=stat
-  # To include all aliases for user_script_defarg
-  script_fun_xtra_defarg=box_us_aliasargv\ server_sh_aliasargv
   # To extract aliases for help
-  script_xtra_defarg=box_us_aliasargv\ server_sh_aliasargv
+  user_script_defarg=defarg\ aliasargv
+  user_script_bases=box_us_bases
 
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"

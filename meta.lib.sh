@@ -1,8 +1,25 @@
 #!/bin/sh
 
-### Media file attributes
+### .meta: Metadata folder and files
 
-# Old media lib, for new attributes/metadir setup see metadir
+## Organized metadata for files and folders
+
+# While metadata implies structure, this strictly deals with key/values and
+# caching values. It does do generic k/v storage for folders and files, but
+# it does not for example map metafile keys so that they can be kept in a
+# metadir folder.
+# XXX: using the term `attributes` for these while `properties`
+# (which implies some type/class constraint) is explored in ``status{,dir}.sh``
+# and contexts.
+# XXX: real caching would be nice, but initially what is meant is syncing with
+# xattr.
+
+# XXX: cleanup
+# .attributes is a local asis property file, to set metadata for a directory.
+# It is used by various scripts to get local configuration settings, and for
+# example to override package.yaml project metadata.
+
+# See also metadir.lib. And metainfo.lib for stuff previously here.
 
 
 meta_lib_load ()
@@ -16,63 +33,16 @@ meta_lib_init ()
 }
 
 
-meta_magic_description ()
-{
-  fileformat "${1:?}"
-}
-
-meta_magic_extensions ()
-{
-  fileextensions "${1:?}"
-}
-
-meta_magic_mediatype ()
-{
-  filemtype "${1:?}"
-}
-
-
-mediadurationms()
-{
-  echo "General;%Duration%" > /tmp/template.txt
-  mediainfo --Output=file:///tmp/template.txt "$1"
-}
-
-mediaresolution()
-{
-  echo "Video;%Width%x%Height%" > /tmp/template.txt
-  mediainfo --Output=file:///tmp/template.txt "$1"
-}
-
-mediapixelaspectratio()
-{
-  echo "Video;%PixelAspectRatio/String%" > /tmp/template.txt
-  mediainfo --Output=file:///tmp/template.txt "$1"
-}
-
-mediadisplayaspectratio()
-{
-  echo "Video;%DisplayAspectRatio/String%" > /tmp/template.txt
-  mediainfo --Output=file:///tmp/template.txt "$1"
-}
-
-
-# General;%CompleteNae% * %FileSize/String3% * %Duration/String%
-# Video; |Video: %Width%x%Height% * %DisplayAspectRatio/String% * %Format%
-# %Format_Profile%
-# Audio; |Audio: %Language/String% * %Channel(s)% CH * %Codec/String%
-# Text; |Sub: %Language/String% * %Codec%
-# File_End;\n
-
+# XXX: cleanup
 meta_api_man_1='
   attributes
   emby-list-images [$DKCR_VOL/emby/config]
 '
 
-# .attributes is a local asis property file, to set metadata for a directory.
-# It is used by various scripts to get local configuration settings, and for
-# example to override package.yaml project metadata.
-meta_attribute()
+
+# - Default path argument is PWD.
+# - $out_fmt governs the output format:
+meta_attribute () # ~ <Key> [ <Path...> ] # Show attribute values for folder or file set
 {
   test -e .attributes || return
   test -n "$1" || error meta-attributes-act 1
@@ -83,6 +53,25 @@ meta_attribute()
       ;;
   esac
 }
+
+# - Default path argument is PWD.
+# - $out_fmt governs the output format:
+#
+meta_attributes () # ~ [ <Path...> ] # Show attributes for folder or file set
+{
+  getfattr -d "$@" 2>/dev/null | tail -n +2
+  #xattr -l "$@"
+}
+
+# Convert As-is style formatted file to double-quoted variable declarations
+meta_attributes_sh () # ~ <File|Awk-argv> # Filter to rewrite .attributes to simple shell variables
+{
+  awk '{ st = index($0,":") ;
+      key = substr($0,0,st-1) ;
+      gsub(/[^A-Za-z0-9]/,"_",key) ;
+      print toupper(key) "=\"" substr($0,st+2) "\"" }' "$@"
+}
+# Id: meta-attributes-sh
 
 
 json_to_csv()

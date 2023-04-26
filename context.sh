@@ -74,11 +74,7 @@ test -n "${user_script_loaded:-}" || {
 ! script_isrunning "context.sh" || {
   # Default value used if argv is empty
   script_defcmd=short
-  # To include all aliases for user_script_defarg
-  #script_fun_xtra_defarg=context_sh_aliasargv
-  # To extract aliases for help
-  #script_xtra_defarg=context_sh_aliasargv
-  script_xtra_defarg=aliasargv
+  user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"
 }

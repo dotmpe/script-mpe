@@ -4,10 +4,10 @@ true "${feh_delay:=4}"
 alias feh-info='feh -d --draw-tinted --info "file -bLs %f"'
 
 # Fit to window and color excess space
-alias feh-frame="feh-zoom-extents -B '${feh_bg:-black}'"
+alias feh-frame="feh-zoom-extents --class pf -B '${feh_bg:-black}'"
 
-alias feh-slideshow="feh-frame -Y -D ${feh_delay:?}"
-alias feh-slideshow-fs="feh-slideshow -F"
+alias feh-slideshow="feh-frame -D ${feh_delay:?}"
+alias feh-slideshow-fs="feh-slideshow -Y -F"
 alias feh-slideshow-fs-random="feh-slideshow-fs -z"
 alias feh-slideshow-random="feh-slideshow -z"
 

@@ -1,7 +1,8 @@
 #!/bin/sh
 
 
-# parse path and annex metadata using given path
+# htd.sh actions for table.names and checksum list files
+
 
 req_arg_pattern="Pattern format"
 req_arg_path="Path"

@@ -38,7 +38,7 @@ context_check () # [case_match=1] [match_sub=0] ~ Tags...
   p= s= act=context_check_inner foreach_do "$@"
 }
 
-context_check_inner()
+context_check_inner ()
 {
   context_exists_tag "$1" && {
     $LOG ok "" "Exists" "$1"
@@ -179,6 +179,7 @@ context_file_attributes () # ~ <Keys...>
   local v xp
   true "${xattr_noerr:=1}"
   xp=${xattr_noerr:+std_noerr }
+  # Look for each requested key
   while test $# -gt 0
   do
     v=$(${xp}xattr -p user.${1:?} "$context_tab") &&

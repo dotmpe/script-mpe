@@ -6,7 +6,7 @@ CMD_ARG=$_
 
 
 # This doesnt really try hard at being sensible but its a start
-sensible () # ~ # XXX: start urxvt bash session. see Env
+sensible () # ~ <Run-argv> # Determine colorscheme and run
 {
   test -n "${UC_NIGHTTIME:-}" || {
     sensible_colorscheme || true
@@ -38,7 +38,7 @@ sensible_colorscheme () # ~ # Look for function to determine current night-time
   }
 }
 
-run () # ~ [<Env...>] [ -- <Shell-Argv>... ]
+run () # ~ [<Env...>] [ -- <Shell-Argv>... ] # Start terminal for env with command
 {
   #shellcheck disable=2086
   exportargs "$@" && shift $argc
@@ -46,12 +46,12 @@ run () # ~ [<Env...>] [ -- <Shell-Argv>... ]
   termexec "$@"
 }
 
-day () # ~ <Run-Argv...>
+day () # ~ <Run-Argv...> # Sensible with light colorscheme
 {
   cs=light sensible "$@"
 }
 
-night () # ~ <Run-Argv...>
+night () # ~ <Run-Argv...> # Sensible with dark colorscheme
 {
   cs=dark sensible "$@"
 }
@@ -100,8 +100,8 @@ nighttime () # ~ [<Hour>]
   test $1 -lt ${DAY_START:-6} -o $1 -ge ${DAY_END:-18}
 }
 
-# Replace current shell
-shellexec () # ~ [<Env>] -- [<Command>] # Just execute shell
+# Replace current shell with new instance
+shellexec () # ~ [<Env>] -- [<Command>] # Fork to new shell
 {
   exportargs "$@" && shift $argc
   test $# -gt 0 || set -- -l
@@ -115,7 +115,7 @@ shellexec () # ~ [<Env>] -- [<Command>] # Just execute shell
 
 # Continue execution at terminal program running shell command
 #shellcheck disable=2086
-termexec ()
+termexec () # ~ <Cmd-argv...> # Fork to terminal, the normal run action
 {
   true "${UC_TERM:="urxvt"}"
   true "${UC_SHELL:="bash"}"
@@ -334,6 +334,9 @@ dumpinfo ()
   hasinfo &&
   infocmp > "${UCONF:?}/etc/terminfo/${TERM:?}"
 }
+
+system_terminal_maincmds=sensible\ run\ day\ night\ terminal\ name\ user_script_help\ user_script_version\ user_script_commands\ user_script_aliases
+system_terminal_shortdescr='Start new terminals in various modes'
 
 system_terminal_usage ()
 {

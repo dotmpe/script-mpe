@@ -48,6 +48,17 @@ moon ()
 
 location ()
 {
+  assert_location || {
+    stdmsg '*err' "No user location. Please provide GEO_{LOC,HOME}"
+    return 1 # XXX: autodetect/select approx. location using locale
+    timezone || return
+    eval $(timezone_to_location) || return
+  }
+  echo "User location: ${GEO_LOC:-${GEO_HOME:-}}"
+}
+
+assert_location ()
+{
   test -n "${GEO_LOC:-${GEO_HOME:-}}" || return
 }
 
@@ -68,16 +79,9 @@ location ()
 #   each. And night divided into dusk and twillight.
 #
 #
-# Roman: {day {prime,terce,sext,none},evening,night}
 timeofday () # ~ [<Hour>]
 {
-  ${UC_TOD:-"basic_hours"} "$@"
-}
-
-#
-basic_hours () # ~ [<Hour>]
-{
-  roman_hours "$@" | cut -d' ' -f1,2
+  ${UC_TOD:-"hour_tags"} "$@"
 }
 
 #
@@ -88,34 +92,82 @@ astronomical_hours () # ~ [<Hour>]
   false
 }
 
-#
-roman_hours () # ~ [<Hour>]
+# List tags to describe the current hour, selected from various sets.
+# Below are just some european examples of mappings for periods of the day or
+# "hours"
+hour_tags () # ~ [<Hour>]
 {
-  test $# -gt 0 || set -- $(date +'%H')
+  test $# -gt 0 || set -- $(hour)
 
-  test $# -gt 0 || {
-    test "${SOLAR_TIME:-0}" = "1" && {
-      set -- $(solar_time "${DT_NOW:-now}" "%H")
-    } || {
-      set -- $(date -d "${DT_NOW:-now}" +"%H"|sed 's/^0//')
-    }
+  echo $( for group in ${UC_DAY_HOURS:-europe_anglo europe_latin europe_medieval}
+      do hours_$group "$@"
+      done)
+}
+
+hour ()
+{
+  test "${SOLAR_TIME:-0}" = "1" && {
+    solar_time | cut -d ':' -f 1
+  } || {
+    date -d "${DT_NOW:-now}" +"%H"|sed 's/^0//'
   }
+}
 
-  case "$1" in
+hours_europe_anglo ()
+{
+  case "${1:?}" in
 
-    06|07|08 ) echo day morning prime ;;
-    09|10|11 ) echo day morning terce ;;
-    12|13|14 ) echo day afternoon sext ;;
-    15|16|17 ) echo day afternoon none ;;
-    18|19|20 ) echo evening ;;
-    21|22|23 ) echo evening ;;
-     0|01|02 ) echo night ;;
-    03|04|05 ) echo night ;;
+     6| 7| 8 ) echo Day Morning Dawn Sunrise ;;
+     9|10|11 ) echo Day Morning ;;
+    12|13|14 ) echo Day Afternoon Noon Mid-afternoon ;;
+    15|16|17 ) echo Day Afternoon Evening Twillight ;;
+    18|19|20 ) echo Evening Early Dusk Sunset ;;
+    21|22|23 ) echo Evening Late Night Midnight ;;
+     0| 1| 2 ) echo Night Dead_of_Night Witching_Hour Gloaming ;;
+     3| 4| 5 ) echo Night Early Pre_Dawn Cockrow ;;
 
-     *) return 1 ;;
+     *) echo "hours? '$1'" >&2
+         return 1 ;;
   esac
 }
 
+hours_europe_latin ()
+{
+  case "${1:?}" in
+
+     6| 7| 8 ) echo Mane ;;
+     9|10|11 ) echo Antemeridianum ;;
+    12|13|14 ) echo Merides ;;
+    15|16|17 ) echo Postmeridianum ;;
+    18|19|20 ) echo Vesper ;;
+    21|22|23 ) echo Nox ;;
+     0| 1| 2 ) echo Nox_media ;;
+     3| 4| 5 ) echo Gallicinium ;;
+
+     *) echo "hours? '$1'" >&2
+         return 1 ;;
+  esac
+}
+
+hours_europe_medieval ()
+{
+  case "${1:?}" in
+
+     6| 7| 8 ) echo Minor Prime ;;
+     9|10|11 ) echo Minor Terce ;;
+    12|13|14 ) echo Minor Sext ;;
+    15|16|17 ) echo Minor None ;;
+
+    18|19|20 ) echo Major Vespers ;;
+    21|22|23 ) echo Major Compline ;;
+     0| 1| 2 ) echo Major Matins ;;
+     3| 4 ) echo Major ;;
+     5| 6 ) echo Major Lauds ;;
+
+     *) echo "hours? '$1'" >&2
+         return 1 ;;
+  esac
+}
 
 timeofyear () # ~
 {
@@ -161,19 +213,19 @@ actual_darktime () # ~ [<Datetime>]
 {
   test $# -eq 0 || return ${_E_GAE:-$?}
 
-  location || {
-    stdmsg '*err' "No user location. Please provide GEO_{LOC,HOME}"
-    return 1 # XXX: autodetect/select approx. location using locale
-    timezone || return
-    eval $(timezone_to_location) || return
-  }
-
   # Test for actual nighttime, excluding daytime and twillight
   TWILLIGHT_HORIZON=${HORIZON:-"-3"} \
   HORIZON=${HOME_HORIZON:-"0"} \
   SHIFT_TIME=${SHIFT:-${DARKTIME_SHIFT:-"0"}} \
   GEO_LOC=${GEO_LOC:-${GEO_HOME:?}} \
     ${python3_bin:-python3} ~/bin/ephem-day-times.py ${EPHEM_CMD:-"night"} "$@"
+}
+
+solar_time ()
+{
+  GEO_LOC=${GEO_LOC:-${GEO_HOME:?}} \
+    ${python3_bin:-python3} ~/bin/ephem-day-times.py solar-time "$@" |
+    grep -v '^#'
 }
 
 timezone_to_location ()
@@ -272,11 +324,10 @@ test -n "${user_script_loaded:-}" || {
 }
 
 ! script_isrunning "user-tools" || {
-  # Pre-parse arguments
-  script_defcmd=check
-  script_fun_xtra_defarg=user_tools_aliasargv
-  script_xtra_defarg=aliasargv
+  script_defcmd=location
+  user_script_defarg=defarg\ aliasargv
 
+  # Pre-parse arguments
   eval "set -- $(user_script_defarg "$@")"
 }
 

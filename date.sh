@@ -14,6 +14,9 @@ then
 
   case "${1-}" in
 
+    ( ts-dt|timestamp-datetime ) shift;
+        date -p @${1:?} ;;
+
     ( time-parse ) shift;
             time_parse_seconds "$1"
         ;;
@@ -43,7 +46,7 @@ then
         esac
       } | time_fmt_abbrev || return;;
 
-    * ) echo "relative|relative-abbrev"; exit 1 ;;
+    #* ) echo "relative|relative-abbrev"; exit 1 ;;
     * ) exit 2 ;;
 
   esac

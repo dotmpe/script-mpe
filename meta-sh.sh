@@ -41,10 +41,10 @@ meta_sh__video_info()
     error "Expected existing path" 1
   }
 
-  durms="$(mediadurationms "$1")"
-  dar="$(mediadisplayaspectratio "$1")"
-  ft="$(meta_magic_mediatype "$1")"
-  res="$(mediaresolution "$1")"
+  ft="$(filemtype "$1")"
+  durms="$(mediainfo_durationms "$1")"
+  dar="$(mediainfo_displayaspectratio "$1")"
+  res="$(mediainfo_resolution "$1")"
   test -n "$durms" || error "No duration <$1>" 1
   test -n "$res" || error "No resolution <$1>" 1
   test -n "$ft" || error "No file-type <$1>" 1

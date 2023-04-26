@@ -1,11 +1,24 @@
 #!/usr/bin/env python3
 """
-Print table with twillight and suntimes in GMT and local time.
-Also helpers to extract useful information based on user location.
-(Note that date-times in most comments will be GMT)
+Determine the time of day according to an atronomical model.
+A simple script using the Ephem library.
 
-All parameters are from the environment, but the first argument to command
-is parsed as date. The default command is 'table'.
+Usage:
+  ephem-day-times.py [<command>] [<Datetime>]
+  ephem-day-times.py help
+
+All parameters are from the environment, but the first argument to a command
+must be a date else the current system time is used.
+
+The default command is 'table'.
+
+All calculations are done by creating an Ephem observer with geographic location
+and given time, and a Sun or Moon object for that observer to determine its
+coordinates or compare rise/set times for some horizon. For the rise and set
+time of an object, the moment its edge crosses the horizon is used. For the
+start of twillight (dusk and dawn) the Sun's center is used in the calculation.
+
+(Note that date-times in most comments will be GMT)
 
 Commands:
   - daytime - tests next sunset is before sunrise
@@ -16,10 +29,6 @@ Commands:
   - moon - report RA,DEC,AZ,ALT for moon
   - tags - report tags associated with current time of day
 
-Usage:
-  ephem-day-times.py [<command>] [<Datetime>]
-  ephem-day-times.py help
-
 Environment:
   GEO_LOC provide lat-long pair in decimal separated by comma
   HORIZON set horizon angle. Normally day start/end are at 0 degrees, but other
@@ -28,9 +37,14 @@ Environment:
   TWILLIGHT_HORIZON set angle to compute twillight (default is -6 degrees).
     Three common values are -9, -6, and -3 for astronomical, nautical, or civil.
   COORD set coordinate system for reporting degrees, 1 for local Az-Alt or
-    2 for celestial RA-Dec.
-  DEGREE set to 1 to use degree instead of time notation for degrees.
+    2 for celestial RA-Dec or 3 for all [default: 3].
+  DEGREES set to 1 to use degree instead of time notation for degrees.
   SHIFT_TIME Advance or delay given or current time by seconds
+
+TBD:
+    - Direction of object for rise/set at local horizon
+    - Separate local horizon for dusk and dawn could be NTH but might use
+      lists for relevant degrees/segments?
 """
 import os
 import sys
@@ -44,15 +58,22 @@ import numpy as np
 
 
 def sun_table(dt, loc_horizon, twillight_horizon):
-    loc.horizon = twillight_horizon
-    dawn = loc.previous_rising(sun, use_center=True)
-    midnight = loc.next_antitransit(sun)
-    dusk = loc.next_setting(sun, use_center=True)
+    print('# Ephem Sun table for', dt.astimezone().date())
+    print('# Position: %s, %s' % latlong )
+    print('# Elevation: %s' % 0)
+    print('# Local horizon: %s' % loc_horizon)
+    print('# Twillight horizon: %s' % twillight_horizon)
+    print('# ')
 
     loc.horizon = loc_horizon
     sunrise = loc.previous_rising(sun)
     noon = loc.next_transit(sun, start=sunrise)
     sunset = loc.next_setting(sun)
+
+    loc.horizon = twillight_horizon
+    dusk = loc.next_setting(sun, use_center=True)
+    midnight = loc.next_antitransit(sun)
+    dawn = loc.previous_rising(sun, use_center=True)
 
     print('# sun UTC')
 
@@ -63,7 +84,8 @@ def sun_table(dt, loc_horizon, twillight_horizon):
     print(    dusk.datetime(), 'end twillight GMT')
     print(midnight.datetime(), 'midnight GMT')
 
-    print('# sun', time.tzname[0])
+    localtz = time.tzname[0]
+    print('# sun local', localtz)
 
     dawndt = pytz.utc.localize(dawn.datetime())
     midnightdt = pytz.utc.localize(midnight.datetime())
@@ -73,20 +95,19 @@ def sun_table(dt, loc_horizon, twillight_horizon):
     noondt = pytz.utc.localize(noon.datetime())
     sunsetdt = pytz.utc.localize(sunset.datetime())
 
-    print(    dawndt.astimezone(), 'begin twillight local')
-    print( sunrisedt.astimezone(), 'sunrise local')
-    print(    noondt.astimezone(), 'noon local')
-    print(  sunsetdt.astimezone(), 'sunset local')
-    print(    duskdt.astimezone(), 'end twillight local')
-    print(midnightdt.astimezone(), 'midnight local')
+    print(    dawndt.astimezone(), 'begin twillight local %s' % localtz)
+    print( sunrisedt.astimezone(), 'sunrise local %s' % localtz)
+    print(    noondt.astimezone(), 'noon local %s' % localtz)
+    print(  sunsetdt.astimezone(), 'sunset local %s' % localtz)
+    print(    duskdt.astimezone(), 'end twillight local %s' % localtz)
+    print(midnightdt.astimezone(), 'midnight local %s' % localtz)
 
     print('# ')
     print("# Day: %s hours" % (24 * (sunset - sunrise)))
     print("# Daylight: %s hours" % (24 * (dusk - dawn)))
     print("# Morning: %s hours" % (24 * (noon - sunrise)))
-    #print("# Afternoon: %s hours" % (24 * (noon+6 - noon)))
-    #print("# Evening: %s hours" % (24 * (noon - sunrise)))
-    #print("# Afternoon+evening: %s hours" % (24 * (sunset - noon)))
+    print("# Afternoon/evening: %s hours" % (24 * (sunset - noon)))
+    print("# Evening: %s hours" % (24 * (noon - sunrise)))
 
 
 def get_daytime(sun, loc_horizon, twillight_horizon):
@@ -164,7 +185,8 @@ def get_tags(sun, loc_horizon, twillight_horizon):
 
 
 
-cmds=("daytime","nighttime","twillight","night","sun","moon","tags","table")
+cmds=("daytime","nighttime","twillight","night","sun","moon","tags","table",
+        "solar-time")
 
 args = sys.argv[:]
 script = args.pop(0)
@@ -180,7 +202,7 @@ else:
     sys.exit(1)
 
 if 'GEO_LOC' in os.environ:
-    latlong = os.environ['GEO_LOC'].split(',')
+    latlong = tuple(os.environ['GEO_LOC'].split(','))
 else:
     sys.exit("Please provide latlong setting")
 
@@ -211,8 +233,8 @@ if shift_seconds:
 loc.pressure = 0
 loc.lat, loc.lon = latlong
 
-loc_horizon = int(os.environ.get('HORIZON', '0'))
-twillight_horizon = int(os.environ.get('TWILLIGHT_HORIZON', '-6'))
+loc_horizon = os.environ.get('HORIZON', '0')
+twillight_horizon = os.environ.get('TWILLIGHT_HORIZON', '-6')
 
 sun = ephem.Sun()
 
@@ -253,7 +275,7 @@ elif cmd == 'night':
 
 elif cmd in ('sun', 'moon'):
 
-    COORD = int(os.environ.get('COORD', '1'))
+    COORD = int(os.environ.get('COORD', '3'))
 
     if cmd == 'sun':
         sun = ephem.Sun(loc)
@@ -261,6 +283,8 @@ elif cmd in ('sun', 'moon'):
             coords = (sun.az, sun.alt)
         elif COORD == 2:
             coords = (sun.ra, sun.dec)
+        elif COORD == 3:
+            coords = (sun.az, sun.alt, sun.ra, sun.dec)
         else: sys.exit(1)
 
     else:
@@ -269,6 +293,8 @@ elif cmd in ('sun', 'moon'):
             coords = (moon.az, moon.alt)
         elif COORD == 2:
             coords = (moon.ra, moon.dec)
+        elif COORD == 3:
+            coords = (moon.az, moon.alt, moon.ra, moon.dec)
         else: sys.exit(1)
 
     if int(os.environ.get('DEGREES', '0')) == 1:
@@ -284,12 +310,16 @@ elif cmd in ('tags',):
 
 elif cmd in ('table',):
 
-    print('# date')
-    print(dt.astimezone(timezone('utc')), 'today GMT')
-    print(dt.astimezone(), 'today local')
-
     sun_table(dt, loc_horizon, twillight_horizon)
 
     #moon_table(dt, loc_horizon)
 
-    print('#')
+elif cmd in ('solar-time'):
+    sun.compute(dt)
+    ra, dec = loc.radec_of('0', '-90')
+
+    print('# %s Date/time:' % time.tzname[0], dt.astimezone())
+    print('# Sun right ascension:', sun.ra)
+    print('# Local nadir right ascension:', ra)
+    print('# Solar time:')
+    print(ephem.hours((ra - sun.ra) % (2 * ephem.pi)), 'hours')

@@ -134,8 +134,7 @@ test -n "${user_script_loaded:-}" || {
 
 ! script_isrunning "pl" .sh || {
   # Pre-parse arguments
-  script_fun_xtra_defarg=pl_aliasargv
-  script_xtra_defarg=aliasargv
+  user_script_defarg=defarg\ aliasargv
   eval "set -- $(user_script_defarg "$@")"
 }
 
