@@ -15,7 +15,7 @@ then
   case "${1-}" in
 
     ( ts-dt|timestamp-datetime ) shift;
-        date -p @${1:?} ;;
+        date -d @${1:?} ;;
 
     ( time-parse ) shift;
             time_parse_seconds "$1"
