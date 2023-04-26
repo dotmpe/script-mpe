@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-update-environment ()
+update_environment ()
 {
   local cur_val
   cur_val=$(tmux show-opt -g update-environment)
@@ -12,12 +12,12 @@ update-environment ()
   done
 }
 
-show-preserve-environment ()
+show_preserve_environment ()
 {
   tmux show -g update-environment
 }
 
-check-environment ()
+check_environment ()
 {
   tmux show-env | while read -r setting
     do
@@ -38,9 +38,9 @@ check-environment ()
     done
 }
 
-list-update-env ()
+list_update_env ()
 {
-  list_env=true check-environment
+  list_env=true check_environment
 }
 
 test -n "${user_script_loaded:-}" || {

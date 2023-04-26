@@ -116,12 +116,13 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Arg...>
     shift
     script_doenv "$@" || return
     stdmsg '*debug' "Entering user-script $(script_version)"
-    sh_fun "$1" || {
-      local funn="${baseid}_$1"
-      sh_fun "$funn" && shift && set -- "$funn" "$@"
+    local funn=${1//-/_}
+    shift
+    sh_fun "$funn" || {
+      funn="${baseid}_${1//-/_}"
     }
-    sh_fun "$1" || set -- usage -- "$@"
-    "$@" || script_cmdstat=$?
+    sh_fun "$funn" || set -- usage -- "$funn" "$@"
+    "$funn" "$@" || script_cmdstat=$?
     script_unenv || return
   fi
 }
