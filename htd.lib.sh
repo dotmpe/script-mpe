@@ -572,4 +572,10 @@ htd_init_etc()
   #test ! -e $UCONF/htd || echo $UCONF
 }
 
+
+htd_modeline ()
+{
+    read -r fileversion filename filemode <<< "$(grep -iPo "^# id: \K.*" "$@")"
+}
+
 # Id: script-mpe/0.0.4-dev ht.sh

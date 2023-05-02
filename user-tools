@@ -213,7 +213,7 @@ actual_darktime () # ~ [<Datetime>]
 {
   test $# -eq 0 || return ${_E_GAE:-$?}
 
-  # Test for actual nighttime, excluding daytime and twillight
+  # Test for actual nighttime, excluding daytime and twillight.
   TWILLIGHT_HORIZON=${HORIZON:-"-3"} \
   HORIZON=${HOME_HORIZON:-"0"} \
   SHIFT_TIME=${SHIFT:-${DARKTIME_SHIFT:-"0"}} \

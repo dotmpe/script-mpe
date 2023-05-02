@@ -43,6 +43,33 @@ list_update_env ()
   list_env=true check_environment
 }
 
+# Return Id for window
+window_spec ()
+{
+  test -n "${WINDOWID:-}" && {
+      case "$XDG_SESSION_TYPE" in
+          ( x11 )
+                  case "$XDG_SESSION_DESKTOP" in
+                      ( i3 ) echo "i3:$(i3-msg -t get_workspaces|jq '.[]|select(.focused==true).num')" ;;
+                      ( * ) : "$(xprop -id $WINDOWID -notype _NET_WM_DESKTOP)"
+                            echo "${_/* = /}"
+                          ;;
+                  esac
+              ;;
+          ( tty )
+                  test -n "${SSH_TTY:-}" &&
+                  echo "ssh:${SSH_TTY//*\/}" || {
+                      : "$(tty)"
+                      echo "tty:${_//*\/}"
+                  }
+              ;;
+          ( * ) echo "$XDG_SESSION_TYPE:$WINDOWID"
+      esac
+  } || {
+      echo "(?)"
+  }
+}
+
 test -n "${user_script_loaded:-}" || {
   . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
         user_script_shell_env

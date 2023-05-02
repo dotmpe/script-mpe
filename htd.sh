@@ -4635,6 +4635,14 @@ htd__tosort () # ~ [ 'local' | 'global' ]
   done | sumcolumn 2
 }
 
+htd__reader () # ~ <Files...>
+{
+  for fn in "${@:?}"
+  do
+    htd_modeline "$fn" || return
+    echo "File mode: $filemode" >&2
+  done
+}
 
 # -- htd box insert sentinel --
 
