@@ -46,28 +46,28 @@ list_update_env ()
 # Return Id for window
 window_spec ()
 {
-  test -n "${WINDOWID:-}" && {
-      case "$XDG_SESSION_TYPE" in
-          ( x11 )
+  case "${XDG_SESSION_TYPE:-}" in
+      ( x11 )
+              test -n "${WINDOWID:-}" && {
                   case "$XDG_SESSION_DESKTOP" in
                       ( i3 ) echo "i3:$(i3-msg -t get_workspaces|jq '.[]|select(.focused==true).num')" ;;
                       ( * ) : "$(xprop -id $WINDOWID -notype _NET_WM_DESKTOP)"
-                            echo "${_/* = /}"
+                            echo "x11:${_/* = /}"
                           ;;
                   esac
-              ;;
-          ( tty )
-                  test -n "${SSH_TTY:-}" &&
-                  echo "ssh:${SSH_TTY//*\/}" || {
-                      : "$(tty)"
-                      echo "tty:${_//*\/}"
-                  }
-              ;;
-          ( * ) echo "$XDG_SESSION_TYPE:$WINDOWID"
-      esac
-  } || {
-      echo "(?)"
-  }
+              } || {
+                  echo "x11:(?)"
+              }
+          ;;
+      ( tty )
+              test -n "${SSH_TTY:-}" &&
+              echo "ssh:${SSH_TTY//*\/}" || {
+                  : "$(tty)"
+                  echo "tty:${_//*\/}"
+              }
+          ;;
+      ( * ) echo "${XDG_SESSION_TYPE:-noxdg}:"
+  esac
 }
 
 test -n "${user_script_loaded:-}" || {
