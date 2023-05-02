@@ -13,9 +13,9 @@
 # Intent was to look at relative cost/speed per method, ofcourse without
 # re-invocations doing stream processing throughput for all external tools
 # improved dramatically. See next results.
-# But (somewhat counterintuitively to me) plain old Bash still wins for such a
-# simple operation. Note that the easy and often used 'sed' method which is the
-# shortest of the commands does the worst.
+# But (somewhat counterintuitively as it seems to be downplayed often) plain
+# Bash still wins for such a simple operation. Note that the easy and often
+# used 'sed' method which is the shortest of the commands does the worst.
 
 # read+strl  1.6s / 100000
 # rev+cut    1.7s / "
@@ -24,7 +24,9 @@
 # sed        1.8s / "
 
 # awk-sub is only slightly ahead awk-strl, sed is almost 0.1s slower.
-# Readline with Bash string slicing is the winner.
+# Readline with Bash string slicing is the winner. Conclusion: if string
+# matching or regular expression are not required a simple shell read loop
+# is the solution to use. For string matching, see bm-sh-str-match-pref
 
 
 test_awk_sub ()
@@ -32,17 +34,12 @@ test_awk_sub ()
   awk '{sub(/.$/,"",$1); print $1}'
 }
 
-test_awk_strl ()
-{
-  awk '{sub(/.$/,"",$1); print $1}'
-}
-
-test_sed ()
+test_sed_s ()
 {
   sed 's/.$//'
 }
 
-test_read_strl ()
+test_read_strlen ()
 {
   local str len
   while read -r str

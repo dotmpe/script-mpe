@@ -1,11 +1,16 @@
+# Folder Id attributes
 Package-Id: script-2008b-mpe
 App-Id: Script.mpe
 Symbol: BIN
 App-Version: 0.0.4-dev # Script.mpe
+# Filter for synthetic task files
 VFS-Map: TODO.* shadow-tasks
+# Build attributes
 Project cache: .meta/cache
 Build Env: attributes build-rules rule-params stderr- argv
 Build Rules: .components.txt
-# Build Target Methods: env parts rules context
+#Build Target Methods: env parts rules context
+# Further attribute sources (local files)
+Meta-Attribute-Maps: .version-attributes table.names
 
-# Id: Script.mpe/0.0.4-dev .attributes                     vim:ft=asis:nowrap:
+# Id: Script.mpe/0.0.4-dev .attributes                 ex:cc=0:ft=asis:nowrap:

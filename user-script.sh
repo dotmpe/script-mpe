@@ -106,27 +106,34 @@ TODO: fix help usage/maincmd so each gives proper info. Some tings mixed up now
 # Execute when script is sourced, when given base matches SCRIPTNAME.
 # If the handlers prefixes don't match the exec name, use
 # base var to change that.
-script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Arg...>
+script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
 {
   local SCRIPTNAME=${SCRIPTNAME:-}
   script_name || return
   if test "$SCRIPTNAME" = "$1"
   then
-    user_script_shell_env || return
     shift
-    script_doenv "$@" || return
-    stdmsg '*debug' "Entering user-script $(script_version)"
-    local funn=${1//-/_}
-    shift
-    sh_fun "$funn" || {
-      funn="${baseid}_${1//-/_}"
-    }
-    sh_fun "$funn" || set -- usage -- "$funn" "$@"
-    "$funn" "$@" || script_cmdstat=$?
-    script_unenv || return
+    script_run "$@" || return
+  else
+    $LOG info :script-entry "Skipped non-matching command" "$1<>$SCRIPTNAME"
   fi
 }
 
+script_run () # ~ <Action-argv...>
+{
+  user_script_shell_env || return
+  script_doenv "$@" || return
+  stdmsg '*debug' "Entering user-script $(script_version)"
+  local funn=${1//-/_}
+  shift
+  sh_fun "$funn" || {
+    sh_fun "${baseid}_${funn}" && funn="$_"
+  }
+  sh_fun "$funn" || set -- usage -- "$funn" "$@"
+  $LOG info :script-run:$base "Running main handler" "$script_cmd:$funn"
+  "$funn" "$@" || script_cmdstat=$?
+  script_unenv || return
+}
 
 script_baseenv ()
 {
@@ -166,19 +173,19 @@ script_cmdid ()
   script_cmd="$1"
 
   mkvid "$1"; script_cmdid=$vid
-  test -z "$script_cmdals" || {
+  test -z "${script_cmdals:-}" || {
       mkvid "$script_cmdals"; script_cmdalsid=$vid
     }
 }
 
 # Handle env setup (vars & sources) for script-entry
-script_doenv ()
+script_doenv () # ~ <Argv...>
 {
   script_baseenv &&
   script_cmdid "${1:?}" || return
 
   ! sh_fun "${baseid}"_loadenv || {
-    "${baseid}"_loadenv || return
+    "${baseid}"_loadenv "$@"|| return
   }
 
   test -z "${DEBUGSH:-}" || set -x
@@ -198,7 +205,8 @@ script_isrunning () # [SCRIPTNAME] ~ <Scriptname> [<Name-ext>]# argument matches
   test $# -eq 2 && {
     SCRIPT_BASEEXT="${2:?}"
   }
-  script_name && test "$SCRIPTNAME" = "$1" || {
+  script_name &&
+      test "${SCRIPTNAME:?Expected SCRIPTNAME after script_name}" = "$1" || {
       test $# -lt 2 || unset SCRIPT_BASEEXT
       unset SCRIPTNAME; return 1
   }

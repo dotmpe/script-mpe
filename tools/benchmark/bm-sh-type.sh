@@ -3,7 +3,7 @@
 
 # test -t seems very systematic, but we need to check its output value.
 # declare -F seems more on point. And if we don't care about cmd vs functions
-# might as well use command -v. What is the time req for each?
+# vs source files might as well use command -v. What is the time req for each?
 
 # type -t ...                         100ms ( : 10000 = 0.1us )
 # type-t + strcmp (isfun)             >4.5s

@@ -1,5 +1,8 @@
 
-# what is faster, var assignment from subshell or using read: subshell
+# FIXME: use a proper prepared file instead
+# what is faster, var assignment from subshell or using read loop subshell at
+# the end of a pipeline
+
 test_subshell()
 {
   count=$1
@@ -9,6 +12,7 @@ test_subshell()
     count=$(( $count - 1 ))
   done
 }
+
 test_read()
 {
   count=$1

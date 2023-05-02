@@ -1,8 +1,7 @@
 #!/bin/sh
-CMD_ARG=$_
 
 
-context_sh_files ()
+context_sh_files () # ~ <Action>
 {
   local act="${1:-list}"
   test $# -eq 0 || shift
@@ -16,6 +15,7 @@ context_sh_files ()
         # Look for files and return non-zero if none found
         find .meta/stat/index -iname 'ctx-*.list' | grep . ;;
     ( c|check )
+        # TODO: use statusdir or other to go over unique names
         test ! -e .meta/stat/index/context.list ||
             $LOG warn "$lk" "Should not have context.list" ;;
     ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;

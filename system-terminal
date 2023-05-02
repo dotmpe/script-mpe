@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-CMD_ARG=$_
 # bin/sh
 
 ### Helpers to launch user terminal, shells and configure them
@@ -245,16 +244,18 @@ set_font () # ~ # Request new font setting from urxvt
   #printf '\33]50;%s\007' "9x15bold,xft:Kochi Gothic"
 }
 
-# Extension on customized URxvt
+# Extension on customized URxvt. Shade determines (pseudo) transparency for
+# terminal background. It is an integer from 0 (opaque dark) to 100
+# (fully transparent) up to 200 (opaque light).
 set_shade () # ~ <Percentage> # Change shading (patched URxvt only)
 {
-  term_send_osc 706 "$1"
+  term_send_osc 706 "${1:?}"
 }
 
 # Extension on customized URxvt
 set_blur () # ~ <Pixels> # Change blur radius (patched URxvt only)
 {
-  term_send_osc 707 "$1"
+  term_send_osc 707 "${1:?}"
 }
 
 night () # ~ # Switch to dark colorscheme
@@ -271,7 +272,7 @@ colorscheme () # ~ ([dark]|light)
 {
   case "${1:-dark}" in
       ( dark ) set_colors Tango-dark && set_shade 15 ;;
-      ( light ) set_colors Tango-light && set_shade 188 ;;
+      ( light ) set_colors Tango-light && set_shade 192 ;;
   esac
 }
 

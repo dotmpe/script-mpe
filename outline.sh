@@ -1,5 +1,4 @@
 #!/bin/sh
-CMD_ARG=$_
 
 
 outline ()

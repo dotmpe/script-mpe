@@ -49,25 +49,27 @@ test_pastepl ()
 }
 
 
-echo -e "\nRunning awk...";
+base=$(basename -- "$0" .sh)
+
+echo -e "\n$base: Running awk...";
 time run_test_q $runs -- awk -v "suffix=$suffix" '{print $0, suffix}' < $testfile
 
-echo -e "\nRunning sed...";
+echo -e "\n$base: Running sed...";
 time run_test_q $runs -- sed 's/$/'"$suffix"'/g' < $testfile
 
-echo -e "\nRunning bash read/echo...";
+echo -e "\n$base: Running bash read/echo...";
 time run_test_q $runs shell < $testfile
 
-echo -e "\nRunning bash read/printf...";
+echo -e "\n$base: Running bash read/printf...";
 time run_test_q $runs shell2 < $testfile
 
-echo -e "\nRunning xargs/printf...";
+echo -e "\n$base: Running xargs/printf...";
 time run_test_q $runs xargs < $testfile
 
-echo -e "\nRunning join...";
+echo -e "\n$base: Running join...";
 time run_test_q $runs join $testfile
 
-echo -e "\nRunning paste pipeline...";
+echo -e "\n$base: Running paste pipeline...";
 time run_test_q $runs pastepl $testfile
 
 

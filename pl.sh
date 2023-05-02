@@ -52,39 +52,49 @@ write () # ~ [<Tags <...>>]
 }
 
 # Helper to (re)write output format if source tabfile (for basename) has changed.
+# The basename.tab is looked up in PWD and PLTABSDIR. The given extension is
+# used to determine the writer to use. Default is .vlc.m3u.
 update () # ~ <Basename>.<Ext> [ <Alt-tabfile> [ <Alt-output> ]]
 {
-  bn=${1:?}
+  # XXX: bd=$(dirname ${1:?})
+  bn=$(basename ${1:?})
   shift
 
-  #test ${bn:0:2} != ./ || bn=${bn:2}
+  test ${bn:0:2} != ./ || bn=${bn:2}
   ext=${bn#*.}
   bn=${bn%%.*}
+  test "$bn" != "$ext" || ext=
   ext=${ext:-vlc.m3u}
   reader=$(printf '%s\n' ${ext//./ } | tac)
   reader=${reader//$'\n'/_}
 
+  local tabdir pldir=${PLDIR:?}
+  test -e "$bn.tab" && tabdir=$PWD || tabdir=${PLTABSDIR:?}
+
   test $# -eq 0 && {
-    test -e ${bn:?}.${ext:?} \
-      -a ${bn:?}.${ext:?} -nt ${bn:?}.tab && {
+    test -e $pldir/${bn:?}.${ext:?} \
+      -a $pldir/${bn:?}.${ext:?} -nt $tabdir/${bn:?}.tab && {
 
       echo "File '${bn}.${ext}' is up to date with $bn.tab" >&2
-
     } || {
       echo "Writing '${bn}.${ext}' from $bn.tab (writepl_${reader//$'\n'/_})" >&2
       {
-        filtertab_if < ${bn:?}.tab
-      } | writepl_${reader} > ${bn:?}.${ext:?}
+        {
+          filtertab_if < $tabdir/${bn:?}.tab
+        } | writepl_${reader} > $pldir/${bn:?}.${ext:?}
+      } ||
+          $LOG error :pl:update "Error (re)generating" "E$?" $? || return
     }
   } || {
-    # echo "Output as '${bn}.${ext}' from $bn.tab (writepl_${reader//$'\n'/_})" >&2
+    # XXX:
     {
       test "${1:-}" = "-" && {
         cat || $LOG error "" "" "E$?" $?
         exit $?
       } || {
         test -z "${1:-}" && {
-          filtertab_if < ${bn:?}.tab || $LOG error "" "Reading tab" "E$?:$bn.tab" $?
+          filtertab_if < $tabdir/${bn:?}.tab ||
+            $LOG error "" "Reading tab" "E$?:$bn.tab" $?
           exit $?
         } || {
           filtertab_if < "${1}" || $LOG error "" "Reading tab" "E$?:$1" $?
@@ -116,6 +126,8 @@ pl_aliasargv ()
 
 pl_loadenv ()
 {
+  : "${PLTABSDIR:=${META_DIR:-.meta}/tabs}"
+  : "${PLDIR:=${META_DIR:-.meta}/cache}"
   #shellcheck source=pl.lib.sh
   . ${US_BIN:?}/pl.lib.sh
 }

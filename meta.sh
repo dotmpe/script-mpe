@@ -11,6 +11,11 @@ meta_sh_attributes_sh ()
   meta_attributes_sh "$@"
 }
 
+meta_sh_check ()
+{
+  false
+}
+
 meta_sh_context () # ~ [ <Paths...> ] # List attributes at paths and parents
 {
   test $# -gt 0 ||

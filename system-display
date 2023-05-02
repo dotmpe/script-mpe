@@ -167,6 +167,7 @@ system_display_shortdescr='System monitors, window server, and window managers.'
 system_display_aliasargv ()
 {
   case "$1" in
+      ( monitor ) shift; set -- mouse "$@" ;;
       ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
@@ -187,7 +188,7 @@ FIXME: have been meaning to list actual monitor names iso. link names but
 found only incomplete data with read-edid.
 But e.g.
 xfconf-query -lvc displays
-and other config tools do provide actual monitor names (have EDID data)
+and other config tools do provide actual monitor names
 ' "$base"
 }
 

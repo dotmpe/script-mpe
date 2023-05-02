@@ -29,7 +29,12 @@ meta_lib_load ()
 
 meta_lib_init ()
 {
-  test -d "$META_DIR"
+  test -d "$META_DIR" || mkdir -p "$META_DIR"
+  # XXX: meta is both provider and backup, others are sources?
+  # dotattributes-map is easier to use than to set every source per dir into
+  # env manually
+  # XXX: fsattr is alt. for xattr?
+  : "${meta_providers:=xattr git-annex dotattr}"
 }
 
 
@@ -54,6 +59,31 @@ meta_attribute () # ~ <Key> [ <Path...> ] # Show attribute values for folder or 
   esac
 }
 
+meta_lib_init_providers () # (us) ~ [ <Providers...> ]
+{
+  test $# -gt 0 || set -- ${meta_providers:?}
+  set -- $(
+      for meta_h in "${@:?}"
+      do
+        sh_fun meta_dump__${meta_h//[^A-Za-z0-9_]/_} || echo "meta-$meta_h"
+      done)
+  test $# -eq 0 && return
+  # Load and init shell libs
+  lib_load "$@" && lib_init "$@"
+}
+
+# Accumulate data from providers and format.
+meta_dump () # ~ <Paths...>
+{
+  local meta_h
+  for meta_h in ${meta_providers:-}
+  do
+      meta_value__${meta_h} "$1"
+  done
+}
+
+# Fetch values or use defaults if provided.
+#
 # - Default path argument is PWD.
 # - $out_fmt governs the output format:
 #

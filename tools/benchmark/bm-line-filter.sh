@@ -10,6 +10,9 @@ runs=100
 
 ## Select part of matching lines
 
+# FIXME: add test-case using plain shell, case/esac matching maybe or at least
+# variable expression.
+
 # I expected grep to be faster than sed, but this is often not the case but
 # numbers are hard to reproduce and probably depend on other factors to a large
 # degree.

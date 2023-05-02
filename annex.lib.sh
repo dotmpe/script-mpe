@@ -62,6 +62,58 @@ annex_metadata()
     grep -v '.*lastchanged='
 }
 
+git_annex_metadata ()
+{
+  git annex metadata "$@" | {
+    local count=0 file fields
+    while IFS=$'\t\n' read -r line
+    do
+      test -n "$line" || continue
+      test "${line:0:1}" != " " && {
+        test "${line:0:2}" != "ok" && {
+          file=${line:9}
+          count=$(( count + 1 ))
+          fields=
+        } || {
+          test -n "$fields" || continue
+          echo "$file"
+          echo "  ${fields//$'\n'/$'\n  '}"
+        }
+      } || {
+        fnmatch "*lastchanged=*" "$line" && continue
+        fields="${fields:-}${fields:+$'\n'}${line:2}"
+      }
+    done
+    $LOG notice : "Checked $count files"
+  }
+}
+
+git_annex_metadata2 ()
+{
+  git annex metadata "$@" | {
+    local count=0 file fields field ifs=$'\t\n'
+    while true
+    do
+      read -r _ file || break
+      test -n "$file"
+      IFS=$ifs read -r field
+      while test "${field:0:1}" = " "
+      do
+        fnmatch "*lastchanged=*" "$field" ||
+            fields="${fields:-}${fields:+$'\n'}${field:2}"
+        IFS=$ifs read -r field
+      done
+      test -n "$fields" -o -z "$field" || return 21 # fields or empty line expected
+      test -n "$field" && stat=$field || read -r stat
+      test "$stat" = "ok" || return 22
+      fields=file=$file$'\n'$fields
+      kv_quote "=" <<< "$fields"
+      echo
+      unset fields
+    done
+  }
+}
+
 # List JSON for each file, but nostly no actual metadata will be present
 annex_metadata_json()
 {

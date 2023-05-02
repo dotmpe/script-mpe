@@ -6,7 +6,7 @@
 : "${TMENU_PREFIX:=tmenu_}"
 : "${TMENU_SEP:=:}"
 : "${TMENU_FKVSEP:=__}"
-: "${TMENU_DATAFILE:=user.menu.yml}"
+: "${TMENU_DATAFILE:=user/menu.yml}"
 
 tmenu_exists ()
 {

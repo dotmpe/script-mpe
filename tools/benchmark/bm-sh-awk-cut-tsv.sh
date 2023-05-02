@@ -4,8 +4,7 @@
 # XXX: relatively much of the time is probably spend setting up and doing IO
 # should load and keep data as string probably?
 
-# As expected AWK is fairly slow. Maybe want to add tests with choose if I set
-# up Rustlang sometime.
+# As expected AWK is fairly slow.
 
 test_awk ()
 {
@@ -23,5 +22,8 @@ test_data ()
 }
 
 source tools/benchmark/_lib.sh
+
+time run_test_io test_ 1000 awk
+#time run_test_io test_ 1000 cut
 
 #
