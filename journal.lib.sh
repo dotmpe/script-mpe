@@ -3,7 +3,7 @@
 # Per day/week/month/year paths/files
 
 
-journal_lib_load()
+journal_lib__load()
 {
   journal_weekdays="monday tuesday wednesday thursday friday saturday sunday"
   journal_weekdays_abbrev="mon tue wed thu fri sat sun"

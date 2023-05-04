@@ -10,7 +10,7 @@
 # - playerInstance and playerName
 
 
-ctx_playerctl_lib_load ()
+ctx_playerctl_lib__load ()
 {
   : "${MPRIS_MEDIALOG_KEYS:="playerInstance status position mpris:length xesam:url mpris:trackid artist album track title"}"
 }

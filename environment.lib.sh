@@ -1,6 +1,6 @@
 #!/bin/sh
 
-environment_lib_load()
+environment_lib__load()
 {
   true
 }

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-htd_disk_lib_load ()
+htd_disk_lib__load ()
 {
   true
 }
@@ -11,7 +11,7 @@ htd_man_1__disk='Enumerate disks '
 htd__disk()
 {
   lib_require disk || return
-  #disk_lib_init || return
+  #disk_lib__init || return
 
   test -z "$(lib_path $os)" || lib_load $os || return
   test "$uname" = linux && {

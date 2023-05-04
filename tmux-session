@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # save/restore 'raw1' (and callees) are copies from mislav/dotfiles (2015).
 # It is a simple save and restore for tmux sessions and windows. Just the basics.
@@ -216,13 +216,12 @@ Env:
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
+
+! script_isrunning "tmux-session" || {
+  user_script_load || exit $?
+  eval "set -- $(user_script_defarg "$@")"
+  script_run "$@"
 }
-
-! script_isrunning "tmux-session" ||
-    eval "set -- $(user_script_defarg "$@")"
-
-script_entry "tmux-session" "$@"
 #

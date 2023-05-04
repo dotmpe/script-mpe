@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ### User tools: commands for generic desktop ops, config and misc. scripts
 
@@ -294,15 +294,15 @@ user_tools_loadenv ()
 
       ( catalog )
           user_script_libload $UCONF/script/catalog-uc.lib.sh &&
-              catalog_uc_lib_load ;;
+              catalog_uc_lib__load ;;
       ( media )
           user_script_libload $UCONF/script/media-uc.lib.sh \
                 $US_BIN/contexts/ctx-playerctl.lib.sh &&
-                media_uc_lib_load && ctx_playerctl_lib_load ;;
+                media_uc_lib__load && ctx_playerctl_lib__load ;;
 
       ( nerdfonts )
           . "$US_BIN"/nerdfonts.lib.sh &&
-              nerdfonts_lib_load && nerdfonts_lib_init ;;
+              nerdfonts_lib__load && nerdfonts_lib__init ;;
 
       ( all ) set -- "" nerdfonts media catalog ;;
       ( user_script_handlers ) set -- "" all ;;
@@ -318,17 +318,17 @@ user_tools_loadenv ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-}
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 ! script_isrunning "user-tools" || {
+  user_script_load || exit $?
+
   script_defcmd=location
   user_script_defarg=defarg\ aliasargv
 
   # Pre-parse arguments
   eval "set -- $(user_script_defarg "$@")"
-}
 
-script_entry "user-tools" "$@"
+  script_run "$@"
+}

@@ -3,7 +3,7 @@
 ### Helpers to sort through Transmission downloads
 
 
-transmission_lib_load ()
+transmission_lib__load ()
 {
   : "${SHARE_DIR:=/srv/share-local}"
   : "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ctx_doc_lib_load()
+ctx_doc_lib__load()
 {
   lib_require ctx-std ctx-thing ctx-item
 }

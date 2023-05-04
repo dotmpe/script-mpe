@@ -6,7 +6,7 @@ sd_archive () {
   esac
 }
 
-statusdir_archive_lib_load ()
+statusdir_archive_lib__load ()
 {
   Statusdir__backend_types["archive"]=Archive
 }

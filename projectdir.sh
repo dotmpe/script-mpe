@@ -1472,7 +1472,7 @@ pd_subcmd_load()
   # Keep symlinks /srv/*-local to map Pdoc name to local path.
 
   # FIXME: ignore files for projectdir commands
-  ignores_lib_load $lst_base || error "pd-load: failed loading ignores.lib" 1
+  ignores_lib__load $lst_base || error "pd-load: failed loading ignores.lib" 1
   test -n "${IGNORE_GLOBFILE-}" -a -e "${IGNORE_GLOBFILE-}" && {
     test -n "$PD_IGNORE" -a -e "$PD_IGNORE" ||
         error "expected $base ignore dotfile (PD_IGNORE)" 1

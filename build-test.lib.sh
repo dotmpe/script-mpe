@@ -4,7 +4,7 @@
 
 
 # Initialize Project Test Script shell modules
-build_test_lib_load()
+build_test_lib__load()
 {
   lib_load build-htd build-checks
 }

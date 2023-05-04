@@ -3,7 +3,7 @@
 ## disk device query routines
 
 
-disk_lib_load ()
+disk_lib__load ()
 {
   : "${uname:=$(uname -s)}"
   : "${username:=$(whoami)}"
@@ -74,7 +74,7 @@ volume_parttype PARTTYPE'
   disk_volume_defaults='{disk_prefix}-{part_index}-{part_size}'
 }
 
-disk_lib_init ()
+disk_lib__init ()
 {
   test "${disk_lib_init-}" = "0" && return
   local log=; req_init_log

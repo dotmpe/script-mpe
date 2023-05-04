@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-service_lib_load()
+service_lib__load ()
 {
   test -n "$UCONF" || UCONF=$HOME/.conf/
   test -n "$HTD_SERVTAB" || export HTD_SERVTAB=$UCONF/htd-services.tab

@@ -4,7 +4,7 @@
 
 
 # Initialize Project Build Scripts shell modules
-build_htd_lib_load ()
+build_htd_lib__load ()
 {
   #lib_require date match $package_build_tool || return
 
@@ -16,7 +16,7 @@ build_htd_lib_load ()
   test -n "${docbase-}" || docbase="doc/src/sh"
 }
 
-build_htd_lib_init ()
+build_htd_lib__init ()
 {
   lib_require package vc-htd sys-htd logger-std log || return
 }
@@ -63,7 +63,7 @@ build_init()
   test -n "${package_specs_required-}" ||
       package_specs_required=str\ sys\ os\ std\ argv\ shell\ match\ src\ main\ sh\ bash\ redo\ build\ box\ functions\ oshc\ vc\ ck\ schema
 
-  package_lib_init || return
+  package_lib__init || return
   build_io_init || return
   build_init=ok
 }
@@ -248,7 +248,7 @@ static()
 
   # XXX: testing...
   redo-ifchange $src_stat/functions/default-lib.func-list
-  redo-ifchange $src_stat/functions/default-lib/default_lib_load.func-deps
+  redo-ifchange $src_stat/functions/default-lib/default_lib__load.func-deps
   redo-ifchange $src_stat/functions/default-lib/default_init.func-deps
   redo-ifchange $src_stat/functions/default-lib/default_test.func-deps
   # XXX: cannot expand names not there, need static group targets

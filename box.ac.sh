@@ -106,11 +106,11 @@ __uc_execnames_check ()
 {
   #sh_fun ${lib_load:-uc_lib_load} || {
   #  PATH=$PATH:$PWD:$U_C/script
-  #  uc_func () { sh_fun "$@"; }
+  #  uc_fun () { sh_fun "$@"; }
   #  source "uc-lib.lib.sh" && uc_lib_init || return
   #}
   #$lib_load list htd ignores user-script &&
-  #user_script_lib_init &&
+  #user_script_lib__init &&
   user_script_check
 }
 
@@ -154,14 +154,21 @@ __us_execnames_check ()
 }
 
 
-test -n "${user_script_loaded:-}" ||
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 script_isrunning "box.ac" .sh && {
+  user_script_load || exit $?
   base=box.ac
   script_baseext=.sh
   script_cmdals=
   script_defcmd=
+
+    # XXX This operates without defarg so command aliases and defcmd do not work
+    # so probably should overide help
+    #! script_isrunning "box.ac" || eval "set -- $(user_script_defarg "$@")"
+
+  script_run "$@" || exit $?
 
 } || {
 
@@ -177,11 +184,5 @@ script_isrunning "box.ac" .sh && {
         "Failed loading (some) User-script autocompletions (ignored)" E$?
   }
 }
-
-# XXX This operates without defarg so command aliases and defcmd do not work
-# so probably should overide help
-#! script_isrunning "box.ac" || eval "set -- $(user_script_defarg "$@")"
-
-script_entry "box.ac" "$@"
 
 # Id: script-mpe/0.0.4-dev box-completion.sh                       ex:ft=bash:

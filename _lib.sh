@@ -3,7 +3,7 @@
 sh_mode ()
 {
   test $# -eq 0 && {
-    # XXX: sh-mode summary
+    # XXX: sh-mode summary: flags and list traps
     echo "$0: sh-mode: $-" >&2
     trap >&2
   } || {

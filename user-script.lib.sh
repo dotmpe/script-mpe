@@ -2,7 +2,7 @@
 
 ## Lib to bootstrap User-Script executables
 
-user_script_lib_load()
+user_script_lib__load ()
 {
   # Special userspec to any source/format listing user shell commands.
   # Globs and non-existing paths allowed.
@@ -10,7 +10,7 @@ user_script_lib_load()
       user_cmd_lists=~/.alias\ ~/.bash_alias\ ~/.bash_history\ ~/.conf/etc/git/base.config
 }
 
-user_script_lib_init ()
+user_script_lib__init ()
 {
   $lib_require ignores || return
 

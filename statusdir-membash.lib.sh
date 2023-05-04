@@ -35,7 +35,7 @@ sd_membash ()
   esac
 }
 
-statusdir_memcache_lib_load ()
+statusdir_memcache_lib__load ()
 {
   Statusdir__backend_types["memcache"]=MemBash
 }

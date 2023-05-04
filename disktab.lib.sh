@@ -9,13 +9,13 @@
 # diskdoc.
 
 
-disktab_lib_load()
+disktab_lib__load()
 {
   lib_assert statusdir || return
   test -n "${DTAB:-}" || DTAB="$(statusdir_run index disk.list false)"
 }
 
-disktab_lib_init()
+disktab_lib__init()
 {
   test "${disktab_lib_init-}" = "0" && return
   test -n "$DTAB" || error "Missing Disk-Table 'disk.list'" 1

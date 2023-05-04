@@ -2,13 +2,13 @@
 
 ### XXX: old helper to mount from volumestat.tab
 
-volumestat_lib_load()
+volumestat_lib__load ()
 {
   lib_assert statusdir || return
   test -n "${VOLSTAT_TAB-}" || VOLSTAT_TAB=${STATUSDIR_ROOT}index/volumestat.tab
 }
 
-volumestat_lib_init()
+volumestat_lib__init ()
 {
   test "${volumestat_lib_init-}" = "0" && return
 

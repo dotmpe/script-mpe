@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ### Helper to deal with X server displays
 
@@ -195,13 +195,11 @@ and other config tools do provide actual monitor names
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  set -e
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-}
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 ! script_isrunning "system-display" || {
+  user_script_load || exit $?
   # Pre-parse arguments
   script_defcmd=list
   user_script_defarg=defarg\ aliasargv

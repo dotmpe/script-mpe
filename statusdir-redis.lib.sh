@@ -43,7 +43,7 @@ sd_redis()
   esac
 }
 
-statusdir_redis_lib_load()
+statusdir_redis_lib__load ()
 {
   redis ping || error "no redis server" 1
   Statusdir__backend_types["redis"]=Redis.CLI

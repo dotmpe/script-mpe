@@ -27,7 +27,7 @@ test -e .gh-network.json || {
 }
 
 . ~/.conf/script/os-uc.lib.sh
-os_uc_lib_load
+os_uc_lib__load
 . ~/.conf/script/date-uc.lib.sh
 GIT_AGE=$_1DAY
 GIT_AGE=$_3HOUR

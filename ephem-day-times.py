@@ -314,9 +314,9 @@ elif cmd in ('table',):
 
     #moon_table(dt, loc_horizon)
 
-elif cmd in ('solar-time'):
+elif cmd in ('solar-time',):
     sun.compute(dt)
-    ra, dec = loc.radec_of('0', '-90')
+    ra, _ = loc.radec_of('0', '-90')
 
     print('# %s Date/time:' % time.tzname[0], dt.astimezone())
     print('# Sun right ascension:', sun.ra)

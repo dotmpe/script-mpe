@@ -1,6 +1,6 @@
 #!/bin/sh
 
-htd_function_lib_load()
+htd_function_lib__load()
 {
   lib_require src-htd
 }

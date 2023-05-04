@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 
 context_sh_files () # ~ <Action>
@@ -30,6 +30,7 @@ context_sh_status () # ~
   case "$act" in
     ( s|short )
             context_sh_files check
+            $LOG info :context.sh:status "Files check" E$? E? || return
             wc -l $(context_sh_files a)
         ;;
     ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
@@ -52,32 +53,31 @@ context_sh_aliasargv ()
   esac
 }
 
-#context_sh_loadenv ()
-#{
-#  shopt -s nullglob
-#}
-#
-#context_sh_unload ()
-#{
-#  shopt -u nullglob
-#}
+context_sh_loadenv ()
+{
+  shopt -s nullglob &&
+  lib_load os-htd
+}
+
+context_sh_unload ()
+{
+  shopt -u nullglob
+}
 
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  set -e
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-}
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 ! script_isrunning "context.sh" || {
+  user_script_load || exit $?
   # Default value used if argv is empty
   script_defcmd=short
   user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"
-}
 
-script_entry "context.sh" "$@"
+  script_run "$@"
+}
 #

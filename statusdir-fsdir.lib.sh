@@ -557,12 +557,12 @@ sd_fsdir_cache_update ()
 { true
 }
 
-statusdir_fsdir_lib_load ()
+statusdir_fsdir_lib__load ()
 {
   lib_assert argv || return
 }
 
-statusdir_fsdir_lib_init ()
+statusdir_fsdir_lib__init ()
 {
   #test ${ctx_statusdir_lib_init:-1} -eq 0 ||
   #test ${ctx_class_lib_init:-1} -eq 0 ||

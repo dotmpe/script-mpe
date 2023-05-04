@@ -2,14 +2,14 @@
 
 # Deal with (rich-text/plain format) document files.
 
-doc_lib_load()
+doc_lib__load()
 {
   test -n "${DOC_EXT-}" || DOC_EXT=.rst
   test -n "${DOC_EXTS-}" || DOC_EXTS=".rst .md .txt .feature .html .htm"
   test -n "${DOC_MAIN-}" || DOC_MAIN="ReadMe main ChangeLog index doc/main docs/main"
 }
 
-doc_lib_init()
+doc_lib__init()
 {
   test "${doc_lib_init-}" = "0" && return
   lib_assert match || return
@@ -40,7 +40,7 @@ doc_path_args()
 # FIXME pass arguments as -iname query
 doc_find_all()
 {
-  test -n "$package_docs_find" || doc_lib_init
+  test -n "$package_docs_find" || doc_lib__init
   note "'$package_docs_find' '$*'"
   $package_docs_find "$@"
 }
@@ -48,7 +48,7 @@ doc_find_all()
 # FIXME pass arguments as -iname query
 doc_find()
 {
-  test -n "$package_doc_find" || doc_lib_init
+  test -n "$package_doc_find" || doc_lib__init
   # TODO: cleanup doc-find code
   #doc_path_args
   #test -n "$1" || return $?

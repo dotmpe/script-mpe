@@ -2,9 +2,9 @@
 
 # Statusfile for documents: record document status and other bits
 
-docstat_lib_load()
+docstat_lib__load()
 {
-  lib_assert statusdir || return
+  lib_loaded statusdir || return
   # index id names and pathnames, ie. see htd-components
 
   test -n "${DOCSTAT_TAB-}" || DOCSTAT_TAB=${STATUSDIR_ROOT}index/docstat.list
@@ -12,7 +12,7 @@ docstat_lib_load()
   test -n "${DOCSTAT_PREF-}" || DOCSTAT_PREF=$DOCSTAT/
 }
 
-docstat_lib_init()
+docstat_lib__init()
 {
   test "${docstat_lib_init-}" = "0" && return
   test -e "$UCACHE/htd-docstat" || {

@@ -2,7 +2,7 @@
 
 
 # Set env for str.lib.sh
-str_htd_lib_load()
+str_htd_lib__load ()
 {
   test -n "${uname-}" || export uname="$(uname -s)"
   case "$uname" in

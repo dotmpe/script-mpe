@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-web_lib_load()
+web_lib__load ()
 {
   # Match Ref-in-Angle-brachets or URL-Ref-Scheme-Path
   url_re='\(<[_a-zA-Z][_a-zA-Z0-9-]\+:[^> ]\+>\|\(\ \|^\)[_a-zA-Z][_a-zA-Z0-9-]\+:\/\/[^ ]\+\)'

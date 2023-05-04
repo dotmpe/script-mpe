@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ### User desktop: helper commands for appearance and window manager
 
@@ -233,23 +233,16 @@ user_desktop_defaults ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
-  #shellcheck source=user-script.sh
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-
-  #shellcheck source=sys-htd.lib.sh
-  . $US_BIN/sys-htd.lib.sh
-
-  #shellcheck source=desktop.lib.sh
-  . $US_BIN/desktop.lib.sh
-
-  #shellcheck source=xorg.lib.sh
-  . $US_BIN/xorg.lib.sh
+user_desktop_loadenv ()
+{
+  lib_load sys-htd desktop xorg
 }
 
 ! script_isrunning "user-desktop" || {
+  user_script_load || exit $?
 
   user_script_defarg=defarg\ aliasargv
 

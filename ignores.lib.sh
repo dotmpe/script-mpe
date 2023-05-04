@@ -3,7 +3,7 @@
 # File and path ignore rules
 
 
-ignores_lib_load()
+ignores_lib__load()
 {
   # XXX: default_env Script-Etc "$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1 )" ||
   #  debug "Using Script-Etc '$SCRIPT_ETC'"
@@ -23,7 +23,7 @@ ignores_lib_load()
   Ignore_Groups="global local scm"
 }
 
-ignores_lib_init()
+ignores_lib__init()
 {
   test "${ignores_lib_init-}" = "0" && return
 

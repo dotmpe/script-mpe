@@ -2,7 +2,7 @@
 set -e
 
 
-vfs_lib_load()
+vfs_lib__load ()
 {
   export rund=/var/run/htdocs/vfs/
 

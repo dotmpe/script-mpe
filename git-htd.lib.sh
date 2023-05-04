@@ -1,10 +1,10 @@
 #!/bin/sh
 
-git_htd_lib_load()
+git_htd_lib__load()
 {
   test -n "$GIT_SCM_SRVS" || GIT_SCM_SRVS=/srv/scm-git-*/
   test -n "$LOCAL_SRC" || LOCAL_SRC=$SRC_DIR/local
-  lib_load git
+  lib_load git || return
   test -n "$PROJECTS_SCM" || {
     PROJECTS_SCM="$(for path in /srv/scm-git-local $GIT_SCM_SRVS
       do

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-src_htd_lib_load ()
+src_htd_lib__load ()
 {
   true "${CACHE_DIR:=${STATUSDIR_ROOT:?}cache}"
   true "${sentinel_comment:="#"}"

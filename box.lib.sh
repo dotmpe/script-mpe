@@ -3,13 +3,13 @@
 # box - Shell framwork wip
 
 
-box_lib_load()
+box_lib__load()
 {
   test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
   test -n "${box_name-}" || box_name=$hostname
 }
 
-box_lib_init()
+box_lib__init()
 {
   test "${box_lib_init-}" = "0" && return
 

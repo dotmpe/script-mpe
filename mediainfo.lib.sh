@@ -1,4 +1,4 @@
-mediainfo_lib_load ()
+mediainfo_lib__load ()
 {
     : "${mnfo_tpldir:=${RAM_TMPDIR:-${RAMDIR:-/tmp}}}"
 }

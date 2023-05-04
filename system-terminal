@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# bin/sh
 
 ### Helpers to launch user terminal, shells and configure them
 
@@ -370,20 +369,22 @@ Env:
 ' "$base" "$base" "$base" "$base"
 }
 
+system_terminal_loadenv ()
+{
+  # Stick themes among all others.
+  true "${THEME_DIR:="$HOME/.local/share/themes"}"
+
+  lib_load user-script term
+}
+
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-
-  . ~/bin/user-script.lib.sh
-  . ~/bin/term.lib.sh
-  # Stick themes among all others.
-  true "${THEME_DIR:="$HOME/.local/share/themes"}"
-}
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 ! script_isrunning "system-terminal" || {
+  user_script_load || exit $?
   script_defcmd=sensible
   eval "set -- $(user_script_defarg "$@")"
 }

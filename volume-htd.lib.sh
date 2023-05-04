@@ -3,12 +3,12 @@
 ### Manage numbered disks
 
 
-volume_htd_lib_load ()
+volume_htd_lib__load ()
 {
   true
 }
 
-volume_htd_lib_init ()
+volume_htd_lib__init ()
 {
   true
 }

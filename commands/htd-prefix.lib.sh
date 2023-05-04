@@ -1,7 +1,7 @@
 ## Prefixes: named paths, or aliases for base paths
 
 
-htd_prefix_lib_load()
+htd_prefix_lib__load()
 {
   # 2016-09-18
   ns_tab=$UCONF/namespace/$hostname.tab

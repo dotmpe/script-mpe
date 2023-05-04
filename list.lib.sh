@@ -8,7 +8,7 @@ lst__inputs="arguments options paths files"
 lst__outputs="passed skipped errored failed"
 
 
-list_lib_load ()
+list_lib__load ()
 {
   : "${uname:=$(uname -s)}"
   test -n "${hostname-}" || hostname="$(hostname -s | tr '[:upper:]' '[:lower:]')"
@@ -17,7 +17,7 @@ list_lib_load ()
   test -n "${EDITOR-}" || EDITOR=nano
 }
 
-list_lib_init ()
+list_lib__init ()
 {
   test -n "${SCRIPT_ETC-}" || {
       SCRIPT_ETC="$(lst_init_etc | head -n 1)" || ignore_sigpipe
@@ -26,8 +26,8 @@ list_lib_init ()
 
 lst_load()
 {
-  sys_lib_load
-  str_lib_load
+  sys_lib__load &&
+  str_lib__load || return
 
   # NOTE: single session per proc. nothing sticky.
   test -n "$lst_session_id" || lst_session_id=$(get_uuid)
@@ -39,7 +39,7 @@ lst_load()
     }
 
   # build ignore pattern file
-  ignores_lib_load $lst_base
+  ignores_lib__load $lst_base || return
 
   test ! -e "$IGNORE_GLOBFILE" || {
     IGNORE_GLOBFILE=$(eval echo \"\$$(str_upper "$base")_IGNORE\")

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ctx_urls_lib_load()
+ctx_urls_lib__load()
 {
   lib_require match-htd todotxt todotxt-uc || return
   to_trees_base=$HOME/Downloads
@@ -22,7 +22,7 @@ ctx_urls_lib_load()
   #run $bin leveldb stream "$to_leveldb"
 }
 
-ctx_urls_lib_init()
+ctx_urls_lib__init()
 {
   test ${ctx_urls_lib_init-1} -eq 0 && return
   urlstab=$(statusdir_lookup index urlstat.list)

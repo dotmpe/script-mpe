@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-functions_htd_lib_load()
+functions_htd_lib__load()
 {
   true "${lib_functions_grep:="[[:alnum:]_-]*"}"
 }
-#functions_htd_lib_init() {
+#functions_htd_lib__init() {
 #  test "${functions_htd_lib_init-}" = "0" && return
 #}
 

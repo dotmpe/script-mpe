@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-mkvar_lib_load()
+mkvar_lib__load()
 {
   true
 }
@@ -11,7 +11,7 @@ mkvar_m='^\ *([A-Za-z_][A-Za-z_0-9]+)\ +([=:\?\-\+@%\*!]+)\ +(.*)\ *$'
 # Translate mkvar to real Makefile where decorator assignments are used
 mkvar_preproc()
 {
-  local lnr=0 
+  local lnr=0
   while read line
   do
     lnr=$(( $lnr + 1 ))
@@ -88,7 +88,7 @@ mkvar_preproc__()
   esac
 }
 
-    
+
 mkvar_sh()
 {
   local lnr=0 directive= args_rx_ref= args_arr=

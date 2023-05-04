@@ -2,14 +2,14 @@
 
 ## Named basedirs
 
-prefix_lib_load()
+prefix_lib__load()
 {
   test -n "${pathnames-}" || pathnames=user/pathnames.tab
 }
 
-prefix_lib_init()
+prefix_lib__init()
 {
-  lib_assert statusdir || return
+  lib_loaded statusdir || return
   test -n "${UCONF-}" || UCONF=$HOME/.conf
   test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}index/basedirs.tab
 }

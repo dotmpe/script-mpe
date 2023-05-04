@@ -1,12 +1,12 @@
 #!/bin/sh
 
 
-env_lib_load ()
+env_lib__load ()
 {
   test -n "${META_DIR-}" || META_DIR=.meta
 }
 
-env_lib_init ()
+env_lib__init ()
 {
   test "${env_lib_init-}" = "0" && return # One time init
   test -n "${ENV_CACHE-}" || ENV_CACHE=$META_DIR/cache

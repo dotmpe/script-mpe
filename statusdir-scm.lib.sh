@@ -6,7 +6,7 @@ sd_scm () {
   esac
 }
 
-statusdir_scm_lib_load ()
+statusdir_scm_lib__load ()
 {
   Statusdir__backend_types["scm"]=SCM
 }

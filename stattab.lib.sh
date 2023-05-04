@@ -3,13 +3,13 @@
 # Status-Table-Id: stattab
 # -Var: sttab/STTAB
 
-stattab_lib_load ()
+stattab_lib__load ()
 {
   lib_assert statusdir || return
   test -n "${STTAB-}" || STTAB=$(out_fmt= statusdir_lookup stattab.list index)
 }
 
-stattab_lib_init ()
+stattab_lib__init ()
 {
   return # XXX:
 

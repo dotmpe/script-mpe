@@ -3,7 +3,7 @@
 ### stdio.lib: additional io for shell scripts
 
 
-stdio_lib_init()
+stdio_lib__init ()
 {
   test "${stdio_lib_init-}" = "0" && return
   lib_assert log || return

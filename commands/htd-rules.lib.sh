@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-htd_rules_lib_load()
+htd_rules_lib__load()
 {
   #2017-05-01
   test -n "${htd_rules-}" || htd_rules=$UCONF/user/rules/$hostname.tab

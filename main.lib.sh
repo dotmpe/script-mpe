@@ -3,12 +3,12 @@
 
 # Main: CLI helpers; init/run func as subcmd
 
-main_lib_load()
+main_lib__load()
 {
   test -n "${subcmd_default-}" || subcmd_default="default-main"
 }
 
-main_lib_init()
+main_lib__init()
 {
   test "${main_lib_init-}" = "0" && return
 

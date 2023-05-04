@@ -2,29 +2,92 @@
 
 # Helper script to display some data derived from 'uptime' output
 
+# Added Bash-optimized solutions and functions later, but kept original more
+# practical pipeline approach to compare. Benchmarking shows removing sed/tr/cut
+# pipelines is not an enormous speedup but does improve runtime a bit even for
+# these simple examples.
+
+loadavg_parts ()
+{
+  local uptime
+  read -r uptime <<< "$(uptime)"
+  : "${uptime//* load average: }"
+  : "${_//,}"
+  read _1 _2 _3 <<< "$_"
+}
+
+loadavg () # ~ [<Index>] # Show 1, 5 or 15min average
+{
+  test $# -gt 0 && set -- _${1:?} || set -- _1
+  local _1 _2 _3
+  loadavg_parts
+  echo "${!1}"
+}
+
+# select smallest period with loadvg above value, or display 15min avg.
+high_load () # ~ [<Value=0.5>]
+{
+  test $# -gt 0 || set -- 0.5
+  local _1 _2 _3
+  loadavg_parts
+  for _i in _1 _2 _3
+  do
+      : "${!_i}"
+      expr ${1:?} \<= $_ >/dev/null && break || continue
+  done
+  : "${_i/_/load_p}"
+  : "${!_}"
+  : "${_/in}"
+  echo "${!_i}(${_})"
+}
+
+load_p1=1min
+load_p2=5min
+load_p3=15min
+
 case "$1" in
 
-  p ) # get the largest (first) pretty-print uptime part (ie. minutes, hours, or larger)
-      echo $(uptime -p | cut -d',' -f1 | sed '
-          s/^up //
-          s/ minutes\?/m/
-          s/ hours\?/h/
-          s/ days\?/d/
-          s/ weeks\?/w/
-          s/ months\?/mo/' )
+  # Show pretty uptime but make it as short as possible
+  p|p2 )
+      read -r uptime <<< "$(uptime -p)"
+      : "${uptime//up /}"
+      : "${_// minute/m}"
+      : "${_// hour/h}"
+      : "${_// day/d}"
+      : "${_// week/w}"
+      : "${_// month/mo}"
+      : "${_// year/y}"
+      : "${_//s}"
+      : "${_//,}"
+      echo "$_"
+    ;;
+  p1 )
+      uptime -p | sed '
+              s/^up //
+              s/ minutes\?/m/
+              s/ hours\?/h/
+              s/ days\?/d/
+              s/ weeks\?/w/
+              s/ months\?/mo/
+              s/, //g
+          '
     ;;
 
-  l ) # get the requested loadavg part: , default 5min avg
+  hl|high-load ) shift; high_load "$@" ;;
+
+  l|l1 ) # get the requested loadavg part: , default 5min avg
       test $# -gt 1 || set -- "$1" 1
       echo $(uptime | sed 's/^.* load average: //' | tr -d ',' | cut -d' ' -f$2)
     ;;
+  l2 ) shift; loadavg "$@" ;;
 
   g )
       # Select group from regular uptime output: 1: days/hours up; 2: users; 3: load avgs
       # TODO: move to shell profile export, test with tmux
-      echo $(uptime | sed 's/^.*\(up .*\),\ *\([0-9]*\ user[s]*\).*load[^0-9]*\(.*\)$/\'$2'/')
+      test $# -gt 1 || set -- "$1" 1
+      echo $(uptime | sed 's/^.*\(up .*\),\ *\([0-9]*\ user[s]*\).*load[^0-9]*\(.*\)$/\'${2:?}'/')
     ;;
 
-  * ) echo "No such function '$1'" >&2;
+  * ) echo "No such action '$1'" >&2;
       exit 1 ;;
 esac

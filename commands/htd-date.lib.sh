@@ -1,10 +1,10 @@
 #!/bin/sh
 
 
-htd_date_lib_init ()
+htd_date_lib__init ()
 {
   lib_load user-script || return
-  lib_require shell-uc && shell_uc_lib_init || return
+  lib_require shell-uc && shell_uc_lib__init || return
 }
 
 

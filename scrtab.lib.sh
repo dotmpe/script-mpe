@@ -2,14 +2,14 @@
 
 # Track script status and Id records in file
 
-scrtab_lib_load()
+scrtab_lib__load ()
 {
   lib_assert statusdir || return
   test -n "${SCRDIR-}" || SCRDIR=$HOME/.local/scr.d
   test -n "${SCRTAB-}" || SCRTAB=${STATUSDIR_ROOT}index/scrtab.list
 }
 
-scrtab_lib_init()
+scrtab_lib__init ()
 {
   test "${scrtab_lib_init-}" = "0" && return
   test -d "$SCRDIR" || {

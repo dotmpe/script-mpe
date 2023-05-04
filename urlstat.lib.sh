@@ -1,14 +1,14 @@
 #!/bin/sh
 
 
-urlstat_lib_load()
+urlstat_lib__load ()
 {
   lib_assert statusdir || return
   test -n "${URLSTAT_TAB-}" || URLSTAT_TAB=${STATUSDIR_ROOT}index/urlstat.list
   test -n "${urlstat_invalid-}" || urlstat_invalid="!@Invalid !@Template"
 }
 
-urlstat_lib_init()
+urlstat_lib__init ()
 {
   test "${urlstat_lib_init-}" = "0" && return
   test -e "$URLSTAT_TAB" || {

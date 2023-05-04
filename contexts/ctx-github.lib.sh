@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-ctx_github_lib_load ()
+ctx_github_lib__load ()
 {
   lib_require web github
 }

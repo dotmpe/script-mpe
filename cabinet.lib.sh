@@ -2,7 +2,7 @@
 
 # Manage files, folders with perma-URL style archive-paths
 
-cabinet_lib_load()
+cabinet_lib__load()
 {
   title= upper=1 default_env HtDir "$HOME/htdocs" &&
   cabinet_init

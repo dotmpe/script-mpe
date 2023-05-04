@@ -212,7 +212,7 @@ htd__filter_out()
 }
 
 
-htd_main_lib_load()
+htd_main_lib__load()
 {
   default_env UCONF "$HOME/.conf/" || debug "Using UCONF '$UCONF'"
   default_env TMPDIR "/tmp/" || debug "Using TMPDIR '$TMPDIR'"

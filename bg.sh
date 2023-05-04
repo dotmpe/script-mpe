@@ -44,12 +44,12 @@ bg_main_boot ()
   #shopt -s checkjobs
 
   . "${U_C:?}/script/shell-uc.lib.sh" &&
-  shell_uc_lib_load && shell_uc_lib_init || {
+  shell_uc_lib__load && shell_uc_lib__init || {
     $LOG error : "Shell uc init failed" E$? $? || return
   }
 
   . ~/bin/bg.lib.sh &&
-  bg_lib_load || {
+  bg_lib__load || {
     $LOG error : "bg load failed" E$? $? || return
   }
 }

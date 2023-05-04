@@ -4,7 +4,7 @@
 # Deal with checksumming, and file manifests with checksums
 
 
-ck_htd_lib_load()
+ck_htd_lib__load()
 {
   test -n "${ck_tab-}" || ck_tab=table
   test -n "${ck_exts-}" || ck_exts="ck crc32 md5 sha1 sha2 sha256"

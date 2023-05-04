@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Initialize build-checks settings
-build_checks_lib_load()
+build_checks_lib__load()
 {
   lib_load build-htd table
 }

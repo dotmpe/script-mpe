@@ -73,7 +73,7 @@ sd_couchdb_sh()
 }
 
 
-statusdir_couchdb_sh_lib_load ()
+statusdir_couchdb_sh_lib__load ()
 {
   test -n "${COUCH_DB-}" || error "Couch-DB expected" 1
   test -n "${COUCH_URL-}" || export COUCH_URL=http://localhost:5984

@@ -3,7 +3,7 @@
 ## Key-value storage/service wrappers
 
 
-statusdir_lib_load ()
+statusdir_lib__load ()
 {
   lib_require sys || return
 
@@ -26,7 +26,7 @@ statusdir_lib_load ()
   true "${STATUSDIR_CLEAN_AGE:=86400}"
 }
 
-statusdir_lib_init()
+statusdir_lib__init ()
 {
   lib_require sys || return
   test ${statusdir_lib_init:-1} -eq 0 || {

@@ -2,7 +2,7 @@
 
 # TODO /etc/localtime
 
-date_htd_lib_load()
+date_htd_lib__load()
 {
   export TODAY=+%y%m%d0000
 
@@ -32,7 +32,7 @@ date_htd_lib_load()
 }
 
 
-date_lib_init()
+date_lib__init()
 {
   test "${date_lib_init-}" = "0" && return
 

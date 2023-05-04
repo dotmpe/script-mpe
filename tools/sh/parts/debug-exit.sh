@@ -19,8 +19,8 @@ sh_debug_exit()
 
 #test ${COLORIZE:-0} -eq 0 || {
   . ${U_C:=/srv/project-local/user-conf-dev}/script/ansi-uc.lib.sh
-  ansi_uc_lib_load
-  ansi_uc_lib_init
+  ansi_uc_lib__load
+  ansi_uc_lib__init
 #}
 
 . ${U_C:=/srv/project-local/user-conf-dev}/script/bash-uc.lib.sh

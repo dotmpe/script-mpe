@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 wiki () # ~ <SCREF> # Dump wikipage to text on stdout
 {
@@ -42,24 +42,20 @@ ex_quote_args ()
 
 shellcheck_usage_loadenv ()
 {
-  . "$US_BIN"/os-htd.lib.sh &&
-  . "$US_BIN"/user-script.lib.sh
+  lib_load os-htd user-script
 }
 
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
-  unset SHELL
-  user_script_shell_env
-}
+uc_script_load user-script
 
 # Parse arguments
 ! script_isrunning "shellcheck-usage" .sh || {
+  user_script_load || exit $?
   eval "set -- $(user_script_defarg "$@")"
-}
 
-# Execute argv and return
-script_entry "shellcheck-usage" "$@"
+  # Execute argv and return
+  script_run "$@"
+}
 #

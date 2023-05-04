@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-htd_functions_lib_load()
+htd_functions_lib__load()
 {
   lib_require function functions functions-htd
 }

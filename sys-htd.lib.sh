@@ -2,7 +2,7 @@
 
 ## Htd:Sys: dealing with vars, functions, env.
 
-sys_htd_lib_load()
+sys_htd_lib__load()
 {
   export _14MB=14680064
   export _6MB=7397376
@@ -17,7 +17,7 @@ sys_htd_lib_load()
   test -n "${mach-}" || mach="$(uname -m)"
 }
 
-sys_htd_lib_init()
+sys_htd_lib__init()
 {
   test "${sys_htd_lib_init-}" = "0" && return
 

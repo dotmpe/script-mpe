@@ -29,7 +29,7 @@ util_mode=ext . $U_S/tools/sh/init-wrapper.sh || return
 #. $scriptpath/tools/sh/init.sh || return
 #scriptpath=$U_S/src/sh/lib . $U_S/tools/sh/init.sh || return
 
-lib_lib_load && lib_lib_init || return
+lib_lib__load && lib_lib__init || return
 
 test -n "${INIT_LIB-}" && {
   eval INIT_LIB=\"$INIT_LIB\" || return 122

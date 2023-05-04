@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ### A new box.sh based on @User_script.lib+dev
 
@@ -49,16 +49,18 @@ box_us_bases ()
 }
 
 
-# Main entry (see user-script.sh for boilerplate)
-
-test -n "${user_script_loaded:-}" || {
-  set -e
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env &&
-          . /srv/project-local/conf-wtwta/script/Generic/server.sh
+box_us_loadenv ()
+{
+  . /srv/project-local/conf-wtwta/script/Generic/server.sh
 }
 
+# Main entry (see user-script.sh for boilerplate)
+
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
+
 ! script_isrunning "box.us" .sh || {
+  user_script_load || exit $?
 
   # Strip extension from scriptname (and baseid)
   script_baseext=.sh
@@ -70,8 +72,8 @@ test -n "${user_script_loaded:-}" || {
 
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"
-}
 
-script_entry "box.us" "$@"
+  script_run "$@"
+}
 
 #

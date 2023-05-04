@@ -127,7 +127,7 @@ htd_catalog__update_ignores ()
 }
 
 
-htd_catalog_lib_load ()
+htd_catalog_lib__load ()
 {
   # Global catalog list file
   test -n "${GLOBAL_CATALOGS-}" || GLOBAL_CATALOGS=$HTD_CONF/catalogs.list

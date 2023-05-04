@@ -5,12 +5,12 @@
 #shellcheck disable=SC1090
 
 
-short () # ~ [<Separator>] # Print 5min load, SystemD short, uptime and emails-count
+short () # ~ [<Separator>] # Print 5min load, SystemD short, uptime and emails_count
 {
   test -n "${1:-}" || set -- " "
-  printf "$(less-uptime l 2)$1$(systemd-short)$1$(less-uptime p)"
+  printf "$(less-uptime l 2)$1$(systemd_short)$1$(less-uptime p)"
   test -z "${UC_MAIL:-}" || {
-    printf "$1$(emails-count)"
+    printf "$1$(emails_count)"
   }
   echo
 }
@@ -21,25 +21,25 @@ short () # ~ [<Separator>] # Print 5min load, SystemD short, uptime and emails-c
 # User-config must exist or else nothing is done.
 emails () # ~ # If configured, print emails
 {
-  emails-user-conf || return 0
-  mutt-indicator
+  emails_user_conf || return 0
+  mutt_indicator
 }
 
 # Idem to emails however show new-mail counter as well
-emails-count () # ~ # If configured, print email indicator and new-count
+emails_count () # ~ # If configured, print email indicator and new-count
 {
-#MUTTRC_MAILBOXES=$HOME/.conf/etc/mutt/mailboxes.rc system-status emails-count
-  emails-user-conf || return 0
-  mutt-indicator-count
+#MUTTRC_MAILBOXES=$HOME/.conf/etc/mutt/mailboxes.rc system-status emails_count
+  emails_user_conf || return 0
+  mutt_indicator_count
 }
 
-emails-user-conf ()
+emails_user_conf ()
 {
-  mutt-user-conf
+  mutt_user_conf
 }
 
 # User mail-folder must be configured and maildir with inbox must exist.
-mutt-user-conf ()
+mutt_user_conf ()
 {
   test $# -gt 0 || set -- ${MUTTRC:-"$HOME/.muttrc"}
   local folder
@@ -48,15 +48,15 @@ mutt-user-conf ()
 }
 
 # Show email indicator if any new mail has been delivered
-mutt-indicator ()
+mutt_indicator ()
 {
-  mutt-new || return 0
+  mutt_new || return 0
   printf $nf_mdi_email_outline
 }
 
-mutt-indicator-count ()
+mutt_indicator_count ()
 {
-  local count=$(mutt-count-new | awk '{sum+=$1} END{print sum;}')
+  local count=$(mutt_count_new | awk '{sum+=$1} END{print sum;}')
   test ${count:-0} -eq 0 && return
   printf $nf_mdi_email_outline
   # XXX: this seems to be two characters wide? Messes up entire tmux screen.
@@ -65,15 +65,15 @@ mutt-indicator-count ()
   printf $count
 }
 
-mutt-new ()
+mutt_new ()
 {
-  test -n "$(count_first=1 mutt-count-new)"
+  test -n "$(count_first=1 mutt_count_new)"
 }
 
-mutt-count-new ()
+mutt_count_new ()
 {
   local inb
-  for inb in $(mutt-inboxes)
+  for inb in $(mutt_inboxes)
   do
     test -d "$inb/" || continue
     count=$(find $inb -mindepth 1 -maxdepth 1 | wc -l)
@@ -83,7 +83,7 @@ mutt-count-new ()
   done
 }
 
-mutt-inboxes () # ~ <Muttrc> <Muttrc-Mailboxes> #
+mutt_inboxes () # ~ <Muttrc> <Muttrc-Mailboxes> #
 {
   test $# -gt 0 || set -- ${MUTTRC:-"$HOME/.muttrc"}
   test $# -gt 1 || set -- "$1" ${MUTTRC_MAILBOXES:-"$1"}
@@ -110,17 +110,17 @@ battery () # ~ # Print short battery indication (if relevant)
   charge-left-unconnected
 }
 
-power-connected () # ~ # Test if an AC power adapter is connected
+power_connected () # ~ # Test if an AC power adapter is connected
 {
   acpi -V | grep '^Adapter ' | grep -q ' on-line$'
 }
 
-battery-charging () # ~ # Test is a battery is charging
+battery_charging () # ~ # Test is a battery is charging
 {
   acpi | cut -d' ' -f3 | grep -q '^Charging'
 }
 
-battery-discharging () # ~ # Test is a battery is discharging
+battery_discharging () # ~ # Test is a battery is discharging
 {
   acpi | cut -d' ' -f3 | grep -q '^Discharging'
 }
@@ -129,17 +129,17 @@ battery-discharging () # ~ # Test is a battery is discharging
 # or AC and level indicator when charging. Otherwise nothing.
 charge-left-unconnected ()
 {
-  set -- $( battery-charge | cut -d. -f1 )
+  set -- $( battery_charge | cut -d. -f1 )
 
   # shellcheck disable=SC2015
-  power-connected && {
+  power_connected && {
 
-    battery-charging && {
+    battery_charging && {
 
       # Show current capacity level
       test -z "${battery_c_charging:-}" || printf '%s' "${battery_c_charging}"
       test "${NERD_FONT:-1}" != "0" && {
-        battery-charge-icon-"${NERD_FONT_BAT:-mdi}" "$1"
+        battery_charge_icon_"${NERD_FONT_BAT:-mdi}" "$1"
       } || {
         printf '%s%%' "$1"
       }
@@ -157,43 +157,43 @@ charge-left-unconnected ()
 
     } || {
 
-      ! battery-discharging || {
-        battery-level-prefix "$1"
+      ! battery_discharging || {
+        battery_level_prefix "$1"
 
         # Detect forced discharge (while on AC) as well
         test "${NERD_FONT:-1}" != "0" && {
 
-          battery-charge-icon-"${NERD_FONT_BAT:-mdi}" "$1"
+          battery_charge_icon_"${NERD_FONT_BAT:-mdi}" "$1"
         } || {
           printf '%s%%' "$1"
         }
 
-        battery-level-normal
+        battery_level_normal
       }
     }
 
   } || {
 
-    battery-level-prefix "$1"
+    battery_level_prefix "$1"
 
     # Show battery capacity level
     test "${NERD_FONT:-1}" != "0" && {
-      battery-charge-icon-"${NERD_FONT_BAT:-mdi}" "$1"
+      battery_charge_icon_"${NERD_FONT_BAT:-mdi}" "$1"
     } || {
-      printf '%s%%' "$(battery-charge)"
+      printf '%s%%' "$(battery_charge)"
     }
 
-    battery-level-normal
+    battery_level_normal
   }
 }
 
-battery-charges ()
+battery_charges ()
 {
   acpi | cut -d, -f2
 }
 
 # Print total charge in procent (without percent character)
-battery-charge-total ()
+battery_charge_total ()
 {
   local x c=0
   for x in $(seq 0 $(( ${NUM_BAT?} - 1 )))
@@ -207,13 +207,13 @@ battery-charge-total ()
 }
 
 # Print battery charge in procent (without percent character)
-battery-charge () # ~ # Report charge left in percent of (actual) capacity
+battery_charge () # ~ # Report charge left in percent of (actual) capacity
 {
   test ${NUM_BAT:-1} -gt 1 && {
-    battery-charge-total
+    battery_charge_total
     return
   } || {
-    battery-charges | tr -d '% '
+    battery_charges | tr -d '% '
   }
 }
 
@@ -222,9 +222,9 @@ charge () # ~ # TODO: report on actual charge, print capacity left as well
   false
 }
 
-battery-charge-icon-fa ()
+battery_charge_icon_fa ()
 {
-  test $# -gt 0 || set -- $( battery-charge | cut -d. -f1 )
+  test $# -gt 0 || set -- $( battery_charge | cut -d. -f1 )
   if test $1 -lt 25
   then printf $nf_fa_battery_0
   elif test $1 -lt 50
@@ -237,9 +237,9 @@ battery-charge-icon-fa ()
   fi
 }
 
-battery-charge-icon-mdi ()
+battery_charge_icon_mdi ()
 {
-  test $# -gt 0 || set -- $( battery-charge | cut -d. -f1 )
+  test $# -gt 0 || set -- $( battery_charge | cut -d. -f1 )
   if test $1 -lt 20
   then printf $nf_mdi_battery_10
   elif test $1 -lt 30
@@ -262,7 +262,7 @@ battery-charge-icon-mdi ()
   fi
 }
 
-battery-level-prefix () # ~ <Pct>
+battery_level_prefix () # ~ <Pct>
 {
   test -z "${battery_level_low:-}" && return
   if test $1 -le $battery_level_low
@@ -271,7 +271,7 @@ battery-level-prefix () # ~ <Pct>
   fi
 }
 
-battery-level-normal ()
+battery_level_normal ()
 {
   test -z "${battery_level_low:-}" && return
   printf '%s' "${battery_c_normal}"
@@ -282,28 +282,28 @@ battery-level-normal ()
 ## SystemD status
 
 # Short description of SystemD (is-system-running in manual)
-systemd-status-text () # ~ # Report SystemD state
+systemd_status_text () # ~ # Report SystemD state
 {
   systemctl is-system-running | tr -d ' \n'
 }
 
 # Icon, or description and fail-count but only if not running
-systemd-short () # ~ # Short indicator for SystemD state
+systemd_short () # ~ # Short indicator for SystemD state
 {
-  test $# -gt 0 || set -- $(systemd-status-text)
+  test $# -gt 0 || set -- $(systemd_status_text)
 
   local msg
   test "${NERD_FONT:-1}" != "0" && {
-    msg=$(systemd-status-icon-${NERD_FONT_STATUS:-fa} "$1")
+    msg=$(systemd_status_icon_${NERD_FONT_STATUS:-fa} "$1")
   } ||
     msg="$1"
 
   test "$1" != "running" &&
-      printf "$msg %s" $(systemd-count-failed) ||
-      printf "$msg"
+      printf -- "$msg %s" "$(systemd_count_failed)" ||
+      printf -- "$msg"
 }
 
-systemd-count-failed () # ~ # Count failed SystemD units
+systemd_count_failed () # ~ # Count failed SystemD units
 {
   systemctl list-units | grep -c ' failed '
 }
@@ -315,7 +315,7 @@ systemd-failed () # ~ # List failed SystemD unit names
 
 failed () # ~ # Oneline report of state and failed unit names
 {
-  test $# -gt 0 || set -- $(systemd-status-text)
+  test $# -gt 0 || set -- $(systemd_status_text)
   test "$1" != "running" || return 0
   echo $1: $(systemd-failed)
 }
@@ -330,9 +330,9 @@ unit ()
   sudo systemctl show "${@:?}"
 }
 
-systemd-status-icon-oct () # ~ [<State>] # Print Octicon for SystemD state
+systemd_status_icon_oct () # ~ [<State>] # Print Octicon for SystemD state
 {
-  test $# -gt 0 || set -- "$(systemd-status-text)"
+  test $# -gt 0 || set -- "$(systemd_status_text)"
   case "$1" in
 
     initializing | \
@@ -348,9 +348,9 @@ systemd-status-icon-oct () # ~ [<State>] # Print Octicon for SystemD state
   esac
 }
 
-systemd-status-icon-fa () # ~ [<State>] # Print Font-Awesome icon for SystemD state
+systemd_status_icon_fa () # ~ [<State>] # Print Font-Awesome icon for SystemD state
 {
-  test $# -gt 0 || set -- "$(systemd-status-text)"
+  test $# -gt 0 || set -- "$(systemd_status_text)"
   case "$1" in
 
     initializing | \
@@ -418,6 +418,7 @@ monitor () # ~ <1min=0-9> <5min=0> <15min=0-9>
 
 ## User-script parts
 
+system_status_version=0.0.0-dev
 system_status_maincmds="battery cpu emails help short services version"
 system_status_shortdescr='User and system resource stat'
 
@@ -439,20 +440,17 @@ system_status_aliasargv ()
 
 system_status_loadenv ()
 {
-  . "$US_BIN"/nerdfonts.lib.sh &&
-  nerdfonts_lib_load &&
-  nerdfonts_lib_init
+  lib_load nerdfonts && lib_init nerdfonts
 }
 
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh &&
-  user_script_shell_env
-}
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 ! script_isrunning "system-status" || {
+  user_script_load || exit $?
   # Pre-parse arguments
   script_defcmd=short
   user_script_defarg=defarg\ aliasargv

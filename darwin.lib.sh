@@ -2,7 +2,7 @@
 
 # BSD/Darwin specific
 
-darwin_lib_load()
+darwin_lib__load()
 {
   : "${uname:=$(uname -s)}"
   test -n "${xattr-}" || xattr=xattr-2.7
@@ -512,7 +512,7 @@ case "$0" in "" ) ;; "-"* ) ;; * )
           test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
           test -n "$verbosity" || verbosity=5
           export base=$scriptname
-          darwin_lib_load
+          darwin_lib__load
           type "$1" >/dev/null 2>&1 || {
 
             echo "Error loading $scriptname: $1" 1>&2

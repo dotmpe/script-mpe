@@ -2,7 +2,7 @@
 
 # Current tasks
 
-htd_tasks_lib_load ()
+htd_tasks_lib__load ()
 {
   test -n "${TODOTXT_EDITOR-}" || {
     test -x "$(command -v todotxt-machine)" &&
@@ -10,7 +10,7 @@ htd_tasks_lib_load ()
   }
 }
 
-htd_tasks_lib_init ()
+htd_tasks_lib__init ()
 {
   test -n "${tasks_hub-}" -o -z "${PACKMETA-}" || htd_tasks_init || return
 }

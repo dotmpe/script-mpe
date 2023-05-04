@@ -18,7 +18,7 @@
 # Xterm see document, notably the section on OSC
 # <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
 
-# term_lib_load ()
+# term_lib__load ()
 #{
 ESC="\033"
 BEL="\007"

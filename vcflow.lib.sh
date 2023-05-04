@@ -4,7 +4,7 @@
 
 
 # Set default vars
-vcflow_lib_load()
+vcflow_lib__load ()
 {
   test -n "${VCFLOW_DOC_EXTS-}" || VCFLOW_DOC_EXTS=".tab .txt"
   test -n "${vcflow_feature_re-}" || vcflow_feature_re='^feature[s]?/.*'

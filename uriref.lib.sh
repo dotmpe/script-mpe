@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-uriref_lib_load()
+uriref_lib__load ()
 {
   # Some character groups in basic RE with RFC 2396 BNF symbol refs
   rfc_ur_mark_r="\-_\.!~*'()"

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-locale_lib_load ()
+locale_lib__load ()
 {
   true
 }

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-hoststat_lib_load()
+hoststat_lib__load()
 {
   hstdir=$HOME/htdocs/.build/stat/host/
   mkdir -p $hstdir

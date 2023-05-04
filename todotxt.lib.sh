@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-todotxt_lib_load()
+todotxt_lib__load ()
 {
   todotxt_env_init || true
   : "${ggrep:=grep}"

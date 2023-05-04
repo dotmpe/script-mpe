@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ### ImageMagick helpers
 
@@ -30,15 +30,14 @@ colorize () # ~ <In> <Out> <Color> <Percentage <G, B>
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh
-  user_script_shell_env
-}
+uc_script_load user-script
 
 # Parse arguments
-! script_isrunning "image" ||
-    eval "set -- $(user_script_defarg "$@")"
+! script_isrunning "image" || {
+  user_script_load || exit $?
+  eval "set -- $(user_script_defarg "$@")"
 
-# Execute argv and return
-script_entry "image" "$@"
+  # Execute argv and return
+  script_run "$@"
+}
 #

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-htd_project_stats_lib_load()
+htd_project_stats_lib__load()
 {
   lib_assert project-stats build-htd
 }

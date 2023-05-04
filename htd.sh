@@ -272,7 +272,7 @@ htd_subcmd_load ()
 
     t ) # more terminal tooling: load shell and init
         test "${shell_lib_loaded-}" = "0" || lib_load shell
-        shell_lib_init
+        shell_lib__init
       ;;
 
     S )
@@ -378,7 +378,7 @@ htd_subcmd_unload ()
 htd_load_ignores()
 {
   # Initialize one IGNORE_GLOBFILE file.
-  ignores_lib_load
+  ignores_lib__load
   test -n "$IGNORE_GLOBFILE" -a -e "$IGNORE_GLOBFILE" ||
       stderr error "expected $base ignore dotfile" 1
   lst_init_ignores
@@ -4269,7 +4269,7 @@ htd_argsv__checkout()
     package_id=$symlinks_id
     package_file && package_update
   )
-  package_id=$symlinks_id package_lib_load
+  package_id=$symlinks_id package_lib__load
   eval $(map=package_:symlinks_ package_sh id file attrs)
   test -n "$symlinks_attrs" || symlinks_attrs="SRC DEST"
   stderr info "2.1. Env: $(var2tags package_id symlinks_id symlinks_attrs)"

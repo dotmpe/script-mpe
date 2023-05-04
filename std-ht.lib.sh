@@ -3,12 +3,12 @@
 ### std.lib: logging and dealing with the shell's stdio decriptors
 
 
-std_ht_lib_load()
+std_ht_lib__load ()
 {
   true
 }
 
-std_ht_lib_init()
+std_ht_lib__init ()
 {
   test "${std_ht_lib_init-}" = "0" && return
   test -n "$INIT_LOG" || return 102

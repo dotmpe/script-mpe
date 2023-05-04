@@ -206,7 +206,7 @@ htd_package__write_scripts() # NAMES...
 {
   # Init env, update package if stale, if not set yet
   package_id=
-  package_env_reset && package_lib_init "$(pwd -P)" &&
+  package_env_reset && package_lib__init "$(pwd -P)" &&
   #test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
 
   # Handle options

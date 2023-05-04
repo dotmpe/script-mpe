@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ## Main source to bootstrap User-Script executables
 
@@ -115,30 +115,37 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
     shift
     script_run "$@" || return
   else
-    $LOG info :script-entry "Skipped non-matching command" "$1<>$SCRIPTNAME"
+    ! us_debug ||
+      $LOG info :script-entry "Skipped non-matching command" "$1<>$SCRIPTNAME"
   fi
 }
 
 script_run () # ~ <Action-argv...>
 {
-  user_script_shell_env || return
+  #user_script_shell_env || return
   script_doenv "$@" || return
   stdmsg '*debug' "Entering user-script $(script_version)"
   local funn=${1//-/_}
   shift
-  sh_fun "$funn" || {
-    sh_fun "${baseid}_${funn}" && funn="$_"
-  }
-  sh_fun "$funn" || set -- usage -- "$funn" "$@"
+  # XXX: prefer to use most specific name?
+  ! sh_fun "${baseid}_${funn}" || funn="$_"
+  sh_fun "$funn" || return 127
+  #  set -- usage -- "$funn" "$@"
+  #  script_doenv "$@" || return
+  #}
+  #! uc_debug ||
   $LOG info :script-run:$base "Running main handler" "$script_cmd:$funn"
+
   "$funn" "$@" || script_cmdstat=$?
   script_unenv || return
 }
 
 script_baseenv ()
 {
-  local vid var var_ _baseid
-  mkvid "${base:="$SCRIPTNAME"}"; baseid=$vid
+  local var var_ _baseid
+
+  : "${base:=${SCRIPTNAME:?}}"
+  : "${baseid:=$(user_script_mkvid "${base:?}")}"
 
   # Get instance vars
   for var in name version shortdescr
@@ -170,11 +177,10 @@ script_baseenv ()
 
 script_cmdid ()
 {
-  script_cmd="$1"
-
-  mkvid "$1"; script_cmdid=$vid
+  script_cmd="${1:?}"
+  script_cmdid=$(user_script_mkvid "$1")
   test -z "${script_cmdals:-}" || {
-      mkvid "$script_cmdals"; script_cmdalsid=$vid
+      script_cmdalsid=$(user_script_mkvid "$script_cmdals")
     }
 }
 
@@ -184,9 +190,16 @@ script_doenv () # ~ <Argv...>
   script_baseenv &&
   script_cmdid "${1:?}" || return
 
-  ! sh_fun "${baseid}"_loadenv || {
-    "${baseid}"_loadenv "$@"|| return
-  }
+  local _baseid
+  for _baseid in $(${user_script_bases:-user_script_bases})
+  do
+    ! sh_fun "$_baseid"_loadenv || {
+      ! us_debug ||
+          $LOG info :script:doenv "Loadenv" "$_baseid"
+      "$_baseid"_loadenv "$@" ||
+        $LOG error :script:doenv "During loadenv" "E$?:$_baseid" $? || return
+    }
+  done
 
   test -z "${DEBUGSH:-}" || set -x
 }
@@ -294,8 +307,9 @@ user_script_aliases_raw ()
 
 user_script_bases ()
 {
-  test -n "${baseid:-}" || { local vid baseid
-    mkvid "${base:-${SCRIPTNAME:?}}"; baseid=$vid; }
+  : "${base:=${SCRIPTNAME:?}}"
+  : "${baseid:=$(user_script_mkvid "${base:?}")}"
+
   script_bases="$baseid"
   test "$baseid" = user_script || {
       script_bases="$script_bases user_script"
@@ -431,15 +445,22 @@ user_script_envvars () # ~ # Grep env vars from loadenv
   }
 }
 
+user_script_mkvid ()
+{
+  test $# -le 1 || return ${_E_GAE:-3}
+  test $# -eq 0 && {
+    echo "[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*"
+    return
+  }
+  #echo "${1//[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*}"
+  echo "${1//[^A-Za-z0-9_]/_}"
+}
+
 # Transform glob to regex and invoke script-listfun for libs and other source
 # files. This turns on script-listfun flag h by default.
 user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main script
 {
-  test $# -eq 0 && {
-    set -- "[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*"
-  } || {
-    set -- "$(grep_or "$@")"
-  }
+  test $# -eq 0 && set -- "$(user_script_mkvid)" || set -- "$(grep_or "$@")"
 
   # NOTE: some shell allow all kinds of characters in functions.
   # sometimes I define scripts as /bin/bash and use '-', maybe ':'.
@@ -503,6 +524,34 @@ user_script_libload ()
   done
 }
 
+# Call before using defarg etc.
+user_script_load ()
+{
+  test $# -gt 0 || set -- defarg
+  while test $# -gt 0
+  do
+      ! uc_debug ||
+          $LOG info :user-script:load "Running load action" "$1"
+      case "${1:?}" in
+
+          ( defarg )
+              lib_load user-script shell-uc str argv &&
+              lib_init shell-uc ;;
+
+          ( usage )
+              lib_load user-script str-htd shell-uc &&
+              lib_init shell-uc ;;
+
+          ( help ) set -- "" usage ;;
+
+          ( * ) $LOG error :user-script:load "No such load action" "$1" 1 ||
+              return ;;
+      esac ||
+          $LOG error :user-script:load "In load action" "E$?:$1" $? || return
+      shift
+  done
+}
+
 # Default loadenv for user-script, run at the end of doenv just before
 # deferring to handler.
 user_script_loadenv ()
@@ -511,8 +560,10 @@ user_script_loadenv ()
   true "${PROJECT:="$HOME/project"}" &&
   true "${U_S:="$PROJECT/user-scripts"}" &&
   true "${LOG:="$U_S/tools/sh/log.sh"}" &&
-    test -d "$US_BIN" &&
-
+  test -d "$US_BIN" &&
+  test "$SCRIPTNAME" != user-script.sh || {
+    user_script_load "${script_cmdals:-$script_cmd}"
+  } &&
   user_script_loaded=1
 }
 
@@ -521,9 +572,7 @@ user_script_longhelp () # ~ [<Name>]
   longhelp=1 user_script_help "$@"
 }
 
-# This should be run before calling any function
-# TODO: rename user-script-helper-env
-
+# FIXME: cleanup
 user_script_shell_env ()
 {
   ! test "${user_script_shell_env:-}" = "1" || return 0
@@ -547,18 +596,6 @@ user_script_shell_env ()
       sh_mode strict dev || return
     }
 
-  {
-    . "$US_BIN"/str-htd.lib.sh &&
-    . "$US_BIN"/argv.lib.sh &&
-    . "$US_BIN"/user-script.lib.sh && user_script_lib_load &&
-
-    . "${U_S:-/src/local/user-scripts}"/src/sh/lib/std.lib.sh &&
-
-    #. ~/project/user-script/src/sh/lib/shell.lib.sh
-    . "${U_C:-/src/local/user-conf-dev}"/script/shell-uc.lib.sh
-
-  } || eval `sh_gen_abort '' "Loading libs status '$?'"`
-
   PID_CMD=$(ps -q $$ -o command= | cut -d ' ' -f 1)
   test "${SHELL_NAME:=$(basename -- "$SHELL")}" = "$PID_CMD" || {
     test "$PID_CMD" = /bin/sh && {
@@ -576,7 +613,7 @@ user_script_shell_env ()
   }
 
   # Set everything about the shell we are working in
-  shell_uc_lib_init || { ERR=$?
+  shell_uc_lib__init || { ERR=$?
     printf "ERR%03i: Cannot initialze Shell lib" "$ERR" >&2
     return $ERR
   }
@@ -713,7 +750,7 @@ user_script_usage () # ~
   # TODO func-comment Needs abit of polishing. and be moved to use for other
   # functions as well
   test -n "$handlers" || {
-    $LOG error "" "No handler found"
+    $LOG error :user-script:usage "No handler found" "$*"
     return 1
 
     "${baseid}"_loadenv all || return
@@ -991,6 +1028,11 @@ stdstat () # ~ <Status-Int> <Status-Message> # Exit handler
   exit $1
 }
 
+us_debug ()
+{
+  ${US_DEBUG:-false}
+}
+
 # Lists name, spec and gist fields separated by tabs.
 # Fun flag t turns off column formatting
 # Fun flag h enables an alternative semi-readable help outline format
@@ -1065,10 +1107,12 @@ usage ()
 # Main boilerplate (mostly useless except for testing this script)
 # To list all user-script instances, see user-script.sh all.
 
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+
 ! script_isrunning "user-script" .sh || {
 
-  #. "${US_BIN:="$HOME/bin"}"/user-script.sh
-  user_script_shell_env
+  user_script_load || exit $?
+  #user_script_shell_env
 
   # Strip extension from SCRIPTNAME (and baseid)
   SCRIPT_BASEEXT=.sh
@@ -1086,8 +1130,10 @@ usage ()
   true "${US_EXTRA_CHAR:=:-}"
 
   # Execute argv and end shell
-  script_entry "user-script" "$@" || exit
+  script_run "$@" || exit
 }
 
 user_script_loaded=0
+# FIXME: uc-profile is broken somewhere
+unset INIT_LOG
 #

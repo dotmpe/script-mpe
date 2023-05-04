@@ -1,6 +1,6 @@
 #!/bin/sh
 
-project_lib_load()
+project_lib__load()
 {
   test -e /srv/project-local/.htd || error "project-local missing" 1
 }

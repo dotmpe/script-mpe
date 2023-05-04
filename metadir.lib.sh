@@ -1,11 +1,11 @@
 # See meta.lib
 
-metadir_lib_load ()
+metadir_lib__load ()
 {
   : "${metadirs_default:="\{,.}meta"}"
 }
 
-metadir_lib_init ()
+metadir_lib__init ()
 {
   local found=false
   test -n "${metadir_default:-}" || {

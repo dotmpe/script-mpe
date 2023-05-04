@@ -16,7 +16,7 @@ CWD="$(dirname "$0")"
 
 test ${main_make_lib_load-1} -eq 0 || {
   . $CWD/main-make.lib.sh || exit
-  main_make_lib_load
+  main_make_lib__load
   main_make_lib_load=$?
 }
 

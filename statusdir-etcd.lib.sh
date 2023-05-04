@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-statusdir_etcd_lib_init ()
+statusdir_etcd_lib__init ()
 {
   etcdctl="docker run -ti --net=host shilpamayanna/etcdctl:test etcdctl"
   Statusdir__backend_types["etcd"]=Etcd

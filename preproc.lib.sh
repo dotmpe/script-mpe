@@ -1,6 +1,6 @@
 #!/bin/sh
 
-preproc_lib_load()
+preproc_lib__load()
 {
   true
 }

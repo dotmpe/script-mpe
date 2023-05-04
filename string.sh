@@ -116,8 +116,8 @@ then
     tmux-str-padd-left ) str_tmux_padd_ch "$2" "$3" "$4" ;;
     tmux-str-padd-right ) str_tmux_padd_ch "$2" "" "$4" "$3" ;;
 
-    append-if-len ) test -z "$2" && return; echo "$2$3" ;;
-    prepend-if-len ) test -z "$2" && return; echo "$3$2" ;;
+    append-if-len ) test -z "$2" || echo "$2$3" ;;
+    prepend-if-len ) test -z "$2" || echo "$3$2" ;;
 
     * | "" ) exit 64 ;;
 

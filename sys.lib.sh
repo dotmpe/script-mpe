@@ -2,7 +2,7 @@
 
 ## Sys: dealing with vars, functions, env.
 
-sys_lib_load()
+sys_lib__load ()
 {
   : "${LOG:?"No LOG env"}"
   : "${uname:=$(uname -s)}"
@@ -10,7 +10,7 @@ sys_lib_load()
   : "${hostname:=$(hostname -s | tr '[:upper:]' '[:lower:]')}"
 }
 
-sys_lib_init()
+sys_lib__init ()
 {
   test "${sys_lib_init-}" = "0" || {
 

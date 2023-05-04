@@ -1,6 +1,6 @@
 #!/bin/sh
 
-docker_hub_lib_load()
+docker_hub_lib__load()
 {
   lib_require web
 }

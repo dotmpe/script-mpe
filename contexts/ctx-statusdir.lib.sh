@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-ctx_statusdir_lib_load ()
+ctx_statusdir_lib__load ()
 {
   : "${ctx_class_types:="${ctx_class_types-}${ctx_class_types+" "}Statusdir"}"
 }
 ctx_statusdir_depends=@Shell
 
-ctx_statusdir_lib_init ()
+ctx_statusdir_lib__init ()
 {
   lib_require date && class.Statusdir.env
 }

@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-net_lib_load()
+net_lib__load()
 {
   true
 }

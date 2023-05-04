@@ -3,13 +3,13 @@
 # Htd ctx cleanup for vc wip
 
 
-vc_htd_lib_load()
+vc_htd_lib__load ()
 {
   test -n "${vc_rt_def-}" || vc_rt_def=origin
   test -n "${vc_br_def-}" || vc_br_def=master
 }
 
-vc_htd_lib_init()
+vc_htd_lib__init ()
 {
   test ${vc_htd_lib_init-1} -eq 0 && return # Run once
   lib_assert std sys-htd

@@ -3,7 +3,7 @@
 ## Terminal Multiplexer shell routines
 
 
-tmux_lib_load()
+tmux_lib__load ()
 {
   local upper=1
   # TODO: document where this was needded

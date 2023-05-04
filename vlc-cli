@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ## Helper for VLC control using olrdrc module
 
@@ -195,13 +195,12 @@ fixlines ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-}
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 ! script_isrunning "vlc-cli" ||
-    eval "set -- $(user_script_defarg "$@")"
-
-script_entry "vlc-cli" "$@"
+  user_script_load || exit $?
+  eval "set -- $(user_script_defarg "$@")"
+  script_run "$@"
+}
 #

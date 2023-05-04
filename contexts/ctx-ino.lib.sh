@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ctx_ino_lib_init()
+ctx_ino_lib__init()
 {
   test ${ctx_ino_lib_init:-1} -eq 0 && return
   local ino="$(which arduino)"

@@ -1,12 +1,12 @@
 #!/bin/sh
 
 
-project_stats_lib_load()
+project_stats_lib__load()
 {
-  lib_assert date statusdir package
+  lib_loaded date statusdir package
 }
 
-project_stats_lib_init()
+project_stats_lib__init ()
 {
   test "${project_stats_init-}" = "0" && return
   project_stats_init && project_stats_req

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-docker_sh_htd_lib_load()
+docker_sh_htd_lib__load()
 {
   test -n "${docker_shell-}" || docker_shell=bash
   test -n "${docker_cmd-}" || docker_cmd=bash

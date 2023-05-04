@@ -1,6 +1,6 @@
 #!/bin/sh
 
-signals_lib_load()
+signals_lib__load ()
 {
   # signals 1 to 31
   signal_names='HUP INT QUIT ILL TRAP ABRT EMT FPE KILL BUS SEGV SYS PIPE ALRM

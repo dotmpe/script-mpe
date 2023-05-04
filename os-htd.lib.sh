@@ -3,13 +3,13 @@
 ## Htd ctx cleanup for OS wip: files, paths.
 
 
-os_htd_lib_load()
+os_htd_lib__load()
 {
   : "${uname:="$(uname -s)"}"
   : "${os:="$(uname -o)"}"
 }
 
-os_htd_lib_init()
+os_htd_lib__init()
 {
   test "${os_htd_lib_init-}" = "0" || {
     test -n "$LOG" -a \( -x "$LOG" -o "$(type -t "$LOG")" = "function" \) \
@@ -556,6 +556,7 @@ files_exist ()
 # Expand pattern, ignoring non-existant expansions. TODO: non-zero for empty
 files_existing () # ~ <Shell-filename-pattern...>
 {
+  test $# -gt 0 || ${_E_GAE:-3}
   eval "echo $*" | tr ' ' '\n' | filter_files
 }
 

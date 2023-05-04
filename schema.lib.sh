@@ -2,12 +2,12 @@
 
 ## Validate against JSON schema
 
-schema_lib_load ()
+schema_lib__load ()
 {
   test -n "${ajv_cli-}" || ajv_cli=$scriptpath/node_modules/ajv-cli/index.js
 }
 
-schema_lib_init ()
+schema_lib__init ()
 {
   test -x "$ajv_cli" ||
       $LOG error "" "Installation needed" "ajv-cli" 1

@@ -3,7 +3,7 @@
 # Tag-name records wip
 
 
-context_lib_load()
+context_lib__load()
 {
   lib_load os src-htd statusdir ctx-base contextdefs match-htd stattab \
       contextdefs || return
@@ -20,7 +20,7 @@ context_lib_load()
 }
 
 # TODO: add dry-run/stat/update mode, and add to install/provisioning script +U-c
-context_lib_init()
+context_lib__init()
 {
   test "${context_lib_init-}" = "0" && return
   test -n "${package_lists_contexts_default-}" || package_lists_contexts_default=@Std

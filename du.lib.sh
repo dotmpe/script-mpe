@@ -1,6 +1,6 @@
 #!/bin/sh
 
-du_lib_load()
+du_lib__load()
 {
   which rst2xml 1>/dev/null && rst2xml=$(which rst2xml) || {
     which rst2xml.py 1>/dev/null && rst2xml=$(which rst2xml.py) || {

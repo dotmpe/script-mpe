@@ -3,14 +3,14 @@
 # Deal with package metadata files
 
 
-package_lib_load () # (env PACKMETA) [env out_fmt=py]
+package_lib__load () # (env PACKMETA) [env out_fmt=py]
 {
   lib_require sys os os-htd src || return
   test -n "${out_fmt-}" || out_fmt=py
   test -n "${META_DIR-}" || META_DIR=.meta
 }
 
-package_lib_init () #
+package_lib__init () #
 {
   test "${package_lib_init-}" = "0" && return # One time init
   ENV_LIBS="${ENV_LIBS:-}${ENV_LIBS+" "}package"

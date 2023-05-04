@@ -3,7 +3,7 @@
 ## Catalog: maintain card records for files with Id and meta info
 
 
-catalog_lib_load()
+catalog_lib__load()
 {
   true "${CATALOG_DEFAULT:="catalog.yml"}"
 
@@ -26,7 +26,7 @@ catalog_lib_load()
   }
 }
 
-catalog_lib_init()
+catalog_lib__init()
 {
   test "${catalog_lib_init-}" = "0" && return
   true "${define_all:=1}" # XXX: override htd-load to set any argv opts to vars

@@ -4,7 +4,7 @@
 # list/update contents, unpack and cleanup.
 
 
-archive_lib_load ()
+archive_lib__load ()
 {
   # 'tar' should be after other compressions
   : "${archive_exts:="rar zip bz2 gz tar tgz 7z"}"

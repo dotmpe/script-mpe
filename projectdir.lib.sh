@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-projectdir_lib_load ()
+projectdir_lib__load ()
 {
   # Local pdoc name, used by most command to determine pdir
   test -n "${UCONF-}" || UCONF=$HOME/.conf
@@ -10,7 +10,7 @@ projectdir_lib_load ()
   test -n "$PD_TMPDIR" -a -d "$PD_TMPDIR" || error "PD_TMPDIR load" 1
 }
 
-projectdir_lib_init ()
+projectdir_lib__init ()
 {
   lib_assert main date || return
   test -n "${PD_SYNC_AGE-}" || export PD_SYNC_AGE=$_3HOUR

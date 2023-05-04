@@ -2,7 +2,7 @@
 
 # Basic assumptions about Shell, for polyglot script check/test
 
-sh_tester_lib_load()
+sh_tester_lib__load ()
 {
   # Bash reports all these as '.* is a shell builtin'
   bash_bi_cmds=". : [ alias bg bind break builtin caller cd command compgen "\

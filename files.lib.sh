@@ -5,7 +5,7 @@
 # Files are blobs or streams with associated name, path and descriptor (inode,
 # times, permissions). Possibly extended attributes.
 
-files_lib_load ()
+files_lib__load ()
 {
   true "${package_lists_files:="scm"}"
 }

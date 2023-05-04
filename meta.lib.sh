@@ -22,12 +22,12 @@
 # See also metadir.lib. And metainfo.lib for stuff previously here.
 
 
-meta_lib_load ()
+meta_lib__load ()
 {
   true "${META_DIR:=.meta}"
 }
 
-meta_lib_init ()
+meta_lib__init ()
 {
   test -d "$META_DIR" || mkdir -p "$META_DIR"
   # XXX: meta is both provider and backup, others are sources?

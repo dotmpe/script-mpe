@@ -34,7 +34,7 @@ sd_ramdir()
   esac
 }
 
-statusdir_ramdir_lib_load ()
+statusdir_ramdir_lib__load ()
 {
   Statusdir__backend_types["ramdir"]=RAMDir
 }

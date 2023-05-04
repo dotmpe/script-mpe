@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-#lfs_lib_load()
+#lfs_lib__load()
 #{
 #  true
 #}

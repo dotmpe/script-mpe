@@ -1,7 +1,7 @@
 #!/bin/sh
 
 
-match_htd_lib_load ()
+match_htd_lib__load ()
 {
   case "$uname" in
       ( Linux ) gsed=sed ;;

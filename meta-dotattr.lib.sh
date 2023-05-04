@@ -1,4 +1,4 @@
-meta_dotattr_lib_load ()
+meta_dotattr_lib__load ()
 {
   : "${META_LOCALATTR:=.attributes}"
 }

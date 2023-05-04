@@ -1,13 +1,13 @@
 #!/bin/sh
 
 
-basedir_lib_load()
+basedir_lib__load()
 {
   lib_assert statusdir || return
   test -n "${BDIR_TAB-}" || BDIR_TAB=${STATUSDIR_ROOT}index/basedir.list
 }
 
-basedir_lib_init()
+basedir_lib__init()
 {
   test "${basedir_lib_init-}" = "0" && return
   test -e "$BDIR_TAB" || {

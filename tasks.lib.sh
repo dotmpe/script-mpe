@@ -1,6 +1,6 @@
 #!/bin/sh
 
-tasks_lib_load()
+tasks_lib__load ()
 {
   test -n "${TASK_EXT-}" || TASK_EXT="ttxtm"
   test -n "${TASK_EXTS-}" || TASK_EXTS=".ttxtm .list .txt"

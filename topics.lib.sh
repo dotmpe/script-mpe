@@ -3,7 +3,7 @@
 
 # Topics
 
-topics_lib_load()
+topics_lib__load ()
 {
     true
 }

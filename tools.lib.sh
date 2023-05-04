@@ -2,7 +2,7 @@
 
 ## Named deps
 
-tools_lib_load ()
+tools_lib__load ()
 {
   #upper=0 default_env out-fmt tty
   test -n "${out_fmt-}" || export out_fmt=tty
@@ -18,7 +18,7 @@ tools_lib_load ()
   test -n "${HTD_TOOLSDIR-}" || export HTD_TOOLSDIR=$HOME/.htd-tools
 }
 
-tools_lib_init () # [B] (~
+tools_lib__init () # [B] ~
 {
   test -d $B || mkdir -p $B
   default_env Htd-ToolsSchemaFile ~/bin/schema/tools.yml

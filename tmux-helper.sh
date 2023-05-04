@@ -70,19 +70,19 @@ window_spec ()
   esac
 }
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-        user_script_shell_env
-}
 
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 ! script_isrunning "tmux-helper" .sh || {
+  user_script_load || exit $?
+
   base=tmux-helper
   script_baseext=.sh
   script_cmdals=
   script_defcmd=
   eval "set -- $(user_script_defarg "$@")"
-}
 
-script_entry "tmux-helper" "$@"
+  script_run "$@"
+}
 #

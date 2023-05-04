@@ -3,7 +3,7 @@
 # Htd support lib, see also htd-* libs
 
 
-htd_lib_load()
+htd_lib__load()
 {
   test -n "${NS_NAME-}" || NS_NAME=dotmpe
 }
@@ -509,9 +509,9 @@ htd_wf_ctx_sub () # Flow-Id Tag-Refs...
   $LOG debug "htd-workflow" "Primary context" "$primctx ${primctx_id}/${primctx_sid}"
   # Load/run action on primary context
   lib_require context-uc ctx-${primctx_sid} || return
-  func_exists ctx_${primctx_sid}_lib_init && {
+  func_exists ctx_${primctx_sid}_lib__init && {
     $LOG info "htd-workflow" "" "ctx-${primctx_id}-init $*"
-    ctx_${primctx_sid}_lib_init "$@" || {
+    ctx_${primctx_sid}_lib__init "$@" || {
       $LOG error "" "context lib init failed for '$primctx_sid'" "$*" 1
       return 1
     }

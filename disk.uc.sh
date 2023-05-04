@@ -1,8 +1,9 @@
+#!/usr/bin/env bash
+
 # Start user-script early because we're using aliased script parts
-test -n "${user_script_loaded:-}" || {
-  ALIASES=1 ; . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-}
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
+
 
 # Use alsdefs set to cut down on small multiline boilerplate bits.
 user_script_alsdefs \
@@ -504,12 +505,14 @@ disk_uc_loadenv ()
 # Main entry (see user-script.sh for boilerplate)
 
 ! script_isrunning "disk.uc.sh" || {
+  user_script_load || exit $?
+
   # Pre-parse arguments
   base=disk.uc
   script_defcmd=check
   user_script_defarg=defarg\ aliasargv
 
   eval "set -- $(user_script_defarg "$@")"
-}
 
-script_entry "disk.uc.sh" "$@"
+  script_run "$@"
+}

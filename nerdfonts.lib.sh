@@ -17,14 +17,14 @@
 
 #shellcheck disable=SC2034 # X appears unused. Verify use (or export if used externally).
 
-nerdfonts_lib_load ()
+nerdfonts_lib__load ()
 {
   : "${NF_CT_SRC="https://github.com/ryanoasis/nerd-fonts/raw/gh-pages/_posts/2017-01-04-icon-cheat-sheet.md"}"
   : "${NF_FP_SRC="https://github.com/ryanoasis/nerd-fonts/raw/master/font-patcher"}"
   . "$US_BIN"/nerdfonts-selection.lib.sh
 }
 
-nerdfonts_lib_init ()
+nerdfonts_lib__init ()
 {
   test "$IS_BASH" -eq 1 && {
     nerdfonts_lib_load_gnuprintf || return

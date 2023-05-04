@@ -3,7 +3,7 @@
 ## Annex: GIT annex wrappers (consolidate and lock media-file versions)
 
 
-annex_lib_load()
+annex_lib__load()
 {
   : "${ANNEX_DIR:?}"
   content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos"

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 
 meta_sh_attributes ()
@@ -13,7 +13,7 @@ meta_sh_attributes_sh ()
 
 meta_sh_check ()
 {
-  false
+  $LOG warn : TODO check 1
 }
 
 meta_sh_context () # ~ [ <Paths...> ] # List attributes at paths and parents
@@ -52,26 +52,33 @@ meta_sh_context () # ~ [ <Paths...> ] # List attributes at paths and parents
 
 meta_sh_loadenv ()
 {
-  . "$US_BIN"/meta.lib.sh && meta_lib_load &&
-  . "$US_BIN"/metadir.lib.sh && metadir_lib_load &&
-  meta_lib_init && metadir_lib_init
+  lib_load meta metadir &&
+  lib_init meta metadir
 }
+
+
+## User-script parts
+
+#context_sh_name=foo
+#context_sh_version=xxx
+context_sh_maincmds="attributes attributes-sh help short version"
+context_sh_shortdescr='Track contexts'
 
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-}
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
 ! script_isrunning "meta.sh" || {
+  user_script_load || exit $?
+
   # Pre-parse arguments
 
   script_defcmd=check
   #user_script_defarg=defarg\ aliasargv
 
   eval "set -- $(user_script_defarg "$@")"
-}
 
-script_entry "meta.sh" "$@"
+  script_run "$@"
+}

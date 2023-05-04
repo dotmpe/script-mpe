@@ -9,6 +9,12 @@ load () # ~ <Loadnum>
   load_styles "$(less-uptime l ${1:-2})"
 }
 
+# Select smallest period with value above, or print longest period.
+high_load () # [<Value>]
+{
+  load_styles "$(less-uptime hl ${1:-0.5})"
+}
+
 load_styles ()
 {
   set -- "$1" "$(echo "$1" | awk '{printf "%.0f", $1 * 100}')"
@@ -33,8 +39,10 @@ load_styles ()
 
 systemd ()
 {
-  test $# -gt 0 || set -- "$(system-status systemd-status-text)"
-  system-status systemd-short "$1" | {
+  . system-status && system_status_loadenv || return
+
+  test $# -gt 0 || set -- "$(systemd_status_text)"
+  systemd_short "$1" | {
       case "$1" in
 
           ( initializing | \
@@ -123,15 +131,13 @@ darktime ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-  set -e
-  . "${US_BIN:-"$HOME/bin"}"/user-script.sh &&
-  user_script_shell_env
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
+
+! script_isrunning "tmux-status" || {
+  set -euo pipefail
+  user_script_load || exit $?
+  eval "set -- $(user_script_defarg "$@")"
+  script_run "$@"
 }
-
-# Pre-parse arguments
-! script_isrunning "tmux-status" ||
-    eval "set -- $(user_script_defarg "$@")"
-
-script_entry "tmux-status" "$@"
 #

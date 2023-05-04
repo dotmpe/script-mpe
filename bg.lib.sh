@@ -4,7 +4,7 @@
 # The half-duplex line client/server
 
 
-bg_lib_load ()
+bg_lib__load ()
 {
   true "${BG_RUND:=${XDG_RUNTIME_DIR:-/var/run/$(id -u)}/${SHELL_NAME:?}-bg}"
   true "${BG_FIFO:=$BG_RUND.fifo}"

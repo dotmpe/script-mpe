@@ -3,12 +3,12 @@
 ### Manage GIT remote metadata in simple shell config files
 
 
-gitremote_lib_load()
+gitremote_lib__load()
 {
   true "${GIT_REMOTE_CONF:=${UCONF?}/etc/git/remotes}"
 }
 
-gitremote_lib_init()
+gitremote_lib__init()
 {
   export GIT_REMOTE_CONF
   true "${GITREMOTE_MAX_AGE:=${_1DAY:?}}"

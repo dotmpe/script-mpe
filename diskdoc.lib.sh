@@ -10,12 +10,12 @@
 # disks.
 
 
-diskdoc_lib_load ()
+diskdoc_lib__load ()
 {
   : "${USER_DISKS:=$HOME/.local/etc/user/diskdoc.yml}"
 }
 
-diskdoc_lib_init ()
+diskdoc_lib__init ()
 {
   test -s "${USER_DISKS:-}" || {
     $INIT_LOG error "" "User disks doc missing or empty" "${USER_DISKS:-null}"

@@ -2,7 +2,7 @@
 
 
 # XXX:
-#htd_scripts_lib_load()
+#htd_scripts_lib__load()
 #{
 #  test "${package_lib_loaded:-}"
 #}

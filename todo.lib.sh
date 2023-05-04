@@ -1,11 +1,11 @@
 #!/bin/sh
 
-todo_lib_load ()
+todo_lib__load ()
 {
   sh_isset ggrep || . $scriptpath/tools/sh/parts/env-0-1-lib-sys.sh
 }
 
-todo_lib_init ()
+todo_lib__init ()
 {
   true "${package_pd_meta_tasks_document:=""}"
   true "${package_pd_meta_tasks_done:=""}"

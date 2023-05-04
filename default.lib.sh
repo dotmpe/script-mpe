@@ -1,6 +1,6 @@
 #!/bin/sh
 
-default_lib_load()
+default_lib__load()
 {
   test -x "foo" || echo bar
   true

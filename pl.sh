@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 ### Playlist util
 
@@ -137,18 +138,13 @@ pl_loadenv ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${user_script_loaded:-}" || {
-
-  #shellcheck source=user-script.sh
-  . "${US_BIN:="$HOME/bin"}"/user-script.sh &&
-      user_script_shell_env
-}
+uc_script_load user-script
 
 ! script_isrunning "pl" .sh || {
+  user_script_load || exit $?
   # Pre-parse arguments
   user_script_defarg=defarg\ aliasargv
   eval "set -- $(user_script_defarg "$@")"
+  script_run "$@"
 }
-
-script_entry "pl" "$@"
 #

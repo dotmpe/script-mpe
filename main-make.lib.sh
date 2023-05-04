@@ -3,7 +3,7 @@
 # Main-Make: build shell scripts from subcommands without boilerplate
 # Created: 2020-06-30
 
-main_make_lib_load()
+main_make_lib__load()
 {
   type main_define >/dev/null 2>&1 ||
       . $CWD/main-defs.lib.sh
@@ -20,7 +20,7 @@ main_make_lib_load()
 
   test ${main_lib_loaded:-1} -eq 0 || {
     . $CWD/main.lib.sh || exit
-    main_lib_load
+    main_lib__load
     main_lib_loaded=$?
   }
   return $main_lib_loaded
