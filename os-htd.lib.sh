@@ -87,19 +87,6 @@ enum_nix_style_file ()
   cat_f=-n read_nix_style_file "$@" '^[0-9]*:\s*(#.*|\s*)$' || return
 }
 
-# Abort shell at location.
-# XXX: This is a pretty effective way of aborting Bash. I wonder if there is
-# another way to get it.
-# Calling a function is not very useful, but this we can eval in-place. It can
-# be pretty short too:
-#
-#   eval `sh_gen_abort E123 "Something went wrong"`
-#
-sh_gen_abort () # ~ <Key-> <Msg-> # Generate script to abort shell
-{
-  local k=${1:-Abort}; k=${k//[^A-Za-z0-9_]/_}; echo "$k=;:\ \"\${$k:?\"${2-}\"}\""
-}
-
 # make numbered copy, see number-file
 file_backup () # ~ <Name> [<.Ext>]
 {
@@ -225,6 +212,66 @@ filemtype () # ~ <File-path>
   esac
 }
 
+files_exist ()
+{
+  false
+}
+
+# Expand pattern, ignoring non-existant expansions. TODO: non-zero for empty
+files_existing () # ~ <Shell-filename-pattern...>
+{
+  test $# -gt 0 || ${_E_GAE:-3}
+  eval "echo $*" | tr ' ' '\n' | filter_files
+}
+
+files_lock()
+{
+  local id=$1
+  shift
+  std_info "Reserving resources for session $id ($*)"
+  for f in "$@"
+  do
+    test -e "$f.lock" && {
+      lock="$(head -n 1 $f.lock | awk '{print $1}')"
+      test "$lock" = "$id" && echo $f ||
+        warn "Ignored existing lock $lock for $f"
+    } || {
+      assert_files $f
+      echo $f && echo $id > $f.lock
+    }
+  done
+}
+
+# Verify locks
+files_locked ()
+{
+  local id=$1
+  shift
+  for f in "$@"
+  do
+    test -e "$f.lock" || return 2
+    test "$(head -n 1 $f.lock | awk '{print $1}')" = "$id" || return 1
+  done
+}
+
+files_unlock()
+{
+  local id=$1 lock=
+  shift
+  std_info "Releasing resources from session $id ($*)"
+  for f in "$@"
+  do
+    test -e "$f.lock" && {
+      lock="$(head -n 1 $f.lock | awk '{print $1}')"
+      test "$lock" = "$id" && {
+        rm $f.lock
+        test -e "$f" || continue
+        echo $f
+      }
+    } || continue
+  done
+}
+
 # Use `stat` to get size in bytes
 filesize () # ~ <File-path <...>>
 {
@@ -288,9 +335,17 @@ filter_files ()
 
 # Strip comments, including line-continuations.
 # See line-comment-conts-collapse to transform them.
-filter_line_comments () # (s) ~ [<Marker-Regex>]
+filter_line_comments () # (s) ~ [<Marker-bre>]
 {
-  sed ':a; N; $!ba; s/'"${1:-"#"}"'[^\\\n]*\(\\\n[^\\\n]*\)*\n//g'
+  # Remove non-contination line-end comments first.
+  # Then substitute contineous blocks and lines together with their newline
+  # (ie. remove lines completely). And one more to remove comment on last
+  # line in file.
+  sed ' :a; N; $!ba;
+      s/ * '"${1:-"#"}"'[^\n]*[^\\]\n/\n/g
+      s/[\t ]*'"${1:-"#"}"'[^\\\n]*\(\\\n[^\\\n]*\)*\n//g
+      s/\n[\t ]*'"${1:-"#"}"'.*$//
+    '
 }
 
 find_broken_symlinks () # ~ DIR
@@ -548,66 +603,6 @@ lines_slice () # [First-Line] [Last-Line] [-|File-Path]
   }
 }
 
-files_exist ()
-{
-  false
-}
-
-# Expand pattern, ignoring non-existant expansions. TODO: non-zero for empty
-files_existing () # ~ <Shell-filename-pattern...>
-{
-  test $# -gt 0 || ${_E_GAE:-3}
-  eval "echo $*" | tr ' ' '\n' | filter_files
-}
-
-files_lock()
-{
-  local id=$1
-  shift
-  std_info "Reserving resources for session $id ($*)"
-  for f in "$@"
-  do
-    test -e "$f.lock" && {
-      lock="$(head -n 1 $f.lock | awk '{print $1}')"
-      test "$lock" = "$id" && echo $f ||
-        warn "Ignored existing lock $lock for $f"
-    } || {
-      assert_files $f
-      echo $f && echo $id > $f.lock
-    }
-  done
-}
-
-# Verify locks
-files_locked ()
-{
-  local id=$1
-  shift
-  for f in "$@"
-  do
-    test -e "$f.lock" || return 2
-    test "$(head -n 1 $f.lock | awk '{print $1}')" = "$id" || return 1
-  done
-}
-
-files_unlock()
-{
-  local id=$1 lock=
-  shift
-  std_info "Releasing resources from session $id ($*)"
-  for f in "$@"
-  do
-    test -e "$f.lock" && {
-      lock="$(head -n 1 $f.lock | awk '{print $1}')"
-      test "$lock" = "$id" && {
-        rm $f.lock
-        test -e "$f" || continue
-        echo $f
-      }
-    } || continue
-  done
-}
-
 # Collapse only line-comment-continuations completely.
 # See also line-conts-collapse, or filter-line-comments.
 line_comment_conts_collapse () # (s) ~ [<Marker-re>]
@@ -734,39 +729,53 @@ normalize_relative()
   esac
 }
 
-# FIXME: can Bourne Sh do pushd/popd in a function?
-#cmd_exists pushd || {
-#pushd()
-#{
-#  tmp=/tmp/pushd-$$
-#  echo "pushd \$\$=$$ $@"
-#  echo "$1" >>$tmp
-#  cd $1
-#}
-#popd()
-#{
-#  tmp=/tmp/pushd-$$
-#  echo "popd \$\$=$$ $@"
-#  tail -n 1 $tmp
-#  cd $(truncate_trailing_lines $tmp 1)
-#}
-#}
-#
-#pushd_cwdir()
-#{
-#  test -n "$CWDIR" -a "$CWDIR" != "$PWD" && {
-#    echo "pushd $CWDIR" "$PWD"
-#    pushd $WDIR
-#  } || set --
-#}
-#
-#popd_cwdir()
-#{
-#  test -n "$CWDIR" -a "$CWDIR" = "$PWD" && {
-#    echo "popd $CWDIR" "$PWD"
-#    test "$(popd)" = "$CWDIR"
-#  } || set --
-#}
+# Read outline structure into single rs/us separated line record.
+# TODO: Fields are prefixed and sub-structures collapsed.
+outline_reader ()
+{
+  # First, collapse blocks
+  while true
+  do
+    IFS=$'\n' read -r line || break
+    test '\' != "${line:$(( ${#line} - 1 ))}" && {
+      echo "$line"
+    } || {
+      # Collapse next block onto this line.
+      case "${line:$(( ${#line} - 2 ))}" in
+        ( ".\\" ) # Concatenate header in front of each line from sub-block
+          ;;
+        ( "-\\" ) # Concatenate header with sub-block as list items (RS)
+          ;;
+        ( " \\" ) # Concatenate header with sub-block lines into one line
+          ;;
+        ( * ) $LOG error :outline-reader "Unknown continuation form" "$_" 1 ||
+          return ;;
+      esac
+    }
+  done
+}
+
+# Test fileformat where table columns are spread one per line.
+outline_tsv_reader ()
+{
+  local line head fields
+  while IFS=$'\n' read -r line
+  do
+    test -n "$line" || continue
+    test "${line:0:2}" != "  " && {
+      test -z "$head" || {
+        printf '%s\t%s\n' "$head" "$fields"
+      }
+      head=$line
+      fields=
+    } || {
+      fields=${fields:-}${fields:+$'\t'}${line:2}
+    }
+  done
+  test -z "$head" || {
+    printf '%s\t%s\n' "$head" "$fields"
+  }
+}
 
 read_addcol ()
 {
@@ -846,32 +855,6 @@ read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
   return "$(echo "$stat" | cut -f1 -d' ')"
 }
 
-# [0|1] [line_number=] read-lines-while FILE WHILE [START] [END]
-#
-# Read FILE lines and set line_number while WHILE evaluates true. No output,
-# WHILE should evaluate silently, see lines-while. This routine sets up a
-# (subshell) pipeline from lines-slice START END to lines-while, and captures
-# only the status and var line-number from the subshel.
-#
-read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
-{
-  test -n "${1-}" || error "Argument expected (1)" 1
-  test -f "$1" || error "Not a filename argument: '$1'" 1
-  test -n "${2-}" -a $# -le 4 || return
-  local stat=''
-
-  read_lines_while_inner()
-  {
-    local r=0
-    lines_slice "${3-}" "${4-}" "$1" | {
-        lines_count_while_eval "$2" || r=$? ; echo "$r $line_number"; }
-  }
-  stat="$(read_lines_while_inner "$@")"
-  test -n "$stat" || return
-  line_number=$(echo "$stat" | cut -f2 -d' ')
-  return "$(echo "$stat" | cut -f1 -d' ')"
-}
-
 # Read file filtering octothorp comments, like this one, and empty lines
 # XXX: this one support leading whitespace but others in ~/bin/*.sh do not
 read_nix_style_file () # [cat_f=] ~ File [Grep-Filter]
@@ -910,6 +893,19 @@ sameas ()
 {
   test -f "$1" -a -f "$2" || error "sameas: two file name expected: $*" 1
   test $(stat -f "%i" "$1") -eq $(stat -f "%i" "$2")
+}
+
+# Abort shell at location.
+# XXX: This is a pretty effective way of aborting Bash. I wonder if there is
+# another way to get it.
+# Calling a function is not very useful, but this we can eval in-place. It can
+# be pretty short too:
+#
+#   eval `sh_gen_abort E123 "Something went wrong"`
+#
+sh_gen_abort () # ~ <Key-> <Msg-> # Generate script to abort shell
+{
+  local k=${1:-Abort}; k=${k//[^A-Za-z0-9_]/_}; echo "$k=;:\ \"\${$k:?\"${2-}\"}\""
 }
 
 shortdir () # ~ [<Dir>] # Wrapper to print short dir with Python

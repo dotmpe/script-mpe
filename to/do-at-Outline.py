@@ -1,6 +1,0 @@
-
-class Outline(object):
-    """
-
-    """
-
