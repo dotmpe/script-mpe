@@ -77,7 +77,5 @@ uc_script_load user-script
   user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"
-
   script_run "$@"
 }
-#

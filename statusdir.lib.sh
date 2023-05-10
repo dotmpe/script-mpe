@@ -28,7 +28,6 @@ statusdir_lib__load ()
 
 statusdir_lib__init ()
 {
-  lib_require sys || return
   test ${statusdir_lib_init:-1} -eq 0 || {
     test -n "${INIT_LOG:-}" && sd_log=$INIT_LOG || sd_log=$U_S/tools/sh/log.sh
 
@@ -36,7 +35,8 @@ statusdir_lib__init ()
       $sd_log  "error" "" "No root directory" "$STATUSDIR_ROOT"
       return 1
     }
-    statusdir_lib_start || return
+    statusdir_lib_start ||
+        $sd_log error "" "Failed to start" "E$?" $? || return
   }
 }
 
@@ -164,8 +164,9 @@ statusdir_record () #
   esac
 }
 
-# Load global settings
-statusdir_settings() #
+# Load global settings # XXX: builtins so could use PATH= command -v as well
+# ie. local PATH without tainting global env
+statusdir_settings () # ~
 {
   test -e ${STATUSDIR_ROOT}meta.sh || {
     $sd_log  "error" "" "Cannot find root settings"

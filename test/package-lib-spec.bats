@@ -23,8 +23,8 @@ teardown ()
 
 @test "$base: lib-load sets env" {
 
-  assert_equal "py" "$out_fmt" 
-  assert_equal ".meta" "$META_DIR"
+  assert_equal "py" "$out_fmt"
+  assert_equal ".meta" "$METADIR"
 }
 
 
@@ -32,9 +32,9 @@ teardown ()
 
   package_lib_auto= lib_init package
 
-  assert_equal "$ENV_LIBS"   "package"          
-  assert_equal "$LCACHE_DIR" "$META_DIR/cache"  
-  assert_equal "$PACK_DIR"   "$META_DIR/package"
+  assert_equal "$ENV_LIBS"   "package"
+  assert_equal "$LCACHE_DIR" "$METADIR/cache"
+  assert_equal "$PACK_DIR"   "$METADIR/package"
   test -z "${package_id-}"
 }
 
@@ -43,10 +43,10 @@ teardown ()
 
   lib_init package
 
-  assert_equal "$PACKAGE_JSON"  ".meta/cache/package.json" 
-  assert_equal "$package_id"    "script-2008b-mpe"               
-  assert_equal "$PACK_JSON"     ".meta/package/$package_id.json"  
-  assert_equal "$PACK_SH"       ".meta/package/$package_id.sh"    
+  assert_equal "$PACKAGE_JSON"  ".meta/cache/package.json"
+  assert_equal "$package_id"    "script-2008b-mpe"
+  assert_equal "$PACK_JSON"     ".meta/package/$package_id.json"
+  assert_equal "$PACK_SH"       ".meta/package/$package_id.sh"
 
   teardown
 

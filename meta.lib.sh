@@ -24,12 +24,16 @@
 
 meta_lib__load ()
 {
-  true "${META_DIR:=.meta}"
+  true "${METADIR:=.meta}" # Relative ref for local meta directory
 }
 
 meta_lib__init ()
 {
-  test -d "$META_DIR" || mkdir -p "$META_DIR"
+  test -z "${meta_lib_init:-}" || return ${meta_lib_init:-}
+  test -d "$METADIR" || {
+      mkdir -p "$METADIR"
+      $LOG warn : "Created local metadir" "$METADIR"
+    }
   # XXX: meta is both provider and backup, others are sources?
   # dotattributes-map is easier to use than to set every source per dir into
   # env manually

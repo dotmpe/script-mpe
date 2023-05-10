@@ -22,7 +22,7 @@ annex_htd_banlist ()
         ;;
     ( summary )
           btp_banned=$(count_lines "$BTP_BANNED") || r=$?
-          lognote "Bt-Peers-Banned" "$btp_banned"
+          $LOG notice :htd:banlist "Bt-Peers-Banned" "$btp_banned"
         ;;
 
     ( update-pg-gz | update-peerguardian-gzip )

@@ -79,8 +79,8 @@ INIT_LIB="\$default_lib str str-htd logger-theme match main std stdio sys os box
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Ignore 'load-ext' sub-command
-  test "$1" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
+  test "$1" != load-ext || lib_load=1
+  test -n "${lib_load-}" || {
     test_main "$@"
   }
 ;; esac

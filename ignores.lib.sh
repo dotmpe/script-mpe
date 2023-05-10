@@ -5,12 +5,7 @@
 
 ignores_lib__load()
 {
-  # XXX: default_env Script-Etc "$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1 )" ||
-  #  debug "Using Script-Etc '$SCRIPT_ETC'"
-  true "${SCRIPT_ETC:="$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1)"}"
-
-  #test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" ||
-  #    error "ignores: SCRIPT-ETC '$SCRIPT_ETC'" 2
+  lib_require list || return
 
   true "${IGNORES_CACHE_DIR:=".meta/cache"}"
 
@@ -26,6 +21,18 @@ ignores_lib__load()
 ignores_lib__init()
 {
   test "${ignores_lib_init-}" = "0" && return
+
+  # FIXME
+  return 0
+
+  # XXX: test -z "${ignores_lib_init:-}" || return ${ignores_lib_init:-}
+
+  # XXX: default_env Script-Etc "$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1 )" ||
+  #  debug "Using Script-Etc '$SCRIPT_ETC'"
+  true "${SCRIPT_ETC:="$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1)"}"
+
+  #test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" ||
+  #    error "ignores: SCRIPT-ETC '$SCRIPT_ETC'" 2
 
   # Begin with an initial IGNORE_GLOBFILE value with local filename based on
   # frontend, i.e. for `htd` this simply is HTD_IGNORE=.htdignore
@@ -49,15 +56,15 @@ ignores_refresh () # ~ [GROUPS]
 
 ignores_init()
 {
-  test -n "${1-}" || return
-  test -n "${2-}" || set -- $1 $(str_upper $1)
+  test -n "${1-}" || return ${_E_GAE:-193}
+  test -n "${2-}" || set -- $1 ${1^^}
 
   local varname=$(echo $2 | tr '-' '_')_IGNORE fname=.${1}ignore
 
   export IGNORE_GLOBFILE_VAR=$varname
   export IGNORE_GLOBFILE="$(try_var "$IGNORE_GLOBFILE_VAR")"
-  test -z "$DEBUG" || {
-    test -n "$IGNORE_GLOBFILE" || warn "No IGNORE_GLOBFILE for $varname set"
+  ! "${DEBUG:-false}" || {
+    test -n "$IGNORE_GLOBFILE" || $LOG warn : "No IGNORE_GLOBFILE for $varname set"
   }
 
   eval $varname=\"\${$varname-$fname}\"
@@ -131,7 +138,7 @@ ignores_groups()
           echo .bzrignore
         ;;
 
-      * ) error "Unhandled ignores-group '$*'" 1 ;;
+      * ) $LOG error : "Unhandled ignores-group" "$*" 1 ;;
     esac
     shift
   done | remove_dupes
@@ -140,7 +147,7 @@ ignores_groups()
 ignores_groups_exist()
 {
   set -- $(ignores_groups "$@" | lines_to_words ) # Remove options, resolve args
-  note "Resolved ignores to '$*'"
+  $LOG notice : "Resolved ignores to '$*'"
 
   while test $# -gt 0
   do
@@ -167,7 +174,7 @@ ignores_cat () # ~ FILES...
 {
   local src_a="$*"
   set -- $(ignores_groups "$@" | lines_to_words ) # Remove options, resolve args
-  note "Resolved ignores source '$src_a' to files '$*'"
+  $LOG warn : "Resolved ignores source '$src_a' to files '$*'"
 
   while test $# -gt 0
   do
@@ -176,7 +183,7 @@ ignores_cat () # ~ FILES...
       etc:* )
           read_if_exists \
             "$SCRIPT_ETC/htd/list-ignores/$(echo "$1" | cut -c5-)" ||
-              note "Nothing to read for '$1'" ;;
+              $LOG notice : "Nothing to read for '$1'" ;;
 
       * )
           read_if_exists "$1" ;;

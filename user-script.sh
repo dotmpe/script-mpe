@@ -120,23 +120,17 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
   fi
 }
 
-script_run () # ~ <Action-argv...>
+script_run () # ~ <Action <argv...>>
 {
-  #user_script_shell_env || return
   script_doenv "$@" || return
-  stdmsg '*debug' "Entering user-script $(script_version)"
-  local funn=${1//-/_}
+  ! uc_debug ||
+      $LOG info :uc:script-run "Entering user-script $(script_version)" \
+          "cmd:$script_cmd:als:${script_cmdals-(unset)}"
+  #stdmsg '*debug' "Entering user-script $(script_version)"
   shift
-  # XXX: prefer to use most specific name?
-  ! sh_fun "${baseid}_${funn}" || funn="$_"
-  sh_fun "$funn" || return 127
-  #  set -- usage -- "$funn" "$@"
-  #  script_doenv "$@" || return
-  #}
-  #! uc_debug ||
-  $LOG info :script-run:$base "Running main handler" "$script_cmd:$funn"
-
-  "$funn" "$@" || script_cmdstat=$?
+  ! uc_debug ||
+      $LOG info :script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
+  "$script_cmdfun" "$@" || script_cmdstat=$?
   script_unenv || return
 }
 
@@ -184,24 +178,33 @@ script_cmdid ()
     }
 }
 
-# Handle env setup (vars & sources) for script-entry
-script_doenv () # ~ <Argv...>
+# Handle env setup (vars & sources) for script-entry. Executes first existing
+# loadenv hook, unless it returns status E:not-found then it continues on to
+# the next doenv hook on script-bases.
+script_doenv () # ~ <Action <argv...>>
 {
   script_baseenv &&
   script_cmdid "${1:?}" || return
-
-  local _baseid
+  local _baseid stat
   for _baseid in $(${user_script_bases:-user_script_bases})
   do
     ! sh_fun "$_baseid"_loadenv || {
-      ! us_debug ||
-          $LOG info :script:doenv "Loadenv" "$_baseid"
-      "$_baseid"_loadenv "$@" ||
-        $LOG error :script:doenv "During loadenv" "E$?:$_baseid" $? || return
+      ! us_debug || $LOG info :script:doenv "Loadenv" "$_baseid"
+      "$_baseid"_loadenv "$@" || {
+        test ${_E_not_found:?} -eq $? && continue ||
+          $LOG error :script:doenv "During loadenv" "E$_:$_baseid" $_ ||
+            return
+      }
     }
   done
-
-  test -z "${DEBUGSH:-}" || set -x
+  script_cmdfun=${1//-/_}
+  # prefer to use most specific name, fallback to unprefixed handler function
+  ! sh_fun "${baseid}_${script_cmdfun}" || script_cmdfun="$_"
+  sh_fun "$script_cmdfun" || {
+    set -- $SCRIPTNAME usage -- "$script_cmd" "$@"
+    user_script_load "$@" || return
+    script_cmdfun=user_script_usage
+  }
 }
 
 script_edit () # ~ # Invoke $EDITOR on script source(s)
@@ -445,15 +448,24 @@ user_script_envvars () # ~ # Grep env vars from loadenv
   }
 }
 
-user_script_mkvid ()
+# FIXME: fixup before calling lib-init shell-uc
+user_script_fix_shell_name ()
 {
-  test $# -le 1 || return ${_E_GAE:-3}
-  test $# -eq 0 && {
-    echo "[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*"
-    return
+  PID_CMD=$(ps -q $$ -o command= | cut -d ' ' -f 1)
+  test "${SHELL_NAME:=$(basename -- "$SHELL")}" = "$PID_CMD" || {
+    test "$PID_CMD" = /bin/sh && {
+      ${LOG:?} note "" "$SHELL_NAME running in special sh-mode"
+    }
+    # I'm relying on these in shell lib but I keep getting them in the exports
+    # somehow
+    SHELL=
+    SHELL_NAME=
+    #|| {
+    #  $LOG warn ":env" "Reset SHELL to process exec name '$PID_CMD'" "$SHELL_NAME != $PID_CMD"
+    #  #SHELL_NAME=$(basename "$PID_CMD")
+    #  #SHELL=$PID_CMD
+    #}
   }
-  #echo "${1//[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*}"
-  echo "${1//[^A-Za-z0-9_]/_}"
 }
 
 # Transform glob to regex and invoke script-listfun for libs and other source
@@ -524,6 +536,26 @@ user_script_libload ()
   done
 }
 
+# init-required-libs
+user_script_initlibs () # ~ <Required-libs...>
+{
+  lib_require "$@" ||
+    $LOG error :us-initlibs "Failure loading libs" "E$?:$*" $? || return
+
+  set -- $lib_loaded
+  while true
+  do
+    $LOG info :us-initlibs "Initializing" "$*"
+    lib_init "$@" || {
+      test ${_E_retry:-198} -eq $? &&
+        continue ||
+        $LOG error :us-initlibs "Failure initializing libs" "E$_:$lib_loaded" $_ || return
+      }
+    test "$lib_loaded" = "$*" && break
+    set -- $lib_loaded
+  done
+}
+
 # Call before using defarg etc.
 user_script_load ()
 {
@@ -538,14 +570,18 @@ user_script_load ()
               lib_load user-script shell-uc str argv &&
               lib_init shell-uc ;;
 
+              # FIXME:
           ( usage )
               lib_load user-script str-htd shell-uc &&
               lib_init shell-uc ;;
 
           ( help ) set -- "" usage ;;
+          ( -- ) break ;;
 
-          ( * ) $LOG error :user-script:load "No such load action" "$1" 1 ||
-              return ;;
+          ( bash-uc ) lib_load bash-uc && lib_init bash-uc ;;
+
+          ( * ) $LOG error :user-script:load "No such load action" "$1" \
+              ${_E_not_found:?} || return ;;
       esac ||
           $LOG error :user-script:load "In load action" "E$?:$1" $? || return
       shift
@@ -556,13 +592,39 @@ user_script_load ()
 # deferring to handler.
 user_script_loadenv ()
 {
-  true "${US_BIN:="$HOME/bin"}" &&
-  true "${PROJECT:="$HOME/project"}" &&
-  true "${U_S:="$PROJECT/user-scripts"}" &&
-  true "${LOG:="$U_S/tools/sh/log.sh"}" &&
-  test -d "$US_BIN" &&
-  test "$SCRIPTNAME" != user-script.sh || {
-    user_script_load "${script_cmdals:-$script_cmd}"
+  : "${US_BIN:="$HOME/bin"}"
+  : "${PROJECT:="$HOME/project"}"
+  : "${U_S:="$PROJECT/user-scripts"}"
+  : "${LOG:="$U_S/tools/sh/log.sh"}"
+
+  # See std-uc.lib
+  #: "${_E_cont:=100}"
+  : "${_E_recursion:=111}" # unwanted recursion detected
+
+  : "${_E_NSFS:=124}" # NSFS: no-such-file(set): default missing, nullglob etc.
+  : "${_E_todo:=125}" # impl. missing
+  : "${_E_not_exec:=126}" # NEXEC not-an-executable
+  : "${_E_not_found:=127}" # NSFC no-such-file-or-command
+  # 128+ is mapped for signals (see trap -l)
+  # on debian linux last mapped number is 192: RTMAX signal
+  : "${_E_GAE:=193}" # generic-argument-error/exception
+  : "${_E_MA:=194}" # missing-arguments
+  : "${_E_next:=196}" # proceeed with batch/loop
+  : "${_E_break:=197}" # last step, finish batch, ie. stop loop now and wrap-up
+  : "${_E_retry:=198}" # must reinvoke
+  : "${_E_limit:=199}" # generic value/param OOB error?
+
+  TODO () { return ${_E_todo:?}; }
+
+  test -d "$US_BIN" || {
+    $LOG warn :loadenv "Expected US-BIN (ignored)" "$US_BIN"
+  }
+  user_script_fix_shell_name
+  user_script_shell_mode
+  test "$SCRIPTNAME" != user-script.sh && {
+    user_script_load bash-uc || return
+  } || {
+    user_script_load "${script_cmdals:-$script_cmd}" bash-uc
   } &&
   user_script_loaded=1
 }
@@ -572,84 +634,15 @@ user_script_longhelp () # ~ [<Name>]
   longhelp=1 user_script_help "$@"
 }
 
-# FIXME: cleanup
-user_script_shell_env ()
+user_script_mkvid ()
 {
-  ! test "${user_script_shell_env:-}" = "1" || return 0
-
-  user_script_shell_env=0
-
-  set -e
-
-  user_script_loadenv || { ERR=$?
-    printf "ERR%03i: Cannot load user-script env" "$ERR" >&2
-    return $ERR
+  test $# -le 1 || return ${_E_GAE:-3}
+  test $# -eq 0 && {
+    echo "[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*"
+    return
   }
-
-  . "$US_BIN"/os-htd.lib.sh || return
-  user_script_libload \
-      "${U_S:?}"/tools/sh/parts/fnmatch.sh \
-      "${U_S:?}"/tools/sh/parts/sh-mode.sh &&
-  test "${DEBUG:-0}" = "0" && {
-      sh_mode strict || return
-    } || {
-      sh_mode strict dev || return
-    }
-
-  PID_CMD=$(ps -q $$ -o command= | cut -d ' ' -f 1)
-  test "${SHELL_NAME:=$(basename -- "$SHELL")}" = "$PID_CMD" || {
-    test "$PID_CMD" = /bin/sh && {
-      ${LOG:?} note "" "$SHELL_NAME running in special sh-mode"
-    }
-    # I'm relying on these in shell lib but I keep getting them in the exports
-    # somehow
-    SHELL=
-    SHELL_NAME=
-    #|| {
-    #  $LOG warn ":env" "Reset SHELL to process exec name '$PID_CMD'" "$SHELL_NAME != $PID_CMD"
-    #  #SHELL_NAME=$(basename "$PID_CMD")
-    #  #SHELL=$PID_CMD
-    #}
-  }
-
-  # Set everything about the shell we are working in
-  shell_uc_lib__init || { ERR=$?
-    printf "ERR%03i: Cannot initialze Shell lib" "$ERR" >&2
-    return $ERR
-  }
-
-  test -z "${BASH_VERSION:-}" || {
-  # XXX: test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && {
-
-    set -u # Treat unset variables as an error when substituting. (same as nounset)
-    set -o pipefail #
-
-    test -z "${DEBUG:-}" || {
-
-      set -h # Remember the location of commands as they are looked up. (same as hashall)
-      set -E # If set, the ERR trap is inherited by shell functions.
-      set -T
-      set -e
-      shopt -s extdebug
-    }
-  }
-
-  test -z "${DEBUG:-}" ||
-    : "${BASH_VERSION:?"Not sure how to do debug"}"
-
-  test -z "${ALIASES:-}" || {
-    : "${BASH_VERSION:?"Not sure how to do aliases"}"
-
-    # Use shell aliases and templates to cut down on boilerplate for some
-    # user-scripts.
-    # This gives a sort-of macro-like functionality for shell scripts that is
-    # useful in some contexts.
-    shopt -s expand_aliases &&
-
-    us_shell_alsdefs
-  }
-
-  user_script_shell_env=1
+  #echo "${1//[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*}"
+  echo "${1//[^A-Za-z0-9_]/_}"
 }
 
 user_script_resolve_alias () # ~ <Name> #
@@ -719,6 +712,56 @@ user_script_resolve_handlers () # ~ <Handlers...> # List handlers for given name
   done
 }
 
+user_script_shell_mode ()
+{
+  test -n "${user_script_shell_mode:-}" && return
+  user_script_shell_mode=0
+
+  # XXX: see bash-uc init hook
+
+  #test -z "${DEBUGSH:-}" || set -x
+
+  #"${U_S:?}"/tools/sh/parts/sh-mode.sh &&
+  #test "${DEBUG:-0}" = "0" && {
+  #    sh_mode strict || return
+  #  } || {
+  #    sh_mode strict dev || return
+  #  }
+
+  #test -z "${BASH_VERSION:-}" || {
+  ## XXX: test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && {
+
+  #  set -u # Treat unset variables as an error when substituting. (same as nounset)
+  #  set -o pipefail #
+
+  #  test -z "${DEBUG:-}" || {
+
+  #    set -h # Remember the location of commands as they are looked up. (same as hashall)
+  #    set -E # If set, the ERR trap is inherited by shell functions.
+  #    set -T
+  #    set -e
+  #    shopt -s extdebug
+  #  }
+  #}
+  test -z "${DEBUG:-}" ||
+    : "${BASH_VERSION:?"Not sure how to do debug"}"
+
+  test -z "${ALIASES:-}" || {
+    : "${BASH_VERSION:?"Not sure how to do aliases"}"
+
+    # Use shell aliases and templates to cut down on boilerplate for some
+    # user-scripts.
+    # This gives a sort-of macro-like functionality for shell scripts that is
+    # useful in some contexts.
+    shopt -s expand_aliases &&
+
+    us_shell_alsdefs &&
+    user_script_alsdefs
+  }
+
+  user_script_shell_mode=1
+}
+
 # Display description how to evoke command or handler
 user_script_usage () # ~
 {
@@ -734,12 +777,13 @@ user_script_usage () # ~
     printf 'Usage:\n'
   }
 
+  lib_load str-htd || return
+
   # Resolve handler (if alias) and output formatted spec
   local us_aliases alias_sed handlers
   test $slf_l -eq 0 && {
       user_script_usage_handlers "$@" || {
-        $LOG error "" "in" "$@"
-        return 1
+        $LOG error :usage "handlers for" "E$?:$*" $? || return
       }
     } || {
       user_script_usage_handlers "$1" || true
@@ -871,14 +915,13 @@ user_script_usage_handlers ()
 {
   user_script_fetch_handlers "$@"
 
+  # FIXME:
   # Do any loading required for handler, so script-src/script-lib is set
-  # XXX: not loading might speed up a bit, but only as long as AST is not
-  # required later. See user-script-usage.
-  ! sh_fun "${baseid}"_loadenv || {
-    "${baseid}"_loadenv $handlers || {
-        $LOG error :handlers "Loadenv error" "E$?" $? || return
-    }
-  }
+  #! sh_fun "${baseid}"_loadenv || {
+  #  "${baseid}"_loadenv $handlers || {
+  #      $LOG error :handlers "Loadenv error" "E$?" $? || return
+  #  }
+  #}
 
   # Output handle name(s) with 'spec' and short descr.
   slf_h=1 user_script_handlers $handlers | sed "$alias_sed" | sed "
@@ -959,7 +1002,7 @@ us_shell_alsdefs ()
 
   # Generic error+return
   uc_shell_alsdefs[err-u-nsk]='
-    \$LOG error \"${1:-\$lk}\" \"${2:-"No such key/alias"}\" \"${3:-\$1}\";
+    \$LOG error \"${1:-\$lk}\" \"${2:-"No such key/selection"}\" \"${3:-\$1}\";
     return ${4:-1}
   '
 }
@@ -1112,7 +1155,6 @@ test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
 ! script_isrunning "user-script" .sh || {
 
   user_script_load || exit $?
-  #user_script_shell_env
 
   # Strip extension from SCRIPTNAME (and baseid)
   SCRIPT_BASEEXT=.sh

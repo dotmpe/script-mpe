@@ -7,7 +7,7 @@ package_lib__load () # (env PACKMETA) [env out_fmt=py]
 {
   lib_require sys os os-htd src || return
   test -n "${out_fmt-}" || out_fmt=py
-  test -n "${META_DIR-}" || META_DIR=.meta
+  test -n "${METADIR-}" || METADIR=.meta
 }
 
 package_lib__init () #
@@ -16,8 +16,8 @@ package_lib__init () #
   ENV_LIBS="${ENV_LIBS:-}${ENV_LIBS+" "}package"
   PACK_CACHE="PACKMETA_ID PACKMETA PACKMETA_SRC PACKAGE_JSON PACK_DIR PACK_ID PACK_JSON PACK_SH"
 
-  test -n "${LCACHE_DIR-}" || LCACHE_DIR=$META_DIR/cache
-  test -n "${PACK_DIR-}" || PACK_DIR=$META_DIR/package
+  test -n "${LCACHE_DIR-}" || LCACHE_DIR=$METADIR/cache
+  test -n "${PACK_DIR-}" || PACK_DIR=$METADIR/package
 
   test -n "${PACK_TOOLS-}" || PACK_TOOLS=$PACK_DIR/tools
   test -n "${PACK_ENVD-}" || PACK_ENVD=$PACK_DIR/envs
@@ -202,11 +202,11 @@ package_lib_set_local () # Package-Path [Require] [Id]
   # Detect wether Pre-process is needed
   grep -q '^#include\ ' "$PACKMETA" && {
     PACKMETA_SRC="$PACKMETA"
-    PACKMETA=$META_DIR/cache/package.$package_fmt
+    PACKMETA=$METADIR/cache/package.$package_fmt
     package_preproc || return
   } || PACKMETA_SRC=''
 
-  PACKAGE_JSON=$META_DIR/cache/package.json
+  PACKAGE_JSON=$METADIR/cache/package.json
   test -s $PACKAGE_JSON -a $PACKMETA -ot $PACKAGE_JSON || {
 
     package_lib_update_json || return

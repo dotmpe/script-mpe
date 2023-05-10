@@ -436,7 +436,7 @@ htd_filter_functions_output_csv()
   do
     test -n "$func_attr_value" || {
       test "$script_name" = "$current_script" || {
-        export __load_lib=1
+        export lib_load=1
         source $script_name
         current_script=$script_name
       }
@@ -455,7 +455,7 @@ htd_filter_functions_output_yaml()
   while read script_name func_key func_attr_key func_attr_value
   do
     test "$script_name" = "$current_script" || {
-      export __load_lib=1
+      export lib_load=1
       source $script_name
       echo "type: application/vnd.org.wtwta.box-instance"
       echo "script-name: $script_name"

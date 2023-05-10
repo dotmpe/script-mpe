@@ -1,6 +1,6 @@
 #!/bin/sh
 td__source=$_
-test -z "$__load_lib" || set -- "load-ext"
+test -z "$lib_load" || set -- "load-ext"
 
 
 # ----

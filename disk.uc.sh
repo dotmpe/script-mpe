@@ -5,9 +5,12 @@ test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
 uc_script_load user-script
 
 
-# Use alsdefs set to cut down on small multiline boilerplate bits.
-user_script_alsdefs \
-  sa_a1_disk_dev l-argv1-bdev disk_dev "" \$lk ""
+# XXX: setup aliases
+! script_isrunning "disk.uc.sh" || {
+  # Use alsdefs set to cut down on small multiline boilerplate bits.
+  user_script_alsdefs \
+    sa_a1_disk_dev l-argv1-bdev disk_dev "" \$lk ""
+}
 
 
 ## Main handlers

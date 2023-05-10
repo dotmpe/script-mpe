@@ -9,8 +9,23 @@ transmission_lib__load ()
   : "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"
 
   : "${TRANSMISSIONBT_TORRENTS_DIR:=$HOME/.config/transmission/torrents}"
+
+  # ID and also local bind/address running rpc for transmission-remote
+  : "${TRANSMISSIONBT_DEFAULT_CLIENT:=localhost:9091}"
 }
 
+
+transmission_instances ()
+{
+  std_pass "$(pidof -s transmission-gtk)" || return
+  echo "transmission $TRANSMISSIONBT_DEFAULT_CLIENT $_ transmission-gtk"
+}
+
+transmission_client_remote () # [TRANSMISSIONBT_REMOTE] ~
+{
+  : "${TRANSMISSIONBT_REMOTE:-${TRANSMISSIONBT_DEFAULT_CLIENT:?}}"
+  transmission-remote "$_" "$@"
+}
 
 # Log peers/torrents when seen on bittorrent net. By default only log for hashes
 # on our wishlist, corrupt or missing lists. I.e. not the current seeds.
@@ -33,13 +48,13 @@ btpeers_logupdate () # ~ <Ip-Addr> <Info-Hash> <Mode> <Percentage> <Client-Agent
   }
 
   # Check if IP/hash combo was ever seen for duration of log
-  btplr=$(grep "^[0-9]\{5,\} $1 $2 " "$BT_PEER_LOG" | tail -n 1) && {
+  btplr=$(grep "^[0-9]\{5,\} $1 $2 " "${BT_PEER_LOG:?}" | tail -n 1) && {
     # If seen, get previously seen data percentage
     pct=$(echo "$btplr" | awk '{print $5}')
     # Append to peer log if peer share has increased, or if monitoring leeches
     test "$4" != "-" -o ${btp_leechlog:-0} -eq 0 && [[ ! $pct < $4 ]]
   } || {
-    echo "$(date +'%s') $*" >>"$BT_PEER_LOG"
+    echo "$(date +'%s') $*" >>"${BT_PEER_LOG:?}"
   }
 }
 
@@ -79,7 +94,7 @@ transmission_get_item () # ~ <Name>
   test -e "$location/$1" || return 100
   pp="$location/$1"
 
-  #filetabs=$(transmission-remote -t "$num" -if | tail -n +3 | transmission_fix_item_cols)
+  #filetabs=$(transmission_client_remote -t "$num" -if | tail -n +3 | transmission_fix_item_cols)
   #echo "num=$numid
   #echo "$1"
   #echo "$location"
@@ -120,7 +135,7 @@ transmission_id () # ~ (id|hash|name) <Hash-or-Num-or-Name>
 
 transmission_info () # ~ <Id-Spec> <Key...> # Parse info output and set vars
 {
-  : "${ti:="$(transmission-remote -t "$1" -i)"}" || return
+  : "${ti:="$(transmission_client_remote -t "$1" -i)"}" || return
   shift
   ti_sh="$(
     while test $# -gt 0
@@ -176,7 +191,7 @@ transmission_item_check () # ~ [ <Handler <Arg...>> ]
   [[ $numid =~ \*$ ]] && {
     test $ti_c_quiet -eq 1 ||
       $LOG error "$lk" "Issues exist for" "$name"
-    return 100
+    return 100 # XXX: continue with next if desired, but mark current as failed
   }
 
   # Check if read loop works correctly, we may have to catch some more
@@ -195,9 +210,10 @@ transmission_item_check () # ~ [ <Handler <Arg...>> ]
   } || "$@"
 }
 
+# List run handler: list file(s) in share at client backend
 transmission_item_files () # ~
 {
-  filetabs=$(transmission-remote -t "$num" -if | tail -n +3)
+  filetabs=$(transmission_client_remote -t "$num" -if | tail -n +3)
   printf '%s:\n%s\n' "$name" "$(echo "$filetabs" | sed 's/^/  /')"
 }
 
@@ -237,13 +253,14 @@ transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
 
     return $?
   } || {
-    test "$1" = "-" || "$@"
+    test "$1" = "--" || "$@"
   }
 }
 
+# List run handler with operations: pause shares under conditions
 transmission_item_pause () # ~
 {
-  ti_c_quiet=1 transmission_item_percentage - || return
+  ti_c_quiet=1 transmission_item_percentage -- || return
 
   test "$State" = "Stopped" && {
       return
@@ -252,7 +269,7 @@ transmission_item_pause () # ~
       -a "$status" = "Idle" \
       -a ${ratio/.*} -ge 2 && {
 
-    transmission-remote -t "$btih" -S
+    transmission_client_remote -t "$btih" -S
     $LOG notice "" "Paused" "$btih:$name"
 
     #echo "to-pause: $num $Hash $ratio $pct/$Availability $have $status $up/$down"
@@ -273,23 +290,23 @@ transmission_item_pause () # ~
 
   #test "$have" != "None" && return
 
-  peers=$(grep " $Hash " "$BT_PEER_LOG") && {
+  peers=$(grep " $Hash " "${BT_PEER_LOG:?}") && {
     echo "to-pause: $num $name $Hash $Availability $have"
     echo "$peers"
   } || true
   # || {
     #echo pause: $num $Hash $Availability
-    transmission-remote -t "$btih" -S
+    transmission_client_remote -t "$btih" -S
     $LOG notice "" "Paused" "$btih:$name:$Availability"
   #}
 }
 
-transmission_item_peers () # ~
+transmission_item_peers () # ~ [<transmission_item_peers_logupdate>]
 {
-  ti_c_quiet=1 transmission_item_percentage - || return
+  ti_c_quiet=1 transmission_item_percentage -- || return
 
   # NOTE: -pi is an alias for -ip and --info-peers
-  peers=$(transmission-remote -t "$num" -pi | tail -n +2)
+  peers=$(transmission_client_remote -t "$num" -pi | tail -n +2)
   test -n "$peers" || return 100
 
   test ${quiet:-0} -eq 1 || {
@@ -299,12 +316,25 @@ transmission_item_peers () # ~
     echo "$peers" | sed 's/^/  /'
   }
 
+  # Finish peers handler: run peerlog update or defer to inner handler if args given
+  test $# -eq 0 && {
+    set -- transmission_item_peers_logupdate
+  }
+  test "${1:-}" = "--" || "$@"
+}
+
+transmission_item_peers_logupdate ()
+{
   # Updated bt net peer/hash log
   echo "$peers" | transmission_fix_item_cols |
+      tee -a "${METADIR:?}/tabs/btpeers.list" |
       while read -r ipaddr mode pct up down client_agent
       do
         btp_seedlog=1 btpeers_logupdate "$ipaddr" "$btih" "${mode:--}" "$pct" "$client_agent"
       done
+
+  #test $ti_pl_quiet -eq 1 ||
+  #    $LOG notice "$lk" "$num OK" "$name; $status"
 }
 
 # Scraping output we miss some raw data. This selects some and tries to use
@@ -332,13 +362,13 @@ transmission_item_percentage () # ~
 'Percentage: %s\nTotal size: %s\n' \
           "$numid" "$name" "$btih" "$status" "$avail" "$pct" "$size_tot"
   } || {
-    test "${1:-}" = "-" || "$@"
+    test "${1:?}" = "--" || "$@"
   }
 }
 
 transmission_item_available () # ~
 {
-  #ti_c_quiet=1 transmission_item_percentage - || return
+  #ti_c_quiet=1 transmission_item_percentage -- || return
   #test "$avail" = n/a || return 0
   transmission_list_item
 }
@@ -348,14 +378,20 @@ transmission_list_item () # ~
   echo "$numid ${pct:-n/a} $have $eta $up $down $ratio $status $name"
 }
 
-transmission_item_trackers () # ~
+transmission_item_trackers () # ~ [<Inner-handler>]
 {
-  trackers=$(transmission-remote -t "$num" -it)
-  tcnt=$(echo "$trackers" | grep 'Tracker [0-9]' | count_lines)
-  echo "$numid. $name ($tcnt)"
-  echo "$trackers" | grep '^ *Tracker [1-9][0-9]*: ' |
-      sed 's/^ *Tracker [1-9][0-9]*: //g'
-  # echo "$trackers" | grep 'an error' | sed 's/Got an error //' || true
+  trackers_raw=$(transmission_client_remote -t "$num" -it)
+  tcnt=$(echo "$trackers_raw" | grep -c 'Tracker [0-9]')
+  trackers=$(echo "$trackers_raw" | grep -oP '^ *Tracker\ [1-9][0-9]*: \K.*')
+  # echo "$trackers_raw" | grep 'an error' | sed 's/Got an error //' || true
+
+  test ${quiet:-0} -eq 1 || {
+    echo "$numid. $name (Trackers: $tcnt)"
+    echo "$trackers" | sed 's/^/  /'
+  }
+
+  test $# -eq 0 && return
+  test "${1:?}" = "--" || "$@"
 }
 
 transmission_item_validate () # ~
@@ -383,27 +419,29 @@ transmission_item_validate () # ~
   return 100
 }
 
-transmission_list () # ~
+# Container for actions that wrap `transmission-remote -l`, for more complex
+# commands and batch operations see usage of transmission-list-run.
+transmission_list () # ~ <Action ...> # Filter/process clients list output
 {
   test $# -gt 0 || set -- tab
   local lk=${lk:-}:transmission-list
   case "$1" in
 
     ( a|active )
-          transmission-remote -l | grep -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
+          transmission_client_remote -l | grep -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
     ( S|not-stopped )
-          transmission-remote -l | grep -v '\(None\|[1-9][0-9]*\) * Stopped ' ;;
+          transmission_client_remote -l | grep -v '\(None\|[1-9][0-9]*\) * Stopped ' ;;
     ( idle )
-          transmission-remote -l | grep 'Idle' ;;
+          transmission_client_remote -l | grep 'Idle' ;;
     ( e|errors|issues )
-          transmission-remote -l | grep -E '^ * [0-9]+\* ' ;;
+          transmission_client_remote -l | grep -E '^ * [0-9]+\* ' ;;
     ( popular )
-          transmission-remote -l |
+          transmission_client_remote -l |
             grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
             transmission_fix_item_cols | sort -k7n
         ;;
     ( s|stopped|paused )
-          transmission-remote -l | grep '\(None\|[0-9][0-9]*\) * Stopped ' ;;
+          transmission_client_remote -l | grep '\(None\|[0-9][0-9]*\) * Stopped ' ;;
 
     ( fix-cols )
           shift; transmission_list "$@" | transmission_fix_item_cols ;;
@@ -440,7 +478,7 @@ transmission_list () # ~
 "Sharing $sum in $cnt shares, current transfer rates: $down down, $up up"
         ;;
     ( tab|all )
-          transmission-remote -l ;;
+          transmission_client_remote -l ;;
     ( u|unknown )
           transmission_list xtab | grep Unknown | grep -E '^ *[0-9]+\*?  *n/a' ;;
     ( v|validate )
@@ -464,13 +502,15 @@ transmission_listarg ()
     true "${listarg:="fix-cols tab"}"
   done
   true "${listarg:="fix-cols tab"}"
-  listargc=$(( $listargc - $# ))
+  listargc=$(( listargc - $# ))
   $more
 }
 
 # A simple and compact basis to write handlers to parse transmission-remote -l
-# output.
-# This only handles arguments, the base parser is transmission_list_runner.
+# output. This only handles arguments to the reader and runner functions. See
+# tranmission-listarg, and the base runner/parser routine is in
+# transmission-list-runner. Handler name is a full function name, default is
+# transmission-item-check. See also other examples 'transmission_item_*' here.
 #
 transmission_list_run () # ~ [ <List-Arg...> -- ] <Handler <Args...>>
 {
@@ -483,7 +523,7 @@ transmission_list_run () # ~ [ <List-Arg...> -- ] <Handler <Args...>>
   lk=${lk:-}:list-run transmission_list $listarg | "$tl_runner" "$@"
 }
 
-# Basic reader for transmission_list xtab-formatted outputs.
+# Basic reader/parser line-handler for transmission_list xtab-formatted outputs.
 transmission_list_runner () # [quiet] ~ <Handler <Args...>>
 {
   test $# -gt 0 || set -- transmission_item_check
@@ -498,7 +538,7 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
       num=${numid//\*/}
       pct=$(echo "$pct" | tr -d 'n/a%')
 
-      test ${quiet:-0} -eq 1 || {
+      test ${tlr_quiet:-${quiet:-0}} -eq 1 || {
         test $(expr $num % ${tl_li:-100}) -ne 0 -o $num -eq 0 ||
           $LOG notice "$lk" "$num items read..."
       }
@@ -509,14 +549,14 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
           ret=1
           continue
         }
-        test ${quiet:-0} -eq 1 ||
-          $LOG "error" "$lk" "Failed on $num" "$name"
+        test ${tlr_quiet:-${quiet:-0}} -eq 1 ||
+          $LOG "error" "$lk" "Failed on $num" "E$r:$name"
         return $r
       }
 
     } || {
-      test ${quiet:-0} -eq 1 ||
-        $LOG notice "$lk" "Completed, summary:" \
+      test ${tlr_quiet:-${quiet:-0}} -eq 1 ||
+        $LOG notice "$lk" "All items read, summary:" \
             "size:$pct items:$num xfer:: up:$have down:$eta"
       break
     }
@@ -553,10 +593,23 @@ transmission_num_env () # ~ (hash|name)
   tid_chk=0 transmission_id "$1" "$num"
 }
 
+# XXX:
 transmission_remote () # ~ <Argv...>
 {
-  rpcres=$(transmission-remote "$@") &&
-  test "$rpcres" = 'localhost:9091/transmission/rpc/ responded: "success"'
+  local remote sessionid
+  remote="${TRANSMISSIONBT_REMOTE:-${REMOTE:-${TRANSMISSIONBT_DEFAULT_CLIENT:?}}}"
+  sessionid=$(REMOTE=$remote transmission_session_id)
+  test -n "$sessionid"
+  #curl -X HEAD -H X-Transmission-Session-Id:\ $session_id $remote/transmission/rpc/
+  #test "$rpcres" = 'localhost:9091/transmission/rpc/ responded: "success"'
+}
+
+transmission_session_id ()
+{
+  local remote
+  remote="${TRANSMISSIONBT_REMOTE:-${REMOTE:-${TRANSMISSIONBT_DEFAULT_CLIENT:?}}}"
+  curl -qs --head "$remote"/transmission/rpc/ |
+      grep -Po 'X-Transmission-Session-Id: \K.*'
 }
 
 transmission_share ()
@@ -566,13 +619,13 @@ transmission_share ()
   case "${1:?}" in
 
     ( find ) # ~ <Id-Spec> <Path>
-          transmission_remote -t "${2:?}" --find "${3:?}" ;;
+          transmission_client_remote -t "${2:?}" --find "${3:?}" ;;
     ( move ) # ~ <Id-Spec> <Path>
-          transmission_remote -t "${2:?}" --move "${3:?}" ;;
+          transmission_client_remote -t "${2:?}" --move "${3:?}" ;;
     ( s|start ) # ~ <Id-Spec>
-          transmission_remote -t "${2:?}" --start ;;
+          transmission_client_remote -t "${2:?}" --start ;;
     ( S|stop ) # ~ <Id-Spec>
-          transmission_remote -t "${2:?}" --stop ;;
+          transmission_client_remote -t "${2:?}" --stop ;;
 
     ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
   esac

@@ -11,6 +11,13 @@ web_lib__load ()
   }
 }
 
+web_instances ()
+{
+  # XXX: track clients, see bittorrent/transmission
+  std_pass "$(pidof -s $bin_http)" || return
+  echo "web default $_ $bin_http"
+}
+
 wanip()
 {
   test -x "$(which dig)" && {

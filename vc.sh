@@ -147,7 +147,7 @@ vc__edit()
   [ -n "$1" ] && fn=$1 || fn=$(which $scriptname)
   [ -n "$fn" ] || fn=$(which $scriptname.sh)
   [ -n "$fn" ] || error "Nothing to edit" 1
-  ( __load_lib= $EDITOR $fn )
+  ( lib_load= $EDITOR $fn )
 }
 vc_als___e=edit
 
@@ -1785,7 +1785,7 @@ main-init \
   test ! -z "${SCRIPTPATH-}" || return
 
 main-load \
-  local __load_lib=1 cwd="$PWD" \
+  local lib_load=1 cwd="$PWD" \
   # FIXME: sh autocompletion \
   #. ~/.conf/bash/git-completion.bash \
  \

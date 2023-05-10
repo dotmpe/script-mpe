@@ -3,7 +3,7 @@
 
 urlstat_lib__load ()
 {
-  lib_assert statusdir || return
+  lib_require statusdir || return
   test -n "${URLSTAT_TAB-}" || URLSTAT_TAB=${STATUSDIR_ROOT}index/urlstat.list
   test -n "${urlstat_invalid-}" || urlstat_invalid="!@Invalid !@Template"
 }

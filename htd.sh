@@ -4744,8 +4744,8 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   shopt -s extdebug
 
   # Ignore 'load-ext' sub-command
-  test "${1-}" != load-ext || __load_lib=1
-  test -n "${__load_lib-}" || {
+  test "${1-}" != load-ext || lib_load=1
+  test -n "${lib_load-}" || {
     htd_main "$@"
   }
 ;; esac

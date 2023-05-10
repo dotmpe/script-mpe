@@ -3,20 +3,20 @@
 
 env_lib__load ()
 {
-  test -n "${META_DIR-}" || META_DIR=.meta
+  test -n "${METADIR-}" || METADIR=.meta
 }
 
 env_lib__init ()
 {
   test "${env_lib_init-}" = "0" && return # One time init
-  test -n "${ENV_CACHE-}" || ENV_CACHE=$META_DIR/cache
+  test -n "${ENV_CACHE-}" || ENV_CACHE=$METADIR/cache
   test -n "${ENV_LIBS-}" || ENV_LIBS=
 }
 
 # List static env files
 env_list ()
 {
-  echo $META_DIR/cache/*-env.sh
+  echo $METADIR/cache/*-env.sh
 }
 
 env_update ()

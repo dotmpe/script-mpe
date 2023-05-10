@@ -1,3 +1,45 @@
+bittorrent_lib__load ()
+{
+  : "${BTCLIENTS:=transmission}"
+  test -z "${BTCLIENTS:-}" && return
+  lib_require $BTCLIENTS || return
+
+  : "${BT_INFODIR:=${METADIR:?}/info}"
+  : "${BT_LOGDIR:=${METADIR:?}/log}"
+  : "${BT_PEER_LOG:=$BT_LOGDIR/torrents-net.log}"
+}
+
+bittorent_lib__init ()
+{
+  test -d "$BT_LOGDIR" || mkdir -vp "$BT_LOGDIR" >&2
+  test -d "$BT_INFODIR" || mkdir -vp "$BT_INFODIR" >&2
+}
+
+
+bittorrent_instances ()
+{
+  local btclient
+  for btclient in $BTCLIENTS
+  do
+    "$btclient"_instances
+  done
+}
+
+# FIXME: client-id is not properly tracked yet, but one instance works fine
+bittorrent_list_run () # ~ <List-run-arg...> # Go over every open torrent
+{
+  test -z "${CLIENT_ID:-}" && {
+    local btclient
+    for btclient in $BTCLIENTS
+    do
+      "$btclient"_list_run "$@"
+    done
+  } || {
+    lk=bittorrent:$CLIENT/${CLIENT_PID:-} \
+    REMOTE=$CLIENT_ID "${CLIENT:?}"_list_run "$@"
+  }
+}
+
 # Parse Magnet URI reference with btih key. Pure bash solution to decode, split
 # and read values into variables. This captures the like-named field values as
 # variables ``magnetref-{dn,btih,tr}`` where the last one is an indexed array.

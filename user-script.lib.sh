@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ## Lib to bootstrap User-Script executables
 
@@ -12,7 +12,7 @@ user_script_lib__load ()
 
 user_script_lib__init ()
 {
-  $lib_require ignores || return
+  lib_require ignores || return
 
   test "${user_script_lib_init-}" = "0" && return
 
@@ -121,7 +121,7 @@ user_script_initlog ()
   # and may be profile that a bit because it can hide levels as well and would
   # be better for i.e. crond batch execution.
   test ${quicklog:-0} -eq 0 && {
-    #UC_LOG_LEVEL=${v:-5}
+    UC_LOG_LEVEL=${v:-5}
     . /etc/profile.d/uc-profile.sh && uc_log_init || return
     #shellcheck disable=1087 # Below is not an expansion
     UC_LOG_BASE="$base[$$]"
@@ -134,6 +134,20 @@ user_script_initlog ()
     uc_log() { $LOG "$@"; }
     LOG=quicklog
   }
+}
+
+# TODO: rename logwarn. See also initlog.
+# XXX: us-logwarn: if v is too low for normal interactive mode
+user_script_verbosity () # ~ [<Expected-level=6>] [Message] [Message-level=warn]
+{
+  local ev=${1:-6} msg
+  test $ev -eq 6 &&
+      msg="${2:-Turn up verbosity to INFO for full output}" ||
+      msg="${2:-Turn up verbosity for complete output}"
+  # XXX: STD_INTERACTIVE
+  test -t 1 || return
+  test $ev -le ${verbosity:-${v:-0}} ||
+      $LOG ${3:-warn} :verbosity "$msg" "1.$_:v=${v:-}"
 }
 
 # Last line of a user-script should be 'script_entry "<Scriptname>" ...'
