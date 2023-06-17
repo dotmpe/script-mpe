@@ -565,14 +565,6 @@ htd_current_context ()
 }
 
 
-htd_init_etc()
-{
-  lst_init_etc
-  #XXX: test ! -e .conf || echo .conf
-  #test ! -e $UCONF/htd || echo $UCONF
-}
-
-
 htd_modeline ()
 {
     read -r fileversion filename filemode <<< "$(grep -iPo "^# id: \K.*" "$@")"

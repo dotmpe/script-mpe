@@ -12,15 +12,19 @@ user_script_lib__load ()
 
 user_script_lib__init ()
 {
-  lib_require ignores || return
-
-  test "${user_script_lib_init-}" = "0" && return
+  lib_require os ignores || return
+  test -z "${user_script_lib_init:-}" || return $_
 
   true "${uname:="$(uname -s)"}"
   true "${US_BIN:=$HOME/bin}"
   true "${SCRIPT_ETC:=$US_BIN/etc}"
 }
 
+
+user_script_announce () # ~ <Arg...>
+{
+  $LOG notice "$lk" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+}
 
 user_script_check () # ~ # See that all variables are set
 {
@@ -82,12 +86,21 @@ user_script_filter () # ~ #
 # htdignore rules.
 user_script_find () # ~ # Find user-scripts in user-dirs
 {
-  user_script_find_exec | while read -r execname
+  user_script_find_exec | while read -r execpath
   do
+    test -s "$execpath" || {
+      ! ${quiet:-false} ||
+        $LOG warn "$lk" "Empty script" "$execpath"
+      continue
+    }
     # Look for exact 'script_entry' with '"$@"' as argument.
-    scre=$(grep '^ *script_entry [^ ]* "$@"\( \|$\)' "$execname") || continue
-    read -r _ scrna _ <<< "$scre"
-    eval "echo $scrna $execname"
+    scre=$(grep '^ *script_entry [^ ]* "$@"\( \|$\)' "$execpath") && {
+        read -r _ scrna _ <<< "$scre"
+        eval "echo $scrna $execpath"
+    }
+    scrr=$(grep '^ *script_run "$@"\( \|$\)' "$execpath") && {
+        eval "echo - $execpath"
+    }
   done
 }
 
@@ -97,14 +110,16 @@ user_script_find_exec () # ~ # Find executables from user-dirs
   # $UCONF/script/$uname $UCONF/script/Generic
 
   local find_ignores
-  find_ignores="$(ignores_find ~/bin/.htdignore.names | tr '\n' ' ')"
+  find_ignores="$(ignores_find ~/bin/.htdignore.names | tr '\n' ' ')" || return
 
   local bd
   for bd in "$@"
   do
-    eval "find $bd/ -false $find_ignores -o -executable -type f -print"
+    eval "find $bd/ -false $find_ignores -o -executable -type f -print" ||
+        return
   done
 }
+#user_script_find_exec__grp=user-script/find
 
 # With uc-profile available on a system it is easy to re-use Uc's log setup,
 # which also has received a fair amount of work and so should be less messy
@@ -124,10 +139,12 @@ user_script_initlog ()
     UC_LOG_LEVEL=${v:-5}
     . /etc/profile.d/uc-profile.sh && uc_log_init || return
     #shellcheck disable=1087 # Below is not an expansion
-    UC_LOG_BASE="$base[$$]"
-    uc_log "debug" "" "uc-profile log loaded"
+    UC_LOG_BASE="${base}[$$]"
+    true "${lk:=$UC_LOG_BASE}"
+    uc_log "debug" "$lk" "uc-profile log loaded"
     LOG=uc_log
   } || {
+    true "${lk:="${base}[$$]"}"
     # With many log statements and high verbosity may be this makes a difference
     # and is worth turning on for batch mode. But while running tl v it barely
     # makes 10% difference. uc-log should have other useful facilities as well.
@@ -140,6 +157,7 @@ user_script_initlog ()
 # XXX: us-logwarn: if v is too low for normal interactive mode
 user_script_verbosity () # ~ [<Expected-level=6>] [Message] [Message-level=warn]
 {
+  ${user_script_novwarn:-false} && return
   local ev=${1:-6} msg
   test $ev -eq 6 &&
       msg="${2:-Turn up verbosity to INFO for full output}" ||

@@ -6,10 +6,13 @@
 
 bg_lib__load ()
 {
-  true "${BG_RUND:=${XDG_RUNTIME_DIR:-/var/run/$(id -u)}/${SHELL_NAME:?}-bg}"
-  true "${BG_FIFO:=$BG_RUND.fifo}"
-  true "${bg_sock:=$BG_RUND.sock}"
+  true "${BG_BASE:=${SHELL_NAME:?}-bg}"
+  # bg:run-base: to store pid and keep fifo, socket etc.
+  true "${BG_RUNB:=${XDG_RUNTIME_DIR:-/var/run/$(id -u)}/${BG_BASE:?}}"
+  true "${BG_FIFO:=$BG_RUNB.fifo}"
+  true "${bg_sock:=$BG_RUNB.sock}"
 }
+
 
 #bg_start ()
 #{
@@ -47,7 +50,7 @@ bg_handle__eval ()
 
 bg_handle__eval_run ()
 {
-  outp=${BG_RUND:?}.stdout errp=${BG_RUND:?}.stderr statp=${BG_RUND:?}.stdstat
+  outp=${BG_RUNB:?}.stdout errp=${BG_RUNB:?}.stderr statp=${BG_RUNB:?}.stdstat
   mkfifo "$outp" "$errp" "$statp"
   #eval set -- "${@:?}"
   # Blocks bc pipes have no readers yet

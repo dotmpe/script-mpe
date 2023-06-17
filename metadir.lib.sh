@@ -4,7 +4,7 @@
 
 metadir_lib__load ()
 {
-  lib_require ctx-class stattab-uc || return
+  lib_require os-htd ctx-class stattab-uc || return
 
   : "${metadirs_default:="\{,.}meta"}"
   : "${METADIRS_TAB:=${STATUSDIR_ROOT:?}index/metadirs.tab}"
@@ -12,7 +12,7 @@ metadir_lib__load ()
 
 metadir_lib__init ()
 {
-  test -z "${metadir_lib_init:-}" || return ${metadir_lib_init:-}
+  test -z "${metadir_lib_init:-}" || return $_
 
   local found=false
   test -n "${metadir_default:-}" || {
@@ -22,9 +22,8 @@ metadir_lib__init ()
     done
   }
   $found || test -e "$metadir_default" || return
-
-  create metadirs StatTab METADIRS_TAB
-  $LOG info :metadir.lib:init "Loaded" "E$?" $?
+  #create metadirs StatTab $METADIRS_TAB
+  #$LOG info :metadir.lib:init "Loaded" "E$?" $?
 }
 
 

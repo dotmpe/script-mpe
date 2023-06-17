@@ -72,7 +72,7 @@ diskdoc_try_disk () # [dd-keys] ~ <Disk-dev> [<Diskdoc.yaml>]
 {
   local disk_dev=${1:?}; shift; test $# -gt 0 || set -- "${USER_DISKS:?}"
   # Get list of known Ids from diskdoc
-  : "${dd_media_keys:=$( diskdoc_list_disks "$@" )}" || return
+  if_ok "${dd_media_keys:=$( diskdoc_list_disks "$@" )}" || return
 
   { echo "$dd_media_keys" | grep -q "^$BSIZE-$SERIAL$"
   } && {

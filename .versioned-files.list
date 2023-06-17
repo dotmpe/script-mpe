@@ -4,7 +4,7 @@ package.yaml
 # FIXME: check its up to date before commit.. .package.sh
 package.json
 Rules.mk
-match.sh
+match-oldmk.sh
 test/sh-baseline.bats
 test/str-lib-spec.bats
 test/sys-lib-spec.bats
@@ -24,7 +24,7 @@ disk.sh
 diskdoc.sh
 projectdir.sh
 twitter.sh
-list.sh
+list-oldmk.sh
 bookmarks.py
 budget.py
 cllct_new.py

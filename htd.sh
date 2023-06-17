@@ -2669,7 +2669,10 @@ htd_grp__ck_clean=meta
 htd_grp__ck_metafile=meta
 
 
+htd_grp__exif=media
 htd_grp__ck_torrent=media
+htd_grp__read_torrents=media\ bittorrent
+htd_grp__read_torrent=media\ bittorrent
 htd_grp__mp3_validate=media
 
 
@@ -4222,9 +4225,6 @@ htd__darwin()
 htd_flags__darwin=f
 
 
-htd_grp__exif=media
-
-
 # Advanced init-symlinks script with multiple modes and attributes
 htd_spc__checkout='checkout ID-or-TABLE'
 htd_env__checkout='
@@ -4643,6 +4643,10 @@ htd__reader () # ~ <Files...>
     echo "File mode: $filemode" >&2
   done
 }
+
+#htd_libs__dev=htd-dev
+htd_grp__dev=htd-dev
+
 
 # -- htd box insert sentinel --
 

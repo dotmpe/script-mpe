@@ -12,6 +12,19 @@ todo_lib__init ()
   true "${package_todotxtm_src:="$UCONF/etc/todotxtm/*.ttxtm $UCONF/etc/todotxtm/project/*.ttxtm"}"
 }
 
+
+todo_env_init () # [todo-txt] ~
+{
+  test -n "${todo_txt-}" || {
+    test -e .todo.txt && todo_txt=.todo.txt || {
+        test -e todo.txt && todo_txt=todo.txt || {
+          return 1
+        }
+    }
+  }
+}
+
+
 # Get std. ISO date-only spec. For extend specs including time and
 # year/week see todo-txt-grep-dt-id
 todo_txt_grep_date()

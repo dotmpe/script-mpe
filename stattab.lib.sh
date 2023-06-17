@@ -5,12 +5,13 @@
 
 stattab_lib__load ()
 {
-  lib_assert statusdir || return
+  lib_require statusdir || return
   test -n "${STTAB-}" || STTAB=$(out_fmt= statusdir_lookup stattab.list index)
 }
 
 stattab_lib__init ()
 {
+  test -z "${stattab_lib_init:-}" || return $_
   return # XXX:
 
   test -n "${STTAB-}" || {

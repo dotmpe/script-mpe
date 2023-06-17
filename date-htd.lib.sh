@@ -4,6 +4,8 @@
 
 date_htd_lib__load()
 {
+  lib_require sys-htd os-htd str || return
+
   export TODAY=+%y%m%d0000
 
   # Age in seconds
@@ -32,11 +34,10 @@ date_htd_lib__load()
 }
 
 
-date_lib__init()
+date_htd_lib__init()
 {
-  test "${date_lib_init-}" = "0" && return
+  test "${date_htd_lib_init-}" = "0" && return
 
-  lib_assert sys os str || return
   test -n "${gdate-}" || case "$uname" in
     Darwin ) gdate="gdate" ;;
     Linux ) gdate="date" ;;

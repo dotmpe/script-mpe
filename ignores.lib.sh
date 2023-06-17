@@ -1,220 +1,149 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-# File and path ignore rules
+### Ignores: Filename and path ignore rules from lists of globs
+
+# Created: 2016-10-02
+
+# Most functions have moved to globlist.lib
+
+#      scm ) set -- "$@" $1-git $1-bzr $1-svn ;;
+#      scm-git ) set -- "$@" $1-global $1-local ;;
+#      scm-git-global )
+#          echo ~/.gitignore-global
+#          echo ~/.gitignore-clean-global
+#          echo ~/.gitignore-temp-global
+#        ;;
+#      scm-git-local )
+#          echo .gitignore
+#          echo .git/info/exclude
+#          # TODO: .attributes see pd:list-paths opts parsing;
+#        ;;
+#
+#      scm-svn ) ;;
+#      scm-hg ) ;;
+#      scm-bzr )
+#          echo .bzrignore
+#        ;;
 
 
 ignores_lib__load()
 {
-  lib_require list || return
+  lib_require str-htd date-htd meta || return
 
-  true "${IGNORES_CACHE_DIR:=".meta/cache"}"
+  : "${CONFIG_INCLUDE:=$HOME/bin/etc:${XDG_CONFIG_HOME:-$HOME/.config}:/etc}"
 
-  # Ignore any directoyr that has this entry
-  test -n "${IGNORE_DIR-}" || IGNORE_DIR=.ignore-dir
+  : "${ignores_basename:=ignore}"
+  : "${ignores_prefix=${base:-htd}}"
+  : "${IGNORES_BASE:=$ignores_prefix$ignores_basename}"
+  # Groups for primary globlist. This will depend on stddef and user prefs.
+  : "${IGNORE_GROUPS:="global local"}"
+  # Additionally to globs matches, ignore any directory with this entry
+  # XXX: only used in other libs currently
+  : "${IGNORE_DIR=.$IGNORES_BASE-dir}"
+  # Default file for main ignore globlist, listing every glob from IGNORE_GROUPS
+  : "${IGNORES_FILE:=.$IGNORES_BASE}"
+  # Filename extension, used for files that do not start with IGNORE_FILE prefix
+  : "${IGNORES_EXT=.globlist}"
+  # XXX: Currently using TTL to validate cache. Can be set empty to force
+  # explicit settings
+  : "${IGNORES_TTL=$_1DAY}"
 
-  test -n "${Path_Ignores-}" ||
-      Path_Ignores=$IGNORES_CACHE_DIR/ignores.globlist
+  # Template path for local/global config location
+  : "${ignores_use_local_config_dirs:=true}"
+  : "${IGNORES_CONFIG_BASE:=etc/$ignores_prefix$ignores_basename}"
 
-  Ignore_Groups="global local scm"
+  # Select mode to track cache-files: as neighbour to IGNORES_FILE or separately
+  : "${ignores_use_cachedir:=true}"
+  "$_" && {
+    : "${CACHE_DIR:-${METADIR:?}/cache}"
+    : "${IGNORES_CACHE_BASE:="$_/$IGNORES_BASE"}"
+  } || {
+    : "${IGNORES_CACHE_BASE:="$IGNORE_FILE-cache"}"
+  }
+
+  # Select file that will contain primary ignore globlist
+  : "${ignores_build:=true}"
+  "$_" && {
+    # Use main file as primary globlist, to be updated using IGNORE_GROUPS
+    : "${IGNORES:=$IGNORES_FILE}"
+  } || {
+    # Use cache file as generated for IGNORE_GROUPS directly
+    : "${IGNORES:=$IGNORES_CACHE_BASE-${IGNORE_GROUPS// /,}$IGNORES_EXT}"
+  }
 }
 
 ignores_lib__init()
 {
-  test "${ignores_lib_init-}" = "0" && return
+  test -z "${ignores_lib_init:-}" || return $_
 
-  # FIXME
-  return 0
-
-  # XXX: test -z "${ignores_lib_init:-}" || return ${ignores_lib_init:-}
-
-  # XXX: default_env Script-Etc "$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1 )" ||
-  #  debug "Using Script-Etc '$SCRIPT_ETC'"
-  true "${SCRIPT_ETC:="$( { htd_init_etc || ignore_sigpipe $?; } | head -n 1)"}"
-
-  #test -n "$SCRIPT_ETC" -a -e "$SCRIPT_ETC" ||
-  #    error "ignores: SCRIPT-ETC '$SCRIPT_ETC'" 2
+  # XXX: fill in ignore-groups and ignores array with groups/globlists
+  ignores_stddef &&
 
   # Begin with an initial IGNORE_GLOBFILE value with local filename based on
-  # frontend, i.e. for `htd` this simply is HTD_IGNORE=.htdignore
-  ignores_init "$base"
+  # frontend, i.e. for `htd` this by default would be HTD_IGNORE=.htdignore
+  true #globlist_init "$ignores_prefix" "" IGNORE
 }
 
 
-ignores_cache ()
+# Return find options sequence to ignore (prune) globs from groups
+ignores_find_expr () # ~ <Groups...>
 {
-  { test -e "$Path_Ignores" && newer_than "$Path_Ignores" $_1DAY
-  } || {
-    ignores_refresh
-  }
-}
-
-ignores_refresh () # ~ [GROUPS]
-{
-  test $# -gt 0 || set -- $Ignore_Groups
-  ignores_cat "$@" > "$Path_Ignores"
-}
-
-ignores_init()
-{
-  test -n "${1-}" || return ${_E_GAE:-193}
-  test -n "${2-}" || set -- $1 ${1^^}
-
-  local varname=$(echo $2 | tr '-' '_')_IGNORE fname=.${1}ignore
-
-  export IGNORE_GLOBFILE_VAR=$varname
-  export IGNORE_GLOBFILE="$(try_var "$IGNORE_GLOBFILE_VAR")"
-  ! "${DEBUG:-false}" || {
-    test -n "$IGNORE_GLOBFILE" || $LOG warn : "No IGNORE_GLOBFILE for $varname set"
-  }
-
-  eval $varname=\"\${$varname-$fname}\"
-  local value="$(eval echo "\$$varname")"
-
-  # XXX: why use tmp?
-  test -e "$value" || {
-    value=$(setup_tmpf $fname)
-    eval $varname=$value
-    touch $value
-  }
-  export $varname
-}
-
-# Keys for ignores-groups
-ignores_group_names()
-{
-  echo local global
-  echo purge clean drop
-  echo tracked ignored untracked
-}
-
-# Map group tags to filenames.
-# TODO: would be nice to have something extendable/customizable groups (list file paths)
-ignores_groups()
-{
-  while test $# -gt 0
+  local glob ctx=${at_GlobList:-globlist}
+  for glob in $(${ctx}_cat "$@")
   do
-    case "$1" in
-      purge ) set -- "$@" local-purge global-purge ;;
-      clean ) set -- "$@" local-clean global-clean ;;
-      drop ) set -- "$@"  local-drop global-drop ;;
-
-      ignore ) echo ".ignore" ;;
-
-      local ) set -- "$@" ignore local-clean local-purge local-drop ;;
-      local-clean )
-          echo $IGNORE_GLOBFILE-cleanable
-          echo $IGNORE_GLOBFILE-clean
-        ;;
-      local-drop )
-          echo $IGNORE_GLOBFILE-droppable
-          echo $IGNORE_GLOBFILE-drop
-        ;;
-      local-purge )
-          echo $IGNORE_GLOBFILE-purgeable
-          echo $IGNORE_GLOBFILE-purge
-        ;;
-
-      global ) set -- "$@" global-clean global-purge global-drop ;;
-      global-clean ) echo etc:cleanable.globs ;;
-      global-purge ) echo etc:purgeable.globs ;;
-      global-drop ) echo etc:droppable.globs ;;
-
-      scm ) set -- "$@" $1-git $1-bzr $1-svn ;;
-      scm-git ) set -- "$@" $1-global $1-local ;;
-      scm-git-global )
-          echo ~/.gitignore-global
-          echo ~/.gitignore-clean-global
-          echo ~/.gitignore-temp-global
-        ;;
-      scm-git-local )
-          echo .gitignore
-          echo .git/info/exclude
-          # TODO: .attributes see pd:list-paths opts parsing;
-        ;;
-
-      scm-svn ) ;;
-      scm-hg ) ;;
-      scm-bzr )
-          echo .bzrignore
-        ;;
-
-      * ) $LOG error : "Unhandled ignores-group" "$*" 1 ;;
-    esac
-    shift
-  done | remove_dupes
-}
-
-ignores_groups_exist()
-{
-  set -- $(ignores_groups "$@" | lines_to_words ) # Remove options, resolve args
-  $LOG notice : "Resolved ignores to '$*'"
-
-  while test $# -gt 0
-  do
-    case "$1" in
-
-      etc:* )
-            test -e \
-              "$SCRIPT_ETC/htd/list-ignores/$(echo "$1" | cut -c5-)" || {
-                  shift; continue; }
-          ;;
-
-      * )
-            test -e "$1" || { shift; continue; }
-          ;;
-
-    esac
-    echo "$1"
-    shift
+    ignores_find_glob_expr "$glob" || return
   done
 }
 
-# Convenient access to glob lists (cat files)
-ignores_cat () # ~ FILES...
+# Execute find, ignoring globs from groups
+ignores_find_files () # ~ <Prune-groups...>
 {
-  local src_a="$*"
-  set -- $(ignores_groups "$@" | lines_to_words ) # Remove options, resolve args
-  $LOG warn : "Resolved ignores source '$src_a' to files '$*'"
-
-  while test $# -gt 0
-  do
-    case "$1" in
-
-      etc:* )
-          read_if_exists \
-            "$SCRIPT_ETC/htd/list-ignores/$(echo "$1" | cut -c5-)" ||
-              $LOG notice : "Nothing to read for '$1'" ;;
-
-      * )
-          read_if_exists "$1" ;;
-
-    esac
-    shift
-  done
+  local find_ignores find_pwd=. find_arg="-a -print"
+  find_ignores="-false $(ignores_find_expr "$@")"\
+" -o -exec test -e \"{}/$IGNORE_DIR\" ';' -a -prune -o -true"
+  eval find ${find_opts:-"-H"} ${find_pwd:-.} \\\( $find_ignores \\\) $find_arg
 }
 
-glob_to_find_prune()
+ignores_find_glob_expr ()
 {
-  test -n "$1" || return
-
-  case "$1" in
-      /*/ ) echo "-o -path \"$1*\" -a -prune" ;;
-      */ ) echo "-o -path \"*/$1*\" -a -prune" ;;
-      /* ) echo "-o -path \"$1*\" -a -prune" ;;
-      */* ) echo "-o -path \"*/$1*\" -a -prune" ;;
-      * ) echo "-o -name \"$1\" -a -prune" ;;
+  case "${1:?}" in
+    ( /*/ ) echo "-o -path \"$1*\" -a -prune" ;;
+    (  */ ) echo "-o -path \"*/$1*\" -a -prune" ;;
+    ( /*  ) echo "-o -path \"$1*\" -a -prune" ;;
+    ( */* ) echo "-o -path \"*/$1*\" -a -prune" ;;
+    (  *  ) echo "-o -name \"$1\" -a -prune" ;;
   esac
 }
 
-# Return find ignore flags for given exclude pattern file
-ignores_find ()
+ignores_stddef ()
 {
-  for a in "$@"
-  do
-    test -e "$a" || {
-        $LOG error "" "No such file" "$a"; return 1; }
-    # Translate gitignore lines to find flags
-    read_nix_style_file $a | while read glob
-      do glob_to_find_prune "$glob"; done
-  done | grep -Ev '^(#.*|\s*)$'
+  declare -gA ignore_groups
+  declare -gA ignores
+
+  # Groups: every permutation of a few tags
+  ignore_groups[purge]=$(echo {local,global}-purge)
+  ignore_groups[clean]=$(echo {local,global}-clean)
+  ignore_groups[drop]=$(echo {local,global}-drop)
+  ignore_groups[local]=$(echo local-{purge,clean,drop})
+  ignore_groups[global]=$(echo global-{purge,clean,drop})
+
+  # Files
+  "${ignores_use_local_config_dirs:=true}" && {
+    ignores[local-purge]=$(echo ${IGNORES_CONFIG_BASE:?}/purge{,able}$IGNORES_EXT)
+    ignores[local-clean]=$(echo ${IGNORES_CONFIG_BASE:?}/clean{,able}$IGNORES_EXT)
+    ignores[local-drop]=$(echo ${IGNORES_CONFIG_BASE:?}/drop{,pable}$IGNORES_EXT)
+  } || {
+    ignores[local-purge]=$(echo ${IGNORES_FILE:?}-purge{,able})
+    ignores[local-clean]=$(echo ${IGNORES_FILE:?}-clean{,able})
+    ignores[local-drop]=$(echo ${IGNORES_FILE:?}-drop{,pable})
+  }
+
+  ignores[global-purge]=$(echo etc:purgeable)
+  ignores[global-clean]=$(echo etc:cleanable)
+  ignores[global-drop]=$(echo etc:droppable)
+
+  #ignores[ignore]=${IGNORES_FILE?}
+  #ignores[dir-ignore]=${IGNORE_DIR?}
 }
+
+#

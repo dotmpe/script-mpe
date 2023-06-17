@@ -41,7 +41,7 @@ archive_paths () # ~ [DIR] ['find'|'find-first'|'locate'|'locate-first']
   ignores_cache || return
 
   # shellcheck disable=SC2140
-  local find_ignores="-false $(ignores_find "$Path_Ignores")"\
+  local find_ignores="-false $(ignores_find "$IGNORES")"\
 " -o -exec test -e \"{}/$IGNORE_DIR\" ';' -a -prune -o -true"
 
   local archive_names="$(printf -- '-name "*.%s" -o ' $archive_exts) -false"

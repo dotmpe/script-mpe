@@ -183,18 +183,23 @@ filemtime() # ~ <File-path <...>>
   local flags=- ; file_stat_flags
   while test $# -gt 0
   do
-    case "${uname:?}" in
-      Darwin )
-          trueish "${file_names-}" && pat='%N %m' || pat='%m'
-          stat -f "$pat" $flags "$1" || return 1
-        ;;
-      Linux | CYGWIN_NT-6.1 )
-          trueish "${file_names-}" && pat='%N %Y' || pat='%Y'
-          stat -c "$pat" $flags "$1" || return 1
-        ;;
-      * ) $os_lib_log error "os" "filemtime: $uname?" "" 1 ;;
-    esac; shift
+    filemtime_${uname,,} "$1" || return
+    shift
   done
+}
+
+filemtime_darwin ()
+{
+  local flags= pat
+  "${file_names:-false}" && pat='%m %N' || pat='%m'
+  stat -f "$pat" $flags "${1:?}"
+}
+
+filemtime_linux ()
+{
+  local flags= pat
+  "${file_names:-false}" && pat='%Y %N' || pat='%Y'
+  stat -c "$pat" $flags "${1:?}"
 }
 
 # Use `file` to get mediatype aka. MIME-type
@@ -820,13 +825,6 @@ read_escaped ()
 {
   #shellcheck disable=2162 # Escaping can be useful to ignore line-ends, and read continuations as one line
   read "$@"
-}
-
-# Test for file or return before read
-read_if_exists ()
-{
-  test -n "${1-}" || return 1
-  read_nix_style_file "$@" 2>/dev/null || return 1
 }
 
 # [0|1] [line_number=] read-lines-while FILE WHILE [START] [END]

@@ -2,21 +2,35 @@
 
 todotxt_lib__load ()
 {
-  todotxt_env_init || true
   : "${ggrep:=grep}"
 }
 
 
-todotxt_env_init () # [todo-txt] ~
+todotxt_field_chevron_refs ()
 {
-  test -n "${todo_txt-}" || {
-    test -e .todo.txt && todo_txt=.todo.txt || {
-        test -e todo.txt && todo_txt=todo.txt || {
-          return 1
-        }
-    }
-  }
+  $ggrep -Po '(?<=<)[^ ]+(?=>)'
 }
+
+todotxt_field_context_tags ()
+{
+  $ggrep -Po '@[^ ]+'
+}
+
+todotxt_field_hash_tags ()
+{
+  $ggrep -Po '(?<=#)[^ ]+(?= |$)'
+}
+
+todotxt_field_meta_tags ()
+{
+  $ggrep -Po '[^ ]+:[^ ]+'
+}
+
+todotxt_field_project_tags ()
+{
+  $ggrep -Po '\+[^ ]+'
+}
+
 
 todotxt_tagged () # [todo-txt] ~ [<File>] <Tag-name>
 {

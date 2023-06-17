@@ -37,6 +37,7 @@
   #- '. \$CWD/.meta/attributes.sh'
   - '. \$CWD/.meta/package/main.sh'
   - 'CWD=\$UCONF . "\${_ENV:="\$UCONF/tools/\${ENV_GROUP:="sh"}/env.sh"}" || return'
+  - 'test -z "${SCRIPTPATH:-}" || export PATH=$SCRIPTPATH:$PATH'
   main: script-2008b-mpe
   type: application/vnd.org.wtwta.project
   vendor: dotmpe

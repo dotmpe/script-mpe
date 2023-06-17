@@ -1,6 +1,11 @@
-#
+
 . ${US_BIN:=${HOME:?}/bin}/_lib.sh
 
+# See bm-baseline for current state of benchmarking goals
+
+# Should want to generate scripts instead, execute those on a clean noiseless
+# environment and report/process the results. But until then this generates
+# actual numbers to compare some shell idioms for different use cases.
 
 test_q ()
 {
@@ -27,22 +32,24 @@ sh_noe ()
 # argv is passed to invocation for both cases.
 run_all () # ~ <Iter-count> [ <Prefix-prefix> <Test-name> | -- ] [ <Cmd <...>> ]
 {
-  local iter=${1:?} cmd=${2:?} handler
+  local iter=${1:?} cmd=${2:?} handler run_stat=${run_stat:-true}
   shift 2 || return
   handler=$(test "$cmd" = "--" && echo false || echo true)
   $handler && {
       cmd=${cmd}${1:-}
       shift
-      $LOG notice "Starting" "$cmd $*"
+      ${quiet:-false} ||
+          $LOG notice "run-all Starting $iter" "$cmd $*"
     } || {
-      $LOG notice "Starting" "$*"
+      ${quiet:-false} ||
+          $LOG notice "run-all Starting $iter" "$*"
     }
-  while test "$iter" -gt "0"
+  while test 0 -lt $iter
   do
     ! $handler && {
-      "$@" || true
+      "$@" || $run_stat
     } || {
-      ${cmd} "$@" || true
+      ${cmd} "$@" || $run_stat
     }
     iter=$(( iter - 1 ))
   done
@@ -135,6 +142,57 @@ funbody ()
 {
   declare -f "${1:?}" | tail -n +3 | head -n -1 | sed 's/^\s*//'
   #typeset -f "${1:?}" | sed 's/^\(\('"$1"' *() *\)\|\({ *\)\|}\)$//' | grep -v '^ *$'
+}
+
+time_gnu_parse_seconds ()
+{
+  local min sec
+  read -r _ min sec <<< "${1/m/ }"
+  : "${sec%s}"
+  echo "$(( 60 * min + ${_/.*} )).${_/*.}"
+}
+
+run_time ()
+{
+  ${quiet:-true} ||
+      $LOG notice :run-time "Starting timed run" "$*"
+  mapfile -t time_lines <<< "$( (time "$@" 2>&3 ) 3>&2 2>&1 )"
+  time_real=$(time_gnu_parse_seconds "${time_lines[1]}") &&
+  time_user=$(time_gnu_parse_seconds "${time_lines[2]}") &&
+  time_sys=$(time_gnu_parse_seconds "${time_lines[3]}")
+}
+
+sample_time ()
+{
+  local samples=${1:?} real=0 user=0 sys=0
+  shift
+  for sample in $(seq 1 $samples)
+  do
+    run_time "$@" || return
+    ${quiet:-true} ||
+        $LOG info :$sample/$samples "sampling runtime" "$time_real:$time_user:$time_sys"
+    real=$( echo $real + $time_real | bc -l )
+    user=$( echo $user + $time_user | bc -l )
+    sys=$( echo $sys + $time_sys | bc -l )
+  done
+  avg_real=$(echo "$real / $samples" | bc -l)
+  avg_user=$(echo "$user / $samples" | bc -l)
+  avg_sys=$(echo "$sys / $samples" | bc -l)
+}
+
+report_time () # ~ <Header=_> [<Tail...>]
+{
+  set -- "${1:-$_}" "${*:2}"
+  : "$(sed 's/00*\(\\t\|$\)/\1/g' <<< "real:$avg_real\tuser:$avg_user\tsys:$avg_sys" )"
+  echo -e "${1:-$_}\t$_${2:+\t}${2// /$'\t'}"
+}
+
+test_baseline () # ~ <Samples> <Runs> <Test-command-line...>
+{
+  local samples=${1:?} iter=${2:?}
+  shift 2
+  test $# -gt 0 || set -- true
+  sample_time $samples run_test $iter -- "$@"
 }
 
 # ID:

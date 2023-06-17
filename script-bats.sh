@@ -135,7 +135,7 @@ script_bats_main_init()
 # Use hyphen to ignore source exec in login shell
 case "$0" in "" ) ;; "-"* ) ;; * )
   # Ignore 'load-ext' sub-command
-  test -z "$__load_lib" || set -- "load-ext"
+  test -z "$lib_load" || set -- "load-ext"
   case "$1" in load-ext ) ;; * )
     script_bats_main "$@"
   ;; esac

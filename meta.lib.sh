@@ -29,7 +29,7 @@ meta_lib__load ()
 
 meta_lib__init ()
 {
-  test -z "${meta_lib_init:-}" || return ${meta_lib_init:-}
+  test -z "${meta_lib_init:-}" || return $_
   test -d "$METADIR" || {
       mkdir -p "$METADIR"
       $LOG warn : "Created local metadir" "$METADIR"

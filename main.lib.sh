@@ -199,7 +199,7 @@ main_handle () # Base-Ids Handle-Name [Default [Local...]]
 main_subcmd_func () # Subcmd
 {
   main_subcmd_alias "$1" && { set -- $subcmd; }
-  true "${subcmd_group:="$( main_value "$baseids" "grp" "" "$1" )"}"
+  : "${subcmd_group:="$( main_value "$baseids" "grp" "" "$1" )"}"
   test -z "$subcmd_group" || {
     main_subcmd_func_load $subcmd_group || return
   }
@@ -208,7 +208,7 @@ main_subcmd_func () # Subcmd
 
 main_subcmd_alias ()
 {
-  true "${subcmd_alias:="$( main_value "$baseids" "als" "" "$1" )"}"
+  : "${subcmd_alias:="$( main_value "$baseids" "als" "" "$1" )"}"
   test -z "$subcmd_alias" && return 1
   $us_log debug "" "Resolved '$1' alias to '$subcmd_alias'"
   subcmd=$subcmd_alias
@@ -216,7 +216,7 @@ main_subcmd_alias ()
 }
 
 # Recursively load libraries for subcmds
-main_subcmd_func_load () # Groups
+main_subcmd_func_load () # ~ <Groups...>
 {
   main_groups_load "$@" || {
     $us_log error "" "Loading groups for '$1'" "$subcmd_group"
@@ -232,13 +232,21 @@ main_subcmd_func_load () # Groups
   done
 }
 
-main_groups_load () # Groups...
+main_groups_load () # ~ <Groups...>
 {
-  local libs="$( for x in "$@"; do
-      test -e "$scriptpath/commands/$base-$x.lib.sh" &&
-          echo "$base-$x $x" || echo "$x" ; done )"
-  test -z "$libs" && return
+  local grp name libs
+  for grp in "$@"
+  do
+    for name in $base-$grp $grp
+    do
+      lib_exists "$name" >/dev/null && libs=${libs:-}${libs:+ }$name || continue
+    done
+  done
+  test -z "${libs:-}" && return
   lib_require $libs
+  test 0 -eq $? &&
+      $us_log info "" "Sourced libs for groups" "$*:$libs" ||
+      $us_log warn "" "Sourced libs for groups" "E$_:$*:$libs" $_
 }
 
 # Execute first found subcmd handle
@@ -396,8 +404,8 @@ parse_box_subcmd_opts()
 main_subcmd_run ()
 {
   local main=${main-"subcmd"} r group vid
-  : "${baseid:="$(mkvid $base && printf "$vid")"}"
-  : "${baseids:="$baseid main std"}"
+  if_ok "${baseid:="$(mkvid $base && printf "$vid")"}" &&
+  if_ok "${baseids:="$baseid main std"}" || return
 
   main_handle "$baseids" subcmd_load main_${main}_load || true
   $subcmd_load "$@" || return

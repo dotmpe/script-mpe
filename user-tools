@@ -310,9 +310,10 @@ user_tools_loadenv ()
       ( us_media ) set -- "$@" media ;;
 
       ( * ) set -- "" nerdfonts ;;
-    esac
+    esac || return
     shift
   done
+  $LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
 }
 
 

@@ -4,6 +4,8 @@
 
 sys_htd_lib__load()
 {
+  lib_require sys || return
+
   export _14MB=14680064
   export _6MB=7397376
   export _5k=5120
@@ -20,6 +22,8 @@ sys_htd_lib__load()
 sys_htd_lib__init()
 {
   test "${sys_htd_lib_init-}" = "0" && return
+
+  return 0 # FIXME: init-log
 
   test -n "${INIT_LOG-}" || return 102
 

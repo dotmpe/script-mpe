@@ -3,6 +3,8 @@
 
 web_lib__load ()
 {
+  #lib_require str:fnmatch
+
   # Match Ref-in-Angle-brachets or URL-Ref-Scheme-Path
   url_re='\(<[_a-zA-Z][_a-zA-Z0-9-]\+:[^> ]\+>\|\(\ \|^\)[_a-zA-Z][_a-zA-Z0-9-]\+:\/\/[^ ]\+\)'
   url_bare_re='[_a-zA-Z][_a-zA-Z0-9-]\+:\/[^>\ ]\+'
@@ -11,6 +13,7 @@ web_lib__load ()
   }
 }
 
+
 web_instances ()
 {
   # XXX: track clients, see bittorrent/transmission
@@ -18,23 +21,10 @@ web_instances ()
   echo "web default $_ $bin_http"
 }
 
-wanip()
-{
-  test -x "$(which dig)" && {
-    dig +short myip.opendns.com @resolver1.opendns.com || return $?
-  } || {
-    curl -s http://whatismyip.akamai.com/ || return $?
-  }
-}
 
-urlencode()
+ext_to_format () # XXX
 {
-  python -c "import urllib; print(urllib.quote_plus(\"$1\"));"
-}
-
-urldecode()
-{
-  python -c "import urllib; print(urllib.unquote_plus(\"$1\"));"
+  echo "$1"
 }
 
 htd_urls_encode()
@@ -45,47 +35,6 @@ htd_urls_encode()
 htd_urls_decode()
 {
   p= s= act=urldecode foreach_do "$@"
-}
-
-urls_grep () # [SRC|-]
-{
-  grep -io "$url_re" "$@" | tr -d '<>"''"' # Remove angle brackets or double quotes
-}
-
-# Scan for URLs in file. This scans both <>-enclosed and bare URL refs. To
-# avoid match on simple <q>:<name> pairs the std regex requires (net)path,
-# or use <>-delimiters.
-urls_list () # <Path>
-{
-  test $# -eq 1 || return 98
-  urls_grep "$1"
-  #| while read -r url
-  #do
-  #  fnmatch "*:*" "$url" && {
-  #    echo "$url"
-  #  } || {
-  #    #test -n "$fn" || fn="$(basename "$url")"
-  #    test -e "$url" || warn "No file '$url'"
-  #  }
-  #done
-}
-
-ext_to_format ()
-{
-  echo "$1"
-}
-
-urls_clean_meta ()
-{
-  tr -d ' {}()<>"'"'"
-}
-
-urls_list_clean ()
-{
-  test $# -eq 1 || return 98
-  local format=$(ext_to_format "$(filenamext "$1")")
-  func_exists urls_clean_$format || format=meta
-  urls_list "$1" | urls_clean_$format
 }
 
 # Download urls
@@ -124,12 +73,89 @@ htd_urls_urlstat() # Text-File [Init-Tags]
   htd_optsv $(lines_to_words $options)
   set -- $(lines_to_words $arguments)
 
-  lib_load urlstat
+  lib_load urlstat || return
   urlstat_file="$1" ; shift
   urlstat_check_update=$update
   urlstat_update_process=$process
   htd_urls_list "$urlstat_file" | Init_Tags="$*" urlstat_checkall
   rm "$failed"
+}
+
+http_deref () # ~ <URL> [<Last-Modified>] [<ETag>] [<Curl-argv>]
+{
+  test -z "${2:-}" || {
+    test -z "${3:-}" || {
+      ! fnmatch "*/*" "$2" &&
+      ! fnmatch "*/*" "$3" || {
+        http_deref_cache_etagfile "$2" "$3" "$1" "${@:4}"
+        return
+      }
+    }
+    ! fnmatch "*/*" "$2" &&
+    set -- "${@:1:3}" -H "If-Modified-Since: $2" "${@:4}" || {
+      http_deref_cache "$2" "$1" "${@:4}"
+      return
+    }
+  }
+  test -z "${3:-}" || set -- "${@:1:3}" -H "If-None-Match: ${3:?}" "${@:4}"
+  curl ${curl_f:--sfL} "${1:?}" "${@:4}"
+}
+
+http_deref_cache_etagfile () # ~ <Cache-file> <Etag-file> <URL-ref> [<Curl-argv>]
+{
+  test -e "${2:?}" && set -- "$@" --etag-compare "${2:?}"
+  http_deref_cache "${1:?}" "${@:3}" --etag-save "${2:?}"
+}
+
+http_deref_cache () # ~ <Cache-file> <URL-ref> [<Curl-argv...>]
+{
+  test -e "${1:?}" && set -- "$@" -z "${1:?}"
+  http_deref "${2:?}" "" "" "${@:3}" -o "${1:?}"
+}
+
+urls_clean_meta ()
+{
+  tr -d ' {}()<>"'"'"
+}
+
+urls_grep () # [SRC|-]
+{
+  grep -io "$url_re" "$@" | tr -d '<>"''"' # Remove angle brackets or double quotes
+}
+
+# Scan for URLs in file. This scans both <>-enclosed and bare URL refs. To
+# avoid match on simple <q>:<name> pairs the std regex requires (net)path,
+# or use <>-delimiters.
+urls_list () # <Path>
+{
+  test $# -eq 1 || return 98
+  urls_grep "$1"
+  #| while read -r url
+  #do
+  #  fnmatch "*:*" "$url" && {
+  #    echo "$url"
+  #  } || {
+  #    #test -n "$fn" || fn="$(basename "$url")"
+  #    test -e "$url" || warn "No file '$url'"
+  #  }
+  #done
+}
+
+urls_list_clean ()
+{
+  test $# -eq 1 || return 98
+  local format=$(ext_to_format "$(filenamext "$1")")
+  func_exists urls_clean_$format || format=meta
+  urls_list "$1" | urls_clean_$format
+}
+
+wanip()
+{
+  test -x "$(which dig)" && {
+    dig +short myip.opendns.com @resolver1.opendns.com || return $?
+  } || {
+    curl -s http://whatismyip.akamai.com/ || return $?
+  }
 }
 
 web_fetch() # URL [Output=-]
@@ -143,7 +169,6 @@ web_fetch() # URL [Output=-]
   esac
 }
 
-# Take an REST url and go request
 web_resolve_paged_json() # URL Num-Query Page-query
 {
   test -n "$1" -a "$2" -a "$3" || return 100
@@ -178,10 +203,59 @@ web_resolve_paged_json() # URL Num-Query Page-query
   rm -rf $tmpd/
 }
 
+
 json_list_has_objects()
 {
   jsotk -sq path $out '0' --is-obj || return
   # XXX: jq -e '.0' $out >>/dev/null || break
+}
+
+urldecode () # ~ <String>
+{
+  : "${1:?}"
+  # URL encoded spaces
+  : "${_//+/ }"
+  # Replace other URL encoded chars with something echo -e/printf understands
+  printf '%s\n' "${_//%/\\x}"
+}
+
+urldecode_py () # ~ <String>
+{
+  python -c "import urllib; print(urllib.unquote_plus(\"$1\"));"
+}
+
+urlencode () # ~ <String>
+{
+  ${ue_plus:-true} && set -- "${1// /+}"
+
+  local old_lc_collate=$LC_COLLATE
+  LC_COLLATE=C
+
+  local length="${#1}"
+  for (( i = 0; i < length; i++ )); do
+    local c="${1:$i:1}"
+    case $c in
+      ( [a-zA-Z0-9.~_+-] ) printf '%s' "$c" ;;
+      ( * ) printf '%%%02X' "'$c" ;;
+    esac
+  done
+
+  LC_COLLATE=$old_lc_collate
+}
+
+urlencode_py () # ~ <String>
+{
+  python -c "import urllib; print(urllib.quote_plus(\"$1\"));"
+}
+
+web_html2text ()
+{
+  set -- -dump 1 \
+	 -dump-width ${html_width:-79} \
+	 -dump-charset ${html_charset:-ascii} "$@"
+  ! ${html_refs:-true} || set -- -no-references "$@"
+  ! ${html_refnums:-true} || set -- -no-numbering "$@"
+  elinks "$@"
 }
 
 #

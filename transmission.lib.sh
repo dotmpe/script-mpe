@@ -8,19 +8,28 @@ transmission_lib__load ()
   : "${SHARE_DIR:=/srv/share-local}"
   : "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"
 
-  : "${TRANSMISSIONBT_TORRENTS_DIR:=$HOME/.config/transmission/torrents}"
+  : "${TRANSMISSIONBT_UC_DIR:=$HOME/.config/transmission}"
+  : "${TRANSMISSIONBT_BLOCKLIST_DIR:=${TRANSMISSIONBT_UC_DIR:?}/blocklist}"
+  : "${TRANSMISSIONBT_TORRENTS_DIR:=${TRANSMISSIONBT_UC_DIR:?}/torrents}"
+  : "${TRANSMISSIONBT_SETTINGS_JSON:=${TRANSMISSIONBT_UC_DIR:?}/settings.json}"
+  : "${TRANSMISSIONBT_STATS_JSON:=${TRANSMISSIONBT_UC_DIR:?}/stats.json}"
 
   # ID and also local bind/address running rpc for transmission-remote
   : "${TRANSMISSIONBT_DEFAULT_CLIENT:=localhost:9091}"
+
+  : "${TARGET_SEED_RATIO:=2}"
+
+  : "${_E_next:=196}" # failed, but can proceeed with batch/loop
 }
 
-
+# Manages just one default instance
 transmission_instances ()
 {
   std_pass "$(pidof -s transmission-gtk)" || return
   echo "transmission $TRANSMISSIONBT_DEFAULT_CLIENT $_ transmission-gtk"
 }
 
+# Wrapper to call currently selected instance
 transmission_client_remote () # [TRANSMISSIONBT_REMOTE] ~
 {
   : "${TRANSMISSIONBT_REMOTE:-${TRANSMISSIONBT_DEFAULT_CLIENT:?}}"
@@ -39,7 +48,7 @@ btpeers_logupdate () # ~ <Ip-Addr> <Info-Hash> <Mode> <Percentage> <Client-Agent
 
   # If 0.0 is reported, check if Transmission knowns about availabiity
   test "$4" = "0.0" && {
-    ti= transmission_info "$2" "Availability"
+    ti="" transmission_torrent_info "$2" "Availability"
     test "$Availability" != "-nan%" || {
       # Don't know if share has metadata, Transmission doesn't know about it
       test ${btp_leechlog:-0} -eq 0 && return
@@ -48,13 +57,13 @@ btpeers_logupdate () # ~ <Ip-Addr> <Info-Hash> <Mode> <Percentage> <Client-Agent
   }
 
   # Check if IP/hash combo was ever seen for duration of log
-  btplr=$(grep "^[0-9]\{5,\} $1 $2 " "${BT_PEER_LOG:?}" | tail -n 1) && {
+  btplr=$(grep "^[0-9]\{5,\} $1 $2 " "${BTLOG_PEERS:?}" | tail -n 1) && {
     # If seen, get previously seen data percentage
     pct=$(echo "$btplr" | awk '{print $5}')
     # Append to peer log if peer share has increased, or if monitoring leeches
     test "$4" != "-" -o ${btp_leechlog:-0} -eq 0 && [[ ! $pct < $4 ]]
   } || {
-    echo "$(date +'%s') $*" >>"${BT_PEER_LOG:?}"
+    echo "$(date +'%s') $*" >>"${BTLOG_PEERS:?}"
   }
 }
 
@@ -90,8 +99,8 @@ transmission_fix_item_cols () # (std) ~ # Remove whitespace from column values
 # Ask transmission for download location of torrent
 transmission_get_item () # ~ <Name>
 {
-  ti= transmission_info "$1" location:Location || return
-  test -e "$location/$1" || return 100
+  ti= transmission_torrent_info "$1" location:Location || return
+  test -e "$location/$1" || return ${_E_next:?}
   pp="$location/$1"
 
   #filetabs=$(transmission_client_remote -t "$num" -if | tail -n +3 | transmission_fix_item_cols)
@@ -119,13 +128,13 @@ transmission_id () # ~ (id|hash|name) <Hash-or-Num-or-Name>
   local ti=
   case "$1" in
     ( info-hash|btih|hash ) # ~ <Id-Spec> # Ensure BTIH env for torrent ID
-          test -n "$btih" || transmission_info "$1" btih:Hash
+          test -n "$btih" || transmission_torrent_info "$1" btih:Hash
         ;;
     ( id|num ) # ~ <Id-Spec> # Ensure numeric ID env for torrent ID
-          test -n "$num" || transmission_info "$1" num:ID
+          test -n "$num" || transmission_torrent_info "$1" num:ID
         ;;
     ( info-name|name ) # ~ <Id-Spec> # Ensure Info-Name env for torrent ID
-          test -n "$name" || transmission_info "$1" name:Name
+          test -n "$name" || transmission_torrent_info "$1" name:Name
         ;;
     ( - ) ;;
 
@@ -133,9 +142,29 @@ transmission_id () # ~ (id|hash|name) <Hash-or-Num-or-Name>
   esac
 }
 
-transmission_info () # ~ <Id-Spec> <Key...> # Parse info output and set vars
+transmission_info ()
 {
-  : "${ti:="$(transmission_client_remote -t "$1" -i)"}" || return
+  case "${1:?}" in
+    ( stats ) transmission_client_remote -st
+      ;;
+    ( session-info ) transmission_client_remote -si
+      ;;
+    ( up|down|up-down|updown )
+        transmission_client_remote -l | tail -n 1 | {
+          read -r _ _ _ up down
+          case "$1" in
+            ( up ) echo "$up";;
+            ( down ) echo "$down";;
+            ( up-down|updown ) echo "$up $down";;
+          esac
+        }
+      ;;
+  esac
+}
+
+transmission_torrent_info () # ~ <Id-Spec> <Key...> # Parse info output and set vars
+{
+  if_ok "${ti:="$(transmission_client_remote -t "$1" -i)"}" || return
   shift
   ti_sh="$(
     while test $# -gt 0
@@ -147,8 +176,8 @@ transmission_info () # ~ <Id-Spec> <Key...> # Parse info output and set vars
         field=$1 var=${1// /_}
       }
       # NOTE: Availability field is duplicated for missing-metadata downloads
-      echo "$ti" | grep -m 1 "^ *$field:" | sed '
-          s/^ *[^:]*: \(.*\)$/'"$var"'="\1"/
+      echo "${ti//\'/\\\'}" | grep -m 1 "^ *$field:" | sed '
+          s/^ *[^:]*: \(.*\)$/'"$var"'='"'"'\1'"'"'/
         '
       shift
     done )"
@@ -185,13 +214,12 @@ transmission_is_item () # ~ [name|hash] <Info-Name-or-Hash>
 # be using the validate function now when things go amiss.
 transmission_item_check () # ~ [ <Handler <Arg...>> ]
 {
-  local lk="${lk:-}:check"
   true "${ti_c_quiet:=${quiet:-0}}"
 
   [[ $numid =~ \*$ ]] && {
     test $ti_c_quiet -eq 1 ||
       $LOG error "$lk" "Issues exist for" "$name"
-    return 100 # XXX: continue with next if desired, but mark current as failed
+    return ${_E_next:?}
   }
 
   # Check if read loop works correctly, we may have to catch some more
@@ -208,6 +236,28 @@ transmission_item_check () # ~ [ <Handler <Arg...>> ]
     test $ti_c_quiet -eq 1 ||
       $LOG notice "$lk" "$num OK" "$name; $status"
   } || "$@"
+}
+
+# Reset variables that are not read directly as part of while-read-loop.
+transmission_item_clearenv ()
+{
+  tjs= mijs= btih= dn= tbn= in= length= parts=
+  #tf
+  avail= avail_pct= size_tot= progress=
+  test $# -eq 0 || "$@"
+}
+
+transmission_item_echo () # ~
+{
+  local out="$numid. $name
+    Status:$status Progress:${pct:-n/a}"
+  test -z "${eta:-}" || out="$out ETA:$eta"
+  test -z "${have:-}" || out="$out Have:$have"
+  test -z "${avail:-}" || out="$out Available:$avail"
+  test -z "${ratio:-}" || out="$out Ratio:$ratio"
+  test -z "${size_tot:-}" || out="$out Total-size:$size_tot"
+  test -z "$up" -a -z "$down" || out="$out Speed:$up/$down"
+  echo "$out"
 }
 
 # List run handler: list file(s) in share at client backend
@@ -233,7 +283,7 @@ transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
     return 1
   }
   local ti
-  transmission_info "$num" $keymap || return
+  transmission_torrent_info "$num" $keymap || return
 
   test $# -eq 0 && {
     set -- $keymap
@@ -257,57 +307,89 @@ transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
   }
 }
 
-# List run handler with operations: pause shares under conditions
-transmission_item_pause () # ~
+# List-run handler: Count shares using various selectors
+transmission_item_count () # ~ [<Modes...>] [-- <Inner-handler>]
 {
-  ti_c_quiet=1 transmission_item_percentage -- || return
-
-  test "$State" = "Stopped" && {
-      return
-  }
-  test "$pct" = "100" \
-      -a "$status" = "Idle" \
-      -a ${ratio/.*} -ge 2 && {
-
-    transmission_client_remote -t "$btih" -S
-    $LOG notice "" "Paused" "$btih:$name"
-
-    #echo "to-pause: $num $Hash $ratio $pct/$Availability $have $status $up/$down"
-  }
-  #test "$down" = "0.0" \
-  #-a "$up" = "0.0" \
-
-  #echo "$num $name $up $down"
-  return 0
-  test "$Availability" = "100%" -o "$status" != "Idle" || {
-
-    #:$Availability"
-    return
-  }
-
-  # Keep fishing for missing metadata
-  test -z "$pct" && return
-
-  #test "$have" != "None" && return
-
-  peers=$(grep " $Hash " "${BT_PEER_LOG:?}") && {
-    echo "to-pause: $num $name $Hash $Availability $have"
-    echo "$peers"
-  } || true
-  # || {
-    #echo pause: $num $Hash $Availability
-    transmission_client_remote -t "$btih" -S
-    $LOG notice "" "Paused" "$btih:$name:$Availability"
-  #}
+  transmission_item_clearenv
+  transmission_item_share_select "$@" || return
+  while test $# -gt 0
+  do
+    ti_sel=count share_select "$@" || {
+      test ${_E_next:?} -eq $? && return ||
+          test ${_E_break:?} -eq $_ && break ||
+              return $_
+    }
+    shift
+    test $# -eq 0 && return
+  done
+  #transmission_item_echo
+  sa_ti_lctx_progress
+  $LOG notice ":$numid" "Counted share" "$lctx"
+  counted=$(( counted + 1 ))
+  sa_next_seq
+  test $# -eq 0 || "$@"
+}
+transmission_item_count_pre ()
+{
+  counted=0
+}
+transmission_item_count_post ()
+{
+  $LOG crit : "Counted $counted shares" "$*"
 }
 
+# List-run handler: Pause shares using various modes.
+transmission_item_pause () # ~ [<Modes...>] [-- <Inner-handler>]
+{
+  ! ${skip_issues:-true} || {
+    ${has_issue:-false} && return
+  }
+  case "$status" in ( Stopped | Finished | Queued ) return 0 ;; esac
+  transmission_item_clearenv
+  transmission_item_share_select "$@" || return
+
+  # Inclusive selection modes break on matching, exclusive modes return from
+  # handler upon not-matching. FIXME: add prefix to trigger behaviour
+  # The first modes are inclusive select: when triggered the immeadeatly skip to
+  # the share-start action, else the next mode is checked.
+  # Some other modes are excluse, when not applicable they stop the pause handler
+  # immeadeatly and the runner continues check the next share.
+  while test $# -gt 0
+  do
+    ti_sel=pause share_select "$@" || {
+      test ${_E_next:?} -eq $? && return ||
+          test ${_E_break:?} -eq $_ && break ||
+              return $_
+    }
+    shift
+    test $# -eq 0 && return
+  done
+
+  sa_ti_lctx_progress
+  transmission_remote_do -t "$num" -S &&
+      $LOG notice ":$numid" "Paused" "$lctx" ||
+      $LOG error ":$numid" "Error pausing" "E$?:$lctx" $?
+  paused=$(( paused + 1 ))
+  sa_next_seq
+  test $# -eq 0 || "$@"
+}
+transmission_item_pause_pre ()
+{
+  paused=0
+}
+transmission_item_pause_post ()
+{
+  $LOG crit : "Paused $paused shares" "$*"
+}
+
+# Collect lists of currently connected peers per share
 transmission_item_peers () # ~ [<transmission_item_peers_logupdate>]
 {
-  ti_c_quiet=1 transmission_item_percentage -- || return
+  ti_c_quiet=1 transmission_item_share_info -- || return
 
   # NOTE: -pi is an alias for -ip and --info-peers
   peers=$(transmission_client_remote -t "$num" -pi | tail -n +2)
-  test -n "$peers" || return 100
+  test -n "$peers" || return ${_E_next:?}
 
   test ${quiet:-0} -eq 1 || {
     test $status = Idle &&
@@ -325,6 +407,8 @@ transmission_item_peers () # ~ [<transmission_item_peers_logupdate>]
 
 transmission_item_peers_logupdate ()
 {
+  ti="" transmission_torrent_info "$num" btih:Hash || return
+
   # Updated bt net peer/hash log
   echo "$peers" | transmission_fix_item_cols |
       tee -a "${METADIR:?}/tabs/btpeers.list" |
@@ -337,47 +421,152 @@ transmission_item_peers_logupdate ()
   #    $LOG notice "$lk" "$num OK" "$name; $status"
 }
 
-# Scraping output we miss some raw data. This selects some and tries to use
-# proper variable names.
-transmission_item_percentage () # ~
+transmission_item_select () # ~
+{
+  transmission_item_clearenv
+  transmission_item_share_select "$@" || return
+  while test $# -gt 0
+  do
+    ti_sel=pause share_select "$@" || {
+      test ${_E_next:?} -eq $? && return ||
+          test ${_E_break:?} -eq $_ && break ||
+              return $_
+    }
+    shift
+    test $# -eq 0 && return
+  done
+  transmission_item_echo
+  selected=$(( selected + 1 ))
+  sa_next_seq
+  test $# -eq 0 || "$@"
+}
+transmission_item_select_pre ()
+{
+  selected=0
+}
+transmission_item_select_post ()
+{
+  $LOG crit : "Selected $selected shares" "$*"
+}
+
+# FIXME: (tl-li) ~ [<Inner-handlers> ] -- <Query> [ -- <...> ]
+transmission_item_share_select () # (tl-li) ~ <Query...>
+{
+  local fields
+  fields=$(share_select_info "$@") || return
+  transmission_info_fields $fields
+}
+
+transmission_info_fields ()
+{
+  local fields="$*"
+  set -- $(for field in $fields
+      do test -z "${!field:-}" || continue # Skip already defined vars
+        case "$field" in
+        ( num|numid|pct|have|eta|up|down|ratio|status|name ) ;;
+        ( btih ) echo $field:Hash ;;
+        ( progress ) echo $field:Percent.Done ;;
+        ( avail ) echo $field:Availability ;;
+        ( size_tot ) echo $field:Total.size ;;
+        ( * ) $LOG error "$lk:transmission-info-fields" "Unknown field" "$field" 1 ;;
+        esac
+      done)
+  test $# -eq 0 && return
+  # Retrieve fields from running client
+  # $LOG debug : "Retrieving torrent info" "$*"
+  ti="" transmission_torrent_info "$num" "$@" || return
+  # Do some post handling on values just retrieved
+  local field
+  for field in $fields
+  do
+    case "$field" in
+    ( num|numid|pct|have|eta|up|down|ratio|status|name ) ;;
+    ( btih ) ;;
+    ( progress )
+        test "$progress" = "-nan%" -o "$progress" = "None" && progress=
+        progress="${progress//%}"
+        test -z "$progress" || {
+            test "${progress/.}" != "$progress" || progress=$progress.0
+        }
+      ;;
+    ( avail )
+        test "$avail" = "-nan%" -o "$avail" = "None" && avail=
+        avail="${avail//%}"
+        test -z "$avail" || {
+            test "${avail/.}" != "$avail" || avail=$avail.0
+        }
+      ;;
+    ( size_tot ) ;;
+    ( * ) $LOG error "$lk:transmission-info-fields" "Unknown field" "$field" 1 ;;
+    esac
+  done
+}
+
+# List-run helper to fetch health facts for info hash.
+transmission_item_share_info () # ~ <Fields...>
 {
   # Skip shares with issues and abort on unknown status
-  transmission_item_check || return
+  ! ${ti_check:-false} || transmission_item_check || return
 
-  ti= transmission_info "$num" btih:Hash status:State \
-    avail:Availability size_tot:Total.size
+  transmission_item_share_select btih avail "$@" || return
 
   # Progress (and other variables) can be nan for numbers, and None for other
   # value types, if no metadata (torrent-file) is yet available.
-  # In these cases set progress to empty.
 
-  #test "$done_pct" = "-nan%" \
-  #    && { done_pct=n/a; progress=; } \
-  #    || progress=${done_pct//%/}
+#  test $# -eq 0 && {
+#    printf 'ID: %s\nName: %s\nHash: %s\nState: %s\nAvailability: %s\n'\
+#'Percentage: %s\nTotal size: %s\n' \
+#          "$numid" "$name" "$btih" "$status" "$avail" "$pct" "$size_tot"
+#  } || {
+#    test "${1:?}" = "--" || "$@"
+#  }
+}
 
-  test "$avail" = "-nan%" -o "$avail" = "None" && avail=n/a
-
-  test $# -eq 0 && {
-    printf 'ID: %s\nName: %s\nHash: %s\nState: %s\nAvailability: %s\n'\
-'Percentage: %s\nTotal size: %s\n' \
-          "$numid" "$name" "$btih" "$status" "$avail" "$pct" "$size_tot"
-  } || {
-    test "${1:?}" = "--" || "$@"
+# List-run handler: Start shares using various modes.
+transmission_item_start () # ~ [<Inner-handler>]
+{
+  ! ${skip_issues:-true} || {
+    ${has_issue:-false} && return
   }
-}
+  case "$status" in ( Stopped | Finished ) ;; ( * ) return 0 ;; esac
+  transmission_item_clearenv
+  transmission_item_share_select "$@" || return
+  # XXX: See transmission-item-pause.
+  while test $# -gt 0
+  do
+    ti_sel=start share_select "$@" || {
+      test ${_E_next:?} -eq $? && return ||
+          test ${_E_break:?} -eq $_ && break ||
+              return $_
+    }
+    shift
+    test $# -eq 0 && return
+  done
 
-transmission_item_available () # ~
+  ! ${DEBUG:-false} || {
+    {
+      transmission_item_echo
+    } >&2
+  }
+
+  sa_ti_lctx_progress
+  transmission_remote_do -t "$num" -s &&
+      $LOG notice ":$numid" "Started share" "$lctx" ||
+      $LOG error ":$numid" "Error starting share" "E$?:$lctx" $?
+  started=$(( started + 1 ))
+  sa_next_seq
+  test $# -eq 0 || "$@"
+}
+transmission_item_start_pre ()
 {
-  #ti_c_quiet=1 transmission_item_percentage -- || return
-  #test "$avail" = n/a || return 0
-  transmission_list_item
+  started=0
 }
-
-transmission_list_item () # ~
+transmission_item_start_post ()
 {
-  echo "$numid ${pct:-n/a} $have $eta $up $down $ratio $status $name"
+  $LOG crit : "Started $started shares" "$*"
 }
 
+# List-run handler: collect trackers per share
 transmission_item_trackers () # ~ [<Inner-handler>]
 {
   trackers_raw=$(transmission_client_remote -t "$num" -it)
@@ -394,6 +583,7 @@ transmission_item_trackers () # ~ [<Inner-handler>]
   test "${1:?}" = "--" || "$@"
 }
 
+# Sanity check on all of the parts read by transmission_list_runner
 transmission_item_validate () # ~
 {
   local fail failed
@@ -416,7 +606,7 @@ transmission_item_validate () # ~
   $LOG warn ":item-validate" "$fail failed" "${ctx//%/%%}"
 
   test ${ti_v_ff:-0} -eq 1 && return 1
-  return 100
+  return ${_E_next:?}
 }
 
 # Container for actions that wrap `transmission-remote -l`, for more complex
@@ -428,20 +618,20 @@ transmission_list () # ~ <Action ...> # Filter/process clients list output
   case "$1" in
 
     ( a|active )
-          transmission_client_remote -l | grep -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
+          transmission_client_remote -l | grep ${grep_f:-} -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
     ( S|not-stopped )
-          transmission_client_remote -l | grep -v '\(None\|[1-9][0-9]*\) * Stopped ' ;;
+          transmission_client_remote -l | grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
     ( idle )
-          transmission_client_remote -l | grep 'Idle' ;;
+          transmission_client_remote -l | grep ${grep_f:-} 'Idle' ;;
     ( e|errors|issues )
-          transmission_client_remote -l | grep -E '^ * [0-9]+\* ' ;;
+          transmission_client_remote -l | grep ${grep_f:--E} '^ *[0-9]+\* ' ;;
     ( popular )
           transmission_client_remote -l |
             grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
             transmission_fix_item_cols | sort -k7n
         ;;
     ( s|stopped|paused )
-          transmission_client_remote -l | grep '\(None\|[0-9][0-9]*\) * Stopped ' ;;
+          transmission_client_remote -l | grep ${grep_f:-} '\(None\|[0-9][0-9]*\) * Stopped ' ;;
 
     ( fix-cols )
           shift; transmission_list "$@" | transmission_fix_item_cols ;;
@@ -451,6 +641,10 @@ transmission_list () # ~ <Action ...> # Filter/process clients list output
           shift; local handler=${1:-lognote}; shift
           transmission_list_run fix-cols items-by-nums "$@" -- \
               transmission_item_$handler ;;
+    ( lognotes )
+          shift; local handler=${1:-lognote}; shift
+          transmission_list_run transmission_item_$handler
+        ;;
     ( items-by-nums ) # ~ [<List-Arg...> -- ] <Id...>
           local listarg listargc
           shift; transmission_listarg "$@" && shift $listargc
@@ -485,6 +679,10 @@ transmission_list () # ~ <Action ...> # Filter/process clients list output
           transmission_list_run transmission_item_validate ;;
     ( xtab )
           transmission_list fix-cols tab ;;
+    ( count )
+        : "$( transmission_list | count_lines )"
+        echo $(( _ - 2 ))
+      ;;
 
     ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
   esac
@@ -520,47 +718,84 @@ transmission_list_run () # ~ [ <List-Arg...> -- ] <Handler <Args...>>
   true "${tl_runner:=transmission_list_runner}"
   test $# -gt 0 || set -- transmission_item_check
 
-  lk=${lk:-}:list-run transmission_list $listarg | "$tl_runner" "$@"
+  lk=${lk:-}:list-gen transmission_list $listarg |
+      lk=${lk:-}:list-run "$tl_runner" "$@"
 }
 
 # Basic reader/parser line-handler for transmission_list xtab-formatted outputs.
 transmission_list_runner () # [quiet] ~ <Handler <Args...>>
 {
   test $# -gt 0 || set -- transmission_item_check
-  local numid pct have eta up down ratio status name
-  local r ret num lk="${lk:-}:list-runner:${1//transmission_item_}"
+  local numid pct have eta up down ratio status name itcnt=0 flcnt=0
 
+  local bounds start_at stop_after
+  test -z "${INDEX_LB:-}" -a "${INDEX_UP:-}" || {
+    bounds=true start_at=${INDEX_LB:-1} stop_after=${INDEX_UP:-*}
+  }
+
+  : "${1//transmission_item_}"
+  local r ret num lk _lk=$lk __lk="${lk:-}::${_//_/-}"
+  ! sh_fun "$1"_pre || {
+    "$1"_pre "$@" || return
+  }
+  $LOG info "$_lk" "Started list run" "quiet=${tlr_quiet:-${quiet:-0}}"
   while read -r numid pct have eta up down ratio status name
   do
     test "$numid" = ID && continue
     test "$numid" != "Sum:" && {
 
+      itcnt=$(( itcnt + 1 ))
+      lk=${__lk/::/[$numid]}
+      ! ${bounds:-false} || {
+        test "$itcnt" -ge "$start_at" && {
+          test "$stop_after" = "*" || test "$itcnt" -le "$stop_after"
+        } || continue
+      }
       num=${numid//\*/}
-      pct=$(echo "$pct" | tr -d 'n/a%')
+      has_issue=$( test "${numid:${#num}}" = "*" && echo true || echo false )
+      # Progress percentage reported in list column is an integer.
+      pct=${pct//[na\/%\ ]}
+      test -z "$pct" || {
+          test "${pct/.}" != "$pct" || pct=$pct.0
+      }
+
+      test "$ratio" != None || ratio=
+      # ratio column is reported in tenths only under 100
+      test -z "$ratio" || {
+          test "${ratio/.}" != "$ratio" || ratio=$ratio.0
+      }
+      test "$have" != None || have=
+      test "$eta" != Unknown || eta=
 
       test ${tlr_quiet:-${quiet:-0}} -eq 1 || {
-        test $(expr $num % ${tl_li:-100}) -ne 0 -o $num -eq 0 ||
-          $LOG notice "$lk" "$num items read..."
+        test $(expr $itcnt % ${tl_li:-100}) -ne 0 ||
+          $LOG notice "$_lk" "$itcnt items read..."
       }
 
       # Defer to handler, and handle return
+      #lk="$_lk" \
       "$@" || { r=$?
-        test $r -eq 100 && {
+        flcnt=$(( flcnt + 1 ))
+        test $r -eq ${_E_next:?} && {
           ret=1
           continue
         }
         test ${tlr_quiet:-${quiet:-0}} -eq 1 ||
-          $LOG "error" "$lk" "Failed on $num" "E$r:$name"
+          $LOG error "$lk" "Failed on id $num" "E$r:$name"
         return $r
       }
 
     } || {
       test ${tlr_quiet:-${quiet:-0}} -eq 1 ||
         $LOG notice "$lk" "All items read, summary:" \
-            "size:$pct items:$num xfer:: up:$have down:$eta"
+            "size:$pct items:$itcnt xfer:: up:$have down:$eta"
       break
     }
   done
+  ! sh_fun "$1"_post || {
+    "$1"_post "$@" || return
+  }
+  $LOG info "$lk" "Finished reading" "E${ret:-0},items:$itcnt,failures:$flcnt"
   return ${ret:-0}
 }
 
@@ -593,15 +828,22 @@ transmission_num_env () # ~ (hash|name)
   tid_chk=0 transmission_id "$1" "$num"
 }
 
-# XXX:
-transmission_remote () # ~ <Argv...>
+transmission_remote_do () # ~ <Remote-argv...>
+{
+  local remote rpcres
+  remote="${TRANSMISSIONBT_REMOTE:-${REMOTE:-${TRANSMISSIONBT_DEFAULT_CLIENT:?}}}"
+  rpcres=$(transmission_client_remote "$@") &&
+  test "$rpcres" = "$remote"'/transmission/rpc/ responded: "success"' ||
+    $LOG warn :remote-do "Unexpected response" "$rpcres" 1
+}
+
+transmission_remote_online () # ~
 {
   local remote sessionid
   remote="${TRANSMISSIONBT_REMOTE:-${REMOTE:-${TRANSMISSIONBT_DEFAULT_CLIENT:?}}}"
   sessionid=$(REMOTE=$remote transmission_session_id)
   test -n "$sessionid"
   #curl -X HEAD -H X-Transmission-Session-Id:\ $session_id $remote/transmission/rpc/
-  #test "$rpcres" = 'localhost:9091/transmission/rpc/ responded: "success"'
 }
 
 transmission_session_id ()
@@ -619,15 +861,201 @@ transmission_share ()
   case "${1:?}" in
 
     ( find ) # ~ <Id-Spec> <Path>
-          transmission_client_remote -t "${2:?}" --find "${3:?}" ;;
+          transmission_remote_do -t "${2:?}" --find "${3:?}" ;;
     ( move ) # ~ <Id-Spec> <Path>
-          transmission_client_remote -t "${2:?}" --move "${3:?}" ;;
+          transmission_remote_do -t "${2:?}" --move "${3:?}" ;;
     ( s|start ) # ~ <Id-Spec>
-          transmission_client_remote -t "${2:?}" --start ;;
+          transmission_remote_do -t "${2:?}" --start ;;
     ( S|stop ) # ~ <Id-Spec>
-          transmission_client_remote -t "${2:?}" --stop ;;
+          transmission_remote_do -t "${2:?}" --stop ;;
 
     ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+  esac
+}
+
+
+## Util
+
+share_select ()
+{
+  case "${1:?}" in
+    ( "+"* ) include=true exclude=false ;;
+    ( "!"* ) exclude=true include=false ;;
+    # ( "?"* ) exclude=false include=false ;;
+    ( * ) $LOG error : "Not a selector" "$1" ${_E_GAE:?} || return ;;
+  esac
+  share_select_query "$1" && {
+    $exclude && return ${_E_next:?} || return ${_E_break:?}
+  } || true
+}
+
+share_select_info ()
+{
+  local qarg
+  for qarg in "$@"
+  do test "$qarg" != -- || break
+    case "$qarg" in
+
+    ( *avail* ) echo avail; echo progress ;;
+    ( ?noseed ) echo avail ;;
+    ( ?seeds|?finished* ) echo ratio ;;
+    ( *"<="* | *">="* | *"<"* | *">"* | *"="* ) : "${qarg//[<>=]*}"; echo "${_:1}" ;;
+    #( ?up|?down|?up-down ) : "${qarg:1}"; printf '%s\n' ${_/-/ } ;;
+
+    #( * ) $LOG error "$lk:share-select-info" "Unknown query arg" "$qarg" 1 ;;
+    esac
+  done
+}
+
+share_select_query ()
+{
+  case "${1:?}" in
+    # Does not just check wether share is (partially) available, but wether we
+    # have all of it or not.
+    ( ?avail|?available )
+        test -n "$avail" && {
+          test ${avail/.} -gt 0 && {
+            test -z "${progres:-}" || test ${avail/.} -gt ${progress/.}
+          }
+        }
+      ;;
+
+    ( ?complete )
+        test -n "$pct" -a "$pct" = "100.0" && { true
+        #  test -z "${INCOMPLETE_LCUTOFF:-}"
+        # test ${pct/.} -gt ${INCOMPLETE_LCUTOFF:--1}
+        }
+      ;;
+
+    # These generate an additional query, so only use to double check up/down
+    ( ?conn ) transmission_client_remote -t "$num" -i | grep -q \
+        'Peers: connected to [1-9][0-9]*, uploading to .*, downloading from .*'
+      ;;
+    ( ?conn-down ) transmission_client_remote -t "$num" -i | grep -q \
+        'Peers: connected to [0-9]*, uploading to .*, downloading from [1-9][0-9]*'
+      ;;
+    ( ?conn-up ) transmission_client_remote -t "$num" -i | grep -q \
+        'Peers: connected to [0-9]*, uploading to [1-9][0-9]*, downloading from .*'
+      ;;
+    ( ?conn-up-down ) transmission_client_remote -t "$num" -i | grep -q \
+        'Peers: connected to [0-9]*, uploading to [1-9][0-9]*, downloading from [1-9][0-9]*'
+      ;;
+
+    ( ?connected )
+        test "$down" != "0.0" -o "$up" != "0.0" && return
+        share_select_query "${1:0:1}conn"
+      ;;
+
+    # Can use status:downloading and status:up-down,
+    # but this (double) checks for actual transfer in progress.
+    ( ?downloading )
+        test "$down" != "0.0" && return
+        # Do double check now
+        share_select_query "${1:0:1}conn-down"
+      ;;
+    ( ?down )
+        test "$down" != "0.0" && return
+      ;;
+
+    ( ?finished )
+        test "$pct" = "100.0" -a -n "$ratio" &&
+        test ${ratio/.} -ge ${TARGET_SEED_RATIO/.}
+      ;;
+    ( ?finished-idle )
+        test "$pct" = "100.0" -a "$status" = "Idle" -a -n "$ratio" &&
+        test ${ratio/.} -ge ${TARGET_SEED_RATIO/.}
+      ;;
+    ( ?idle )
+        test "$status" = "Idle"
+      ;;
+    ( ?incomplete|?partial )
+        test -n "$pct" || return
+        ! share_select_query "${1:0:1}complete"
+      ;;
+
+    ( ?meta|?metadata )
+        # If everything is none, that is an indirect sign no metadata has been
+        # retrieved yet.
+        test -n "$pct" # -a -n "$have"
+      ;;
+    ( ?noseed )
+        test -z "$avail" || test ${avail/.} -lt 1000
+      ;;
+    ( ?noconn|?unconnected )
+        test "${down/.}" = "00" -a "${up/.}" = "00" || return
+        transmission_client_remote -t "$num" -i | grep -q \
+            'Peers: connected to 0, uploading to 0, downloading from 0'
+      ;;
+    ( ?nometa|?no-metadata )
+        test -z "$pct" -a -z "$have"
+      ;;
+
+    ( ?queued )
+        test "$status" = Queued
+      ;;
+    ( ?running )
+        test "$status" != Queued -a "$status" != Stopped
+      ;;
+    ( ?seeds )
+        test "$status" != Queued &&
+        test "$pct" = "100.0" &&
+        test -n "$ratio" &&
+        test ${ratio/.} -lt ${TARGET_SEED_RATIO/.} &&
+        test ${ratio/.} -gt ${STALE_SEED_RATIO:--1}
+      ;;
+    ( ?stopped )
+        test "$status" = Stopped
+      ;;
+    # Checks if less than 100% is available, and wether it is downloaded
+    ( ?unavail|?unavailable )
+        test -z "$avail" || {
+          test ${avail/.} -lt 1000 && {
+            test -z "$progress" || test ${avail/.} -le ${progress/.}
+          }
+        }
+      ;;
+    ( ?uploading )
+        test "$up" != "0.0" && return
+        # Do double check now
+        share_select_query "${1:0:1}conn-up"
+      ;;
+    ( ?up )
+        test "${up/.}" != "00" && return
+      ;;
+    ( ?up-down )
+        test "${up/.}" != "00" && return
+        test "${down/.}" != "00" && return
+      ;;
+
+    # Helpers to use inverted selection for include or exlude query
+    ( ?no-* ) ! share_select_query "${1:0:1}${1:4}" ;;
+    ( ?not-* ) ! share_select_query "${1:0:1}${1:5}" ;;
+
+    # Manage basic numeric comparison, numeric values should be specified
+    # using exactly one decimal point. Equals format can also be useful for
+    # strings e.g. status=Idle, but period characters are stripped.
+    ( *"<="* ) : "${1/<=*}" ; var="${_:1}" ; val="${1/*<=}"
+        : "${!var/.}"
+        test -n "$_" && test "$_" -le "${val/.}"
+      ;;
+    ( *">="* ) : "${1/>=*}" ; var="${_:1}" ; val="${1/*>=}"
+        : "${!var/.}"
+        test -n "$_" && test "$_" -ge "${val/.}"
+      ;;
+    ( *">"* ) : "${1/>*}" ; var="${_:1}" ; val="${1/*>}"
+        : "${!var/.}"
+        test -n "$_" && test "$_" -gt "${val/.}"
+      ;;
+    ( *"<"* ) : "${1/<*}" ; var="${_:1}" ; val="${1/*<}"
+        : "${!var/.}"
+        test -n "$_" && test "$_" -lt "${val/.}"
+      ;;
+    ( *"="* ) : "${1/=*}" ; var="${_:1}" ; val="${1/*=}"
+        : "${!var/.}"
+        test -n "$_" && test "$_" = "${val/.}"
+      ;;
+
+    ( * ) $LOG error : "No such ${ti_sel:-selection} mode" "$1" 1 || return ;;
   esac
 }
 

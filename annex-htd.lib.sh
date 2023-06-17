@@ -1,6 +1,43 @@
 #!/bin/sh
 
 
+annex_htd_lib__load()
+{
+  lib_require os-uc annex srv-htd || return
+  : "${HTD_DEFAULT_ANNEX:=archive-1}" # Primary Annex, to select during init
+}
+
+annex_htd_lib__init ()
+{
+  test -z "${annex_htd_lib_init:-}" || return $_
+
+  create annexes AnnexTab $ANNEXTAB &&
+  ! ${annex_htd_autoload:-true} || annex_htd_load_default
+}
+
+
+annex_htd_load_default ()
+{
+  $annexes.fetch default_annex "${HTD_DEFAULT_ANNEX:?}" || {
+    $LOG error : "fetching default annextab entry" \
+        E$?:$ANNEXTAB::$HTD_DEFAULT_ANNEX $? || return
+  }
+
+  {
+    # Get canonical paths for storage folders with annex checkouts
+    ANNEX_DIRS=$($default_annex.basedirs) &&
+
+    # If not in profile, set ANNEX_DIR to local path.
+    # XXX: there may not be a checkout there.
+    # XXX: could pick one from ANNEX_DIRS based on volume-id filter
+    $srvtab.fetch srv_annex srv/annex &&
+    : "${ANNEX_DIR:=$($srv_annex.local-dir)/$HTD_DEFAULT_ANNEX}"
+  } &&
+  $LOG info :annex.lib:init "Initialized user annex shell env" \
+      "E$?:tab=$ANNEXTAB" $?
+}
+
+
 annex_htd_banlist ()
 {
   local r=0
@@ -77,7 +114,7 @@ annex_htd_banlist ()
 
     # XXX: try to scan for peers but need something proper to match ranges
     ( pg-scan-peerlog ) shift
-          test $# -gt 0 || set -- "$BT_PEER_LOG"
+          test $# -gt 0 || set -- "$BTLOG_PEERS"
           for pl in "$@"
           do
               remove_dupes_at_col 2 < "$pl" | while read -r ts ipaddr _ mode client
@@ -93,7 +130,7 @@ annex_htd_banlist ()
 
     # List peers with improper names as candidates for blocklist
     # XXX: might also check for proper name-version format
-    ( harvest ) grep '[^[:alnum:]()\.? -]' "$BT_PEER_LOG" || r=$? ;;
+    ( harvest ) grep '[^[:alnum:]()\.? -]' "$BTLOG_PEERS" || r=$? ;;
 
     # List peers without shares as candidates for blocklist
     ( noshares )
@@ -105,6 +142,54 @@ annex_htd_banlist ()
   esac
   test -s "$BTP_BANNED" || rm "$BTP_BANNED"
   return $r
+}
+
+
+class.AnnexTabEntry () # ~ <Instance-Id> .<Message-name> <Args...>
+#   .AnnexTabEntry <Type> [<Src:Line>] - constructor
+{
+  test $# -gt 0 || return 177
+  test $# -gt 1 || set -- $1 .toString
+  local name=AnnexTabEntry super_type=StatTabEntry self super id=$1 m=$2
+  shift 2
+  self="class.$name $id "
+  super="class.$super_type $id "
+
+  case "$m" in
+    ".$name" )
+        $super.$super_type "$@" ;;
+    ".__$name" ) $super.__$super_type ;;
+
+    .basedirs ) # Return canonical paths for checkouts
+        $self.var refs | filter_dir_paths ;;
+
+    .class-context ) class.info-tree .class-context ;;
+    .info | .toString ) class.info ;;
+
+    * ) $super$m "$@" ;;
+  esac
+}
+
+class.AnnexTab () # ~ <Instance-Id> .<Message-name> <Args...>
+#   .AnnexTab <Type> <Table> [<Entry-class>] - constructor
+{
+  test $# -gt 0 || return 177
+  test $# -gt 1 || set -- $1 .toString
+  local name=AnnexTab super_type=StatTab self super id=${1:?} m=$2
+  shift 2
+  self="class.$name $id "
+  super="class.$super_type $id "
+
+  case "$m" in
+    ".$name" )
+        $super.$super_type "$1" "$2" "${3:-AnnexTabEntry}" ;;
+    ".__$name" ) $super.__$super_type ;;
+
+    .class-context ) class.info-tree .class-context ;;
+    .info | .toString ) class.info ;;
+
+    * ) $super$m "$@" ;;
+  esac
 }
 
 #

@@ -1,5 +1,8 @@
 #!/bin/sh
+
+# Htd Journal lib: edit and prepare data from log-folder containing rSt journal entries
 # Created: 2020-09-05
+
 # 2020-09-07 Rewrote update-folder, edit-folder and rst-create/update.
 # 2016-04-17 Renamed {vtoday,edit-today}
 # 2016-03-28 Added vtoday

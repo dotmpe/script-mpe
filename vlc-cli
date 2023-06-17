@@ -198,7 +198,7 @@ fixlines ()
 test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
 uc_script_load user-script
 
-! script_isrunning "vlc-cli" ||
+! script_isrunning "vlc-cli" || {
   user_script_load || exit $?
   eval "set -- $(user_script_defarg "$@")"
   script_run "$@"

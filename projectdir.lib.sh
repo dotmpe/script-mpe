@@ -12,6 +12,7 @@ projectdir_lib__load ()
 
 projectdir_lib__init ()
 {
+  test -z "${projectdir_lib_init:-}" || return $_
   lib_assert main date || return
   test -n "${PD_SYNC_AGE-}" || export PD_SYNC_AGE=$_3HOUR
   true "${SCRIPT_MPE:=$HOME/bin}"

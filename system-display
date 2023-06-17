@@ -82,7 +82,13 @@ info () # ~ # List onelines for each monitor with link-name
 
 monitors () # ~ # List XRANDR info
 {
+  xorg_screen_info dump
   xrandr_info
+}
+
+xorg_extensions ()
+{
+  xorg_screen_info extensions-info
 }
 
 # This reports the X,Y coords on the screen, and there is only on single

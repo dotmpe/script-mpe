@@ -8,18 +8,18 @@ annex_lib__load()
   lib_require ctx-class stattab-uc || return
 
   : "${ANNEXTAB:=${STATUSDIR_ROOT:?}index/annexes.tab}"
-  : "${ANNEX_DIR:?}"
-  content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos"
+
+  #: "${ANNEX_DIR:?}"
+  #content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos"
 
   # TODO: scan for .annex/objects folder, move this to user-conf
   #content_annices="$()"
 }
 
+
 annex_lib__init ()
 {
-  test -z "${annex_lib_init:-}" || return ${annex_lib_init:-}
-  create annexes StatTab ANNEXTAB
-  $LOG info :annex.lib:init "Loaded" "E$?" $?
+  test -z "${annex_lib_init:-}" || return $_
 }
 
 annex_init()

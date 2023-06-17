@@ -1,15 +1,13 @@
 #!/bin/sh
 
+## Match: Deal with regular expressions and strings
+
 
 match_htd_lib__load ()
 {
-  case "$uname" in
-      ( Linux ) gsed=sed ;;
-      ( Darwin ) gsed=gsed ;;
-      ( * ) $LOG error ":match-htd:lib-load" "Unknown uname" "$uname"
-          return 1 ;;
-  esac
+  lib_require match || return
 }
+
 
 match_req_names_tab () # ~ # Look for table.names at PWD paths
 {
@@ -29,7 +27,7 @@ match_load_table()
 {
   test -n "$1" || set -- book
 
-  match_load_defs $scriptpath/table.$1
+  match_load_defs $scriptpath/table.$1 || return
 
   test "$scriptpath" = "$(cd "$PWD"; pwd -P)" || {
     test -s "$PWD/table.$1" && {
@@ -64,7 +62,7 @@ match_grep () # ~ <String>
 match_awk () # ~ <String>
 {
   echo "$1" | $gsed -E '
-      s/([^A-Za-z0-9{},?!@+_&# ])/\\\1/g
+      s/([^A-Za-z0-9{},?!@+_&#~ ])/\\\1/g
       s/'"'"'/\\&/g
   '
 }

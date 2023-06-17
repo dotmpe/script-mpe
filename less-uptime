@@ -25,20 +25,31 @@ loadavg () # ~ [<Index>] # Show 1, 5 or 15min average
 }
 
 # select smallest period with loadvg above value, or display 15min avg.
-high_load () # ~ [<Value=0.5>]
+# uptime must be reported and specified using exactly two decimals.
+high_load () # ~ [<Value=<max>>]
 {
-  test $# -gt 0 || set -- 0.5
   local _1 _2 _3
   loadavg_parts
+  test $# -gt 0 || set -- $(max $_1 $_2 $_3)
   for _i in _1 _2 _3
   do
       : "${!_i}"
-      expr ${1:?} \<= $_ >/dev/null && break || continue
+      test ${1/.} -le ${_/.} >/dev/null && break || continue
   done
   : "${_i/_/load_p}"
   : "${!_}"
   : "${_/in}"
   echo "${!_i}(${_})"
+}
+
+max ()
+{
+  local h=${1:?}
+  shift; while test $# -gt 0; do
+      test ${h/.} -gt ${1/.} || h=${1:?}
+      shift
+    done
+  echo $h
 }
 
 load_p1=1min
@@ -85,9 +96,13 @@ case "$1" in
       # Select group from regular uptime output: 1: days/hours up; 2: users; 3: load avgs
       # TODO: move to shell profile export, test with tmux
       test $# -gt 1 || set -- "$1" 1
-      echo $(uptime | sed 's/^.*\(up .*\),\ *\([0-9]*\ user[s]*\).*load[^0-9]*\(.*\)$/\'${2:?}'/')
+      echo $(uptime | sed '
+        s/^.*\(up .*\),\ *\([0-9]*\ user[s]*\).*load[^0-9]*\(.*\)$/\'${2:?}'/
+        s/ //g
+      ')
     ;;
 
-  * ) echo "No such action '$1'" >&2;
-      exit 1 ;;
+  help|--help|-h ) grep -Po '^ * [a-z0-9|-]* \)' "$0" ;;
+  * ) echo "No such action '$1'?" >&2;
+      exit 2 ;;
 esac

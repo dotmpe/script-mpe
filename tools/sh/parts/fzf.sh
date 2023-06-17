@@ -22,10 +22,10 @@ test ${BG:-0} -eq 1 ||
   # Transparent
   FZF_CHAUVET=$FZF_CHAUVET' --color=bg:-1'
 
+typeset -gx FZF_DEFAULT_OPTS FZF_DEFAULT_COMMAND FZF_CHAUVET
+
 # Additional options for fzf-edit-* functions
 : "${FZF_EDIT_OPTS:=--multi}"
-
-typeset -gx FZF_DEFAULT_OPTS FZF_DEFAULT_COMMAND FZF_CHAUVET
 
 
 alias fzf_chdir='cd $(FZF_DEFAULT_COMMAND="find ./ -type d" FZF_CTRL_T_COMMAND="cd" fzf)'

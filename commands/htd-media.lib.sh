@@ -93,4 +93,23 @@ htd__mp3_validate()
     mp3val "$p"
   done
 }
+
+htd__read_torrents ()
+{
+  while test $# -gt 0
+  do
+      htd__read_torrent "${1:?}" || return
+  done
+}
+
+htd__read_torrent ()
+{
+  bittorrent_read "${1:?}"
+  echo "Torrent-File: $1"
+  echo "Display-Name: $dn"
+  echo "Info-Hash: $btih"
+
+  echo "$tjs" | jq '.info.files'
+}
+
 #

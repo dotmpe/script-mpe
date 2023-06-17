@@ -57,8 +57,8 @@ catalog_listtree () # ~ [PATH]
   } || {
 
     test ${use_find:-0} -eq 1 &&
-      std_info "Override SCM, tracking files directly ($Path_Ignores)" ||
-      std_info "No SCM, tracking files directly ($Path_Ignores)"
+      std_info "Override SCM, tracking files directly ($IGNORES)" ||
+      std_info "No SCM, tracking files directly ($IGNORES)"
     catalog_listtree_find "$1"
   }
 }
@@ -67,7 +67,7 @@ catalog_listtree_find () # ~ [PATH]
 {
   ignores_cache || return
 
-  local find_ignores="-false $(ignores_find "$Path_Ignores") "\
+  local find_ignores="-false $(ignores_find "$IGNORES") "\
 " -o -exec test ! \"{}\" = \"$1\" -a -e \"{}/$CATALOG_DEFAULT\" ';' -a -prune "\
 " -o -exec test -e \"{}/$IGNORE_DIR\" ';' -a -prune "
   test ${filter_dirs:-1} -eq 0 ||
@@ -144,8 +144,8 @@ htd_catalog__paths() # List catalog path-names ~
 catalog_paths_filter ()
 {
   ignores_cache || return
-  globlist_to_regex "$Path_Ignores" || return
-  grep -vf "$Path_Ignores.regex"
+  globlist_to_regex "$IGNORES" || return
+  grep -vf "$IGNORES.regex"
 }
 
 htd_catalog__as_json()

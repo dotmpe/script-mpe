@@ -1,161 +1,101 @@
-#!/usr/bin/env make.sh
-# Created: 2015-08-10
+#!/usr/bin/env bash
 
-version=0.0.4-dev # script-mpe
+test -n "${uc_lib_profile:-}" ||
+  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${stat:-exit} $?
+uc_script_load user-script || ${stat:-exit} $?
+
+# Use alsdefs set to cut down on small multiline boilerplate bits.
+#user_script_alsdefs
+! script_isrunning "match" .sh ||
+  ALIASES=1 user_script_shell_mode || ${stat:-exit} $?
 
 
+### Match:
 
-### User commands
 
+## Main command handlers
 
-match_load()
+names ()
 {
-  MATCH_NAME_VARS=
-  #MATCH_NAME_VARS="SZ SHA1_CKS MD5_CKS CK_CKS EXT NAMECHAR NAMEPARTS ALPHA ANY PART OPTPART"
+  local _1def='list-local' n='names'; sa_a1_d_nlk
+  : "${MATCH_NAMETAB:=${METADIR:?}/tab/names.list}"
+  case "$1" in
+    ( list-global )
+        TODO
+      ;;
+    ( list-local )
+        test -e "$MATCH_NAMETAB" ||
+            $LOG error "$lk" "No local table exists" "$_" ${_E_NF:?} || return
+        cut -d' ' -f3,2 < "$_"
+      ;;
+    ( list )
+        TODO
+      ;;
 
-  match_load_table vars
-  # -- match box load sentinel --
-  set --
+    ( * ) sa_E_nschc ;;
+  esac
+  return $?
+
+  #test $# -gt 0 && {
+  #  create ctx NameAttrs
+
+  test -e "$_" ||
+      $LOG error "$lk:names" "No names table" $_ ${_E_not_found}
+  #test -e "$_" || return
+  #create ctx NameAttrs "$MATCH_NAMETAB"
+  #$ctx.names
+  cat $MATCH_NAMETAB
+  exit $?
+
+  echo status-dirs: ${status_dirs:?}
+  status_dirs
+  out_fmt=list cwd_lookup_path ${status_dirs:?}
+}
+names__libs=meta\ match-htd\ ctx-class\ sys\ status
+
+var_names ()
+{
+  TODO
 }
 
 
-match__var_names()
+## User-script parts
+
+match_maincmds="names var-names"
+match_shortdescr='Split and assemble file names and strings from patterns'
+
+match_aliasargv ()
 {
-  echo $MATCH_NAME_VARS
+  test -n "${1:-}" || return
+  case "${1//_/-}" in
+
+    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  esac
 }
 
-
-
-match__name_pattern_test()
+match_loadenv () # ~ <Cmd-argv...>
 {
-  echo MATCH_NAME_VARS=$MATCH_NAME_VARS
-  match_name_pattern "$1" "$2"
-  #./@NAMEPARTS.@SHA1_CKS.@EXT"
-  echo grep_pattern=$grep_pattern
+  #user_script_loadenv || return
+  : "${_E_not_found:=127}"
+  : "${_E_next:=196}"
+  user_script_baseless=true \
+  script_part=${1:?} user_script_load groups || {
+      # E:next means no libs found for given group(s).
+      test ${_E_next:?} -eq $? || return $_
+    }
+  lib_load "${base}" &&
+  lib_init "${base}" || return
+  lk="$UC_LOG_BASE"
+  $LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
 }
 
-match__name_pattern_opts()
-{
-  req_arg "$1" "match name-pattern-opts" 1 pattern && shift 1 || return 1
-  for var_match in $MATCH_NAME_VARS
-  do
-    echo "$pattern" | grep '@\<'$var_match'\>' > /dev/null \
-      && echo $var_match  || true
-  done
+# Main entry (see user-script.sh for boilerplate)
+
+! script_isrunning "match" .sh || {
+  export UC_LOG_BASE="$SCRIPTNAME.sh[$$]"
+  user_script_load || exit $?
+  script_defcmd=check
+  user_script_defarg=defarg\ aliasargv
+  eval "set -- $(user_script_defarg "$@")"
+  script_run "$@"
 }
-
-
-# parse named vars from path using pattern
-match__name_vars()
-{
-  local pattern path
-  req_arg "$1" "match name-vars" 1 pattern && shift 1 || return 1
-  req_arg "$1" "match name-vars" 1 path && path="$@" || return 1
-  local var2 vars
-  vars=$(match__name_pattern_opts "$pattern")
-  match_name_pattern "$pattern"
-  echo "$path" | grep '^'"$grep_pattern"'$' > /dev/null && {
-    for var2 in $vars
-    do
-      match_name_pattern "$pattern" $var2
-      echo "$path" | grep '^'$grep_pattern'$' > /dev/null || {
-        error "Could not retrieve part $var2"
-        continue
-      }
-      echo grep_pattern=$grep_pattern
-      printf "$var2="
-      echo "$path" | sed -Po 's/^'$grep_pattern'$/\var/'
-    done
-
-  } || {
-    error "mismatch '$path'"
-    return 1
-  }
-}
-
-# change glob to regex pattern and match against path
-match__glob()
-{
-  match_grep_pattern_test "$1" || error "build regex failed on '$1'" 2
-  glob_pat="$(echo "$p_" | sed 's/\\\*/.*/g')"
-  shift 1
-  echo "$@" | grep '^'$glob_pat'$' > /dev/null || return 1
-}
-
-match__regex()
-{
-  compile_glob "$1"
-}
-
-# check given name with all name patterns
-match__names()
-{
-  local glob_match name_pattern tag
-  match_req_names_tab
-  cat $tabs | grep -Ev '^(#.*|\s*)$' | while read glob_match name_pattern tag
-  do
-    for name in "$@"
-    do
-      # Only match templates when given name matches the templates glob pattern
-      match__glob "$glob_match" "$name" && {
-        #
-        match__name_vars "$name_pattern" "$name" 2> /dev/null > /dev/null && {
-          test -z "$tag" && {
-            echo "$glob_match $name_pattern $name"
-          } || echo "Match for $tag: $glob_match $name_pattern"
-        }
-      }
-    done
-    #match_name_pattern "$pattern" ""
-  done
-}
-
-
-# Compile new table
-# FIXME req_arg_pattern=("Name pattern" pattern)
-# FIXME req_arg_pattern_name=("Pattern name" name)
-match__compile()
-{
-  req_arg "$1" "match compile" 1 pattern && shift 1 || return 1
-  req_arg "$1" "match compile" 2 pattern_name && shift 1 || return 1
-  match_grep_pattern_test "$pattern" || return 1
-}
-
-#
-req_arg()
-{
-  label=$(eval echo \${req_arg_$4[0]})
-  varname=$(eval echo \${req_arg_$4[1]})
-  test -n "$1" || {
-    warn "$2 requires argument at $3 '$label'"
-    return 1
-  }
-  test -n "$varname" && {
-    export $varname="$1"
-  } || {
-    export $4="$1"
-  }
-}
-
-match_als____version=version
-match_als___V=version
-match_grp__version=ctx-main\ ctx-std
-
-match_als____help=help
-match_als___h=help
-match_grp__help=ctx-main\ ctx-std
-
-
-### Main
-
-MAKE-HERE
-INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
-
-main-lib
-  lib_load box os date doc table match main std stdio src-htd || return
-
-main-load
-  INIT_LOG=$LOG lib_init || return
-
-main-epilogue
-# Id: script-mpe/0.0.4-dev match.sh

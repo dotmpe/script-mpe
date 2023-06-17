@@ -5,7 +5,7 @@
 
 context_lib__load()
 {
-  lib_load os src-htd statusdir ctx-base contextdefs match-htd stattab \
+  lib_require os src-htd statusdir ctx-base contextdefs match-htd stattab \
       contextdefs || return
 
   : "${CTX:=""}"

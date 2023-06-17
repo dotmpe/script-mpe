@@ -6,10 +6,11 @@
 # a server with one client at a time, and a single line for request and
 # then one back for the answer.
 
+
 # Helper for BG_FIFO env. Create or check for named pipe path.
 bg_fifo_single () # ~ [ <Create> [ <Exists> ]]
 {
-  true "${BG_FIFO:=$BG_RUND.fifo}"
+  true "${BG_FIFO:=$BG_RUNB.fifo}"
 
   { test $# -eq 0 || "${1:-true}"; } && {
 
@@ -42,13 +43,13 @@ bg_main_boot ()
   set -eu
   #set -m
   #shopt -s checkjobs
-
   . "${U_C:?}/script/shell-uc.lib.sh" &&
   shell_uc_lib__load && shell_uc_lib__init || {
     $LOG error : "Shell uc init failed" E$? $? || return
   }
-
-  . ~/bin/bg.lib.sh &&
+  declare -F bg_lib__load >/dev/null || {
+    . "${US_BIN:?}"/bg.lib.sh || return
+  } &&
   bg_lib__load || {
     $LOG error : "bg load failed" E$? $? || return
   }
@@ -56,10 +57,6 @@ bg_main_boot ()
 
 bg_main_single ()
 {
-  bg_main_boot || return
-
-  true "${BG_PID:=$BG_RUND.pid}"
-
   case "${1:-server}" in
 
     # Defer to bg-proc:* handler, for ops on bg process from current terminal
@@ -77,7 +74,7 @@ bg_main_single ()
     ;;
 
     env )
-      echo "BG_RUND=$BG_RUND"
+      echo "BG_RUNB=$BG_RUNB"
       echo "BG_PID=$BG_PID"
       echo "BG_FIFO=$BG_FIFO"
     ;;
@@ -86,14 +83,18 @@ bg_main_single ()
     re ) shift
       $0 bg-cmd eval-run "${@:?}"
     ;;
-
+    # Shortcut to just read last response
+    r ) shift
+      # Use echo around cat to add newline
+      : "$(< "$BG_FIFO")"
+      test -z "$_" || echo "$_"
+    ;;
     # Shortcuts for isolated commands that give output
     rE ) shift
       $0 req eval-run "${@:?}"
     ;;
     req ) shift
-      $0 bg-cmd "${@:?}"
-      cat "$BG_FIFO";echo
+      $0 bg-cmd "${@:?}" && bg_main_single r
     ;;
 
     # Run server: read command lines at BG_FIFO and respond with std{out,err}
@@ -140,7 +141,7 @@ bg_main_multi ()
   bg_main_boot || return
 
   #true "${BG_TAG:=default}"
-  #true "${BG_PID:=$BG_RUND-${BG_TAG:?}.pid}"
+  #true "${BG_PID:=$BG_RUNB-${BG_TAG:?}.pid}"
 
   case "${1:-server}" in
 
@@ -180,6 +181,15 @@ bg_main_old ()
 
 case "$(basename -- "$0" .sh)" in
     ( bg ) bg_main_multi "$@" ;;
-    ( bg-simple ) bg_main_single "$@" ;;
+    ( bg-runner )
+        bg_main_boot &&
+        true "${BG_PID:=$BG_RUNB.pid}" &&
+        bg_main_single start &&
+        true # bg_main_single req load "$1.sh"
+      ;;
+    ( bg-simple )
+        bg_main_boot &&
+        true "${BG_PID:=$BG_RUNB.pid}" &&
+        bg_main_single "$@" ;;
 esac
 #

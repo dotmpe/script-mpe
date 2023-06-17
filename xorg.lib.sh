@@ -130,21 +130,31 @@ xorg_font_dpi ()
 xorg_screen_info () # ~ (screens|size|dpi) [DISPLAY] # Use xdpyinfo to list screen info.
 {
   case "${1:-screens}" in
-      ( size ) # Report size in pixes, mm and DPI in HxV
-            echo $(xdpyinfo -display :$2 |
-                grep -B1 resolution: |
-                grep -o '[0-9][0-9]*x[0-9][0-9]*')
-          ;;
+    ( dpi ) # Report DPI in HxV
+        xdpyinfo -display :$2 |
+            grep resolution: |
+            grep -o '[0-9][0-9]*x[0-9][0-9]*'
+      ;;
 
-      ( dpi ) # Report DPI in HxV
-            xdpyinfo -display :$2 |
-                grep resolution: |
-                grep -o '[0-9][0-9]*x[0-9][0-9]*'
-          ;;
+    ( dump )
+        pyrandr.py ls | jq .
+      ;;
 
-      ( screens ) # List Xorg 'display numbers' ie. screens.
-            xdpyinfo | grep '^screen #.*:$' | grep -o '[0-9]*'
-          ;;
+    ( extensions-info )
+        xdpyinfo -ext all
+      ;;
+
+    ( screens ) # List Xorg 'display numbers' ie. screens.
+        xdpyinfo | grep '^screen #.*:$' | grep -o '[0-9]*'
+      ;;
+
+    ( size ) # Report size in pixes, mm and DPI in HxV
+        echo $(xdpyinfo -display :$2 |
+            grep -B1 resolution: |
+            grep -o '[0-9][0-9]*x[0-9][0-9]*')
+      ;;
+
+    ( * ) return 99 ;;
   esac
 }
 

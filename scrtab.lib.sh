@@ -11,7 +11,7 @@ scrtab_lib__load ()
 
 scrtab_lib__init ()
 {
-  test "${scrtab_lib_init-}" = "0" && return
+  test -z "${scrtab_lib_init:-}" || return $_
   test -d "$SCRDIR" || {
     mkdir -p "$SCRDIR" || return
   }

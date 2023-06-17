@@ -1,3 +1,72 @@
+Ignores
+========
+Filename and path ignore rules from lists of globs and groups of globlists.
+
+Intro
+-----
+The purpose of the ignores lib is to manage assembling globlists for paths to
+ignore when using find, locate and custom scripts. The initial case for it was
+to update the SCM ignore file for a checkout, e.g.::
+
+  .gitignore
+  .bzrignore
+  # etc.
+
+For this case a simple setup of source files was used with distinct groups so
+that other scripts could use each for its specific purposes. The main file could
+simply be updated by concatenating these local files::
+
+  .gitignore-purge
+  .gitignore-clean
+  .gitignore-drop
+
+This is still the default lib-init setup (given that ``ignores_prefix=git``).
+In addition to these sources, any file ``gitignore/purge.globlist`` found on
+`XDG_CONFIG_DIRS` will be used as source for Purgeable file patterns as well
+(and Cleanable and Droppable resp.).
+
+But in case of this example, Git has two more options to place globlists which
+are very convenient as well (the local ``.git/info/exclude`` globlist and the
+``core.excludesfile`` config statement). And those are not managed by
+``ignores.lib`` in any way.
+
+Also, there are more uses for globlists. This library just handles two sets:
+temporary and tracked files, which are the most important to be able to filter
+out from other (user/project) files in shell script workflows.
+
+But using a ``.gitattribute`` inspired scheme, globs can be used to tag and
+track or annotate specific file sets with metadata just based on their names.
+TODO: meta{,dir}.lib and attributes libs
+
+Different applications may have their own particular sets of
+(source/user/project) files.
+
+Usage
+-----
+Source using User-Scripts lib.lib or User-Conf uc-lib.lib::
+
+  ignores_prefix=my
+  lib_require ignores && lib_init ignores
+
+Ensure cache for default groups is updated and copied to main ignore file::
+
+  $ ignores_refresh
+
+With the defaults this should generate ``.meta/cache/myignore-global,local.globlist``,
+and copy that to ``.myignore``. That last path is also the value of ``$IGNORES``
+and ``$MY_IGNORE``.
+
+Do anything with the main file::
+
+  $ read_nix_style_file "$IGNORES"
+
+  # Or use it
+  ignores_do_find
+  ignores_do_locate
+
+
+Use cases
+---------
 File and path ignore rules
 
 - Ignored filename or directory patterns. Base is directory of dotignore file
@@ -33,54 +102,94 @@ File and path ignore rules
   TODO: move execution (in htd, pd) to {base}_load.
   XXX: Standard dynamic initialization from predefined groups and local dir.
 
+Ignore groups
+-------------
 
 Global
+  Globlist sources for groups outside of current directory.
+  A scan on XDG_CONFIG_DIRS for folders names '<prefix>ignore' determines which
+  directories are searched.
+
+Local
+  Globlist sources inside current directory.
+
+Temporary
   Clean(able)
-    Files that MAY be dropped at any time, but usually kept for a while.
-    But SHOULD be cleaned at the end of a user session, failing that
-    at the start of a new. These files should not be normally ignored
-    in file work flows.
+    Files that MAY be removed at any time, but usually kept for a while.
+    These MAY regularly be cleaned.
 
-    This does not specify *how* the clean occurs.
-    Overlap with other groups MAY specify cleaning workflow.
+    This includes temporary files of editors or other processes and certain
+    (but not all) cache files. These should be safe to remove on demand to
+    cleanup a folder, or for example at user session startup or shutdown.
 
-  Temp(orary) or Purge(able)
+  Purge(able)
     Files that SHOULD be kept as long as the basedir is present, but MAY be
-    cleaned automatically if desired with no harm except some runtime
-    (reinit/reinstall/rebuilt) costs. E.g. if the base is to be removed or to
-    reset it.
+    cleaned automatically in order to purge it.
 
-    The globs should not be used to list files to remove for any clean
-    action. Unless the action is removing or resetting the base (checkout,
-    project, etc.)
-    Note paths listed as purgable can recursively be removed in an instant.
+    This includes valuable build artefacts and other cache files, which when
+    removed would require significant time to regenerate when needed. But which
+    would no longer be needed when the entire folder is trashed.
 
-    This list may overlap with Clean(able), although Cleanable is considered
-    independently and/or before Purgeable anyway. Iow. these items should be
-    migrated to the Purgeable listing.
-
+Tracked
   Droppable
-    Paths respected (ignored and reserved) that SHOULD be handled by
-    specific commands, e.g. SCM or IDE, and ignored by commands unless
-    specified specifically otherwise.
+    Paths that SHOULD not be handled directly, but are controlled and may be
+    safely removable using specific commands.
 
-    The intent is that these may go at any time, but SHOULD do so by a dedicated
-    tool and/or workflow. Normally they regarded as opaque while they are there
-    and not part of source files.
+    This includes local metadata folders for SCM or IDE systems, but also
+    checksums and other meta files. Most workflows will want to ignore these
+    paths, but they are not invaluable like Cleanable or even Purgeable files.
+    Specified paths may contain copies with updates and thus contain state that
+    may not have been integrated and distributed yet.
 
-    Overlap of other groups is allowed to include some files in specific
-    workflows, while normally keeping them out of every other command.
+Issues
+------
+XDG_CONFIG_DIRS is not used correctly.
+
+It is a 'preference-orded set of based directories' and should be used to
+lookup preferred copies for config. So, it should be prefixed by a basepath
+for each XDG compliant system currently on the stack. For me it is set to::
+
+  /etc/xdg-i3
+  /etc/xdg
+
+So perhaps it needs for gitignore these as well::
+
+  $HOME/bin/etc/xdg/xdg-git
+  $HOME/.config/xdg/xdg-git
+  /etc/xdg/xdg-git
+
+But I think maybe that is where some lib.load or lib.init config file should be
+kept.
+
+And introduce new var for globlist lookup, ie.
+``IGNORE_INCLUDE=/etc/gitignore:$HOME/.config/gitignore``.
+
+But also allow to include from other sets::
+
+  ignores_prefix=git
+  ignores_import=localignore,htdignore
 
 
+Finally, instances. there is a bunch of parameters
 
-Htd
-  ignore-names:
-    ..
-  check-names
-    ..
-  find
-    ..
+class__Globlist__prefix[id]=git
+class__Globlist__basename[id]=ignore
+class__Globlist__regenerate[id]=true
+class__Globlist__usecache[id]=true
+class__Globlist__uselocal[id]=
+class__Globlist__groupkey[id]=ignore_groups
+class__Globlist__globlistkey[id]=ignores
 
-Pd
-  ..
+context_set
 
+ignores_find_files -> ignores_find_expr
+ignores_find_expr -> ignores_cat
+
+ignores_cat < @Globlist.globlists
+
+ignores_globlists @{Globlist:-ignores_globlist}_specs
+
+ignores_globlists_specs
+  @Globlist.
+
+..

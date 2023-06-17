@@ -203,15 +203,11 @@ words_to_lines()
   }
 }
 
-lines_to_words()
+# Replace each line separator with space and collapse blank lines and multiple
+# spaces.
+lines_to_words () # ~ # Collapse lines and spaces
 {
-  test -n "${1-}" && {
-    { while test $# -gt 0
-      do test -e "$1" && cat "$1" || echo "$1"; shift; done
-    } | tr '\n' ' '
-  } || {
-    tr -s '\n ' ' '
-  }
+  tr -s '\n ' ' '
 }
 
 # Quote each line
@@ -489,7 +485,7 @@ strip_last_nchars() # Num
 }
 
 # Normalize whitespace (replace newlines, tabs, subseq. spaces)
-normalize_ws()
+normalize_ws ()
 {
   test -n "${1-}" || set -- '\n\t '
   tr -s "$1" ' ' # | sed 's/\ *$//'

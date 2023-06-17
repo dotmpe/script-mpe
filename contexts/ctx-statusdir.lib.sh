@@ -2,14 +2,17 @@
 
 ctx_statusdir_lib__load ()
 {
-  : "${ctx_class_types:="${ctx_class_types-}${ctx_class_types+" "}Statusdir"}"
+  lib_require date metadir || return
+  ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}Statusdir
 }
 ctx_statusdir_depends=@Shell
 
 ctx_statusdir_lib__init ()
 {
-  lib_require date && class.Statusdir.env
+  test -z "${ctx_statusdir_lib_init:-}" || return $_
+  class.Statusdir.env
 }
+
 
 at_Statusdir__init ()
 {
@@ -83,7 +86,7 @@ class.Statusdir () # Instance-Id Message-Name Arguments...
 {
   test $# -gt 0 || return
   test $# -gt 1 || set -- $1 .default
-  local self="class.Statusdir $1 " id=$1 m=$2
+  local self="class.Statusdir $1 " id=${1:?} m=$2
   shift 2
 
   case "$m" in
@@ -130,6 +133,27 @@ class.Statusdir () # Instance-Id Message-Name Arguments...
     * )
         $LOG error "" "No such endpoint '$m' on" "$($self.info)" 1
       ;;
+  esac
+}
+
+mixin.StatusDirIndex () # ~ <Id> <Message> [<Args...>]
+#
+{
+  local id=$1 m=$2
+  shift 2
+  case "$m" in
+      ( .names )
+          for bd in $(metadir_basedirs index tabs)
+          do
+            #echo looking in $bd
+            for name in $bd/$sdname*
+            do
+              test -e "$name" || continue
+              echo "$name"
+            done
+          done
+        ;;
+      ( * ) false ;;
   esac
 }
 

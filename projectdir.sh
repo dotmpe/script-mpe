@@ -1436,11 +1436,11 @@ pd_preload()
   CWD="$scriptpath"
   test ! -e $PD_ENV || { source $PD_ENV || return; }
   test -n "${LOG-}" -a -x "${LOG-}" || export LOG=$CWD/tools/sh/log.sh
-  test -n "${EDITOR-}" || EDITOR=nano
-  test -n "${hostname-}" || hostname="$(hostname -s | tr 'A-Z' 'a-z')"
+  : "${EDITOR:=nano}"
+  : "${hostname:=$(hostname -s)}"
   : "${uname:=$(uname -s)}"
-  test -n "${SCRIPT_ETC-}" ||
-      SCRIPT_ETC="$({ pd_init_etc || ignore_sigpipe $?; } | head -n 1)"
+  : "${SCRIPT_ETC:=$(os_dir_exists dirname \
+      {$PWD,$(dirname -- "$0"),${US_BIN:-~/bin},${UCONF:~/.conf}}/etc/htd)}"
 }
 
 pd_subcmd_load()
@@ -1715,17 +1715,6 @@ pd_init()
   lib_load meta box package src-htd
   # -- pd box init sentinel --
   test -n "${verbosity-}" && note "Verbosity at $verbosity" || verbosity=6
-}
-
-pd_init_etc()
-{
-  {
-    test ! -e "$PWD/etc/htd" || echo "$PWD/etc"
-    test ! -e "$(dirname "$0")/etc/htd" || echo "$(dirname "$0")/etc"
-    test ! -e "$HOME/bin/etc/htd" || echo "$HOME/bin/etc"
-    #XXX: test ! -e .conf || echo .conf
-    #test ! -e $UCONF/htd || echo $UCONF
-  } | awk '!a[$0]++'
 }
 
 pd_lib()
