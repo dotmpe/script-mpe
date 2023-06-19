@@ -582,11 +582,17 @@ user_script_initlibs () # ~ <Required-libs...>
   while true
   do
     $LOG info :us-initlibs "Initializing" "$*"
-    # TODO: remove libs that have <libid>_init=0 ie. are init OK
-    lib_init "$@" || {
-      test ${_E_retry:-198} -eq $? &&
-        continue ||
-        $LOG error :us-initlibs "Failure initializing libs" "E$_:$lib_loaded" $_ || return
+    INIT_LOG=$LOG lib_init "$@" || {
+      test ${_E_retry:-198} -eq $? && {
+          # remove libs that have <libid>_init=0 ie. are init OK
+          set -- $(for lib in "$@"
+                do
+                  : "${lib//[^A-Za-z0-9_]/_}_lib_init"
+                  test 0 = "${!_:-}" || echo "$lib"
+                done)
+          continue
+        } ||
+          $LOG error :us-initlibs "Failure initializing libs" "E$_:$lib_loaded" $_ || return
       }
     test "$lib_loaded" = "$*" && break
     set -- $lib_loaded
@@ -1337,6 +1343,4 @@ test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
 }
 
 user_script_loaded=0
-# FIXME: uc-profile is broken somewhere
-unset INIT_LOG
 #

@@ -4,16 +4,16 @@
 
 # The primary function of a pager is to prevent terminal clobber. Traditionally
 # PAGER may be set to 'less' and a complex sequence of options, with the result
-# that all output is paged and can be browsed in a temporary buffer. And there
-# is the even less memory intensive 'more' for those who care, but while that
-# solves flooding terminal buffers and gives the user control over output,
-# it still inlines everything again.
+# that all output is paged and can be browsed in a temporary buffer.
+# There is also the even less memory intensive 'more', for those who care.
+# (While it solves flooding terminal buffers by giving user control over
+# output, it still inlines everything again.)
 
-# less-if is a script that skips paging if output is too small to care about,
-# making use of programs that invoke PAGER more pleasant and streamlined. It
-# still adds fancy 'bat' options when appropiate. And also it assumes Git's
-# fancy paging is done by Delta, that uses Bat themeing and handles layout as
-# well so then less-if invokes less or cat instead of bat.
+# less-if is a script that skips paging if output is too small to care
+# about, making use of programs that invoke PAGER more pleasant and streamlined.
+# It also adds fancy 'bat' options when appropiate. And prevents recursion by
+# checking with parent command. Handling the terminal paging itself is always
+# done with PAGER_NORMAL, which defaults to less -R.
 
 # To use, set either of these variable to the maximum number of lines to output
 # in-line at the terminal:
@@ -22,24 +22,51 @@
 #    USER_LINES
 #
 # If not supplied, the terminal height is used as cut-off. To make this adapt
-# shell (somewhat) dynamically, use PROMPT_COMMAND to update setting before
-# every prompt. XXX: I wonder what VT's have some WM hook for this.
+# shell (somewhat) dynamically for other values, use PROMPT_COMMAND to update
+# setting before every prompt. XXX: I wonder what VT's have some WM hook for
+# this.
+
+# FIXME: cat does not really prevent clobbering from ANSI, may want to add
+# filter (fancy=false?) or reset to TERM defaults? at EOF or even each line
+# end, depending on the data that is dumped.
 
 
 set -euo pipefail
 
 if_ok () { return; }
-
-test -n "${IF_PAGER:-}" || {
-  if_ok "${IF_PAGER:=$(command -v bat)}" ||
-  if_ok "${IF_PAGER:=$(command -v less)}"
+cat_page () { cat; echo "${NORMAL:-$(tput sgr0)}"; }
+# TODO: switch maybe to other pager format (raw, ansi, plain)
+cat_page_plain () { ansi_clean; echo; }
+# Remove ANSI as best as possible in a single perl-regex
+ansi_clean ()
+{
+  perl -e '
+while (<>) {
+  s/ \e[ #%()*+\-.\/]. |
+    \r | # Remove extra carriage returns also
+    (?:\e\[|\x9b) [ -?]* [@-~] | # CSI ... Cmd
+    (?:\e\]|\x9d) .*? (?:\e\\|[\a\x9c]) | # OSC ... (ST|BEL)
+    (?:\e[P^_]|[\x90\x9e\x9f]) .*? (?:\e\\|\x9c) | # (DCS|PM|APC) ... ST
+    \e.|[\x80-\x9f] //xg;
+    1 while s/[^\b][\b]//g;  # remove all non-backspace followed by backspace
+  print;
+}'
 }
 
-# When Git invokes $PAGER, assume core.pager=delta and use less to page already
-# fancied up output. Set IF_PAGER_GIT to overrule.
-# Alternative is to put something like DELTA_PAGER=less in env profile but that
-# bypasses page-if completely.
-test -z "${GIT_EXEC_PATH:-}" || IF_PAGER="${IF_PAGER_GIT:-$(command -v less) -R}"
+if_ok "${PAGER_NORMAL:=$(command -v less) -R}"
+
+# Look at parent command-name and prevent recursion
+PCMD=$(ps -o comm= $PPID)
+test "${PCMD##*/}" != delta &&
+test "${PCMD##*/}" != bat ||
+  IF_PAGER="$PAGER_NORMAL"
+
+test -n "${IF_PAGER:-}" || {
+  # Choose default (fancy) pager or normal
+  if_ok "${IF_PAGER:=$(command -v bat)}" ||
+  if_ok "${IF_PAGER:=$(command -v batcat)}" ||
+  if_ok "${IF_PAGER:=$PAGER_NORMAL}"
+}
 
 test -x "${IF_PAGER%% *}" || {
   echo expected pager exec at IF_PAGER: E$?: ${IF_PAGER:-(unset)} >&2
@@ -67,7 +94,7 @@ case "${IF_PAGER##*/} " in
   ( "bat "* )
       test $maxlines -le $lines && {
         test ${v:-${verbosity:-3}} -lt 6 ||
-            echo "bat-if read $lines lines, max inline output is $maxlines" >&2
+          echo "bat-if read $lines lines, max inline output is $maxlines" >&2
         bat_opts=--paging=always\ --style=rule,numbers
       } || {
         # Display 'File: ... <EMPTY>' (without deco) even if there is no content
@@ -87,9 +114,10 @@ case "${IF_PAGER##*/} " in
 
   ( "less "* )
       test 0 -eq $lines && exit 100
-      test $maxlines -le $lines || IF_PAGER=cat
+      test $maxlines -le $lines || IF_PAGER=cat_page
     ;;
 esac
 
-printf %s "$data" | $IF_PAGER "$@"
-#
+printf '%s' "$data" | $IF_PAGER "$@"
+
+# Id: script.mpe less-if [2023]

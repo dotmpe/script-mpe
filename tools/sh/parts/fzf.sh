@@ -37,7 +37,7 @@ alias fzf-edit-preview='$EDITOR $(fzf-preview $FZF_EDIT_OPTS)'
 # Use batcat to preview highlighted plain-text files
 alias fzf-preview="fzf --preview='${BAT_BIN:-bat} --color always --style numbers {}'"
 
-alias fzf-preview-bat-themes='bat --list-themes | fzf --preview="bat --theme={} --color=always ~/bin/user-script.sh"'
+alias fzf-preview-bat-themes='bat --list-themes | fzf --preview="bat --theme={} --color=always ${FZF_PREVIEW_FILE:-~/bin/user-script.sh}"'
 
 # Feh is a good choice for any WM env I think
 alias fzf-view-nomux="fzf --preview='feh --title feh-preview -B ${feh_bg:-} -Z {} -.' --preview-window=0"

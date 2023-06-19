@@ -225,4 +225,20 @@ sys_running () # ~ <Exec>
   pgrep "$1" >/dev/null
 }
 
+get_kv_k() # Key-Value-Str
+{
+  echo "$1" | cut -d'=' -f1
+}
+
+get_kv_v() # Key-Value-Str [Env-Prefix [Key-Str]]
+{
+  test -n "$3" || set -- "$1" "$2" "$(get_kv_k "$1")"
+  fnmatch "*=*" "$1" && {
+    eval echo \"$(expr_substr "$1" "$(( 2 + ${#3} ))" "$(( ${#1} - ${#3}  ))")\"
+  } || {
+    eval echo \"\$$2$3\"
+  }
+}
+
+
 # Sync: U-S:src/sh/lib/sys.lib.sh

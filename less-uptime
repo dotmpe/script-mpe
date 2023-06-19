@@ -4,8 +4,8 @@
 
 # Added Bash-optimized solutions and functions later, but kept original more
 # practical pipeline approach to compare. Benchmarking shows removing sed/tr/cut
-# pipelines is not an enormous speedup but does improve runtime a bit even for
-# these simple examples.
+# pipelines is not an enormous speedup (probably because there still is some
+# output capture going on) but does improve runtime even for these simple cases.
 
 loadavg_parts ()
 {
@@ -106,3 +106,5 @@ case "$1" in
   * ) echo "No such action '$1'?" >&2;
       exit 2 ;;
 esac
+
+# Id: US-Bin.mpe less-uptime [2015-2023]

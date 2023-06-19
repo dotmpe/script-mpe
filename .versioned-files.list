@@ -17,7 +17,7 @@ test/diskdoc-spec.bats
 docker-sh.sh
 htd.sh
 box.sh
-vc.sh
+vc-oldmk.sh
 rst.sh
 esop.sh
 disk.sh

@@ -536,7 +536,7 @@ str_ascii_len ()
   printf '%i' ${#str}
 }
 
-# Remove ANSI as best as possible in a single sed-regex
+# Remove ANSI as best as possible in a single perl-regex
 ansi_clean ()
 {
   echo "$1" | perl -e '
