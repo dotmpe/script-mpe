@@ -54,7 +54,7 @@ bg_handle__eval_run ()
 bg_handle__exit ()
 {
   echo "Exiting $$..." >&2
-  exit
+  return ${_E_break:-197}
 }
 
 bg_handle__load ()
@@ -75,8 +75,8 @@ bg_handle__rcnt () # ~ # Print restart-counter value
 
 bg_handle__reset ()
 {
-  $LOG warn "$BG_BASE:$0[$$]" "Resetting background process"
-  : $(( bg_rcnt++ ))
+  $LOG warn "$lk" "Resetting background process"
+  : "$(( bg_rcnt++ ))"
   exec $bgscr server $bg_rcnt
 }
 
@@ -87,34 +87,80 @@ bg_init ()
   # bg:run-base: to store pid and keep fifo, socket etc.
   BG_RUNB=${XDG_RUNTIME_DIR:-/var/run/$(id -u)}/${BG_BASE:?}
   BG_PID=$BG_RUNB.pid
+  # XXX:
+  true "${BG_FIFO:=$BG_RUNB.fifo}"
+  BG_LABEL='User background service'
+  : "${lk:="$BG_BASE:$0[$$]"}"
 }
 
 
 # Handlers for bg-simple client
 
-bg_proc__check () # ~ # Check instance is responding
+bg__check () # ~ # Check instance is responding
 {
+  user_script_verbosity
+  bg_proc__running || return
   test -p "${BG_FIFO:?}" && {
-    echo "$0: Named pipe exists" >&2
+    $LOG info "$lk" "Named pipe exists" "$BG_FIFO"
+    $LOG debug "$lk" "Contacting $BG_LABEL..." "cmd:ping"
     $bgctx cmd ping || return
 
     local answer
     { read -t0.01 answer <"$BG_FIFO" && test -n "${answer:-}"
     } && {
-      echo "$0: bg process is responding" >&2
+      $LOG note "$lk" "$BG_LABEL is responding"
     } || {
-      echo "$0: Cannot contact bg" >&2
-      #cat "$BG_FIFO"
-      return 1
+      $LOG warn "$lk" "Cannot contact $BG_LABEL" "E$?" $? || return
     }
   } ||
-    echo "$0: No named pipe" >&2
+    $LOG error "$lk" "No named pipe for $BG_LABEL" "E$?:$BG_FIFO" $?
 }
 
-bg_proc__clean () # ~ # Delete run-files
+bg__files () # ~ # List run-files
 {
-  bg_proc__running && {
-    $LOG error : "Instance is running" $PID 1 || return
+  ls -la "$BG_RUNB"*
+}
+
+bg__help ()
+{
+  # XXX: dont have $0 added to ENV_SRC yet @User-Script
+  set -- $ENV_SRC $0 $(for libp in $ENV_LIB
+    do
+      test "bg.lib.sh" = "${libp%%*\/}" ||
+        str_globmatch "$_" "*-bg.lib.sh" && echo "$libp"
+    done )
+  grep '^\(bg_proc__\|bg_handle__\)' "$@"
+  # compgen -A function | grep '^\(bg_proc__\|bg_handle__\)'
+}
+
+bg__list () # ~
+{
+  ps -C bash -opid=,command= | grep "bash .*$0.*" | grep -v 'bg[^ ]*\( list\)\?$'
+}
+
+# Run server: read command lines at BG_FIFO and invoke handler routine
+bg__server () # ~ [<Restart-count>] # Start main loop
+{
+  bg_fifo_create || return
+
+  # cant overr
+  #trap '{ rm -v "$BG_RUNB"*; }' QUIT
+  #trap 'bg_proc__clean' SIGQUIT
+  trap 'bg_proc__clean $?; return $_' EXIT
+  #$LOG warn : "traps" "E$?:$(stderr trap)"
+
+  bg_rcnt=${1:-0}
+  $LOG notice "$lk" "Starting server" "$$, restart-count:$bg_rcnt"
+  echo "$$" > "$BG_PID"
+  rm "$BG_RUNB.ilock"
+  bg_recv_blocking "$BG_FIFO"
+  return ${hr:-0}
+}
+
+bg__clean () # ~ # Delete run-files
+{
+  ! std_quiet bg_proc__running || {
+    $LOG error "$lk" "Instance is running" $PID 1 || return
   }
   rm -v "$BG_RUNB"*
   #rm -v "$BG_FIFO"
@@ -131,18 +177,7 @@ bg_proc__details () # ~ # List open files for instance
   lsof -p $PID
 }
 
-bg_proc__files () # ~ # List run-files
-{
-  ls -la "$BG_RUNB"*
-}
-
-bg_proc__help ()
-{
-  grep '^\(bg_proc__\|bg_handle__\)' $(command -v bg.lib.sh)
-  # compgen -A function | grep '^\(bg_proc__\|bg_handle__\)'
-}
-
-bg_proc__instance () # ~ # Print instance pid and command-line
+bg_proc__ps () # ~ # Print instance pid and command-line
 {
   #PID=$(<$BG_PID) || return
   ps -q $PID -opid=,command=
@@ -151,12 +186,7 @@ bg_proc__instance () # ~ # Print instance pid and command-line
 bg_proc__kill () # ~ # Exit and cleanup
 {
   kill -9 $PID &&
-  bg_proc__clean
-}
-
-bg_proc__list () # ~
-{
-  ps -C bash -opid=,command= | grep "bash .*$0.*"
+  bg__clean
 }
 
 bg_proc__pid () # ~ Print PID for instance
@@ -234,28 +264,24 @@ bg_proc__run_eval () # ~ # Evaluate command in instance root scope
 
 bg_proc__running () # ~ # Check that instance is running (with ps)
 {
+  test -s "$BG_PID" &&
   PID=$(<$BG_PID) || return
-  : "$(ps -q $PID -ocommand=)"
+  if_ok "$(ps -q $PID -ocommand=)" ||
+    #$LOG warn : "Failed getting command-line for proc Id" "E$?:$PID" $? ||
+      return
   test -n "$_" && BG_CMD=$_
 }
 
-# Run server: read command lines at BG_FIFO and invoke handler routine
-bg_proc__server () # ~ [<Restart-count>] # Start main loop
+
+bg_proc__clean () # ~ #
 {
-  bg_fifo_single true || return
-  bg_rcnt=${1:-0}
-  $LOG notice "$BG_BASE:$0[$$]" "Starting server" "$$, restart-count:$bg_rcnt"
-      #test -e "$BG_PID" || {
-        echo "$$" > "$BG_PID"
-      #}
-  bg_recv_blocking "$BG_FIFO" || fail=true
-  $bgctx clean
-  ! ${fail:-false} || return $?
+  rm -v "$BG_RUNB"*
 }
+
 
 bg_proc__stop () # ~ # Exit instance
 {
-  $bgctx cmd exit
+  $bgctx cmd exit #&& bg_proc__clean
 }
 
 bg_proc__tree () # ~ # Show instance sub-processes and ancestors
@@ -267,24 +293,25 @@ bg_proc__tree () # ~ # Show instance sub-processes and ancestors
 # 'server' main loop for single-fifo, synchronous (1-to-1 line req/resp) messaging
 bg_recv_blocking ()
 {
-  local bg_fifo=${1:?}
+  local bg_fifo=${1:?} hr=0
   while true
   do
-    $LOG info "$BG_BASE:$0[$$]:recv" "Waiting for data..."
+    $LOG info "$lk:recv" "Waiting for data..."
     # block until command data received
     read -r rq_h rq_r < "$bg_fifo"
     # look for known action, handle request. Each hanlder writes back to
     # bg_fifo as needed.
     std_quiet declare -F "bg_handle__${rq_h:-}" && {
-        $LOG info "$BG_BASE:$0[$$]:recv" \
-          "Handling command" "$rq_h${rq_r:+" '"}$rq_r${rq_r:+"'"}"
-        bg_handle__${rq_h:?} "${rq_r:-}"
-        $LOG debug "$BG_BASE:$0[$$]:recv" "Handle $rq_h finished" "E${stat:-$?}"
+      $LOG info "$lk:recv" \
+        "Handling command" "$rq_h${rq_r:+" '"}$rq_r${rq_r:+"'"}"
+      bg_handle__${rq_h:?} "${rq_r:-}" || hr=$?
+      $LOG debug "$lk:recv" "Handle $rq_h finished" "E${stat:-$?}"
+      test $hr -eq 0 || break
     } || {
-        echo "? '$rq_h'" | tee -a "$bg_fifo"
+      echo "? '$rq_h'" | tee -a "$bg_fifo"
     }
   done
-  rm /tmp/buffer
+  return $hr
 }
 
 # Restarts the process, but keeps same PID (at least on Linux)

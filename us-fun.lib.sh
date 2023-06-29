@@ -1,13 +1,26 @@
 
-# XXX: move these to parts files, see bash-fun profile part
+### Global function set for user-script
 
-at_ () # ~ <base> [<base..>]
+# For global functions in this repository see script-mpe.lib
+
+
+# Build on uc:lib-load
+# XXX: eg. use 'at_ Dev' to build ctx_dev handler?
+
+# look for $<ctx>ctx and use value as handler, or source script <ctx>.sh
+# and use at_<ctx> as handler. Continues shifting arguments until either
+# exists. FIXME: should fail if none is found. Also should accumulate args,
+# list scr_ctx if script was found and loaded and def_ctx for everything else.
+
+at_ () # ~ <ctx> [<ctx|args..>]
 {
   while test 0 -lt $#
   do
+    : "${1:?at_ argument 1 expected}"
+
     ctxv=${1//[^A-Za-z0-9_]/_}ctx
-    test -n "${!_:-}" &&
-    std_quiet declare -F $_ && {
+    test -n "${!ctxv:-}" &&
+    std_quiet declare -F "$_" && {
       set -- $_ "${@:2}"
       break
     }
@@ -21,26 +34,6 @@ at_ () # ~ <base> [<base..>]
   done
   test 0 -eq $# && return
   "$@"
-}
-
-if_ok ()
-{
-  return
-}
-
-std_noerr ()
-{
-  "$@" 2>/dev/null
-}
-
-std_noout ()
-{
-  "$@" >/dev/null
-}
-
-std_quiet ()
-{
-  "$@" >/dev/null 2>&1
 }
 
 #

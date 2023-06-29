@@ -1,11 +1,14 @@
 
-. ${US_BIN:=${HOME:?}/bin}/_lib.sh
+. ${US_BIN:=${HOME:?}/bin}/script-mpe.lib.sh
 
 # See bm-baseline for current state of benchmarking goals
 
 # Should want to generate scripts instead, execute those on a clean noiseless
 # environment and report/process the results. But until then this generates
 # actual numbers to compare some shell idioms for different use cases.
+
+#fun_copy test_q std_quiet
+# etc.
 
 test_q ()
 {
@@ -26,6 +29,7 @@ sh_noe ()
 {
   "$@" >/dev/null 2>&1
 }
+
 
 # Run command X times. Ignore status. Does nothing for IO, see
 # Either Cmd or function test_<name> is executed <Iter-count> times, remaining
@@ -183,7 +187,12 @@ sample_time ()
 report_time () # ~ <Header=_> [<Tail...>]
 {
   set -- "${1:-$_}" "${*:2}"
-  : "$(sed 's/00*\(\\t\|$\)/\1/g' <<< "real:$avg_real\tuser:$avg_user\tsys:$avg_sys" )"
+  : "${report_time_p:=5}"
+  : "real:%.${_}f\tuser:%.${_}f\tsys:%.${_}f"
+  #shellcheck disable=SC2059
+  : "$(printf "$_" "0$avg_real" "0$avg_user" "0$avg_sys")"
+  # XXX: alt report_time format
+  #: "$(sed 's/00*\(\\t\|$\)/\1/g' <<< "real:$avg_real\tuser:$avg_user\tsys:$avg_sys" )"
   echo -e "${1:-$_}\t$_${2:+\t}${2// /$'\t'}"
 }
 

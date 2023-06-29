@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 
 ### Half duplex single fifo client-server script
 
@@ -7,7 +6,7 @@
 # then one back for the answer.
 
 
-at_bg ()
+at_bg () # ~ <scr-ctx> <bg-cmd...>
 {
   bg_main_boot &&
   bg_init ${1:-} ||
@@ -16,7 +15,7 @@ at_bg ()
   at_bg_${1:-simple} "${@:2}"
 }
 
-at_bg_simple ()
+at_bg_simple () # ~ <bg-cmd...>
 {
   BG_FIFO=$BG_RUNB.fifo
   bgctx=bg_main_single
@@ -25,68 +24,61 @@ at_bg_simple ()
 }
 
 # Helper for BG_FIFO env. Create or check for named pipe path.
-bg_fifo_single () # ~ [ <Create> [ <Exists> ]]
+bg_fifo_create () # ~
 {
-  true "${BG_FIFO:=$BG_RUNB.fifo}"
+  test ! -e "$BG_FIFO" || {
+    $LOG error "$lk" "Path for named pipe exists" "$BG_FIFO" 1 || return
+    #rm "$BG_FIFO"
+  }
+  $LOG info "$lk" "Creating named pipe" "$BG_FIFO"
+  mkfifo "$BG_FIFO" || return
+}
 
-  { test $# -eq 0 || "${1:-true}"; } && {
-
-    test -p "$BG_FIFO" && {
-      return
-    } || {
-      test ! -e "$BG_FIFO" || {
-        $LOG error : "Path exists" "$BG_FIFO" 1 || return
-        #rm "$BG_FIFO"
-      }
-      $LOG info : "Creating named pipe" "$BG_FIFO"
-      mkfifo "$BG_FIFO" || return
-    }
-
-  } || {
-
-    { test $# -le 1 || "${2:-true}"; } && {
-      test -p "$BG_FIFO" || {
-        $LOG error : "No such named pipe" "$BG_FIFO"
-        return 1
-      }
-    } || {
-      ! test -p "$BG_FIFO" || {
-        $LOG error : "Named pipe exists" "$BG_FIFO"
-        return 1
-      }
-    }
+bg_fifo_exists () # ~
+{
+  test -p "$BG_FIFO" || {
+    $LOG error "$lk" "No such named pipe" "$BG_FIFO" 1 || return
   }
 }
 
 bg_main_boot ()
 {
-  set -eu
+  sh_mode strict || return
+  #set -eu
   #o pipefail
   #set -m
   #shopt -s checkjobs
-  : "${ENV_SRC:=$(realpath "$(command -v $0)")}"
-  lib_require shell-uc bg &&
-  lib_init
+  if_ok "${ENV_SRC:=$(realpath "$(command -v $0)")}" || return
+  lib_loaded shell-uc bg || {
+    lib_require shell-uc bg &&
+    lib_init || return
+  }
+  #: "${BG_TAG:=default}"
+  #: "${BG_PID:=$BG_RUNB-${BG_TAG:?}.pid}"
 }
 
 bg_main_single ()
 {
-  case "${1:-instance}" in
+  local act=${1:-}
+  test 0 -eq $# || shift
+  case "$act" in
 
     # Defer to bg-proc:* handler, for ops on bg process from current terminal
-    proc ) shift; local act=${1:-instance}; test 0 -eq $# || shift
-      declare -f "bg_proc__${act//-/_}" >/dev/null 2>&1 || {
-        echo "! $0: no such inspector: $act"
-        return 1
+    proc ) local ph=${1:?}; shift
+      sh_fun "bg_proc__${ph//-/_}" || {
+        $LOG error "$lk:proc" "no such inspector" "$ph" 1 || return
       }
-      bg_proc__${act//-/_} "$@" || return
+      bg_fifo_exists &&
+      bg_proc__running ||
+        $LOG error ":proc:bg[$$]" "No instance" "E$?:$BG_BASE" 1 || return
+      bg_proc__${ph//-/_} "$@" || return
     ;;
 
     # Drop new command for bg proc. See bg-handle:* for command handlers.
     #cmd ) shift; bg_proc__cmd "$@" ;;
 
-    env )
-      case ${2:-base} in
+    env ) # ~ (base|scache|...) # Print declarations, typesets and script lines
+      case ${1:-base} in
         ( base ) declare -p BG_{RUNB,PID,FIFO} ;;
         ( scache )
           cat <<EOM
@@ -97,13 +89,13 @@ shift
 EOM
         ;;
         ( run-cmd )
-          $bgctx env cmd &&
-          declare -f bg_proc__{run,run_cmd,read_std_response} &&
+          $bgctx env base &&
+          declare -f bg_proc__{cmd,run,run_cmd,read_std_response} &&
           printf 'bg_proc__run_cmd "$@"\n'
         ;;
         ( run-eval )
-          $bgctx env cmd &&
-          declare -f bg_proc__{run,run_eval,read_response} &&
+          $bgctx env base &&
+          declare -f bg_proc__{cmd,run,run_eval,read_response} &&
           printf 'bg_proc__run_eval "$@"\n'
         ;;
         ( cmd )
@@ -120,17 +112,14 @@ EOM
     # Routine to parse eval-run reponse back to stat/out/err
     rrr ) bg_proc__read_std_response ;;
 
-    clean ) shift; bg_proc__clean "$@" ;;
-    server ) shift; bg_proc__server "$@" ;;
-
     init )
       for scr in run-cmd run-eval cmd
       do
         $bgctx env $scr >| ${BG_CACHE:?}/status-$scr.sh
       done
     ;;
-    scache ) local scr=${2:?}
-      shift 2
+    scache ) local scr=${1:?}
+      test 0 -eq $# || shift
       . ${BG_CACHE:?}/status-$scr.sh
     ;;
 
@@ -175,10 +164,18 @@ $($bgctx run-cmd uc_lib_hook pairs _lib_init | sed 's/^/    /' )
 EOM
     ;;
 
+    "" ) # ~ # Default action, and aliases.
+      bg_proc__running &&
+        set -- ps "$@" ||
+        set -- list "$@"
+      $bgctx "$@" ;;
+
     * )
-      bg_proc__running ||
-        $LOG error : "No instance" "$BG_BASE" 1 || return
-      $bgctx proc "$@" ;;
+      sh_fun "bg__${act//-/_}" && {
+        "$_" "$@"
+        return
+      }
+      $bgctx proc "$act" "$@" ;;
 
   esac
 }
@@ -187,9 +184,6 @@ EOM
 bg_main_multi ()
 {
   bg_main_boot || return
-
-  #true "${BG_TAG:=default}"
-  #true "${BG_PID:=$BG_RUNB-${BG_TAG:?}.pid}"
 
   case "${1:-server}" in
 
@@ -216,12 +210,12 @@ bg_main_old ()
 {
   case "${1:-server1}" in
 
-      socketclient )
-          bg_writeread "${*@Q}" || return
-        ;;
+    socketclient )
+        bg_writeread "${*@Q}" || return
+      ;;
 
-      * ) echo "? '$1'" >&2
-          ;;
+    * ) echo "? '$1'" >&2
+        ;;
 
   esac
 }

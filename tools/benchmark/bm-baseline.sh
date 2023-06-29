@@ -35,9 +35,9 @@
 # printf            real:.07214 user:.0592  sys:.02247
 # echo-n            real:.07203 user:.06077 sys:.02076
 # cat-null          real:.08047 user:.06788 sys:.02364
-# noopfun           real:.07178 user:.05929 sys:.02212
-# fun_strkeeparg    real:.0709  user:.0593  sys:.02203
-# fun_strarg        real:.07183 user:.05972 sys:.02237
+# fun_true          real:.07178 user:.05929 sys:.02212
+# fun_keeplast    real:.0709  user:.0593  sys:.02203
+# fun_keeparg        real:.07183 user:.05972 sys:.02237
 
 # @t460s at 100/10 samples/runs:
 # true              real:.088   user:.0648  sys:.0296
@@ -46,9 +46,9 @@
 # printf            real:.0683  user:.0602  sys:.0193
 # echo-n            real:.0723  user:.0644  sys:.0186
 # cat-null          real:.1667  user:.1344  sys:.0452
-# noopfun           real:.071   user:.0622  sys:.0195
-# fun_strkeeparg    real:.0687  user:.056   sys:.0242
-# fun_strarg        real:.069   user:.0621  sys:.0184
+# fun_true          real:.071   user:.0622  sys:.0195
+# fun_keeplast    real:.0687  user:.056   sys:.0242
+# fun_keeparg        real:.069   user:.0621  sys:.0184
 
 # @t460s at 100/1000 samples/runs:
 # true             real: .0831  user:.0688  sys:.0221
@@ -57,13 +57,9 @@
 # printf           real: .0902  user:.0727  sys:.0262
 # echo-n           real: .0755  user:.0694  sys:.0174
 # cat-null         real:1.0526  user:.7976  sys:.3039
-# noopfun          real: .0857  user:.065   sys:.0268
-# fun_strkeeparg   real: .0806  user:.0695  sys:.022
-# fun_strarg       real: .0865  user:.0763  sys:.0197
-
-noopfun () { :; }
-fun_strkeeparg () { : "$_"; }
-fun_strarg () { : "${1:-}"; }
+# fun_true         real: .0857  user:.065   sys:.0268
+# fun_keeplast   real: .0806  user:.0695  sys:.022
+# fun_keeparg       real: .0865  user:.0763  sys:.0197
 
 source ${US_BIN:=$HOME/bin}/tools/benchmark/_lib.sh
 sh_mode strict
@@ -100,12 +96,12 @@ test_report echo-n"		"
 #sample_report exec-null
 test_baseline $samples $runs cat /dev/null
 test_report cat-null
-test_baseline $samples $runs noopfun
+test_baseline $samples $runs fun_true
 test_report
-test_baseline $samples $runs fun_strkeeparg
-test_report fun_strkeeparg
-test_baseline $samples $runs fun_strarg arg
-pause= test_report fun_strarg
+test_baseline $samples $runs fun_keeplast
+test_report fun_keeplast
+test_baseline $samples $runs fun_keeparg arg
+pause= test_report fun_keeparg
 
 # true				real:.1825		user:.1572	sys:.0364	samples=10	runs=10000	load:0.38,0.61,0.63	host:t460s
 # false				real:.1992		user:.17	sys:.0377	samples=10	runs=10000	load:0.38,0.59,0.63	host:t460s
@@ -113,9 +109,9 @@ pause= test_report fun_strarg
 # printf			real:.1873		user:.1593	sys:.0352	samples=10	runs=10000	load:1.07,0.73,0.67	host:t460s
 # echo-n			real:.1925		user:.1659	sys:.0388	samples=10	runs=10000	load:0.90,0.70,0.66	host:t460s
 # cat-null			real:11.3765	user:8.3528	sys:3.4732	samples=10	runs=10000	load:1.65,1.09,0.82	host:t460s
-# noopfun			real:.2175		user:.1915	sys:.0349	samples=10	runs=10000	load:1.43,1.07,0.82	host:t460s
-# fun_strkeeparg	real:.2349		user:.2031	sys:.0434	samples=10	runs=10000	load:1.21,1.03,0.81	host:t460s
-# fun_strarg		real:.2435		user:.2186	sys:.0376	samples=10	runs=10000	load:1.10,1.01,0.80	host:t460s
+# fun_true			real:.2175		user:.1915	sys:.0349	samples=10	runs=10000	load:1.43,1.07,0.82	host:t460s
+# fun_keeplast	real:.2349		user:.2031	sys:.0434	samples=10	runs=10000	load:1.21,1.03,0.81	host:t460s
+# fun_keeparg		real:.2435		user:.2186	sys:.0376	samples=10	runs=10000	load:1.10,1.01,0.80	host:t460s
 
 # true				real:.0881	user:.0737	sys:.0274	samples=10	runs=1000	load:0.36,0.46,0.61	host:t460s
 # false				real:.1074	user:.0824	sys:.0321	samples=10	runs=1000	load:0.44,0.47,0.61	host:t460s
@@ -123,8 +119,8 @@ pause= test_report fun_strarg
 # printf			real:.0908	user:.0747	sys:.028	samples=10	runs=1000	load:0.37,0.45,0.60	host:t460s
 # echo-n			real:.0886	user:.0743	sys:.0262	samples=10	runs=1000	load:0.32,0.44,0.59	host:t460s
 # cat-null			real:1.1571	user:.8653	sys:.3685	samples=10	runs=1000	load:0.36,0.44,0.59	host:t460s
-# noopfun			real:.0976	user:.0784	sys:.0297	samples=10	runs=1000	load:0.30,0.42,0.58	host:t460s
-# fun_strkeeparg	real:.0932	user:.0799	sys:.0248	samples=10	runs=1000	load:0.41,0.44,0.59	host:t460s
-# fun_strarg		real:.0958	user:.0776	sys:.0303	samples=10	runs=1000	load:0.43,0.44,0.59	host:t460s
+# fun_true			real:.0976	user:.0784	sys:.0297	samples=10	runs=1000	load:0.30,0.42,0.58	host:t460s
+# fun_keeplast	real:.0932	user:.0799	sys:.0248	samples=10	runs=1000	load:0.41,0.44,0.59	host:t460s
+# fun_keeparg		real:.0958	user:.0776	sys:.0303	samples=10	runs=1000	load:0.43,0.44,0.59	host:t460s
 
 #
