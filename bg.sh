@@ -103,6 +103,17 @@ EOM
           declare -f bg_proc__cmd &&
           printf 'bg_proc__cmd "$@"\n'
         ;;
+        ( pid )
+            $bgctx env base &&
+            declare -f bg_proc__pid &&
+            printf 'PID=$(<$BG_PID) &&' &&
+            printf 'bg_proc__pid "$@"\n'
+          ;;
+        #( stop )
+        #    $bgctx env base &&
+        #    declare -f bg_proc__stop &&
+        #    printf 'bg_proc__stop "$@"\n'
+        #  ;;
       esac
     ;;
 
@@ -113,7 +124,7 @@ EOM
     rrr ) bg_proc__read_std_response ;;
 
     init )
-      for scr in run-cmd run-eval cmd
+      for scr in run-cmd run-eval pid stop cmd
       do
         $bgctx env $scr >| ${BG_CACHE:?}/status-$scr.sh
       done
@@ -131,7 +142,7 @@ EOM
     s|st|stat|status )
       #$bgctx proc check &&
       #$bgctx proc tree &&
-      $bgctx instance &&
+      $bgctx ps &&
       $bgctx run-eval lib_require uc-lib &&
       cat <<EOM
   Base: $BG_BASE

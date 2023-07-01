@@ -9,6 +9,16 @@ background () # ~ <-info>
   case "$act" in
     ( c|choose )
           img=$(backgrounds preview) && background set "$img" ;;
+    ( gradient )
+        . ${US_BIN:?}/im-gradient.sh || return
+        case "${1:-green}" in
+          ( dust|orange-glow ) user_background_gradient 12x12 chauvet-dystopic-glow 0 ;;
+          ( gas|day-green ) user_background_gradient 12x12 chauvet-day-green 0 ;;
+          ( day-blue ) user_background_gradient 12x12 chauvet-day-blue 0 ;;
+          ( orange ) user_background_gradient 12x12 chauvet-dark-orange-mono 0 180 ;;
+          ( green ) user_background_gradient 12x12 chauvet-dark-green-mono 0 180 ;;
+        esac
+      ;;
     ( i|info ) false ;; # TODO
     ( s|set )
           feh --bg-fill "$@" ;;
@@ -238,7 +248,9 @@ uc_script_load user-script
 
 user_desktop_loadenv ()
 {
-  lib_load sys-htd desktop xorg
+  #user_script_loadenv || test ${_E_retry:-198} -eq $? || return $_
+  : "${_E_not_found:=127}" # NSFC no-such-file-or-command
+  lib_require sys-htd desktop xorg
 }
 
 ! script_isrunning "user-desktop" || {

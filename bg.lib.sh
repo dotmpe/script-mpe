@@ -152,9 +152,16 @@ bg__server () # ~ [<Restart-count>] # Start main loop
   bg_rcnt=${1:-0}
   $LOG notice "$lk" "Starting server" "$$, restart-count:$bg_rcnt"
   echo "$$" > "$BG_PID"
-  rm "$BG_RUNB.ilock"
+  test ! -e "$BG_RUNB.ilock" ||
+    bg__started || return
   bg_recv_blocking "$BG_FIFO"
   return ${hr:-0}
+}
+
+bg__started ()
+{
+  "${quiet:-true}" && set -- || set -- -v
+  rm "$@" "$BG_RUNB.ilock"
 }
 
 bg__clean () # ~ # Delete run-files
@@ -294,6 +301,8 @@ bg_proc__tree () # ~ # Show instance sub-processes and ancestors
 bg_recv_blocking ()
 {
   local bg_fifo=${1:?} hr=0
+
+  # echo 'v1' >| "$bg_fifo"
   while true
   do
     $LOG info "$lk:recv" "Waiting for data..."
