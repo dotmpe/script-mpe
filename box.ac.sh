@@ -104,10 +104,10 @@ __uc_ac_init ()
 # TODO: Fix descriptions
 __uc_execnames_check ()
 {
-  #sh_fun ${lib_load:-uc_lib_load} || {
+  #sh_fun ${lib_load:-lib_uc_load} || {
   #  PATH=$PATH:$PWD:$U_C/script
   #  uc_fun () { sh_fun "$@"; }
-  #  source "uc-lib.lib.sh" && uc_lib_init || return
+  #  source "lib-uc.lib.sh" && lib_uc__init || return
   #}
   #$lib_load list htd ignores user-script &&
   #user_script_lib__init &&
@@ -175,7 +175,7 @@ script_isrunning "box.ac" .sh && {
   # Running interactively probably? Initialize auto completion.
   $LOG note :box.ac.sh "Loading interactive completions" \
       "$0:${base+$base/${SCRIPTNAME:-(no script)}${SCRIPT_BASEEXT:+.$SCRIPT_BASEEXT}}"
-  ${lib_load:-uc_lib_load} str-uc std-uc && {
+  ${lib_load:-lib_uc_load} str-uc std-uc && {
     __uc_ac_init $BOX_EXECS ||
         $LOG warn :box.ac.sh \
         "Failed loading (some) Box autocompletions (ignored)" E$?

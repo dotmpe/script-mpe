@@ -249,6 +249,7 @@ script_unenv ()
 
   unset script{name,_{baseext,cmd{als,def,id,alsid,stat},defcmd}} base{,id}
 
+  # FIXME: switch using sh-mode helper
   set +e
   # XXX: test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && set +uo pipefail
   test -z "${BASH_VERSION:-}" || set +uo pipefail
@@ -260,7 +261,8 @@ script_unenv ()
 
 ## U-s functions
 
-# Helper to select/invoke handler specific to currently invoked user-script
+# Helper to select/invoke handler specific to currently invoked user-script,
+# XXX
 user_script_ () # ~ <Hook-name> [<Hook-args...>]
 {
   : "${base:=${SCRIPTNAME:?}}"

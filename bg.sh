@@ -143,7 +143,7 @@ EOM
       #$bgctx proc check &&
       #$bgctx proc tree &&
       $bgctx ps &&
-      $bgctx run-eval lib_require uc-lib &&
+      $bgctx run-eval lib_require lib-uc &&
       cat <<EOM
   Base: $BG_BASE
   PWD: $($bgctx proc pwd)
@@ -169,9 +169,9 @@ EOM
   Env-lib:
     $($bgctx run-cmd eval echo \${ENV_LIB:-} )
   Lib-loaded:
-$($bgctx run-cmd uc_lib_hook pairs _lib_loaded | sed 's/^/    /' )
+$($bgctx run-cmd lib_uc_hook pairs _lib_loaded | sed 's/^/    /' )
   Lib-init:
-$($bgctx run-cmd uc_lib_hook pairs _lib_init | sed 's/^/    /' )
+$($bgctx run-cmd lib_uc_hook pairs _lib_init | sed 's/^/    /' )
 EOM
     ;;
 

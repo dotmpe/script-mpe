@@ -12,7 +12,7 @@ background () # ~ <-info>
     ( gradient )
         . ${US_BIN:?}/im-gradient.sh || return
         case "${1:-green}" in
-          ( dust|orange-glow ) user_background_gradient 12x12 chauvet-dystopic-glow 0 ;;
+          ( dust|orange-glow ) user_background_gradient 12x12 chauvet-dystopic-glow 180 ;;
           ( gas|day-green ) user_background_gradient 12x12 chauvet-day-green 0 ;;
           ( day-blue ) user_background_gradient 12x12 chauvet-day-blue 0 ;;
           ( orange ) user_background_gradient 12x12 chauvet-dark-orange-mono 0 180 ;;
