@@ -58,6 +58,39 @@ var_names ()
   TODO
 }
 
+# TODO: build tables from user data
+match_box ()
+{
+  local _1def='stat' n='user-box'; sa_a1_d_nlk
+  while test 0 -lt $#
+  do
+    case "$1" in
+      ( cmd )  TODO match_box $*
+          compgen -A command
+        ;;
+      ( env )  TODO match_box $*
+          compgen -A export
+        ;;
+      ( file ) TODO match_box $*
+          compgen -A file
+        ;;
+      ( dir )  TODO match_box $*
+          compgen -A directory
+        ;;
+      ( names )     match_box file dir ;;
+      ( check )     match_box cmd env shell names ;;
+      ( sh-* ) TODO match_box $*
+          compgen -A alias
+          compgen -A function
+          compgen -A variable
+        ;;
+      ( shell )     match_box sh-als sh-var sh-fun ;;
+      ( * ) sa_E_nschc ;;
+    esac || return
+    shift
+  done
+}
+
 
 ## User-script parts
 
@@ -68,7 +101,7 @@ match_aliasargv ()
 {
   test -n "${1:-}" || return
   case "${1//_/-}" in
-
+    ( local|user-box ) shift; set -- match_box "$@" ;;
     ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
@@ -94,7 +127,7 @@ match_loadenv () # ~ <Cmd-argv...>
 ! script_isrunning "match" .sh || {
   export UC_LOG_BASE="$SCRIPTNAME.sh[$$]"
   user_script_load || exit $?
-  script_defcmd=check
+  script_defcmd=local\ check
   user_script_defarg=defarg\ aliasargv
   eval "set -- $(user_script_defarg "$@")"
   script_run "$@"

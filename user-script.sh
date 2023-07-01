@@ -174,7 +174,9 @@ script_baseenv ()
 script_cmdid ()
 {
   script_cmd="${1:?}"
-  script_cmdid=$(user_script_mkvid "$1")
+  script_cmdname="${script_cmd##*/}"
+  script_cmdname="${script_cmdname%% *}"
+  script_cmdid=$(user_script_mkvid "$script_cmd")
   test -z "${script_cmdals:-}" || {
       script_cmdalsid=$(user_script_mkvid "$script_cmdals")
     }
@@ -199,7 +201,7 @@ script_doenv () # ~ <Action <argv...>>
       }
     }
   done
-  script_cmdfun=${1//-/_}
+  script_cmdfun=${script_cmdname//-/_}
   # prefer to use most specific name, fallback to unprefixed handler function
   ! sh_fun "${baseid}_${script_cmdfun}" || script_cmdfun="$_"
   sh_fun "$script_cmdfun" || {
@@ -390,7 +392,7 @@ user_script_defarg ()
   local rawcmd="${1:-}" defcmd=
 
   # Track default command, and allow it to be an alias
-  user_script_defcmd "$@" || set -- "$script_defcmd"
+  user_script_defcmd "$@" || set -- $script_defcmd
 
   # Resolve aliases
   case "$1" in
@@ -442,6 +444,7 @@ user_script_defarg ()
 
   # Print everything using appropiate quoting
   argv_dump "$@"
+  exit $?
 
   # Print defs for some core vars for eval as well
   user_script_defcmdenv "$@"
@@ -461,8 +464,8 @@ user_script_defcmdenv ()
   test "$1" = "$rawcmd" \
       && printf "; script_cmdals=" \
       || printf "; script_cmdals='%s'" "$rawcmd"
-  printf '; script_defcmd=%s' "$script_defcmd"
-  printf '; script_cmddef=%s' "$defcmd"
+  printf "; script_defcmd='%s'" "$script_defcmd"
+  printf "; script_cmddef='%s'" "$defcmd"
 }
 
 user_script_envvars () # ~ # Grep env vars from loadenv
@@ -945,8 +948,8 @@ user_script_usage () # ~
     }
 
   test $short -eq 1 && {
-    printf '\t%s (%s) %s\n' "$base" "$script_defcmd" ""
-    printf '\n%s\n' "$script_shortdescr"
+    printf '\t%s (%s) %s\n' "$base" "${script_defcmd:-(no-defcmd)}" ""
+    printf '\n%s\n' "${script_shortdescr:-(no-shortdescr)}"
   } || {
     true # XXX: func comments printf '%s\n\n' "$_usage"
   }
