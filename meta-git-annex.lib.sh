@@ -13,13 +13,15 @@ meta_dump__git_annex ()
         data=$(git annex metadata "${1:?}")
       ;;
 
-    ( * ) return 3 ;;
+    ( * ) return 4 ;;
   esac
 
   case "${out_fmt:-kv}" in
-      ( *-raw ) echo "$data"; return ;;
-      ( json-fields ) jq .fields <<< "$data"; return ;;
-      ( kv ) <<< "$data" tail -n +2 | head -n -1 | kv_quote = ;;
+    ( *-raw ) echo "$data"; return ;;
+    ( json-fields ) jq .fields <<< "$data"; return ;;
+    ( kv|kqv ) <<< "$data" tail -n +2 | head -n -1 | kv_quote "=" ;;
     ( * ) return 4 ;;
   esac
 }
+
+#

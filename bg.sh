@@ -1,18 +1,49 @@
 
-### Half duplex single fifo client-server script
+### Helper for backgrounded shell instances
 
-# This could be a really simple IPC setup for shell scripting
-# a server with one client at a time, and a single line for request and
-# then one back for the answer.
+# bg-simple
+#   Half duplex single fifo client-server script
+
+#   This could be a really simple IPC setup for shell scripting
+#   a server with one client at a time, and a single line for request and
+#   then one back for the answer.
 
 
-at_bg () # ~ <scr-ctx> <bg-cmd...>
+# make scache scripts execute asap
+case "${SCRIPTNAME:=$(basename -- "$0" .sh)}" in ( bg-simple|user-bg )
+
+  BG_CACHE=${UCONF:?}/.meta/cache
+
+  case "${1:-}" in
+    ( scache-exists )
+        for scr in cmd run-cmd run-eval
+        do
+          echo ${BG_CACHE:?}/$SCRIPTNAME-$scr.sh
+          test -s "$_" || fail=true
+        done
+        ! ${fail:-false}
+        exit $?
+      ;;
+    ( cscr|scache )
+        scr=${2:?}
+        shift 2
+        . ${BG_CACHE:?}/$SCRIPTNAME-$scr.sh
+        exit $?
+      ;;
+
+  esac ;;
+esac
+
+
+at_bg () # ~ <scrctx> <bg-cmd...>
 {
   bg_main_boot &&
   bg_init ${1:-} ||
     $LOG error "$BG_BASE:$0[$$]" "bg script init" "E$?" $? || return
-  std_quiet declare -F at_bg_${1:-} || shift # set -- "${@:2}"
-  at_bg_${1:-simple} "${@:2}"
+  # Execute at-bg-<scrctx> if that exists
+  std_quiet declare -F at_bg_${1//[^A-Za-z0-9_]/_} || shift
+  test -n "${1:-}" || set -- simple "${@:2}"
+  at_bg_${1//[^A-Za-z0-9_]/_} "${@:2}"
 }
 
 at_bg_simple () # ~ <bg-cmd...>
@@ -20,7 +51,15 @@ at_bg_simple () # ~ <bg-cmd...>
   BG_FIFO=$BG_RUNB.fifo
   bgctx=bg_main_single
   : "${bgscr:=$0}"
+  $LOG info :at:bg-simple "Running" "$bgctx $*"
   $bgctx "$@"
+}
+
+at_bg_user_bg ()
+{
+  shift
+  . "${US_BIN:=$HOME/bin}/.bg-env.sh"
+  at_bg_simple "$@"
 }
 
 # Helper for BG_FIFO env. Create or check for named pipe path.
@@ -49,7 +88,9 @@ bg_main_boot ()
   #set -m
   #shopt -s checkjobs
   if_ok "${ENV_SRC:=$(realpath "$(command -v $0)")}" || return
+
   lib_loaded shell-uc bg || {
+    $LOG info :bg-main-boot "Loading lib deps"
     lib_require shell-uc bg &&
     lib_init || return
   }
@@ -126,12 +167,14 @@ EOM
     init )
       for scr in run-cmd run-eval pid stop cmd
       do
-        $bgctx env $scr >| ${BG_CACHE:?}/status-$scr.sh
+        scrp=${BG_CACHE:?}/$SCRIPTNAME-$scr.sh
+        $bgctx env $scr >| "$scrp"
+        $LOG info "$lk:init" "Updated '$scr' script" "E$?:$scrp" $?
       done
     ;;
     scache ) local scr=${1:?}
       test 0 -eq $# || shift
-      . ${BG_CACHE:?}/status-$scr.sh
+      . ${BG_CACHE:?}/$SCRIPTNAME-$scr.sh
     ;;
 
     start )
@@ -191,7 +234,7 @@ EOM
   esac
 }
 
-# XXX: see bg-main-single
+# XXX: see bg-simple for now
 bg_main_multi ()
 {
   bg_main_boot || return
@@ -232,9 +275,9 @@ bg_main_old ()
 }
 
 
-case "$(basename -- "$0" .sh)" in
+case "${SCRIPTNAME:?}" in
     ( bg ) bg_main_multi "$@" ;;
-
     ( bg-simple ) at_bg "" "simple" "$@" ;;
+    ( user-bg ) at_bg "user-bg" "simple" "$@" ;;
 esac
 #

@@ -14,8 +14,8 @@ suffix=\ concat\ string
 # These numbers are no surpise for anyone who has done profiling on simple
 # string operations in shell vs. sed/awk scripts: a shell read/echo loop beats
 # running any other program by a large margin, let alone running a complete
-# pipeline if string concat is the only op. Measured a baseline here of about
-# 0.07 sec / 100.
+# pipeline if a single string concat is the only op. Measured a baseline here
+# of about 0.07 sec / 100.
 # sed, join and awk all take almost or more than 4 times longer.
 # join does a bit better than those, it only takes 3 times more.
 # The paste/head/yes/wc pipeline script is 0.5s/100: more than 7 times.

@@ -9,10 +9,10 @@
 # is not surpising.
 
 #             htd.sh       self
-# 100x awk    0.9s   0.8   .4
-# 100x sort-u 1.3s   1.5   .3
-# 100x uniq  ~0.4s    .6   .3
-# 100x bash-assoc   >30s   .8
+# 100x awk      0.9s   0.8   .4
+# 100x sort-u   1.3s   1.5   .3
+# 100x uniq    ~0.4s    .6   .3
+# 100x bash-assoc    >30s   .8
 
 # 10x awk                  .11
 # 10x sort-u              >.09

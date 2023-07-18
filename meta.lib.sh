@@ -120,5 +120,26 @@ json_to_csv()
   jq -r "$jq_sel"' | ['"$(echo $_s|wordsep ',')"'] | @csv'
 }
 
+#eval "$(compo typeset conv_fields_shell)"
+conv_fields_shell ()
+{
+# Translate uniform fields format into shell variable declarations
+  awk '
+    match($0, /^([^:]+): (.*)/, a) {
+        gsub("[^a-zA-Z0-9_]", "_", a[1])
+        gsub("[$\"]", "\\\\&", a[2])
+        $0 = a[1]"=\""a[2]"\""
+    } 1 '
+}
+# Copy: INC:conv-fields-shell
+
+kv_quote () # ~ [<Src-asgn-sep>]
+{
+  while IFS=${1:-=}$'\n' read -r key value
+  do
+    printf '%s="%s"\n' "$key" "$value"
+  done
+}
+
 
 # Id: script-mpe/0.0.4-dev meta.lib.sh

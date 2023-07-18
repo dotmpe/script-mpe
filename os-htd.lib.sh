@@ -15,6 +15,13 @@ os_htd_lib__init()
     test -n "$LOG" -a \( -x "$LOG" -o "$(type -t "$LOG")" = "function" \) \
       && os_htd_lib_log="$LOG" || os_htd_lib_log="$INIT_LOG"
     test -n "$os_htd_lib_log" || return 108
+
+    # FIXME: need aliases turned on, use shell mode... might as well use
+    # dynfun but only for some limited types of aliases.
+    # Really need to return to root level scope, out of any function for
+    # aliases to take effect.... ? Can't 'export' them either?
+    #uc_script_load os-als
+
     $os_htd_lib_log debug "" "Initialized os-htd.lib" "$0"
   }
 }
@@ -651,7 +658,8 @@ line_cont_scan () # (s) ~ # Read (silently) until at a continuation line
   read_while not grep -q '\\$'
 }
 
-# Replace every line-end with continuation (and surrounding spaces) with a single space.
+# Replace every line-end with continuation (and surrounding spaces) with a
+# single space, collapsing multiple lines into one.
 line_conts_collapse () # (s) ~ # Replace line-continuations with space
 {
   sed ':a; N; $!ba; s/ *\\\n */ /g'
@@ -689,6 +697,35 @@ mkrlink()
   test $# -gt 1 -a -n "$1" || return
   # TODO: find shortest relative path
   ln -vs "$(basename "$1")" "${2:-"$PWD/"}"
+}
+
+os_normalize ()
+{
+  local path=${1:?}
+
+  # Remove redundant path-element separators
+  while [[ "$path" =~ \/\/ ]]
+    do path=${path/${BASH_REMATCH[0]}/\/}
+  done
+
+  # Remove embedded current-dir references
+  while [[ "$path" =~ \/\.\/ ]]
+    do path=${path/${BASH_REMATCH[0]}/\/}
+  done
+
+  # Resolve relative as far as possible
+  while [[ "$path" =~ ([^\.\/]|[^\.\/][^\/]|[^\/][^\.\/]|[^\/]{3,})\/\.\. ]]
+  do
+    path=${path/${BASH_REMATCH[0]}\/}
+    path=${path/${BASH_REMATCH[0]}}
+  done
+
+  # Remove leading/traling current-dir reference
+  while [[ "$path" =~ ^\.\/|\/\.$ ]]
+    do path=${path/${BASH_REMATCH[0]}}
+  done
+
+  echo "$path"
 }
 
 normalize_relative()
@@ -782,6 +819,65 @@ outline_tsv_reader ()
   }
 }
 
+# Invoke handler for regular files and "recurse" for directories, using
+# os-recursive itself as default. <os-r-glob> determines how the recursive
+# invocation is done, default is to pass <dir>/* letting the shell read
+# the directory through glob expansion. Skips symlinks, but every other path
+# must exist and be either file or directory.
+#
+# First two arguments can be empty, and env can be used to configure handlers.
+# os-als:loop-stat1 alias be adjusted to handle status codes differently.
+# Path arguments may be missing, but cannot be empty strings.
+# Empty directories are an error unless shopt nullglob is on, and depending on
+# the <os-dir-path> handler.
+# There cannot be anything other than regular files, subdirectories or
+# symlinks passed as arguments. However <os-r-skip=test -h> and <os-dir-path>
+# can change what is ignored as well as the behavior in sub-directories.
+# With <os-r-glob> empty, only the directory path is given to the <os-dir-path>
+# handler (which would put os-recursive in a loop!). (The '/' separator is part
+# of the <os-r-glob> setting as wel.)
+os_recursive () # ~ [<os-file-path>] [<os-dir-path>] <Paths...>
+{
+  local os_file_path=${1:-${os_file_path:-echo}} \
+    os_dir_path=${2:-${os_dir_path:-os_recursive}}
+  shift 2 || return
+  while test 0 -lt $#
+  do
+    ${os_r_skip:-test -h} "${1:?}" || {
+      test -f "$1" && {
+        ${os_file_path:?} "$1" || os-als:loop-stat1
+      } || {
+        test -d "$1" && {
+          : "${os_r_glob-/*}"
+          ${os_dir_path:?} "${os_file_path:?}" "$os_dir_path" "$1"$_ || os-als:loop-stat1
+        } || {
+          test -a "$1" && {
+            $LOG error :os-recursive "Expected file or directory" "$1" 2 || return
+          } ||
+            $LOG error :os-recursive "No such file or directory" "$1" 3 || return
+        }
+      }
+    }
+    shift
+  done
+}
+
+os_up_to_date () # ~ <Other-file ...>
+{
+  mapfile -t files
+  test ${#files[@]} -gt 0 -a $# -gt 0 || return
+  while test 0 -lt $#
+  do
+    test -e "${1:?}" || return
+    local file
+    for file in "${files[@]}"
+    do
+      test "$1" -nt "$file" || return
+    done
+    shift
+  done
+}
+
 read_addcol ()
 {
   test -n "${act-}" || local act="echo"
@@ -851,6 +947,19 @@ read_lines_while() # File-Path While-Eval [First-Line] [Last-Line]
   test -n "$stat" || return
   line_number=$(echo "$stat" | cut -f2 -d' ')
   return "$(echo "$stat" | cut -f1 -d' ')"
+}
+
+# Like read-nix-style-file but only strip comments and blank lines,
+# and leave preproc directives.
+read_nix_data ()
+{
+  read_nix_style_file "${1:?}" '^\s*(##* .*|\s*)$'
+}
+
+# Read data and comments, but leave out preproc directives.
+read_nix_user_data ()
+{
+  read_nix_style_file "${1:?}" '^\s*(##*[^ ].*|\s*)$'
 }
 
 # Read file filtering octothorp comments, like this one, and empty lines

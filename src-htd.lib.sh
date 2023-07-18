@@ -597,6 +597,7 @@ preproc_recurse () # ~ <Generator> <Resolve-fileref> <Action-cmd>
   do
     file=$($resolve "$ref" "$srcf")
     eval "$act"
+    preproc_recurse "$select" "$resolve" "$act" "$file" || true
   done
 }
 
@@ -617,13 +618,12 @@ resolve_fileref () # [cache=0,cache_key=def] ~ <Ref> <From>
       && fileref=$1 \
       || fileref=$(dirname -- "$2")/$1 # make abs path
 
-  file="$(eval "echo \"$fileref\"" | sed 's#^\~/#'"${HOME:?}"'/#')" # expand vars, user
-
+  #file="$(eval "echo \"$fileref\"" | sed 's#^\~/#'"${HOME:?}"'/#')" # expand vars, user
+  file=$(os_normalize "${fileref/#~\//${HOME:?}/}") &&
   test -e "$file" || {
     $LOG warn "" "Cannot resolve reference" "ref:$1 file:$file"
     return 9
   }
-
   echo "$file"
 # FIXME:
   #{ test ${cache:-0} -eq 1 && grep -q '^ *#'"${3:?}"' ' "$file"
@@ -647,7 +647,7 @@ preproc_includes () # [grep_f] ~ [<File|Grep-argv>] # Select args for preproc li
 preproc_includes_enum () # ~ <Resolver-> <File|Grep-argv...>
 {
   local resolve=${1:-resolve_fileref}; shift 1
-  preproc_recurse preproc_includes $resolve 'echo "$srcf $srcl $ref $file"' "$@"
+  preproc_recurse preproc_includes $resolve 'echo -e "$srcf\t$srcl\t$ref\t$file"' "$@"
 }
 
 preproc_expand () # ~ <Resolver-> <File>
@@ -663,14 +663,21 @@ preproc_expand () # ~ <Resolver-> <File>
 # functions to resolve and dereference the file. See preproc-resolve-sedscript
 preproc_expand_1_sed () # ~ <Resolver-> <File|Grep-argv...>
 {
-  # Get include lines, reformat to sed commands, and execute sed-expr on input
-  {
-    preproc_resolve_sedscript "${@:?}" ||
-      $LOG error :expand-preproc "Error generating sed script" "E$?:($#):$*" $? || return
-  } | {
-    "${gsed:?}" -f - "${2:?}" ||
-      $LOG error :expand-preproc "Error executing sed script" "E$?:($#):$*" $? || return
+  local lk=${lk:-}:expand-preproc:sed1 sc
+  preproc_expand_1_sed_script "$@" || return
+  ${preproc_read_include:-read_nix_data} "${2:?}" | {
+    "${gsed:?}" -f "$sc" - ||
+      $LOG error $lk "Error executing sed script" "E$?:($#):$*" $? || return
   }
+}
+preproc_expand_1_sed_script ()
+{
+  local fn=${2//[^A-Za-z0-9\.:-]/-}
+  sc=${CACHE_DIR:?}/$fn.sed1
+  # Get include lines, reformat to sed commands, and execute sed-expr on input
+  local resolve=${1:-resolve_fileref}
+  preproc_resolve_sedscript "$resolve" "${2:?}" >| "$sc" ||
+      $LOG error $lk "Error generating sed script" "E$?:($#):$*" $? || return
 }
 
 preproc_expand_2_awk () # ~ <Directive-tag> <File>
@@ -721,15 +728,17 @@ preproc_resolve_sedscript_item ()
 {
   ref_re="$(match_grep "$ref")"
   test "${preproc_read_include:-file}" = file && {
-    printf '/^[ \t]*#include\ %s/r %s\n' "$ref_re" "$file"
+    printf '/^[ \\t]*#include\ %s/r %s\n' "$ref_re" "$file"
+    printf 's/^[ \\t]*#include\ \(%s\)/#from\ \\1/\n' "$ref_re"
   } || {
-    printf '/^[ \t]*#include\ %s/e %s' "$ref_re" "${preproc_read_include:?}"
+    printf '/^[ \\t]*#include\ %s/e %s' "$ref_re" "${preproc_read_include:?}"
     printf ' "%s"' "$ref" "$file" "$srcf" "$srcl"
     printf '\n'
+    printf 's/^[ \\t]*#include\ \(%s\)/#from-include\ \\1/\n' "$ref_re"
   }
   # XXX: cleanup directives
   #printf 's/^[ \t]*#\(include\ %s\)/#-\1/g\n' "$ref_re"
-  printf 's/^#include /#included /g\n'
+  #printf 's/^#include /#included /g\n'
 }
 
 # Sync: src.lib.sh

@@ -4,6 +4,11 @@
 # The half-duplex line client/server
 
 
+bg_lib__load ()
+{
+  lib_require us
+}
+
 bg_lib__init ()
 {
   true "${BG_BASE:=${SHELL_NAME:?}-bg}"
@@ -75,6 +80,7 @@ bg_handle__rcnt () # ~ # Print restart-counter value
 
 bg_handle__reset ()
 {
+  stderr echo ""
   $LOG warn "$lk" "Resetting background process"
   : "$(( bg_rcnt++ ))"
   exec $bgscr server $bg_rcnt
@@ -98,7 +104,7 @@ bg_init ()
 
 bg__check () # ~ # Check instance is responding
 {
-  user_script_verbosity
+  us_log_v_warn 6 # Use INFO level for output
   bg_proc__running || return
   test -p "${BG_FIFO:?}" && {
     $LOG info "$lk" "Named pipe exists" "$BG_FIFO"
@@ -126,10 +132,10 @@ bg__help ()
   # XXX: dont have $0 added to ENV_SRC yet @User-Script
   set -- $ENV_SRC $0 $(for libp in $ENV_LIB
     do
-      test "bg.lib.sh" = "${libp%%*\/}" ||
+      test "bg.lib.sh" = "${libp##*\/}" ||
         str_globmatch "$_" "*-bg.lib.sh" && echo "$libp"
     done )
-  grep '^\(bg_proc__\|bg_handle__\)' "$@"
+  grep -h '^\(bg_\(_\|proc__\|handle__\)\)' "$@" | sort -d
   # compgen -A function | grep '^\(bg_proc__\|bg_handle__\)'
 }
 
@@ -141,17 +147,20 @@ bg__list () # ~
 # Run server: read command lines at BG_FIFO and invoke handler routine
 bg__server () # ~ [<Restart-count>] # Start main loop
 {
-  bg_fifo_create || return
+  bg_rcnt=${1:-0}
+
+  test 0 -lt ${bg_rcnt:?} || {
+    bg_fifo_create || return
+  }
 
   # cant overr
   #trap '{ rm -v "$BG_RUNB"*; }' QUIT
   #trap 'bg_proc__clean' SIGQUIT
-  trap 'bg_proc__clean $?; return $_' EXIT
+  trap 'bg_proc__clean $?; exit $_' EXIT
   #$LOG warn : "traps" "E$?:$(stderr trap)"
 
-  bg_rcnt=${1:-0}
   $LOG notice "$lk" "Starting server" "$$, restart-count:$bg_rcnt"
-  echo "$$" > "$BG_PID"
+  echo "$$" >| "$BG_PID"
   test ! -e "$BG_RUNB.ilock" ||
     bg__started || return
   bg_recv_blocking "$BG_FIFO"

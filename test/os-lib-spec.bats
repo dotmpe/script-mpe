@@ -6,7 +6,7 @@ load init
 setup()
 {
   init 0 && load stdtest extra &&
-  lib_load sys os
+  lib_load sys os-htd
 }
 
 

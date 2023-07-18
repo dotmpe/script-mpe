@@ -108,7 +108,7 @@ shellexec () # ~ [<Env>] -- [<Command>] # Fork to new shell
   true ${bin:=$(command -v $UC_SHELL)}
 
   #shellcheck disable=2145
-  eval "exec $bin \"$@\""
+  eval "exec $bin \"\$@\""
 }
 
 # Continue execution at terminal program running shell command

@@ -25,7 +25,8 @@ context_lib__init()
   test "${context_lib_init-}" = "0" && return
   test -n "${package_lists_contexts_default-}" || package_lists_contexts_default=@Std
   : "${CTX_TAB:="${STATUSDIR_ROOT:?}index/context.list"}"
-  : "${CTX_TAB_CACHE:="${STATUSDIR_ROOT:?}cache/context.tab"}"
+  : "${CTX_CACHE:="${STATUSDIR_ROOT:?}cache"}"
+  : "${CTX_TAB_CACHE:="${CTX_CACHE:?}/context.tab"}"
   test -e "$CTX_TAB" || {
     touch "$CTX_TAB" || return $?
   }
@@ -163,7 +164,7 @@ context_exists_alias () # TAG
 # Show root context.tab filename
 context_file ()
 {
-  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
+  local context_tab="${context_tab:-${CTX_TAB:?}}"
   echo "$context_tab"
 }
 
@@ -175,7 +176,7 @@ context_file_attribute () # ~ <Key> <Value> <Context-list>
 
 context_file_attributes () # ~ <Keys...>
 {
-  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
+  local context_tab="${context_tab:-${CTX_TAB:?}}"
   local v xp
   true "${xattr_noerr:=1}"
   xp=${xattr_noerr:+std_noerr }
@@ -217,17 +218,43 @@ context_fileids () # [Ctx-tab] ~
   done
 }
 
-# List includes. Reference and path names.
-context_files () # ~
-{
-  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
-  echo "$context_tab"
-  preproc_includes_list "" "$context_tab"
-}
-
 context_fileref_env () # ~ <File>
 {
   context_parse "$(context_find_fileref "$@")"
+}
+
+# List includes. These are cached as output by preproc-includes-enum, but
+# preproc-includes-list may be invoked directly bypassing cache by setting
+# <context-cache-files=false>.
+context_files () # (ctx-tab) ~
+{
+  local context_tab="${context_tab:-${CTX_TAB:?}}"
+  "${context_cache_files:-true}" || {
+    echo "$context_tab"
+    preproc_includes_list "" "$context_tab"
+    return
+  }
+  #"${context_cache_tab:-true}"
+  local cached=${CTX_CACHE:?}/context-file-includes.tab
+  context_files_cached "$cached" &&
+  cut -d $'\t' -f 4 "$cached"
+}
+
+context_files_cached () # (ctx-tab) ~ <Cached-enum-file>
+{
+  local context_tab="${context_tab:-${CTX_TAB:?}}"
+  declare -a files
+  test -e "${1:?}" &&
+    mapfile -t files <<< "$(cut -d $'\t' -f 4 "$1")" ||
+    mapfile -t files <<< "$(
+      echo "$context_tab"
+      preproc_includes_list "" "$context_tab")" || return
+  printf '%s\n' "${files[@]}" | os_up_to_date "$1" || {
+    {
+      echo -e "\t\t${context_tab/#$HOME\//~\/}\t$(realpath "$context_tab")"
+      preproc_includes_enum "" "$context_tab"
+    } >| "$1" || return
+  }
 }
 
 # Look for filename/path as context, or as URL attribute to one.
@@ -303,10 +330,13 @@ context_parse ()
   true "${tagns:="$CTX_DEF_NS"}"
 }
 
+# Get all content lines, adding file-source Id tag to each entry.
+# Every line must start with a non-space character,
 context_read_include () # ~ <Ref> <File> <Src-file> <Src-line>
 {
-  local id=$(context_tab=${2:?} context_file_attributes id)
-  sed -E 's/^([\t ]*[^#].*)(#[^ ]|$)/\1 #'"$id"'\2/' "${2:?}"
+  local id=$(context_tab=${2:-${1:?}} context_file_attributes id)
+  grep -v '^[\t ]' "${2:-${1:?}}" |
+  sed -E 's/^([^# ].*)(#[^ ]|$)/\1 #'"$id"' \2 /'
 }
 
 # XXX: Return record for given ../subtag.
@@ -328,26 +358,16 @@ context_subtag_env () # SUBTAG
 # Echo table after preproc
 context_tab () # [Ctx-tab] ~ # List context list items
 {
-  context_tab_cache &&
-  grep -Ev '^\s*(#.*|\s*)$' "${CTX_TAB_CACHE:?}"
+  context_tab_cache && grep -Ev '^\s*(#.*|\s*)$' "${CTX_TAB_CACHE:?}"
 }
 
 context_tab_cache () # [Ctx-tab] ~
 {
-  local files cached=${CTX_TAB_CACHE:?}
-  mapfile -t files <<< "$(context_files)"
-  test ! -e "$cached" || {
-    local file ood=false
-    for file in "${files[@]}"
-    do
-      test "$cached" -nt "$file" || { ood=true; break; }
-    done
-    ! $ood && {
-      return
-    }
+  local cached=${CTX_TAB_CACHE:?}
+  context_files | os_up_to_date "$cached" || {
+    local context_tab="${context_tab:-${CTX_TAB:?}}"
+    context_list_raw "${context_tab:?}" >| "$cached"
   }
-  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
-  context_list_raw "${context_tab:?}" > "$cached"
 }
 
 # Retrieve tag record and parse, see context-parse.
@@ -364,19 +384,13 @@ context_tag_fields_init ()
 
 context_tag_init () # [Ctx-tab] ~
 {
-  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
+  local context_tab="${context_tab:-${CTX_TAB:?}}"
   context_echo entry | normalize_ws >>"$context_tab"
-}
-
-# XXX: List name IDs only
-context_tag_list () # ~
-{
-  context_tab | cut -d' ' -f3- | cut -d':' -f1
 }
 
 context_tag_new ()
 {
-  test -n "${context_tab-}" || local context_tab="$CTX_TAB"
+  local context_tab="${context_tab:-${CTX_TAB:?}}"
   context_tag_fields_init | normalize_ws >>"$context_tab"
 }
 
@@ -410,6 +424,11 @@ context_tag_entry () # TAG
   context_tab | $ggrep $grep_f "^[0-9a-z -]*\b\\($NS:\\)\\?$p_:\\?\\ "
 }
 
+context_tags_list ()
+{
+  context_tab | grep -Po '^[0-9.,+ -]* \K((.*(?=:($| )))|[^ ]*)'
+}
+
 # Fetch exactly one record with given URL attribute
 context_url_entry () # URL
 {
@@ -419,12 +438,11 @@ context_url_entry () # URL
   context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^:]*:\\? .* <$p_>\( \|$\)"
 }
 
-
 contexttab_builtin=builtin
 contexttab_root=Base
 
 # Start at TAG and find all related
-contexttab_all_tags () # TAG
+contexttab_related_tags () # TAG
 {
   test $# -eq 1 -a -n "${1-}" || return 98 # Wrong arguments
   local tags

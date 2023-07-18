@@ -3,16 +3,22 @@
 
 annex_htd_lib__load()
 {
-  lib_require os-uc annex srv-htd || return
+  lib_require os-uc annex srv-htd ctx-class || return
   : "${HTD_DEFAULT_ANNEX:=archive-1}" # Primary Annex, to select during init
 }
 
 annex_htd_lib__init ()
 {
+  test 0 = "${ctx_class_lib_init:-}" && {
+    test 0 = "${annex_htd_lib_init:-}" || unset annex_htd_lib_init
+  } || {
+    return 198
+  }
+  # lib_initialized ctx-class ||
   test -z "${annex_htd_lib_init:-}" || return $_
 
   create annexes AnnexTab $ANNEXTAB &&
-  ! ${annex_htd_autoload:-true} || annex_htd_load_default
+  ! "${annex_htd_autoload:-true}" || annex_htd_load_default
 }
 
 

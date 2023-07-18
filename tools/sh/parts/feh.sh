@@ -17,5 +17,8 @@ alias feh-zoom-extents="feh -Z -."
 alias feh-zoom-frame="feh-zoom-extents --zoom fill"
 #alias feh-zoom-frame="feh ..."
 
+# See user-desktop
+#alias feh-backgrounds-preview=
+#alias feh-backgrounds-choose=
 
 #

@@ -2,8 +2,17 @@
 
 ### User desktop: helper commands for appearance and window manager
 
+test -n "${uc_lib_profile:-}" ||
+  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${stat:-exit} $?
+uc_script_load user-script || ${stat:-exit} $?
 
-background () # ~ <-info>
+! script_isrunning "user-desktop" || {
+  PATH=$PATH:${US_BIN:?}/tools/sh/parts uc_script_load \
+    us-als-mpe feh || ${stat:-exit} $?
+}
+
+
+background () # ~ (:-info)
 {
   local act=${1:-info}; test $# -eq 0 || shift
   case "$act" in
@@ -11,12 +20,14 @@ background () # ~ <-info>
           img=$(backgrounds preview) && background set "$img" ;;
     ( gradient )
         . ${US_BIN:?}/im-gradient.sh || return
-        case "${1:-green}" in
+        case "${1:-day-blue}" in
           ( dust|orange-glow ) user_background_gradient 12x12 chauvet-dystopic-glow 180 ;;
-          ( gas|day-green ) user_background_gradient 12x12 chauvet-day-green 0 ;;
-          ( day-blue ) user_background_gradient 12x12 chauvet-day-blue 0 ;;
+          ( gas|poison|day-green ) user_background_gradient 12x12 chauvet-day-green 0 ;;
+          ( day|day-blue ) user_background_gradient 12x12 chauvet-day-blue 0 ;;
           ( orange ) user_background_gradient 12x12 chauvet-dark-orange-mono 0 180 ;;
-          ( green ) user_background_gradient 12x12 chauvet-dark-green-mono 0 180 ;;
+          ( night|green ) user_background_gradient 12x12 chauvet-dark-green-mono 0 180 ;;
+          ( * ) $LOG error ":$act:$1" "No such gradient setting"
+            return 1
         esac
       ;;
     ( i|info ) false ;; # TODO
@@ -25,7 +36,7 @@ background () # ~ <-info>
     ( p|preview )
           backgrounds preview "$@" ;;
 
-    ( * ) $LOG error ":$act" "No such action" "$act"; return 67 ;;
+    ( * ) $LOG error ":$act" "No such action" "$act"; return 67
   esac
 }
 
@@ -78,18 +89,16 @@ backgrounds_dirs_find ()
   act=find_nonhidden_files p="" s="" foreach_do "$@"
 }
 
-find_nonhidden_files ()
-{
-  find "$1" \( ! -path '*/.*' \) -type f
-}
-
-get_bg () # ~ <Tags>...
+bg_get () # ~ <Tags>...
 {
   false
   #image scale
 }
 
-# TODO: prepare fancy background
+# TODO: prepare fancy background, maybe do some tinting, tiling or mask.
+# Or use single image, not sure if feh supports already.
+# For now feh suffices, for multiple backgrounds as well.
+# See also background gradient.
 background_set () # ~ <File> <Display>...
 {
   fn="$1"
@@ -117,6 +126,87 @@ background_set () # ~ <File> <Display>...
       display_setbg "$d" "$fn" "${BG_MODE:="fill"}"
   done
   unset fn d
+}
+
+files () # ~ (:-info)
+#            <content-type-tag> [<base-folder> [<tags...>]]
+{
+  local act=${1:-info}; test $# -eq 0 || shift
+  case "$act" in
+    ( audio|music )
+      ;;
+    ( desktop|desk|current@local )
+      ;;
+    ( documents|docs )
+      ;;
+    ( downloads )
+      ;;
+    ( images|pictures )
+      ;;
+    ( info ) TODO ;; # TODO
+    ( projects )
+      ;;
+    ( projectdirs )
+      ;;
+    ( shares )
+      ;;
+    ( src )
+      ;;
+    ( videos|movies )
+      ;;
+
+    ( * ) $LOG error ":$act" "No such action" "$act"; return 67
+  esac
+}
+
+preview () # ~ <Path> [<Mediatype>]
+{
+  test $# -gt 1 || set -- "${1:?}" "$(file -bi "$1")"
+  #local mime_param
+  #mime_param=${2#*; }
+  case "${2%;*}" in
+
+    ( "application/epub+zip" )
+          exec fbreader --name=user-preview "$1" 2>/dev/null
+        ;;
+
+    ( "application/pdf" )
+        exec evince --gtk-name=user-preview "$1" ;;
+
+    ( "application/vnd.openxmlformats-officedocument.wordprocessingml.document" | \
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" | \
+      "application/vnd.ms-excel" \
+    )
+        exec libreoffice --nologo --norestore --show --view "$1" ;;
+
+    ( "application/zip" | \
+      "application/x-bzip2" | \
+      "application/gzip" \
+    )
+        exec file-roller --gtk-name=user-preview "$1" ;;
+
+    ( "image/gif" )
+        : "$(identify "$1" | wc -l)"
+        test 1 -lt $_ && {
+          exec mpv --x11-name=gif-preview --no-terminal "$1"
+        } || {
+          preview "$1" image/
+          return
+        }
+      ;;
+
+    #( "image/x-xcf " )
+    ( "image/"* )
+        exec feh --title feh-preview -B black -Z "$1" -. ;;
+
+    ( "text/"* )
+        exec system-terminal sensible UC_TERM_NAME=user-preview -- -c "vim \"$1\""
+      ;;
+
+    ( * ) echo "Don't know how to preview '$2'" >&2
+        return 1
+      ;;
+  esac
 }
 
 screenshot () # ~ [<Display>] # Take screenshot cutout of active display only
@@ -202,6 +292,12 @@ list_themes ()
 }
 
 
+find_nonhidden_files ()
+{
+  find "$1" \( ! -path '*/.*' \) -type f
+}
+
+
 ## User-script parts
 
 user_desktop_maincmds="background backgrounds help screenshots themes update_for_cs switch_cs version"
@@ -224,7 +320,6 @@ user_desktop_aliasargv ()
   case "$1" in
       ( b|bg ) shift; set -- background "$@" ;;
       ( bgs ) shift; set -- backgrounds "$@" ;;
-      ( preview ) shift; set -- backgrounds preview "$@" ;;
       ( update-for-cs ) shift; set -- update_for_cs "$@" ;;
       ( switch-cs ) shift; set -- switch_cs "$@" ;;
       ( set-bg ) shift; set -- background set "$@" ;;

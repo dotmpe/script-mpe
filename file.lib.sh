@@ -1,6 +1,11 @@
 #!/bin/sh
 
 
+file_lib__load ()
+{
+  lib_require os std date match
+}
+
 
 # File: some wrappers for os.lib.sh etc.
 
@@ -25,7 +30,7 @@ file_newer_than() # Seconds-or-Path PATHS...
   s_or_path=$1 ; shift
   test -e "$1" || error "htd file newer-than file expected '$1'" 1
   test -e "$s_or_path" && {
-    seconds="$(( $(date +%s) - $(file_names=0 filemtime "$s_or_path") ))"
+    seconds="$(( $(date +%s) - $(file_names=false filemtime "$s_or_path") ))"
   } || {
     # Evaluate delta as $_<name> var if it is not a literal integer
     printf -- "%s" "$s_or_path" | grep -vq '^[0-9]$' &&
@@ -34,7 +39,8 @@ file_newer_than() # Seconds-or-Path PATHS...
 
   file_newer_than_inner()
   {
-    test -z "$DEBUG" || debug "newer_than '$1' '$seconds'"
+    ! "${DEBUG:-false}" ||
+      debug "newer_than '$1' '$seconds'"
     newer_than "$1" "$seconds" || {
       warn "Failed at '$1' not newer than '$s_or_path'" ; return $?
     }
@@ -49,7 +55,7 @@ file_older_than() # Seconds-or-Path PATHS...
   local s_or_path="$1" ; shift
   test -e "$1" || error "htd file older-than file expected '$1'" 1
   test -e "$s_or_path" && {
-    seconds="$(( $(date +%s) - $(file_names=0 filemtime "$s_or_path") ))"
+    seconds="$(( $(date +%s) - $(file_names=false filemtime "$s_or_path") ))"
   } || {
     # Evaluate delta as $_<name> var if it is not a literal integer
     printf -- "%s" "$s_or_path" | grep -vq '^[0-9]$' &&
@@ -87,19 +93,19 @@ file_largest()
       head -n $2
 }
 
-# file_names=[01] file_deref=[01] htd file format FILE...
+# file_names=<bool> file_deref=<bool> htd file format FILE...
 file_format()
 {
   p='' s='' act=fileformat foreach_do "$@"
 }
 
-# file_names=[01] file_deref=[01] htd file mediatype FILE...
+# file_names=<bool> file_deref=<bool> htd file mediatype FILE...
 file_mtype()
 {
   p='' s='' act=filemtype foreach_do "$@"
 }
 
-# file_names=[01] file_deref=[01] htd file mtime FILE...
+# file_names=<bool> file_deref=<bool> htd file mtime FILE...
 file_mtime()
 {
   p='' s='' act=filemtime foreach_do "$@"
@@ -108,13 +114,13 @@ file_mtime()
 file_mtime_relative()
 {
   test -n "$datefmt_suffix" || datefmt_suffix='\n'
-  # XXX: allow file_names=1, or prefix-filename or something with foreach_do?
-  file_names=0
+  # XXX: allow file_names=true, or prefix-filename or something with foreach_do?
+  file_names=false
   p='' s='' act=filemtime foreach_do "$@" |
   p='' s='' act=fmtdate_relative foreach_do -
 }
 
-# file_names=[01] file_deref=[01] htd file btime FILE...
+# file_names=<bool> file_deref=<bool> htd file btime FILE...
 file_btime()
 {
   p='' s='' act=filebtime foreach_do "$@"
@@ -127,7 +133,7 @@ file_btime_relative()
   p='' s='' act=fmtdate_relative foreach_do -
 }
 
-# file_names=[01] file_deref=[01] htd file size FILE...
+# file_names=<bool> file_deref=<bool> htd file size FILE...
 file_size()
 {
   p='' s='' act=filesize foreach_do "$@"

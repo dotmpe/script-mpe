@@ -577,30 +577,50 @@ user_script_help () # ~ [<Name>]
 }
 
 # init-required-libs
-# Temporary helper to load and initialize given libraries and prerequisites
+# Temporary helper to load and initialize given libraries and prerequisites,
+# and then run init hook for every lib that has one.
 user_script_initlibs () # ~ <Required-libs...>
 {
+  local pending
   lib_require "$@" ||
     $LOG error :us-initlibs "Failure loading libs" "E$?:$*" $? || return
 
-  set -- $lib_loaded
+  set -- $(user_script_initlibs__doinit $lib_loaded)
   while true
   do
-    $LOG info :us-initlibs "Initializing" "$*"
+    # remove libs that have <libid>_init=0 ie. are init OK
+    set -- $(user_script_initlibs__initialized "$@")
+    test $# -gt 0 || break
+    pending=$#
+
+    $LOG info :us-initlibs "Initializing" "[:$#]:$*"
     INIT_LOG=$LOG lib_init "$@" || {
       test ${_E_retry:-198} -eq $? && {
-          # remove libs that have <libid>_init=0 ie. are init OK
-          set -- $(for lib in "$@"
-                do
-                  : "${lib//[^A-Za-z0-9_]/_}_lib_init"
-                  test 0 = "${!_:-}" || echo "$lib"
-                done)
+          set -- $(user_script_initlibs__initialized "$@")
+          test $pending -gt $# || {
+            set -- "${@:2}" "$1"
+          }
+          #  $LOG error :us-initlibs "Unhandled next" "[:$#]:$*" 1 || return
           continue
         } ||
           $LOG error :us-initlibs "Failure initializing libs" "E$_:$lib_loaded" $_ || return
       }
-    test "$lib_loaded" = "$*" && break
-    set -- $lib_loaded
+  done
+}
+user_script_initlibs__doinit ()
+{
+  for lib in "$@"
+  do
+    : "${lib//[^A-Za-z0-9_]/_}_lib__init"
+    ! sh_fun "$_" || echo "$lib"
+  done
+}
+user_script_initlibs__initialized ()
+{
+  for lib in "$@"
+  do
+    : "${lib//[^A-Za-z0-9_]/_}_lib_init"
+    test 0 = "${!_:-}" || echo "$lib"
   done
 }
 
@@ -672,10 +692,28 @@ user_script_load ()
     case "${1:?}" in
 
       ( groups )
-          local name=${script_part:-$script_cmd} libs
-          user_script_lookup attr-libs "$name" || return
-          test -z "${libs:-}" && return ${_E_next:?}
-          user_script_initlibs $libs
+          local name=${script_part:-$script_cmd} libs ctx \
+            lk=${lk:-}:user-script:load[group]
+          ctx="$name:$(${user_script_bases:-user_script_ bases} && echo $script_bases)"
+          $LOG notice "$lk" "Lookup grp/libs/hooks within bases" "$ctx"
+          user_script_lookup attr-libs "$name" &&
+          user_script_lookup attr-hooks "$name" || return
+          test -z "${libs:-}" && {
+            test -z "${hooks:-}" && {
+              $LOG warn "$lk" "No grp/libs or hooks for user-script sub-command" "$ctx"
+              return ${_E_next:?}
+            }
+          } || {
+            $LOG notice "$lk" "Initializing libs for group" "$name:$libs"
+            user_script_initlibs $libs ||
+              $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
+          }
+          test -z "${hooks:-}" && return
+          local hook
+          for hook in $hooks
+          do "$hook" || $LOG error "$lk" "Failed in hook" "E$?:$hook" $? ||
+            return
+          done
         ;;
 
         # FIXME: probably want to use groups ehre as well
@@ -730,7 +768,7 @@ user_script_loadenv ()
   : "${_E_retry:=198}" # failed, but can or must reinvoke
   : "${_E_limit:=199}" # generic value/param OOB error?
 
-  TODO () { test -z "$*" || echo "$*"; return ${_E_todo:?}; }
+  TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_todo:?}; }
 
   test -d "$US_BIN" || {
     $LOG warn :loadenv "Expected US-BIN (ignored)" "$US_BIN"
@@ -773,7 +811,14 @@ user_script_node_attr_grp ()
 user_script_node_attr_libs ()
 {
   : "${1//[:.-]/_}__libs"
-  test -z "${!_:-}" || libs=${libs:-}${libs:+ }$_
+  test -z "${!_:-}" || libs=${libs:-}${libs:+ }${_//,/ }
+  lookup_quiet=true user_script_node_attr_grp "$1"
+}
+
+user_script_node_attr_hooks ()
+{
+  : "${1//[:.-]/_}__hooks"
+  test -z "${!_:-}" || hooks=${hooks:-}${hooks:+ }${_//,/ }
   lookup_quiet=true user_script_node_attr_grp "$1"
 }
 

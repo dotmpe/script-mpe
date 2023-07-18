@@ -2,7 +2,7 @@
 # and compare with regular value assignment, etc.
 
 # Best to do normal assignment of course. But using read herestrings is only
-# slightly slower and can efficiently get specific pieces of data.
+# slightly slower and can efficiently get specific pieces of data?
 
 source tools/benchmark/_lib.sh
 
