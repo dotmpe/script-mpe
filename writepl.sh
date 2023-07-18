@@ -43,12 +43,17 @@ writepl_kv ()
 writepl_sh_mpv ()
 {
   declare docvar
+  echo "# ex:nowrap:"
   echo "set -e"
-  echo "cd \"$PWD\" || exit"
-  echo "mpv --fs \\"
+  echo "cd \"$PWD\" || exit \$?"
+  echo "test \$# -gt 0 || set -- --fs"
+  echo "mpv \\"
+  local line=0
   while IFS=$'\t\n' read -ra fields
   do
     unset ${reset_fields:-title tags}
+    line=$(( line + 1 ))
+
     test "${fields[0]:0:1}" = "#" && {
       #test "${fields[0]:0:19}" = "#reset_fields" && {
       #  declare
@@ -67,7 +72,11 @@ writepl_sh_mpv ()
         declare ${f/=*}="${f/*=}"
       done
     }
-    p="${fields[2]}"
+    #test 2 -le ${#fields} ||
+    #  $LOG error : "Expected two or more fields" "L$line" 1 || return
+    p="${fields[2]:-}"
+    #test -n "$p" ||
+    #  $LOG error : "Expected 3 fields" "L$line" 1 || return
     bn=$(basename "$p")
     bn=${bn%.*}
     test "${fields[0]}" = "0" && {
@@ -84,7 +93,7 @@ writepl_sh_mpv ()
       }
     }
   done
-  echo
+  echo "  \"\$@\""
   echo "# Generated: $(date) $0 writepl-m3u-vlc"
 }
 
