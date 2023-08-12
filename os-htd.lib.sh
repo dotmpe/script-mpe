@@ -845,9 +845,11 @@ os_recursive () # ~ [<os-file-path>] [<os-dir-path>] <Paths...>
   do
     ${os_r_skip:-test -h} "${1:?}" || {
       test -f "$1" && {
+        $LOG debug :os-recursive "File" "$os_file_path:$1"
         ${os_file_path:?} "$1" || os-als:loop-stat1
       } || {
         test -d "$1" && {
+          $LOG debug :os-recursive "Dir" "$os_dir_path:$1:${os_r_glob-/*}"
           : "${os_r_glob-/*}"
           ${os_dir_path:?} "${os_file_path:?}" "$os_dir_path" "$1"$_ || os-als:loop-stat1
         } || {

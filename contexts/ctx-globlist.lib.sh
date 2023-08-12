@@ -4,7 +4,7 @@ ctx_globlist_lib__load ()
   lib_require globlist ctx-pclass || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}GlobList
   : "${globlist_params:=defname basename prefix globlistkey groupkey ext ttl use_local_configdir use_cachedir build_main}"
-  : "${globlist_methods:=base cache cachefile cat lookup mainfile maingroups paths pathspecs refresh stddef}"
+  : "${globlist_methods:=base cache cachefile raw lookup mainfile maingroups paths pathspecs refresh stddef}"
   ctx_pclass_params=${ctx_pclass_params-}${ctx_pclass_params+" "}$globlist_params
 }
 
@@ -18,7 +18,7 @@ class.GlobList () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
 #   base
 #   cache
 #   cachefile
-#   cat
+#   raw
 #   lookup
 #   mainfile
 #   maingroups
@@ -56,8 +56,9 @@ class.GlobList () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
   }
   case "$m" in
     ( ".$name" )
-          $super.$super_type "$@"
-        ;;
+        ${self}_stddef &&
+        $super.$super_type "$@"
+      ;;
     ( ".__$name" ) $super.__$super_type ;;
 
     ( .class-context ) class.info-tree .class-context ;;

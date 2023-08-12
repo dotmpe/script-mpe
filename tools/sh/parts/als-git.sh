@@ -1,7 +1,4 @@
-###
-
-##
-
+#require
 
 # Normally WARN/4 is quiet, NOTICE/5 normal and INFO/6 is verbose. For specific
 # applications output threshold can be raised one (--verbose is 7/DEBUG and
@@ -70,7 +67,8 @@ alias git-update-clone='git-pull-v --all && git-push-v --all'
 # Actually pull (from the remote ref for current branch at) all remotes (ie.
 # only those remotes that have it, as known from the last fetch)
 alias git-pull-every='{
-  g=$(__gitdir) &&
+  g=$(gitdir) ||
+    $LOG error : "No GIT dir" E$? $?
   test ! -e $g/MERGE_HEAD && {
     current_branch=$(git-current-branch) && for remote in $(git-remotes);
     do
@@ -89,7 +87,8 @@ alias git-pull-every='{
 # Idem. as git-pull-every (for current branch) only now for git-push (again only
 # those remotes that already ahd that branch at last fetch)
 alias git-push-every='{
-  g=$(__gitdir) &&
+  g=$(gitdir) ||
+    $LOG error : "No GIT dir" E$? $?
   test ! -e $g/MERGE_HEAD && {
     current_branch=$(git-current-branch) && for remote in $(git-remotes);
     do
@@ -102,4 +101,12 @@ alias git-push-every='{
   }
 }'
 
-#
+alias git-commit-message='$EDITOR "$(git rev-parse --git-path COMMIT_EDITMSG)"'
+
+## Basic Quick-commit aliases (2)
+alias git-commit-now-no-comment='git commit -m "-"'
+alias git-commit-now-hostname='git commit -m "$hostname"'
+
+## Quick-commit and all commit-combination aliases (4)
+alias git-ci-nc=git-commit-now-no-comment
+alias git-ci-now=git-commit-now-hostname

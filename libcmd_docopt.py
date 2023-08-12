@@ -26,7 +26,7 @@ def defaults(opts, init={}):
     opts.flags.update(select_kwdargs_defaults)
     return init
 
-def get_opts(docstr, meta={}, version=None, argv=None, defaults=defaults):
+def get_opts(docstr, meta={}, version=None, argv=None, defaults=None):
     """
     Get docopt dict, and set argv and flags from get_optvalues.
     """
@@ -294,6 +294,41 @@ def init_config(path, defaults={}, overrides={}, persist=[]):
             settings.volatile.append(k)
         setattr(settings, k, v)
     return settings
+
+def init_settings(defaults={}, overrides={}):
+    """Return new setting object"""
+    settings = confparse.Values()
+    for k, v in defaults.items():
+        if k not in settings:
+            setattr(settings, k, v)
+    for k, v in overrides.items():
+        setattr(settings, k, v)
+    return settings
+
+def init_for_module(pymod, default_opts={}, defaults=select_kwdargs_defaults):
+    if hasattr(pymod, 'get_version'):
+      version = pymod.get_version()
+    elif hasattr(pymod, '__version__'):
+      version = pymod.__version__
+    if hasattr(pymod, '__description__'):
+      description = pymod.__description__
+    else:
+      description = pymod.__doc__
+    data = {}
+    data.update(defaults)
+    data.update(dict(
+        description=description,
+        short=pymod.__short_description__,
+        usage=pymod.__usage__,
+        opts=get_opts(pymod.__short_description__+os.linesep+pymod.__usage__,
+          version=version,
+          defaults=getattr(pymod, 'defaults', None))
+      ))
+    config = confparse.Values(data)
+    #if defaults:
+    #  defaults(config.opts)
+    return config
+
 
 # XXX: static_vars_from_env is little use with docopt as it does not process
 # flags/values unless needed for parsing. Might as well override static itself.

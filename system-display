@@ -112,7 +112,7 @@ mouse_display () # ~ # Report display name and mousepointer info
   #shellcheck disable=SC2154,2086,2004
   fun_flags sd_md h
   display_info |
-      tr -s 'x+' ' ' | while read_data name width height dx dy rest
+      tr -s 'x+' ' ' | while read -r name width height dx dy rest
     do
         test $mouse_x -ge $dx -a $mouse_x -le $(( $dx + $width )) || continue
         test $mouse_y -ge $dy -a $mouse_y -le $(( $dy + $height )) || continue

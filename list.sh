@@ -15,6 +15,28 @@ uc_script_load user-script || ${stat:-exit} $?
 
 ## Main command handlers
 
+list_attr__libs=attributes
+list_attr ()
+{
+  local lk=${lk:-:list}:files${1:+:}${1:-} ctx ctxref
+  #list_contextload "$@" || return
+  #user_script_initlibs attributes
+  #test -z "${ctxref:-}" || shift
+
+  ctx=attributes
+  stderr echo 1.
+  ${ctx}_stddef
+  stderr echo 2.
+  ${ctx}_pathspecs local global
+  stderr echo
+  stderr echo "3. paths 'local'"
+  user_settings_paths local
+  stderr echo
+  stderr echo "4. paths 'global'"
+  user_settings_paths global
+}
+
+list_files__libs=ignores
 list_files () # ~ <Act> <Groups...>
 {
   local lk=${lk:-:list}:files${1:+:}${1:-} ctx ctxref
@@ -22,29 +44,43 @@ list_files () # ~ <Act> <Groups...>
   test -z "${ctxref:-}" || shift
   case "${1-relative}" in
 
-    ( relative ) TODO
+    ( find ) shift
+        find_arg="-o -type f -a -print" ${ctx}_find_files "$@"
       ;;
     ( find-expr ) shift
-        test 0 -lt $# || set -- $IGNORE_GROUPS
         ${ctx}_find_expr "$@"
       ;;
-    ( "" ) shift
-        test 0 -lt $# || set -- $IGNORE_GROUPS
-        ignores_find_files "$@"
+    ( globlists ) shift
+        ${ctx}_paths "$@" | filter_lines test -f
+      ;;
+    ( relative ) TODO
       ;;
 
     ( * ) return ${_E_nsk?} ;;
   esac
 }
-list_files__libs=ignores
 
+list_globs__libs=ignores
 list_globs () # ~ <Groups...> # List all globs from group
 {
+  local lk=${lk:-:list}:globs${1:+:}${1:-} ctx ctxref
+  list_contextload "$@" || return
+  test -z "${ctxref:-}" || shift
+  case "${1:-list}" in
+    ( l|list ) shift;
+        ${ctx}_raw "$@" | remove_dupes_nix ;;
+    ( r|raw ) shift;
+        ${ctx}_raw "$@" ;;
+
+    ( * ) return ${_E_nsk?} ;;
+  esac
+  return
+
   test $# -eq 0 || set -- $(printf '%s\n' "$@" | sort -u)
   test $# -gt 0 || set -- $IGNORE_GROUPS
   {
     ${choice_nocache:-false} && {
-      ignores_cat "$@" | remove_dupes_nix
+      ignores_raw "$@" | remove_dupes_nix
       return
     } || {
       ignores_cache "$@" ||
@@ -65,7 +101,6 @@ list_globs () # ~ <Groups...> # List all globs from group
   #lst_init_ignores "$ext" local global
   #echo read_nix_style_file $IGNORE_GLOBFILE$ext
 }
-list_globs__libs=ignores
 
 # Given group names, list the paths to the globlist source or cache files.
 list_names () # ~ [@Context] <Groups...> # List paths for globlists in group
@@ -86,6 +121,9 @@ list_names () # ~ [@Context] <Groups...> # List paths for globlists in group
         gk="$(${ctx}_groupkey)[*]" || return
         $LOG info "$lk" "Listing groupnames" "groups=$gk"
         echo ${!gk} ;;
+    ( globlists ) shift
+        ${ctx}_paths "$@"
+      ;;
     ( specs ) shift; local glk
         glk="$(${ctx}_globlistkey)[*]" || return
         $LOG info "$lk" "Listing listnames" "globlists=$glk"
@@ -93,7 +131,7 @@ list_names () # ~ [@Context] <Groups...> # List paths for globlists in group
     ( * ) return 67 ;;
   esac
 }
-list_names__libs=globlist\ ignores
+list_names__libs=globlist,ignores
 
 
 ## Util
@@ -109,9 +147,11 @@ list_contextload ()
       create local:ctx "${ctxref:1}" || return
     } || ctx=$_
   } || ctx=globlist
+  test -n "${ctxref:-}" || user_script_initlibs $ctx || return
   #local at_GlobList=
   #${ctx}_loaddefs &&
-  ${ctx}_stddef || return
+  #${ctx}_stddef || return
+  $LOG notice : "Context ready" "$ctx"
 }
 
 
@@ -136,8 +176,8 @@ list_loadenv () # ~ <Cmd-argv...>
   : "${_E_next:=196}"
   ignores_use_local_config_dirs=false
   #ignores_prefix=local
+  ignores_prefix=htd
   globlist_prefix=htd
-
   script_part=${1:?} user_script_load groups || {
       # E:next means no libs found for given group(s).
       test ${_E_next:?} -eq $? || return $_

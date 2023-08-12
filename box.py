@@ -9,7 +9,7 @@ from __future__ import print_function
 
 __short_description__ = 'box - parse/write box script files'
 __description__ = __doc__
-__version__ = '0.0.4-dev' # script-mpe
+__version__ = '0.0.4-dev+script.mpe' #script-mpe
 __usage__ = """
 Usage:
     box.py [options] dump
@@ -42,6 +42,7 @@ Options:
   --version     Show version (%s).
 """ % __version__
 
+import sys
 import os
 
 from script_mpe import libcmd_docopt, confparse
@@ -242,14 +243,8 @@ def get_version():
 
 
 if __name__ == '__main__':
-    import sys
-    ctx = confparse.Values(dict(
-        short=__short_description__ ,
-        description=__description__ ,
-        usage=__usage__ ,
-        opts=libcmd_docopt.get_opts(__usage__,
-            version=get_version(), defaults=defaults)
-    ))
+    ctx = libcmd_docopt.init_for_module(sys.modules[__main__])
+    # Assemble config tree from static values and command-line arguments
     if ctx.opts.flags.version: ctx.opts.cmds = ['version']
     if not ctx.opts.cmds: ctx.opts.cmds = ['dump']
     if ctx.opts.cmds and ( ctx.opts.cmds[0] in ( 'background', 'bg' )):

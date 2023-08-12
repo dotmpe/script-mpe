@@ -70,6 +70,10 @@ ignores_lib__load()
     # Use cache file as generated for IGNORE_GROUPS directly
     : "${IGNORES:=$IGNORES_CACHE_BASE-${IGNORE_GROUPS// /,}$IGNORES_EXT}"
   }
+
+  ignores_find_extra_expr=(
+    "-type d -a -exec test -e \"{}/$IGNORE_DIR\" ';' -a -prune"
+  )
 }
 
 ignores_lib__init()
@@ -85,33 +89,41 @@ ignores_lib__init()
 }
 
 
-# Return find options sequence to ignore (prune) globs from groups
+# Return find options sequence to filter ignored paths. This generates prune
+# sequences for all globs from groups, and a few built-in cases.
 ignores_find_expr () # ~ <Groups...>
 {
   local glob ctx=${at_GlobList:-globlist}
-  for glob in $(${ctx}_cat "$@")
+  printf -- '-false '
+  set -f
+  for glob in $(${ctx}_raw "$@" | remove_dupes_nix)
   do
     ignores_find_glob_expr "$glob" || return
   done
+  set +f
+  printf -- '-o %s ' "${ignores_find_extra_expr[@]}"
+  #printf -- '-o -true'
 }
 
 # Execute find, ignoring globs from groups
 ignores_find_files () # ~ <Prune-groups...>
 {
-  local find_ignores find_pwd=. find_arg="-a -print"
-  find_ignores="-false $(ignores_find_expr "$@")"\
-" -o -exec test -e \"{}/$IGNORE_DIR\" ';' -a -prune -o -true"
-  eval find ${find_opts:-"-H"} ${find_pwd:-.} \\\( $find_ignores \\\) $find_arg
+  local find_pwd=. find_arg="${find_arg:--o -print}"
+  : "$(ignores_find_expr "$@")"
+  eval "find ${find_opts:-"-H"} ${find_pwd:-.} $_ $find_arg"
 }
 
+# TODO: Middle or prefix '/' should make glob relative to basedir of globlist
+# Just like gitignore.
 ignores_find_glob_expr ()
 {
+  local i=${find-i}
   case "${1:?}" in
-    ( /*/ ) echo "-o -path \"$1*\" -a -prune" ;;
-    (  */ ) echo "-o -path \"*/$1*\" -a -prune" ;;
-    ( /*  ) echo "-o -path \"$1*\" -a -prune" ;;
-    ( */* ) echo "-o -path \"*/$1*\" -a -prune" ;;
-    (  *  ) echo "-o -name \"$1\" -a -prune" ;;
+    ( /*/ ) printf -- '-o -%spath "./%s*" -a -prune ' $i "$1" ;;
+    (  */ ) printf -- '-o -type d -a -%spath "%s" -a -prune ' $i "$1" ;;
+    ( /*  ) printf -- '-o -%spath "./%s" -a -prune ' $i "${1:1}" ;;
+    ( */* ) printf -- '-o -%spath "./%s" -a -prune ' $i "${1:1}" ;;
+    (  *  ) printf -- '-o -%sname "%s" -a -prune ' $i "$1" ;;
   esac
 }
 

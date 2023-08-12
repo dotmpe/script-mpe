@@ -12,7 +12,6 @@ globlist_lib__load()
   #os:read_nix_style_file
 	#date-htd:newer_than_all
 
-  : "${CONFIG_INCLUDE:=$HOME/bin/etc:${XDG_CONFIG_HOME:-$HOME/.config}:/etc}"
   : "${CONFIG_GROUPS:="local global"}"
 }
 
@@ -79,22 +78,14 @@ globlist_cachefile () # ~ [<Groups...>]
   }
 }
 
-globlist_cat ()
-{
-  local globlist filelist ctx=${at_GlobList:-globlist}
-  filelist=$(${ctx}_paths "$@") || return
-  for globlist in $filelist
-  do
-    test -s "$globlist" || continue
-    echo "# Source: $globlist"
-    read_nix_style_file "$globlist" || return
-    echo "# EOF"
-  done
-}
-
 globlist_ext ()
 {
   echo "${globlist_ext:-.${globlist_basename:-globlist}}"
+}
+
+globlist_find_files () # ~ <Include-groups>
+{
+  TODO see ignores_find_files
 }
 
 globlist_globlistkey ()
@@ -161,11 +152,10 @@ globlist_paths () # ~ <Group-names...>
   done
 }
 
-globlist_pathspecs ()
+globlist_pathspecs () # ~ [<Group-names...>]
 {
   local groupkey globlistkey ctx=${at_GlobList:-globlist}
-  #groupkey=$(${ctx}_groupkey || cmd_not_found && echo globlist_groups)
-  #groupkey=$(${ctx}_globlistkey || cmd_not_found && echo globlists)
+  test 0 -lt $# || set -- $(${ctx}_maingroups)
   groupkey="$(${ctx}_groupkey)" &&
   globlistkey="$(${ctx}_globlistkey)" || return
   while test 0 -lt $#
@@ -193,6 +183,19 @@ globlist_prefix ()
   echo ${globlist_prefix:-${base:-}}
 }
 
+globlist_raw ()
+{
+  local globlist filelist ctx=${at_GlobList:-globlist}
+  filelist=$(${ctx}_paths "$@") || return
+  for globlist in $filelist
+  do
+    test -s "$globlist" || continue
+    echo "# Source: $globlist"
+    read_nix_style_file "$globlist" || return
+    echo "# EOF"
+  done
+}
+
 globlist_refresh () # ~ <Group-names...>
 {
   local cachef sources
@@ -202,7 +205,7 @@ globlist_refresh () # ~ <Group-names...>
   test -e "$cachef" &&
   newer_than_all "$cachef" "${sources[@]}" &&
   $LOG debug :globlist-cache "Cache is up-to-date" "$cachef" || {
-    globlist_cat "$@" | remove_dupes_nix >| "$cachef" &&
+    globlist_raw "$@" | remove_dupes_nix >| "$cachef" &&
     $LOG info :globlist-cache "Updated" "$cachef" ||
       $LOG warn :globlist-cache "Error updating" "E$?:$cachef" $?
   }
@@ -211,6 +214,7 @@ globlist_refresh () # ~ <Group-names...>
 globlist_stddef ()
 {
   local groupkey globlistkey ctx=${at_GlobList:-globlist} globlistbase
+
   groupkey="$(${ctx}_groupkey)" &&
   globlistkey="$(${ctx}_globlistkey)" &&
   declare -gA "$groupkey" &&

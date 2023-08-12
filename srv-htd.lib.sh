@@ -42,7 +42,8 @@ class.SrvTabEntry () # ~ <Instance-Id> .<Message-name> <Args...>
 }
 
 class.SrvTab () # ~ <Instance-Id> .<Message-name> <Args...>
-#   .SrvTab <Type> <Table> [<Entry-class>] - constructor
+#   .SrvTab <Instance-Type> <Table> [<Entry-class>] - constructor
+#   .__SrvTab - destructor
 {
   test $# -gt 0 || return 177
   test $# -gt 1 || set -- $1 .toString

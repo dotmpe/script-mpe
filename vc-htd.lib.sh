@@ -5,15 +5,48 @@
 
 vc_htd_lib__load ()
 {
+  lib_require sys-htd || return
+  # XXX: std.lib
   test -n "${vc_rt_def-}" || vc_rt_def=origin
   test -n "${vc_br_def-}" || vc_br_def=master
 }
 
 vc_htd_lib__init ()
 {
-  test ${vc_htd_lib_init-1} -eq 0 && return # Run once
-  lib_assert std sys-htd
+  test -z "${vc_htd_lib_init:-}" || return $_  # Run once
+  true
 }
+
+
+# Macro to generate another macro. Generates a function to wrap getting/setting
+# values.
+#sh_gen_descr prefix [name=<prefix>_]
+
+# Macro where key is either part of function name or variable. Either must
+# exist.
+vc_ () # ~ <Key> [<New-value> [<...>]]
+{
+  test 0 -lt $# || return ${_E_GAE:?}
+  local update
+  test 1 -lt $# && update=true || update=false
+  : "vc_${1:?}"
+  sh_fun "$_" && {
+    "$_" "${@:2}"
+    return
+  }
+  "$update" "$_" && {
+    # XXX: could use $#>2 as varaible array els, but need more actions as well
+    declare -g "$_=$2" &&
+      test 2 -eq $#
+    return
+  } || {
+    test -n "${!_}" && echo "$_" || {
+      : "vc_${1}_def"
+      echo "${!_}"
+    }
+  }
+}
+
 
 # See if path is in GIT checkout
 vc_isgit()
@@ -489,11 +522,10 @@ vc_branch()
 
 vc_branches_git()
 {
-  test -n "$1" || set -- refs/heads
-  test "$1" != "all" || set -- refs/heads "refs/remotes/$vc_rt_def"
-  # Strip remote prefix
+  test 0 -lt $# || set -- refs/heads
+  test "$1" != "all" || set -- refs/heads "refs/remotes/$(vc_ rt)"
   git for-each-ref --format='%(refname:short)' "$@" |
-      grep -v HEAD | sed 's/^'"$vc_rt_def"'\///g' | sort -u
+      grep -v HEAD | sed 's/^'"$(vc_ rt)"'\///g' | sort -u
 }
 vc_branches_hg()
 {
