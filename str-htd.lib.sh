@@ -192,6 +192,7 @@ fnmatch () # PATTERN STRING
 {
   case "$2" in $1 ) return 0 ;; * ) return 1 ;; esac
 }
+# Derive: str_globmatch
 
 words_to_lines()
 {
@@ -665,11 +666,11 @@ str_concat () # ~ <String-1> <String-2> <String-Sep>
 }
 
 # Error unless non-empty and true-ish value
-trueish() # Str
+trueish () # ~ <String>
 {
   test $# -eq 1 -a -n "${1-}" || return
-  case "$1" in [Oo]n|[Tt]rue|[Yyj]|[Yy]es|1) return 0;;
-    * ) return 1;;
+  case "${1,,}" in ( true|on|y|yes|1 ) return 0 ;;
+    * ) return 1;
   esac
 }
 # Id: sh-trueish

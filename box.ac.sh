@@ -175,7 +175,7 @@ script_isrunning "box.ac" .sh && {
   # Running interactively probably? Initialize auto completion.
   $LOG note :box.ac.sh "Loading interactive completions" \
       "$0:${base+$base/${SCRIPTNAME:-(no script)}${SCRIPT_BASEEXT:+.$SCRIPT_BASEEXT}}"
-  ${lib_load:-lib_uc_load} str-uc std-uc && {
+  "${lib_load:-lib_uc_load}" str-uc std-uc && {
     __uc_ac_init $BOX_EXECS ||
         $LOG warn :box.ac.sh \
         "Failed loading (some) Box autocompletions (ignored)" E$?

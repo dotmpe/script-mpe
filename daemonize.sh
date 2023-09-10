@@ -207,7 +207,7 @@ daemonize_init()
 daemonize_lib()
 {
   local scriptname_old=$scriptname; export scriptname=daemonize-lib
-  local lib_load=1
+  #local lib_loading=1
   INIT_LOG=$LOG lib_init || return
   # -- daemonize box lib sentinel --
   export scriptname=$scriptname_old

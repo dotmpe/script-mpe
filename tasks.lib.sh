@@ -32,9 +32,10 @@ tasks_hub_tags()
 {
   local c=$(( ${#tasks_hub} + 5 ))
   test -z "$1" && {
+    $LOG debug :tasks-hub-tags "Contexts" "=${contexts:-(unset)}"
     trueish "$contexts" && {
       test "$(echo $tasks_hub/do-at-*.*)" = "$tasks_hub/do-at-*.*" &&
-        warn "No contexts" ||
+        warn "No local task contexts" ||
       for task_list in $tasks_hub/do-at-*.*
       do
         echo "@$(basenames "$TASK_EXTS .sh" "$task_list" | cut -c${c}-)"

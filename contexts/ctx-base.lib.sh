@@ -1,11 +1,21 @@
 #!/bin/sh
 
-ctx_base_defines=@Base
+ctx_base_defines=@Base\ @Dev
 #ctx_base_root=@Base
 
 at_Base()
 {
   echo "Base (main entry-point) TODO: $*"
+}
+
+at_Dev ()
+{
+  echo "Base:Dev (main entry-point) TODO: $*"
+}
+
+htd_ctx__Dev__init ()
+{
+  echo hello world init @Dev
 }
 
 htd_ctx__base__current()
@@ -126,7 +136,7 @@ htd_ctx__base__clean()
 #at_Base__id ()
 #{
 #  test -n "$*" || set -- $(context_env_list tags | grep -v '^@Base$' )
-#  func_exists=0 first_only=0 context_cmd_seq status "$@"
+#  func_exists=0 first_only=0 context_uc_cmd_seq status "$@"
 #}
 
 #

@@ -4,7 +4,9 @@
 
 htd__dev ()
 {
-  echo htd:dev:$# $* >&2
+  htd_wf_ctx_sub status @Dev
+  echo htd:dev:E$?:$# $* >&2
+
   test $# -gt 0 || set -- list
   test $# -gt 1 && {
     t=${2:?Expected topic tag}
@@ -13,6 +15,7 @@ htd__dev ()
     #}
   }
   case "${1:-}" in
+
 
     ( note ) # ~ <Topic>
         : "${t:?Expected topic tag}"

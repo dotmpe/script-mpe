@@ -108,7 +108,7 @@ statusdir_lookup () # Record-Type [Record-Name]
   test $# -ge 1 -a $# -le 2 -a -n "${1-}" || return 64
   test $# -gt 1 || set -- "$1" ""
   local LUP=$(statusdir_lookup_path)
-  lookup_first=${lookup_first:-1} lookup_paths LUP $1/$2
+  lookup_first=${lookup_first:-true} lookup_paths LUP $1/$2
 }
 
 # Defer to backend

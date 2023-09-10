@@ -500,20 +500,25 @@ gitrepos()
 # Given context or path with context, load ctx lib and run action.
 htd_wf_ctx_sub () # Flow-Id Tag-Refs...
 {
-  local flow; upper=0 mkvid "$1" ; shift ; flow="$vid"
+  local flow=${1:?} fid; upper=0 mkvid "$1" ; shift ; fid="$vid"
   test -n "${ctx_base-}" || local ctx_base=${base}_ctx__
 
-  $LOG info "htd-workflow" "Init for '$flow' action" "$*"
+  $LOG info "htd-workflow" "Preparing to run action for context(s)" "$ctx_base:$flow:$*"
   htd_current_context "$@" || return $?
 
-  $LOG debug "htd-workflow" "Primary context" "$primctx ${primctx_id}/${primctx_sid}"
-  # Load/run action on primary context
-  lib_require context-uc ctx-${primctx_sid} || return
-  func_exists ctx_${primctx_sid}_lib__init && {
-    $LOG info "htd-workflow" "" "ctx-${primctx_id}-init $*"
-    ctx_${primctx_sid}_lib__init "$@" || {
-      $LOG error "" "context lib init failed for '$primctx_sid'" "$*" 1
-      return 1
+  sh_fun ${ctx_base}${primctx_id}__${fid} && {
+    $LOG debug "htd-workflow" "Existing primary env" "ctx=$ctx"
+  } || {
+    $LOG info "htd-workflow" "No hook for primary, loading" "$primctx Id:${primctx_id} #${primctx_sid}"
+    lib_require ctx-${primctx_sid} || return
+
+    # XXX: defer to init hook?
+    func_exists ctx_${primctx_id}_lib__init && {
+      $LOG info "htd-workflow" "" "ctx-${primctx_id}-init $*"
+      ctx_${primctx_sid}_lib__init "$@" || {
+        $LOG error "" "context lib init failed for '$primctx_sid'" "$*" 1
+        return 1
+      }
     }
   }
   #try_context_actions current std base
@@ -521,7 +526,7 @@ htd_wf_ctx_sub () # Flow-Id Tag-Refs...
   #${ctx_base}${primctx_sid}__${flow} "$@" &&
 #      $LOG note "htd-workflow" "Finished '${flow}'" "${ctx_base}${primctx_sid}__${flow} $*"
 
-  context_cmd_seq $flow -- "$@"
+  CTX_PREF=$ctx_base context_uc_cmd_seq $fid -- "$@"
 }
 
 

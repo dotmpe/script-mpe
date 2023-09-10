@@ -1719,8 +1719,8 @@ pd_init()
 
 pd_lib()
 {
-  test -z "${lib_load-}" || return 14
-  local lib_load=1
+  test -z "${lib_loading-}" || return 14
+  #local lib_loading=1
   test -n "$scriptpath" || return 11
   lib_load box meta list match date doc table ignores vc-htd projectdir \
       package

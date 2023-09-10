@@ -43,7 +43,7 @@ at_Statusdir__report_var () # Format [Record-Type [Record-Name]] [@Tags...] -- C
       error "Expected output file for <$type $name>" 1
 
   local ttl ttlvar
-  ttl=$( func_exists=0 first_only=1 context_cmd_seq time_period seconds -- $tags )
+  ttl=$( func_exists=0 first_only=1 context_uc_cmd_seq time_period seconds -- $tags )
   test -n "$ttl" || {
     ttlvar=${name}_ttl
     ttl=${!ttlvar-"$STATUSDIR_EXPIRY_AGE"}

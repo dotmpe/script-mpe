@@ -6,7 +6,7 @@ base=vc.lib
 setup()
 {
   init && load vc-setup &&
-  lib_load=1 . ./vc.sh &&
+  lib_loading=1 . ./vc.sh &&
   lib_load match vc-htd &&
   #. ./vc.sh &&
   vc_setup_clean_git

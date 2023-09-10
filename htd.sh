@@ -225,7 +225,8 @@ htd_subcmd_load ()
         setup_io_paths -$subcmd-${htd_session_id}
       ;;
 
-    l ) sh_include subcommand-libs || return ;;
+    l ) lib_require package context &&
+      sh_include subcommand-libs || return ;;
 
     m )
         # TODO: Metadata blob for host
@@ -846,9 +847,10 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
 
 # Local or global context flow actions
 
+htd__wf__libs=ctx-base,context,context-uc
 
 htd_flags__current=fpql
-htd_libs__current=sys-htd\ htd-list\ htd-tasks\ ctx-base
+htd_libs__current=$htd__wf__libs\ htd-tasks
 htd__current()
 {
   htd_wf_ctx_sub current "$@"
@@ -864,7 +866,7 @@ Run diagnostics for CWD and system.
 - Check file contents (fsck, cksum)
 '
 htd_flags__check=fpqil
-htd_libs__check=ctx-base\ htd-check
+htd_libs__check=$htd__wf__libs\ htd-check
 htd__check()
 {
   htd_wf_ctx_sub check "$@"
@@ -873,11 +875,12 @@ htd__check()
 htd_als__chk=check
 
 
-htd__init()
+htd_libs__init=$htd__wf__libs
+htd__init () # ~ <@<Tag-ref>>
 {
   htd_wf_ctx_sub init "$@"
 }
-htd_flags__init=q
+htd_flags__init=ql
 
 
 htd__list()
@@ -4644,8 +4647,11 @@ htd__reader () # ~ <Files...>
   done
 }
 
-#htd_libs__dev=htd-dev
+htd_libs__dev=$htd__wf__libs
+htd_flags__dev=l
 htd_grp__dev=htd-dev
+
+#htd_grp__prefix=htd-prefix
 
 
 # -- htd box insert sentinel --
@@ -4748,8 +4754,8 @@ case "$0" in "" ) ;; "-"* ) ;; * )
   shopt -s extdebug
 
   # Ignore 'load-ext' sub-command
-  test "${1-}" != load-ext || lib_load=1
-  test -n "${lib_load-}" || {
+  test "${1-}" = load-ext ||
+  test -n "${lib_loading-}" || {
     htd_main "$@"
   }
 ;; esac

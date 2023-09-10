@@ -39,7 +39,7 @@ scr__std__tags()
   # Get tags for source-file
   test -z "$scr_file" || {
     fnmatch "to/*" "$scr_file" && {
-      lib_load tasks
+      lib_require tasks
       tasks_hub_tags "$scr_file"
     }
     package_lists_contexts_map "$scr_file"

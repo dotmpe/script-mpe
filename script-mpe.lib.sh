@@ -1,8 +1,9 @@
 
 ### Global shell function set ('lib') for this repository
 
+# sh_func_decl
+fun_def () { eval "${1:?} () { ${*:2} }"; }
 
-fun_def () { eval "$1 () { ${*:2} }"; }
 # Could declare all fun-* this way, but what is the point atm. May be if fun-
 # def tracked metadata. See env-*. Keeping aliases together with fun-*() copy.
 #fun_def fun_false false\;
@@ -11,12 +12,32 @@ fun_def () { eval "$1 () { ${*:2} }"; }
 #fun_false () { false; }
 fun_keeparg () { : "${1:-}"; }
 fun_keeplast () { : "$_"; }
-#fun_statpass () { return; }
+fun_statpass () # ~ <...> # alias:if-ok
+{ return; }
 fun_def if_ok return\;
 fun_true () { :; }
 fun_def noop :\;
 fun_def cite :\;
 fun_wrap () { "$@"; }
+
+sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body
+{
+  if_ok "$(declare -f "${1:?}")" || return
+  : "${_#* () }"
+  : "${_:4:-2}"
+  #: "${c#* () $'\n'}"
+  #: "${_#\{ $'\n'}"
+  #: "${_%$'\n'\}}"
+  echo "$_"
+}
+
+sh_fclone () # ~ <New-name> <Copy-ref> # alias:fun-clone
+{
+  if_ok "${1:?} () {
+$(sh_funbody "$2")
+}" &&
+  eval "$_"
+}
 
 
 . "${U_S:?}/tools/sh/parts/sh-mode.sh"
@@ -64,20 +85,24 @@ std_noout ()
   "$@" >/dev/null
 }
 
-std_stat () # ~ <Cmd...> # Invert status, fail (only) if command returned zero-status
-{
-  ! "$@"
-}
-
 std_quiet () # ~ <Cmd...> # Silence all output (std{out,err})
 {
   "$@" >/dev/null 2>&1
 }
 
-std_v_exit ()
+std_stat () # ~ <Cmd...> # Invert status, fail (only) if command returned zero-status
+{
+  ! "$@"
+}
+
+std_v () # ~ <Message ...> # Print message
+{
+  stderr echo "$@" || return 3
+}
+
+std_v_exit () # ~ <Cmd ...> # Wrapper to command that exits verbosely
 {
   "$@"
-  # XXX: even more verbose... stderr_stat $? "$@"
   stderr_exit $?
 }
 
@@ -87,19 +112,41 @@ std_v_stat ()
   stderr_stat $? "$@"
 }
 
-stderr ()
+std_vs () # ~ <Message ...> # Print message, but pass previous status code.
+{
+  local stat=$?
+  stderr echo "$@" || return 3
+  return $stat
+}
+
+stderr () # ~ <Cmd <...>>
 {
   "$@" >&2
 }
 
-stderr_exit ()
+stderr_exit () # ~ <Status=$?> <...> # Verbosely exit passing status code,
+# with status message on stderr. See also std-v-exit.
 {
   local stat=${1:-$?}
-  test 0 -eq $stat &&
+  stderr echo "$(test 0 -eq $stat &&
     printf 'Exiting\n' ||
-    printf 'Exiting (status %i)\n' $stat
+    printf 'Exiting (status %i)\n' $stat)" "$stat"
   exit $stat
 }
+
+stderr_v_exit () # ~ <Message> [<Status>] # Exit shell after printing message
+{
+  local stat=$?
+  stderr echo "$1" || return 3
+  exit ${2:-$stat}
+}
+
+# Like stderr-v-exit, but exits only if status is given explicitly, or else
+# if previous status was non-zero.
+fun_def stderr_ \
+  local stat=\$?\;\
+  stderr echo \"\$1\" "||" return 3\;\
+  test -z \"\${2:-}\" "&&" test 0 -eq \"\$stat\" "||" exit \$_\;
 
 # Show whats going on during sleep, print at start and end. Makes it easier to
 # find interrupt points for sensitive scripts. Verbose sleep prints to stderr
@@ -132,5 +179,31 @@ stderr_stat ()
     printf "Fail E%i: '%s'\\n" "$stat" "$ref"
   return $stat
 }
+
+sh_var_incr ()
+{
+  local v=${!1:-0}
+  declare -g ${1:?}=$(( v + 1 ))
+}
+
+sh_var_setval () # ~ <Var-name> [<Value-or-last>]
+{
+  declare -g ${1:?}="${2:-$_}";
+}
+
+sh_var_copy () # ~ <New-var> <From-ref>
+{
+  declare -g ${1:?}="${!2}"
+}
+
+sh_adef () # ~ <Array> <Key>
+{
+  : "${1:?}[${2:?}]"
+  test "(unset)" != "${!_:-(unset)}"
+}
+
+sh_fclone inc sh_var_incr
+sh_fclone vfrom sh_var_copy
+sh_fclone vset sh_var_setval
 
 #

@@ -3,6 +3,8 @@
 test -n "${CWD-}" || CWD=$PWD
 test -n "${script_util-}" || script_util=$CWD/tools/sh
 
+lk=":tools:sh:init"
+
 for env_d in ${INIT_ENV-}
 do
   test -e $script_util/parts/env-$env_d.sh && {
@@ -19,7 +21,7 @@ test -n "${INIT_LOG-}" || INIT_LOG=$script_util/log.sh
 command -v "$INIT_LOG" >/dev/null 2>&1 || INIT_LOG=/etc/profile.d/uc-profile.sh
 
 scriptname=$scriptname \
-  $INIT_LOG "info" "" "Env initialized from parts" "${INIT_ENV-}"
+  $INIT_LOG "info" "$lk" "Env initialized from parts" "${INIT_ENV-}"
 
 test -n "${sh_tools-}" || sh_tools="$CWD/tools/sh"
 # XXX: cleanup
@@ -38,10 +40,10 @@ test -n "${INIT_LIB-}" && {
 }
 
 scriptname=$scriptname \
-  $INIT_LOG note "" "Bootstrapping..." "$INIT_LIB"
+  $INIT_LOG note "$lk" "Bootstrapping..." "$INIT_LIB"
 lib_load $INIT_LIB || return
 lib_init $INIT_LIB || return
 
-$INIT_LOG debug "" "Init for 'main' finished"
+$INIT_LOG debug "$lk" "Init for 'main' finished"
 unset INIT_LOG
 #

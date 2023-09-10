@@ -379,7 +379,7 @@ htd_darwin_locklog_raw() # Date-Tag
           date="$($gdate -d "$1" +"%Y-%m-%d")" || date="$($gdate +"%Y-%m-%d")"
       darwin_locklog_env "$date"
   }
-  lib_load table
+  lib_load table || return
   fixed_table_cuthd "$locklog_raw" $(fixed_table_hd_ids "$locklog_raw")
   fixed_table "$locklog_raw" "$cutf"
 }
@@ -487,7 +487,7 @@ darwin_boottime()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Do nothing if loaded by lib-load
-  test -n "${lib_load-}" || {
+  test -n "${lib_loading-}" || {
 
     # Otherwise set action with env __load
     test -n "${__load-}" || {

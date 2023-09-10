@@ -43,14 +43,14 @@ eval_pi ()
     return 1
   }
   typeset dir="${1:2}" var val
-  var=${dir%:*}
+  var=${dir%: *}
   var=${var//:/__}
   var=${var//[^[:alnum:]_]/_}
 
-  val="${dir/*:}"
-  val="${val/ }"
+  val="${dir#*: }"
   shift
   test $# -gt 0 && val="$val $*"
+  stderr echo typeset "VAR=$var" "VAL=$val" "$var=$val"
   typeset -g "VAR=$var" "VAL=$val" "$var=$val"
   test ${v:-4} -le 5 || typeset -p "$var" >&2
 }
@@ -85,8 +85,10 @@ readtab () # ~ [<Tags...>]
   typeset -a extra=()
   grep -vE '^\s*(# .*)?$' |
     sed -e 's/^ *//' -e 's/ *$//' -e 's/^#/# # #/' |
-    while read st et f rest
+    while read -r st et f rest
   do
+
+    # Eval '#:' prefix as document-level PI, skip other comment lines
     test "${st:0:1}" = "#" && {
       test "${f:1:1}" != ":" || {
         eval_doc_pi "$f${rest:+ }$rest" || return

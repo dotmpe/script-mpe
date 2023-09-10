@@ -238,7 +238,7 @@ sd_fsdir_inner()
           if test ${local:-1} -eq 1
           then
             local LUP=$(statusdir_lookup_path)
-            lookup_test= lookup_first=${lookup_first:-1} lookup_path LUP $rtype/$k
+            lookup_test= lookup_first=${lookup_first:-true} lookup_path LUP $rtype/$k
 
           else
             echo "${STATUSDIR_ROOT}$rtype/$k"

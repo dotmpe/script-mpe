@@ -5,7 +5,7 @@
 
 context_lib__load()
 {
-  lib_require os src-htd statusdir ctx-base contextdefs match-htd stattab \
+  lib_require os-htd src-htd statusdir ctx-base contextdefs match-htd stattab \
       contextdefs || return
 
   : "${CTX:=""}"
@@ -355,12 +355,13 @@ context_subtag_env () # SUBTAG
   context_parse "$(context_subtag_entries "$1")"
 }
 
-# Echo table after preproc
+# Echo table after first checking/updating preproc cache
 context_tab () # [Ctx-tab] ~ # List context list items
 {
   context_tab_cache && grep -Ev '^\s*(#.*|\s*)$' "${CTX_TAB_CACHE:?}"
 }
 
+# XXX: list files, and if cached file is OOD do regenerate
 context_tab_cache () # [Ctx-tab] ~
 {
   local cached=${CTX_TAB_CACHE:?}
@@ -503,8 +504,8 @@ contexttab_init()
   ctx="$1"
   primctx="$(echo "$1" | cut -f 1 -d ' ')"
   # Remove '@'
-  upper=0 mkvid "$(echo "$primctx" | cut -c2-)" && primctx_sid="$vid"
-  upper= mkvid "$(echo "$primctx" | cut -c2-)" && primctx_id="$vid"
+  upper=0 mkvid "${primctx:1}" && primctx_sid="$vid"
+  upper= mkvid "${primctx:1}" && primctx_id="$vid"
 }
 
 contexttab_load_entry()

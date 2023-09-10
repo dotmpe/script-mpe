@@ -101,8 +101,8 @@ INIT_LIB="\\$default_lib main meta box doc date table remote std stdio"
 main-local
 failed= dry_run=
 main-lib
-  local lib_load=1
-  INIT_LOG=$LOG lib_init || return
+  local lib_loading=1
+  INIT_LOG=${LOG:?} lib_init || return
 main-unload
   clean_failed || unload_ret=$?
   unset failed

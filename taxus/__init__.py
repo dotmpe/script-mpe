@@ -12,6 +12,7 @@ import couchdb
 from sqlalchemy import MetaData
 from sqlalchemy.orm.exc import NoResultFound
 
+# XXX: from .. import ?
 from script_mpe import confparse, log, mod
 from script_mpe.res import dt, js
 from script_mpe.res.ws import AbstractYamlDocs

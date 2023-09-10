@@ -4,15 +4,17 @@
 
 prefix_lib__load()
 {
+  lib_require statusdir || return
   test -n "${pathnames-}" || pathnames=user/pathnames.tab
 }
 
 prefix_lib__init()
 {
-  lib_loaded statusdir || return
+  test -z "${prefix_lib_init-}" || return $_
   test -n "${UCONF-}" || UCONF=$HOME/.conf
   test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}index/basedirs.tab
 }
+
 
 prefix_init()
 {

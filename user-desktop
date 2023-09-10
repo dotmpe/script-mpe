@@ -58,7 +58,7 @@ backgrounds () # ~ <-list>
           --preview='feh --title feh-preview -B "'"$bg"'" -Z {} -.' \
           --preview-window=0 "$@" ;;
 
-    ( * ) $LOG error ":$act" "No such action" "$1"; return 67 ;;
+      * ) $LOG error ":$act" "No such action" "($#) $*" 67 ;
   esac
 }
 
@@ -69,6 +69,12 @@ backgrounds_list ()
     backgrounds_dirs_find
 
   } | remove_dupes
+}
+
+backgrounds_select ()
+{
+  img=$(backgrounds preview) &&
+  background_set "$img"
 }
 
 backgrounds_tag_find ()
@@ -95,6 +101,8 @@ bg_get () # ~ <Tags>...
   #image scale
 }
 
+# XXX: feh can do multihead fine together just not one in a multihead
+# subsequent arguments are monitor numbers
 # TODO: prepare fancy background, maybe do some tinting, tiling or mask.
 # Or use single image, not sure if feh supports already.
 # For now feh suffices, for multiple backgrounds as well.
@@ -105,7 +113,7 @@ background_set () # ~ <File> <Display>...
   shift
 
   . $US_BIN/system-display || return
-  . $US_BIN/xorg.lib.sh || return
+  #. $US_BIN/xorg.lib.sh || return
   #shellcheck disable=2046
   #set -- $(display "$1") || return
   #geom=$(display_info "$(display "$1")" | cut -d ' ' -f 2)
@@ -117,9 +125,8 @@ background_set () # ~ <File> <Display>...
   geom=$(echo $display_geom | sed 's/+.*/+0+0/')
 
   scale "$geom" "$fn" "scaled.jpg"
-  colorize "scaled.jpg" "tinted.jpg" "#000000" 95
+  colorize "scaled.jpg" "tinted.jpg" "#000000" 85
 
-  return
   #shellcheck disable=2068
   for d in $@
   do
@@ -312,13 +319,17 @@ user_desktop_loadenv ()
   test -e "${BG_DIR:="$HOME/Pictures/Backgrounds"}/.meta.sh" && {
     . "${BG_DIR}/.meta.sh"
   }
-  user_desktop_defaults
+  #user_script_loadenv || test ${_E_retry:-198} -eq $? || return $_
+  : "${_E_not_found:=127}" # NSFC no-such-file-or-command
+  user_desktop_defaults &&
+  lib_require os sys-htd str-htd desktop xorg
 }
 
 user_desktop_aliasargv ()
 {
   case "$1" in
       ( b|bg ) shift; set -- background "$@" ;;
+      ( bgS | backgrounds-select ) shift; set -- backgrounds-select "$@" ;;
       ( bgs ) shift; set -- backgrounds "$@" ;;
       ( update-for-cs ) shift; set -- update_for_cs "$@" ;;
       ( switch-cs ) shift; set -- switch_cs "$@" ;;
@@ -340,13 +351,6 @@ user_desktop_defaults ()
 
 test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
 uc_script_load user-script
-
-user_desktop_loadenv ()
-{
-  #user_script_loadenv || test ${_E_retry:-198} -eq $? || return $_
-  : "${_E_not_found:=127}" # NSFC no-such-file-or-command
-  lib_require sys-htd desktop xorg
-}
 
 ! script_isrunning "user-desktop" || {
   user_script_load || exit $?

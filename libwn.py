@@ -35,7 +35,7 @@ there is a lot of stuff that can be queried.
 # Get nltk.corpus.reader.api.CorpusReader instance, prepared by nltk module
 from nltk.corpus import wordnet as wn
 
-import log
+from script_mpe import log
 
 
 def syn_or_syns(word):

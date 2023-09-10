@@ -13,6 +13,7 @@ context_sh_entries () # ~ <Action>
   case "$act" in
     ( l|list )
           context_tab
+          # Get file references from other table
           context_sh_files tab | sed 's/^/#id /'
         ;;
     ( r|raw ) context_tab_cache &&
@@ -30,6 +31,7 @@ context_sh_files () # ~ <Action>
   local act="${1:-list}"
   test $# -eq 0 || shift
   local lk=${lk:-:context}:files:$act
+  case "$act" in ( c|check ) ;; * ) context_sh_files c; esac
   case "$act" in
     ( tab|ids )
         local cached=${CTX_CACHE:?}/context-file-ids.tab
@@ -60,9 +62,8 @@ context_sh_files () # ~ <Action>
         files_existing ".meta/stat/index/{context,ctx}{,-*}.list"
       ;;
     ( l|ls|list )
-        context_sh_files c
-        # Look for files and return non-zero if none found
-        find .meta/stat/index -iname 'ctx-*.list' | grep . ;;
+        context_sh_files a && context_sh_files f
+      ;;
     ( c|check )
         # TODO: use statusdir or other to go over unique names
         test ! -e .meta/stat/index/context.list ||

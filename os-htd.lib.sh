@@ -5,6 +5,7 @@
 
 os_htd_lib__load()
 {
+  lib_require os || return
   : "${uname:="$(uname -s)"}"
   : "${os:="$(uname -o)"}"
 }

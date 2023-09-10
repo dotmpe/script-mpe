@@ -55,6 +55,7 @@ writepl_sh_mpv ()
     line=$(( line + 1 ))
 
     test "${fields[0]:0:1}" = "#" && {
+      stderr echo proc $line ${fields[0]}
       #test "${fields[0]:0:19}" = "#reset_fields" && {
       #  declare
       #}

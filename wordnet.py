@@ -42,11 +42,9 @@ Options:
 import os
 from pprint import pformat, pprint
 
-import log
-import libcmd_docopt
+from script_mpe import log, libcmd_docopt, libwn
 
 # Some utils for nltk.corpus to query WordNet dataset
-import libwn
 from libwn import *
 
 

@@ -5,7 +5,7 @@ set -e
 
 scr_test_sh_main_load()
 {
-  lib_load=1
+  lib_loading=1
   . $scriptpath/main.lib.sh load-ext
   . $scriptpath/util.sh load-ext
 }

@@ -83,7 +83,8 @@ htd__prefixes()
   case "$1" in
 
     # Read from table
-    info|table-id ) shift ;  echo $UCONF/$pathnames ; test -e "$pathnames" || return $? ;;
+    info|table-id ) shift ;  echo $UCONF/$pathnames ;
+      test -e "$pathnames" || return 0; echo "$pathnames" ;;
     raw-table ) shift ;      cat $UCONF/$pathnames || return $? ;;
     tab|table )              prefix_tab || return $? ;;
     list )                   prefix_names || return $? ;;
@@ -114,7 +115,10 @@ htd__prefixes()
         $LOG note "" "Resolving prefix-names for current-paths"
         htd__current_paths | prefix_resolve_all -
       ;;
-
+    status )
+        #ctx_base=ctx__
+        htd_wf_ctx_sub status @Prefix
+      ;;
     check )
         # Read index and look for env vars
         prefix_names | while read name
