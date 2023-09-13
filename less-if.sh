@@ -50,9 +50,11 @@ while (<>) {
 
 ## Script settings
 
+: "${bat_exe:=bat}"
+
 : "${DEBUG:=true}"
 
-: "${PAGER_WRAPPERS:=delta,bat}"
+: "${PAGER_WRAPPERS:=delta,$bat_exe}"
 
 
 # TODO: describe script main env
@@ -74,9 +76,8 @@ if_ok "${PAGER_NORMAL:=$(command -v less) -R}" || {
 # Check for batcat to use as fancy pager: frame decorations and highlighting
 test -n "${IF_PAGER:-}" || {
   # Choose default (fancy) pager or normal
-  if_ok "${IF_PAGER:=$(command -v bat)}" ||
-  if_ok "${IF_PAGER:=$(command -v batcat)}" || {
-    $LOG warn :init "Missing fancy pager exec" "IF_PAGER=bat"
+  if_ok "${IF_PAGER:=$(command -v $bat_exe)}" || {
+    $LOG warn :init "Missing fancy pager exec" "IF_PAGER=$bat_exe"
     : "${IF_PAGER:=$PAGER_NORMAL}"
   }
 }
@@ -143,7 +144,7 @@ maxlines=${USER_LINES:-${UC_OUTPUT_LINES:-${LINES:?}}}
 # Add default options pagers (if not already given)
 case "${IF_PAGER##*/}" in
 
-  ( "bat" )
+  ( "$bat_exe" )
       test $maxlines -le $lines && {
         test ${v:-${verbosity:-3}} -lt 6 ||
           echo "bat-if read $lines lines, max inline output is $maxlines" >&2
@@ -173,7 +174,7 @@ esac
 
 # XXX: overrides?
 case "${IF_PAGER##*/} " in
-  ( "bat "* )
+  ( "$bat_exe "* )
     ;;
 esac
 
