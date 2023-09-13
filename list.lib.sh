@@ -2,22 +2,41 @@
 
 # Plain list/items helper tooling for htd.sh wip
 
+# Created: 2016-10-02
+# Updated: '16-'20, '22, '23
 
-# see pd-sketch.rst, and stdio.lib.sh
+
+# [2016-10-02] see pd-sketch.rst, and stdio.lib.sh
 lst__inputs="arguments options paths files"
 lst__outputs="passed skipped errored failed"
 
 
 list_lib__load ()
 {
-  lib_require os || return
-
   #: "${archive_dt_strf:=%Y-%M-%dT%H:%m:%S}"
   : "${lst_base:=${base:-htd}}"
   : "${EDITOR:=nano}"
 }
 
+list_lib__init ()
+{
+  lib_require os || return
+}
 
+
+# [2023-09-12] Helper to build parser/processor
+lst_data ()
+{
+  false
+}
+
+# [2023-09-12] Helper to build parser/processor
+lst_data_context ()
+{
+  false
+}
+
+# [2016-12-24]
 lst_load()
 {
   # NOTE: single session per proc. nothing sticky.
@@ -56,7 +75,7 @@ lst_load()
   esac; done
 }
 
-
+# [2016-10-02]
 lst_unload()
 {
   local subcmd_result=0

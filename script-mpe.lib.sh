@@ -1,6 +1,10 @@
 
 ### Global shell function set ('lib') for this repository
 
+# TODO: move to tools/us/? as part, or lib?
+# TODO: derive from tools/u-s/
+
+
 # sh_func_decl
 fun_def () { eval "${1:?} () { ${*:2} }"; }
 
@@ -90,7 +94,7 @@ std_quiet () # ~ <Cmd...> # Silence all output (std{out,err})
   "$@" >/dev/null 2>&1
 }
 
-std_stat () # ~ <Cmd...> # Invert status, fail (only) if command returned zero-status
+std_stat () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only) if command returned zero-status
 {
   ! "$@"
 }
@@ -205,5 +209,32 @@ sh_adef () # ~ <Array> <Key>
 sh_fclone inc sh_var_incr
 sh_fclone vfrom sh_var_copy
 sh_fclone vset sh_var_setval
+
+# Status for missing commands and params
+sh_notfound ()
+{
+  test 127 -eq $?
+}
+
+sh_errsyn ()
+{
+  test 2 -eq $?
+}
+
+sh_errusr ()
+{
+  test 1 -eq $?
+}
+
+sh_noerr ()
+{
+  std_noerr "$@" || true
+}
+
+
+script_mpe_lib__init ()
+{
+  export -f sh_notfound sh_errsyn sh_errusr
+}
 
 #

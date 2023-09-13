@@ -4,8 +4,6 @@
 
 date_htd_lib__load()
 {
-  lib_require sys-htd os-htd str || return
-
   export TODAY=+%y%m%d0000
 
   # Age in seconds
@@ -31,12 +29,17 @@ date_htd_lib__load()
   # much if below is only used for fmtdate-relative.
   export _1MONTH=$(( 31 * $_1DAY ))
   export _1YEAR=$(( 365 * $_1DAY ))
+
+  : "${DT_ISO_FULL:=%Y-%m-%dT%H:%M:%S%z}"
+  export DT_ISO_FULL
 }
 
 
 date_htd_lib__init()
 {
-  test "${date_htd_lib_init-}" = "0" && return
+  test -z "${date_htd_lib_init-}" || return $_
+
+  lib_require sys-htd os-htd str || return
 
   test -n "${gdate-}" || case "$uname" in
     Darwin ) gdate="gdate" ;;
@@ -467,10 +470,10 @@ timestamp2touch() # [ FILE | DTSTR ]
 {
   test -n "${1-}" || set -- "@$(date_ts)"
   test -e "$1" && {
-    $gdate -r "$1" +"%y%m%d%H%M.%S"
+    ${gdate:?} -r "$1" +"%y%m%d%H%M.%S"
     return
   } || {
-    $gdate -d "$1" +"%y%m%d%H%M.%S"
+    ${gdate:?} -d "$1" +"%y%m%d%H%M.%S"
   }
 }
 

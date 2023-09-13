@@ -42,15 +42,49 @@ abbrev_rename()
   done
 }
 
+# Ensure directories for given paths exist. Directories must have explicit '/'
+# trailing character or the path must have a file name (which is otherwise
+# ignored, to check that path names are files see assert-files).
+assert_basedirs () # ~ <Pathnames...>
+{
+  declare pn
+  for pn in "${@:?}"
+  do
+    dirn=${pn%%/}
+    test "$pn" = "$dirn" && {
+      : "${pn%/*}"
+      test "$pn" = "$_" && {
+        continue
+      }
+      dirn=$_
+    }
+    mkdir -vp "$dirn"
+  done
+}
+
+assert_dirs () # ~ <Dirnames...>
+{
+  declare pn
+  for pn in "${@:?}"
+  do
+    test -d "${pn:?}" || {
+      test ! -e "$pn" ||
+        $LOG error :assert-dirs "Existing is not directory" "$pn" 2 || return
+
+      test "." = "$(dirname "$pn")" || mkdir -vp "$_"
+    }
+  done
+}
+
 # if not exists, create directories and touch file for each given path arg
 # to print only existing files see filter_files
-assert_files ()
+assert_files () # ~ <Filepathnames...>
 {
-  # shellcheck disable=SC2068
-  for fn in $@
+  declare fn
+  for fn in "${@:?}"
   do
-    test -n "$fn" || continue
-    test -e $fn || {
+    # XXX test -n "$fn" || continue
+    test -e "${fn:?}" || {
       test -z "$(dirname $fn)" || mkdir -vp $(dirname $fn)
       touch $fn
     }

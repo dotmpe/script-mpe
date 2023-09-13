@@ -1,5 +1,7 @@
 ReadMe.rst
 package.yaml
+.attributes
+.properties
 .travis.yml
 # FIXME: check its up to date before commit.. .package.sh
 package.json

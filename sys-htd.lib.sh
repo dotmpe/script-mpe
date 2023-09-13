@@ -19,10 +19,10 @@ sys_htd_lib__load()
 
 sys_htd_lib__init()
 {
-  test "${sys_htd_lib_init-}" = "0" && return
+  test -z "${sys_htd_lib_init-}" || return $_
   test -n "${INIT_LOG-}" || return 102
 
-  lib_require sys || return
+  #lib_require sys || return
 
   return 0 # FIXME: init-log
 

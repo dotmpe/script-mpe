@@ -265,6 +265,23 @@ define_var_from_opt () # Option [Var-Name-Pref]
   esac
 }
 
+argv_arr_seq () # (argc:) ~ <Arr> <Argv...> [ -- <...> ]
+{
+  declare arg _argc=$# arr=${1:?}
+  #sh_arr ${arr:?} || declare -ag "${arr:?}" || return
+  shift
+  while test 0 -lt $#
+  do
+    test "${1:?}" != "--" || {
+      shift
+      break
+    }
+    eval "$arr+=( \"\$1\" )"
+    shift
+  done
+  argc=$(( _argc - $# - 1 ))
+}
+
 argv_has_next () # ~ <Argv...> # True if more for current sequence is available.
 {
   test $# -gt 0 -a "${1-}" != "--"
