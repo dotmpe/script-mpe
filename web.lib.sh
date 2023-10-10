@@ -98,6 +98,7 @@ http_deref () # ~ <URL> [<Last-Modified>] [<ETag>] [<Curl-argv>]
     }
   }
   test -z "${3:-}" || set -- "${@:1:3}" -H "If-None-Match: ${3:?}" "${@:4}"
+  stderr echo curl ${curl_f:--sfL} "${1:?}" "${@:4}"
   curl ${curl_f:--sfL} "${1:?}" "${@:4}"
 }
 

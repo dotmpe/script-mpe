@@ -6,7 +6,7 @@ set -e
 #rm out*.mp4
 rm out*.webm || true
 
-# XXX: see video-extract, going by frames is too problematic
+# XXX: see video-extract, going by frames (like here) is too problematic
 #ffmpeg \
 #  -i "$1" \
 #  -vn \

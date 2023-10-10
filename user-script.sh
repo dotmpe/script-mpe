@@ -1362,7 +1362,7 @@ usage ()
     return 2
   }
   # Exit non-zero unless command was given
-  test "$script_cmddef" = "0"
+  test "${script_cmddef-}" = "0"
 }
 
 

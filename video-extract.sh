@@ -1,3 +1,4 @@
+# video-extract <File> <Start-time> <End-Time>
 set -e
 ffmpeg \
   -i "${1:?}" \

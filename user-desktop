@@ -16,11 +16,24 @@ background () # ~ (:-info)
 {
   local act=${1:-info}; test $# -eq 0 || shift
   case "$act" in
+    ( h|help )
+        echo "~ c|choose # select background picture"
+        echo "~ gradient <...>"
+        echo "~ set <Image>"
+        echo "~ preview"
+      ;;
     ( c|choose )
           img=$(backgrounds preview) && background set "$img" ;;
     ( gradient )
         . ${US_BIN:?}/im-gradient.sh || return
         case "${1:-day-blue}" in
+          ( h|help )
+              echo "~ gradient dust|orange-glow"
+              echo "~ gradient gas|poison|day-green"
+              echo "~ gradient day|day-blue"
+              echo "~ gradient orange"
+              echo "~ gradient night|green"
+            ;;
           ( dust|orange-glow ) user_background_gradient 12x12 chauvet-dystopic-glow 180 ;;
           ( gas|poison|day-green ) user_background_gradient 12x12 chauvet-day-green 0 ;;
           ( day|day-blue ) user_background_gradient 12x12 chauvet-day-blue 0 ;;

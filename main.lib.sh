@@ -10,9 +10,9 @@ main_lib__load()
 
 main_lib__init()
 {
-  test "${main_lib_init-}" = "0" && return
+  test -z "${main_lib_init-}" || return $_
 
-  local us_log=; req_init_log || return
+  req_init_log || return
   $us_log info "" "Loaded main.lib" "$0"
 }
 

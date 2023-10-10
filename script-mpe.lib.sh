@@ -14,9 +14,9 @@ fun_def () { eval "${1:?} () { ${*:2} }"; }
 #fun_def fun_keeparg ': "${1:-}";'
 # XXX: commented: unused
 #fun_false () { false; }
-fun_keeparg () { : "${1:-}"; }
-fun_keeplast () { : "$_"; }
-fun_statpass () # ~ <...> # alias:if-ok
+fun_keep1 () { : "${1:-}"; }
+fun_keep () { : "$_"; }
+fun_stat () # ~ <...> # alias:if-ok
 { return; }
 fun_def if_ok return\;
 fun_true () { :; }
@@ -204,6 +204,12 @@ sh_adef () # ~ <Array> <Key>
 {
   : "${1:?}[${2:?}]"
   test "(unset)" != "${!_:-(unset)}"
+}
+
+sh_arr () # ~ <Varname>
+{
+  if_ok "$(sh_noerr declare -p ${1:?})" &&
+  case "$_" in ( "declare -"*[Aa]*" "* ) ;; * ) false; esac
 }
 
 sh_fclone inc sh_var_incr

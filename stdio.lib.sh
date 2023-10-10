@@ -8,7 +8,7 @@ stdio_lib__init ()
   test "${stdio_lib_init-}" = "0" && return
   lib_assert log || return
 
-  local us_log=; req_init_log
+  req_init_log || return
   $us_log info "" "Loaded stdio.lib" "$0"
 }
 

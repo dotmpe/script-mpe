@@ -272,7 +272,7 @@ htd_subcmd_load ()
       ;;
 
     t ) # more terminal tooling: load shell and init
-        test "${shell_lib_loaded-}" = "0" || lib_load shell
+        test "${shell_lib_loaded-}" = "0" || lib_require shell || return
         shell_lib__init
       ;;
 

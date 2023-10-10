@@ -76,8 +76,8 @@ volume_parttype PARTTYPE'
 
 disk_lib__init ()
 {
-  test "${disk_lib_init-}" = "0" && return
-  local log=; req_init_log
+  test -z "${disk_lib_init-}" || return $_
+  req_init_log || return
 
   test -d "$DISK_CATALOG" || mkdir -p $DISK_CATALOG
   mkdir -p $DISK_CATALOG/disk

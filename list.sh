@@ -12,6 +12,8 @@ uc_script_load user-script || ${stat:-exit} $?
 
 ### List: manage and utilize globlist files
 
+# Primary use is to filter file names,
+
 
 ## Main command handlers
 
@@ -182,8 +184,8 @@ list_loadenv () # ~ <Cmd-argv...>
       # E:next means no libs found for given group(s).
       test ${_E_next:?} -eq $? || return $_
     }
-  lib_load "${base}" &&
-  lib_init "${base}" || return
+  lib_load "${base}" script-mpe &&
+  lib_init "${base}" script-mpe || return
   lk="$UC_LOG_BASE"
   $LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
 }
