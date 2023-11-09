@@ -122,6 +122,9 @@ bg_get () # ~ <Tags>...
 # See also background gradient.
 background_set () # ~ <File> <Display>...
 {
+  feh --bg-fill "$1"
+  return
+
   fn="$1"
   shift
 

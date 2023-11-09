@@ -95,7 +95,7 @@ writepl_sh_mpv ()
     }
   done
   echo "  \"\$@\""
-  echo "# Generated: $(date) $0 writepl-m3u-vlc"
+  echo "# Generated: $(date) $0 writepl-sh-mpv"
 }
 
 # MPlayer/MPV EDL playlists

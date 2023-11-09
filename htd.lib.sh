@@ -572,7 +572,7 @@ htd_current_context ()
 
 htd_modeline ()
 {
-    read -r fileversion filename filemode <<< "$(grep -iPo "^# id: \K.*" "$@")"
+  file_modeline "$@"
 }
 
 # Id: script-mpe/0.0.4-dev ht.sh

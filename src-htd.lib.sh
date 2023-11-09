@@ -595,7 +595,10 @@ preproc_recurse () # ~ <Generator> <Resolve-fileref> <Action-cmd>
 
   grep_f=-HnPo "$select" "$@" | while IFS=$':\n' read -r srcf srcl ref
   do
-    file=$($resolve "$ref" "$srcf")
+    file=$($resolve "$ref" "$srcf") || {
+      $LOG alert :preproc-recurse "Resolve failure" \
+          "E$?:$select:$resolve:$act::$srcf:$srcl:$ref" $? || return
+    }
     eval "$act"
     preproc_recurse "$select" "$resolve" "$act" "$file" || true
   done
@@ -621,7 +624,7 @@ resolve_fileref () # [cache=0,cache_key=def] ~ <Ref> <From>
   #file="$(eval "echo \"$fileref\"" | sed 's#^\~/#'"${HOME:?}"'/#')" # expand vars, user
   file=$(os_normalize "${fileref/#~\//${HOME:?}/}") &&
   test -e "$file" || {
-    $LOG warn "" "Cannot resolve reference" "ref:$1 file:$file"
+    $LOG warn :resolve-fileref "Cannot resolve reference" "ref:$1 file:$file"
     return 9
   }
   echo "$file"

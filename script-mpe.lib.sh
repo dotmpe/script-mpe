@@ -21,7 +21,7 @@ fun_stat () # ~ <...> # alias:if-ok
 fun_def if_ok return\;
 fun_true () { :; }
 fun_def noop :\;
-fun_def cite :\;
+#fun_def cite :\;
 fun_wrap () { "$@"; }
 
 sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body

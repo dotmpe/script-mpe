@@ -5,7 +5,7 @@
 
 context_lib__load()
 {
-  lib_require os-htd src-htd statusdir ctx-base contextdefs match-htd stattab \
+  lib_require os-htd src-htd stattab ctx-base contextdefs match-htd \
       contextdefs || return
 
   : "${CTX:=""}"
@@ -22,9 +22,9 @@ context_lib__load()
 # TODO: add dry-run/stat/update mode, and add to install/provisioning script +U-c
 context_lib__init()
 {
-  test "${context_lib_init-}" = "0" && return
+  test -z "${context_lib_init-}" || return $_
   test -n "${package_lists_contexts_default-}" || package_lists_contexts_default=@Std
-  : "${CTX_TAB:="${STATUSDIR_ROOT:?}index/context.list"}"
+  : "${CTX_TAB:="${STATUSDIR_ROOT:?}index/${CTX_TAB_NAME:-context.list}"}"
   : "${CTX_CACHE:="${STATUSDIR_ROOT:?}cache"}"
   : "${CTX_TAB_CACHE:="${CTX_CACHE:?}/context.tab"}"
   test -e "$CTX_TAB" || {
@@ -33,28 +33,46 @@ context_lib__init()
 }
 
 
+context ()
+{
+  #test $# -gt 0 -a "${1:0:1}" = "-"
+  local _switch=${1:-list}
+  _switch=${_switch:+$(str_globstripcl "${_switch:?}" -)}
+  test -n "${switch-}" || {
+    : "${_switch:=local}"
+  }
+  case "$_switch" in
+
+    ( l|load )
+        context --exists "$@"
+      ;;
+    ( exists )
+        stb_fp=${ctx_tab:-${CTX_TAB_CACHE:?}} stattab_exist_all "$@"
+      ;;
+
+    ( * ) $LOG alert :context "No such option" "$_switch" ${_E_NF:=124}
+  esac
+}
+
 # See that all given tags exist
 context_check () # [case_match=1] [match_sub=0] ~ Tags...
 {
   p= s= act=context_check_inner foreach_do "$@"
 }
 
-context_check_inner ()
+context_check_inner () # ~ <Tag> <...>
 {
   context_exists_tag "$1" && {
-    $LOG ok "" "Exists" "$1"
+    $LOG notice :tag "Exists" "$1"
     return
   } || {
     context_exists_tagi "$1" && {
-      warn "Wrong case for '$1'"
-      return 3
+      $LOG error :tagi "Wrong case" "$1" 3 || return
     } || {
       context_exists_subtagi "$1" && {
-        warn "Sub-tag exists for '$1'"
-        return 2
+        $LOG notice :subtagi "Sub-tag exists" "$1"
       } || {
-        $LOG nok "" "No such tag" "$1"
-        return 1
+        $LOG alert :nok "No such tag" "$1"
       }
     }
   }
@@ -207,6 +225,34 @@ context_file_flush_xattr_cache ()
   }
 }
 
+context_file_read ()
+{
+  fr_ctx=context file_reader "$@" || return
+
+  sh_fun "$fr_spec" &&
+    set -- "$fr_spec" "$@" ||
+    set -- context_run "$fr_spec @FileReader @ctx-class" "$@"
+
+  "$@"
+}
+
+context_file_path ()
+{
+  modeline_file_path "$@"
+}
+
+context_file_reader ()
+{
+  modeline_file_reader "$@"
+
+  # Infer reader otherwise, ie. from filepath/name but note that we may have a
+  # modeline-less file on stdin with no known format extension.
+  test -n "${fr_spec:-}" || {
+    # XXX: need to process basename here: $filename vs $fp
+    fr_spec=$(${file_reader_detect:-file_format_reader} "$fp") || return
+  }
+}
+
 context_fileids () # [Ctx-tab] ~
 {
   local files file id
@@ -230,7 +276,7 @@ context_files () # (ctx-tab) ~
 {
   local context_tab="${context_tab:-${CTX_TAB:?}}"
   "${context_cache_files:-true}" || {
-    echo "$context_tab"
+    echo "${context_tab:?}"
     preproc_includes_list "" "$context_tab"
     return
   }
@@ -265,6 +311,11 @@ context_find_fileref () # ~ <File>
   test $# -eq 1 -a -n "${1-}" || return 98
   context_tag_entry "$1" && return
   context_url_entry "$1" && return
+}
+
+context_ids_list ()
+{
+  context_tab | grep -Po '^['"$STTAB_FS$STTAB_STATC"']* \K((.*(?=:($| )))|[^ ]*)'
 }
 
 context_list_raw () # ~ <File>
@@ -339,6 +390,36 @@ context_read_include () # ~ <Ref> <File> <Src-file> <Src-line>
   sed -E 's/^([^# ].*)(#[^ ]|$)/\1 #'"$id"' \2 /'
 }
 
+context_run () # ~ <Spec> <Arg...>
+{
+  # stattab_data_list <fun arg...>
+  # stattab_data_outline <fun arg...>
+
+  # Load everything
+  context_update $1 || return
+
+  # context-init
+  # Find first context with 'run' hook,
+  # attempt to initialize if context is a class.
+  for t in $1
+  do
+    Class.exists "$t" && {
+      ! Class.hasattr "$t" run || {
+        create ctx $t
+        set -- "$ctx".run "$@"
+        break
+      }
+    }
+
+    ! if_ok "$(context_hook "$t" run)" || {
+      set -- "$_" "$@"
+      break
+    }
+  done
+
+  "${@:?}"
+}
+
 # XXX: Return record for given ../subtag.
 context_subtag_entries () # SUBTAG
 {
@@ -358,10 +439,12 @@ context_subtag_env () # SUBTAG
 # Echo table after first checking/updating preproc cache
 context_tab () # [Ctx-tab] ~ # List context list items
 {
-  context_tab_cache && grep -Ev '^\s*(#.*|\s*)$' "${CTX_TAB_CACHE:?}"
+  context_tab_cache &&
+    grep -${ctx_grep_f:-Ev} '^\s*(#.*|\s*)$' "${CTX_TAB_CACHE:?}"
 }
 
-# XXX: list files, and if cached file is OOD do regenerate
+# list files, and if cached list is OOD regenerate
+# TODO: return status to indicate data reload may be required
 context_tab_cache () # [Ctx-tab] ~
 {
   local cached=${CTX_TAB_CACHE:?}
@@ -416,18 +499,26 @@ context_tag_order() # Tag
 }
 
 # Return record for given ctx tag-id
-context_tag_entry () # TAG
+context_tag_entry () # ~ <Tag-id> [<Context-tab>]
 {
   test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
   test -n "${NS:-}" || local NS=$CTX_DEF_NS
   test "unset" != "${grep_f-"unset"}" || local grep_f=-nm1
-  match_grep_arg "$1"
-  context_tab | $ggrep $grep_f "^[0-9a-z -]*\b\\($NS:\\)\\?$p_:\\?\\ "
+  generator=context_tab stattab_grep "$1" -ns-id ${2:-}
 }
 
-context_tags_list ()
+context_tag_list ()
 {
-  context_tab | grep -Po '^[0-9.,+ -]* \K((.*(?=:($| )))|[^ ]*)'
+  context_tab | grep -Po '@\K[^ ]*' | remove_dupes
+}
+
+context_update_env ()
+{
+  CTX
+  CTX_ENV
+
+  context_add
+  context_remove
 }
 
 # Fetch exactly one record with given URL attribute
@@ -443,18 +534,21 @@ contexttab_builtin=builtin
 contexttab_root=Base
 
 # Start at TAG and find all related
-contexttab_related_tags () # TAG
+contexttab_related_tags () # (tag-rel) ~ <Tag>
 {
-  test $# -eq 1 -a -n "${1-}" || return 98 # Wrong arguments
-  local tags
+  test $# -eq 1 -a -n "${1-}" || return ${_E_GAE:-193} # Wrong arguments
+  : "${tag_rel:=}"
   while true; do
     fnmatch "* $1 *" " $contexttab_builtin " && {
-      tags="${tags-}${tags+" "}$1"
+      str_wordmatch "$1" $tag_rel ||
+        tag_rel="${tag_rel-}${tag_rel:+" "}$1"
       shift
     } || {
       context_tag_env $1 || return 90 # Related tag should/does not exist
-      tags="${tags-}${tags+" "}$1"
+      str_wordmatch "$1" $tag_rel ||
+        tag_rel="${tag_rel-}${tag_rel:+" "}$1"
       shift
+
       for ref in $rest
       do fnmatch "@*" "$ref" || continue
         set -- "${ref:1}" "$@"
@@ -462,7 +556,6 @@ contexttab_related_tags () # TAG
     }
     test $# -gt 0 || break
   done
-  echo $tags
 }
 
 # Resolve 'super:' attribute for tag. And list all tags including given tag,

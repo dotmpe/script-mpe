@@ -22,11 +22,13 @@ outline ()
 
 
 
-outline_fetch ()
+# Read out just the '##' prefixed lines from a source
+outline_fetch () # ~ <Src>
 {
   grep ${grep_f:-} '^###* ' "${1:?"Expected file or -"}"
 }
 
+# First '##' prefixed line
 outline_header ()
 {
   grep_f=-m1 outline_fetch "$@"
