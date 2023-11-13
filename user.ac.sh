@@ -1,4 +1,15 @@
-#shellcheck disable=1087
+#!/usr/bin/env bash
+#
+##shellcheck disable=1087
+
+# User is not really a concrete script itself, instead it is a skeleton for
+# autocompletions and a trigger for any of those definitions within contexts.
+
+# TODO: test if <TAB> handling can load additional script
+#
+# XXX: and given that the right aliases and modules are loaded, to actually
+# trigger commands in the current shell or any other context.
+
 
 # Build pseudo command for exploring completion
 alias user="echo user"

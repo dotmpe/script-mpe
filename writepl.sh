@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/bash
 
 ## Write playlist file based on times and tags
 
