@@ -10,13 +10,15 @@ stattab_lib__load ()
   lib_require statusdir || return
   : "${STTAB_FS:= }"
   : "${STTAB_STATC:="0-9^<>?!$$()&*+.,:~|-"}"
+  : "${STTAB_EXTS:=.tab:.list}"
+  local stdidx=${STIDX_NAME:-index.tab} stbtab=${STTAB_NAME:-stattab.list}
   # Index contains entries for all User ~/.statusdir/index/* files
-  if_ok "${STIDX:=$(out_fmt= statusdir_lookup ${STDIDX_NAME:-index.tab} index)}" &&
+  if_ok "${STIDX:=$(out_fmt= statusdir_lookup ${stdidx:?} index)}" &&
   # StatTab contains entries for all other local copies of User list/table
   # files under processing.
-  if_ok "${STTAB:=$(out_fmt= statusdir_lookup ${STDTAB_NAME:-stattab.list} index)}" ||
+  if_ok "${STTAB:=$(out_fmt= statusdir_lookup ${stbtab:?} index)}" ||
     $LOG alert :stattab "Expected an existing main and stattab index" \
-      "E$?:index.tab:stattab.list" $?
+      "E$?:$stdidx:$stbtab" $?
 }
 
 # See that main and stattab index exists (and are not empty), and select

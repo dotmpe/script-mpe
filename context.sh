@@ -78,6 +78,42 @@ context_sh_files () # ~ <Switch:-list> <...>
   local lk=${lk:-:context}:files:-$act
   case "$act" in ( c|check ) ;; * ) context_sh_files --check; esac
   case "$act" in
+    ( a|all )
+        context_files
+      ;;
+    ( c|check )
+        context_sh_files --check-global &&
+        context_sh_files --check-local
+      ;;
+    ( check-global )
+        local files
+        : "$(context_files)" &&
+        mapfile -t files <<< "$_" &&
+        TODO
+      ;;
+    ( check-local )
+        # TODO: use statusdir or other to go over unique names
+        test ! -e .meta/stat/index/context.list ||
+            $LOG warn "$lk" "Should not have context.list" ;;
+    ( c-a|count-all )
+        wc -l <<< "$(context_files)"
+      ;;
+    ( e|enum )
+        local cached=${CTX_CACHE:?}/context-file-includes.tab
+        context_files_cached "$cached" &&
+        cat "$cached"
+      ;;
+    ( f|find ) # XXX: get look path
+        files_existing ".meta/stat/index/{context,ctx}{,-*}.list"
+      ;;
+    ( l|ls|list )
+        context_sh_files -all && context_sh_files -find
+      ;;
+    ( sc|sed-script )
+        #preproc_resolve_sedscript "" "$CTX_TAB"
+        preproc_expand_1_sed_script "" "$CTX_TAB"
+        echo "$sc"
+      ;;
     ( tab|ids )
         local cached=${CTX_CACHE:?}/context-file-ids.tab
         context_files | os_up_to_date "$cached" || {
@@ -87,32 +123,6 @@ context_sh_files () # ~ <Switch:-list> <...>
         }
         cat "$cached"
       ;;
-    ( e|enum )
-        local cached=${CTX_CACHE:?}/context-file-includes.tab
-        context_files_cached "$cached" &&
-        cat "$cached"
-      ;;
-    ( sc )
-        #preproc_resolve_sedscript "" "$CTX_TAB"
-        preproc_expand_1_sed_script "" "$CTX_TAB"
-        echo "$sc"
-      ;;
-    ( c-a|count-all )
-        wc -l <<< "$(context_files)"
-      ;;
-    ( a|all )
-        context_files
-      ;;
-    ( f|find ) # XXX: get look path
-        files_existing ".meta/stat/index/{context,ctx}{,-*}.list"
-      ;;
-    ( l|ls|list )
-        context_sh_files -all && context_sh_files -find
-      ;;
-    ( c|check )
-        # TODO: use statusdir or other to go over unique names
-        test ! -e .meta/stat/index/context.list ||
-            $LOG warn "$lk" "Should not have context.list" ;;
 
     ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
   esac

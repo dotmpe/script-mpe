@@ -107,8 +107,9 @@ statusdir_lookup () # ~ <File-name> [<Type>]
 {
   test $# -ge 1 -a $# -le 2 -a -n "${1-}" || return 64
   test $# -gt 1 || set -- "$1" ""
-  local LUP=$(statusdir_lookup_path)
-  lookup_first=${lookup_first:-true} lookup_path LUP ${2:-index}/${1:?}
+  : "$(statusdir_lookup_path)" &&
+  LUP=${_//$'\n'/:} lookup_first=${lookup_first:-true} lookup_test="" \
+    lookup_path LUP ${2:-index}/${1:?}
 }
 
 # Defer to backend

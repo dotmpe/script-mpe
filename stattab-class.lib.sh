@@ -164,8 +164,21 @@ class.StatTab () # :Class ~ <ID> .<METHOD> <ARGS...>
     .list|.ids|.keys ) # ~ [<Key-match>]
         stattab_list "${1:-}" "$($self.tab-ref)"
       ;;
-
+    .new ) # ~ [<>]
+        local tbref dtnow
+        tbref="$($self.tab-ref)" &&
+        dtnow="$(date_id $(date --iso=min))" &&
+        echo "- $dtnow $1:" >> "$tbref"
+      ;;
     .exists ) stattab_exists "$1" "" "$($self.tab-ref)" ;;
+    .status ) # ~ [<>]
+        context_run stat
+        local entry status
+        $self.fetch local:entry "$1" &&
+        status=$($entry.attr status) &&
+        stderr echo "$($entry.toString)" &&
+        test -n "$status" -a "$status" != "-"
+      ;;
     .init ) local var=$1; shift
         stattab_init "$@" &&
         create "$var" StatTabEntry "$id"
@@ -173,10 +186,11 @@ class.StatTab () # :Class ~ <ID> .<METHOD> <ARGS...>
     .fetch ) # ~ <Var-name> <Stat-id>
         : "${1:?Expected Var-name argument}"
         : "${2:?Expected Stat-id argument}"
-        stattab_fetch "$_" "" "$($self.tab-ref)" &&
-        $LOG info : "Retrieved $($self.class) entry" "$1=$_:E$?" $? &&
+        stattab_fetch "$2" "" "$($self.tab-ref)" &&
+        $LOG info : "Retrieved $($self.class) entry" "$1=$2:E$?" $? &&
         create "$1" $($self.tab-entry-class) "$id" "$stttab_src:$stttab_lineno" &&
-        ${!1}.get
+        : "${1//local:}" &&
+        ${!_}.get
       ;;
 
     .class-context ) class.info-tree .tree ;;

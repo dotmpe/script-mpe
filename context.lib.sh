@@ -256,10 +256,11 @@ context_file_reader ()
 context_fileids () # [Ctx-tab] ~
 {
   local files file id
-  mapfile -t files <<< "$(context_files)"
+  : "$(context_files)" &&
+  mapfile -t files <<< "$_" &&
   for file in "${files[@]}"
   do
-    id=$(CTX_TAB=$file context_file_attributes id)
+    id=$(CTX_TAB=$file context_file_attributes id) || return
     echo "$id $file"
   done
 }

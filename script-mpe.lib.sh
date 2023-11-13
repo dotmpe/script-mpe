@@ -53,6 +53,14 @@ str_globmatch () # ~ <String> <Glob-pattern>
 }
 fun_def fnmatch 'str_globmatch "${2:?}" "${1:?}";'
 
+str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
+{
+  test 2 -le $# || return ${_E_GAE:-193}
+  case " ${*:2} " in
+    ( *" ${1:?} "*) ;; #  | *" ${1:?} " | " ${1:?} "*) ;;
+    ( * ) false ; esac
+}
+
 # Helper to generate true or false command.
 std_bool () # ~ <Cmd...> # Print true or false, based on command status
 {
