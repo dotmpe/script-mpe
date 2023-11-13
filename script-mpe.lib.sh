@@ -251,4 +251,18 @@ script_mpe_lib__init ()
   export -f sh_notfound sh_errsyn sh_errusr
 }
 
+
+error_handler ()
+{
+  test $# -gt 0 || return ${_E_GAE:-3}
+  test $# -eq 1 && {
+    echo "$1"
+    return
+  }
+  test $# -eq 2 && {
+    echo "$1"
+    return $2
+  }
+}
+
 #

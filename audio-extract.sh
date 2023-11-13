@@ -9,9 +9,11 @@ test $# -ge 1 && {
 
 test -z "${cext:=${2:-}}" || convert=true
 
+$LOG notice : "Inputs: ..."
 file -s "${1%%.*}".* ||
   stderr error_handler "Unexpected E$?" $?
 
+fn_music=
 ! "${convert:-false}" && {
   fn_a=${1%.webm}.audio.webm
   test ! -e "$fn_a" || {
@@ -21,33 +23,33 @@ file -s "${1%%.*}".* ||
   test -e ~/Downloads -a -e ~/Music -a -e ~/Videos ||
     stderr error_handler "Unexpected home" 3
   fn_a=${1%.webm}.$cext
-  test -e "$fn_a" ||
-    stderr echo "Converting to $fn_a..."
+  str_wordmatch Music ${fn_a//\// } && {
+    : "${fn_a:?}"
+    : "${_//Music\/}"
+    : "${_//Downloads/Music\/Media\/Audio}"
+    : "${_//Videos/Music\/Media\/Audio}"
+    fn_music=$_
+    test -e "$(dirname "$fn_music")" ||
+      stderr error_handler "Expected dest dir" 3
+    # XXX: would like to handle alt basedirs
+    #fnmatch "*/*" "$_" ||
+  }
+  test -e "${fn_music:-${fn_a:?}}" ||
+    stderr echo "Converting to $_..."
 }
 
-{ "${convert:-false}" && {
-    str_wordmatch "${fn_a//\// }" Music && {
-      : "${fn_a:?}"
-      : "${_//Music\/}"
-      : "${_//Downloads/Music\/Media\/Audio}"
-      : "${_//Videos/Music\/Media\/Audio}"
-      fn_music=$_
-      test -e "$(dirname "$fn_music")" ||
-        stderr error_handler "Expected dest dir" 3
-      # XXX: would like to handle alt basedirs
-      #fnmatch "*/*" "$_" ||
-      fn_music=$_
-    }
-    test -e "$fn_a" -o -e "$fn_music"
-  } || {
-    test -e "$fn_a"
-  }
-} ||
+test -e "${fn_music:-${fn_a:?}}" ||
 ffmpeg \
   -i "$1" \
   -vn \
-  "$fn_a"
+  "$_"
 
 ! "${convert:-false}" || {
-  test -e "$fn_music" || mv -v "$fn_a" "$_"
+  test -e "${fn_music:-${fn_a:?}}" ||
+  test "$1" = "$_" ||
+  mv -v "$fn_a" "$_"
 }
+
+$LOG notice : "Results: ..."
+file -s "${fn_music:-${fn_a:?}}" ||
+  stderr error_handler "Unexpected E$? at file $_" $?
