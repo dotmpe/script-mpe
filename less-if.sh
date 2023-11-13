@@ -127,7 +127,9 @@ true "${COLUMNS:=$(tput cols)}"
 COLUMNS=$(( COLUMNS - 6 ))
 export COLUMNS WIDTH=$COLUMNS
 
-args=${@:-/dev/stdin}
+args=${1:-/dev/stdin}
+test "$args" != "-" || args=/dev/stdin
+test $# -eq 0 || shift
 $LOG debug :start "Reading input data..." "args=$args"
 data=$(<"$args")
 test -z "$data" &&
@@ -163,12 +165,25 @@ case "${IF_PAGER##*/}" in
       { ${quiet_empty:-true} || test $lines -gt 0
       } && test "$args" = /dev/stdin ||
           bat_opts=$bat_opts,header\ --file-name="$args"
+
+      test -z "${IF_LANG:-}" || bat_opts=$bat_opts\ -l\ $IF_LANG
+
       set -- $bat_opts
+
+      test ${v:-${verbosity:-3}} -lt 6 ||
+        echo "if-pager $bat_exe: setting options to $bat_opts" >&2
     ;;
 
   ( "less" )
       test 0 -eq $lines -o -z "$data" && exit 100
       test $maxlines -le $lines || IF_PAGER=cat_clean
+      test ${v:-${verbosity:-3}} -lt 6 ||
+        echo "if-pager less: switching to $IF_PAGER" >&2
+    ;;
+
+  ( * )
+      test ${v:-${verbosity:-3}} -lt 6 ||
+        echo "if-pager unknown or with arguments: ${IF_PAGER##*/}" >&2
     ;;
 esac
 
@@ -178,6 +193,8 @@ case "${IF_PAGER##*/} " in
     ;;
 esac
 
+test ${v:-${verbosity:-3}} -lt 6 ||
+  $LOG notice :exec "Starting pager pipeline" "$IF_PAGER:$#:$*"
 printf '%s' "$data" | exec $IF_PAGER "$@"
 
 # Id: script.mpe less-if [2023]

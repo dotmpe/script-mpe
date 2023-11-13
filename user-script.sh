@@ -636,14 +636,23 @@ user_script_libload ()
   done
 }
 
+# Traverse <script-bases>, looking for <base>-<name> using the specified
+# handler. Keep prefixing arguments with <node-group> while set after running
+# each handler.
+#
+# myscript-myname
+#
+# script-loadenv
+# user-script-loadenv
+#
+# '<Node>[:.-]<Node-id>'
+#
 # <script-name>/<command-name>:grp sys
 # <base>/sys:libs sys-htd
 
 # Travel to root from name, evoking handler for every node.
 # XXX: user_script_baseless=true must be set for exception?
-
-# XXX: A resolving lookup?
-user_script_lookup () # ~ <Handler> <Name> [<Groups...>]
+user_script_node_lookup () # ~ <Handler> <Name> [<Groups...>]
 {
   local node group _base handler=${1:?} script_bases
   sh_fun "$handler" || handler=user_script_node_${1//[:.-]/_}
@@ -659,8 +668,8 @@ user_script_lookup () # ~ <Handler> <Name> [<Groups...>]
     shift
 
     # If node is a leaf in the primary base does not need to bear prefix,
-    # and if it is a base itself that would not make any sense. XXX: If node is a
-    # base it could still have another group that is not in bases.
+    # and if it is a base itself that would not make any sense. XXX: If node is
+    # a base it could still have another group that is not in bases.
     ! ${user_script_baseless:-false} &&
     ! $root || {
       # Exception for leaf-most name, does not have to use base prefix
@@ -681,8 +690,14 @@ user_script_lookup () # ~ <Handler> <Name> [<Groups...>]
   done
 }
 
-# Helper for loadenv. Also call before using defarg etc.
-user_script_load ()
+# Helper functions that groups several setup script parts, used for static
+# init, loadenv, etc.
+#
+#   defarg: Load/init user-script base. Call before using defarg etc.
+#   groups: Scan for [<base>_]<script-part>__{grp,libs,hooks}
+#   usage: Load/init libs for usage
+#
+user_script_load () # ~ <Actions...>
 {
   test $# -gt 0 || set -- defarg
   while test $# -gt 0
@@ -696,8 +711,8 @@ user_script_load ()
             lk=${lk:-}:user-script:load[group]
           ctx="$name:$(${user_script_bases:-user_script_ bases} && echo $script_bases)"
           $LOG notice "$lk" "Lookup grp/libs/hooks within bases" "$ctx"
-          user_script_lookup attr-libs "$name" &&
-          user_script_lookup attr-hooks "$name" || return
+          user_script_node_lookup attr-libs "$name" &&
+          user_script_node_lookup attr-hooks "$name" || return
           test -z "${libs:-}" && {
             test -z "${hooks:-}" && {
               $LOG warn "$lk" "No grp/libs or hooks for user-script sub-command" "$ctx"
@@ -718,11 +733,11 @@ user_script_load ()
 
         # FIXME: probably want to use groups ehre as well
       ( defarg )
-        lib_load user-script shell-uc str argv &&
+        lib_load user-script shell-uc str argv us &&
         lib_init shell-uc ;;
 
       ( usage )
-        lib_load user-script str-htd shell-uc &&
+        lib_load user-script str-htd shell-uc us &&
         lib_init shell-uc ;;
 
       ( help ) set -- "" usage ;;
@@ -811,14 +826,21 @@ user_script_node_attr_grp ()
 user_script_node_attr_libs ()
 {
   : "${1//[:.-]/_}__libs"
-  test -z "${!_:-}" || libs=${libs:-}${libs:+ }${_//,/ }
+  test -z "${!_:-}" || {
+    #$LOG debug :attr:libs "Libs:" "$_"
+    libs=${libs:-}${libs:+ }${_//,/ }
+  }
   lookup_quiet=true user_script_node_attr_grp "$1"
 }
 
 user_script_node_attr_hooks ()
 {
   : "${1//[:.-]/_}__hooks"
-  test -z "${!_:-}" || hooks=${hooks:-}${hooks:+ }${_//,/ }
+  test -z "${!_:-}" || {
+    # TODO: maybe resolve hooks given current node/groups
+    #$LOG debug :atr:hooks "Hooks:" "$_"
+    hooks=${hooks:-}${hooks:+ }${_//,/ }
+  }
   lookup_quiet=true user_script_node_attr_grp "$1"
 }
 

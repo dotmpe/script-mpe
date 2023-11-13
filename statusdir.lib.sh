@@ -103,12 +103,12 @@ statusdir_lookup_path () #
 }
 
 # Lookup statusdir folders/files on local PWD path
-statusdir_lookup () # Record-Type [Record-Name]
+statusdir_lookup () # ~ <File-name> [<Type>]
 {
   test $# -ge 1 -a $# -le 2 -a -n "${1-}" || return 64
   test $# -gt 1 || set -- "$1" ""
   local LUP=$(statusdir_lookup_path)
-  lookup_first=${lookup_first:-true} lookup_paths LUP $1/$2
+  lookup_first=${lookup_first:-true} lookup_path LUP ${2:-index}/${1:?}
 }
 
 # Defer to backend
