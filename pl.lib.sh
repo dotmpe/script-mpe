@@ -1,3 +1,4 @@
+#!/usr/bin/bash
 
 ### Playlist lib
 
@@ -84,91 +85,96 @@ readtab () # ~ [<Tags...>]
 
   typeset -a extra=()
   grep -vE '^\s*(# .*)?$' |
-    sed -e 's/^ *//' -e 's/ *$//' -e 's/^#/# # #/' |
-    while read -r st et f rest
-  do
+    sed -e 's/^ *//' -e 's/ *$//' -e 's/^#/# # #/' | {
 
-    # Eval '#:' prefix as document-level PI, skip other comment lines
-    test "${st:0:1}" = "#" && {
-      test "${f:1:1}" != ":" || {
-        eval_doc_pi "$f${rest:+ }$rest" || return
-        echo "#$VAR $VAL"
-      }
-      continue
-    }
-
-    test -e "${Dir:-}${Dir:+/}$st" && {
-      # Special case, set current file-path if first value exists, ignore rest
-      p="${Dir:-}${Dir:+/}$st"
-      extra=()
-      continue
-    }
-
-    # Another special case, comments or parse additional data for current item
-    test "$f" != "#" || f="#:Tags:"
-    case "$f" in
-      ( "#:"* ) rest="$f $rest"; f= ;;
-      ( "#"* ) continue ;;
-    esac
-
-    test -z "$f" && {
-      test -e "${p:-}" || {
-        test -h "${p:-}" && {
-          $LOG debug "" "Skipped missing symlink" "$p"
-        } || {
-          $LOG error "" "No such file (ignored)" "$st $et $f $rest"
+    #shellcheck disable=2162 # Current format depends on backslash escapes
+    while read st et f rest
+    do
+      # Eval '#:' prefix as document-level PI, skip other comment lines
+      test "${st:0:1}" = "#" && {
+        test "${f:1:1}" != ":" || {
+          eval_doc_pi "$f${rest:+ }$rest" || return
+          echo "#$VAR $VAL"
         }
         continue
       }
-    } || {
-      test -e "$f" || {
-        test -n "${Dir:-}" -a -e "${Dir:-}/$f" && {
-          f="$Dir/$f"
-        } || {
-          test -z "${Dir:-}" ||
-            $LOG error "" "Invalid Dir path (missing, ignored)" "f=$Dir/$f"
-          ${pl_find:-true} || {
-            $LOG warn "" "Ignored missing" "$f"
-            continue
+
+      test -e "${Dir:-}${Dir:+/}$st" && {
+        # Special case, set current file-path if first value exists, ignore rest
+        p="${Dir:-}${Dir:+/}$st"
+        extra=()
+        continue
+      }
+
+      # Another special case, comments or parse additional data for current item
+      test "$f" != "#" || f="#:Tags:"
+      case "$f" in
+        ( "#:"* ) rest="$f $rest"; f= ;;
+        ( "#"* ) continue ;;
+      esac
+
+      test -z "$f" && {
+        test -e "${p:-}" || {
+          test -h "${p:-}" && {
+            $LOG debug "" "Skipped missing symlink" "$p"
+          } || {
+            $LOG error "" "No such file (ignored)" "$st $et $f $rest"
           }
-          f=$(find . -iname "$f" -print -quit)
+          continue
         }
+      } || {
+        test -e "$f" || {
+          test -n "${Dir:-}" -a -e "${Dir:-}/$f" && {
+            f="$Dir/$f"
+          } || {
+            test -z "${Dir:-}" || {
+              caller >&2
+              $LOG error "" "Invalid Dir path (missing file)" "f=$Dir/$f:st=$st:et=$et:rest=$rest"
+            }
+            ${pl_find:-true} || {
+              $LOG warn "" "Ignored missing" "$f"
+              continue
+            }
+            f=$(find . -iname "$f" -print -quit)
+          }
+        }
+        test -e "$f" || {
+          echo "No such file <$f>" >&2
+          continue
+        }
+        p="$f"
+        extra=()
       }
-      test -e "$f" || {
-        echo "No such file <$f>" >&2
+
+      test -z "$rest" || {
+        eval_item_pi "${rest}"
+        extra+=("${VAR:6}=$VAL")
+      }
+
+      # Match for tags?
+      test 0 -eq $# || {
+        test 0 -eq ${#extra[@]} && continue
+        test "Tags=" = "${extra[0]:0:5}" || continue
+
+        echo "${extra[0]:5}" | matches "${@:?}" || continue
+      }
+
+      # Just set file, dont output; timespecs follow
+      test "$st $et" = "- -" && {
         continue
       }
-      p="$f"
+
+      # Don't include timespec with playlist entry (play entire file)
+      test "$st $et" = "* *" && {
+        st=0 et=-
+      }
+
+      : "$(printf "\\t%s" "${extra[@]:-}")" &&
+      printf "%s\t%s\t%s%s\n" "$st" "$et" "$p" "$_" || return
+
       extra=()
-    }
-
-    test -z "$rest" || {
-      eval_item_pi "${rest}"
-      extra+=("${VAR:6}=$VAL")
-    }
-
-    # Match for tags?
-    test 0 -eq $# || {
-      test 0 -eq ${#extra[@]} && continue
-      test "Tags=" = "${extra[0]:0:5}" || continue
-
-      echo "${extra[0]:5}" | matches "${@:?}" || continue
-    }
-
-    # Just set file, dont output; timespecs follow
-    test "$st $et" = "- -" && {
-      continue
-    }
-
-    # Don't include timespec with playlist entry (play entire file)
-    test "$st $et" = "* *" && {
-      st=0 et=-
-    }
-
-    printf "%s\t%s\t%s%s\n" "$st" "$et" "$p" "$(printf "\\t%s" "${extra[@]:-}")"
-
-    extra=()
-  done
+    done
+  }
 }
 
 
