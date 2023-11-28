@@ -4,7 +4,7 @@
 
 metadir_lib__load ()
 {
-  lib_require os-htd ctx-class stattab-uc || return
+  lib_require os-htd class-uc stattab-uc || return
 
   : "${metadirs_default:="\{,.}meta"}"
   : "${METADIRS_TAB:=${STATUSDIR_ROOT:?}index/metadirs.tab}"

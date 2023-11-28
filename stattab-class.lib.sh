@@ -2,22 +2,34 @@
 stattab_class_lib__load ()
 {
   ctx_class_types="${ctx_class_types-}${ctx_class_types+" "}StatTabEntry StatTab"
-  : "${stattab_var_keys:=status btime ctime utime short refs idrefs meta}"
+  : "${stattab_var_keys:=btime ctime id idrefs meta refs short status utime}"
 }
 
-class.StatTabEntry.load () # ~
+stattab_class_lib__init () # ~
 {
+  test -z "${stattab_class_lib_init:-}" || return $_
+}
+
+
+class_StatTabEntry__load () # ~
+{
+  Class__static_type[StatTabEntry]=StatTabEntry:ParameterizedClass
+  ctx_pclass_params=${ctx_pclass_params:-}${ctx_pclass_params:+ }$stattab_var_keys
   declare -g -A StatTabEntry__btime=()
   declare -g -A StatTabEntry__ctime=()
-  declare -g -A StatTabEntry__utime=()
   declare -g -A StatTabEntry__id=()
+  declare -g -A StatTabEntry__idrefs=()
+  declare -g -A StatTabEntry__meta=()
   declare -g -A StatTabEntry__short=()
+  declare -g -A StatTabEntry__refs=()
+  declare -g -A StatTabEntry__status=()
   declare -g -A StatTabEntry__tags=()
+  declare -g -A StatTabEntry__utime=()
 }
 
-class.StatTabEntry () # :Class ~ <ID> .<METHOD> <ARGS...>
-#   .StatTabEntry <Entry...>
-#   XXX: .StatTabEntry <Type> [<Src:Line>] - constructor
+class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
+#   .__init__ <Entry...>
+#   XXX: .__init__ <Type> [<Src:Line>] - constructor
 #   .tab-ref
 #   .tab
 #   .get
@@ -25,17 +37,8 @@ class.StatTabEntry () # :Class ~ <ID> .<METHOD> <ARGS...>
 #   .update
 #   .commit
 {
-  test $# -gt 0 || return 177
-  test $# -gt 1 || set -- "$1" .toString
-  local name=StatTabEntry super_type=Class self super id=${1:?} m=${2:-}
-  shift 2
-  self="class.$name $id "
-  super="class.$super_type $id "
-
-  case "$m" in
-    ".$name" ) $super.$super_type "$@"
-      ;;
-    ".__$name" ) $super.__$super_type
+  case "${call:?}" in
+    .__del__ ) $super.__del__
         unset StatTabEntry__status[$id]
         unset StatTabEntry__btime[$id]
         unset StatTabEntry__ctime[$id]
@@ -122,12 +125,20 @@ class.StatTabEntry () # :Class ~ <ID> .<METHOD> <ARGS...>
     .class-context ) class.info-tree .tree ;;
     .info ) class.info ;;
 
-    * ) $super"$m" "$@" ;;
+    ( * ) return ${_E_next:?} ;;
   esac
+  return ${_E_done:?}
 }
 
-class.StatTab () # :Class ~ <ID> .<METHOD> <ARGS...>
-#   .StatTab <Tab> [<EntryType>]         - constructor
+
+class_StatTab__load ()
+{
+  Class__static_type[StatTab]=StatTab:ParameterizedClass
+}
+
+# StatTab is a list of StatTabEntries, represented by a single file.
+class_StatTab_ () # ~
+#   .__init__ <ConcreteType> <Tab> [<EntryType>]         - constructor
 #   .tab
 #   .tab-exists
 #   .tab-init
@@ -137,20 +148,12 @@ class.StatTab () # :Class ~ <ID> .<METHOD> <ARGS...>
 #   .update
 #   .commit
 {
-  test $# -gt 0 || return 177
-  test $# -gt 1 || set -- "$1" .toString
-  local name=StatTab super_type=Class self super id=${1:?} m=${2:-}
-  shift 2
-  self="class.$name $id "
-  super="class.$super_type $id "
-
-  case "$m" in
-    ".$name" )
+  case "${call:?}" in
+    .__init__ )
         test -e "${2:-}" ||
-            $LOG error : "Tab file expected" "$2" 1 || return
-        $super.$super_type "$1" "$2" "${3:-StatTabEntry}" || return
+            $LOG error : "Tab file expected" "${2:-\$2:unset}" 1 || return
+        $super.__init__ "$1" "$2" "${3:-StatTabEntry}" || return
       ;;
-    ".__$name" ) $super.__$super_type ;;
 
     .tab ) stattab_tab "${1:-}" "$($self.tab-ref)" ;;
     .tab-ref )
@@ -170,9 +173,11 @@ class.StatTab () # :Class ~ <ID> .<METHOD> <ARGS...>
         dtnow="$(date_id $(date --iso=min))" &&
         echo "- $dtnow $1:" >> "$tbref"
       ;;
-    .exists ) stattab_exists "$1" "" "$($self.tab-ref)" ;;
+    .exists ) # ~ <Id>
+        stattab_exists "$1" "" "$($self.tab-ref)" ;;
     .status ) # ~ [<>]
-        context_run stat
+        context_run_hook stat
+
         local entry status
         $self.fetch local:entry "$1" &&
         status=$($entry.attr status) &&
@@ -193,9 +198,7 @@ class.StatTab () # :Class ~ <ID> .<METHOD> <ARGS...>
         ${!_}.get
       ;;
 
-    .class-context ) class.info-tree .tree ;;
-    .info | .toString ) class.info ;;
-
-    * ) $super"$m" "$@" ;;
+    ( * ) return ${_E_next:?} ;;
   esac
+  return ${_E_done:?}
 }

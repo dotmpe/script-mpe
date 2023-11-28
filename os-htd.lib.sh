@@ -353,31 +353,20 @@ filter_content_lines () # (s) ~ [<Marker-Regex>] # Remove marked or empty lines 
   grep -v '^\s*\('"${1:-"#"}"'.*\|\s*\)$'
 }
 
-filter_dir ()
-{
-  test -d "$1" || return 0
-  echo "$1"
-}
-
 filter_dirs ()
 {
-  act=filter_dir s="" p="" foreach_do "$@"
+  foreach "$@" | filter test_dir
 }
 
-filter_empty_lines () # (s) ~ # Remove empty lines from stream
+filter_blank () # (s) ~ # Remove empty lines from stream
 {
   grep -v '^\s*$'
 }
 
-filter_file ()
-{
-  test -f "$1" || return 0
-  echo "$1"
-}
-
 filter_files ()
 {
-  act=filter_file s="" p="" foreach_do "$@"
+  #act=filter_file s="" p="" foreach_do "$@"
+  foreach "$@" | filter test_file
 }
 
 # Strip comments, including line-continuations.

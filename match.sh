@@ -51,7 +51,7 @@ names ()
   status_dirs
   out_fmt=list cwd_lookup_path ${status_dirs:?}
 }
-names__libs=meta\ match-htd\ ctx-class\ sys\ status
+names__libs=meta\ match-htd\ class-uc\ sys\ status
 
 var_names ()
 {

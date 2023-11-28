@@ -3,18 +3,18 @@
 
 annex_htd_lib__load()
 {
-  lib_require os-uc annex srv-htd ctx-class || return
+  lib_require os-uc annex srv-htd class-uc || return
   : "${HTD_DEFAULT_ANNEX:=archive-1}" # Primary Annex, to select during init
 }
 
 annex_htd_lib__init ()
 {
-  test 0 = "${ctx_class_lib_init:-}" && {
+  test 0 = "${class_uc_lib_init:-}" && {
     test 0 = "${annex_htd_lib_init:-}" || unset annex_htd_lib_init
   } || {
     return 198
   }
-  # lib_initialized ctx-class ||
+  # lib_initialized class-uc ||
   test -z "${annex_htd_lib_init:-}" || return $_
 
   create annexes AnnexTab $ANNEXTAB &&
@@ -151,51 +151,41 @@ annex_htd_banlist ()
 }
 
 
-class.AnnexTabEntry () # ~ <Instance-Id> .<Message-name> <Args...>
+class_AnnexTabEntry__load ()
+{
+  Class__static_type[AnnexTabEntry]=AnnexTabEntry:StatTabEntry
+}
+
+class_AnnexTabEntry_ () # ~ <Instance-Id> .<Message-name> <Args...>
 #   .AnnexTabEntry <Type> [<Src:Line>] - constructor
 {
-  test $# -gt 0 || return 177
-  test $# -gt 1 || set -- $1 .toString
-  local name=AnnexTabEntry super_type=StatTabEntry self super id=$1 m=$2
-  shift 2
-  self="class.$name $id "
-  super="class.$super_type $id "
-
-  case "$m" in
-    ".$name" )
-        $super.$super_type "$@" ;;
-    ".__$name" ) $super.__$super_type ;;
+  case "${call:?}" in
 
     .basedirs ) # Return canonical paths for checkouts
         $self.var refs | filter_dir_paths ;;
 
-    .class-context ) class.info-tree .class-context ;;
-    .info | .toString ) class.info ;;
-
-    * ) $super$m "$@" ;;
+    ( * ) return ${_E_next:?} ;;
   esac
+  return ${_E_done:?}
 }
 
-class.AnnexTab () # ~ <Instance-Id> .<Message-name> <Args...>
+
+class_AnnexTab__load ()
+{
+  Class__static_type[AnnexTab]=AnnexTab:StatTab
+}
+
+class_AnnexTab_ () # ~ <Instance-Id> .<Message-name> <Args...>
 #   .AnnexTab <Type> <Table> [<Entry-class>] - constructor
 {
-  test $# -gt 0 || return 177
-  test $# -gt 1 || set -- $1 .toString
-  local name=AnnexTab super_type=StatTab self super id=${1:?} m=$2
-  shift 2
-  self="class.$name $id "
-  super="class.$super_type $id "
+  case "${call:?}" in
 
-  case "$m" in
     ".$name" )
         $super.$super_type "$1" "$2" "${3:-AnnexTabEntry}" ;;
-    ".__$name" ) $super.__$super_type ;;
 
-    .class-context ) class.info-tree .class-context ;;
-    .info | .toString ) class.info ;;
-
-    * ) $super$m "$@" ;;
+    ( * ) return ${_E_next:?} ;;
   esac
+  return ${_E_done:?}
 }
 
 #

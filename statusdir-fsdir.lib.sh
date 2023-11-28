@@ -565,7 +565,7 @@ statusdir_fsdir_lib__load ()
 statusdir_fsdir_lib__init ()
 {
   #test ${ctx_statusdir_lib_init:-1} -eq 0 ||
-  #test ${ctx_class_lib_init:-1} -eq 0 ||
+  #test ${class_uc_lib_init:-1} -eq 0 ||
   #    error "StatusDir:FSDir requires @Statusdir@Class" 1
 
   Statusdir__backend_types["fsdir"]=FSDir

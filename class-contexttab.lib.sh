@@ -1,13 +1,18 @@
 
 class_contexttab_lib__load ()
 {
-  lib_require context ctx-class stattab-uc || return
+  lib_require context class-uc stattab-uc || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}ContextTab
   : "${contexttab_methods:=}"
 }
 
 
-class.ContextTab () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
+class_ContextTab__load () # ~
+{
+  Class__static_type[ContextTab]=ContextTab:StatTab
+}
+
+class_ContextTab_ () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
 # Methods:
 #   .ContextTab <Instance-Type> <Table> [<Entry-class>] - constructor
 #   .__ContextTab - destructor
@@ -16,23 +21,12 @@ class.ContextTab () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
 #
 # ContextTab parameters:
 {
-  local name=ContextTab super_type=StatTab self super id=${1:?} m=$2
-  shift 2
-  self="class.$name $id "
-  super="class.$super_type $id "
-
-  fnmatch "* ${m:1} *" " $contexttab_methods " && {
+  fnmatch "* ${call:1} *" " $contexttab_methods " && {
     # And all these static context methods are already defined
-    at_ContextTab=$self context_${m:1} "$@"
+    at_ContextTab=$self context_${call:1} "$@"
     return
   }
-  case "$m" in
-    ( ".$name" )
-        $super.$super_type "$1" "$2" "${3:-StatTabEntry}" ;;
-    ( ".__$name" ) $super".__$super_type" ;;
-
-    ( .class-context ) class.info-tree .class-context ;;
-    ( .info | .toString ) class.info ;;
+  case "${call:?}" in
 
     ( .cache-taglist ) # ~ <Var-name=taglist> <Cache-file>
         local tc=${CACHE_DIR:?}/${2:-sort-context-tags.list}
@@ -44,8 +38,10 @@ class.ContextTab () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
     ( .up-to-date ) context_files | os_up_to_date "${CTX_TAB_CACHE:?}"
       ;;
 
-    ( * ) $super"$m" "$@" ;;
+    ( * ) return ${_E_next:?} ;;
+
   esac
+  return ${_E_done:?}
 }
 
 #

@@ -578,14 +578,17 @@ user_script_help () # ~ [<Name>]
 
 # init-required-libs
 # Temporary helper to load and initialize given libraries and prerequisites,
-# and then run init hook for every lib that has one.
+# and run init hooks. Libs should use lib-require from load or init hook to
+# indicated the prerequisites.
+# XXX: lib-init is protected against recursion.
+#
 user_script_initlibs () # ~ <Required-libs...>
 {
   local pending
   lib_require "$@" ||
     $LOG error :us-initlibs "Failure loading libs" "E$?:$*" $? || return
 
-  set -- $(user_script_initlibs__doinit $lib_loaded)
+  set -- $(user_script_initlibs__needsinit $lib_loaded)
   while true
   do
     # remove libs that have <libid>_init=0 ie. are init OK
@@ -607,7 +610,7 @@ user_script_initlibs () # ~ <Required-libs...>
       }
   done
 }
-user_script_initlibs__doinit ()
+user_script_initlibs__needsinit ()
 {
   for lib in "$@"
   do
@@ -766,6 +769,7 @@ user_script_loadenv ()
 
   # See std-uc.lib
   : "${_E_nsk:=67}"
+  #: "${_E_nsa:=68}"
   #: "${_E_cont:=100}"
   : "${_E_recursion:=111}" # unwanted recursion detected
 
@@ -777,8 +781,8 @@ user_script_loadenv ()
   # on debian linux last mapped number is 192: RTMAX signal
   : "${_E_GAE:=193}" # generic-argument-error/exception
   : "${_E_MA:=194}" # missing-arguments
-  #: "${_E_ok:=195}" # Explicit OK.
-  : "${_E_next:=196}" # Try next alternative
+  : "${_E_continue:=195}" # fail but keep going
+  : "${_E_next:=196}"  # Try next alternative
   : "${_E_break:=197}" # success; last step, finish batch, ie. stop loop now and wrap-up
   : "${_E_retry:=198}" # failed, but can or must reinvoke
   : "${_E_limit:=199}" # generic value/param OOB error?

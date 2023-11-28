@@ -1,41 +1,31 @@
 
 ctx_dirindex_lib__load ()
 {
-  lib_require ctx-class || return
+  lib_require class-uc || return
 }
 
 
-class.DirIndex.load ()
+class_DirIndex__load ()
 {
-  true
+  Class__static_type[DirIndex]=DirIndex:ParameterizedClass
 }
 
-class.DirIndex () # :Class ~ <Instance-Id> .<Method> <Args...>
+class_DirIndex_ () # :Class ~ <Instance-Id> .<Method> <Args...>
 # Methods:
 #   .DirIndex <Concrete-Type> <Params...>
 #   .__DirIndex
 {
-  local name=DirIndex super_type=Class self super id=${1:?} m=$2
-  shift 2
-  self="class.$name $id "
-  super="class.$super_type $id "
-
-  case "$m" in
-    ( ".$name" )
-          $super.$super_type "$@"
-        ;;
-    ( ".__$name" ) $super.__$super_type ;;
+  case "${call:?}" in
 
     ( .ood )
         $self.params
         TODO "test for files"
       ;;
 
-    ( .class-context ) class.info-tree .class-context ;;
-    ( .info | .toString ) class.info ;;
+    ( * ) return ${_E_next:?} ;;
 
-    ( * ) $super"$m" "$@" ;;
   esac
+  return ${_E_done:?}
 }
 
 #

@@ -179,6 +179,37 @@ context_exists_alias () # TAG
   generator=context_tab stattab_exists "$1" alias
 }
 
+context_field () # ~ <Attr> <Context-record>
+{
+  sh_fun context_field_${1//[:-]/_} && {
+    "$_" "${@:2}" || return
+  } || {
+    context_field_meta "$@"
+  }
+}
+
+# XXX: meta field ':' contains no spaces in key or value
+context_field_meta ()
+{
+  : "${2:-${sttab_record:?}}"
+  : "${_##* $1:}"
+  : "${_%% *}"
+  echo "$_"
+}
+
+# XXX: all tag references (contexts and projects)
+context_field_tag_refs ()
+{
+  : "${2:-${sttab_record:?}}"
+  for word in $_
+  do
+    str_globmatch "$word" "@*" ||
+    str_globmatch "$word" "+*" ||
+      continue
+    echo "$word"
+  done
+}
+
 # Show root context.tab filename
 context_file ()
 {
@@ -231,7 +262,7 @@ context_file_read ()
 
   sh_fun "$fr_spec" &&
     set -- "$fr_spec" "$@" ||
-    set -- context_run "$fr_spec @FileReader @ctx-class" "$@"
+    set -- context_run "$fr_spec @FileReader @class-uc" "$@"
 
   "$@"
 }
@@ -243,13 +274,13 @@ context_file_path ()
 
 context_file_reader ()
 {
-  modeline_file_reader "$@"
+  modeline_file_reader "$@" || return
 
   # Infer reader otherwise, ie. from filepath/name but note that we may have a
   # modeline-less file on stdin with no known format extension.
   test -n "${fr_spec:-}" || {
     # XXX: need to process basename here: $filename vs $fp
-    fr_spec=$(${file_reader_detect:-file_format_reader} "$fp") || return
+    fr_spec=$(${file_reader_detect:-file_format_reader} "$fr_p") || return
   }
 }
 
@@ -312,6 +343,11 @@ context_find_fileref () # ~ <File>
   test $# -eq 1 -a -n "${1-}" || return 98
   context_tag_entry "$1" && return
   context_url_entry "$1" && return
+}
+
+context_hook () # ~ <Spec> <Arg...>
+{
+  false
 }
 
 context_ids_list ()
@@ -407,13 +443,13 @@ context_run () # ~ <Spec> <Arg...>
     Class.exists "$t" && {
       ! Class.hasattr "$t" run || {
         create ctx $t
-        set -- "$ctx".run "$@"
+        set -- $ctx.run "$@"
         break
       }
     }
 
     ! if_ok "$(context_hook "$t" run)" || {
-      set -- "$_" "$@"
+      set -- $_ "$@"
       break
     }
   done

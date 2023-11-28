@@ -145,7 +145,7 @@ list_contextload ()
     ctxref=${1:?}
     shift
     fnmatch "[A-Z]*" "${ctxref:1}" && {
-      user_script_initlibs ctx-class "ctx-${_,,}" &&
+      user_script_initlibs class-uc "ctx-${_,,}" &&
       create local:ctx "${ctxref:1}" || return
     } || ctx=$_
   } || ctx=globlist

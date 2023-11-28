@@ -5,7 +5,7 @@
 
 annex_lib__load()
 {
-  lib_require ctx-class stattab-uc || return
+  lib_require class-uc stattab-uc || return
 
   : "${ANNEXTAB:=${STATUSDIR_ROOT:?}index/annexes.tab}"
 

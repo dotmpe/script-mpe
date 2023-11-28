@@ -171,11 +171,13 @@ print_var()
 
 min()
 {
+  # XXX: use awk for this
   p= s= act=echo foreach_do "$@" | sort -r | tail -n 1
 }
 
 max()
 {
+  # XXX: use awk for this
   p= s= act=echo foreach_do "$@" | sort | tail -n 1
 }
 
