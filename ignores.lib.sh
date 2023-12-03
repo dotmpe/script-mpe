@@ -28,7 +28,7 @@
 
 ignores_lib__load()
 {
-  lib_require str-htd date-htd meta || return
+  lib_require str-htd date-htd meta globlist || return
 
   : "${CONFIG_INCLUDE:=$HOME/bin/etc:${XDG_CONFIG_HOME:-$HOME/.config}:/etc}"
 

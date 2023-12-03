@@ -627,7 +627,10 @@ htd_log_base_spec () # ~ [SPEC | PATH YSEP MSEP EXT # PARTS... ]
   # Default to local log, or user's journal-dir setting
   #true ${log:="${log_dir:=$JRNL_DIR}/"}
 
-  test -n "${1-}" && log="$1" || eval "$(map=package_: package_sh log)"
+  test -n "${1-}" && log="$1" || {
+    { test -n "${PACK_SH-}" || package_lib_set_local .; } &&
+    eval "$(map=package_: package_sh log)" || return
+  }
   test -n "${log-}" || { $LOG "error" "" "Expected package log"; return 1; }
   set -- $log
   test $# -gt 0 || return

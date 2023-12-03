@@ -133,7 +133,8 @@ htd_subcmd_load ()
   main_var flags "$baseids" flags "${flags_default:=""}" "$subcmd"
   test -z "$flags" -o -z "$DEBUG" || stderr debug "Flags for '$subcmd': $flags"
   for x in $(echo $flags | sed 's/./&\ /g')
-  do case "$x" in
+  do
+    case "$x" in
 
     A ) # 'argsv' callback gets subcmd arguments, defaults to opt_arg.
     # Underlying code usually expects env arguments and options set. Maybe others.
@@ -235,14 +236,14 @@ htd_subcmd_load ()
       ;;
 
     O ) # 'optsv' callback is expected to process $options from input(s)
-        local htd_subcmd_optsv=$(main_value htd optsv "" $subcmd)
-        func_exists "$htd_subcmd_optsv" || {
-          htd_subcmd_optsv="$(eval echo "\"\${$htd_subcmd_optsv-}\"")"
+        test ! -s "$options" || {
+          local htd_subcmd_optsv=$(main_value htd optsv "" $subcmd)
+          func_exists "$htd_subcmd_optsv" ||
+            htd_subcmd_optsv="${!$htd_subcmd_optsv-}"
+          : "${htd_subcmd_optsv:=htd_optsv}"
+          : "$(< $options)"
+          test -z "$_" || "$htd_subcmd_optsv" "$_"
         }
-        test -n "$htd_subcmd_optsv" || htd_subcmd_optsv=htd_optsv
-        test -e "$options" && {
-          $htd_subcmd_optsv "$(cat $options)"
-        } || true
       ;;
 
     P )
@@ -601,15 +602,14 @@ htd__help()
 
   test -z "${1-}" || {
     # local cmd=$1 subcmd= subcmd_alias= subcmd_group=
-    main_subcmd_alias "$1" && { set -- $subcmd; }
+    main_subcmd_alias "$1" && set -- $subcmd
     helpcmd_group="$( main_value "$baseids" "grp" "" "$1" )"
     test -z "$helpcmd_group" || {
-      main_subcmd_func_load $helpcmd_group || return
+      main_subcmd_func_load $_ || return
     }
   }
 
   std_help "$@"
-  stderr info "Listing all commands, see usage or composure"
 }
 htd_als___h=help
 htd_als____help=help

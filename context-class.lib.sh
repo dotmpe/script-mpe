@@ -2,7 +2,7 @@
 context_class_lib__load ()
 {
   lib_require context stattab-class || return
-  ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}Context
+  ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}Context
   : "${context_methods:=}"
 }
 
@@ -28,9 +28,6 @@ class_Context_ () # (super,self,id,call) ~ <Args>
 
   case "${call:?}" in
 
-    ( .class-context ) class.info-tree .class-context ;;
-    ( .info | .toString ) class.info ;;
-
     ( .field ) # ~ <Key> [<Record>]
         local var val
         val=$(context_field "$@") &&
@@ -41,7 +38,8 @@ class_Context_ () # (super,self,id,call) ~ <Args>
       ;;
 
     ( * ) return ${_E_next:?} ;;
-  esac
+  esac || return
+  return ${_E_done:?}
 }
 
 #

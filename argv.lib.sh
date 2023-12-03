@@ -42,8 +42,7 @@ test_dir() # path
 test_file() # Path
 {
   test -f "$1" || {
-    error "No such file: $1"
-    return 1
+    $LOG warn :test-file "No such file" "$1" ${_E_fail:?}
   }
 }
 
@@ -82,25 +81,23 @@ argv__argc_n ()
 }
 
 # Echo arguments as sh vars (use with local, export, etc)
-arg_vars() # VARNAMES VALUES...
+arg_vars () # ~ <Var-names> <Values...>
 {
-  local vars=$1
+  local vars=${1:?} varname
   shift
   for varname in $vars
   do
-    test -z "$1" || {
-      fnmatch "* *" "$1" && {
-        printf " $varname=\"$1\""
-      } || {
-        printf " $varname=$1"
-      }
+    fnmatch "* *" "${1:?}" && {
+      printf " $varname=\"$1\""
+    } || {
+      printf " $varname=$1"
     }
     shift
   done
-  test -z "$1" || {
-    error "surplus arguments: '$1'"
-    return 1
-  }
+  #test -z "$1" || {
+  #  $LOG error :arg-vars "surplus arguments: '$1'"
+  #  return 1
+  #}
 }
 
 # Same as arg_vars but with usage, and debug verbosity
@@ -127,7 +124,8 @@ check_argc()
   local argi=$(( $1 + 1 ))
   shift
   local value="$(eval echo \${$argi-})"
-  test -z "$value" || error "surplus arguments (expected $1): '$value'" 1
+  test -z "$value" ||
+    error "surplus arguments (expected $1): '$value'" ${_E_script:?}
 }
 
 # Find an executable script on path. Try with and without extension, in that
@@ -141,7 +139,7 @@ req_bin()
     test -x "$(which $1)" && {
       export $1_bin=$1
     } || {
-      error "Executable $1 required" 1
+      error "Executable $1 required" ${_E_user:?}
     }
   }
 }

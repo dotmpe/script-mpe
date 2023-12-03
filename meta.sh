@@ -66,9 +66,7 @@ meta_sh_shortdescr='Track metadata'
 
 meta_sh_loadenv ()
 {
-  #user_script_loadenv || return
-  : "${_E_not_found:=127}"
-  : "${_E_next:=196}"
+  user_script_loadenv || return
   script_part=${1:?} user_script_load groups || {
       # E:next means no libs found for given group(s).
       test ${_E_next:?} -eq $? || return $_

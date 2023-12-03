@@ -173,9 +173,7 @@ list_aliasargv ()
 
 list_loadenv () # ~ <Cmd-argv...>
 {
-  #user_script_loadenv || return
-  : "${_E_not_found:=127}"
-  : "${_E_next:=196}"
+  user_script_loadenv || return
   ignores_use_local_config_dirs=false
   #ignores_prefix=local
   ignores_prefix=htd

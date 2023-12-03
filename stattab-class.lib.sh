@@ -1,13 +1,14 @@
 
 stattab_class_lib__load ()
 {
-  ctx_class_types="${ctx_class_types-}${ctx_class_types+" "}StatTabEntry StatTab"
+  ctx_class_types="${ctx_class_types-}${ctx_class_types:+" "}StatTabEntry StatTab"
   : "${stattab_var_keys:=btime ctime id idrefs meta refs short status utime}"
 }
 
 stattab_class_lib__init () # ~
 {
   test -z "${stattab_class_lib_init:-}" || return $_
+  lib_require stattab stattab-reader || return
 }
 
 
@@ -96,8 +97,12 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
       ;;
 
     .attr ) # ~ <Name-key>           # Get field value from class instance value
-        : "StatTabEntry__${1//-/_}[$id]"
-        echo "${!_}"
+        : "StatTabEntry__${1//-/_}[${id:?}]"
+        ! "${stb_atr_req:-false}" "$_" &&
+          : "${!_:--}" ||
+          : "${!_}"
+        test - != "$_" &&
+          echo "$_" || return ${_E_next:?}
       ;;
     .var ) # ~ <Var-key>             # Get field value from regular env variable
         : "stttab_${1//-/_}"
@@ -126,7 +131,8 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
     .info ) class.info ;;
 
     ( * ) return ${_E_next:?} ;;
-  esac
+  esac ||
+    return
   return ${_E_done:?}
 }
 
@@ -155,15 +161,24 @@ class_StatTab_ () # ~
         $super.__init__ "$1" "$2" "${3:-StatTabEntry}" || return
       ;;
 
-    .tab ) stattab_tab "${1:-}" "$($self.tab-ref)" ;;
-    .tab-ref )
-        if_ok "$($self.params)" && : "${_/ *}" && echo "$_"
+    .exists ) # ~ <Id>
+        stattab_exists "$1" "" "$($self.tab-ref)" ;;
+    .fetch ) # ~ <Var-name> <Stat-id>
+        : "${1:?Expected Var-name argument}"
+        : "${2:?Expected Stat-id argument}"
+        $LOG debug : "Retrieving $($self.class) entry" "$1=$2" &&
+        if_ok "$($self.tab-ref)" &&
+        stattab_fetch "$2" "" "$_" &&
+        $LOG info : "Retrieved $($self.class) entry" "$1=$2:E$?" $? &&
+        : "$($self.tab-entry-class)" &&
+        create "$1" "$_" "$id" "$stttab_src:$stttab_lineno" &&
+        : "${1//local:}" &&
+        ${!_}.get
       ;;
-    .tab-entry-class )
-        if_ok "$($self.params)" && : "${_/* }" && echo "$_"
+    .init ) local var=$1; shift
+        stattab_init "$@" &&
+        create "$var" StatTabEntry "$id"
       ;;
-    .tab-exists ) test -s "$($self.tab-ref)" ;;
-    .tab-init ) stattab_tab_init "$($self.tab-ref)" ;;
     .list|.ids|.keys ) # ~ [<Key-match>]
         stattab_list "${1:-}" "$($self.tab-ref)"
       ;;
@@ -173,32 +188,30 @@ class_StatTab_ () # ~
         dtnow="$(date_id $(date --iso=min))" &&
         echo "- $dtnow $1:" >> "$tbref"
       ;;
-    .exists ) # ~ <Id>
-        stattab_exists "$1" "" "$($self.tab-ref)" ;;
     .status ) # ~ [<>]
-        context_run_hook stat
-
-        local entry status
+        # XXX: refresh status context_run_hook stat || return
+        #local entry status
         $self.fetch local:entry "$1" &&
+          test -n "${entry-}" || return ${_E_NF:?}
         status=$($entry.attr status) &&
-        stderr echo "$($entry.toString)" &&
-        test -n "$status" -a "$status" != "-"
+        test -n "$status" &&
+        ! fnmatch "[${stb_pri_sep:?}]" "$_" && {
+          test 0 = "$_" ||
+          fnmatch "*[${stb_pri_sep:?}]0" "$_"
+        }
       ;;
-    .init ) local var=$1; shift
-        stattab_init "$@" &&
-        create "$var" StatTabEntry "$id"
+    .tab ) stattab_tab "${1:-}" "$($self.tab-ref)" ;;
+    .tab-entry-class )
+        if_ok "$($self.params)" && : "${_/* }" && echo "$_"
       ;;
-    .fetch ) # ~ <Var-name> <Stat-id>
-        : "${1:?Expected Var-name argument}"
-        : "${2:?Expected Stat-id argument}"
-        stattab_fetch "$2" "" "$($self.tab-ref)" &&
-        $LOG info : "Retrieved $($self.class) entry" "$1=$2:E$?" $? &&
-        create "$1" $($self.tab-entry-class) "$id" "$stttab_src:$stttab_lineno" &&
-        : "${1//local:}" &&
-        ${!_}.get
+    .tab-exists ) test -s "$($self.tab-ref)" ;;
+    .tab-init ) stattab_tab_init "$($self.tab-ref)" ;;
+    .tab-ref )
+        if_ok "$($self.params)" && : "${_/ *}" && echo "$_"
       ;;
 
     ( * ) return ${_E_next:?} ;;
-  esac
+  esac ||
+    return
   return ${_E_done:?}
 }

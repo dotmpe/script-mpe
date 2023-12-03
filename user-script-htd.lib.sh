@@ -19,7 +19,7 @@ user_script_count_script_lines ()
   done | awk 'a+=$2; END { print "total "a" lines" }'
 }
 
-user_script_list_scripts ()
+user_script_list_shell_scripts ()
 {
   local path hashbang
   for path in ${PATH//:/ }
@@ -27,7 +27,7 @@ user_script_list_scripts ()
     for x in $path/*
     do
       test -f "$x" -a -x "$x" || continue
-      read hashbang < "$x" && fnmatch "#!*" "$hashbang" || continue
+      read hashbang < "$x" && fnmatch "#!*sh*" "$hashbang" || continue
       echo "$x"
     done
   done

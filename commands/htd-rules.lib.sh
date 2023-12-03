@@ -207,7 +207,7 @@ htd__rules()
       ;;
   esac
 }
-htd_libs__rules=table
+htd_libs__rules=package,table
 htd_flags__rules=lp
 
 # htdoc rules development documentation in htdocs:Dev/Shell/Rules.rst
@@ -304,7 +304,7 @@ htd__show_rules()
       line= row_nr= CMD= RT= TARGETS= CWD= CTX=
       local package_id= ENV_NAME= htd_rule_id=
       {
-        eval local "$vars" && htd__rules pre-proc "$var"
+        eval local "$vars" && htd__rules pre-proc "$vars"
       } || {
         error "Resolving context at $row_nr ($?)" && continue
       }

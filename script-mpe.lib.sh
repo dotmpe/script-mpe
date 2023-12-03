@@ -210,13 +210,14 @@ sh_var_copy () # ~ <New-var> <From-ref>
 
 sh_adef () # ~ <Array> <Key>
 {
-  : "${1:?}[${2:?}]"
+  sh_arr "${1:?}" &&
+  : "${1:?}[${2:?}]" &&
   test "(unset)" != "${!_:-(unset)}"
 }
 
 sh_arr () # ~ <Varname>
 {
-  if_ok "$(sh_noerr declare -p ${1:?})" &&
+  if_ok "$(std_noerr declare -p ${1:?})" &&
   case "$_" in ( "declare -"*[Aa]*" "* ) ;; * ) false; esac
 }
 

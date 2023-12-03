@@ -345,7 +345,7 @@ context_find_fileref () # ~ <File>
   context_url_entry "$1" && return
 }
 
-context_hook () # ~ <Spec> <Arg...>
+context_hook () # ~ <Call> <Arg...>
 {
   false
 }
@@ -433,15 +433,15 @@ context_run () # ~ <Spec> <Arg...>
   # stattab_data_outline <fun arg...>
 
   # Load everything
-  context_update $1 || return
+  context_update_env $1 || return
 
   # context-init
-  # Find first context with 'run' hook,
-  # attempt to initialize if context is a class.
+  # Find first context with 'run' hook, or if context matches class
+  # attempt to initialize that and set its 'run' call as handler.
   for t in $1
   do
-    Class.exists "$t" && {
-      ! Class.hasattr "$t" run || {
+    class.Class.exists "$t" && {
+      ! class.Class.hasattr "$t" run || {
         create ctx $t
         set -- $ctx.run "$@"
         break
@@ -477,6 +477,7 @@ context_subtag_env () # SUBTAG
 context_tab () # [Ctx-tab] ~ # List context list items
 {
   context_tab_cache &&
+    $LOG info :context-tab "Cache file ready, reading..." "$CTX_TAB_CACHE" &&
     grep -${ctx_grep_f:-Ev} '^\s*(#.*|\s*)$' "${CTX_TAB_CACHE:?}"
 }
 
@@ -485,7 +486,9 @@ context_tab () # [Ctx-tab] ~ # List context list items
 context_tab_cache () # [Ctx-tab] ~
 {
   local cached=${CTX_TAB_CACHE:?}
+  $LOG debug :context-tab-cache "Checking cache file" "$cached"
   context_files | os_up_to_date "$cached" || {
+    $LOG info :context-tab-cache "Updating cache file" "$cached"
     local context_tab="${context_tab:-${CTX_TAB:?}}"
     context_list_raw "${context_tab:?}" >| "$cached"
   }
@@ -541,14 +544,15 @@ context_tag_entry () # ~ <Tag-id> [<Context-tab>]
   test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
   test -n "${NS:-}" || local NS=$CTX_DEF_NS
   test "unset" != "${grep_f-"unset"}" || local grep_f=-nm1
-  generator=context_tab stattab_grep "$1" -ns-id ${2:-}
+  generator=context_tab stattab_grep "$1" -ns-id "${2:-$CTX_TAB_CACHE}"
 }
 
-context_tag_list ()
+context_tags_list () # ~ # Scan for every referred tag
 {
-  context_tab | grep -Po '@\K[^ ]*' | remove_dupes
+  context_tab | grep -Po ' \K(@|\+)[^ ]*' | remove_dupes
 }
 
+# TODO: context-update-env
 context_update_env ()
 {
   CTX

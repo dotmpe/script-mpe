@@ -39,6 +39,7 @@ context_sh_entries () # ~ <Switch:-list> <...>
         ;;
     ( g|any|grepi )
           test $# -gt 1 || set -- "${1:?}" -any
+          test $# -gt 2 || set -- "${1:?}" "${2:?}" "${CTX_TAB_CACHE:?}"
           {
             : "${ctx_grep_f:-Ev}"
             echo "# $ grep_f=-i ctx_grep_f=$_ generator=context_tab stattab_grep ${@@Q}"
@@ -76,7 +77,7 @@ context_sh_files () # ~ <Switch:-list> <...>
   : "${act:=list}"
   test $# -eq 0 || shift
   local lk=${lk:-:context}:files:-$act
-  case "$act" in ( c|check ) ;; * ) context_sh_files --check; esac
+  case "$act" in ( c|check|check-* ) ;; * ) context_sh_files --check; esac
   case "$act" in
     ( a|all )
         context_files
@@ -85,11 +86,13 @@ context_sh_files () # ~ <Switch:-list> <...>
         context_sh_files --check-global &&
         context_sh_files --check-local
       ;;
+    # TODO: see status.sh, get faster more meaningful stat for (context) index
     ( check-global )
         local files
         : "$(context_files)" &&
-        mapfile -t files <<< "$_" &&
-        TODO
+        #mapfile -t files <<< "$_" &&
+        #stderr script_debug_arr files
+        <<< "$_" foreach2 test_isfile
       ;;
     ( check-local )
         # TODO: use statusdir or other to go over unique names
@@ -124,7 +127,7 @@ context_sh_files () # ~ <Switch:-list> <...>
         cat "$cached"
       ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
+    ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsk:?} ;;
   esac
 }
 
@@ -132,15 +135,17 @@ context_sh_path ()
 {
   local act=${1-}
   act="${act:+$(str_globstripcl "$act" "-")}" || return
-  : "${act:=list}"
+  : "${act:=short}"
   test $# -eq 0 || shift
   local lk=${lk:-:context}:path:-$act
   case "$act" in
-    ( s|short )
-        out_fmt=list cwd_lookup_path .
+    ( s|short|list )
+        out_fmt=list cwd_lookup_paths
+        out_fmt=list sys_path
+        #out_fmt=list cwd_lookup_path .
       ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$act" 127 ;;
+    ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsk:?} ;;
   esac
 }
 context_sh_path__libs=sys
@@ -152,19 +157,22 @@ context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-a
   : "${switch:=user}"
   local lk=${lk:-:context}:shell:-$switch
 
-  user_script_ bases
-  echo shell foo
-  exit $?
+  lib_loaded user-script-htd || return
 
-  lib_load user-script-htd || return
+  #user_script_ bases
+  #lib_load user-script-htd || return
   case "${switch##-}" in
     ( user-scripts )
-        scripts=$(user_script_list_scripts | user_script_filter_userdirs)
+        scripts=$(user_script_list_shell_scripts | user_script_filter_userdirs)
         wc -l <<< "$scripts"
       ;;
     ( executable-scripts )
-        scripts=$(user_script_list_scripts)
+        scripts=$(user_script_list_shell_scripts)
         wc -l <<< "$scripts"
+      ;;
+    ( shell-libs )
+        if_ok "$(locate -b '*.lib.sh')" &&
+        wc -l <<< "$_"
       ;;
     ( count-shell-lib-lines )
         locate -b '*.lib.sh' |
@@ -172,14 +180,17 @@ context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-a
       ;;
     ( count-shell-script-lines )
         {
-            user_script_list_scripts &&
-            locate -b '*.sh'
+            user_script_list_shell_scripts
         } | user_script_filter_userdirs |
                 user_script_unique_names_count_script_lines
       ;;
     ( s|short )
+        if_ok "$(context_sh_shell user-scripts)" &&
+        stderr echo "Shell scripts: $_"
+        if_ok "$(context_sh_shell shell-libs)" &&
+        stderr echo "Shell libs: $_"
       ;;
-    ( * ) $LOG error "$lk" "No such action" "$switch" 127 ;;
+    ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsk:?} ;;
   esac
 }
 context_sh_shell__libs=user-script-htd
@@ -202,9 +213,32 @@ context_sh_status () # ~
             context_sh_files check
             $LOG info "$lk" "Files check" E$? $? || return
             wc -l $(context_sh_files -a)
+
+            local cached=${CTX_TAB_CACHE:?}
+            local context_tab="${context_tab:-${CTX_TAB:?}}"
+
+            echo ctx.tab: $context_tab
+            echo cached=$cached
+            wc -l "$cached"
         ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$act"; return 67 ;;
+    ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsk:?} ;;
+  esac
+}
+
+context_sh_tag ()
+{
+  local act=${1-}
+  act="${act:+$(str_globstripcl "${act-}" "-")}" || return
+  : "${act:=entry}"
+  test $# -eq 0 || shift
+  local lk=${lk:-:context}:tags:-$act
+  case "$act" in
+    ( entry )
+          context_tag_entry "${1:?}"
+        ;;
+
+    ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsk:?} ;;
   esac
 }
 
@@ -218,12 +252,12 @@ context_sh_tags () # ~ <Switch:-list> <...>
   local lk=${lk:-:context}:tags:-$act
   case "$act" in
     ( for )
-        contexttab_related_tags "${2:-}" && echo $tag_rel
-        ;;
+        contexttab_related_tags "${1:-}" && echo $tag_rel
+      ;;
     ( list )
         context_tags_list ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$act" 67
+    ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsk:?} ;;
   esac
 }
 

@@ -155,9 +155,11 @@ globlist_paths () # ~ <Group-names...>
 globlist_pathspecs () # ~ [<Group-names...>]
 {
   local groupkey globlistkey ctx=${at_GlobList:-globlist}
-  test 0 -lt $# || set -- $(${ctx}_maingroups)
+  { test 0 -lt $# || set -- $(${ctx}_maingroups); } &&
   groupkey="$(${ctx}_groupkey)" &&
-  globlistkey="$(${ctx}_globlistkey)" || return
+  globlistkey="$(${ctx}_globlistkey)" &&
+  sh_arr ${groupkey:?} &&
+  sh_arr ${globlistkey:?} || return
   while test 0 -lt $#
   do
     # Retrieve value for key either from groups array or from globlist array

@@ -40,7 +40,8 @@ class_ContextTab_ () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
 
     ( * ) return ${_E_next:?} ;;
 
-  esac
+  esac || return
+
   return ${_E_done:?}
 }
 

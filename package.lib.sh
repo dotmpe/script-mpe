@@ -3,28 +3,28 @@
 # Deal with package metadata files
 
 
-package_lib__load () # (env PACKMETA) [env out_fmt=py]
+package_lib__load () # (env PACKMETA) [env out_fmt=json]
 {
   lib_require sys os os-htd src || return
-  test -n "${out_fmt-}" || out_fmt=py
-  test -n "${METADIR-}" || METADIR=.meta
+  : "${out_fmt:=json}"
+  : "${METADIR:=.meta}"
 }
 
 package_lib__init () #
 {
-  test "${package_lib_init-}" = "0" && return # One time init
+  test -z "${package_lib_init-}" || return $_
   ENV_LIBS="${ENV_LIBS:-}${ENV_LIBS+" "}package"
   PACK_CACHE="PACKMETA_ID PACKMETA PACKMETA_SRC PACKAGE_JSON PACK_DIR PACK_ID PACK_JSON PACK_SH"
 
-  test -n "${LCACHE_DIR-}" || LCACHE_DIR=$METADIR/cache
-  test -n "${PACK_DIR-}" || PACK_DIR=$METADIR/package
+  : "${LCACHE_DIR:=$METADIR/cache}"
+  : "${PACK_DIR:=$METADIR/package}"
 
-  test -n "${PACK_TOOLS-}" || PACK_TOOLS=$PACK_DIR/tools
-  test -n "${PACK_ENVD-}" || PACK_ENVD=$PACK_DIR/envs
-  test -n "${PACK_SCRIPTS-}" || PACK_SCRIPTS=$PACK_DIR/scripts
+  : "${PACK_TOOLS:=$PACK_DIR/tools}"
+  : "${PACK_ENVD:=$PACK_DIR/envs}"
+  : "${PACK_SCRIPTS:=$PACK_DIR/scripts}"
 
   # Clear to skip auto-load, or set to give local require-level
-  test -z "${package_lib_auto=0}" && return || true
+  test -z "${package_lib_auto-}" && return || true
   package_init
 }
 
@@ -97,7 +97,7 @@ package_env_req () # ~
     note "Loading package lib env <$PACK_SH>"
     . "$PACK_SH" || r=$?
   }
-  package_defaults
+  package_defaults || return
   return ${r-}
 }
 
@@ -472,7 +472,9 @@ package_sh () # Key
     prefix="$map"
     sub=
   }
-  test -n "${PACK_SH-}" -a -e "${PACK_SH-}" || error "package-sh '$PACK_SH'" 1
+  test -n "${PACK_SH-}" -a -e "${PACK_SH-}" || {
+    error "package-sh '${PACK_SH:-(unset)}'" 1 || return
+  }
   # Use util from str.lib to get the keys from the properties file
   property "$PACK_SH" "$prefix" "$sub" "$@"
 }

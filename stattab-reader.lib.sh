@@ -1,3 +1,12 @@
+stattab_reader_lib__load ()
+{
+  : "${stb_pri_sep:=/:,.+-}"
+  : "${stb_stat_xr:=\/:,\.+-}" # Extra characters for stat fields (RE format)
+  : "${stb_id_xr:=\/:$%&@_\.+-}" # Extra characters for id field (RE format)
+
+}
+
+
 # Assuming entry is updated replace or add to Stat-Tab
 stattab_commit () # ~ [<Stat-Tab>]
 {
@@ -104,6 +113,11 @@ stattab_entry_parse () # [entry] ~
   stattab_record_parse
 }
 
+stattab_entry_pri ()
+{
+  false
+}
+
 stattab_exists () # [<Stat-Id>] [<Entry-Type>] [<Stat-Tab>]
 {
   grep_f=${grep_f:-"-q"} \
@@ -114,7 +128,7 @@ stattab_exists () # [<Stat-Id>] [<Entry-Type>] [<Stat-Tab>]
 stattab_fetch () # ~ [<Stat-Id>] [<Search-Type>] [<Stat-Tab>]
 {
   local fetch_id=${1:-"${stttab_id:-}"}
-  test -n "${fetch_id:-}" || return 64
+  test -n "${fetch_id:-}" || return ${_E_GAE:?}
   stttab_src=${3:-}
   stattab_parse "$(grep_f="-m1 -n" stattab_grep "$fetch_id" "${2:-"id"}" "${3:-"$STTTAB"}")"
 }
@@ -130,7 +144,7 @@ stattab_grep () # ~ <Stat-Id> [<Search-Type>] [<Stat-Tab>]
     local p_=$(match_grep "$1")
     case "${2:-"id"}" in
       ( id )
-          $ggrep $grep_f "^[0-9 +-]* $p_:\\?\\(\\ \\|\$\\)" ;;
+          $ggrep $grep_f "^[0-9 ${stb_pri_sep:?}]* $p_:\\?\\(\\ \\|\$\\)" ;;
 
       ( * ) $LOG error : "No such search-type" "$2" 1 ;;
     esac
@@ -139,7 +153,8 @@ stattab_grep () # ~ <Stat-Id> [<Search-Type>] [<Stat-Tab>]
 
 stattab_ids ()
 {
-  $gsed -E 's/^[0-9 T+-]+ ([A-Za-z0-9:$%&@_\.+-]+):.*$/\1/'
+  $gsed -E \
+    's/^[0-9 '"${stb_stat_xr}"']+ ([A-Za-z0-9 '"${stb_id_xr}"']+):( *| .*)$/\1/'
 }
 
 stattab_tab_init () # ~ [<Stat-Tab>]

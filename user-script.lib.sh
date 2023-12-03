@@ -110,7 +110,7 @@ user_script_find_exec () # ~ # Find executables from user-dirs
   # $UCONF/script/$uname $UCONF/script/Generic
 
   local find_ignores
-  find_ignores="$(ignores_find ~/bin/.htdignore.names | tr '\n' ' ')" || return
+  find_ignores="$(ignores_find_expr < ~/bin/.htdignore.names)" || return
 
   local bd
   for bd in "$@"

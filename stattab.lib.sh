@@ -421,13 +421,6 @@ stattab_init_show () #
   return $sttab_r
 }
 
-# List ST-Id's only from tab output
-stattab_list () # ? LIST
-{
-  test -n "$2" || set -- "$1" "$STTAB"
-  stattab_tab "$@" | stattab_ids
-}
-
 # Create new entry with given name
 stattab_new () # [NAME]
 {

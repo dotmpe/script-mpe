@@ -182,6 +182,35 @@ script_cmdid ()
     }
 }
 
+# Turn declaration into pretty print using sed
+script_debug_arr () # ~ <Array-var> # Pretty print array
+{
+  test 1 -eq $# || return ${_E_MA:?}
+  if_ok "$(declare -p ${1:?})" &&
+      <<< "Array '${_:11}" sed "s/=(\[/':\\n\\t/
+s/\" \[/\\n\\t/g
+s/]=\"/\\t/g
+s/\")//g
+"
+}
+
+script_debug_class_arr () # ~ <key> [<Class>] # Pretty print Class array
+{
+  test 0 -lt $# -a 2 -ge $# || return ${_E_MA:?}
+  script_debug_arr "${2:-Class}__${1:?}"
+}
+
+script_debug_libs () # ~ # List shell libraries loaded and load/init states
+{
+  echo "lib_loaded: $lib_loaded"
+  if_ok "
+$( lib_uc_hook pairs _lib_loaded | sort | sed 's/^/   /' )
+lib_init:
+$( lib_uc_hook pairs _lib_init | sort | sed 's/^/   /' )
+" &&
+  stderr echo "$_"
+}
+
 # Handle env setup (vars & sources) for script-entry. Executes first existing
 # loadenv hook, unless it returns status E:not-found then it continues on to
 # the next doenv hook on script-bases.
@@ -257,7 +286,11 @@ script_unenv ()
   test -z "${BASH_VERSION:-}" || set +uo pipefail
   test -z "${DEBUGSH:-}" || set +x
 
-  return $cmdstat
+  return ${cmdstat:?}
+  #test 0 -eq "$cmdstat" && return
+  #case "$cmdstat" in
+  #  ( ${_E_fail:?} | ${_E_syntax:?} | ${_E_todo:?}
+  #return ${_E_error:?}
 }
 
 
@@ -289,9 +322,9 @@ user_script_aliases () # ~ [<Name-globs...>] # List handlers with aliases
     test -n "${u_s_env_fmt:-}" || {
       test ! -t 1 || u_s_env_fmt=pretty
     }
-    case "${u_s_env_fmt:-}" in
+    case "${u_s_env_fmt:-plain}" in
         ( pretty ) grep -v '^#' | sort | column -s ':' -t ;;
-        ( ""|plain ) cat ;;
+        ( plain ) cat ;;
     esac
   }
 }
@@ -565,10 +598,10 @@ user_script_help () # ~ [<Name>]
 
   user_script_ usage "$@" || return
 
-  test $# -gt 0 -o ${longhelp:-0} -eq 0 || {
+  test $# -gt 0 -o "${longhelp:-0}" -eq 0 || {
 
     # Add env-vars block, if there is one
-    test ${longhelp:-0} -eq 0 || {
+    test "${longhelp:-0}" -eq 0 || {
       envvars=$( user_script_envvars | grep -v '^#' | sed 's/^/\t/' )
       test -z "$envvars" ||
           printf '\nEnv vars:\n%s\n\n' "$envvars"
@@ -768,6 +801,10 @@ user_script_loadenv ()
   : "${LOG:="$U_S/tools/sh/log.sh"}"
 
   # See std-uc.lib
+  : "${_E_fail:=1}"
+  : "${_E_script:=2}"
+  : "${_E_user:=3}"
+
   : "${_E_nsk:=67}"
   #: "${_E_nsa:=68}"
   #: "${_E_cont:=100}"
@@ -788,6 +825,9 @@ user_script_loadenv ()
   : "${_E_limit:=199}" # generic value/param OOB error?
 
   TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_todo:?}; }
+
+  error () { $LOG error : "$1" "E$2" ${2:?}; }
+  warn () { $LOG warn : "$1" "E$2" ${2:?}; }
 
   test -d "$US_BIN" || {
     $LOG warn :loadenv "Expected US-BIN (ignored)" "$US_BIN"
@@ -992,6 +1032,7 @@ user_script_usage () # ~
     } || {
       user_script_usage_handlers "$1" || true
     }
+
   # XXX: could jsut use bash extdebug instead of script-{src,lib}
   # however these all have to be loaded first, creating a chicken and the egg
   # problem
@@ -1019,7 +1060,8 @@ user_script_usage () # ~
     }
 
   test $short -eq 1 && {
-    printf '\t%s (%s) %s\n' "$base" "${script_defcmd:-(no-defcmd)}" ""
+    test -z "${script_defcmd-}" ||
+      printf '\t%s (%s)\n' "$base" "$script_defcmd"
     printf '\n%s\n' "${script_shortdescr:-(no-shortdescr)}"
   } || {
     true # XXX: func comments printf '%s\n\n' "$_usage"
@@ -1106,10 +1148,11 @@ user_script_fetch_handlers ()
 {
   us_aliases=$(user_script_aliases "$@" |
         sed 's/^\(.*\): \(.*\)$/\2 \1/' | tr -d ',' )
-  alias_sed=$( echo "$us_aliases" | while read -r handler aliases
+  alias_sed=$( while read -r handler aliases
           do
               printf 's/^\<%s\>/( %s | & )/\n' "$handler" "${aliases// / | }"
-          done
+          done \
+        <<< "$us_aliases"
       )
   handlers=$(user_script_resolve_handlers "$@" | remove_dupes | lines_to_words)
 }
@@ -1117,7 +1160,7 @@ user_script_fetch_handlers ()
 # Output formatted help specs for one or more handlers.
 user_script_usage_handlers ()
 {
-  user_script_fetch_handlers "$@"
+  user_script_fetch_handlers "$@" || return
 
   # FIXME:
   # Do any loading required for handler, so script-src/script-lib is set

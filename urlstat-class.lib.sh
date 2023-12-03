@@ -1,6 +1,6 @@
 urlstat_class_lib__load ()
 {
-  ctx_class_types="${ctx_class_types-}${ctx_class_types+" "}URLStats URLStat"
+  ctx_class_types="${ctx_class_types-}${ctx_class_types:+" "}URLStats URLStat"
   : "${urlstat_var_keys:=status btime ctime utime short refs idrefs meta}"
 
   local urlidx=${URLIDX_NAME:-urls.tab}
@@ -16,58 +16,38 @@ urlstat_class_lib__load ()
 #  lib_require stattab-class
 #}
 
-class.URLStat.load () # ~
+class_URLStat__load () # ~
 {
-  true
+  Class__static_type[URLStat]=URLStat:StatTabEntry
 }
 
-class.URLStat () # :StatTabEntry ~ <ID> .<METHOD> <ARGS...>
+class_URLStat_ () # :StatTabEntry ~ <ID> .<METHOD> <ARGS...>
 #   .URLStat <Concrete-type> [<Src:Line>]
 #   .__URLStat
 {
-  test $# -gt 0 || return 177
-  test $# -gt 1 || set -- "$1" .toString
-  local name=URLStat super_type=StatTabEntry self super id=${1:?} m=${2:-}
-  shift 2
-  self="class.$name $id "
-  super="class.$super_type $id "
+  case "${call:?}" in
 
-  case "$m" in
-    ".$name" ) $super.$super_type "$@"
-      ;;
-    ".__$name" ) $super.__$super_type
-      ;;
-
-    .class-context ) class.info-tree .tree ;;
-    .info | .toString ) class.info ;;
-
-    * ) $super"$m" "$@" ;;
-  esac
+    ( * ) return ${_E_next:?} ;;
+  esac || return
+  return ${_E_done:?}
 }
 
-class.URLStats.load () # ~
+
+class_URLStats__load () # ~
 {
-  true
+  Class__static_type[URLStats]=URLStats:StatTab
 }
 
-class.URLStats () # :StatTab ~ <ID> .<METHOD> <ARGS...>
+class_URLStats_ () # :StatTab ~ <ID> .<METHOD> <ARGS...>
 #   .URLStats <Concrete-type> <Tab-file> <Entry-type>
 #   .__URLStats
 {
-  test $# -gt 0 || return 177
-  test $# -gt 1 || set -- "$1" .toString
-  local name=URLStats super_type=StatTab self super id=${1:?} m=${2:-}
-  shift 2
-  self="class.$name $id "
-  super="class.$super_type $id "
-
-  case "$m" in
+  case "${call:?}" in
     ".$name" )
         test -e "${2:-}" ||
             $LOG error : "Tab file expected" "$2" 1 || return
         $super.$super_type "$1" "$2" "${3:-URLStat}" || return
       ;;
-    ".__$name" ) $super.__$super_type ;;
 
     .id_from_url ) # ~ <URL> # Find resource class for URL and extract context Id
         urlstat_url_contexts "${1:?}"
@@ -77,9 +57,7 @@ class.URLStats () # :StatTab ~ <ID> .<METHOD> <ARGS...>
         urlstat_urlids "${1:?}"
       ;;
 
-    .class-context ) class.info-tree .tree ;;
-    .info | .toString ) class.info ;;
-
-    * ) $super"$m" "$@" ;;
-  esac
+    ( * ) return ${_E_next:?} ;;
+  esac || return
+  return ${_E_done:?}
 }

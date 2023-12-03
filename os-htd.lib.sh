@@ -347,6 +347,11 @@ filesizesum ()
   echo $sum
 }
 
+filter_blank () # (s) ~ # Remove empty lines from stream
+{
+  grep -v '^\s*$'
+}
+
 # Strip comments lines, including pre-proc directives and empty lines.
 filter_content_lines () # (s) ~ [<Marker-Regex>] # Remove marked or empty lines from stream
 {
@@ -356,11 +361,6 @@ filter_content_lines () # (s) ~ [<Marker-Regex>] # Remove marked or empty lines 
 filter_dirs ()
 {
   foreach "$@" | filter test_dir
-}
-
-filter_blank () # (s) ~ # Remove empty lines from stream
-{
-  grep -v '^\s*$'
 }
 
 filter_files ()
