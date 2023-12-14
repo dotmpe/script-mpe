@@ -124,6 +124,7 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
 
 script_run () # ~ <Action <argv...>>
 {
+  #export UC_LOG_BASE=${0##*\/}"[$$]":doenv
   script_doenv "$@" || return
   ! uc_debug ||
       $LOG info :uc:script-run "Entering user-script $(script_version)" \
@@ -132,7 +133,9 @@ script_run () # ~ <Action <argv...>>
   shift
   ! uc_debug ||
       $LOG info :script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
+  export UC_LOG_BASE=$script_name"[$$]":$script_cmdname
   "$script_cmdfun" "$@" || script_cmdstat=$?
+  export UC_LOG_BASE=$script_name"[$$]":unenv
   script_unenv || return
 }
 
@@ -182,22 +185,73 @@ script_cmdid ()
     }
 }
 
+script_debug_args () # ~ <Array-var> # Pretty print array
+{
+  test 0 -lt $# || return ${_E_MA:?}
+  local arg i=0
+  for arg in "$@"
+  do
+    echo "$i: $arg"
+    i=$(( i + 1 ))
+  done
+}
+
 # Turn declaration into pretty print using sed
 script_debug_arr () # ~ <Array-var> # Pretty print array
 {
   test 1 -eq $# || return ${_E_MA:?}
   if_ok "$(declare -p ${1:?})" &&
+    fnmatch "declare -*[Aa]* ${1:?}" "$_" &&
+      echo "Array '${_:11}' (empty)" ||
       <<< "Array '${_:11}" sed "s/=(\[/':\\n\\t/
 s/\" \[/\\n\\t/g
 s/]=\"/\\t/g
-s/\")//g
+s/\" *)//g
 "
+}
+
+script_debug_arrs ()
+{
+  test 0 -lt $# || return ${_E_MA:?}
+  while test 0 -lt $#
+  do script_debug_arr "${1:?}" || return
+    shift
+  done
 }
 
 script_debug_class_arr () # ~ <key> [<Class>] # Pretty print Class array
 {
   test 0 -lt $# -a 2 -ge $# || return ${_E_MA:?}
   script_debug_arr "${2:-Class}__${1:?}"
+}
+
+script_debug_frame () # ~ # Print stacktrace using FUNCNAME/caller
+{
+  : "${#FUNCNAME[@]}"
+  test 0 -lt $_ || return
+  local framec=$_
+  stderr echo "Call#: $framec"
+  stderr echo "Argv/argc#: ${#BASH_ARGV[@]} ${#BASH_ARGC[@]}"
+  #stderr echo "Sources/lines: ${#BASH_SOURCE[@]} ${#BASH_LINENO[@]}"
+  local frame_skip=${1:-1} info
+  framec=$(( framec - 2 ))
+  while info=( $(caller $framec) )
+  do
+    stderr echo "$framec. ${info[1]}: ${FUNCNAME[$framec]} <${info[2]}:${info[0]}>"
+    framec=$(( framec - 1 ))
+    test $framec -ge $frame_skip || break
+  done
+}
+
+script_debug_funs () # ~ <Fun...> # List shell functions
+{
+  shopt -s extdebug
+  local fun
+  for fun in "$@"
+  do
+    stderr declare -F $fun
+    stderr declare -f $fun
+  done
 }
 
 script_debug_libs () # ~ # List shell libraries loaded and load/init states
@@ -209,6 +263,22 @@ lib_init:
 $( lib_uc_hook pairs _lib_init | sort | sed 's/^/   /' )
 " &&
   stderr echo "$_"
+}
+
+script_debug_vars () # ~ <Var-names...>
+{
+  : "${def_stat:=-}"
+  : "${def_val:=(unset)}"
+
+  local vn
+  : "$(for vn in "$@"
+  do
+    : "${!vn:-}"
+    test -n "$_" &&
+    printf "%s='%s'\n" "${vn}" "$_" ||
+    printf "%s=%s\n" "${vn}" "${def_val:?}"
+  done)"
+  stderr echo $_
 }
 
 # Handle env setup (vars & sources) for script-entry. Executes first existing
@@ -286,6 +356,7 @@ script_unenv ()
   test -z "${BASH_VERSION:-}" || set +uo pipefail
   test -z "${DEBUGSH:-}" || set +x
 
+  $LOG debug : "Unloaded env"
   return ${cmdstat:?}
   #test 0 -eq "$cmdstat" && return
   #case "$cmdstat" in
@@ -617,19 +688,27 @@ user_script_help () # ~ [<Name>]
 #
 user_script_initlibs () # ~ <Required-libs...>
 {
-  local pending
+  local pending lk=${lk:-}:initlibs
   lib_require "$@" ||
-    $LOG error :us-initlibs "Failure loading libs" "E$?:$*" $? || return
+    $LOG error "$lk" "Failure loading libs" "E$?:$*" $? || return
 
-  set -- $(user_script_initlibs__needsinit $lib_loaded)
+  set -- $(user_script_initlibs__needsinit ${lib_loaded:?})
+  test 0 -eq $# && return
   while true
   do
     # remove libs that have <libid>_init=0 ie. are init OK
     set -- $(user_script_initlibs__initialized "$@")
-    test $# -gt 0 || break
+    test 0 -lt $# || {
+        # XXX: if debug
+        declare -a loaded=( $lib_loaded )
+        declare -a initialized=( $(lib_uc_hook var _lib_init) )
+        $LOG info "$lk" "Done" \
+          "loaded=${#loaded[@]};initialized=${#initialized[@]}"
+        break
+      }
     pending=$#
 
-    $LOG info :us-initlibs "Initializing" "[:$#]:$*"
+    $LOG info "$lk" "Initializing" "[:$#]:$*"
     INIT_LOG=$LOG lib_init "$@" || {
       test ${_E_retry:-198} -eq $? && {
           set -- $(user_script_initlibs__initialized "$@")
@@ -639,13 +718,14 @@ user_script_initlibs () # ~ <Required-libs...>
           #  $LOG error :us-initlibs "Unhandled next" "[:$#]:$*" 1 || return
           continue
         } ||
-          $LOG error :us-initlibs "Failure initializing libs" "E$_:$lib_loaded" $_ || return
+          $LOG error "$lk" "Failure initializing libs" "E$_:$lib_loaded" $_ || return
       }
   done
 }
 user_script_initlibs__needsinit ()
 {
-  for lib in "$@"
+  typeset lib
+  for lib in "${@:?}"
   do
     : "${lib//[^A-Za-z0-9_]/_}_lib__init"
     ! sh_fun "$_" || echo "$lib"
@@ -653,7 +733,8 @@ user_script_initlibs__needsinit ()
 }
 user_script_initlibs__initialized ()
 {
-  for lib in "$@"
+  typeset lib
+  for lib in "${@:?}"
   do
     : "${lib//[^A-Za-z0-9_]/_}_lib_init"
     test 0 = "${!_:-}" || echo "$lib"
@@ -666,7 +747,7 @@ user_script_libload ()
   test $# -gt 0 || return
   while test $# -gt 0
   do
-    . "$1" || return
+    . "${1:?}" || return
     script_lib=${script_lib:-}${script_lib:+ }$1
     shift
   done
@@ -744,13 +825,14 @@ user_script_load () # ~ <Actions...>
 
       ( groups )
           local name=${script_part:-$script_cmd} libs ctx \
+            plk=${lk:-}
             lk=${lk:-}:user-script:load[group]
           ctx="$name:$(${user_script_bases:-user_script_ bases} && echo $script_bases)"
           $LOG notice "$lk" "Lookup grp/libs/hooks within bases" "$ctx"
           user_script_node_lookup attr-libs "$name" &&
           user_script_node_lookup attr-hooks "$name" || return
           test -z "${libs:-}" && {
-            test -z "${hooks:-}" && {
+            test -n "${hooks:-}" || {
               $LOG warn "$lk" "No grp/libs or hooks for user-script sub-command" "$ctx"
               return ${_E_next:?}
             }
@@ -762,7 +844,8 @@ user_script_load () # ~ <Actions...>
           test -z "${hooks:-}" && return
           local hook
           for hook in $hooks
-          do "$hook" || $LOG error "$lk" "Failed in hook" "E$?:$hook" $? ||
+          do lk=$plk:user-script:hooks \
+            "$hook" || $LOG error "$lk" "Failed in hook" "E$?:$hook" $? ||
             return
           done
         ;;
@@ -1007,17 +1090,17 @@ user_script_shell_mode ()
 }
 
 # Display description how to evoke command or handler
-user_script_usage () # ~
+user_script_usage () # ~ [<
 {
   local short=0 slf_l
 
   test $# -eq 0 && {
-    short=1
+    short=1 # Make it a list of brief descriptions
     slf_l=0
     set -- $script_maincmds
     printf 'Usage:\n\t%s <Command <Arg...>>\n' "$base"
   } || {
-    slf_l=1
+    slf_l=1 # Strip brief description
     printf 'Usage:\n'
   }
 
@@ -1040,23 +1123,27 @@ user_script_usage () # ~
   # functions as well
   test -n "$handlers" || {
     $LOG error :user-script:usage "No handler found" "$*"
-    return 1
+    #return 1
 
     "${baseid}"_loadenv all || return
     user_script_usage_ext "$1" || return
     echo "Shell Function at $(basename "$fun_src"):$fun_ln:"
-    script_listfun $fun_src "$handlers"
+    script_listfun $fun_src "$handlers" &&
+    lib_load src &&
     #. $U_S/src/sh/lib/os.lib.sh
-    . $U_S/src/sh/lib/src.lib.sh
-    func_comment "$handlers" "$fun_src"
+    #. $U_S/src/sh/lib/src.lib.sh
+    func_comment "$handlers" "$fun_src" ||
+      $LOG warn :user-script:usage "No function comment" "$*"
   }
 
   # Gather functions again, look for choice-esacs
   local sub_funs actions
   test $slf_l -eq 0 && {
-      user_script_usage_choices "$handlers" || true
+      user_script_usage_choices "$handlers" ||
+        $LOG info :user-script:usage "No choice usage" "E$?:$handlers"
     } || {
-      user_script_usage_choices "$handlers" "${2:-}"
+      user_script_usage_choices "$handlers" "${2:-}" ||
+        $LOG info :user-script:usage "No choice usage" "E$?:${2:-}:$handlers"
     }
 
   test $short -eq 1 && {
@@ -1068,6 +1155,8 @@ user_script_usage () # ~
   }
 }
 
+# TODO: sort out parsing from src comments and AST exclusive usage definitions.
+# E.g. (y) is AST, (x) is source or something like that.
 user_script_usage_choices () # ~ <Handler> [<Choice>]
 {
   sub_funs=$( slf_t=1 slf_h=0 user_script_handlers ${1:?} |
@@ -1077,8 +1166,7 @@ user_script_usage_choices () # ~ <Handler> [<Choice>]
         echo "$fun_name"
       done)
   test -n "$sub_funs" || {
-    $LOG debug "" "No choice specs" "$1"
-    return 0
+    $LOG debug "" "No choice specs" "$1" 1 || return
   }
 
   # Always use long-help format if we're selecting a particular choice (set)
@@ -1097,15 +1185,26 @@ user_script_usage_choices () # ~ <Handler> [<Choice>]
            sh_type_esacs_tab $fun_name
          done |
              grep '\(^\|| \)'"${2:-".*"}"'\( |\|'$'\t''\)' |
-         while IFS=$'\t' read -r alias_case alias_exec
+         while IFS=$'\t' read -r case_key case_script
          do
-           alias_cmd=${alias_exec// *}
-           test -n "$alias_cmd" || {
-             $LOG error "" "No handler found" "action:$2 case:$alias_case"
+           echo -e "$case_key\t$ $case_script"
+           # XXX: take last command and use as primary nested routine that
+           # implements action
+           #str_globmatch "$case_script" "* && *"
+           #str_globmatch "$case_script" "* || *"
+           #: "${case_script// && *}"
+           #: "${case_script// || *}"
+
+           : "${case_script//*; }"
+           alias_cmd=$_
+           alias_cmdname=${alias_cmd// *}
+           test -n "$alias_cmdname" &&
+           sh_fun "$alias_cmdname" || {
+             $LOG error "" "No case handler found" "$case_key:${2:-} case:$case_script"
              continue
            }
-           echo -e "$alias_case\t$ $alias_cmd"
-           user_script_usage "$alias_cmd" | tail -n +3 | sed 's/^/ \t \t/'
+           # Fetch usage as well for called routine
+           user_script_usage "$alias_cmdname" | tail -n +3 | sed 's/^/ \t \t/'
          done | column -c2 -s $'\t' -t )
     }
 

@@ -225,19 +225,21 @@ context_file_attribute () # ~ <Key> <Value> <Context-list>
 
 context_file_attributes () # ~ <Keys...>
 {
-  local context_tab="${context_tab:-${CTX_TAB:?}}"
-  local v xp
+  local context_tab="${context_tab:-${CTX_TAB:?}}" v xp
+  local -a ids
   true "${xattr_noerr:=1}"
   xp=${xattr_noerr:+std_noerr }
   # Look for each requested key
   while test $# -gt 0
   do
-    v=$(${xp}xattr -p user.${1:?} "$context_tab") &&
+    v=$(${xp}xattr -p user.${1:?} "$context_tab")
     test -n "$v" && echo "$v" || {
-      v=$(grep -Po '#'"${1:?}"' \K.*' "$context_tab") &&
-      context_file_attribute ${1:?} "${v:?}" "$context_tab" &&
+      v=$(grep -Po '#'"${1:?}"' \K.*' "$context_tab") ||
+        v=_$RANDOM
+      context_file_attribute ${1:?} "${v:?}" "$context_tab" ||
+        $LOG warn : "Failed caching ${1:?} attribute" "$context_tab"
       echo "$v"
-    } || return
+    }
     shift
   done
 }
@@ -287,7 +289,7 @@ context_file_reader ()
 context_fileids () # [Ctx-tab] ~
 {
   local files file id
-  : "$(context_files)" &&
+  if_ok "$(context_files)" &&
   mapfile -t files <<< "$_" &&
   for file in "${files[@]}"
   do
@@ -367,6 +369,11 @@ context_list_raw () # ~ <File>
   }
 }
 
+context_load () # ~ <Target-var> <Types>
+{
+  false
+}
+
 context_new_fileid ()
 {
   local newid files
@@ -422,9 +429,10 @@ context_parse ()
 # Every line must start with a non-space character,
 context_read_include () # ~ <Ref> <File> <Src-file> <Src-line>
 {
-  local id=$(context_tab=${2:-${1:?}} context_file_attributes id)
+  local id
+  id=$(context_tab=${2:-${1:?}} context_file_attributes id) &&
   grep -v '^[\t ]' "${2:-${1:?}}" |
-  sed -E 's/^([^# ].*)(#[^ ]|$)/\1 #'"$id"' \2 /'
+    sed -E 's/^([^# ].*)(#[^ ]|$)/\1 #'"$id"' \2 /'
 }
 
 context_run () # ~ <Spec> <Arg...>
@@ -440,8 +448,8 @@ context_run () # ~ <Spec> <Arg...>
   # attempt to initialize that and set its 'run' call as handler.
   for t in $1
   do
-    class.Class.exists "$t" && {
-      ! class.Class.hasattr "$t" run || {
+    class_exists "$t" && {
+      ! class_hasattr "$t" run || {
         create ctx $t
         set -- $ctx.run "$@"
         break
@@ -494,6 +502,15 @@ context_tab_cache () # [Ctx-tab] ~
   }
 }
 
+# Return record for given ctx tag-id
+context_tag_entry () # ~ <Tag-id> [<Context-tab>]
+{
+  test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
+  test -n "${NS:-}" || local NS=$CTX_DEF_NS
+  test "unset" != "${grep_f-"unset"}" || local grep_f=-nm1
+  generator=context_tab stattab_grep "$1" -ns-id "${2:-$CTX_TAB_CACHE}"
+}
+
 # Retrieve tag record and parse, see context-parse.
 context_tag_env () # ~ <Tag>
 {
@@ -536,15 +553,6 @@ context_tag_order() # Tag
     }
     shift
   done
-}
-
-# Return record for given ctx tag-id
-context_tag_entry () # ~ <Tag-id> [<Context-tab>]
-{
-  test $# -eq 1 -a -n "$1" || error "arg1:tag expected" 1 || return
-  test -n "${NS:-}" || local NS=$CTX_DEF_NS
-  test "unset" != "${grep_f-"unset"}" || local grep_f=-nm1
-  generator=context_tab stattab_grep "$1" -ns-id "${2:-$CTX_TAB_CACHE}"
 }
 
 context_tags_list () # ~ # Scan for every referred tag

@@ -3,9 +3,14 @@
 
 context__grp=user-script
 context_sh__grp=context
+context_sh__hooks=context_sh_init
 
+# all-tags
+#   List tag names
 context_sh_entries__libs=os-htd\ context
-context_sh_entries () # ~ <Switch:-list> <...>
+context_sh_entries () # (y) ~ <action:-list> <...>
+# all-tags
+#   List tag names
 {
   local act=${1-}
   act="${act:+$(str_globstripcl "$act" "-")}" || return
@@ -14,10 +19,11 @@ context_sh_entries () # ~ <Switch:-list> <...>
   local lk=${lk:-:context}:entries:-$act
   case "$act" in
 
-    ( all-tags )
-        context_tag_list
+    ( all-tags ) # ~ # List tag names
+        about "List tag names"
+        context_tags_list
       ;;
-    ( c|count )
+    ( c|count ) # ~ # Count context.tab lines
         context_tab_cache && ctx_grep_f=Evc context_tab
       ;;
     ( check-tags ) # ~ # Look for (sub)tag and warn about case
@@ -28,14 +34,18 @@ context_sh_entries () # ~ <Switch:-list> <...>
     ( e|exists|tags-exist )
         context --exists "$@"
       ;;
-    ( f|fetch )
-          if_ok "$(context_tag_entry "${1:?}")" &&
-          context_parse "$_"
-        ;;
     #( i|ids )
     #    ;;
     ( F|fr|fetch-raw )
           context_tag_entry "${1:?}"
+        ;;
+    ( f|fetch )
+          if_ok "$(context_tag_entry "${1:?}")" &&
+          context_parse "$_"
+        ;;
+    ( fl|files )
+          # Get file references from other table
+          context_sh_files tab | sed 's/^/#id /'
         ;;
     ( g|any|grepi )
           test $# -gt 1 || set -- "${1:?}" -any
@@ -49,10 +59,6 @@ context_sh_entries () # ~ <Switch:-list> <...>
         ;;
     ( l|list )
           context_tab
-        ;;
-    ( f|files )
-          # Get file references from other table
-          context_sh_files tab | sed 's/^/#id /'
         ;;
     ( r|raw ) context_tab_cache &&
         read_nix_data "${CTX_TAB_CACHE:?}" ;;
@@ -153,29 +159,32 @@ context_sh_path__libs=sys
 context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-args...>]
 {
   local switch=${1-}
-  switch="${switch:+$(str_globstripcl "$switch" "-")}" || return
-  : "${switch:=user}"
-  local lk=${lk:-:context}:shell:-$switch
-
-  lib_loaded user-script-htd || return
-
-  #user_script_ bases
-  #lib_load user-script-htd || return
-  case "${switch##-}" in
-    ( user-scripts )
-        scripts=$(user_script_list_shell_scripts | user_script_filter_userdirs)
-        wc -l <<< "$scripts"
+  switch="${switch:+${switch##-}}"
+  test 0 -eq $# || shift
+  local lk=${lk:-:context}:shell:-${switch:=user}
+  #context_load ctx XContext
+  create ctx XContext || return
+  case "${switch:?}" in
+    ( f | functions )
+        compgen -A function
+      ;;
+    ( ic | lc | lic )
+        $ctx+Shell --user-command
+        TODO shell -${switch} "${1:?}" "${@:2}"
+      ;;
+    ( i | l | li )
+        $ctx+Shell -${switch} "$@"
       ;;
     ( executable-scripts )
         scripts=$(user_script_list_shell_scripts)
         wc -l <<< "$scripts"
       ;;
     ( shell-libs )
-        if_ok "$(locate -b '*.lib.sh')" &&
+        if_ok "$(locate -be '*.lib.sh')" &&
         wc -l <<< "$_"
       ;;
     ( count-shell-lib-lines )
-        locate -b '*.lib.sh' |
+        locate -be '*.lib.sh' |
                 user_script_unique_names_count_script_lines
       ;;
     ( count-shell-script-lines )
@@ -190,18 +199,34 @@ context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-a
         if_ok "$(context_sh_shell shell-libs)" &&
         stderr echo "Shell libs: $_"
       ;;
-    ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsk:?} ;;
+    ( user )
+        $ctx+Shell --user-repl
+      ;;
+    ( user-scripts )
+        #$ctx+UserScript --count-user
+
+        lib_require ctx-userscript &&
+        @UserScript .count
+
+        #create us UserScripts &&
+        #$us.count
+        scripts=$(user_script_list_shell_scripts | user_script_filter_userdirs)
+        wc -l <<< "$scripts"
+      ;;
+    ( * ) $LOG error "$lk" "No such switch" "$switch" ${_E_nsk:?} ;;
   esac
 }
-context_sh_shell__libs=user-script-htd
+context_sh_shell__grp=context-sh
+context_sh_shell__libs=user-script-htd,context-uc
 
 context_sh_status () # ~
 {
   local act=${1-}
-  act="${act:+$(str_globstripcl "${act-}" "-")}" || return
+  act="${act:+${act##-}}"
   : "${act:=short}"
   test $# -eq 0 || shift
   local lk=${lk:-:context}:status:-$act
+  context_load @Status || return
   case "$act" in
     ( i|info )
             stderr echo "Main file: ${CTX_TAB:-(unset)}"
@@ -225,6 +250,7 @@ context_sh_status () # ~
     ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsk:?} ;;
   esac
 }
+context_sh_status__libs=context-uc,class-uc
 
 context_sh_tag ()
 {
@@ -280,6 +306,11 @@ context_sh_aliasargv ()
       ( s|short ) shift; set -- context_sh_status --short ;;
       ( f|files ) shift; set -- context_sh_files "$@" ;;
   esac
+}
+
+context_sh_init ()
+{
+  user_script_initlibs stattab-class class-uc xcontext-class
 }
 
 context_sh_loadenv ()

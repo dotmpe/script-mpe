@@ -1,9 +1,10 @@
+
 stattab_reader_lib__load ()
 {
+  lib_require date-htd match-htd str-htd todotxt-fields || return
   : "${stb_pri_sep:=/:,.+-}"
   : "${stb_stat_xr:=\/:,\.+-}" # Extra characters for stat fields (RE format)
   : "${stb_id_xr:=\/:$%&@_\.+-}" # Extra characters for id field (RE format)
-
 }
 
 
@@ -29,24 +30,28 @@ stattab_date ()
   fnmatch "@*" "$1" && echo "${1:2}" || date_pstat "$1"
 }
 
-# Parse Entry or set all defaults
-stattab_init () # ~ [<Entry>]
-{
-  stattab_entry_env_reset && {
-    test $# -eq 0 || {
-      stattab_entry_init "$@" && shift
-  } } && stattab_entry_defaults
-}
-
 stattab_entry () #
 {
-  echo "${stttab_status:--}"\
-" $(date_id "@$stttab_btime")"\
-" $(date_id "@$stttab_ctime")"\
-" $(test -n "$stttab_utime" && date_id "@$stttab_utime" || echo "-")"\
-" ${stttab_directives:--} ${stttab_passed:--} ${stttab_skipped:--}"\
-" ${stttab_errors:--} ${stttab_failed:--} $stttab_id: $stttab_short"\
-" $stttab_tags" | normalize_ws
+  if_ok "$(stattab_print_STD_stat)" &&
+  # FIXME?
+  #echo "$_ $stttab_id: $stttab_short $stttab_tags" | sh_normalize_ws
+  : "$_ $stttab_id: $stttab_short $stttab_tags"
+  : "${_//[$'\n\t']/ }"
+  echo "${_//  / }"
+}
+
+stattab_print_STD_stat ()
+{
+  #! "${stttab_closed}" || echo "# "
+  ! stattab_value "${stttab_status-}" || echo "$_"
+  date_id "@$stttab_btime"
+  date_id "@$stttab_ctime"
+  ! stattab_value "${stttab_utime-}" || date_id "@$stttab_utime"
+  ! stattab_value "${stttab_directives-}" || echo "$_"
+  ! stattab_value "${stttab_passed-}" || echo "$_"
+  ! stattab_value "${stttab_skipped-}" || echo "$_"
+  ! stattab_value "${stttab_erred-}" || echo "$_"
+  ! stattab_value "${stttab_failed-}" || echo "$_"
 }
 
 stattab_entry_id () # ~ <StatTab-SId> [<StatTab-Id>]
@@ -54,6 +59,11 @@ stattab_entry_id () # ~ <StatTab-SId> [<StatTab-Id>]
   test $# -gt 1 || set -- "$1" "$(mkid "$1" && printf "$id")"
   stttab_sid="$1"
   stttab_id="$2"
+}
+
+stattab_entry_id_valid ()
+{
+  [[ "$sttab_id" =~ /^[A-Za-z_][A-Za-z0-9_-]*$/ ]]
 }
 
 stattab_entry_init () # ~ [<Entry>]
@@ -80,6 +90,7 @@ stattab_entry_env_reset ()
   stttab_sid=
   stttab_short=
   stttab_refs=
+  stttab_idspec=
   stttab_idrefs=
   stttab_meta=
   stttab_tags_raw=
@@ -89,6 +100,7 @@ stattab_entry_env_reset ()
   stttab_entry=
   stttab_stat=
   stttab_record=
+  stttab_rest=
   stttab_id=
   stttab_primctx=
   stttab_primctx_id=
@@ -104,10 +116,10 @@ stattab_entry_defaults () # ~
 # Parse statusdir index file line
 stattab_entry_parse () # [entry] ~
 {
-  test $# -eq 0 || return 64
+  test $# -eq 0 || return ${_E_GAE:?}
   # Split rest into three parts (see stattab format), first stat descriptor part
-  stttab_stat="$(echo "$stttab_entry" | grep -o '^[^_A-Za-z]*' )"
-  stttab_record="$(echo "$stttab_entry" | sed 's/^[^_A-Za-z]*//' )"
+  stttab_record=$(str_globstripcl "$stttab_entry" "[0-9 $stb_pri_sep]")
+  stttab_stat=${stttab_entry:0:$(( ${#stttab_entry} - ${#stttab_record} - 1 ))}
   $LOG debug : "Parsing descriptor and record" "'$stttab_stat':'$stttab_record'"
   stattab_parse_STD_stat $stttab_stat &&
   stattab_record_parse
@@ -127,34 +139,78 @@ stattab_exists () # [<Stat-Id>] [<Entry-Type>] [<Stat-Tab>]
 # Retrieve and parse entry from table
 stattab_fetch () # ~ [<Stat-Id>] [<Search-Type>] [<Stat-Tab>]
 {
-  local fetch_id=${1:-"${stttab_id:-}"}
-  test -n "${fetch_id:-}" || return ${_E_GAE:?}
-  stttab_src=${3:-}
-  stattab_parse "$(grep_f="-m1 -n" stattab_grep "$fetch_id" "${2:-"id"}" "${3:-"$STTTAB"}")"
+  test -n "${1:-"${stttab_id:-}"}" || return ${_E_GAE:?}
+  set -- "$_" "${2:-"id"}" "${3:-"$STTTAB"}"
+  stttab_src=${3:?}
+  if_ok "$(grep_f="-m1 -n" stattab_grep "$@")" &&
+  stattab_parse "$_"
 }
 
 # Take tab output and perform some sort of grep
-stattab_grep () # ~ <Stat-Id> [<Search-Type>] [<Stat-Tab>]
+stattab_grep () # ~ <Sttab-Id> [<Search-Type>] [<Stat-Tab>]
 {
-  { true "${generator:=stattab_tab}"
-    $generator "" "${3-}" || ignore_sigpipe
-    return $?
-  } | {
-    test "unset" != "${grep_f-"unset"}" || local grep_f=-m1
-    local p_=$(match_grep "$1")
-    case "${2:-"id"}" in
-      ( id )
-          $ggrep $grep_f "^[0-9 ${stb_pri_sep:?}]* $p_:\\?\\(\\ \\|\$\\)" ;;
-
-      ( * ) $LOG error : "No such search-type" "$2" 1 ;;
-    esac
+  test $# -ge 1 -a -n "${1-}" -a $# -le 3 || return ${_E_GAE:?}
+  test ! -t 0 || {
+    test -n "${stb_fp-}" && {
+      exec < "$stb_fp" || return
+    } || {
+      : "${stb_gen:=stattab_tab}"
+      stb_gl="$($_ "" "${3-}")" || ignore_sigpipe || return
+      exec <<< "$stb_gl" || return
+    }
   }
+
+  test "unset" != "${grep_f-"unset"}" || local grep_f=-m1
+  local act=${2:-} st_ p_; match_grep_arg "$1"
+  act=${act:+$(str_globstripcl "${act:?}" -)}
+  : "${act:=local}"
+  st_="^[$STTAB_FS$STTAB_STATC]*"
+  case "${act}" in
+    alias|ids )
+        $ggrep $grep_f "$st_\\([^:]*:$p_:\\?\\|.* alias:$p_\\)\\(\\ \\|\$\\)"
+      ;;
+    any )
+        $ggrep $grep_f "$st_.*$p_" ;;
+    full )
+        $ggrep $grep_f "$p_" ;;
+    id )
+        #$ggrep $grep_f "$st_\\b$p_:\\?\\(\\ \\|\$\\)" ;;
+        $ggrep $grep_f "^[0-9 ${stb_pri_sep:?}]* $p_:\\?\\(\\ \\|\$\\)" ;;
+    local )
+        $ggrep $grep_f "${st_}[^:]*:$p_:\?\(\\ \|\$\)" ;;
+    sub )
+        $ggrep $grep_f "${st_}[^ ]*\/$p_:\?\(\\ \|\$\)" ;;
+    tag|ns-id )
+        test -n "${NS:-}" || local NS=${CTX_DEF_NS:?}
+        $ggrep $grep_f "$st_\b\\($NS:\\)\\?$p_\\(:\\(\\ \\|$\\)\\| \\)" ;;
+    tagged )
+        $ggrep $grep_f "${st_}[^:]*:\? .* @$p_\( \|\$\)" ;;
+    url )
+        $ggrep $grep_f "${st_}[^:]*:\? .* <$p_>\( \|\$\)" ;;
+# XXX: is thos correct, it messes up my syntax highlighting
+    #literalid )
+    #    $ggrep $grep_f "^[0-9 +-]* [^:]*:\?\( .*\)\? ``'$p_\`\`\( \|\$\)" ;;
+    word )
+        $ggrep $grep_f "\\(^\\|[$STTAB_FS]\\)$p_\\([$STTAB_FS]\\|\$\\)" ;;
+
+    ( * ) $LOG error : "No such search-type" "$act" ${_E_nsa:?} ;;
+  esac
 }
+
 
 stattab_ids ()
 {
   $gsed -E \
     's/^[0-9 '"${stb_stat_xr}"']+ ([A-Za-z0-9 '"${stb_id_xr}"']+):( *| .*)$/\1/'
+}
+
+# Parse Entry or set all defaults
+stattab_init () # ~ [<Entry>]
+{
+  stattab_entry_env_reset && {
+    test $# -eq 0 || {
+      stattab_entry_init "$@" && shift
+  } } && stattab_entry_defaults
 }
 
 stattab_tab_init () # ~ [<Stat-Tab>]
@@ -188,18 +244,49 @@ stattab_list_ () # ~ ( context-tags | chevron-refs | meta-tags | hash-tags | pro
   stattab_tab "$@" | todotxt_field_${field//-/_}
 }
 
-# Parse entry from Grep-line
-stattab_parse () # ~ <Grep-Line>
+# Parse entry from Grep-line (with line number)
+stattab_parse () # ~ <Grep-line>
 {
-  test $# -gt 0 || return 64
-  test -n "$*" || return 60
+  test $# -gt 0 || return ${_E_MA:?}
   stattab_entry_env_reset
+  # XXX: Merge line (ie. normalize ws?)
+  set -- "$*"
+  test -n "$1" || return 0
   # Remove grep-line filename/linenumber from entry and parse
-  stttab_lineno="$(echo "$*" | cut -d : -f 1)"
-  #debug "Parsing Grep-Line found at '$stttab_lineno'"
-  stttab_entry="$(echo "$*" | cut -d : --output-delimiter : -f 2-)"
+  stttab_lineno=${1%%:*}
+  stttab_entry=${1#*:}
   stattab_entry_parse ||
     $LOG error :stattab-parse "Parsing entry" E$?:L$stttab_lineno:$stttab_src $?
+}
+
+# XXX: set for dynamic (id) context
+stattab_meta_parse () # ~ <Arr-var-pref>
+{
+  sh_arr "$1"_keys || return ${_E_GAE:?}
+  typeset metatag metakey metaval
+  typeset -a keys
+  for metatag in $stttab_meta
+  do
+    metakey=${metatag%:*}
+    keys+=( "$metakey" )
+    metaval=${metatag##*:}
+    : "${metakey//:/__}"
+    : "${metakey//-/_}"
+    declare -g "$1"__${_}[$id]=$metaval
+  done
+  declare -g "$1"_keys[$id]=${keys[*]}
+}
+
+stattab_meta_unset () # (id) ~
+{
+  declare key
+  for key in StatTabEntry__meta_keys[$id]
+  do
+    : "${key//:/__}"
+    : "${key//-/_}"
+    unset StatTabEntry__meta__${_}
+  done &&
+  unset StatTabEntry__meta_keys[$id]
 }
 
 stattab_parse_STD_ids ()
@@ -218,13 +305,15 @@ stattab_parse_STD_stat () # ~ [Status] [BTime] [CTime] [UTime] [Dirs] [Passed] [
   ! stattab_value "${7-}" || stttab_skipped=$7
   ! stattab_value "${8-}" || stttab_erred=$8
   ! stattab_value "${9-}" || stttab_failed=$9
+  test 9 -ge $# ||
+    $LOG warn :stb-parse:Std:stat "Surplus fields on record"
 }
 
 # Set to new given entry and add it to table directly
 stattab_record () # ~ <Entry>
 {
-  test $# -gt 0 || return 64
-  test -n "$*" || return 60
+  test $# -gt 0 || return ${_E_MA:?}
+  test -n "$*" || return ${_E_GAE:?}
   stattab_entry_init "$@" &&
   stattab_entry_defaults &&
   stattab_entry >>"$1"
@@ -232,11 +321,12 @@ stattab_record () # ~ <Entry>
   stattab_commit >>"$1"
 }
 
-stattab_record_parse ()
+stattab_record_parse () # (sttab_record) ~
 {
   # stattab_parse ID_SPEC TAGS META SHORT
 
-  stttab_idspec="$(echo "$stttab_record"|cut -d':' -f1)"
+  # TODO parse using glob specs
+  stttab_idspec=${stttab_record%%:*}
   stattab_parse_STD_ids $stttab_idspec
 
   stttab_rest="$(echo "$stttab_record"|cut -d : --output-delimiter : -f2-)"

@@ -5,12 +5,11 @@ ctx_statusdir_lib__load ()
   lib_require date metadir || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}Statusdir
 }
-ctx_statusdir_depends=@Shell
+# XXX: ctx_statusdir_depends=@Shell
 
 ctx_statusdir_lib__init ()
 {
   test -z "${ctx_statusdir_lib_init:-}" || return $_
-  class.Statusdir.env
 }
 
 
@@ -75,22 +74,18 @@ at_Statusdir__report_var () # Format [Record-Type [Record-Name]] [@Tags...] -- C
   esac
 }
 
-class.Statusdir.env ()
+class_Statusdir__load ()
 {
+  Class__static_type[Statusdir]=Statusdir:ParameterizedClass
   declare -g -A Statusdir__params=()
   declare -g -A Statusdir__backends=()
   declare -g -A Statusdir__backend_types=()
 }
 
-class.Statusdir () # Instance-Id Message-Name Arguments...
+class_Statusdir_ () # Instance-Id Message-Name Arguments...
 {
-  test $# -gt 0 || return
-  test $# -gt 1 || set -- $1 .default
-  local self="class.Statusdir $1 " id=${1:?} m=$2
-  shift 2
-
-  case "$m" in
-    .Statusdir )
+  case "${call:?}" in
+    .__init__ )
         test $# -gt 0 || set -- fsdir
         $self.set_backend "$@"
       ;;
@@ -130,10 +125,8 @@ class.Statusdir () # Instance-Id Message-Name Arguments...
         ${Statusdir__backends[$id]}$m "$@"
       ;;
 
-    * )
-        $LOG error "" "No such endpoint '$m' on" "$($self.info)" 1
-      ;;
-  esac
+    ( * ) return ${_E_next:?} ;;
+  esac && return ${_E_done:?}
 }
 
 mixin.StatusDirIndex () # ~ <Id> <Message> [<Args...>]

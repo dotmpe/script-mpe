@@ -23,7 +23,7 @@ os_htd_lib__init()
     # aliases to take effect.... ? Can't 'export' them either?
     #uc_script_load os-als
 
-    $os_htd_lib_log debug "" "Initialized os-htd.lib" "$0"
+    #$os_htd_lib_log debug "" "Initialized os-htd.lib" "$0"
   }
 }
 

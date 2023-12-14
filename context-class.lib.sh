@@ -38,8 +38,7 @@ class_Context_ () # (super,self,id,call) ~ <Args>
       ;;
 
     ( * ) return ${_E_next:?} ;;
-  esac || return
-  return ${_E_done:?}
+  esac && return ${_E_done:?}
 }
 
 #

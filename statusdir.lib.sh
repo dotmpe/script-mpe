@@ -5,12 +5,12 @@
 
 statusdir_lib__load ()
 {
-  lib_require sys || return
+  lib_require str sys || return
 
   # Setup static STATUSDIR_ROOT env to directory (including trailing-/)
   true "${STATUSDIR_DEFAULT="$HOME/.local/statusdir"}"
   true "${STATUSDIR_ROOT:="$STATUSDIR_DEFAULT/"}"
-  fnmatch "*/" "$STATUSDIR_ROOT" || STATUSDIR_ROOT="$STATUSDIR_ROOT/"
+  str_globmatch "$STATUSDIR_ROOT" "*/" || STATUSDIR_ROOT="$STATUSDIR_ROOT/"
   export STATUSDIR_ROOT
 
   # Re-validate timestamps for status at most every minute
@@ -99,7 +99,7 @@ statusdir_check ()
 statusdir_lookup_path () #
 {
   #cwd_lookup_path .meta/stat .local/statusdir .statusdir
-  user_lookup_path $HOME/.local/statusdir -- .meta/stat .local/statusdir .statusdir
+  user_lookup_path $HOME/.local/statusdir -- .meta/stat .local/var/statusdir .local/statusdir .statusdir
 }
 
 # Lookup statusdir folders/files on local PWD path
