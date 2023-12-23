@@ -700,10 +700,10 @@ user_script_initlibs () # ~ <Required-libs...>
     set -- $(user_script_initlibs__initialized "$@")
     test 0 -lt $# || {
         # XXX: if debug
-        declare -a loaded=( $lib_loaded )
-        declare -a initialized=( $(lib_uc_hook var _lib_init) )
-        $LOG info "$lk" "Done" \
-          "loaded=${#loaded[@]};initialized=${#initialized[@]}"
+        declare -a loaded=( $lib_loaded ) initialized
+        if_ok "$(std_noerr lib_uc_hook var _lib_init)" &&
+          initialized=( $_ ) && : "${#initialized[@]}" || : "?"
+        $LOG info "$lk" "Done" "loaded=${#loaded[@]};initialized=$_"
         break
       }
     pending=$#
@@ -711,15 +711,16 @@ user_script_initlibs () # ~ <Required-libs...>
     $LOG info "$lk" "Initializing" "[:$#]:$*"
     INIT_LOG=$LOG lib_init "$@" || {
       test ${_E_retry:-198} -eq $? && {
-          set -- $(user_script_initlibs__initialized "$@")
-          test $pending -gt $# || {
-            set -- "${@:2}" "$1"
-          }
-          #  $LOG error :us-initlibs "Unhandled next" "[:$#]:$*" 1 || return
-          continue
-        } ||
-          $LOG error "$lk" "Failure initializing libs" "E$_:$lib_loaded" $_ || return
-      }
+        set -- $(user_script_initlibs__initialized "$@")
+        test $pending -gt $# || {
+          set -- "${@:2}" "$1"
+        }
+        #  $LOG error :us-initlibs "Unhandled next" "[:$#]:$*" 1 || return
+        continue
+      } ||
+        $LOG error "$lk" "Failure initializing libs" "E$_:$lib_loaded" $_ ||
+          return
+    }
   done
 }
 user_script_initlibs__needsinit ()
@@ -792,7 +793,7 @@ user_script_node_lookup () # ~ <Handler> <Name> [<Groups...>]
       # Exception for leaf-most name, does not have to use base prefix
       $handler ${node:?} || return
       test -z "${group:-}" || {
-          shift
+          #shift
           set -- $group "$@"
           continue
       }
@@ -825,7 +826,7 @@ user_script_load () # ~ <Actions...>
 
       ( groups )
           local name=${script_part:-$script_cmd} libs ctx \
-            plk=${lk:-}
+            plk=${lk:-} \
             lk=${lk:-}:user-script:load[group]
           ctx="$name:$(${user_script_bases:-user_script_ bases} && echo $script_bases)"
           $LOG notice "$lk" "Lookup grp/libs/hooks within bases" "$ctx"
@@ -966,7 +967,7 @@ user_script_node_attr_hooks ()
   test -z "${!_:-}" || {
     # TODO: maybe resolve hooks given current node/groups
     #$LOG debug :atr:hooks "Hooks:" "$_"
-    hooks=${hooks:-}${hooks:+ }${_//,/ }
+    hooks=${_//,/ }${hooks:+ }${hooks:-}
   }
   lookup_quiet=true user_script_node_attr_grp "$1"
 }
@@ -1360,8 +1361,8 @@ us_shell_alsdefs ()
 
   # Generic error+return
   uc_shell_alsdefs[err-u-nsk]='
-    \$LOG error \"${1:-\$lk}\" \"${2:-"No such key/selection"}\" \"${3:-\$1}\";
-    return ${4:-1}
+    \$LOG error \"${1:-\$lk}\" \"${2:-"No such key/selection"}\" \
+      \"${3:-\$1}\" ${4:-1}
   '
 }
 

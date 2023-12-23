@@ -27,9 +27,9 @@ class_URLStat_ () # :StatTabEntry ~ <ID> .<METHOD> <ARGS...>
 {
   case "${call:?}" in
 
-    ( * ) return ${_E_next:?} ;;
-  esac || return
-  return ${_E_done:?}
+      * ) return ${_E_next:?};
+
+  esac && return ${_E_done:?}
 }
 
 
@@ -43,10 +43,10 @@ class_URLStats_ () # :StatTab ~ <ID> .<METHOD> <ARGS...>
 #   .__URLStats
 {
   case "${call:?}" in
-    ".$name" )
+    ( ".__init__" )
         test -e "${2:-}" ||
             $LOG error : "Tab file expected" "$2" 1 || return
-        $super.$super_type "$1" "$2" "${3:-URLStat}" || return
+        $super.__init__ "$1" "$2" "${3:-URLStat}" || return
       ;;
 
     .id_from_url ) # ~ <URL> # Find resource class for URL and extract context Id
@@ -57,7 +57,7 @@ class_URLStats_ () # :StatTab ~ <ID> .<METHOD> <ARGS...>
         urlstat_urlids "${1:?}"
       ;;
 
-    ( * ) return ${_E_next:?} ;;
-  esac || return
-  return ${_E_done:?}
+      * ) return ${_E_next:?};
+
+  esac && return ${_E_done:?}
 }

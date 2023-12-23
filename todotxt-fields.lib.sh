@@ -26,6 +26,11 @@ todotxt_field_meta_tags ()
   $ggrep -Po '[^ ]+:[^ ]+'
 }
 
+todotxt_field_prios ()
+{
+  $ggrep -Po "^\\(\K[$TTXT_PRIOC]*(?=\\))"
+}
+
 todotxt_field_project_tags ()
 {
   $ggrep -Po '\+[^ ]+'

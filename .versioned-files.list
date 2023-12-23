@@ -17,6 +17,7 @@ test/diskdoc-spec.bats
 .jjb.yaml
 .jtb.yml
 docker-sh.sh
+filereader-htd.lib.sh
 htd.sh
 box.sh
 vc-oldmk.sh
@@ -40,8 +41,9 @@ project.py
 redmine_meta.py
 topics.sh
 topic.py
-tasks.sh
 tasks.py
+tasks.sh
+tasks-old.sh
 todo-meta.py
 todo.py
 db.py

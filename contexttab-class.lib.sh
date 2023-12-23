@@ -1,5 +1,5 @@
 
-class_contexttab_lib__load ()
+contexttab_class_lib__load ()
 {
   lib_require context class-uc stattab-uc || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}ContextTab
@@ -38,11 +38,10 @@ class_ContextTab_ () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
     ( .up-to-date ) context_files | os_up_to_date "${CTX_TAB_CACHE:?}"
       ;;
 
-    ( * ) return ${_E_next:?} ;;
+      * ) return ${_E_next:?};
 
-  esac || return
-
-  return ${_E_done:?}
+  esac &&
+    return ${_E_done:?}
 }
 
 #

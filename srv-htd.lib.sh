@@ -2,6 +2,7 @@ srv_htd_lib__load()
 {
   #lib_require metadir || return
   lib_require class-uc stattab-uc || return
+  ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}SrvTab
   : "${SRVTAB:=${STATUSDIR_ROOT:?}index/srv.tab}"
 }
 
@@ -19,21 +20,18 @@ class_SrvTabEntry__load ()
 }
 
 class_SrvTabEntry_ () # ~ <Instance-Id> .<Message-name> <Args...>
-#   .SrvTabEntry <Type> [<Src:Line>] - constructor
 {
   case "${call:?}" in
 
-    .local-dir ) # Look for another entry in parent table that tags srv/<name>
+    ( .local-dir ) # ~~ # Look for another entry in parent table that tags srv/<name>
         tagref=$(printf ' @%s\( \| .* \)host:%s\( \|$\)' $($self.var id) $HOST)
         : "$($self.src)"
         grep "$tagref" $_ | sed 's#^.* <\([^>]*\)/>.*#\1#'
       ;;
 
+      * ) return ${_E_next:?};
 
-    ( * ) return ${_E_next:?} ;;
-
-  esac
-  return ${_E_done:?}
+  esac && return ${_E_done:?}
 }
 
 class_SrvTab__load ()
@@ -42,17 +40,16 @@ class_SrvTab__load ()
 }
 
 class_SrvTab_ () # ~ <Instance-Id> .<Message-name> <Args...>
-#   .SrvTab <Instance-Type> <Table> [<Entry-class>] - constructor
-#   .__SrvTab - destructor
+#   .__init__ <Instance-Type> <Table> [<Entry-class>] # constructor
 {
   case "${call:?}" in
-    ".$name" )
-        $super.$super_type "$1" "$2" "${3:-SrvTabEntry}" ;;
 
-    ( * ) return ${_E_next:?} ;;
+    ( .__init__ )
+        $super.__init__ "${@:1:2}" "${3:-SrvTabEntry}" "${@:4}" ;;
 
-  esac
-  return ${_E_done:?}
+      * ) return ${_E_next:?};
+
+  esac && return ${_E_done:?}
 }
 
 #

@@ -1,62 +1,139 @@
-#!/usr/bin/env make.sh
+#!/usr/bin/env bash
 
-version=0.0.4-dev # script-mpe
+test -n "${uc_lib_profile:-}" ||
+  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${stat:-exit} $?
+uc_script_load user-script || ${stat:-exit} $?
+
+! script_isrunning "tasks" .sh ||
+  uc_script_load us-als-mpe || ${stat:-exit} $?
 
 
-# Script subcmd's funcs and vars
+tasks__libs=todotxt
+tasks__hooks=tasks_local_init
 
-# See $scriptname help to get started
-
-tasks__list()
+tasks_ ()
 {
-  echo TODO: google, redmine, local target, todotxtmachine
+  local a1_def=summary; sa_switch_arg
+  case "$switch" in
+
+    ( all )
+        declare ft file{version,id,mode}
+        for tf in $(locate -Aie '*/todo.txt')
+        do
+          fml_lvar=true filereader_modeline "$tf" ft=todo ft=todo.txt || {
+            : "file:$tf"
+            : "$_${fileid:+:id=$fileid}"
+            : "$_${fileversion:+:ver=$fileversion}"
+            : "$_${filemode:+:mode=$filemode}"
+            $LOG info "" "Skipping" "$_"
+            continue
+          }
+          #stderr echo File: $tf
+          #stderr echo modeline ver=$fileversion id=$fileid mode=$filemode &&
+          if_ok "$(todotxt_field_prios < "$tf" | count_lines)" &&
+            echo "$tf priorities: $_" ||
+            echo "$tf (priorities): [no data]"
+        done
+      ;;
+
+    ( I|index ) TODO index $* ;;
+
+    ( ml|modeline )
+        test 0 -lt $# || {
+          if_ok "$($todotxt.attr file FileReader)" || return
+          set -- "$_"
+        }
+        declare file{version,id,mode}
+        fml_lvar=true filereader_modeline "$1" ft=todo ft=todo.txt &&
+        {
+          : "file:${1-}"
+          : "$_${fileid:+:id=$fileid}"
+          : "$_${fileversion:+:ver=$fileversion}"
+          : "$_${filemode:+:mode=$filemode}"
+          $LOG notice "" "Found" "$_"
+        }
+      ;;
+
+    ( S|status )
+        $todotxt.priorities
+        return
+        $todotxt.byPriority "0" ;;
+
+    ( s|short|summary )
+        stderr $todotxt.class-tree &&
+        stderr $todotxt.class-params &&
+        TODO summary $* ;;
+
+      * ) sa_E_nss
+  esac
+  __sa_switch_arg
 }
 
 
-tasks__update()
+## User-script parts
+
+tasks_maincmds="aliases commands generate handlers help index indices info "\
+"list long-help variables version"
+tasks_shortdescr='Todo.txt ops'
+
+tasks_aliasargv ()
 {
-  req_vars HTDIR
-  cp $HTDIR/to/do.list $HTDIR/to/do.list.ro
-  cat $HTDIR/to/do.list.ro | while read id descr
+  test -n "${1-}" || return
+  case "${1//_/-}" in
+    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+    ( * ) set -- tasks_ "$@" ;;
+  esac
+}
+
+tasks_loadenv () # ~ <Cmd-argv...>
+{
+  user_script_loadenv &&
+  user_script_initlog || return
+  shopt -s nullglob nocaseglob
+  #us_log_v_warn
+  script_part=${base:?} user_script_load groups || {
+    test ${_E_next:?} -eq $? || return $_
+  }
+  #script_part=${1:?} user_script_load groups && return
+  #test ${_E_next:?} -eq $? || return $_
+  $LOG notice :tasks.sh "No specific env for script or command" "$*"
+  uc_log notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+}
+
+tasks_unload ()
+{
+  shopt -u nullglob nocaseglob
+  test -z "${todotxt-}" || destroy todotxt
+}
+
+# Load hooks
+
+tasks_local_init ()
+{
+  declare tf
+  for tf in [Tt][Oo][Dd][Oo].[Tt][Xx][Tt]
   do
-    case "$id" in
-      [-*+] ) # list-item:
-        ;;
-      . ) # class?
-        ;;
-      "#" ) # id or comment.. srcid?
-        ;;
-    esac
-    echo "$id"
+    test -f "$tf" || continue
+    create todotxt TodoTxtFile "$tf"
+    return
   done
+  return ${_E_not_found:?}
 }
 
+# Main entry (see user-script.sh for boilerplate)
 
-# Generic subcmd's
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
 
-tasks_als____version=version
-tasks_als___V=version
-tasks_grp__version=ctx-main\ ctx-std
-
-tasks_als____help=help
-tasks_als___h=help
-tasks_grp__help=ctx-main\ ctx-std
-
-tasks__edit()
-{
-  $EDITOR $0 $(which $base.py) "$@"
+! script_isrunning "tasks" .sh || {
+  export UC_LOG_BASE="${SCRIPTNAME}[$$]"
+  user_script_load defarg || exit $?
+  # Default value used if argv is empty
+  script_defcmd=short
+  user_script_defarg=defarg\ aliasargv
+  # Resolve aliased commands or set default
+  eval "set -- $(user_script_defarg "$@")"
+  script_run "$@"
 }
-tasks_als___e=edit
 
-
-## Main parts
-
-MAKE-HERE
-INIT_ENV="init-log 0 0-src 0-u_s 0-1-lib-sys 0-std ucache scriptpath box"
-INIT_LIB="os sys main str shell meta box date doc table remote tasks std stdio match log src src-htd"
-main-local
-failed= dry_run= tasks_session_id
-main-unload
-  clean_failed || unload_ret=1 ; unset failed
-main-epilogue
 # Id: script-mpe/0.0.4-dev tasks.sh

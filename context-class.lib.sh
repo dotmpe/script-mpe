@@ -1,7 +1,7 @@
 
 context_class_lib__load ()
 {
-  lib_require context stattab-class || return
+  lib_require str context stattab-class || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}Context
   : "${context_methods:=}"
 }
@@ -21,7 +21,7 @@ class_Context__load ()
 
 class_Context_ () # (super,self,id,call) ~ <Args>
 {
-  fnmatch "* ${call:1} *" " $context_methods " && {
+  str_wordmatch "${call:1}" ${context_methods:?} && {
     at_Context=$self context_${m:1} "$@"
     return
   }
@@ -34,10 +34,12 @@ class_Context_ () # (super,self,id,call) ~ <Args>
         var=ctx_${1//[:-]/_} &&
         declare -g $var=$val
       ;;
+
     ( .load ) # ~
       ;;
 
-    ( * ) return ${_E_next:?} ;;
+      * ) return ${_E_next:?};
+
   esac && return ${_E_done:?}
 }
 

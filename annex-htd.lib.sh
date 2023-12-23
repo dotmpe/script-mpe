@@ -4,6 +4,7 @@
 annex_htd_lib__load()
 {
   lib_require os-uc annex srv-htd class-uc || return
+  ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}AnnexTab
   : "${HTD_DEFAULT_ANNEX:=archive-1}" # Primary Annex, to select during init
 }
 
@@ -26,7 +27,7 @@ annex_htd_load_default ()
 {
   $annexes.fetch default_annex "${HTD_DEFAULT_ANNEX:?}" || {
     $LOG error : "fetching default annextab entry" \
-        E$?:$ANNEXTAB::$HTD_DEFAULT_ANNEX $? || return
+        "E$?:$ANNEXTAB::$HTD_DEFAULT_ANNEX" $? || return
   }
 
   {
@@ -157,16 +158,15 @@ class_AnnexTabEntry__load ()
 }
 
 class_AnnexTabEntry_ () # ~ <Instance-Id> .<Message-name> <Args...>
-#   .AnnexTabEntry <Type> [<Src:Line>] - constructor
 {
   case "${call:?}" in
 
-    .basedirs ) # Return canonical paths for checkouts
+    ( .basedirs ) # ~~ # Return canonical paths for checkouts
         $self.var refs | filter_dir_paths ;;
 
-    ( * ) return ${_E_next:?} ;;
-  esac
-  return ${_E_done:?}
+      * ) return ${_E_next:?};
+
+  esac && return ${_E_done:?}
 }
 
 
@@ -176,16 +176,16 @@ class_AnnexTab__load ()
 }
 
 class_AnnexTab_ () # ~ <Instance-Id> .<Message-name> <Args...>
-#   .AnnexTab <Type> <Table> [<Entry-class>] - constructor
+#   .__init__ <Type> <Table> [<Entry-class>] # constructor
 {
   case "${call:?}" in
 
-    ".$name" )
-        $super.$super_type "$1" "$2" "${3:-AnnexTabEntry}" ;;
+    ( .__init__ )
+        $super.__init__ "${@:1:2}" "${3:-AnnexTabEntry}" "${@:4}" ;;
 
-    ( * ) return ${_E_next:?} ;;
-  esac
-  return ${_E_done:?}
+      * ) return ${_E_next:?};
+
+  esac && return ${_E_done:?}
 }
 
 #

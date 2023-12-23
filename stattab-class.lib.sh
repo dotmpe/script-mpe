@@ -1,23 +1,61 @@
 
 stattab_class_lib__load ()
 {
-  ctx_class_types="${ctx_class_types-}${ctx_class_types:+" "}StatTabEntry StatTab IndexEntry"
+  ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}\
+"StatDirIndex StatIndex StatTabEntry StatTab"
   : "${stattab_var_keys:=btime ctime id idrefs meta refs short status utime}"
 }
 
 stattab_class_lib__init () # ~
 {
   test -z "${stattab_class_lib_init:-}" || return $_
-  lib_require stattab stattab-reader || return
+  lib_require stattab stattab-reader
 }
 
 
-class_IndexEntry__load () # ~
+class_StatDirIndex__load ()
 {
-  Class__static_type[IndexEntry]=IndexEntry:StatTabEntry:StatTab
+  # about "StatTab file with lines representing stattab files in the statusdir/index folder" @StatDirIndex
+  Class__static_type[StatDirIndex]=StatDirIndex:StatTab
 }
 
-class_IndexEntry_ () # (super,self,id,call) ~ <Call ...>
+class_StatDirIndex_ () # (super,self,id,call) ~ <Call ...>
+{
+  case "${call:?}" in
+
+    ( .__init__ )
+        $super.__init__ "${@:1:2}" "${3:-StatIndex}" "${@:4}" ;;
+
+    .fetch ) # ~ <Var-name> <Stat-id> [<Id-type>]
+        # First process as StatTabEntry and then turn instance into StatIndex
+        # bc. we need to parse the stattab line to get attributes that determine
+        # the actual file name to use as indextab.
+        $super.fetch "$@" &&
+        declare ref="${1#local:}" &&
+        ${!ref:?Expected $1 reference}.get &&
+        $LOG notice :$id "Retrieved ${CLASS_NAME:?} entry" "$1=$2" || return
+        declare ext class tab &&
+        ext=$(${!ref}.attr meta:ext "" tab) &&
+        class=$($self.tab-entry-class) &&
+        tab=$(out_fmt= statusdir_lookup $stttab_id.$ext index) ||
+          $LOG error :$id "No such index" "E$?:$stttab_id.$ext" $? || return
+        ${!ref}.switch-class "$1" "$class" &&
+        ${!ref}.set-attr file "$tab" StatIndex
+      ;;
+
+    * ) return ${_E_next:?};
+  esac && return ${_E_done:?}
+}
+
+
+class_StatIndex__load ()
+{
+  # about "Line in StatDirIndex representing another StatTab file" @StatIndex
+  Class__static_type[StatIndex]=StatIndex:StatTabEntry:StatTab
+
+}
+
+class_StatIndex_ () # (super,self,id,call) ~ <Call ...>
 {
   case "${call:?}" in
       * ) return ${_E_next:?};
@@ -27,6 +65,7 @@ class_IndexEntry_ () # (super,self,id,call) ~ <Call ...>
 
 class_StatTabEntry__load () # ~
 {
+  # about "Entry in StatTab file" @StatTabEntry
   Class__static_type[StatTabEntry]=StatTabEntry:Class
   #ParameterizedClass
   ctx_pclass_params=${ctx_pclass_params:-}${ctx_pclass_params:+ }$stattab_var_keys
@@ -56,6 +95,7 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
 #   .commit
 {
   case "${call:?}" in
+
     .__init__ )
         StatTabEntry__stattab[$id]=${2:?} &&
         StatTabEntry__seqidx[$id]=${3:?} &&
@@ -80,14 +120,14 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
         stattab_meta_unset StatTabEntry__meta &&
         ${super:?}.__del__
       ;;
+
     .attr ) # ~ <Key> [<Class>]          # Get field value from class instance value
         $super.attr "$1" "${2:-StatTabEntry}" ${3:-} ;;
-    .commit )
-        $self.set &&
-        stattab_commit $($($self.tab).tab-ref)
-      ;;
-    .entry ) stattab_entry "$@"
-      ;;
+
+    .commit ) $self.set && stattab_commit $($($self.tab).tab-ref) ;;
+
+    .entry ) stattab_entry ;;
+
     .get )
         StatTabEntry__status[$id]=$stttab_status
         StatTabEntry__btime[$id]=$stttab_btime
@@ -127,7 +167,8 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
       $self.attr stattab ;;
     .tab-ref )
       if_ok "$($self.tab-id)" &&
-      class.$(class.StatTabEntry StatTabEntry $_ .tab-class) $_ .tab-ref ;;
+      if_ok "$(class.StatTabEntry StatTabEntry $_ .tab-class) $_" &&
+      class.$_ .tab-ref ;;
     .todotxt-field ) # ~ <Field-key>
         #local field=${1:?}
         #shift
@@ -154,6 +195,7 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
 
 class_StatTab__load ()
 {
+  #about "File with lines or blocks representing entries consisting of status and description fields for some entity" @StatTab
   Class__static_type[StatTab]=StatTab:Class
   #ParameterizedClass
   declare -g -A StatTab__file=()
@@ -173,6 +215,7 @@ class_StatTab_ () # ~
 #   .commit
 {
   case "${call:?}" in
+
     .__init__ )
         test -e "${2:-}" || {
             $LOG error :"${self}" "Tab file expected" "${2:-\$2:unset}:$#:$*" 1 || return
@@ -181,37 +224,30 @@ class_StatTab_ () # ~
         StatTab__file[$id]=${2:?} &&
         StatTab__entry_type[$id]=${3:-StatTabEntry}
       ;;
+
     .__del__ )
-        unset StatTab__file[$id] &&
-        unset StatTab__entry_type[$id] &&
+        unset StatTab__file"[$id]" &&
+        unset StatTab__entry_type"[$id]" &&
         ${super:?}.__del__
       ;;
+
     .count ) if_ok "$($self.tab-ref)" && wc -l "$_" ;;
+
     .exists ) # ~ <Id>
         stattab_exists "$1" "" "$($self.tab-ref)" ;;
+
     .fetch ) # ~ <Var-name> <Stat-id> [<Id-type>]
         : "${1:?Expected Var-name argument}"
         ! str_wordmatch "$1" self id super call ext class tab ||
-          $LOG alert : "Cannot use reserved variable name" "$1" 1 || return
+          $LOG alert "" "Cannot use reserved variable name" "$1" 1 || return
         : "${2:?Expected Stat-id argument}"
-        $LOG debug : "Retrieving ${CLASS_NAME:?} entry" "$1=$2" &&
+        $LOG debug "" "Retrieving ${CLASS_NAME:?} entry" "$1=$2" &&
         if_ok "$($self.tab-ref)" &&
         stattab_fetch "$2" "${3:-}" "$_" ||
-          $LOG error : "Fetching" "${3:-}${3:+:}$1=$2:E$?" $? || return
-        # First process as StatTabEntry and then turn instance into IndexEntry
-        create "$1" "StatTabEntry" "$id" "${stttab_lineno:?}" &&
-        declare ref="${1#local:}" &&
-        ${!ref:?Expected $ref}.get &&
-        $LOG info :$id "Retrieved ${CLASS_NAME:?} entry" "$1=$2" ||
-          $LOG error :$id "Retrieving ${CLASS_NAME:?} entry" "E$?:$stttab_id.$ext" $? || return
-        declare ext class tab &&
-        ext=$(${!ref}.attr meta:ext "" tab) &&
-        class=$($self.tab-entry-class) &&
-        tab=$(out_fmt= statusdir_lookup $stttab_id.$ext index) ||
-          $LOG error :$id "No such index" "E$?:$stttab_id.$ext" $? || return
-        ${!ref}.query-class "$1" "$class" &&
-        ${!ref}.set-attr file "$tab" StatTab
+          $LOG error "" "Failed fetching" "${3:-}${3:+:}$1=$2:E$?" $? || return
+        create "$1" "StatTabEntry" "$id" "${stttab_lineno:?}"
       ;;
+
     .init ) local var=$1; shift
         stattab_init "$@" &&
         if_ok "$($self.tab-entry-class)" &&
@@ -238,6 +274,7 @@ class_StatTab_ () # ~
           fnmatch "*[${stb_pri_sep:?}]0" "$_"
         }
       ;;
+
     .tab ) if_ok "$($self.tab-ref)" &&
       stattab_tab "${1:-}" "$_" ;;
     .tab-entry-class ) $self.attr entry_type StatTab ;;

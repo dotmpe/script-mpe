@@ -63,12 +63,15 @@ context_sh_entries () # (y) ~ <action:-list> <...>
     ( r|raw ) context_tab_cache &&
         read_nix_data "${CTX_TAB_CACHE:?}" ;;
     ( rel|related-tags )
+          user_script_initlibs stattab-reader &&
           context_tab_cache &&
-          contexttab_related_tags "$@"
+          contexttab_related_tags "$@" &&
           echo "Related tags: $tag_rel"
         ;;
     ( tagged )
-          grep_f=-n generator=context_tab stattab_grep "$1" -tagged
+          user_script_initlibs stattab-reader &&
+          stb_fp=${CTX_TAB_CACHE:?} grep_f=-n generator=context_tab \
+            stattab_grep "$1" -tagged
         ;;
 
     ( * ) $LOG error "$lk" "No such action" "-$act:$*" 67
@@ -180,7 +183,12 @@ context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-a
         wc -l <<< "$scripts"
       ;;
     ( shell-libs )
-        if_ok "$(locate -be '*.lib.sh')" &&
+        locate -be '*.lib.sh' | sort -r |
+          awk -F / '!a[$NF]++ { print $0 }'
+      ;;
+    ( count-shell-libs )
+        if_ok "$(locate -be '*.lib.sh' | sort -r |
+          awk -F / '!a[$NF]++ { print $0 }')" &&
         wc -l <<< "$_"
       ;;
     ( count-shell-lib-lines )

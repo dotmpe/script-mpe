@@ -570,9 +570,4 @@ htd_current_context ()
 }
 
 
-htd_modeline ()
-{
-  file_modeline "$@"
-}
-
 # Id: script-mpe/0.0.4-dev ht.sh

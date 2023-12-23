@@ -1,6 +1,6 @@
 # See meta.lib
 # Extension on statusdir to track local indices with potential to update
-# from/to global files
+# from/to global files (in user/system statusdir)
 
 metadir_lib__load ()
 {
