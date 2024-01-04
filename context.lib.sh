@@ -5,7 +5,7 @@
 
 context_lib__load()
 {
-  lib_require os-htd src-htd stattab ctx-base contextdefs match-htd \
+  lib_require os-htd src-htd stattab{,-reader} ctx-base contextdefs match-htd \
       contextdefs || return
 
   : "${CTX:=""}"
@@ -54,6 +54,27 @@ context ()
   esac
 }
 
+context_define ()
+{
+  contexttab_init
+  contexttab_commit
+}
+
+context_cache ()
+{
+  # Export every function for access in shell subprocess
+  export -f \
+    filereader_statusdir_cache \
+    src_htd_resolve_fileref \
+    context_read_include \
+    context_file_attributes \
+    context_file_attribute std_noerr
+  preproc_run "${1:?}" \
+    filereader_statusdir_cache \
+    context_read_include \
+    src_htd_resolve_fileref
+}
+
 # See that all given tags exist
 context_check () # [case_match=1] [match_sub=0] ~ Tags...
 {
@@ -99,6 +120,11 @@ context_echo () # [FMT]
       ;;
 
   esac
+}
+
+context_env_define ()
+{
+  context_fetch
 }
 
 # List current context envs (CTX/CTXP and others)
@@ -191,7 +217,7 @@ context_field () # ~ <Attr> <Context-record>
 # XXX: meta field ':' contains no spaces in key or value
 context_field_meta ()
 {
-  : "${2:-${sttab_record:?}}"
+  : "${2:-${stab_record:?}}"
   : "${_##* $1:}"
   : "${_%% *}"
   echo "$_"
@@ -200,7 +226,7 @@ context_field_meta ()
 # XXX: all tag references (contexts and projects)
 context_field_tag_refs ()
 {
-  : "${2:-${sttab_record:?}}"
+  : "${2:-${stab_record:?}}"
   for word in $_
   do
     str_globmatch "$word" "@*" ||
@@ -320,18 +346,31 @@ context_files () # (ctx-tab) ~
   cut -d $'\t' -f 4 "$cached"
 }
 
+# Track (recursively) table of all source files given current context table.
+#
+# Ensures given include table (TSV) for current context-tab exists and is UTD,
+# or regenerate. If table does not exist yet, recurse all includes to get the
+# file list and then decide wheter to (recurse again and) generate the table. If
+# the table exists it can be used to shortcut the check. A missing context-tab
+# returns E:user (3).
 context_files_cached () # (ctx-tab) ~ <Cached-enum-file>
 {
   local context_tab="${context_tab:-${CTX_TAB:?}}"
+  test -e "$context_tab" || return ${_E_user:?}
   declare -a files
+  # Read file-line-src table, or generate ad-hoc file list
   test -e "${1:?}" &&
     mapfile -t files <<< "$(cut -d $'\t' -f 4 "$1")" ||
     mapfile -t files <<< "$(
       echo "$context_tab"
       preproc_includes_list "" "$context_tab")" || return
+  # Compare file utimes with those of source files, set non-zero if OOD
+  test -e "${1:?}" -a "$1" -nt "$context_tab" ||
   printf '%s\n' "${files[@]}" | os_up_to_date "$1" || {
+    # (Re)generate src,linenr,ref,file table
     {
-      echo -e "\t\t${context_tab/#$HOME\//~\/}\t$(realpath "$context_tab")"
+      if_ok "$(realpath "$context_tab")" &&
+      printf "\t\t%s\t%s" "${context_tab/#$HOME\//~\/}" "$_" &&
       preproc_includes_enum "" "$context_tab"
     } >| "$1" || return
   }
@@ -359,14 +398,9 @@ context_ids_list ()
 
 context_list_raw () # ~ <File>
 {
-  grep -q '^#include\ ' "${1:?}" && {
-    export -f context_read_include \
+  export -f context_read_include \
         context_file_attributes context_file_attribute std_noerr
-    { preproc_read_include=context_read_include preproc_expand "" "$1"
-    } || ignore_sigpipe || return
-  } || {
-    context_read_include "$1" "$1"
-  }
+  preproc_run "${1:?}" filereader_statusdir_cache context_read_include
 }
 
 context_load () # ~ <Target-var> <Types>
@@ -427,12 +461,18 @@ context_parse ()
 
 # Get all content lines, adding file-source Id tag to each entry.
 # Every line must start with a non-space character,
-context_read_include () # ~ <Ref> <File> <Src-file> <Src-line>
+context_read_include () # ~ <Ref> <File> [<Src-file> <Src-line>]
 {
   local id
   id=$(context_tab=${2:-${1:?}} context_file_attributes id) &&
   grep -v '^[\t ]' "${2:-${1:?}}" |
     sed -E 's/^([^# ].*)(#[^ ]|$)/\1 #'"$id"' \2 /'
+}
+
+context_require ()
+{
+  uc_field
+  exit 123
 }
 
 context_run () # ~ <Spec> <Arg...>

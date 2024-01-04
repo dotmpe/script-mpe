@@ -306,7 +306,7 @@ urlstat_fetch ()  # [ <URI-Ref> | <Glob> ] [<Tags>]
 
 urlstat_foreach () # <URI-Ref> [<Tags>]
 {
-  sttab_act=$urlstat_act stattab_foreach "$@"
+  stb_act=$urlstat_act stattab_foreach "$@"
 }
 
 urlstat_filter () # <Tags>...

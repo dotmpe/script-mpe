@@ -1,6 +1,6 @@
 filereader_htd_lib__load()
 {
-  lib_require class-uc || return
+  lib_require class-uc tabfile || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}\
 ListFile\ TabFile\ FileReader
 }
@@ -14,11 +14,38 @@ filereader_modeline ()
   str_fs=: str_wordsmatch "$filemode" "${@:2}"
 }
 
+filereader_define ()
+{
+  context_define
+}
+
+# TODO: use file attribute to retrieve cached Id, or reset from either modeline,
+# or preproc line, or add preproc line.
+# With cache file identified, generate source Id list as well,
+# and echo cache file path.
+filereader_statusdir_cache ()
+{
+  declare sd_{{bd,},id} file{version,id,modeline}
+  fml_lvar=true file_modeline "${1:?}" &&
+  test -n "${fileid-}" &&
+  test "${fileid:0:3}" = "SD:" && {
+    sd=${fileid:3}
+    str_globmatch "$sd" "*:*" && {
+      sd_bdid=${sd%:*} sd_id=${sd#*:}
+      sd_bd=${!sd_bdid:?Expected $sd_bdid env}/$metadir_default/cache
+    } ||
+      sd_id=${fileid:3} sd_bd=${STATUSDIR_ROOT}cache
+  } ||
+    sd_id=$fileid
+
+  echo "$sd_bd/$sd_id"
+}
+
 
 class_FileReader__load ()
 {
   Class__static_type[FileReader]=FileReader:Class
-  declare -g -A FileReader__file
+  declare -g -A FileReader__file=()
 }
 
 class_FileReader_ () # ~ <Instance-Id> .<Message-name> <Args...>
@@ -63,8 +90,21 @@ class_TabFile_ () # ~ <Instance-Id> .<Message-name> <Args...>
 {
   case "${call:?}" in
 
-    ( .by-column )
-        stderr echo TODO $* file=$($self.attr file FileReader)
+    ( .grep-tab )
+        declare tabfile
+        tabfile=$($self.attr file FileReader) &&
+        < "$tabfile" tabfile_grep "$1" "${2:--val}"
+      ;;
+
+    ( .by-column-value )
+        local grep_f=
+        $self.grep-tab "$@"
+      ;;
+
+    ( .key-by-index ) # ~ <Match-col> <Val> <Select-col=0>
+        declare tabfile
+        tabfile=$($self.attr file FileReader) &&
+        < "$tabfile" awk "{ if ( \$$1 == \"$2\" ) print \$${3:-0}; }"
       ;;
 
       * ) return ${_E_next:?};

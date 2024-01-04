@@ -14,6 +14,28 @@ basedir_htd_lib__init ()
 }
 
 
+basedirs_dump ()
+{
+	test $# -eq 0 -o "$*" = "--format=sh" || return ${_E_GAE:?}
+  < "$BASEDIRTAB" awk '
+    $2 !~ /^[A-Z]+$/ {
+			# TODO mkid?
+			next
+		}
+    $1 !~ /^ *#/ {
+      if (a[$2]) next
+			if (system("test -d " $1)==0) {
+				a[$2]++
+        b[length(a)-1]=$1
+        c[length(a)-1]=$2
+			}
+    } END {
+      for (i=0;i<length(a);i++) {
+        print c[i] "=\"" b[i] "\""
+      }
+    }'
+}
+
 class_BaseDir__load ()
 {
   # about "A directory value for a symbolic name" @BaseDir
@@ -50,6 +72,9 @@ class_BaseDirTab_ () # ~ <Instance-Id> .<Message-name> <Args...>
 
     ( .__init__ )
         $super.__init__ "${@:1:2}" "${3:-BaseDir}" "${@:4}" ;;
+
+    ( .fetch ) # ~ <Path> <Symbol>
+      ;;
 
       * ) return ${_E_next:?};
 

@@ -3,7 +3,6 @@
 
 src_htd_lib__load ()
 {
-  true "${CACHE_DIR:=${STATUSDIR_ROOT:?}cache}"
   true "${sentinel_comment:="#"}"
   true "${gsed:=sed}"
 }
@@ -575,173 +574,11 @@ EOF
 }
 
 # TODO: diff-where
-diff_where() # Where/Line Where/Span Src-File
+diff_where () # ~ Where/Line Where/Span Src-File
 {
   test -n "$1" -a -f "$3" || return $?
   echo
 }
 
-# List values for include-type pre-processor directives from file and all
-# included files (recursively).
-preproc_includes_list () # ~ <Resolver-> <File>
-{
-  local resolve=${1:-resolve_fileref}; shift 1
-  preproc_recurse preproc_includes $resolve 'echo "$file"' "$@"
-}
-
-preproc_recurse () # ~ <Generator> <Resolve-fileref> <Action-cmd>
-{
-  local select="${1:?}" resolve="${2:?}" act="${3:?}"; shift 3
-
-  grep_f=-HnPo "$select" "$@" | while IFS=$':\n' read -r srcf srcl ref
-  do
-    file=$($resolve "$ref" "$srcf") || {
-      $LOG alert :preproc-recurse "Resolve failure" \
-          "E$?:$select:$resolve:$act::$srcf:$srcl:$ref" $? || return
-    }
-    eval "$act"
-    preproc_recurse "$select" "$resolve" "$act" "$file" || true
-  done
-}
-
-# Resolve include reference to use,
-#from file, echo filename with path. If cache=1 and
-# this is not a plain file (it has its own includes), give the path to where
-# the fully assembled, pre-processed file should be instead.
-resolve_fileref () # [cache=0,cache_key=def] ~ <Ref> <From>
-{
-  local fileref
-
-  # TODO: we should look-up these on some (lib) path
-  #fnmatch "<*>" "$1"
-  #fnmatch '"*"' "$1"
-
-  # Ref must be absolute path (or var-ref), or we prefix the file's basedir
-  fnmatch "[/~$]*" "$1" \
-      && fileref=$1 \
-      || fileref=$(dirname -- "$2")/$1 # make abs path
-
-  #file="$(eval "echo \"$fileref\"" | sed 's#^\~/#'"${HOME:?}"'/#')" # expand vars, user
-  file=$(os_normalize "${fileref/#~\//${HOME:?}/}") &&
-  test -e "$file" || {
-    $LOG warn :resolve-fileref "Cannot resolve reference" "ref:$1 file:$file"
-    return 9
-  }
-  echo "$file"
-# FIXME:
-  #{ test ${cache:-0} -eq 1 && grep -q '^ *#'"${3:?}"' ' "$file"
-  #} \
-  #    && echo "TODO:$file" \
-  #    || echo "$file"
-}
-
-preproc_lines () # [grep_f] ~ <Dir-match> [<File|Grep-argv>] # Select only preprocessing lines
-{
-  local grep_re=${1:-"\K[\w].*"}; test $# -eq 0 || shift
-  grep ${grep_f:--Po} '^#'"$grep_re" "$@"
-}
-
-preproc_includes () # [grep_f] ~ [<File|Grep-argv>] # Select args for preproc lines
-{
-  preproc_lines 'include \K.*' "$@"
-}
-
-# Recursively resolve and list just the include directives
-preproc_includes_enum () # ~ <Resolver-> <File|Grep-argv...>
-{
-  local resolve=${1:-resolve_fileref}; shift 1
-  preproc_recurse preproc_includes $resolve 'echo -e "$srcf\t$srcl\t$ref\t$file"' "$@"
-}
-
-preproc_expand () # ~ <Resolver-> <File>
-{
-  # TODO: fix caching
-  preproc_expand_1_sed "${@:?}"
-
-  # TODO: apply recursively
-  #preproc_expand_2_awk "${@:?}"
-}
-
-# Replace include directives with file content, using two sed's and two
-# functions to resolve and dereference the file. See preproc-resolve-sedscript
-preproc_expand_1_sed () # ~ <Resolver-> <File|Grep-argv...>
-{
-  local lk=${lk:-}:expand-preproc:sed1 sc
-  preproc_expand_1_sed_script "$@" || return
-  ${preproc_read_include:-read_nix_data} "${2:?}" | {
-    "${gsed:?}" -f "$sc" - ||
-      $LOG error $lk "Error executing sed script" "E$?:($#):$*" $? || return
-  }
-}
-preproc_expand_1_sed_script ()
-{
-  local fn=${2//[^A-Za-z0-9\.:-]/-}
-  sc=${CACHE_DIR:?}/$fn.sed1
-  # Get include lines, reformat to sed commands, and execute sed-expr on input
-  local resolve=${1:-resolve_fileref}
-  preproc_resolve_sedscript "$resolve" "${2:?}" >| "$sc" ||
-      $LOG error $lk "Error generating sed script" "E$?:($#):$*" $? || return
-}
-
-preproc_expand_2_awk () # ~ <Directive-tag> <File>
-{
-  # Awk does not leave sentinel line.
-  awk -v HOME=$HOME -v v=${verbosity:-${v:-3}} '
-    function insert_file (file)
-    {
-        if (v > 4)
-            print "Reading \""file"\" for "FILENAME"..." >> "/dev/stderr"
-        gsub(/~\//,HOME"/",file)
-        if (system("[ -s \""file"\" ]") == 1) {
-            if (v > 2)
-                print "No such include for "FILENAME" named "file >> "/dev/stderr"
-            exit 4
-        }
-        if (file in sources) {
-            if (v > 2)
-                print "Recursion from "FILENAME" into already loaded "file >> "/dev/stderr"
-            exit 3
-        }
-        sources[file]=1
-        while (getline line < file)
-            print line
-        close(file)
-        if (v > 5)
-            print "Closed \""file"\"" >> "/dev/stderr"
-    }
-    /#'"${1:-include}"'/ { insert_file($2); next; }
-  ' "${2:?}"
-}
-
-preproc_hasdir () # ~ <Dir-match> <File|Grep-argv...>
-{
-  local dir=${1:?}; shift
-  grep -q '^[ \t]*#'"$dir"' ' "$@"
-}
-
-# Generate Sed script to assemble file with include preproc directives.
-# Like preproc
-preproc_resolve_sedscript () # ~ <Resolver> [<File>] # Generate Sed script
-{
-  local resolve=${1:-resolve_fileref}; shift 1
-  preproc_recurse preproc_includes $resolve preproc_resolve_sedscript_item "$@"
-}
-
-preproc_resolve_sedscript_item ()
-{
-  ref_re="$(match_grep "$ref")"
-  test "${preproc_read_include:-file}" = file && {
-    printf '/^[ \\t]*#include\ %s/r %s\n' "$ref_re" "$file"
-    printf 's/^[ \\t]*#include\ \(%s\)/#from\ \\1/\n' "$ref_re"
-  } || {
-    printf '/^[ \\t]*#include\ %s/e %s' "$ref_re" "${preproc_read_include:?}"
-    printf ' "%s"' "$ref" "$file" "$srcf" "$srcl"
-    printf '\n'
-    printf 's/^[ \\t]*#include\ \(%s\)/#from-include\ \\1/\n' "$ref_re"
-  }
-  # XXX: cleanup directives
-  #printf 's/^[ \t]*#\(include\ %s\)/#-\1/g\n' "$ref_re"
-  #printf 's/^#include /#included /g\n'
-}
 
 # Sync: src.lib.sh

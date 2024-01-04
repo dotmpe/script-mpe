@@ -21,29 +21,29 @@ stattab_lib__load ()
 }
 
 # See that main and stattab index exists (and are not empty), and select
-# whatever entry stttab_id is set to as source to read records from.
+# whatever entry stab_id is set to as source to read records from.
 stattab_lib__init ()
 {
   test -z "${stattab_lib_init:-}" || return $_
 
   # TODO: Auto populate index if empty. XXX: may run updates later as well
   {
-    test -s "${STIDX:?}" || sttab_main=true stderr stattab__init
+    test -s "${STIDX:?}" || stb_main=true stderr stattab__init
   } && {
     test -s "${STTAB:?}" || stderr stattab__init
   } && {
 
-    "${sttab_main:-false}" && {
-      sttab_id=
+    "${stb_main:-false}" && {
+      stab_id=
     } || {
-      sttab_id=
+      stab_id=
     }
   }
 }
 
 stattab__init ()
 {
-  "${sttab_main:-false}" && {
+  "${stb_main:-false}" && {
     test -e "${STIDX:?}" || {
       mkdir -p "$(dirname "$STTAB")" && touch "$STTAB" || return
     }
@@ -54,6 +54,8 @@ stattab__init ()
   }
 }
 
+# Helper for data-list reader; split key from directive line name part, and
+# and then value from line as well.
 stattab_data_dirln () # (stbdr) ~
 {
   test -z "$rawline"  && return
@@ -194,17 +196,17 @@ stattab_data_outline_dirln () # ~ <Handler <args...>>
   return ${_E_continue:-196}
 }
 
-# Output entry from current sttab_* values
+# Output entry from current stab_* values
 stattab_entry_fields() # ST-Id [Init-Tags]
 {
   note "Init fields '$*'"
-  test -n "$sttab_id" || stattab_env_init "$1"
+  test -n "$stab_id" || stattab_env_init "$1"
   test -z "$1" || shift
 
   # Output
-  echo "$sttab_id"
-  test -z "$sttab_short" || echo "$sttab_short"
-  echo "$sttab_tags" | words_to_lines | remove_dupes
+  echo "$stab_id"
+  test -z "$stab_short" || echo "$stab_short"
+  echo "$stab_tags" | words_to_lines | remove_dupes
 }
 
 

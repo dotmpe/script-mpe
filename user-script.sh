@@ -124,7 +124,8 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
 
 script_run () # ~ <Action <argv...>>
 {
-  #export UC_LOG_BASE=${0##*\/}"[$$]":doenv
+  export UC_LOG_BASE=${0##*\/}"[$$]":doenv
+  #export UC_LOG_BASE=$script_name"[$$]":doenv
   script_doenv "$@" || return
   ! uc_debug ||
       $LOG info :uc:script-run "Entering user-script $(script_version)" \
@@ -133,7 +134,7 @@ script_run () # ~ <Action <argv...>>
   shift
   ! uc_debug ||
       $LOG info :script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
-  export UC_LOG_BASE=$script_name"[$$]":$script_cmdname
+  export UC_LOG_BASE=$script_name"[$$]":${script_cmdals:-${script_cmdname:?}}
   "$script_cmdfun" "$@" || script_cmdstat=$?
   export UC_LOG_BASE=$script_name"[$$]":unenv
   script_unenv || return
@@ -547,8 +548,7 @@ user_script_defarg ()
   done
 
   # Print everything using appropiate quoting
-  argv_dump "$@"
-  exit $?
+  argv_dump "$@" &&
 
   # Print defs for some core vars for eval as well
   user_script_defcmdenv "$@"
@@ -884,10 +884,13 @@ user_script_loadenv ()
   : "${U_S:="$PROJECT/user-scripts"}"
   : "${LOG:="$U_S/tools/sh/log.sh"}"
 
-  # See std-uc.lib
+  # See U-C:std-uc.lib for latest definitions
   : "${_E_fail:=1}"
+  # 1: fail: generic non-success status, not an error per se
   : "${_E_script:=2}"
+  # 2: script: error caused by broken syntax or script misbehavior
   : "${_E_user:=3}"
+  # 3: user: usage error or faulty data
 
   : "${_E_nsk:=67}"
   #: "${_E_nsa:=68}"

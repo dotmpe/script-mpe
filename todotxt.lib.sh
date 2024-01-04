@@ -15,7 +15,7 @@ TodoTxtFile\ TodoTxtTask
 todotxt_from_file ()
 {
   if_ok "${1-$($todotxt.attr file FileReader)}" &&
-  stdin_from_nonempty "$_"
+  stdin_from_nonempty "${_:?}"
 }
 
 todotxt_grep () # ~ <Id> [<Search-Type>] [<File-source>]
@@ -36,7 +36,7 @@ todotxt_grep () # ~ <Id> [<Search-Type>] [<File-source>]
 
 todotxt_grep_ ()
 {
-  case "${act}" in
+  case "${act:?}" in
 
     ( descr )
         $ggrep $grep_f "$st_\\([^:]*:$p_:\\?\\|.* alias:$p_\\)\\(\\ \\|\$\\)"
@@ -56,7 +56,7 @@ todotxt_grep_ ()
     ( tagged )
         $ggrep $grep_f "${st_}.* \(\+\|@\)$p_\( \|\$\)" ;;
 
-      * ) $LOG error : "No such search-type" "$act" ${_E_nsa:?} ;;
+      * ) $LOG error :todotxt-grep "No such search-type" "$act" ${_E_nsa:?}
   esac
 }
 

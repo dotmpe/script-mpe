@@ -15,8 +15,8 @@ setup()
 @test "$base: descr" {
   local verbosity=3
   stattab_entry_env_reset
-  sttab_stat="-"
-  sttab_ctime=1539470160
+  stab_stat="-"
+  stab_ctime=1539470160
   run stattab_descr
   { test_ok_nonempty 2 && test_lines "-" "20181014-0036+02"
   } || stdfail
@@ -25,13 +25,13 @@ setup()
 @test "$base: fields entry" {
   local verbosity=3
   stattab_entry_env_reset
-  sttab_id=none
-  sttab_ctime=1539470160
+  stab_id=none
+  stab_ctime=1539470160
   run stattab_entry_fields
   { test_ok_nonempty 3 && test_lines "-" "20181014-0036+02" "none"
   } || stdfail 1.
 
-  sttab_id=
+  stab_id=
   run stattab_entry_fields test-some-fields
   { test_ok_nonempty 3 && test_lines "-" "20[0-9][0-9][0-9][0-9]*-[0-9]*" "test-some-fields"
   } || stdfail 2.
@@ -73,9 +73,9 @@ setup()
 
 @test "$base: update entry" {
   stattab_entry_env_reset
-  sttab_src=none
+  stab_src=none
   stattab_env_prep test-me
   TODO
-  #run sttab_tags "@Std"
+  #run stab_tags "@Std"
   #test_ok_nonempty || stdfail
 }

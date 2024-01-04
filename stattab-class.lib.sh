@@ -8,7 +8,7 @@ stattab_class_lib__load ()
 
 stattab_class_lib__init () # ~
 {
-  test -z "${stattab_class_lib_init:-}" || return $_
+  test -z "${stattab_class_lib_init-}" || return $_
   lib_require stattab stattab-reader
 }
 
@@ -37,10 +37,10 @@ class_StatDirIndex_ () # (super,self,id,call) ~ <Call ...>
         declare ext class tab &&
         ext=$(${!ref}.attr meta:ext "" tab) &&
         class=$($self.tab-entry-class) &&
-        tab=$(out_fmt= statusdir_lookup $stttab_id.$ext index) ||
-          $LOG error :$id "No such index" "E$?:$stttab_id.$ext" $? || return
+        tab=$(out_fmt= statusdir_lookup $stab_id.$ext index) ||
+          $LOG error :$id "No such index" "E$?:$stab_id.$ext" $? || return
         ${!ref}.switch-class "$1" "$class" &&
-        ${!ref}.set-attr file "$tab" StatIndex
+        ${!ref}.set-attr file "$tab" StatTab
       ;;
 
     * ) return ${_E_next:?};
@@ -68,7 +68,7 @@ class_StatTabEntry__load () # ~
   # about "Entry in StatTab file" @StatTabEntry
   Class__static_type[StatTabEntry]=StatTabEntry:Class
   #ParameterizedClass
-  ctx_pclass_params=${ctx_pclass_params:-}${ctx_pclass_params:+ }$stattab_var_keys
+  ctx_pclass_params=${ctx_pclass_params-}${ctx_pclass_params:+ }$stattab_var_keys
   declare -g -A StatTabEntry__btime=()
   declare -g -A StatTabEntry__ctime=()
   declare -g -A StatTabEntry__id=()
@@ -122,45 +122,51 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
       ;;
 
     .attr ) # ~ <Key> [<Class>]          # Get field value from class instance value
-        $super.attr "$1" "${2:-StatTabEntry}" ${3:-} ;;
+        $super.attr "$1" "${2:-StatTabEntry}" ${3-} ;;
 
     .commit ) $self.set && stattab_commit $($($self.tab).tab-ref) ;;
 
     .entry ) stattab_entry ;;
 
     .get )
-        StatTabEntry__status[$id]=$stttab_status
-        StatTabEntry__btime[$id]=$stttab_btime
-        StatTabEntry__ctime[$id]=$stttab_ctime
-        StatTabEntry__utime[$id]=$stttab_utime
-        StatTabEntry__id[$id]=$stttab_id
-        StatTabEntry__short[$id]=$stttab_short
-        StatTabEntry__tags[$id]=$stttab_tags
-        StatTabEntry__refs[$id]=$stttab_refs
-        StatTabEntry__idrefs[$id]=$stttab_idrefs
+        StatTabEntry__status[$id]=$stab_status
+        StatTabEntry__btime[$id]=$stab_btime
+        StatTabEntry__ctime[$id]=$stab_ctime
+        StatTabEntry__utime[$id]=$stab_utime
+        StatTabEntry__id[$id]=$stab_id
+        StatTabEntry__short[$id]=$stab_short
+        StatTabEntry__tags[$id]=$stab_tags
+        StatTabEntry__refs[$id]=$stab_refs
+        StatTabEntry__idrefs[$id]=$stab_idrefs
         stattab_meta_parse StatTabEntry__meta
       ;;
     .line )
       if_ok "$($self.srcspec)" && echo "${_/*:}" ;;
+
     .set )
-        ! stattab_value "${StatTabEntry__status[$id]-}" || stttab_status=$_
-        ! stattab_value "${StatTabEntry__btime[$id]}"  || stttab_btime=$_
-        ! stattab_value "${StatTabEntry__ctime[$id]}"  || stttab_ctime=$_
-        ! stattab_value "${StatTabEntry__utime[$id]-}"  || stttab_utime=$_
-        ! stattab_value "${StatTabEntry__id[$id]-}"     || stttab_id=$_
-        ! stattab_value "${StatTabEntry__short[$id]-}"  || stttab_short=$_
-        ! stattab_value "${StatTabEntry__tags[$id]-}"   || stttab_tags=$_
-        ! stattab_value "${StatTabEntry__refs[$id]-}"   || stttab_refs=$_
-        ! stattab_value "${StatTabEntry__idrefs[$id]-}" || stttab_idrefs=$_
-        ! stattab_value "${StatTabEntry__meta[$id]-}"   || stttab_meta=$_
+        ! stattab_value "${StatTabEntry__status[$id]-}" || stab_status=$_
+        ! stattab_value "${StatTabEntry__btime[$id]}"  || stab_btime=$_
+        ! stattab_value "${StatTabEntry__ctime[$id]}"  || stab_ctime=$_
+        ! stattab_value "${StatTabEntry__utime[$id]-}"  || stab_utime=$_
+        ! stattab_value "${StatTabEntry__id[$id]-}"     || stab_id=$_
+        ! stattab_value "${StatTabEntry__short[$id]-}"  || stab_short=$_
+        ! stattab_value "${StatTabEntry__tags[$id]-}"   || stab_tags=$_
+        ! stattab_value "${StatTabEntry__refs[$id]-}"   || stab_refs=$_
+        ! stattab_value "${StatTabEntry__idrefs[$id]-}" || stab_idrefs=$_
+        ! stattab_value "${StatTabEntry__meta[$id]-}"   || stab_meta=$_
       ;;
     .set-attr )
-        $super.set-attr "${1:?}" "${2:-}" "${3:-StatTabEntry}" ;;
+        $super.set-attr "${1:?}" "${2-}" "${3:-StatTabEntry}" ;;
     .src )
-      if_ok "$($self.srcspec)" && echo "${_/:*}" ;;
+        if_ok "$($self.srcspec)" && echo "${_/:*}" ;;
     .srcspec )
-      if_ok "$($self.params)" && echo "${_/* }" ;;
+        if_ok "$($self.params)" && echo "${_/* }" ;;
+
+    .status ) # ~ [<>]
+      ;;
+
     .tab ) $($self.tab-ref).tab ;;
+
     .tab-class )
       if_ok "$($self.tab-id)" && echo "$(class.Class Class $_ .class)" ;;
     .tab-id )
@@ -184,7 +190,7 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
         $self.get
       ;;
     .var ) # ~ <Var-key>             # Get field value from regular env variable
-        : "stttab_${1//-/_}"
+        : "stab_${1//-/_}"
         echo "${!_}"
       ;;
 
@@ -217,7 +223,7 @@ class_StatTab_ () # ~
   case "${call:?}" in
 
     .__init__ )
-        test -e "${2:-}" || {
+        test -e "${2-}" || {
             $LOG error :"${self}" "Tab file expected" "${2:-\$2:unset}:$#:$*" 1 || return
         }
         class_super_optional_call "$1" "${@:4}" || return
@@ -234,7 +240,9 @@ class_StatTab_ () # ~
     .count ) if_ok "$($self.tab-ref)" && wc -l "$_" ;;
 
     .exists ) # ~ <Id>
-        stattab_exists "$1" "" "$($self.tab-ref)" ;;
+        if_ok "$($self.tab-ref)" &&
+        stattab_exists "$1" "" "$_"
+      ;;
 
     .fetch ) # ~ <Var-name> <Stat-id> [<Id-type>]
         : "${1:?Expected Var-name argument}"
@@ -243,9 +251,9 @@ class_StatTab_ () # ~
         : "${2:?Expected Stat-id argument}"
         $LOG debug "" "Retrieving ${CLASS_NAME:?} entry" "$1=$2" &&
         if_ok "$($self.tab-ref)" &&
-        stattab_fetch "$2" "${3:-}" "$_" ||
-          $LOG error "" "Failed fetching" "${3:-}${3:+:}$1=$2:E$?" $? || return
-        create "$1" "StatTabEntry" "$id" "${stttab_lineno:?}"
+        stattab_fetch "$2" "${3-}" "$_" ||
+          $LOG error "" "Failed fetching" "${3-}${3:+:}$1=$2:E$?" $? || return
+        create "$1" "StatTabEntry" "$id" "${stab_lineno:?}"
       ;;
 
     .init ) local var=$1; shift
@@ -254,7 +262,7 @@ class_StatTab_ () # ~
         create "$var" "$_" "$id"
       ;;
     .list|.ids|.keys ) # ~ [<Key-match>]
-        stattab_list "${1:-}" "$($self.tab-ref)"
+        stattab_list "${1-}" "$($self.tab-ref)"
       ;;
     .new ) # ~ [<>]
         local tbref dtnow
@@ -262,7 +270,8 @@ class_StatTab_ () # ~
         dtnow="$(date_id $(date --iso=min))" &&
         echo "- $dtnow $1:" >> "$tbref"
       ;;
-    .status ) # ~ [<>]
+
+    .tab-status ) # ~ [<>]
         # XXX: refresh status context_run_hook stat || return
         #local entry status
         $self.fetch local:entry "$1" &&
@@ -276,7 +285,7 @@ class_StatTab_ () # ~
       ;;
 
     .tab ) if_ok "$($self.tab-ref)" &&
-      stattab_tab "${1:-}" "$_" ;;
+        stattab_tab "${1-}" "$_" ;;
     .tab-entry-class ) $self.attr entry_type StatTab ;;
     .tab-exists ) test -s "$($self.tab-ref)" ;;
     .tab-init ) stattab_tab_init "$($self.tab-ref)" ;;

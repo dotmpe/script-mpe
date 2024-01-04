@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 
 test -n "${uc_lib_profile:-}" ||
-  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${stat:-exit} $?
-uc_script_load user-script || ${stat:-exit} $?
+  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${us_stat:-exit} $?
+
+uc_script_load user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "tasks" .sh ||
-  uc_script_load us-als-mpe || ${stat:-exit} $?
+  uc_script_load us-als-mpe || ${us_stat:-exit} $?
 
 
-tasks__libs=todotxt
-tasks__hooks=tasks_local_init
+tasks__libs=todotxt,basedir-htd
+tasks__hooks=tasks_basedir_init,tasks_local_init
 
+# instead of separate handlers for user-script commands, prefix preproc_ as
+# default (see user-script aliasargv hook)
 tasks_ ()
 {
   local a1_def=summary; sa_switch_arg
@@ -18,7 +21,11 @@ tasks_ ()
 
     ( all )
         declare ft file{version,id,mode}
-        for tf in $(locate -Aie '*/todo.txt')
+
+        context_require Locate TodoTxt Status &&
+
+        # @Locate.all.ignore-case.existing
+        @Locate/Aie '*/todo.txt' | while read -r tf
         do
           fml_lvar=true filereader_modeline "$tf" ft=todo ft=todo.txt || {
             : "file:$tf"
@@ -28,8 +35,9 @@ tasks_ ()
             $LOG info "" "Skipping" "$_"
             continue
           }
+          # @TodoFile @Context @FileReader
+          # @Status => sum TodoTxt.PRI
           #stderr echo File: $tf
-          #stderr echo modeline ver=$fileversion id=$fileid mode=$filemode &&
           if_ok "$(todotxt_field_prios < "$tf" | count_lines)" &&
             echo "$tf priorities: $_" ||
             echo "$tf (priorities): [no data]"
@@ -60,6 +68,7 @@ tasks_ ()
         $todotxt.byPriority "0" ;;
 
     ( s|short|summary )
+        stderr echo BaseDir $sym=$bd/ &&
         stderr $todotxt.class-tree &&
         stderr $todotxt.class-params &&
         TODO summary $* ;;
@@ -72,8 +81,7 @@ tasks_ ()
 
 ## User-script parts
 
-tasks_maincmds="aliases commands generate handlers help index indices info "\
-"list long-help variables version"
+tasks_maincmds="all short status update-all"
 tasks_shortdescr='Todo.txt ops'
 
 tasks_aliasargv ()
@@ -102,11 +110,25 @@ tasks_loadenv () # ~ <Cmd-argv...>
 
 tasks_unload ()
 {
-  shopt -u nullglob nocaseglob
   test -z "${todotxt-}" || destroy todotxt
+  shopt -u nullglob nocaseglob
 }
 
 # Load hooks
+
+tasks_basedir_init ()
+{
+  declare bd
+  user_script_initlibs sys &&
+  if_ok "$(cwd_lookup_paths)" &&
+  for bd in $_
+  do
+    sym=$($basedirtab.key-by-index 1 "$bd/" 2) || continue
+    break
+  done &&
+    stderr echo found basedir $sym=$bd/ ||
+    $LOG warn "" "No basedir" "E$?:$PWD" $?
+}
 
 tasks_local_init ()
 {

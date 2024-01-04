@@ -2,9 +2,18 @@
 
 ### User-script example
 
+## Bootstrap
+
 test -n "${uc_lib_profile:-}" ||
   . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${stat:-exit} $?
+
 uc_script_load user-script || ${stat:-exit} $?
+
+# Define aliases immediately, before defining anymore functions (so they expand
+# ie. typeset properly and are defined/enabled for main script_{entry,run}
+# handler)
+#! script_isrunning "user-script-example" .sh ||
+#  uc_script_load user-script us-als-mpe || ${us_stat:-exit} $?
 
 
 ## Command handlers
@@ -27,6 +36,18 @@ user_script_example_bar ()
 
 
 ## User-script parts
+
+# main properties
+user_script_example_name="User-script+example"
+user_script_example_version=0.0.1-dev
+user_script_example_maincmds=
+user_script_example_shortdescr=
+user_script_example_extusage=
+
+#user_script_example__libs=
+#user_script_example_foo__grp=user-script-example
+#user_script_example_baz__grp=user-script-example
+
 
 user_script_example_loadenv ()
 {

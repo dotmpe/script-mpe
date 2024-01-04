@@ -7,7 +7,7 @@ context_sh__hooks=context_sh_init
 
 # all-tags
 #   List tag names
-context_sh_entries__libs=os-htd\ context
+context_sh_entries__libs=os-htd,context
 context_sh_entries () # (y) ~ <action:-list> <...>
 # all-tags
 #   List tag names
@@ -19,8 +19,8 @@ context_sh_entries () # (y) ~ <action:-list> <...>
   local lk=${lk:-:context}:entries:-$act
   case "$act" in
 
-    ( all-tags ) # ~ # List tag names
-        about "List tag names"
+    ( tags|all-tags ) # ~ # List tag names
+        #about "List tag names"
         context_tags_list
       ;;
     ( c|count ) # ~ # Count context.tab lines
@@ -121,6 +121,15 @@ context_sh_files () # ~ <Switch:-list> <...>
     ( l|ls|list )
         context_sh_files -all && context_sh_files -find
       ;;
+
+    ( pp|preproc )
+        preproc_includes_list "" "$CTX_TAB"
+      ;;
+
+    ( lr|list-raw )
+        context_list_raw "$CTX_TAB"
+      ;;
+
     ( sc|sed-script )
         #preproc_resolve_sedscript "" "$CTX_TAB"
         preproc_expand_1_sed_script "" "$CTX_TAB"
@@ -354,6 +363,7 @@ uc_script_load user-script
   script_defcmd=short
   user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
-  eval "set -- $(user_script_defarg "$@")"
+  if_ok "$(user_script_defarg "$@")"
+  eval "set -- $_"
   script_run "$@"
 }
