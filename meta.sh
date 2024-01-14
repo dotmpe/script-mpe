@@ -1,26 +1,51 @@
 #!/usr/bin/env bash
 
+## Bootstrap
+
+test -n "${uc_lib_profile:-}" ||
+  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${us_stat:-exit} $?
+
+uc_script_load user-script
+
+# Define aliases immediately, before function declarations and before entering
+# main script_{entry,run}
+! script_isrunning "meta.sh" ||
+  uc_script_load us-als-mpe || ${us_stat:-exit} $?
+
 
 meta_sh__grp=meta
-meta__grp=status
-meta__libs=meta\ metadir
+#meta__grp=status
+meta__libs=meta,metadir,us-fun
 status__libs=status
 #status__grp=user-script
+meta_sh__hooks=us_basedir_init,us_metadir_init
+
 
 meta_sh_attributes () # ~
 {
   meta_attributes "$@"
 }
+meta_sh_attributes__grp=meta-sh
 
-meta_sh_attributes_sh () # ~
-{
-  meta_attributes_sh "$@"
-}
 
 meta_sh_check () # ~ \!TODO
 {
-  $LOG warn : TODO check 1
+  local a1_def=summary; sa_switch_arg
+  case "$switch" in
+
+    ( summary )
+          stderr echo SD-Local: ${SD_LOCAL:?}
+          stderr echo "$sym: $bd/"
+
+          $LOG warn : TODO check 1
+        ;;
+
+      * ) sa_E_nss
+
+  esac
+  __sa_switch_arg
 }
+
 
 meta_sh_context () # ~ [ <Paths...> ] # List attributes at paths and parents
 {
@@ -61,18 +86,36 @@ meta_sh_context__grp=meta-sh
 
 #meta_sh_name=foo
 #meta_sh_version=xxx
-meta_sh_maincmds="attributes attributes-sh context help short version"
+meta_sh_maincmds="attributes context help short version"
 meta_sh_shortdescr='Track metadata'
+
+meta_sh_aliasargv ()
+{
+  test -n "${1-}" || return
+  case "${1//_/-}" in
+    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+    #  * ) set -- meta_sh_ "$@"
+  esac
+}
 
 meta_sh_loadenv ()
 {
-  user_script_loadenv || return
-  script_part=${1:?} user_script_load groups || {
-      # E:next means no libs found for given group(s).
-      test ${_E_next:?} -eq $? || return $_
-    }
-  lk="$UC_LOG_BASE"
-  $LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+  user_script_loadenv &&
+  user_script_initlog || return
+  shopt -s nullglob nocaseglob
+  script_part=${base:?} user_script_load groups || {
+    # E:next means no libs found for given group(s).
+    test ${_E_next:?} -eq $? || return $_
+  }
+  script_part=${1:?} user_script_load groups && return
+  test ${_E_next:?} -eq $? || return $_
+  $LOG notice :tasks.sh "No specific env for script or command" "$*"
+  uc_log notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+}
+
+meta_sh_unload ()
+{
+  shopt -u nullglob nocaseglob
 }
 
 # Main entry (see user-script.sh for boilerplate)

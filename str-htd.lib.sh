@@ -665,6 +665,21 @@ str_concat () # ~ <String-1> <String-2> <String-Sep>
   }
 }
 
+
+# Convert As-is style formatted file to double-quoted variable declarations
+asis_to_vars () # ~ <File|Awk-argv> # Filter to rewrite .attributes to simple shell variables
+{
+  awk '/^#/ { next; }
+  /^.*: / {
+    st = index($0,":") ;
+    key = substr($0,0,st-1) ;
+    gsub(/[^A-Za-z0-9]/,"_",key) ;
+    print toupper(key) "=\"" substr($0,st+2) "\""
+  }' "$@"
+}
+# Id: asis-to-vars
+
+
 # Error unless non-empty and true-ish value
 trueish () # ~ <String>
 {

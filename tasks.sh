@@ -9,8 +9,15 @@ uc_script_load user-script || ${us_stat:-exit} $?
   uc_script_load us-als-mpe || ${us_stat:-exit} $?
 
 
-tasks__libs=todotxt,basedir-htd
-tasks__hooks=tasks_basedir_init,tasks_local_init
+tasks__libs=todotxt,basedir-htd,us-fun
+tasks__hooks=us_basedir_init,tasks_local_init
+
+tasks_uc__libs=stattab-class,class-uc
+
+tasks_all__grp=uc
+tasks_all__libs=tasks,meta-xattr
+tasks_all__hooks=us_stbtab_init
+
 
 # instead of separate handlers for user-script commands, prefix preproc_ as
 # default (see user-script aliasargv hook)
@@ -19,32 +26,40 @@ tasks_ ()
   local a1_def=summary; sa_switch_arg
   case "$switch" in
 
-    ( all )
-        declare ft file{version,id,mode}
-
+    ( all-ng )
+        user_script_initlibs context &&
         context_require Locate TodoTxt Status &&
 
-        # @Locate.all.ignore-case.existing
-        @Locate/Aie '*/todo.txt' | while read -r tf
-        do
-          fml_lvar=true filereader_modeline "$tf" ft=todo ft=todo.txt || {
-            : "file:$tf"
-            : "$_${fileid:+:id=$fileid}"
-            : "$_${fileversion:+:ver=$fileversion}"
-            : "$_${filemode:+:mode=$filemode}"
-            $LOG info "" "Skipping" "$_"
-            continue
-          }
-          # @TodoFile @Context @FileReader
-          # @Status => sum TodoTxt.PRI
-          #stderr echo File: $tf
-          if_ok "$(todotxt_field_prios < "$tf" | count_lines)" &&
-            echo "$tf priorities: $_" ||
-            echo "$tf (priorities): [no data]"
-        done
+        # @Locate/all,ignore-case,existing
+        @Sh/data:tf \
+        @Locate/Aie \
+          '*/todo.txt' 'out_fmt=${out_fmt:-summary} tasks_scan_prio "$tf"'
       ;;
 
-    ( I|index ) TODO index $* ;;
+    ( all )
+        script_part=all user_script_load groups || return
+        : "${1:-files}"
+        : "${_//-/}"
+        typeset out_fmt=$_ tfiles tf &&
+        if_ok "$(locate -Aie '*/todo.txt')" &&
+        mapfile -t tfiles <<< "$_" || return
+        typeset cnt=0 pass=0 errs=0
+        for tf in "${tfiles[@]}"
+        do
+          sttab=$stbtab tasks_scan "$tf" || return
+        done
+        : $(( cnt + pass + errs ))
+        : "Checked $_ files,"
+        : "$_ $(( errs + pass )) files skipped ($errs non-task files),"
+        : "$_ $cnt task files have priorities set"
+        $LOG notice :tasks:all "$_"
+      ;;
+
+    ( C|check ) TODO check $*
+      ;;
+
+    ( I|index ) TODO index $*
+      ;;
 
     ( ml|modeline )
         test 0 -lt $# || {
@@ -65,13 +80,15 @@ tasks_ ()
     ( S|status )
         $todotxt.priorities
         return
-        $todotxt.byPriority "0" ;;
+        $todotxt.byPriority "0"
+      ;;
 
     ( s|short|summary )
         stderr echo BaseDir $sym=$bd/ &&
         stderr $todotxt.class-tree &&
         stderr $todotxt.class-params &&
-        TODO summary $* ;;
+        TODO summary $*
+      ;;
 
       * ) sa_E_nss
   esac
@@ -89,7 +106,7 @@ tasks_aliasargv ()
   test -n "${1-}" || return
   case "${1//_/-}" in
     ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
-    ( * ) set -- tasks_ "$@" ;;
+      * ) set -- tasks_ "$@"
   esac
 }
 
@@ -100,6 +117,7 @@ tasks_loadenv () # ~ <Cmd-argv...>
   shopt -s nullglob nocaseglob
   #us_log_v_warn
   script_part=${base:?} user_script_load groups || {
+    # E:next means no libs found for given group(s).
     test ${_E_next:?} -eq $? || return $_
   }
   #script_part=${1:?} user_script_load groups && return
@@ -114,21 +132,7 @@ tasks_unload ()
   shopt -u nullglob nocaseglob
 }
 
-# Load hooks
-
-tasks_basedir_init ()
-{
-  declare bd
-  user_script_initlibs sys &&
-  if_ok "$(cwd_lookup_paths)" &&
-  for bd in $_
-  do
-    sym=$($basedirtab.key-by-index 1 "$bd/" 2) || continue
-    break
-  done &&
-    stderr echo found basedir $sym=$bd/ ||
-    $LOG warn "" "No basedir" "E$?:$PWD" $?
-}
+# Add. load hooks
 
 tasks_local_init ()
 {

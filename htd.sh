@@ -4555,7 +4555,8 @@ htd_man_1__stattab='Build stattab index
 htd__sttab()
 {
   eval set -- $(lines_to_args "$arguments") # Remove options from args
-  subcmd_default=list subcmd_prefs=stattab_\ htd_stattab_ try_subcmd_prefixes "$@"
+  subcmd_default=list subcmd_prefs=stattab_\ htd_stattab_ \
+  try_subcmd_prefixes "$@"
 }
 htd_flags__sttab=qliAO
 htd_libs__sttab=stattab

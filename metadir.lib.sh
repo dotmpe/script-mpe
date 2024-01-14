@@ -1,7 +1,3 @@
-# See meta.lib
-# Extension on statusdir to track local indices with potential to update
-# from/to global files (in user/system statusdir)
-
 metadir_lib__load ()
 {
   lib_require os-htd stattab-uc || return
@@ -12,16 +8,16 @@ metadir_lib__load ()
 
 metadir_lib__init ()
 {
-  test -z "${metadir_lib_init:-}" || return $_
-
-  local found=false
+  test -z "${metadir_lib_init-}" || return $_
   test -n "${metadir_default:-}" || {
     for metadir_default in $(eval echo ${metadirs_default:?})
     do
-      test -e "$metadir_default" && { found=true; break; }
+      ! test -e "$metadir_default" || break
     done
   }
-  $found || test -e "$metadir_default" || return
+  test -e "$metadir_default" || return
+  test ! -e "$metadir_default/stat" || : "${SD_LOCAL:=$_}"
+  test ! -e "$metadir_default/cache" || : "${LCACHE_DIR:=$_}"
   #create metadirs StatTab $METADIRS_TAB
   #$LOG info :metadir.lib:init "Loaded" "E$?" $?
 }

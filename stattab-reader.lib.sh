@@ -178,7 +178,8 @@ stattab_grep () # ~ <Sttab-Id> [<Search-Type>] [<Stat-Tab>]
   #stderr cat
   #stattab_reader "${3-}" || return
   stdin_from_ stattab_tab "" "${3-}" ||
-    $LOG error :stattab:grep "Cannot read table" "${3:-}${3:+:}E$?" $? || return
+    $LOG error :stattab:grep "Cannot read table" \
+    "${3:-}${3:+:}E$?;for:$1:$2:" $? || return
 
   test "unset" != "${grep_f-"unset"}" || local grep_f=-m1
   local act=${2:-} st_ p_; match_grep_arg "$1"
@@ -327,6 +328,7 @@ stattab_parse_STD_stat () # ~ [Status] [BTime] [CTime] [UTime] [Dirs] [Passed] [
     $LOG warn :stb-parse:Std:stat "Surplus fields on record"
 }
 
+# XXX: see filereader_
 stattab_reader () # ~ (stb-fp) ~ [<StatTab-file>]
 {
  test -n "${stb_fp-}" && {

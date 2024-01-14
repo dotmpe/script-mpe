@@ -28,7 +28,7 @@ todotxt_field_meta_tags ()
 
 todotxt_field_prios ()
 {
-  $ggrep -Po "^\\(\K[$TTXT_PRIOC]*(?=\\))"
+  $ggrep -Po "^\\(${ttf_pp:-\K}[$TTXT_PRIOC]*(?=\\))"
 }
 
 todotxt_field_project_tags ()

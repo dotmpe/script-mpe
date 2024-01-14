@@ -246,6 +246,14 @@ sh_noerr ()
   std_noerr "$@" || true
 }
 
+sh_caller ()
+{
+  : "$(( ${1:-0} + 1 ))"
+  if_ok "$(caller $_)" || return
+  : "${_#* }"
+  : "${_% *}"
+  echo "$_"
+}
 
 script_mpe_lib__init ()
 {

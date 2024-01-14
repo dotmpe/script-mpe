@@ -1,16 +1,8 @@
 
-### Global function set for user-script
-
-# For global functions in this repository see script-mpe.lib
-
-
-# Build on uc:lib-load
-# XXX: eg. use 'at_ Dev' to build ctx_dev handler?
-
-# look for $<ctx>ctx and use value as handler, or source script <ctx>.sh
-# and use at_<ctx> as handler. Continues shifting arguments until either
-# exists. FIXME: should fail if none is found. Also should accumulate args,
-# list scr_ctx if script was found and loaded and def_ctx for everything else.
+us_fun_lib__load ()
+{
+  lib_require sys basedir-htd metadir lib-uc
+}
 
 at_ () # ~ <ctx> [<ctx|args..>]
 {
@@ -34,6 +26,33 @@ at_ () # ~ <ctx> [<ctx|args..>]
   done
   test 0 -eq $# && return
   "$@"
+}
+
+us_basedir_init ()
+{
+  lib_uc_initialized basedir-htd || return
+  declare -g bd
+  if_ok "$(cwd_lookup_paths)" &&
+  for bd in $_
+  do
+    sym=$($basedirtab.key-by-index 1 "$bd/" 2) || continue
+    break
+  done &&
+    $LOG info "" "Found basedir '$sym'" "$PWD:$sym=$bd/" ||
+    $LOG warn "" "No basedir" "E$?:$PWD" $?
+}
+
+us_metadir_init ()
+{
+  lib_uc_initialized metadir || return
+  test -d "${SD_LOCAL-}" && return
+  TODO "Find SD-Local on CWD"
+}
+
+us_stbtab_init ()
+{
+  create stbtab StatTab "${STTAB:?}" ||
+    $LOG error : "Failed to load stattab index" "E$?:$STTAB" $? || return
 }
 
 #

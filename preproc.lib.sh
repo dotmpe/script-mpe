@@ -191,16 +191,26 @@ preproc_resolve_sedscript_item ()
 # the fully assembled, pre-processed file should be instead.
 # XXX: should consolidate function into preproc or some U-S lib collection
 # eventually
-src_htd_resolve_fileref () # [cache=0,cache_key=def] ~ <Ref> <From>
+src_htd_resolve_fileref () # [cache=0,cache_key=def] ~ <Ref>
 {
   local fileref
+  stderr echo $(sh_caller 0) $# $*
+  exit 123
+  [[ "${1:?}" =~ /^([\<\"])(.*)[\>\"]$/ ]] && {
+    test "${BASH_REMATCH[1]}" = '"' && {
+      set -- src_htd_resolve_pathref "${BASH_REMATCH[2]}" "${2-}"
+    } || {
+      test "${BASH_REMATCH[1]}" = "<" &&
+        set -- src_htd_resolve_include "${BASH_REMATCH[2]}" "${2-}"
+    }
+    "$@"
+    return
+  }
 
-  # TODO: we should look-up these on some (lib) path
-  #fnmatch "<*>" "$1"
-  #fnmatch '"*"' "$1"
+  # test "$" = "${1:1:1}" ...
 
   # Ref must be absolute path (or var-ref), or we prefix the file's basedir
-  fnmatch "[/~$]*" "$1" \
+  fnmatch "[/~]*" "$1" \
       && fileref=$1 \
       || fileref=$(dirname -- "$2")/$1 # make abs path
 
@@ -218,76 +228,23 @@ src_htd_resolve_fileref () # [cache=0,cache_key=def] ~ <Ref> <From>
   #    || echo "$file"
 }
 
-
-
-preproc_define_r='^\ *#\ *define\ ([^\ ]*)\ (.*)$'
-preproc_include_r='^\ *#\ *include\ (.)(.*).$'
-
-preproc_runner () # (s) ~ # Rewrite stream
+src_htd_resolve_pathref () # ~ <Name> <Context> [<Extensions>]
 {
-  local lnr=0 directive= args_rx_ref= args_arr=
-  while read line
-  do
-    lnr=$(( $lnr + 1 ))
-    [[ "$line" =~ ^\ *#\ *([^\ ]*).*$ ]] && {
-      directive="${BASH_REMATCH[1]}"
-      args_rx_ref="preproc_${directive}_r"
+  test -e "${1:?}" || {
+    for ext in "${@:1}"
+    do test -e "$1.$ext" && { echo "$1.$ext"; break; }
+    done
+  }
 
-      test -n "${!args_rx_ref}" || {
-        $LOG error "preproc" "Unknown '$directive' preproc instruction at $lnr"
-        exit 1
-      }
-
-      [[ "$line" =~ ${!args_rx_ref} ]] && {
-        $LOG info "preproc" "Processing '$directive' at $lnr"
-
-        args_arr=("${BASH_REMATCH[@]}")
-        unset args_arr[0]
-        preproc_d_$directive "${args_arr[@]}"
-
-      } || {
-        $LOG error "preproc" "Illegal arguments for '$directive' at $lnr"
-        exit 1
-      }
-      continue
-    }
-
-    echo "$line"
-  done
+  test -e "$1" || { $LOG error "preproc" "Cannot find include '$1'" ; exit 1; }
+  echo "$1"
 }
 
-preproc_d_define()
+src_htd_resolve_include () # ~ <ID> [<Global>] [<PATH>] [<Exts...>]
 {
-  eval $1=$2
-  $LOG note "preproc:define" "New value" "$1='${!1}'"
-}
-
-#preproc_d_ifdef() { }
-#preproc_d_ifndef() { }
-
-#preproc_d_if() { }
-#preproc_d_elif() { }
-#preproc_d_endif() { }
-
-# Resolve path and produce contents
-preproc_d_include()
-{
-  local global=0
-  test "$1" = "<" && global=1
-  set -- "$1" "$2" "$( resolve_include "$2" $global )"
-  $LOG note "preproc:preproc" "Pre-processing..." "$3"
-  preproc < "$3"
-  $LOG debug "preproc:preproc" "Pre-processed" "$3"
-}
-
-resolve_include() # ID [Global] [PATH] [Exts...]
-{
-  local ID="$1" global=$2 Lookup_Path="$3" ; shift 3 || true
+  local ID="${1:?}" Lookup_Path="${3:-$SCRIPTPATH}" ; shift 3 || true
 
   test -n "$*" || set -- .inc.sh
-  test "1" = "$global" && {
-
-    test -n "$Lookup_Path" || Lookup_Path="$SCRIPTPATH"
 
     f_inc_path="$( echo "$Lookup_Path" | tr ':' '\n' | while read sp
       do
@@ -300,15 +257,58 @@ resolve_include() # ID [Global] [PATH] [Exts...]
       done )"
 
     test -n "$f_inc_path" || { $LOG error "preproc" "No path for global include '$1'" ; exit 1; }
-  } || {
+}
 
-    test -e "$ID" || {
-      for ext in "$@"
-      do test -e "$ID.$ext" && { echo "$ID.$ext"; break; }
-      done
+preproc_define_r='^\ *#\ *define\ ([^\ ]*)\ (.*)$'
+preproc_include_r='^\ *#\ *include\  *(.+)$'
+
+preproc_runner () # (s) ~ # Rewrite stream
+{
+  typeset lnr=0 directive= args_rx_ref= args_arr= \
+    lk=:preproc-runner lctx
+  while read -r line
+  do
+    lnr=$(( lnr + 1 ))
+    [[ "$line" =~ ^\ *#([^\ ]+).*$ ]] && {
+      directive="${BASH_REMATCH[1]}"
+      lctx=$lnr:$directive
+
+      # Validate line using regex
+      args_rx_ref="preproc_${directive}_r"
+      test -n "${!args_rx_ref}" ||
+      sh_fun preproc_d_"$directive" || $LOG error $lk \
+          "Unknown '$directive' preproc instruction at $lnr" "" 1 || return
+
+      [[ "$line" =~ ${!args_rx_ref} ]] && {
+        $LOG info $lk "Processing '$directive' at $lnr"
+        args_arr=("${BASH_REMATCH[@]}")
+        unset -v "args_arr[0]"
+        preproc_d_"$directive" "${args_arr[@]}" || $LOG error $lk \
+          "Non-zero status while running directive" E$?:$lctx $? || return
+
+      } || $LOG error $lk "Illegal arguments" $lctx 1 || return
+      continue
     }
 
-    test -e "$ID" || { $LOG error "preproc" "Cannot find include '$ID'" ; exit 1; }
-    echo "$ID"
-  }
+    echo "$line"
+  done
+}
+
+# XXX: look at var_update
+preproc_d_define () # ~ <Varname> <Value>
+{
+  eval $1=$2
+  $LOG note "preproc:define" "New value" "$1='${!1}'"
+}
+
+# Resolve path and produce contents
+preproc_d_include () # ~ <Ref> <...>
+{
+  typeset fileref
+  fileref=$(src_htd_resolve_fileref "${@:?}") || return
+  $LOG note "preproc:preproc" "Pre-processing..." "$fileref"
+  "${pp_rd:-src_reader_}" "$fileref" &&
+  if_ok "$(sh_caller 1)" &&
+  "$_" || return
+  $LOG debug "preproc:preproc" "Pre-processed" "$fileref"
 }

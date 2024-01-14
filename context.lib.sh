@@ -1,7 +1,5 @@
 #!/bin/sh
 
-# Tag-name records wip
-
 
 context_lib__load()
 {
@@ -245,10 +243,13 @@ context_file ()
 
 context_file_attribute () # ~ <Key> <Value> <Context-list>
 {
+  #meta_xattr__set
   xattr -w user.${1:?} "${2:?}" "${3:?}"
   # TODO: flush value to file later context_file_flush_xattr_cache
 }
 
+# record attributes specifically for context.tab, where attributes-values are
+# embedded (backed up) as preprocess directives into the tab file as well.
 context_file_attributes () # ~ <Keys...>
 {
   local context_tab="${context_tab:-${CTX_TAB:?}}" v xp

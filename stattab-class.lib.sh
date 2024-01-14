@@ -268,7 +268,7 @@ class_StatTab_ () # ~
         local tbref dtnow
         tbref="$($self.tab-ref)" &&
         dtnow="$(date_id $(date --iso=min))" &&
-        echo "- $dtnow $1:" >> "$tbref"
+        echo "- $dtnow $1:${2:+ }${2-}" >> "$tbref"
       ;;
 
     .tab-status ) # ~ [<>]

@@ -8,6 +8,7 @@ tasks_lib__load ()
       # XXX: static init only, move elsewhere or add $PWD
     test ! -e "to" || tasks_hub=to
   }
+  : "${tasks_filetypes:=tasks todo todo.txt}"
 }
 
 tasks_package_defaults()
@@ -146,6 +147,59 @@ tasks_add_dates_from_scm_or_def() # [date] ~ TODO.TXT [date_def]
   rm "$tmpf"
 }
 
+# TODO: track any task file in STTAB or given file
+# XXX: should read tab into AST index, and update when needed (see meta.lib)
+tasks_scan () # (sttab) ~ <Tasks-file> [<Tasks-tab>]
+{
+  test -n "${sttab:?}" && {
+    $sttab.tab-exists || return
+  } || {
+    create sttab StatTab "${STTAB:?}" ||
+      $LOG error : "Failed to load stattab index" "E$?:$STTAB" $? || return
+  }
+
+  #typeset file{version,id,mode}
+  out_fmt=${out_fmt:-} tasks_scan_prio "${1:?}" &&
+    cnt=$(( cnt + 1 )) ||
+    test ${_E_next:?} -eq $? && errs=$(( errs + 1 )) ||
+    test ${_E_continue:?} -eq $_ && pass=$(( pass + 1 )) ||
+    return $_
+}
+
+# XXX: check how many priorities there are in the tasks file and what level
+# they are.
+# Normally this list files which have any priority
+#
+tasks_scan_prio () # (out-fmt) ~ <File> [<Threshold>]
+{
+  filereader_skip "${1:?}" ${tasks_filetypes:?} || return ${_E_next:?}
+  typeset update
+  # @TodoFile @Context @FileReader
+  # @Status => sum @TodoTxt.PRI
+  pri_cnt=$(meta_xattr__get "${1:?}" prio-count) ||
+  {
+    update=true
+    pri_="$(task_field_prios "${2-}" < "${1:?}")" &&
+    pri_cnt=$(<<< "$pri_" count_lines) || pri_cnt=0
+  }
+  "${update:-false}" && {
+    meta_xattr__set "${1:?}" prio-count "$pri_cnt" || return
+  }
+  test $pri_cnt -eq 0 && {
+    case "${out_fmt:-files}" in
+      ( files ) ;;
+      ( stats ) echo "0 $1" ;;
+      ( summary ) echo "${1:?} priorities: [no data]" ;;
+    esac
+    return ${_E_continue:?}
+  } || {
+    case "${out_fmt:-files}" in
+      ( files ) echo "$1" ;;
+      ( stats ) echo "$pri_cnt $1" ;;
+      ( summary ) echo "${1:?} priorities: $pri_cnt" ;;
+    esac
+  }
+}
 
 # Go over entries and update/add new(er) entries in SRC to DEST.
 # SRC may have changes, DEST should have clean SCM status.
@@ -156,4 +210,10 @@ tasks_sync_from_to() # SRC DEST
   # what changed.
 
   true
+}
+
+task_field_prios () # ~ [<Threshold>]
+{
+  ttf_pp="\K"
+  todotxt_field_prios
 }

@@ -6,6 +6,24 @@ ListFile\ TabFile\ FileReader
 }
 
 
+filereader_ ()
+{
+  TODO "put ${1:?} into cache"
+}
+
+# XXX: track/provide Id for input source
+src_reader_ ()
+{
+  test -e "${1:?}" && {
+    declare -g fr_src="$1"
+    stdin_from_nonempty "$@" || return
+  } || {
+    declare -g fr_cmd="$1"
+    stdin_from_ "$@"
+  }
+}
+
+
 filereader_modeline ()
 {
   test 1 -lt $# || return ${_E_MA:-194}
@@ -14,15 +32,33 @@ filereader_modeline ()
   str_fs=: str_wordsmatch "$filemode" "${@:2}"
 }
 
+# XXX:
 filereader_define ()
 {
   context_define
 }
 
-# TODO: use file attribute to retrieve cached Id, or reset from either modeline,
-# or preproc line, or add preproc line.
-# With cache file identified, generate source Id list as well,
-# and echo cache file path.
+# Return E:next if given file does not have matching modeline.
+# xxx: could prefix with file extension check, and even disable modeline/editor
+# mode check, but this is more precise and simpler, and alt impl. are not needed
+# for now. Relying on filename extension seems simple but is hardly usable as
+# is.
+filereader_skip ()
+{
+  declare ml_ft=( $(printf "ft=%s\n" ${tasks_filetypes:?}) )
+  fml_lvar=true filereader_modeline "${1:?}" "${ml_ft[@]}" || {
+    : "file:${1:?}"
+    : "$_${fileid:+:id=$fileid}"
+    : "$_${fileversion:+:ver=$fileversion}"
+    : "$_${filemode:+:mode=$filemode}"
+    $LOG info "" "Skipping" "$_"
+    return 1
+  }
+}
+
+# TODO: use file attribute to retrieve cached Id, or reset that from either
+# modeline, or preproc line, or add a preproc line. With cache file identified,
+# generate source Id list as well, and echo cache file path.
 filereader_statusdir_cache ()
 {
   declare sd_{{bd,},id} file{version,id,modeline}
