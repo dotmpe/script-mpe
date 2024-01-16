@@ -22,7 +22,7 @@ package_require ()
 package_load ()
 {
   test ${package_lib_init:-1} -eq 0 || {
-    test ${package_lib_loaded:-1} -eq 0 || {
+    test ${package_lib_load:-1} -eq 0 || {
       lib_require package || return
     }
     package_lib_auto=0 lib_init package || return

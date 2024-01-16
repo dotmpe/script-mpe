@@ -1,10 +1,3 @@
-#!/bin/sh
-
-# Track script status and Id records in file
-
-# [2023-11-30] XXX: moved data to cmdtab (command-class.lib), most of this can
-# be deprecated and removed after rewriting to some stattab-class.lib derivation
-
 scrtab_lib__load ()
 {
   lib_assert statusdir || return

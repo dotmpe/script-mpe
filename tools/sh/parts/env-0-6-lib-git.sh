@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-: "${git_lib_loaded:=}"
+: "${git_lib_load:=}"
 
 # TODO: rename
 : "${SRC_DIR:=}"

@@ -212,7 +212,7 @@ EOM
   Env-lib:
     $($bgctx run-cmd eval echo \${ENV_LIB:-} )
   Lib-loaded:
-$($bgctx run-cmd lib_uc_hook pairs _lib_loaded | sed 's/^/    /' )
+$($bgctx run-cmd lib_uc_hook pairs _lib_load | sed 's/^/    /' )
   Lib-init:
 $($bgctx run-cmd lib_uc_hook pairs _lib_init | sed 's/^/    /' )
 EOM

@@ -4,7 +4,7 @@
 # XXX:
 #htd_scripts_lib__load()
 #{
-#  test "${package_lib_loaded:-}"
+#  test "${package_lib_load:-}"
 #}
 
 

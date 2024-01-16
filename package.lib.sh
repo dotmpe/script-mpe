@@ -250,7 +250,7 @@ package_defaults()
   test -n "${package_pd_meta_targets-}" || package_pd_meta_targets=
   test -n "${package_lists_documents-}" ||
       package_lists_documents=doc-list-files-exts-re
-  test -z "${tasks_lib_loaded-}" && return # XXX: other way to deal with components
+  test -z "${tasks_lib_load-}" && return # XXX: other way to deal with components
 
   tasks_package_defaults
 }

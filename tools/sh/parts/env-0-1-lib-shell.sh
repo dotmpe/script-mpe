@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-: "${shell_lib_loaded:=""}"
+: "${shell_lib_load:=""}"
 : "${SD_SHELL_DIR:=""}"
 : "${MPE_ENV_NAME:=""}"
 : "${base:=""}"

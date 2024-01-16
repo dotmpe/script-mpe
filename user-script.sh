@@ -201,8 +201,8 @@ script_debug_args () # ~ <Array-var> # Pretty print array
 script_debug_arr () # ~ <Array-var> # Pretty print array
 {
   test 1 -eq $# || return ${_E_MA:?}
-  if_ok "$(declare -p ${1:?})" &&
-    fnmatch "declare -*[Aa]* ${1:?}" "$_" &&
+  if_ok "$(typeset -p ${1:?})" &&
+    fnmatch "typeset -*[Aa]* ${1:?}" "$_" &&
       echo "Array '${_:11}' (empty)" ||
       <<< "Array '${_:11}" sed "s/=(\[/':\\n\\t/
 s/\" \[/\\n\\t/g
@@ -250,8 +250,8 @@ script_debug_funs () # ~ <Fun...> # List shell functions
   local fun
   for fun in "$@"
   do
-    stderr declare -F $fun
-    stderr declare -f $fun
+    stderr typeset -F $fun
+    stderr typeset -f $fun
   done
 }
 
@@ -259,7 +259,7 @@ script_debug_libs () # ~ # List shell libraries loaded and load/init states
 {
   echo "lib_loaded: $lib_loaded"
   if_ok "
-$( lib_uc_hook pairs _lib_loaded | sort | sed 's/^/   /' )
+$( lib_uc_hook pairs _lib_load | sort | sed 's/^/   /' )
 lib_init:
 $( lib_uc_hook pairs _lib_init | sort | sed 's/^/   /' )
 " &&
@@ -700,7 +700,7 @@ user_script_initlibs () # ~ <Required-libs...>
     set -- $(user_script_initlibs__initialized "$@")
     test 0 -lt $# || {
         # XXX: if debug
-        declare -a loaded=( $lib_loaded ) initialized
+        typeset -a loaded=( $lib_loaded ) initialized
         if_ok "$(std_noerr lib_uc_hook var _lib_init)" &&
           initialized=( $_ ) && : "${#initialized[@]}" || : "?"
         $LOG info "$lk" "Done" "loaded=${#loaded[@]};initialized=$_"
@@ -1234,7 +1234,7 @@ user_script_usage_ext ()
   local h=$1 fun=${1//-/_} fun_def
 
   shopt -s extdebug
-  fun_def=$(declare -F "$fun") || {
+  fun_def=$(typeset -F "$fun") || {
     $LOG error "" "No such type loaded" "fun?:$fun"
     return 1
   }
@@ -1311,13 +1311,13 @@ user_script_alsdefs ()
 
 # Shell aliases can be useful, except when used as macro then they don't even
 # have some variable expansion. But if we escape their definitions for eval,
-# we can still declare new specific aliases from re-usable patterns.
+# we can still typeset new specific aliases from re-usable patterns.
 #
 # See us-shell-alias-def.
 us_shell_alsdefs ()
 {
   # XXX: note the us vs uc. ATM not sure I really want these 'expansions' in US.
-  declare -g -A uc_shell_alsdefs=()
+  typeset -g -A uc_shell_alsdefs=()
 
   # Some current patterns. Probably want to move to compose.
 

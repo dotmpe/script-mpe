@@ -18,12 +18,12 @@ main_make_lib__load()
       #. $CWD/tools/sh/parts/func_exists.lib.sh
       #. $CWD/tools/sh/parts/trueish.lib.sh
 
-  test ${main_lib_loaded:-1} -eq 0 || {
+  test ${main_lib_load:-1} -eq 0 || {
     . $CWD/main.lib.sh || exit
     main_lib__load
-    main_lib_loaded=$?
+    main_lib_load=$?
   }
-  return $main_lib_loaded
+  return $main_lib_load
 }
 
 make_read_herescript()
