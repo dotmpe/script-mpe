@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
 :created: 2018-05-09
+:updated: 2024-01-31
 
 """
 from __future__ import print_function
-__description__ = "basename-reg - query Wordnet corpus with Python NLTK"
+__description__ = "basename-reg - Maintain local registry of content mediatypes"
 __version__ = '0.0.4-dev' # script-mpe
 __config__ = '~/.basename-reg.yaml'
 __usage__ = """
 Usage:
   basename-reg [-v... -q... options] (-c|check) PATH...
+  basename-reg getext [--one] MT
+  basename-reg getmediatype EXT
   basename-reg mediatypes
   basename-reg extensions
   basename-reg info
@@ -18,6 +21,8 @@ Usage:
   basename-reg --version
 
 Options:
+    --one
+                 Format the extension, do not list every alias.
     -q, --quiet
                  Be quiet, no warnings. Use twice to output nothing at all.
     -c, --check
@@ -43,7 +48,7 @@ Options:
                  For a command and argument description use the command 'help'.
     --version    Show version (%s).
 """ % (__config__, __version__)
-import os
+import sys, os
 import ruamel.yaml as yaml
 from pprint import pformat, pprint
 
@@ -64,6 +69,29 @@ cmd_default_settings = dict(
 def cmd_info(g, opts):
     pprint(opts.database)
     pass #print(g.database)
+
+def cmd_getmediatype(EXT, g, opts):
+    ext = EXT.lower()
+    while ext in opts.database['ext_map']:
+      ext = opts.database['ext_map'][ext]
+    if ext not in opts.database['mime_ext_reg']:
+      print("Not a known extension: %s" % EXT, file=sys.stderr)
+      return 1
+    print(opts.database['mime_ext_reg'][ext])
+
+def cmd_getext(MT, g, opts):
+    mt = MT.lower()
+    while mt in opts.database['mime_alias']:
+      mt = opts.database['mime_alias'][mt]
+    if mt not in opts.database['mime_xref']:
+      print("Not a known mediatype: %s" % MT, file=sys.stderr)
+      return 1
+    exts = opts.database['mime_xref'][mt][0]
+    if g.one:
+      print(".%s" % exts[0])
+    else:
+      for ext in exts:
+        print(ext)
 
 def cmd_extensions(opts):
     """List extension tags

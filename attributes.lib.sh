@@ -1,10 +1,5 @@
 
-# Attributes files are lists of globs with optional specifications, similar in
-# format to gitattributes.
-# XXX: For handling the related .attributes see meta-dotattr, rename (dir)meta
-
-
-user_lib__load ()
+attributes_lib__load ()
 {
   : "${CONFIG_INCLUDE:=${US_BIN:-$HOME/bin}/etc:${XDG_CONFIG_HOME:-$HOME/.config}:/etc}"
 }
@@ -18,7 +13,7 @@ user_script_base ()
 
 user_script_basename ()
 {
-  echo "${user_script_basename:-user-script}"
+  : "${user_script_basename:-user-script}"
 }
 
 user_script_suite ()
@@ -33,7 +28,8 @@ user_script_ext ()
 
 user_script_key ()
 {
-  echo ${user_script_key:-${base:-us}}
+  : ${user_script_key:-${base:-us}}
+  echo "${_//[\/.]/-}"
 }
 
 
@@ -143,7 +139,7 @@ attributes_stddef ()
     \
     ${specskey}[script-key-attributes-2]=\""$(echo {.${script_key}.attributes,meta:{,*-}${script_key}.attributes,etc:{,*-}${script_key}.attributes})"\"
   set +f
-  stderr declare -p $groupkey $specskey
+  stderr script_debug_arrs $groupkey $specskey
 }
 
 attributes_tagged ()

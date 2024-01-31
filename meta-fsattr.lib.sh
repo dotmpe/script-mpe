@@ -6,7 +6,7 @@ meta_xattr_lib__load ()
 
 
 # XXX: user. prefix is not removed or filtered upon, fields are not mapped
-meta_dump__xattr ()
+meta__xattr__dump ()
 {
   local data=$(meta_xattr__raw "$@")
   case "${out_fmt:-kv}" in
@@ -28,7 +28,7 @@ meta_dump__xattr ()
 }
 
 
-meta_xattr__get () # ~ <File> <Key>
+meta__xattr__get () # ~ <File> <Key>
 {
   # XXX: unfortunately xattr does not have a -q flag or similar, and it does
   # not even use command status so this has to capture stderr.
@@ -38,12 +38,12 @@ meta_xattr__get () # ~ <File> <Key>
   echo "${meta_xattr_stdout}"
 }
 
-meta_xattr__set () # ~ <File> <Key> <Value>
+meta__xattr__set () # ~ <File> <Key> <Value>
 {
   xattr -w user.${2:?} "${3:?}" "${1:?}"
 }
 
-meta_xattr__raw () # ~ <File>
+meta__xattr__raw () # ~ <File>
 {
   xattr -l "${1:?}"
 }

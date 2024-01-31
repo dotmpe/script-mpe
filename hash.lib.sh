@@ -1,37 +1,47 @@
 #!/bin/sh
 
+hash_lib__load ()
+{
+  lib_require ck
+}
+
 
 # FIXME: crc32: $(cksum.py -a rhash-crc32 "$1" | cut -d ' ' -f 1,2)
 
-
-hash_str () # ~ <Algo> <String>
+# Wrapper for generating hash/cksum from string
+hash_str () # ~ <Algo> <String> [<Check>]
 {
-  printf '%s' "${1:?}" | urn=false hash_run ${2:?} - | cut -d ' ' -f 1
+  ck_${1:?} - "${@:3}" <<< "${2:?}"
 }
 
-# output as urn:$algo:<cksum> unless ${urn:-false}
+# Output hash or checksum (in ASCII form) from input, and format. Default
+# formatting as URN in the form of urn:<algo>:<cksum>.
+# XXX: check mode/validate existing ckfile?
+#
+# ${out_fmt:=urn}
+#
 # to run checks with generated output see ck-run
-hash_run () # ~ <Algo> <Files...>
+hash_run () # ~ <Algo> [<Files...>]
 {
-  local algo=${1:?}
+  local algo=${1:?} hash
   shift
-  { case "$algo" in
+  case "$algo" in
 
-      ( sha2 | sha256 )
-            shasum -a 256 "$@"
-          ;;
-      ( git | rhash-* )
-            cksum.py -a $algo "$@"
-          ;;
-      ( ck )
-            htd__cksum "$@"
-          ;;
-      ( * )
-            exec=$(command -v ${algo}sum) || return
-            ${ext}sum -c "$@"
-          ;;
-    esac
-  } | { ${urn:-true} && sed 's/^/urn:'"$algo"':/g' || cat; }
+    ( sha2 | sha256 )
+        hash="$(shasum -a 256 "$@")" || return
+      ;;
+    ( git | rhash-* )
+        hash="$(cksum.py -a $algo "$@")" || return
+      ;;
+    ( ck )
+        hash="$(htd__cksum "$@")" || return
+      ;;
+      * )
+        exec=$(command -v ${algo}sum) &&
+        hash="$($exec "$@")" || return
+  esac
+  #"${urn:-true}"
+  #&& sed 's/^/urn:'"$algo"':/g' || cat; }
 }
 
 #

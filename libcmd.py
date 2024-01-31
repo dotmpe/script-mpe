@@ -37,15 +37,15 @@ import sys
 import traceback
 import types
 #from inspect import isgeneratorfunction
+import collections
 
 import zope.interface
 
-import lib
-from taxus import iface, init
-import log
-import confparse
+from . import lib
+from .taxus import iface, init
+from . import log
+from . import confparse
 from confparse import Values
-import collections
 
 
 #@zope.interface.implementer(iface.IProgramHandlerResultProcessor)

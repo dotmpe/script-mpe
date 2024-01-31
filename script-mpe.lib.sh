@@ -6,7 +6,11 @@
 
 
 # sh_func_decl
-fun_def () { eval "${1:?} () { ${*:2} }"; }
+fun_def () {
+  : "${2:?fun-def: $1: Function body expected}"
+  : "${1:?fun-def: Function name expected} () { ${*:2} }"
+  eval "$_"
+}
 
 # Could declare all fun-* this way, but what is the point atm. May be if fun-
 # def tracked metadata. See env-*. Keeping aliases together with fun-*() copy.
@@ -26,7 +30,8 @@ fun_wrap () { "$@"; }
 
 sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body
 {
-  if_ok "$(declare -f "${1:?}")" || return
+  : "${1:?sh-funbody: Function name expected}"
+  if_ok "$(declare -f "$_")" || return
   : "${_#* () }"
   : "${_:4:-2}"
   #: "${c#* () $'\n'}"
@@ -37,8 +42,9 @@ sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body
 
 sh_fclone () # ~ <New-name> <Copy-ref> # alias:fun-clone
 {
-  if_ok "${1:?} () {
-$(sh_funbody "$2")
+  : "${1:?sh-fclone: New function name expected}"
+  if_ok "$_ () {
+$(sh_funbody "${2:?sh-fclone: Reference function name expected}")
 }" &&
   eval "$_"
 }
@@ -51,7 +57,7 @@ str_globmatch () # ~ <String> <Glob-pattern>
 {
   case "${1:?}" in ${2:?} ) ;; ( * ) false ;; esac
 }
-fun_def fnmatch 'str_globmatch "${2:?}" "${1:?}";'
+fun_def fnmatch 'str_globmatch "${2:?fnmatch: \$2 not set}" "${1:?fnmatch: \$1 not set}";'
 
 str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
 {

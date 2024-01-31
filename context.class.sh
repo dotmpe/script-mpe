@@ -1,20 +1,9 @@
 
-context_class_lib__load ()
-{
-  lib_require str context stattab-class || return
-  ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}Context
-  : "${context_methods:=}"
-}
-
-context_class_lib__init ()
-{
-  test -z "${context_class_lib_init:-}" || return $_
-}
-
-
 class_Context__load ()
 {
+  Class__libs[Context]=str,context,stattab-class
   Class__static_type[Context]=Context:StatTabEntry
+  #: "${context_methods:=}"
   #stattab_var_keys
   #ctx_pclass_params=${ctx_pclass_params:-}${ctx_pclass_params:+ }$context_var_keys
 }
@@ -38,7 +27,7 @@ class_Context_ () # (super,self,id,call) ~ <Args>
     ( .load ) # ~
       ;;
 
-      * ) return ${_E_next:?};
+      * ) return ${_E_next:?}
 
   esac && return ${_E_done:?}
 }

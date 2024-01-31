@@ -149,13 +149,14 @@ tasks_add_dates_from_scm_or_def() # [date] ~ TODO.TXT [date_def]
 
 # TODO: track any task file in STTAB or given file
 # XXX: should read tab into AST index, and update when needed (see meta.lib)
-tasks_scan () # (sttab) ~ <Tasks-file> [<Tasks-tab>]
+tasks_scan () # (stbctx) ~ <Tasks-file> [<Tasks-tab>]
 {
-  test -n "${sttab:?}" && {
-    $sttab.tab-exists || return
+  test -n "${stbctx:?}" && {
+    $stbctx.tab-exists || return
   } || {
-    create sttab StatTab "${STTAB:?}" ||
-      $LOG error : "Failed to load stattab index" "E$?:$STTAB" $? || return
+    create stbctx StatTab "${STTAB:?}" ||
+      $LOG error :tasks-scan "Failed to load stattab index" \
+        "E$?:$STTAB" $? || return
   }
 
   #typeset file{version,id,mode}
@@ -173,6 +174,7 @@ tasks_scan () # (sttab) ~ <Tasks-file> [<Tasks-tab>]
 tasks_scan_prio () # (out-fmt) ~ <File> [<Threshold>]
 {
   filereader_skip "${1:?}" ${tasks_filetypes:?} || return ${_E_next:?}
+
   typeset update
   # @TodoFile @Context @FileReader
   # @Status => sum @TodoTxt.PRI

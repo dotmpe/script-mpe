@@ -1,8 +1,9 @@
 
 us_fun_lib__load ()
 {
-  lib_require sys basedir-htd metadir lib-uc
+  lib_require sys lib-uc class-uc
 }
+
 
 at_ () # ~ <ctx> [<ctx|args..>]
 {
@@ -30,29 +31,53 @@ at_ () # ~ <ctx> [<ctx|args..>]
 
 us_basedir_init ()
 {
-  lib_uc_initialized basedir-htd || return
-  declare -g bd
-  if_ok "$(cwd_lookup_paths)" &&
-  for bd in $_
-  do
-    sym=$($basedirtab.key-by-index 1 "$bd/" 2) || continue
-    break
-  done &&
-    $LOG info "" "Found basedir '$sym'" "$PWD:$sym=$bd/" ||
-    $LOG warn "" "No basedir" "E$?:$PWD" $?
-}
-
-us_metadir_init ()
-{
-  lib_uc_initialized metadir || return
-  test -d "${SD_LOCAL-}" && return
-  TODO "Find SD-Local on CWD"
+  $xctx@User_Conf :basedirtab &&
+  $xctx@User_Dir :init-basedir "${basedirtab:?}"
 }
 
 us_stbtab_init ()
 {
-  create stbtab StatTab "${STTAB:?}" ||
-    $LOG error : "Failed to load stattab index" "E$?:$STTAB" $? || return
+  class_init StatTab{,Entry} &&
+  class_new stbtab StatTab "${STTAB:?}" ||
+    $LOG error : "Failed to load stattab index" "E$?:$STTAB" $?
+}
+
+us_userdir_init ()
+{
+  $xctx@User_Dir .init
+}
+
+us_xctx_init ()
+{
+  local lk=${lk:-}:us:xctx-switch
+  class_init XContext &&
+  class_new xctx XContext
+}
+
+us_xctx_switch () # ~ <Default-context> <User-provided...>
+{
+  typeset defctx=${1:-@List} lk=${lk:-}:us:xctx-switch
+  shift
+
+  # Use tagref as user provided context
+  test -n "${1-}" &&
+  fnmatch "@*" "$_" && {
+    uref=$1
+    fnmatch "[A-Z]*" "${uref:1}" && {
+      $LOG info "$lk" "User selected context class" "$_"
+      ctxclass=$_
+    # TODO: look to table for ctx=$_
+    } || return 0
+  } || {
+    ctxclass=${defctx:1}
+  }
+
+  # Query to default or requested xcontext
+  : "ctxref=${ctxref:-xctx} $xctx@$ctxclass"
+  $LOG debug "$lk" "Switching context class" "$_"
+  ${xctx:?}@$ctxclass
+
+  $LOG notice "$lk" "Context ready" "E$?:$xctx@$ctxclass" $?
 }
 
 #

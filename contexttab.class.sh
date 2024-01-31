@@ -1,15 +1,9 @@
 
-contexttab_class_lib__load ()
-{
-  lib_require context class-uc stattab-uc || return
-  ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}ContextTab
-  : "${contexttab_methods:=}"
-}
-
-
 class_ContextTab__load () # ~
 {
+  Class__libs[ContextTab]=context,class-uc,stattab-uc
   Class__static_type[ContextTab]=ContextTab:StatTab
+  : "${contexttab_methods:=}"
 }
 
 class_ContextTab_ () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
@@ -35,10 +29,11 @@ class_ContextTab_ () # :ParameterizedClass ~ <Instance-Id> .<Method> <Args...>
         }
         declare -g ${1:-taglist}=$tc
       ;;
+
     ( .up-to-date ) context_files | os_up_to_date "${CTX_TAB_CACHE:?}"
       ;;
 
-      * ) return ${_E_next:?};
+      * ) return ${_E_next:?}
 
   esac &&
     return ${_E_done:?}

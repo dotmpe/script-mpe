@@ -30,8 +30,6 @@ ignores_lib__load()
 {
   lib_require str-htd date-htd meta globlist || return
 
-  : "${CONFIG_INCLUDE:=$HOME/bin/etc:${XDG_CONFIG_HOME:-$HOME/.config}:/etc}"
-
   : "${ignores_basename:=ignore}"
   : "${ignores_prefix=${base:-htd}}"
   : "${IGNORES_BASE:=$ignores_prefix$ignores_basename}"

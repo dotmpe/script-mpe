@@ -26,7 +26,7 @@ class_StatDirIndex_ () # (super,self,id,call) ~ <Call ...>
     ( .__init__ )
         $super.__init__ "${@:1:2}" "${3:-StatIndex}" "${@:4}" ;;
 
-    .fetch ) # ~ <Var-name> <Stat-id> [<Id-type>]
+    ( .fetch ) # ~ <Var-name> <Stat-id> [<Id-type>]
         # First process as StatTabEntry and then turn instance into StatIndex
         # bc. we need to parse the stattab line to get attributes that determine
         # the actual file name to use as indextab.
@@ -43,7 +43,7 @@ class_StatDirIndex_ () # (super,self,id,call) ~ <Call ...>
         ${!ref}.set-attr file "$tab" StatTab
       ;;
 
-    * ) return ${_E_next:?};
+      * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }
 
@@ -52,13 +52,12 @@ class_StatIndex__load ()
 {
   # about "Line in StatDirIndex representing another StatTab file" @StatIndex
   Class__static_type[StatIndex]=StatIndex:StatTabEntry:StatTab
-
 }
 
 class_StatIndex_ () # (super,self,id,call) ~ <Call ...>
 {
   case "${call:?}" in
-      * ) return ${_E_next:?};
+      * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }
 
@@ -124,7 +123,8 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
     .attr ) # ~ <Key> [<Class>]          # Get field value from class instance value
         $super.attr "$1" "${2:-StatTabEntry}" ${3-} ;;
 
-    .commit ) $self.set && stattab_commit $($($self.tab).tab-ref) ;;
+    .commit ) $self.set &&
+        stattab_commit $($($self.tab).tab-ref) ;;
 
     .entry ) stattab_entry ;;
 
@@ -194,7 +194,7 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
         echo "${!_}"
       ;;
 
-    ( * ) return ${_E_next:?} ;;
+    ( * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }
 
@@ -256,21 +256,30 @@ class_StatTab_ () # ~
         create "$1" "StatTabEntry" "$id" "${stab_lineno:?}"
       ;;
 
-    .init ) local var=$1; shift
+    .init ) # ~ <Entry> # Create entry instance from given
+        local var=$1; shift
         stattab_init "$@" &&
         if_ok "$($self.tab-entry-class)" &&
         create "$var" "$_" "$id"
       ;;
+
     .list|.ids|.keys ) # ~ [<Key-match>]
         stattab_list "${1-}" "$($self.tab-ref)"
       ;;
-    .new ) # ~ [<>]
+
+    .new ) # ~ <Id> [<Rest>]
         local tbref dtnow
         tbref="$($self.tab-ref)" &&
         dtnow="$(date_id $(date --iso=min))" &&
         echo "- $dtnow $1:${2:+ }${2-}" >> "$tbref"
       ;;
 
+    .tab ) if_ok "$($self.tab-ref)" &&
+        stattab_tab "${1-}" "$_" ;;
+    .tab-entry-class ) $self.attr entry_type StatTab ;;
+    .tab-exists ) test -s "$($self.tab-ref)" ;;
+    .tab-init ) stattab_tab_init "$($self.tab-ref)" ;;
+    .tab-ref ) $self.attr file StatTab ;;
     .tab-status ) # ~ [<>]
         # XXX: refresh status context_run_hook stat || return
         #local entry status
@@ -284,13 +293,6 @@ class_StatTab_ () # ~
         }
       ;;
 
-    .tab ) if_ok "$($self.tab-ref)" &&
-        stattab_tab "${1-}" "$_" ;;
-    .tab-entry-class ) $self.attr entry_type StatTab ;;
-    .tab-exists ) test -s "$($self.tab-ref)" ;;
-    .tab-init ) stattab_tab_init "$($self.tab-ref)" ;;
-    .tab-ref ) $self.attr file StatTab ;;
-
-    ( * ) return ${_E_next:?} ;;
+      * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }

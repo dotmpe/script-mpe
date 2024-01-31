@@ -9,10 +9,11 @@ import zope.interface
 #from zope.interface.interface import adapter_hooks
 #from zope.interface.adapter import AdapterRegistry
 
-import confparse
-import taxus.iface
-import res.iface
-import log
+from . import confparse
+from . import taxus
+from .taxus import iface
+from .res import iface
+from . import log
 
 
 

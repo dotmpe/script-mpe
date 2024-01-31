@@ -84,7 +84,8 @@ class_TodoTxtTask_ ()
   case "${call:?}" in
 
     ( .__init__ )
-        false # ${super:?}.__init__ "$1" "${@:3}" &&
+        TODO "$SELF_NAME $call"
+        # ${super:?}.__init__ "$1" "${@:3}" &&
       ;;
 
       * ) return ${_E_next:?}
@@ -108,8 +109,17 @@ class_TodoTxtFile_ ()
         ${super:?}.__init__ "${@:1:2}" "${@:4}"
       ;;
 
+    ( .count-tasks )
+        $self.list-tasks | count_lines
+      ;;
+
     ( .byPriority )
         todotxt_grep "${1:?}" -priority
+      ;;
+
+    ( .list-tasks )
+        if_ok "$($self.attr file FileReader)" &&
+        read_nix_style_file "$_"
       ;;
 
     ( .priorities )

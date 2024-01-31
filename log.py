@@ -7,6 +7,7 @@ import sys
 import os
 import re
 
+from . import confparse
 
 class ScriptOut(object):
 
@@ -15,8 +16,9 @@ class ScriptOut(object):
         self.init()
 
     def init(self):
-        if 'confparse' not in sys.modules:
-          from . import confparse
+        #print('confparse' in sys.modules)
+        #if 'confparse' not in sys.modules:
+        #  from . import confparse
         # TODO: cleanup global state for script logging
         self.settings = confparse.Values(dict(
                 cs = os.getenv('CS', 'dark'),

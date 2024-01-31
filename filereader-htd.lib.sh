@@ -110,7 +110,7 @@ class_ListFile_ () # ~ <Instance-Id> .<Message-name> <Args...>
 {
   case "${call:?}" in
 
-      * ) return ${_E_next:?};
+      * ) return ${_E_next:?}
 
   esac && return ${_E_done:?}
 }
@@ -143,7 +143,7 @@ class_TabFile_ () # ~ <Instance-Id> .<Message-name> <Args...>
         < "$tabfile" awk "{ if ( \$$1 == \"$2\" ) print \$${3:-0}; }"
       ;;
 
-      * ) return ${_E_next:?};
+      * ) return ${_E_next:?}
 
   esac && return ${_E_done:?}
 }

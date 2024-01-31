@@ -951,7 +951,7 @@ user_script_node_attr_grp ()
 {
   : "${1//[:.-]/_}__grp"
   group="${!_:-}"
-  ${lookup_quiet:-false} || test -z "$group" || echo "$group"
+  "${lookup_quiet:-false}" || test -z "$group" || echo "$group"
 }
 
 user_script_node_attr_libs ()
@@ -961,7 +961,7 @@ user_script_node_attr_libs ()
     #$LOG debug :attr:libs "Libs:" "$_"
     libs=${libs:-}${libs:+ }${_//,/ }
   }
-  lookup_quiet=true user_script_node_attr_grp "$1"
+  lookup_quiet=true user_script_node_attr_grp "${1:?}"
 }
 
 user_script_node_attr_hooks ()
@@ -972,7 +972,7 @@ user_script_node_attr_hooks ()
     #$LOG debug :atr:hooks "Hooks:" "$_"
     hooks=${_//,/ }${hooks:+ }${hooks:-}
   }
-  lookup_quiet=true user_script_node_attr_grp "$1"
+  lookup_quiet=true user_script_node_attr_grp "${1:?}"
 }
 
 user_script_resolve_alias () # ~ <Name> #
@@ -1515,13 +1515,12 @@ user_script_sh_loadenv ()
 {
   : "${_E_next:=196}"
 
-  script_part=user-script user_script_load groups ||
+  script_part=${base:-user-script} user_script_load groups ||
       test ${_E_next:?} -eq $? || return $_
 
-  script_part=${1:?} user_script_load groups || {
+  script_part=${1:?} user_script_load groups ||
       # E:next means no libs found for given group(s).
       test ${_E_next:?} -eq $? || return $_
-    }
 }
 
 usage ()

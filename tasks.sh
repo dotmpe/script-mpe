@@ -9,7 +9,7 @@ uc_script_load user-script || ${us_stat:-exit} $?
   uc_script_load us-als-mpe || ${us_stat:-exit} $?
 
 
-tasks__libs=todotxt,basedir-htd,us-fun
+tasks__libs=todotxt,us-fun
 tasks__hooks=us_basedir_init,tasks_local_init
 
 tasks_uc__libs=stattab-class,class-uc
@@ -46,7 +46,7 @@ tasks_ ()
         typeset cnt=0 pass=0 errs=0
         for tf in "${tfiles[@]}"
         do
-          sttab=$stbtab tasks_scan "$tf" || return
+          stbctx=${stbtab:?} tasks_scan "$tf" || return
         done
         : $(( cnt + pass + errs ))
         : "Checked $_ files,"
@@ -58,7 +58,30 @@ tasks_ ()
     ( C|check ) TODO check $*
       ;;
 
+    ( count ) $todotxt.count-tasks ;;
+
+    ( debug )
+        #$todotxt.class-debug
+        us_stbtab_init &&
+        ${stbtab:?}.class-debug
+      ;;
+
     ( I|index ) TODO index $*
+      ;;
+
+    ( info )
+        us_stbtab_init &&
+        stderr echo "StatTab table file: $(${stbtab:?}.tab-ref)"
+        stderr echo "Tasks file: $(${todotxt:?}.attr file FileReader)"
+      ;;
+
+    ( l|ls|list )
+        $todotxt.list-tasks
+      ;;
+
+    ( list-files )
+        us_stbtab_init &&
+        ${stbtab:?}.list
       ;;
 
     ( ml|modeline )
@@ -103,9 +126,9 @@ tasks_shortdescr='Todo.txt ops'
 
 tasks_aliasargv ()
 {
-  test -n "${1-}" || return
+  test -n "${1:-}" || return ${_E_MA:?}
   case "${1//_/-}" in
-    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+    ( "-?"|-h|h|help|user-script-help ) shift; set -- user_script_help "$@" ;;
       * ) set -- tasks_ "$@"
   esac
 }
@@ -114,14 +137,17 @@ tasks_loadenv () # ~ <Cmd-argv...>
 {
   user_script_loadenv &&
   user_script_initlog || return
-  shopt -s nullglob nocaseglob
+  #set -o pipefail
+  shopt -s nocaseglob
+  # XXX: nullglob influences user-script log-key handling...
+  #shopt -s nullglob nocaseglob
   #us_log_v_warn
   script_part=${base:?} user_script_load groups || {
     # E:next means no libs found for given group(s).
     test ${_E_next:?} -eq $? || return $_
   }
-  #script_part=${1:?} user_script_load groups && return
-  #test ${_E_next:?} -eq $? || return $_
+  script_part=${1:?} user_script_load groups && return
+  test ${_E_next:?} -eq $? || return $_
   $LOG notice :tasks.sh "No specific env for script or command" "$*"
   uc_log notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
 }
@@ -136,6 +162,7 @@ tasks_unload ()
 
 tasks_local_init ()
 {
+  class_init TodoTxtFile TodoTxtTask || return
   declare tf
   for tf in [Tt][Oo][Dd][Oo].[Tt][Xx][Tt]
   do

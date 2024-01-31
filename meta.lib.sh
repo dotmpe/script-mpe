@@ -17,19 +17,11 @@ meta_lib__init ()
       mkdir -p "$METADIR"
       $LOG warn : "Created local metadir" "$METADIR"
     }
-  # XXX: meta is both provider and backup, others are sources?
-  # dotattributes-map is easier to use than to set every source per dir into
-  # env manually
-  # XXX: fsattr is alt. for xattr?
-  : "${meta_providers:=xattr git-annex dotattr}"
+  : "${meta_providers:=fsattr git-annex dotattr aprops}"
+  : "${meta_be:=aprops}"
+  typeset -ga meta=()
 }
 
-
-# XXX: cleanup
-meta_api_man_1='
-  attributes
-  emby-list-images [$DKCR_VOL/emby/config]
-'
 
 meta_lib_init_providers () # (us) ~ [ <Providers...> ]
 {
@@ -37,7 +29,7 @@ meta_lib_init_providers () # (us) ~ [ <Providers...> ]
   set -- $(
       for meta_h in "${@:?}"
       do
-        sh_fun meta_dump__${meta_h//[^A-Za-z0-9_]/_} || echo "meta-$meta_h"
+        meta_be_loaded "${meta_h:?}" || echo "meta-$meta_h"
       done)
   test $# -eq 0 && return
   # Load and init shell libs
@@ -72,6 +64,31 @@ meta_attributes () # ~ [ <Path...> ] # Show attributes for folder or file set
   #xattr -l "$@"
 }
 
+meta_be_loaded () # ~ <Backend-name>
+{
+  sh_fun meta__${1//[^A-Za-z0-9_]/_}__new
+}
+
+meta_cache_proc () # ~ <Src> <Src-key> <Cmd...>
+{
+  test 3 -le $# || return ${_E_MA:?}
+  local src=${1:?} sk=${2:?meta-cache-proc: Source key expected} cached
+  shift 2
+  cached=${LCACHE_DIR:?}/$sk.out
+  test -e "$cached" &&
+  test "$src" -ot "$cached" || {
+    "$@" >| "$cached"
+  }
+}
+
+meta_cache_proc_srckey () # ~ <Src-key> <Cmd...>
+{
+  test 2 -le $# || return ${_E_MA:?}
+  local sv=${1:?meta-cache-proc-srckey: Source variable expected} cached
+  shift
+  meta_cache_proc "${!sv:?}" "$sv" "$@"
+}
+
 # Accumulate data from providers and format.
 meta_dump () # ~ <Paths...>
 {
@@ -81,6 +98,88 @@ meta_dump () # ~ <Paths...>
     meta_value__${meta_h} "$1"
   done
 }
+
+meta_properties () # ~ <Target-file> <Cmd...>
+{
+  local tf=${1:?} cmd=${2:-}
+  shift 2
+  case "$cmd" in
+
+    ( assert-tags ) # ~ ~ <Tags...> # Include unique tags with current set
+        meta_assert=combine-words \
+        meta_properties "$tf" assert-words tags "$@"
+      ;;
+
+    ( assert-words ) # ~ ~ <Field> <Words...>
+        typeset field=${1:?} var
+        shift
+        meta_new_id
+        meta__${meta_be:?}__new "$tf" &&
+        meta__${meta_be:?}__loaded && {
+          meta_id=$(meta__${meta_be:?}__obj_id "$tf") || return
+        } || {
+          meta__${meta_be:?}__exists || {
+            meta__${meta_be:?}__init "$field" "$*" &&
+            meta__${meta_be:?}__commit &&
+            $LOG info : "Created" "$meta_path"
+            return
+          }
+          meta__${meta_be:?}__fetch ||
+            $LOG error : "Failed to retrieve" "E$?:$meta_id:$meta_ref" $? ||
+            return
+        }
+        var="meta_aprop__${field}[${meta_id:?}]"
+        case "${meta_assert:-}" in
+          ( combine-words )
+              if_ok "$(unique_args ${!var-} "$@")" &&
+              <<< "$_" mapfile -t new_args &&
+              new_value=${new_args[*]}
+            ;;
+          ( reset-words )
+              if_ok "$(unique_args "$@")" &&
+              new_value=${_//$'\n'/ }
+            ;;
+            * ) return ${_E_nsa:?}
+        esac || return
+        test "${!var-}" = "$new_value" && {
+          $LOG debug : "No change" "$meta_path"
+          return
+        } || {
+          meta__${meta_be:?}__update "$field" "$_" &&
+          meta__${meta_be:?}__commit &&
+          $LOG info : "Updated" "$meta_path"
+          return
+        }
+      ;;
+
+    ( exists )
+        meta__${meta_be:?}__new "$tf" &&
+        meta__${meta_be:?}__exists
+      ;;
+
+    ( fetch )
+        meta__${meta_be:?}__new "$tf"
+        meta_new_id
+        meta__${meta_be:?}__fetch
+      ;;
+
+    ( reset-tags ) # ~ ~ <Tags...> # Set to unique tags from given
+        meta_assert=reset-words \
+        meta_properties "$tf" assert-words tags "$@"
+      ;;
+
+      * ) return ${_E_nsk:?}
+  esac
+}
+
+meta_new_id ()
+{
+  meta_id=$RANDOM
+  while test "unset" != "${meta[$meta_id]-unset}"
+  do meta_id=$RANDOM
+  done
+}
+
 
 # --- util
 

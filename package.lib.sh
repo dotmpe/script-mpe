@@ -24,7 +24,7 @@ package_lib__init () #
   : "${PACK_SCRIPTS:=$PACK_DIR/scripts}"
 
   # Clear to skip auto-load, or set to give local require-level
-  test -z "${package_lib_auto-}" && return || true
+  ! "${package_lib_auto:-true}" && return
   package_init
 }
 
@@ -189,12 +189,12 @@ package_env_unset ()
 #   - ignore static env, reset and then 1)
 package_lib_set_local () # Package-Path [Require] [Id]
 {
-  test $# -gt 1 -a -n "${2-}" ||
-      set -- "$1" "${package_lib_auto:-0}" "${3-}"
+  #test $# -gt 1 -a -n "${2-}" ||
+  #    set -- "$1" "${package_lib_auto:-0}" "${3-}"
   test -d "${1-}" || error "package.lib set-local path" 1
 
   # If static env loaded (non-zero ID), use that; abort further dynamic init
-  test "${PACKMETA_ID=0}" -eq 0 -a \( $2 -le 1 \) || return 0
+  #test "${PACKMETA_ID=0}" -eq 0 -a \( $2 -le 1 \) || return 0
 
   package_dir="$1"
   package_detect || return

@@ -1,6 +1,6 @@
 # Native IO format is JSON, and contains descriptor dates (*lastchanged) and
 # command response metadata in structure.
-meta_dump__git_annex ()
+meta__git_annex__dump ()
 {
   local data
   case "${out_fmt:-kv}" in

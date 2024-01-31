@@ -1,16 +1,7 @@
-basedir_htd_lib__load()
+basedirtab_class__load()
 {
-  lib_require class-uc filereader-htd || return
-  ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}\
-BaseDir\ BaseDirTab
+  : "${UC_DIRTAB:=${UCONF:?}/user/dirtab}"
   : "${BASEDIRTAB:=${STATUSDIR_ROOT:?}index/basedirs.tab}"
-}
-
-basedir_htd_lib__init ()
-{
-  test -z "${basedir_htd_lib_init:-}" || return $_
-
-  create basedirtab BaseDirTab "$BASEDIRTAB"
 }
 
 
@@ -36,6 +27,7 @@ basedirs_dump ()
     }'
 }
 
+
 class_BaseDir__load ()
 {
   # about "A directory value for a symbolic name" @BaseDir
@@ -44,20 +36,14 @@ class_BaseDir__load ()
 }
 
 class_BaseDir_ () # ~ <Instance-Id> .<Message-name> <Args...>
-#   .BaseDir <Type> [<Src:Line>] - constructor
 {
   case "${call:?}" in
-
-    ( .local-dir ) # ~~ # Look for another entry in parent table that tags basedir/<name>
-        tagref=$(printf ' @%s\( \| .* \)host:%s\( \|$\)' $($self.var id) $HOST)
-        : "$($self.src)"
-        grep "$tagref" $_ | sed 's#^.* <\([^>]*\)/>.*#\1#'
-      ;;
 
       * ) return ${_E_next:?}
 
   esac && return ${_E_done:?}
 }
+
 
 class_BaseDirTab__load ()
 {
@@ -76,7 +62,7 @@ class_BaseDirTab_ () # ~ <Instance-Id> .<Message-name> <Args...>
     ( .fetch ) # ~ <Path> <Symbol>
       ;;
 
-      * ) return ${_E_next:?};
+      * ) return ${_E_next:?}
 
   esac && return ${_E_done:?}
 }

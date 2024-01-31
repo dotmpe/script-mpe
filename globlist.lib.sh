@@ -12,6 +12,8 @@ globlist_lib__load()
   #os:read_nix_style_file
 	#date-htd:newer_than_all
 
+  : "${CONFIG_INCLUDE:=$HOME/bin/etc:${XDG_CONFIG_HOME:-$HOME/.config}:/etc}"
+
   : "${CONFIG_GROUPS:="local global"}"
 }
 

@@ -46,6 +46,7 @@ mime_ext_reg:
     xml: text/xml
     xls: application/vnd.ms-office
     xz: application/x-xz
+mime_alias: {}
 mime_xref:
   application/octet-stream:
   - [bin]

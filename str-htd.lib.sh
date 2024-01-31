@@ -315,15 +315,27 @@ var2tags()
   done)
 }
 
+# XXX: just passing grep expression
+attributes_tagged () # ~ <Tags>
+{
+  < "${attributes_src:-.attributes}" grep " $*\($\| \)"
+  #meta_cache_proc attributes_src
+  #< "${attributes_src:-.attributes}" attributes2sh
+}
+
 # Read meta file and re-format (like mkvid) for shell use
 meta2sh()
 {
   # NOTE: AWK oneliner to transforms keys for ':' as-is MIME header style
   # file. (no continuations). Quotes values.
-  awk '{ st = index($0,":") ;
+  awk '
+    /^ *#/ { next }
+    /^[A-Za-z_-][A-Za-z0-9_ -]+: / {
+      st = index($0,":") ;
       key = substr($0,0,st-1) ;
       gsub(/[^A-Za-z0-9]/,"_",key) ;
-      print key "=\"" substr($0,st+1) "\"" }' "$@"
+      print key "=\"" substr($0,st+2) "\""
+    }' "$@"
 }
 # Sh-Copy: HT:tools/u-s/parts/ht-meta-to-sh.inc.sh vim:ft=bash:
 
@@ -335,7 +347,7 @@ properties2sh()
   awk '{ st = index($0,"=") ;
       key = substr($0,0,st-1) ;
       gsub(/[^a-z0-9]/,"_",key) ;
-      print key "=" substr($0,st+1) }' $1
+      print key "=" substr($0,st+1) }' "$@"
 
   # NOTE: This works but it splits at every equals sign
   #awk 'BEGIN { FS = "=" } ;

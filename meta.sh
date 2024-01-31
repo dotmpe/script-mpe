@@ -14,16 +14,17 @@ uc_script_load user-script
 
 
 meta_sh__grp=meta
+meta_sh__hooks=us_userdir_init
 #meta__grp=status
-meta__libs=meta,metadir,us-fun
-status__libs=status
+meta__libs=meta,us-fun
+meta__hooks=us_xctx_init
+#status__libs=status
 #status__grp=user-script
-meta_sh__hooks=us_basedir_init,us_metadir_init
 
 
 meta_sh_attributes () # ~
 {
-  meta_attributes "$@"
+  meta_attributes "${@:?}"
 }
 meta_sh_attributes__grp=meta-sh
 
@@ -35,6 +36,8 @@ meta_sh_check () # ~ \!TODO
 
     ( summary )
           stderr echo SD-Local: ${SD_LOCAL:?}
+          sym=$($xctx.attr basedir-symbol User_Dir) &&
+          bd=$($xctx.attr path Dir) &&
           stderr echo "$sym: $bd/"
 
           $LOG warn : TODO check 1
@@ -51,13 +54,14 @@ meta_sh_context () # ~ [ <Paths...> ] # List attributes at paths and parents
 {
   test $# -gt 0 ||
       eval "set -- ${meta_sh_default_leafs:-"\{.,\{main,index,default}.*}"}"
-
+  : "${@:?meta.sh:context: Paths argument expected}"
+  $LOG notice "" "Listing attributes" "$#:$*"
   declare -A metapaths
 
   local attr path
-  while test $# -gt 0
+  while test 0 -lt $#
   do
-    path=$(realpath -s "$1") &&
+    path=$(realpath -s "${1:?}") &&
     attr=$(meta_attributes "$path") || return
     test -z "$attr" ||
         metapaths[$path]=$attr
@@ -80,6 +84,24 @@ meta_sh_context () # ~ [ <Paths...> ] # List attributes at paths and parents
   done
 }
 meta_sh_context__grp=meta-sh
+
+
+meta_sh_local () # ~ <Action> #  XXX: local
+{
+  local sa_lk=:local a1_def=basedir; sa_switch_arg
+  case "$switch" in
+
+    ( basedir )
+        sym=$($xctx.attr basedir-symbol User_Dir) &&
+        bd=$($xctx.attr path Dir) &&
+        #bd=${!sym} || return
+        echo $sym=$bd/
+      ;;
+
+      * ) sa_E_nss
+  esac
+  __sa_switch_arg
+}
 
 
 ## User-script parts
@@ -107,9 +129,9 @@ meta_sh_loadenv ()
     # E:next means no libs found for given group(s).
     test ${_E_next:?} -eq $? || return $_
   }
-  script_part=${1:?} user_script_load groups && return
-  test ${_E_next:?} -eq $? || return $_
-  $LOG notice :tasks.sh "No specific env for script or command" "$*"
+  #script_part=${1:?} user_script_load groups && return
+  #test ${_E_next:?} -eq $? || return $_
+  #$LOG notice :meta.sh "No specific env for script or command" "$*"
   uc_log notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
 }
 
