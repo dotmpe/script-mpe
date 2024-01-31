@@ -73,6 +73,10 @@ htd_urls_urlstat() # Text-File [Init-Tags]
   rm "$failed"
 }
 
+html_entities_unicode ()
+{
+  sed -f "${US_BIN:-$HOME/bin}/htmlentities.sed" "$@"
+}
 
 http_deref () # ~ <URL> [<Last-Modified>] [<ETag>] [<Curl-argv>]
 {
@@ -113,6 +117,12 @@ http_deref_cache () # ~ <Cache-file> <URL-ref> [<Curl-argv...>]
 }
 
 
+json_list_has_objects()
+{
+  jsotk -sq path $out '0' --is-obj || return
+  # XXX: jq -e '.0' $out >>/dev/null || break
+}
+
 urls_clean_meta ()
 {
   tr -d ' {}()<>"'"'"
@@ -147,12 +157,6 @@ urls_list_clean ()
   local format=$(ext_to_format "$(filenamext "$1")")
   func_exists urls_clean_$format || format=meta
   urls_list "$1" | urls_clean_$format
-}
-
-json_list_has_objects()
-{
-  jsotk -sq path $out '0' --is-obj || return
-  # XXX: jq -e '.0' $out >>/dev/null || break
 }
 
 urldecode () # ~ <String>
