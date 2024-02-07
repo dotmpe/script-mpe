@@ -8,38 +8,37 @@ annex_htd_lib__load()
   : "${HTD_DEFAULT_ANNEX:=archive-1}" # Primary Annex, to select during init
 }
 
-annex_htd_lib__init ()
-{
-  test 0 = "${class_uc_lib_init:-}" && {
-    test 0 = "${annex_htd_lib_init:-}" || unset annex_htd_lib_init
-  } || {
-    return 198
-  }
-  # lib_initialized class-uc ||
-  test -z "${annex_htd_lib_init:-}" || return $_
-
-  create annexes AnnexTab $ANNEXTAB &&
-  ! "${annex_htd_autoload:-true}" || annex_htd_load_default
-}
+#annex_htd_lib__init ()
+#{
+#  test 0 = "${class_uc_lib_init:-}" && {
+#    test 0 = "${annex_htd_lib_init:-}" || unset annex_htd_lib_init
+#  } || {
+#    return 198
+#  }
+#  # lib_initialized class-uc ||
+#  test -z "${annex_htd_lib_init:-}" || return $_
+#  create annexes AnnexTab $ANNEXTAB &&
+#  ! "${annex_htd_autoload:-true}" || annex_htd_load_default
+#}
 
 
 annex_htd_load_default ()
 {
+  : "${annexes:?Expected annexes context}"
   $annexes.fetch default_annex "${HTD_DEFAULT_ANNEX:?}" || {
     $LOG error : "fetching default annextab entry" \
         "E$?:$ANNEXTAB::$HTD_DEFAULT_ANNEX" $? || return
   }
 
-  {
-    # Get canonical paths for storage folders with annex checkouts
-    ANNEX_DIRS=$($default_annex.basedirs) &&
+  # Get canonical paths for storage folders with annex checkouts
+  ANNEX_DIRS=$($default_annex.basedirs) &&
 
-    # If not in profile, set ANNEX_DIR to local path.
-    # XXX: there may not be a checkout there.
-    # XXX: could pick one from ANNEX_DIRS based on volume-id filter
-    $srvtab.fetch srv_annex srv/annex &&
-    : "${ANNEX_DIR:=$($srv_annex.local-dir)/$HTD_DEFAULT_ANNEX}"
-  } &&
+  # If not in profile, set ANNEX_DIR to local path.
+  # XXX: there may not be a checkout there.
+  # XXX: could pick one from ANNEX_DIRS based on volume-id filter
+  $srvtab.fetch srv_annex srv/annex &&
+  stderr ${srv_annex:?Srv-Annex entry expected}.entry &&
+  if_ok "${ANNEX_DIR:=$($srv_annex.local-dir)/$HTD_DEFAULT_ANNEX}"
   $LOG info :annex.lib:init "Initialized user annex shell env" \
       "E$?:tab=$ANNEXTAB" $?
 }
@@ -175,7 +174,7 @@ class_AnnexTab__load ()
   Class__static_type[AnnexTab]=AnnexTab:StatTab
 }
 
-class_AnnexTab_ () # ~ <Instance-Id> .<Message-name> <Args...>
+class_AnnexTab_ () # (super,self,id,call) ~ <Args>
 #   .__init__ <Type> <Table> [<Entry-class>] # constructor
 {
   case "${call:?}" in
@@ -183,7 +182,7 @@ class_AnnexTab_ () # ~ <Instance-Id> .<Message-name> <Args...>
     ( .__init__ )
         $super.__init__ "${@:1:2}" "${3:-AnnexTabEntry}" "${@:4}" ;;
 
-      * ) return ${_E_next:?};
+      * ) return ${_E_next:?}
 
   esac && return ${_E_done:?}
 }

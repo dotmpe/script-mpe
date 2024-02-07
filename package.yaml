@@ -23,7 +23,7 @@
   specs:
     units: test/py/\$id.py test/py/mod_\$vid.py test/\$id-lib-spec.bats test/\$id-spec.bats
       test/\$id.bats
-    required: util 1_1-helper str sys os std stdio argv shell list match vc matchbox
+    required: util 1_1-helper str sys os std stdio args shell list match vc matchbox
       src main box box-cmd box-lib box-src pd-meta finfo table package
   prefixes: {}
   symbol: BIN

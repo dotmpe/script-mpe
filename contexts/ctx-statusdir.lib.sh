@@ -2,7 +2,7 @@
 
 ctx_statusdir_lib__load ()
 {
-  lib_require date metadir || return
+  lib_require date || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}Statusdir
 }
 # XXX: ctx_statusdir_depends=@Shell

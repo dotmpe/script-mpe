@@ -17,27 +17,27 @@
 
 nl ()
 {
-    typeset -p var
+    declare -p var
     echo
 }
 echo NAME var is reference by variable name
-typeset -n var
+declare -n var
 nl
 echo And dissapears again
 unset var
 nl
 echo Now is an integer
-typeset -i var
+declare -i var
 nl
 echo And also export
-typeset -x var
+declare -x var
 nl
 echo And now traces
-typeset -t var
+declare -t var
 nl
 var=
 echo Can be made readonly
-typeset -r var
+declare -r var
 var=foo
 nl
 

@@ -1,5 +1,3 @@
-#!/bin/sh
-
 
 web_lib__load ()
 {
@@ -80,7 +78,7 @@ html_entities_unicode ()
 
 http_deref () # ~ <URL> [<Last-Modified>] [<ETag>] [<Curl-argv>]
 {
-  typeset lk=${lk:-}:http-deref
+  declare lk=${lk:-}:http-deref
   test -z "${2:-}" || {
     test -z "${3:-}" || {
       ! fnmatch "*/*" "$2" &&
@@ -165,7 +163,7 @@ urldecode () # ~ <String>
   # URL encoded spaces
   : "${_//+/ }"
   # Replace other URL encoded chars with something echo -e/printf understands
-  printf '%s\n' "${_//%/\\x}"
+  printf "${_//%/\\x}\n"
 }
 
 urldecode_py () # ~ <String>

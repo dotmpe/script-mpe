@@ -474,7 +474,7 @@ foreach_inscol ()
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
 }
 
-foreach_line_do ()
+foreach_line_do () # (args) ~ <Cmd...>
 {
   while read -r args
   do "$@" $args || return; done

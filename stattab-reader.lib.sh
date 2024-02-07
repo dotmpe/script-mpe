@@ -268,9 +268,11 @@ stattab_parse () # ~ <Grep-line>
 {
   test $# -gt 0 || return ${_E_MA:?}
   stattab_entry_env_reset
-  # XXX: Merge line (ie. normalize ws?)
-  set -- "$*"
-  test -n "$1" || return 0
+  # Optionally merge line from all args, allow to normalize ws that way
+  test 1 -eq $# || {
+    set -- "$*"
+    test -n "$1" || return ${_E_MA:?}
+  }
   # Remove grep-line filename/linenumber from entry and parse
   stab_lineno=${1%%:*}
   stab_entry=${1#*:}
@@ -282,8 +284,8 @@ stattab_parse () # ~ <Grep-line>
 stattab_meta_parse () # ~ <Arr-var-pref>
 {
   sh_arr "$1"_keys || return ${_E_GAE:?}
-  typeset metatag metakey metaval
-  typeset -a keys
+  declare metatag metakey metaval
+  declare -a keys
   for metatag in $stab_meta
   do
     metakey=${metatag%:*}

@@ -32,7 +32,7 @@ meta__xattr__get () # ~ <File> <Key>
 {
   # XXX: unfortunately xattr does not have a -q flag or similar, and it does
   # not even use command status so this has to capture stderr.
-  typeset meta_xattr_{stderr,stdout}
+  declare meta_xattr_{stderr,stdout}
   capture_vars local:meta_xattr_ xattr -p user.${2:?} "${1:?}" || return
   fnmatch "No such xattr: *" "${meta_xattr_stderr}" && return 1 ||
   echo "${meta_xattr_stdout}"

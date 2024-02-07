@@ -15,7 +15,7 @@ test "$_" = "stattab-class"
 
 user_script_initlibs stattab-class &&
 test "${lib_loaded:?}" = "lib-uc script-mpe os sys str log shell stdlog-uc"\
-" date date-htd stattab-class argv-uc sys-htd os-htd statusdir stattab match"\
+" date date-htd stattab-class args-uc sys-htd os-htd statusdir stattab match"\
 " match-htd str-htd todotxt-fields stattab-reader" ||
   $LOG error : "1.1" "$lib_loaded" $?
 

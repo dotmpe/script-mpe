@@ -264,7 +264,7 @@ preproc_include_r='^\ *#\ *include\  *(.+)$'
 
 preproc_runner () # (s) ~ # Rewrite stream
 {
-  typeset lnr=0 directive= args_rx_ref= args_arr= \
+  declare lnr=0 directive= args_rx_ref= args_arr= \
     lk=:preproc-runner lctx
   while read -r line
   do
@@ -304,7 +304,7 @@ preproc_d_define () # ~ <Varname> <Value>
 # Resolve path and produce contents
 preproc_d_include () # ~ <Ref> <...>
 {
-  typeset fileref
+  declare fileref
   fileref=$(src_htd_resolve_fileref "${@:?}") || return
   $LOG note "preproc:preproc" "Pre-processing..." "$fileref"
   "${pp_rd:-src_reader_}" "$fileref" &&

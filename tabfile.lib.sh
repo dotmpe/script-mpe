@@ -21,8 +21,7 @@ tabfile_grep_ ()
   case "${act:?}" in
 
     ( val )
-        stderr echo "grep ${grep_f-} '\\(^\\|$fs_\\)$p_\\($\\|$fs_\\)'"
-        grep ${grep_f-} "\\(^\\|$fs_\\)$p_\\($\\|$fs_\\)"
+        grep ${grep_f-} "^\\$fs_*\\([^\#].*$fs_\\)*$p_\\($\\|$fs_\\)"
       ;;
 
       * ) $LOG error :tabfile-grep "No such search-type" "$act" ${_E_nsa:?}

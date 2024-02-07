@@ -19,7 +19,7 @@ class_StatDirIndex__load ()
   Class__static_type[StatDirIndex]=StatDirIndex:StatTab
 }
 
-class_StatDirIndex_ () # (super,self,id,call) ~ <Call ...>
+class_StatDirIndex_ () # :StatTab (super,self,id,call) ~ <Call-args...>
 {
   case "${call:?}" in
 
@@ -83,7 +83,7 @@ class_StatTabEntry__load () # ~
   declare -g -A StatTabEntry__utime=()
 }
 
-class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
+class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
 #   .__init__ <ConcreteType> <Tab-Id> <Tab-Seq> <...>
 #   .__del__
 #   .tab-ref
@@ -128,7 +128,7 @@ class_StatTabEntry_ () # (super,self,id,call) ~ <ARGS...>
 
     .entry ) stattab_entry ;;
 
-    .get )
+    .get ) # ~ ~ # Move static (stab_*) vars onto class context
         StatTabEntry__status[$id]=$stab_status
         StatTabEntry__btime[$id]=$stab_btime
         StatTabEntry__ctime[$id]=$stab_ctime
@@ -239,12 +239,12 @@ class_StatTab_ () # ~
 
     .count ) if_ok "$($self.tab-ref)" && wc -l "$_" ;;
 
-    .exists ) # ~ <Id>
+    .exists ) # ~ ~ <Id>
         if_ok "$($self.tab-ref)" &&
         stattab_exists "$1" "" "$_"
       ;;
 
-    .fetch ) # ~ <Var-name> <Stat-id> [<Id-type>]
+    .fetch ) # ~ ~ <Var-name> <Stat-id> [<Id-type>]
         : "${1:?Expected Var-name argument}"
         ! str_wordmatch "$1" self id super call ext class tab ||
           $LOG alert "" "Cannot use reserved variable name" "$1" 1 || return
@@ -256,18 +256,18 @@ class_StatTab_ () # ~
         create "$1" "StatTabEntry" "$id" "${stab_lineno:?}"
       ;;
 
-    .init ) # ~ <Entry> # Create entry instance from given
+    .init ) # ~ ~ <Entry> # Create entry instance from given
         local var=$1; shift
         stattab_init "$@" &&
         if_ok "$($self.tab-entry-class)" &&
         create "$var" "$_" "$id"
       ;;
 
-    .list|.ids|.keys ) # ~ [<Key-match>]
+    .list|.ids|.keys ) # ~ ~ [<Key-match>]
         stattab_list "${1-}" "$($self.tab-ref)"
       ;;
 
-    .new ) # ~ <Id> [<Rest>]
+    .new ) # ~ ~ <Id> [<Rest>]
         local tbref dtnow
         tbref="$($self.tab-ref)" &&
         dtnow="$(date_id $(date --iso=min))" &&

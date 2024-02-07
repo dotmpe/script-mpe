@@ -324,7 +324,7 @@ capture_and_clear()
 
 # Main
 
-#test -n "$lib_load" || {
+#test -n "$lib_loading" || {
 #
 #  case "$0" in "" ) ;; "-"* ) ;; * )
 #    test -n "$scriptname" || scriptname="$(basename "$0" .sh)"
@@ -356,7 +356,7 @@ capture_and_clear()
 case "$0" in "" ) ;; "-"* ) ;; * )
 
   # Do nothing if loaded by lib-load
-  test -n "$lib_load" || {
+  test -n "$lib_loading" || {
 
     # Otherwise set action with env __load
     test -n "$__load" || {

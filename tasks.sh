@@ -40,10 +40,10 @@ tasks_ ()
         script_part=all user_script_load groups || return
         : "${1:-files}"
         : "${_//-/}"
-        typeset out_fmt=$_ tfiles tf &&
+        declare out_fmt=$_ tfiles tf &&
         if_ok "$(locate -Aie '*/todo.txt')" &&
         mapfile -t tfiles <<< "$_" || return
-        typeset cnt=0 pass=0 errs=0
+        declare cnt=0 pass=0 errs=0
         for tf in "${tfiles[@]}"
         do
           stbctx=${stbtab:?} tasks_scan "$tf" || return

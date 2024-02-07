@@ -35,7 +35,7 @@ class_BaseDir__load ()
   Class__static_type[BaseDir]=BaseDir:Class
 }
 
-class_BaseDir_ () # ~ <Instance-Id> .<Message-name> <Args...>
+class_BaseDir_ ()
 {
   case "${call:?}" in
 
@@ -51,8 +51,7 @@ class_BaseDirTab__load ()
   Class__static_type[BaseDirTab]=BaseDirTab:TabFile
 }
 
-class_BaseDirTab_ () # ~ <Instance-Id> .<Message-name> <Args...>
-#   .__init__ <Instance-Type> <Table> [<Entry-class>] # constructor
+class_BaseDirTab_ ()
 {
   case "${call:?}" in
 

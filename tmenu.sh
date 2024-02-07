@@ -27,12 +27,15 @@ main_menu () # ~ <Id>
   test $# -gt 0 || set -- home
   tmenu_sh=$(tmenu.py "${1:?}" < ${TMENU_DATAFILE}) || return
   eval "$tmenu_sh" || return
-  test -n "${LAST:-}" && {
+
+  test -n "${LAST-}" && {
     tmenu+=( "Back:$0 menu ${LAST:?}" )
   } || {
-    tmenu+=( "Reload:$0 menu root" )
+    tmenu+=( "Reload:$0 menu ${1:?}" )
     tmenu+=( "exit" )
   }
+  : "$(printf " '%s'" "${tmenu[@]}")"
+  stderr echo "LAST=${1:?} tmenu_new_popup '$label menu'$_"
   LAST=${1:?} tmenu_new_popup "$label menu" "${tmenu[@]}"
 }
 
@@ -72,14 +75,17 @@ main ()
 {
   set -meuo pipefail
 
-  true "${USER_CONFIG_DIR:=$HOME/.config}"
-  true "${USER_DATA_DIR:=$HOME/.local/share}"
+  : "${USER_CONFIG_DIR:=$HOME/.config}"
+  : "${USER_DATA_DIR:=$HOME/.local/share}"
 
   # Try ~/.config/tmenu/env.sh and ~/.conf/etc/tmenu/default.sh for config
   tmenu_conf=$USER_CONFIG_DIR/tmenu/env.sh
   test -e "$tmenu_conf" || tmenu_conf=${UCONF:?}/etc/tmenu/default.sh
   . "$tmenu_conf" || return
 
+  # Using largest XFT is fairly satisfactory, however want some better frontend
+  # on touch devices. Maybe using Weyland and some other menu app...?
+  # xfont='-*-terminus-*-*-*-*-*-320-*-*-*-*-*-*'
   nmenu=9menu\ -font\ "$xfont"
   bg=bg.sh
 

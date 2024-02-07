@@ -121,26 +121,32 @@ class_TabFile__load ()
   Class__static_type[TabFile]=TabFile:FileReader
 }
 
-class_TabFile_ () # ~ <Instance-Id> .<Message-name> <Args...>
-#   .__init__ <Instance-Type> <File-path> # constructor
+class_TabFile_ () # ~
 {
   case "${call:?}" in
 
-    ( .grep-tab )
+    ( .grep-tab ) # ~ ~ <Grep-key> <Grep-type>
         declare tabfile
         tabfile=$($self.attr file FileReader) &&
         < "$tabfile" tabfile_grep "$1" "${2:--val}"
       ;;
 
-    ( .by-column-value )
+    ( .by-column-value ) # ~ ~ ...
         local grep_f=
         $self.grep-tab "$@"
       ;;
 
-    ( .key-by-index ) # ~ <Match-col> <Val> <Select-col=0>
+    ( .key-by-index ) # ~ ~ <Match-col> <Val> <Select-col=0>
         declare tabfile
         tabfile=$($self.attr file FileReader) &&
         < "$tabfile" awk "{ if ( \$$1 == \"$2\" ) print \$${3:-0}; }"
+      ;;
+
+    ( .keys-by-index ) # ~ ~ <Col-index=1>
+        if_ok "$($self.attr file FileReader)" && < "$_" awk "
+          /^ *$/ { next; }
+          /^ *#/ { next; }
+          { print \$${1:-1} }"
       ;;
 
       * ) return ${_E_next:?}

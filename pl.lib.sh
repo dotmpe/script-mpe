@@ -43,7 +43,7 @@ eval_pi ()
     $LOG error "" "Unknown preproc dir" "$1"
     return 1
   }
-  typeset dir="${1:2}" var val
+  declare dir="${1:2}" var val
   var=${dir%: *}
   var=${var//:/__}
   var=${var//[^[:alnum:]_]/_}
@@ -51,9 +51,9 @@ eval_pi ()
   val="${dir#*: }"
   shift
   test $# -gt 0 && val="$val $*"
-  stderr echo typeset "VAR=$var" "VAL=$val" "$var=$val"
-  typeset -g "VAR=$var" "VAL=$val" "$var=$val"
-  test ${v:-4} -le 5 || typeset -p "$var" >&2
+  stderr echo declare "VAR=$var" "VAL=$val" "$var=$val"
+  declare -g "VAR=$var" "VAL=$val" "$var=$val"
+  test ${v:-4} -le 5 || declare -p "$var" >&2
 }
 
 eval_doc_pi ()
@@ -73,8 +73,8 @@ eval_item_pi ()
   test "${VAL:0:1}" = " " && {
     VAL="~ $VAL"
   }
-  typeset -g VAL="${VAL//\~/$docval}"
-  typeset -g $VAR="$VAL"
+  declare -g VAL="${VAL//\~/$docval}"
+  declare -g $VAR="$VAL"
 }
 
 # Output tabfile specs to M3U playlist. Select lines based on tags in comment
@@ -83,7 +83,7 @@ readtab () # ~ [<Tags...>]
   true "${rest_default:="#"}"
   true "${rest_empty:="#"}"
 
-  typeset -a extra=()
+  declare -a extra=()
   grep -vE '^\s*(# .*)?$' |
     sed -e 's/^ *//' -e 's/ *$//' -e 's/^#/# # #/' | {
 

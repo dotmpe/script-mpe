@@ -3,7 +3,7 @@ export UC_LOG_BASE=fswatch.sh[$$]
 sh_mode dev strict
 
 gdate=date
-lib_require str date-htd os-htd argv str-uc
+lib_require str date-htd os-htd args str-uc
 
 note () { $LOG notice : "$1" "${2:+E}$2" ${2:-0}; }
 error () { $LOG error : "$1" "E$2" ${2:?}; }
@@ -95,13 +95,13 @@ case "${1:?}" in
     ;;
 esac
 
-argv_is_seq "$@" && {
+args_is_seq "$@" && {
   shift &&
 
-  argv_arr_seq files "$@"
+  args_arr_seq files "$@"
   shift $argc
 
-  argv_arr_seq cmd "$@"
+  args_arr_seq cmd "$@"
   shift $argc
 
   test 0 -eq $# || shift
@@ -112,7 +112,7 @@ argv_is_seq "$@" && {
     TODO use defaults for file/cmd set from attributes file
 
   } || {
-    argv_arr_seq files "$@" &&
+    args_arr_seq files "$@" &&
     shift $argc
     cmd+=( "${1:?}" )
   }

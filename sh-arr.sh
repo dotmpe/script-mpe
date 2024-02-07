@@ -2,7 +2,7 @@
 ## Shell/Arr:
 
 # What do you use to check wether a symbol has been declared as array variable?
-# there is no 'typeset --array-exists'
+# there is no 'declare --array-exists'
 
 # So it seems, the only way is declare -p. See also sh-typeset.
 
@@ -30,26 +30,26 @@ tt A
 
 echo
 echo "Array declared"
-typeset -a myArray
-typeset -p myArray
+declare -a myArray
+declare -p myArray
 tt B
 
 echo
 echo "Array assigned empty (but still empty or null)"
 myArray=()
-typeset -p myArray
+declare -p myArray
 tt C
 
 echo
 echo "Array assigned one empty string element (but still empty or null)"
 myArray=("")
-typeset -p myArray
+declare -p myArray
 tt C2
 
 echo
 echo "Array assigned one word element"
 myArray=(foo)
-typeset -p myArray
+declare -p myArray
 tt C3
 
 

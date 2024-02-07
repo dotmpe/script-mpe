@@ -44,6 +44,19 @@ class_sh_aliasargv ()
   esac
 }
 
+class_sh_loadenv ()
+{
+  user_script_loadenv &&
+  user_script_initlog || return
+  shopt -s nullglob nocaseglob
+  sh_mode strict # dev
+}
+
+class_sh_unload ()
+{
+  shopt -u nullglob nocaseglob
+}
+
 # Main entry (see user-script.sh for boilerplate)
 
 test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"

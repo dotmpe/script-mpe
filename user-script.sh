@@ -201,8 +201,8 @@ script_debug_args () # ~ <Array-var> # Pretty print array
 script_debug_arr () # ~ <Array-var> # Pretty print array
 {
   test 1 -eq $# || return ${_E_MA:?}
-  if_ok "$(typeset -p ${1:?})" &&
-    fnmatch "typeset -*[Aa]* ${1:?}" "$_" &&
+  if_ok "$(declare -p ${1:?})" &&
+    fnmatch "declare -*[Aa]* ${1:?}" "$_" &&
       echo "Array '${_:11}' (empty)" ||
       <<< "Array '${_:11}" sed "s/=(\[/':\\n\\t/
 s/\" \[/\\n\\t/g
@@ -250,8 +250,8 @@ script_debug_funs () # ~ <Fun...> # List shell functions
   local fun
   for fun in "$@"
   do
-    stderr typeset -F $fun
-    stderr typeset -f $fun
+    stderr declare -F $fun
+    stderr declare -f $fun
   done
 }
 
@@ -271,15 +271,14 @@ script_debug_vars () # ~ <Var-names...>
   : "${def_stat:=-}"
   : "${def_val:=(unset)}"
 
-  local vn
+  # NOTE: for ref-vars (-n), using '${!...}' flips its function
+  declare -n vn
   : "$(for vn in "$@"
   do
-    : "${!vn:-}"
-    test -n "$_" &&
-    printf "%s='%s'\n" "${vn}" "$_" ||
-    printf "%s=%s\n" "${vn}" "${def_val:?}"
+    : "${vn-$def_val}"
+    printf "%s=%s\n" "${!vn}" "$_"
   done)"
-  stderr echo $_
+  stderr echo "$_"
 }
 
 # Handle env setup (vars & sources) for script-entry. Executes first existing
@@ -548,7 +547,7 @@ user_script_defarg ()
   done
 
   # Print everything using appropiate quoting
-  argv_dump "$@" &&
+  args_dump "$@" &&
 
   # Print defs for some core vars for eval as well
   user_script_defcmdenv "$@"
@@ -700,7 +699,7 @@ user_script_initlibs () # ~ <Required-libs...>
     set -- $(user_script_initlibs__initialized "$@")
     test 0 -lt $# || {
         # XXX: if debug
-        typeset -a loaded=( $lib_loaded ) initialized
+        declare -a loaded=( $lib_loaded ) initialized
         if_ok "$(std_noerr lib_uc_hook var _lib_init)" &&
           initialized=( $_ ) && : "${#initialized[@]}" || : "?"
         $LOG info "$lk" "Done" "loaded=${#loaded[@]};initialized=$_"
@@ -725,7 +724,7 @@ user_script_initlibs () # ~ <Required-libs...>
 }
 user_script_initlibs__needsinit ()
 {
-  typeset lib
+  declare lib
   for lib in "${@:?}"
   do
     : "${lib//[^A-Za-z0-9_]/_}_lib__init"
@@ -734,7 +733,7 @@ user_script_initlibs__needsinit ()
 }
 user_script_initlibs__initialized ()
 {
-  typeset lib
+  declare lib
   for lib in "${@:?}"
   do
     : "${lib//[^A-Za-z0-9_]/_}_lib_init"
@@ -853,7 +852,7 @@ user_script_load () # ~ <Actions...>
 
         # FIXME: probably want to use groups ehre as well
       ( defarg )
-        lib_load user-script shell-uc str argv us &&
+        lib_load user-script shell-uc str args us &&
         lib_init shell-uc ;;
 
       ( usage )
@@ -1234,7 +1233,7 @@ user_script_usage_ext ()
   local h=$1 fun=${1//-/_} fun_def
 
   shopt -s extdebug
-  fun_def=$(typeset -F "$fun") || {
+  fun_def=$(declare -F "$fun") || {
     $LOG error "" "No such type loaded" "fun?:$fun"
     return 1
   }
@@ -1311,13 +1310,13 @@ user_script_alsdefs ()
 
 # Shell aliases can be useful, except when used as macro then they don't even
 # have some variable expansion. But if we escape their definitions for eval,
-# we can still typeset new specific aliases from re-usable patterns.
+# we can still declare new specific aliases from re-usable patterns.
 #
 # See us-shell-alias-def.
 us_shell_alsdefs ()
 {
   # XXX: note the us vs uc. ATM not sure I really want these 'expansions' in US.
-  typeset -g -A uc_shell_alsdefs=()
+  declare -g -A uc_shell_alsdefs=()
 
   # Some current patterns. Probably want to move to compose.
 

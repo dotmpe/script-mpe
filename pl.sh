@@ -7,7 +7,7 @@ ranges ()
 {
   test $# -gt 0 || set -- main
   readtab "$@" < "${1:?}.tab" | {
-    typeset st et p extra sts ets curp lets
+    declare st et p extra sts ets curp lets
     while IFS=$'\t\n' read -r st et p extra
     do
       test "${st:0:1}" = "#" && continue

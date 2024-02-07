@@ -159,7 +159,7 @@ tasks_scan () # (stbctx) ~ <Tasks-file> [<Tasks-tab>]
         "E$?:$STTAB" $? || return
   }
 
-  #typeset file{version,id,mode}
+  #declare file{version,id,mode}
   out_fmt=${out_fmt:-} tasks_scan_prio "${1:?}" &&
     cnt=$(( cnt + 1 )) ||
     test ${_E_next:?} -eq $? && errs=$(( errs + 1 )) ||
@@ -175,7 +175,7 @@ tasks_scan_prio () # (out-fmt) ~ <File> [<Threshold>]
 {
   filereader_skip "${1:?}" ${tasks_filetypes:?} || return ${_E_next:?}
 
-  typeset update
+  declare update
   # @TodoFile @Context @FileReader
   # @Status => sum @TodoTxt.PRI
   pri_cnt=$(meta_xattr__get "${1:?}" prio-count) ||

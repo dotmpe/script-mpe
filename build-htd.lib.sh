@@ -23,7 +23,7 @@ build_htd_lib__init ()
 
 
 #  lib_assert \
-#      main argv date tasks du vc-htd vc match src function functions shell ||
+#      main args date tasks du vc-htd vc match src function functions shell ||
 #      return
 
 # Initialize Project Build Scripts settings
@@ -61,7 +61,7 @@ build_init()
 
   test -n "${package_build-}" || package_build=redo\ \"\$@\"
   test -n "${package_specs_required-}" ||
-      package_specs_required=str\ sys\ os\ std\ argv\ shell\ match\ src\ main\ sh\ bash\ redo\ build\ box\ functions\ oshc\ vc\ ck\ schema
+      package_specs_required=str\ sys\ os\ std\ args\ shell\ match\ src\ main\ sh\ bash\ redo\ build\ box\ functions\ oshc\ vc\ ck\ schema
 
   package_lib__init || return
   build_io_init || return

@@ -1,19 +1,5 @@
 ### URLRes: manage local copies for URL's
 
-# Helper to:
-# 1. Use simple strf formats, to create URLs from patterns and input values
-# 2. Create nice cache file locations, based on those pattern Ids and the inputs
-
-# TODO: full testing of the pattern mechanism
-# Patterns are printf(1) formats ie. string templates: literal strings with
-# positional placeholders for strings, numbers and with all associated features
-# of printf. Inputs are lists of one or more strings/numbers.
-
-# Filenames are partly anonimized by default.
-# Input values values for URL patterns are always hashed, keys for URL patterns
-# are anonimized if urlres-cachekey-idhash (default false). All hashes have
-# salt, its prefixed to the string input value.
-
 urlres_lib__load ()
 {
   lib_require hash web || return
@@ -37,7 +23,7 @@ urlres_lib__init ()
 # Retrieve resource.
 urlres () # ~ <Key> [<Inputs...>]
 {
-  typeset lk=${lk:-}:urlres
+  declare lk=${lk:-}:urlres
   urlres_files "$@" || return
   #http_deref "$url" "$cachef" "$etagf"
   http_deref_cache_etagfile "$cachef" "$etagf" "$url"
@@ -46,8 +32,8 @@ urlres () # ~ <Key> [<Inputs...>]
 # Encode urlres key and checksum of options into cache file name
 urlres_cachekey_cksums () # ~ <Key> <Inputs...>
 {
-  typeset lk=${lk:-}:cachekey-cksums
-  typeset salt=${urlres_cachekey_salt-} kalgo=${urlres_cachekey_algo:-md5}
+  declare lk=${lk:-}:cachekey-cksums
+  declare salt=${urlres_cachekey_salt-} kalgo=${urlres_cachekey_algo:-md5}
   if_ok "$(hash_str "$kalgo" "$salt${*:2}")" || return
   "${urlres_cachekey_idhash:-false}" "$_" && {
     if_ok "${urlres_key_prefix-}$(hash_str "$kalgo" "$salt$1"):$_" || return
@@ -116,7 +102,7 @@ urlres_ref () # ~ <Key> <Inputs...> # Produce URL reference
 # Take key to retrieve URL pattern and options from env variable(s)
 urlres_ref_env () # ~ <...>
 {
-  typeset lk=${lk:-}:ref-env
+  declare lk=${lk:-}:ref-env
   pattern=${!kid:-}
   test -n "$pattern" && {
     $LOG info "$lk" "Found pattern spec at key '$kid'" "${_//%/%%}"

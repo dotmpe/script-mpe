@@ -6,13 +6,13 @@ meta_aprops_lib__load ()
 
 meta_aprops_lib__init ()
 {
-  typeset -gA meta_aprop_{about,obj}
-  typeset field
+  declare -gA meta_aprop_{about,obj}
+  declare field
   : "${meta_fields-}"
   : "${_//,/ }"
   for field in $_
   do
-    typeset -gA "meta_aprop__${field:?}=()"
+    declare -gA "meta_aprop__${field:?}=()"
   done
   : "${meta_aprops_salt:-$RANDOM}"
 }
@@ -26,19 +26,19 @@ meta__aprops__commit () # (id) ~
 
 meta__aprops__direct_get () # ~ <Key>
 {
-  typeset key=${1:?meta:aprops:get: Key expected}
+  declare key=${1:?meta:aprops:get: Key expected}
   grep -Po -m1 "^$key = \K.*" "${meta_path:?}"
 }
 
 meta__aprops__direct_set () # ~ <Key> <Value>
 {
-  typeset key=${1:?meta:aprops:set: Key expected}
+  declare key=${1:?meta:aprops:set: Key expected}
   sed -i "s/^$key = .*$/$key = ${2-}/g" "${meta_path:?}"
 }
 
 meta__aprops__dump () # ~
 {
-  typeset key
+  declare key
   echo "[${meta_ref:?}]"
   : "meta_aprop_obj[${meta_id:?}]"
   for key in ${!_:?}
@@ -56,8 +56,8 @@ meta__aprops__exists () # (-{ref,path}:) ~
 
 meta__aprops__fetch () # (-{id,path}:) ~
 {
-  typeset fp key eq value
-  typeset -A meta_keys=()
+  declare fp key eq value
+  declare -A meta_keys=()
   exec {fp}< "${meta_path:?}"
   # XXX: optional validate to check function and integrity
   #read -u $fp -r line
@@ -67,8 +67,8 @@ meta__aprops__fetch () # (-{id,path}:) ~
   do
     test "$eq" = "=" ||
       $LOG error : "Illegal format" "$key $eq $value" 1 || return
-    sh_arr "meta_aprop__${key:?}" || typeset -gA "$_=()"
-    typeset -g "meta_aprop__${key:?}[$meta_id]=$value"
+    sh_arr "meta_aprop__${key:?}" || declare -gA "$_=()"
+    declare -g "meta_aprop__${key:?}[$meta_id]=$value"
     test -n "${meta_keys[$key]+set}" || meta_keys["$key"]=
   done
   exec {fp}<&-
@@ -78,12 +78,12 @@ meta__aprops__fetch () # (-{id,path}:) ~
 
 meta__aprops__init () # (-id:) ~ ( <key> <value> )+
 {
-  typeset -A meta_keys=()
+  declare -A meta_keys=()
   while test 0 -lt $#
   do
     test $# -ge 2 || return ${_E_GAE:?}
-    sh_arr "meta_aprop__${1:?}" || typeset -gA "$_=()"
-    typeset -g "meta_aprop__${1:?}[${meta_id:?}]=${2-}" || return
+    sh_arr "meta_aprop__${1:?}" || declare -gA "$_=()"
+    declare -g "meta_aprop__${1:?}[${meta_id:?}]=${2-}" || return
     test -n "${meta_keys[$1]+set}" || meta_keys["$1"]=
     shift 2
   done
@@ -110,18 +110,18 @@ meta__aprops__obj_id () # ~ <File>
 
 meta__aprops__set () # (-id:) ~ <Key> <Value>
 {
-  typeset -g "meta_aprop__${1:?}[${meta_id:?}]=${2-}"
+  declare -g "meta_aprop__${1:?}[${meta_id:?}]=${2-}"
 }
 
 meta__aprops__update () # (-id:) ~ ( <key> <value> )+
 {
   test $# -ge 2 || return ${_E_MA:?}
-  sh_arr meta_keys || typeset -A meta_keys=()
+  sh_arr meta_keys || declare -A meta_keys=()
   while test 0 -lt $#
   do
     test $# -ge 2 || return ${_E_GAE:?}
-    sh_arr "meta_aprop__${1:?}" || typeset -gA "$_=()"
-    typeset -g "meta_aprop__${1:?}[${meta_id:?}]=${2-}"
+    sh_arr "meta_aprop__${1:?}" || declare -gA "$_=()"
+    declare -g "meta_aprop__${1:?}[${meta_id:?}]=${2-}"
     test -n "${meta_keys[$1]+set}" || meta_keys[$1]=
     shift 2
   done

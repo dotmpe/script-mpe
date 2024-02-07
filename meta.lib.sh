@@ -19,7 +19,7 @@ meta_lib__init ()
     }
   : "${meta_providers:=fsattr git-annex dotattr aprops}"
   : "${meta_be:=aprops}"
-  typeset -ga meta=()
+  declare -ga meta=()
 }
 
 
@@ -111,7 +111,7 @@ meta_properties () # ~ <Target-file> <Cmd...>
       ;;
 
     ( assert-words ) # ~ ~ <Field> <Words...>
-        typeset field=${1:?} var
+        declare field=${1:?} var
         shift
         meta_new_id
         meta__${meta_be:?}__new "$tf" &&
@@ -183,7 +183,7 @@ meta_new_id ()
 
 # --- util
 
-#eval "$(compo typeset conv_fields_shell)"
+#eval "$(compo declare conv_fields_shell)"
 conv_fields_shell ()
 {
 # Translate uniform fields format into shell variable declarations

@@ -56,7 +56,7 @@ us_xctx_init ()
 
 us_xctx_switch () # ~ <Default-context> <User-provided...>
 {
-  typeset defctx=${1:-@List} lk=${lk:-}:us:xctx-switch
+  declare defctx=${1:-@List} lk=${lk:-}:us:xctx-switch
   shift
 
   # Use tagref as user provided context

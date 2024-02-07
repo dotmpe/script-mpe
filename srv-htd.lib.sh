@@ -6,12 +6,12 @@ srv_htd_lib__load()
   : "${SRVTAB:=${STATUSDIR_ROOT:?}index/srv.tab}"
 }
 
-srv_htd_lib__init ()
-{
-  test -z "${srv_htd_lib_init:-}" || return $_
-
-  create srvtab SrvTab "$SRVTAB"
-}
+#srv_htd_lib__init ()
+#{
+#  test -z "${srv_htd_lib_init:-}" || return $_
+#
+#  create srvtab SrvTab "$SRVTAB"
+#}
 
 
 class_SrvTabEntry__load ()
@@ -19,7 +19,7 @@ class_SrvTabEntry__load ()
   Class__static_type[SrvTabEntry]=SrvTabEntry:StatTabEntry
 }
 
-class_SrvTabEntry_ () # ~ <Instance-Id> .<Message-name> <Args...>
+class_SrvTabEntry_ () # (super,self,id,call) ~ <Args>
 {
   case "${call:?}" in
 

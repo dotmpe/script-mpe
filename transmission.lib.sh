@@ -75,14 +75,14 @@ transmission_active () # ~
     ( ids|nums )
           transmission_list ids active ;; #active tab | awk '{print $1}' ;;
     ( key|keys|cols ) # ~ <Var:Field...>
-          local act="$1"; shift; set -- "$1" fix-cols active -- "$@"
-          transmission_list "$@" ;;
+          #local act="$1"; shift; set -- "$1" fix-cols active -- "$@"
+          transmission_list keys fix-cols active -- "${@:2}" ;;
     ( tab )
           transmission_list active ;;
     ( xtab )
           transmission_list fix-cols active ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+    ( * ) $LOG error "$lk" "No such action" "$1" 67
   esac
 }
 
@@ -275,7 +275,7 @@ transmission_item_files () # ~
 transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
 {
   local keymap
-  argv_q=0 argv_more "$@" || return; shift $more_argc ; keymap="$more_argv"
+  args_q=0 args_more "$@" || return; shift $more_argc ; keymap="$more_args"
   unset more_arg{v,c}
 
   test -n "$keymap" || {
@@ -618,73 +618,71 @@ transmission_list () # ~ <Action ...> # Filter/process clients list output
   case "$1" in
 
     ( a|active )
-          transmission_client_remote -l | grep ${grep_f:-} -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
+        transmission_client_remote -l | grep ${grep_f:-} -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
     ( S|not-stopped )
-          transmission_client_remote -l | grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
+        transmission_client_remote -l | grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
     ( idle )
-          transmission_client_remote -l | grep ${grep_f:-} 'Idle' ;;
+        transmission_client_remote -l | grep ${grep_f:-} 'Idle' ;;
     ( e|errors|issues )
-          transmission_client_remote -l | grep ${grep_f:--E} '^ *[0-9]+\* ' ;;
+        transmission_client_remote -l | grep ${grep_f:--E} '^ *[0-9]+\* ' ;;
     ( popular )
-          transmission_client_remote -l |
-            grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
-            transmission_fix_item_cols | sort -k7n
-        ;;
+        transmission_client_remote -l |
+          grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
+          transmission_fix_item_cols | sort -k7n
+      ;;
     ( s|stopped|paused )
-          transmission_client_remote -l | grep ${grep_f:-} '\(None\|[0-9][0-9]*\) * Stopped ' ;;
+        transmission_client_remote -l |
+          grep ${grep_f:-} '\(None\|[0-9][0-9]*\) * Stopped ' ;;
 
     ( fix-cols )
-          shift; transmission_list "$@" | transmission_fix_item_cols ;;
+        shift; transmission_list "$@" | transmission_fix_item_cols ;;
     ( I|ids )
-          shift; transmission_list "$@" | awk '{print $1}' ;;
+        shift; transmission_list "$@" | awk '{print $1}' ;;
     ( i|items ) # ~ (<Handler>) <Id-Spec...> # Shortcut to run given handler on selected IDs
-          shift; local handler=${1:-lognote}; shift
-          transmission_list_run fix-cols items-by-nums "$@" -- \
-              transmission_item_$handler ;;
+        shift; local handler=${1:-lognote}; shift
+        transmission_list_run fix-cols items-by-nums "$@" -- \
+            transmission_item_$handler ;;
     ( lognotes )
-          shift; local handler=${1:-lognote}; shift
-          transmission_list_run transmission_item_$handler
-        ;;
+        shift; local handler=${1:-lognote}; shift
+        transmission_list_run transmission_item_$handler
+      ;;
     ( items-by-nums ) # ~ [<List-Arg...> -- ] <Id...>
-          local listarg listargc
-          shift; transmission_listarg "$@" && shift $listargc
-          test $# -gt 0 || {
-            $LOG error "$lk" "Item ID arguments expected"
-            return 64
-          }
-          transmission_list $listarg | grep "^ *\<$( grep_or "$@" )\> "
-        ;;
+        local listarg listargc
+        shift; transmission_listarg "$@" && shift $listargc
+        test $# -gt 0 ||
+          $LOG error "$lk" "Item ID arguments expected" "" 64 || return
+        transmission_list $listarg | grep "^ *\<$( grep_or "$@" )\> "
+      ;;
     ( key|keys|cols ) # ~ [ <List-Arg...> -- ] <Var:Field...>
-          test "$1" = "cols" && ti_row=1 || {
-            test "$1" = "key" -o "$1" = "col" && ti_keymap=0 || ti_keymap=1;
-          }
-          local listarg listargc
-          shift; transmission_listarg "$@" && shift $listargc
-          test $# -gt 0 || {
-            $LOG error "$lk" "Key var names or map arguments expected"
-            return 64
-          }
-          transmission_list_run $listarg -- transmission_item_keys "$@"
-        ;;
+        test "$1" = "cols" && ti_row=1 || {
+          test "$1" = "key" -o "$1" = "col" && ti_keymap=0 || ti_keymap=1;
+        }
+        local listarg listargc
+        shift; transmission_listarg "$@" && shift $listargc
+        test $# -gt 0 ||
+          $LOG error "$lk" "Key var names or map arguments expected" "" 64 ||
+          return
+        transmission_list_run $listarg -- transmission_item_keys "$@"
+      ;;
     ( summary )
           transmission_list_summary ;
           $LOG notice "$lk:summary" \
 "Sharing $sum in $cnt shares, current transfer rates: $down down, $up up"
-        ;;
+      ;;
     ( tab|all )
-          transmission_client_remote -l ;;
+        transmission_client_remote -l ;;
     ( u|unknown )
-          transmission_list xtab | grep Unknown | grep -E '^ *[0-9]+\*?  *n/a' ;;
+        transmission_list xtab | grep Unknown | grep -E '^ *[0-9]+\*?  *n/a' ;;
     ( v|validate )
-          transmission_list_run transmission_item_validate ;;
+        transmission_list_run transmission_item_validate ;;
     ( xtab )
-          transmission_list fix-cols tab ;;
+        transmission_list fix-cols tab ;;
     ( count )
         : "$( transmission_list | count_lines )"
         echo $(( _ - 2 ))
       ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+    ( * ) $LOG error "$lk" "No such action" "$1" 67
   esac
 }
 
@@ -694,7 +692,7 @@ transmission_listarg ()
   local more=false
   while fnmatch "* -- *" " $* "
   do more=true
-    argv_q=0 argv_more "$@" && shift $more_argc ; listarg="$more_argv"
+    args_q=0 args_more "$@" && shift $more_argc ; listarg="$more_args"
     unset more_arg{v,c}
     shift
     true "${listarg:="fix-cols tab"}"
@@ -793,6 +791,7 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
     }
   done
   ! sh_fun "$1"_post || {
+    $LOG debug "$lk" "Running post" "$_"
     "$1"_post "$@" || return
   }
   $LOG info "$lk" "Finished reading" "E${ret:-0},items:$itcnt,failures:$flcnt"

@@ -4,13 +4,13 @@
 # Test, what is faster e.g. to check for array/Array type?
 # Look at speed implications for each method.
 
-# A. process opts from `typeset -p` output, or
+# A. process opts from `declare -p` output, or
 # B. 1. store opts in one assoc arr, or
 # B. 2. one array for each opt, or
 # C. use standard simple variables using variable name keying
 
 # Numbers below. Observations:
-# Surprised the `typeset -p` subshell has this large an impact compared to
+# Surprised the `declare -p` subshell has this large an impact compared to
 # case/esac. And clearly caching improves runtime more than one order
 # of magnitude. Associative arrays showing a tiny but noticable improvement
 # over regular variables (most or all of the times).
@@ -22,7 +22,7 @@
 # See also other previous benchmarks:
 #
 # - tools/bookmark/bm-sh-type.sh
-#   how typeset -F is a superior check for types (0.1us on t460s vs. 450 microseconds for type -t plus str cmp).
+#   how declare -F is a superior check for types (0.1us on t460s vs. 450 microseconds for type -t plus str cmp).
 #
 # - tools/benchmark/bm-sh-regex-case.sh
 #   compare regex vs. case/esac string matching (1.7 vs 1.2 ms @t460s)
@@ -90,7 +90,7 @@ test_A_raw ()
   is_arr "$dopts"
 }
 
-typeset -A my_b_cache
+declare -A my_b_cache
 
 test_B_cache_arr ()
 {
@@ -105,10 +105,10 @@ test_B_cache_arr ()
 
 test_C_cache_vars ()
 {
-  typeset var="${1:?}_opts"
+  declare var="${1:?}_opts"
   test "${!var-unset}" = "unset" && {
     read_decl "$1"
-    typeset -g "${1:?}_opts=$dopts"
+    declare -g "${1:?}_opts=$dopts"
   } || {
     dopts=${!var}
   }
@@ -125,11 +125,11 @@ test_C_is_working ()
 }
 
 
-typeset -A my_d_cache
+declare -A my_d_cache
 
 test_D_caching_declare_F ()
 {
-  typeset val
+  declare val
   true "${val:=${my_d_cache["$1"]-unset}}"
   test "$val" = unset && {
     declare -F "${1:?}" >/dev/null 2>&1 && {
@@ -146,16 +146,16 @@ test_D_caching_declare_F ()
 
 test_E_str_expansion ()
 {
-  typeset var=${1:?} dopts
+  declare var=${1:?} dopts
   dopts="${!var@A}"
   is_arr
 }
 
-echo "Run raw typeset -p read (no cache)"
+echo "Run raw declare -p read (no cache)"
 time run_test $runs -- test_A_raw myTestVariable
-echo "Run from cached typeset -p (assoc arr)"
+echo "Run from cached declare -p (assoc arr)"
 time run_test $runs -- test_B_cache_arr myTestVariable
-echo "Run from cached typeset -p (plain var)"
+echo "Run from cached declare -p (plain var)"
 time run_test $runs -- test_C_cache_vars myTestVariable
 
 echo "D. Test raw call vs array key lookup (no opts caching, only keying)"

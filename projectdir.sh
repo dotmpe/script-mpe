@@ -1709,7 +1709,7 @@ pd_init()
   pd_preload || exit $?
   . $scriptpath/tools/sh/parts/env-0-1-lib-sys.sh
   . $scriptpath/tools/sh/init.sh || return
-  lib_load str sys os std stdio src match main argv str-htd std-ht sys-htd htd
+  lib_load str sys os std stdio src match main args str-htd std-ht sys-htd htd
   # XXX: . $scriptpath/tools/sh/box.env.sh
   #box_run_sh_test
   lib_load meta box package src-htd
