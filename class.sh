@@ -9,19 +9,28 @@ uc_script_load user-script || ${us_stat:-exit} $?
   uc_script_load us-als-mpe || ${us_stat:-exit} $?
 
 class_sh__grp=user-script-sh
-class_sh__libs=class-uc,lib-uc
+class_sh__libs=class-uc,lib-uc,argv
 
 class_sh_ ()
 {
   local a1_def=summary; sa_switch_arg
   case "$switch" in
 
-    ( [@+]* )
-        declare xctx ctxref=local:xctx
+    ( [@+]* ) # ~ @<Class-name> <call> <args...> [ -- <call> <args...> ]
+        declare xctx ctxref=local:xctx subcall=()
         class_init XContext &&
         class_new local:xctx XContext &&
         $xctx$switch &&
-        $xctx${1:-.info} "${@:2}"
+        if_ok "$($xctx.class)/$($xctx.id)" || return
+        $LOG notice "$lk" "Context ready, running commands..." "$_"
+        while argv_seq subcall "$@"
+        do
+          $LOG info "$lk" "Calling in context" "${subcall[*]:-.info}"
+          $xctx${subcall[0]:-.info} "${subcall[@]:2}" || return
+          shift ${#subcall[@]} && argv_is_seq "$@" && shift && test 0 -lt $# ||
+            break
+          subcall=()
+        done
       ;;
 
       * ) sa_E_nss
