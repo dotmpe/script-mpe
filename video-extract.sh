@@ -6,6 +6,8 @@ set -e
 test 3 -le $# -o 6 -ge $# && {
 
   out=${4:-out.mp4}
+  test ! -e "$out" || exit 200
+
   # Remove all metadata (map global, stream, chapter and program from -1)
   # set new title to filename (if left empty)
   new_title=${5:-${out##*/}}
