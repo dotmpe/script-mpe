@@ -5,11 +5,10 @@
 
 time2seconds ()
 {
-  fnmatch "*:*" "${1:?}" && {
-    echo "$1" | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }'
-  } || {
-    echo "$1"
-  }
+  case "${1:?}" in ( *":"* )
+      echo "$1" | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }' ;;
+    * ) echo "$1"
+  esac
 }
 
 # (Media should not be longer than 99 hours)
