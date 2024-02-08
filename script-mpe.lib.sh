@@ -204,16 +204,19 @@ sh_var_incr ()
   declare -g ${1:?}=$(( v + 1 ))
 }
 
+# Store given or previous last argument value at variable
 sh_var_setval () # ~ <Var-name> [<Value-or-last>]
 {
   declare -g ${1:?}="${2:-$_}";
 }
 
+# Copy value from to new
 sh_var_copy () # ~ <New-var> <From-ref>
 {
   declare -g ${1:?}="${!2}"
 }
 
+# Check for array variable, and for value set at key (zerowidth or otherwise)
 sh_adef () # ~ <Array> <Key>
 {
   sh_arr "${1:?}" &&
@@ -221,10 +224,29 @@ sh_adef () # ~ <Array> <Key>
   test "(unset)" != "${!_:-(unset)}"
 }
 
+# Set given name is symbol for array variable (normal or associative)
 sh_arr () # ~ <Varname>
 {
   if_ok "$(std_noerr declare -p ${1:?})" &&
   case "$_" in ( "declare -"*[Aa]*" "* ) ;; * ) false; esac
+}
+
+# Call sys-arr unless array var with name exists.
+sh_arr_assert () # ~ <Var-name> <Command...>
+{
+  sh_arr "$1" || sys_arr "$@"
+}
+
+sh_arr_len () # ~ <Var-name>
+{
+  declare -n arr=${1:?}
+  echo ${#arr[@]}
+}
+
+sys_arr () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
+{
+  if_ok "$("${@:2}")" &&
+  <<< "$_" mapfile -t "$1"
 }
 
 sh_fclone inc sh_var_incr
