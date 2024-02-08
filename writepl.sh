@@ -135,9 +135,11 @@ writepl_m3u_vlc ()
 }
 
 # XXX: here is some docs on chapter files, but not much for playlists.
-# Not sure what the purpose for M3U #EXT-X-START is
 #
 # <https://docs.fileformat.com/audio/m3u/>
+#
+# Have not found equiv of VLCOPT:{start,stop}-time
+# I wonder if subplaylists and M3U's #EXT-X-START works anywhere.
 #
 # Chapters files for mpv player https://github.com/mpv-player/mpv/issues/4446
 # FFMPEG chapters: http://ffmpeg.org/ffmpeg-formats.html#Metadata-1
