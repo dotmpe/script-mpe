@@ -10,10 +10,10 @@ class_Context__load ()
 
 class_Context_ () # (super,self,id,call) ~ <Args>
 {
-  str_wordmatch "${call:1}" ${context_methods:?} && {
-    at_Context=$self context_${m:1} "$@"
-    return
-  }
+  #str_wordmatch "${call:1}" ${context_methods:?} && {
+  #  at_Context=$self context_${m:1} "$@"
+  #  return
+  #}
 
   case "${call:?}" in
 

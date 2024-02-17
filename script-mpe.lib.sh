@@ -5,6 +5,12 @@
 # TODO: derive from tools/u-s/
 
 
+script_mpe_lib__init ()
+{
+  export -f sh_notfound sh_errsyn sh_errusr
+}
+
+
 # sh_func_decl
 fun_def () {
   : "${2:?fun-def: $1: Function body expected}"
@@ -27,6 +33,8 @@ fun_true () { :; }
 fun_def noop :\;
 #fun_def cite :\;
 fun_wrap () { "$@"; }
+
+ignore () { "$@"; true; }
 
 sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body
 {
@@ -237,16 +245,19 @@ sh_arr_assert () # ~ <Var-name> <Command...>
   sh_arr "$1" || sys_arr "$@"
 }
 
-sh_arr_len () # ~ <Var-name>
+sh_arr_def () # ~ <Var-name>
 {
-  declare -n arr=${1:?}
-  echo ${#arr[@]}
+  sh_arr "${1:?}" &&
+  declare -n arr=${1:?} &&
+  test "${arr[*]+set}" = "set"
 }
 
-sys_arr () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
+sh_arr_len () # ~ <Var-name>
 {
-  if_ok "$("${@:2}")" &&
-  <<< "$_" mapfile -t "$1"
+  #sh_arr_def "${1:?}" &&
+  declare -n arr=${1:?} &&
+  test "${arr[*]+set}" = "set" &&
+  echo ${#arr[@]}
 }
 
 sh_fclone inc sh_var_incr
@@ -283,11 +294,11 @@ sh_caller ()
   echo "$_"
 }
 
-script_mpe_lib__init ()
+sys_arr () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
 {
-  export -f sh_notfound sh_errsyn sh_errusr
+  if_ok "$("${@:2}")" &&
+  <<< "$_" mapfile -t "$1"
 }
-
 
 error_handler ()
 {

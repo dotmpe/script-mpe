@@ -50,7 +50,7 @@ class_StatDirIndex_ () # :StatTab (super,self,id,call) ~ <Call-args...>
 
 class_StatIndex__load ()
 {
-  # about "Line in StatDirIndex representing another StatTab file" @StatIndex
+  : about "Line in StatDirIndex representing another StatTab file" @StatIndex
   Class__static_type[StatIndex]=StatIndex:StatTabEntry:StatTab
 }
 
@@ -64,9 +64,8 @@ class_StatIndex_ () # (super,self,id,call) ~ <Call ...>
 
 class_StatTabEntry__load () # ~
 {
-  # about "Entry in StatTab file" @StatTabEntry
+  : about "Entry in StatTab file" @StatTabEntry
   Class__static_type[StatTabEntry]=StatTabEntry:Class
-  #ParameterizedClass
   ctx_pclass_params=${ctx_pclass_params-}${ctx_pclass_params:+ }$stattab_var_keys
   declare -g -A StatTabEntry__btime=()
   declare -g -A StatTabEntry__ctime=()
@@ -201,11 +200,12 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
 
 class_StatTab__load ()
 {
-  #about "File with lines or blocks representing entries consisting of status and description fields for some entity" @StatTab
+  : about "File with lines or blocks representing entries consisting of status and description fields for some entity" @StatTab
   Class__static_type[StatTab]=StatTab:Class
-  #ParameterizedClass
-  declare -g -A StatTab__file=()
-  declare -g -A StatTab__entry_type=()
+  Class__rel_types[StatTab]=StatTabEntry
+  declare -gA StatTab__file=()
+  declare -gA StatTab__entry_type=()
+  declare -gA StatTab__entry=()
 }
 
 # StatTab is a list of StatTabEntries, represented by a single file.
@@ -222,6 +222,13 @@ class_StatTab_ () # ~
 {
   case "${call:?}" in
 
+    -init ) # ~ var tab entry
+        declare tab=${2:?}
+        declare -n var=${1:?}
+        class_init "${3:-StatTabEntry}" &&
+        class_new $1 StatTab "$tab"
+      ;;
+
     .__init__ )
         test -e "${2-}" || {
             $LOG error :"${self}" "Tab file expected" "${2:-\$2:unset}:$#:$*" 1 || return
@@ -234,7 +241,43 @@ class_StatTab_ () # ~
     .__del__ )
         unset StatTab__file"[$id]" &&
         unset StatTab__entry_type"[$id]" &&
+        ignore unset StatTab__entry"[$id]" &&
         ${super:?}.__del__
+      ;;
+
+    .__cache__ )
+        declare tabf
+        tabf=$($self.tab-ref) &&
+
+        Std__cache[$tabf]=$tid
+        Std__cache[$tabf:$eid]=$iid
+
+        StatTab__entry[tid:iid]=eid
+        test "$tabf" = "${StatTab__file[tid]}"
+
+        for field in $stattab_var_keys
+        do
+          StatTabEntry__*[$iid]
+        done
+
+        # cache is for this type (table), related entry types. dont care for
+        # housekeeping in Class
+        class.StatusDir --key var <<< "$*"
+      ;;
+
+    .__items__ )
+        declare eid oid entry ids=()
+        sys_arr ids $self.list &&
+        for eid in "${ids[@]}"
+        do
+          $self.fetch local:entry "$eid" || return
+          : "${entry% }"
+          : "${_##* }"
+          oid=$_
+          declare -g "StatTab__entry[$id:$oid]"=$eid
+          #$eid
+          $entry.toString
+        done
       ;;
 
     .count ) if_ok "$($self.tab-ref)" && wc -l "$_" ;;
@@ -248,12 +291,17 @@ class_StatTab_ () # ~
         : "${1:?Expected Var-name argument}"
         ! str_wordmatch "$1" self id super call ext class tab ||
           $LOG alert "" "Cannot use reserved variable name" "$1" 1 || return
+
         : "${2:?Expected Stat-id argument}"
         $LOG debug "" "Retrieving ${CLASS_NAME:?} entry" "$1=$2" &&
         if_ok "$($self.tab-ref)" &&
+
         stattab_fetch "$2" "${3-}" "$_" ||
           $LOG error "" "Failed fetching" "${3-}${3:+:}$1=$2:E$?" $? || return
-        create "$1" "StatTabEntry" "$id" "${stab_lineno:?}"
+
+        typeset -n obj=${1#local:}
+        class_new "$1" "StatTabEntry" "$id" "${stab_lineno:?}" &&
+        $obj.get
       ;;
 
     .init ) # ~ ~ <Entry> # Create entry instance from given

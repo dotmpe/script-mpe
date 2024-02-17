@@ -9,28 +9,31 @@ uc_script_load user-script || ${us_stat:-exit} $?
   uc_script_load us-als-mpe || ${us_stat:-exit} $?
 
 class_sh__grp=user-script-sh
-class_sh__libs=class-uc,lib-uc,argv
+class_sh__libs=lib-uc,uc-class
+#class-uc,lib-uc,argv
 
 class_sh_ ()
 {
   local a1_def=summary; sa_switch_arg
   case "$switch" in
 
-    ( [@+]* ) # ~ @<Class-name> <call> <args...> [ -- <call> <args...> ]
-        declare xctx ctxref=local:xctx subcall=()
+    ( e|eval ) # ~ ~ <script...> [ -- <script...> ]
         class_init XContext &&
+        declare xctx ctxref=local:xctx &&
+        class_new local:xctx XContext &&
+        $xctx-e "$@"
+      ;;
+
+    ( [@+]* ) # ~ <Class-ref> [<call> <args...> [ -- <call> <args...> ]]
+        # Create class from reference (with no constructor arguments, ie. using
+        # only class-id), and treat arguments as a sequence of invocations on
+        # that object.
+        class_init XContext &&
+        declare xctx ctxref=local:xctx &&
         class_new local:xctx XContext &&
         $xctx$switch &&
-        if_ok "$($xctx.class)/$($xctx.id)" || return
-        $LOG notice "$lk" "Context ready, running commands..." "$_"
-        while argv_seq subcall "$@"
-        do
-          $LOG info "$lk" "Calling in context" "${subcall[*]:-.info}"
-          $xctx${subcall[0]:-.info} "${subcall[@]:2}" || return
-          shift ${#subcall[@]} && argv_is_seq "$@" && shift && test 0 -lt $# ||
-            break
-          subcall=()
-        done
+        #if_ok "$($xctx.class)/$($xctx.id)" || return
+        context_cmd_seq xctx "$@"
       ;;
 
       * ) sa_E_nss
@@ -57,6 +60,7 @@ class_sh_loadenv ()
 {
   user_script_loadenv &&
   user_script_initlog || return
+  export v=${v:-4}
   shopt -s nullglob nocaseglob
   sh_mode strict # dev
 }

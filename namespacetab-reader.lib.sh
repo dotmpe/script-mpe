@@ -1,13 +1,8 @@
 namespacetab_reader_lib__load()
 {
+  : about "Helper for @NamespacesTab"
   : "${NSTAB_SH:=cache/ns-main.sh}"
   : "${NSTAB:=index/ns.tab}"
-}
-
-namespacetab_reader_lib__init ()
-{
-  true
-  #declare -gA ${USER_NS_:?}{alias,exec,group,resource,sub,universal,user}
 }
 
 namespacetab_reader_parse ()
@@ -22,24 +17,26 @@ namespacetab_reader_parse ()
   case "$flags" in
     ( -e )
         type=exec
+        while test 0 -lt $# -a "${1-}" != "--"
+        do
+          value="${value:+$value }$1"
+          shift
+        done
+        shift
         ctags+=( NS/Program ) ;;
     ( -g ) # Group (set of contexts)
         type=group
-        value=$(printf -- '@%s' "${ctags[@]}")
+        value=${value:-$(printf -- '@%s' "${ctags[@]}")}
         ctags+=( NS/Group )
       ;;
     ( -r )
-        type=resource
+        type=reference
         <<< "$*" sys_arr refs todotxt_field_chevron_refs &&
-        value=${refs[0]:?} &&
+        value=${value:-${refs[0]:?}} &&
         ctags+=( NS/Resource ) ;;
     ( -p ) # Path (sub) NS
-        type=sub
+        type=path
         value=$value:$id:
-      ;;
-    ( -s ) # Custom user NS
-        type=pattern
-        #value=$value:$id:
       ;;
     ( - | -a ) # User alias
         type=alias

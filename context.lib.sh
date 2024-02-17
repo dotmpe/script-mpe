@@ -3,7 +3,7 @@
 
 context_lib__load()
 {
-  lib_require os-htd src-htd stattab{,-reader} ctx-base contextdefs match-htd \
+  lib_require sys os-htd src-htd stattab{,-reader} ctx-base contextdefs match-htd \
       contextdefs || return
 
   : "${CTX:=""}"
@@ -52,12 +52,6 @@ context ()
   esac
 }
 
-context_define ()
-{
-  contexttab_init
-  contexttab_commit
-}
-
 context_cache ()
 {
   # Export every function for access in shell subprocess
@@ -95,6 +89,20 @@ context_check_inner () # ~ <Tag> <...>
       }
     }
   }
+}
+
+# XXX: New more simple query, see context-uc-cmd-seq for old
+context_cmd_seq () # ~ <ctx-var-name> <cmd-seq...>
+{
+  declare -n sys_csp=${1:?}
+  shift
+  sys_cse=true sys_cmd_seq "$@"
+}
+
+context_define ()
+{
+  contexttab_init &&
+  contexttab_commit
 }
 
 # Echo last context-parse values
