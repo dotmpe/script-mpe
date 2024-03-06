@@ -124,8 +124,10 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
     .attr ) # ~ <Key> [<Class>]          # Get field value from class instance value
         $super.attr "$1" "${2:-StatTabEntry}" ${3-} ;;
 
-    .commit ) $self.set &&
-        stattab_commit $($($self.tab).tab-ref) ;;
+    .commit )
+      $self.set &&
+      if_ok "$($self.tab-ref)" &&
+        stattab_commit "$_" ;;
 
     .entry ) stattab_entry ;;
 
@@ -166,21 +168,24 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
     .status ) # ~ [<>]
       ;;
 
-    .tab ) $($self.tab-ref).tab ;;
-
     .tab-class )
-      if_ok "$($self.tab-id)" && echo "$(class.Class Class $_ .class)" ;;
+      if_ok "$($self.tab-id)" && echo "$(class.Class Class $_ .cparams)" ;;
     .tab-id )
-      $self.attr stattab ;;
+      $self.attr stattab StatTabEntry ;;
+    .tab-obj )
+      if_ok "$($self.tab-class)" &&
+      if_ok "$_ $_ $($self.tab-id)" &&
+      echo "class.$_ " ;;
     .tab-ref )
-      if_ok "$($self.tab-id)" &&
-      if_ok "$(class.StatTabEntry StatTabEntry $_ .tab-class) $_" &&
-      class.$_ .tab-ref ;;
+      if_ok "$($self.tab-obj)" &&
+      $_.tab-ref ;;
+
     .todotxt-field ) # ~ <Field-key>
         #local field=${1:?}
         #shift
         #todotxt_field_${field//-/_} <<< "$"
       ;;
+
     .toString )
         $self.set &&
         $self.entry
@@ -302,30 +307,40 @@ class_StatTab_ () # ~
           $LOG error "" "Failed fetching" "${3-}${3:+:}$1=$2:E$?" $? || return
 
         typeset -n obj=${1#local:}
-        class_new "$1" "StatTabEntry" "$id" "${stab_lineno:?}" &&
+        class_new "$1" "StatTabEntry" "$id" "$stab_lineno" &&
         $obj.get
-      ;;
-
-    .init ) # ~ ~ <Entry> # Create entry instance from given
-        local var=$1; shift
-        stattab_init "$@" &&
-        if_ok "$($self.tab-entry-class)" &&
-        create "$var" "$_" "$id"
       ;;
 
     .list|.ids|.keys ) # ~ ~ [<Key-match>]
         stattab_list "${1-}" "$($self.tab-ref)"
       ;;
 
-    .new ) # ~ ~ <Id> [<Rest>]
+    .init ) # ~ ~ <Var> <Entry> # Create entry instance from provided
+        declare -n var=$1
+        stattab_entry_init "${*:2}" &&
+        if_ok "$($self.tab-entry-class)" &&
+        class_new "$1" "$_" "$id" "-1" &&
+        $var.commit
+      ;;
+
+    .new ) # ~ ~ <Var> <Id> [<Rest>] # Create entry from id and label+annotation
+        local tbref dtnow
+        tbref="$($self.tab-ref)" &&
+        dtnow="$(date_id $(date --iso=min))" &&
+        stattab_entry_init "$1" "- $dtnow $2:${3:+ }${3-}"
+      ;;
+
+    .new-direct ) # ~ ~ <Id> [<Rest>] # Create entry from id and label+annotation
         local tbref dtnow
         tbref="$($self.tab-ref)" &&
         dtnow="$(date_id $(date --iso=min))" &&
         echo "- $dtnow $1:${2:+ }${2-}" >> "$tbref"
       ;;
 
-    .tab ) if_ok "$($self.tab-ref)" &&
+    .tab ) # ~ <> ... # Output table data from file
+        if_ok "$($self.tab-ref)" &&
         stattab_tab "${1-}" "$_" ;;
+
     .tab-entry-class ) $self.attr entry_type StatTab ;;
     .tab-exists ) [[ -s "$($self.tab-ref)" ]] ;;
     .tab-init ) stattab_tab_init "$($self.tab-ref)" ;;

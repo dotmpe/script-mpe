@@ -70,17 +70,15 @@ stattab_entry_id () # ~ <StatTab-SId> [<StatTab-Id>]
 
 stattab_entry_id_valid ()
 {
-  [[ "$stab_id" =~ /^[A-Za-z_][A-Za-z0-9_-]*$/ ]]
+  [[ "$stab_id" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]
 }
 
 stattab_entry_init () # ~ [<Entry>]
 {
   stattab_entry_env_reset
   stab_entry="$*"
-  stattab_entry_parse &&
-
-  echo "$stab_id" | grep -q '^[A-Za-z_][A-Za-z0-9_-]*$' ||
-      error "Illegal ST name '$stab_id'" 1
+  stattab_entry_parse || error "Parsing entry '$stab_entry'" 1
+  stattab_entry_id_valid || error "Illegal ST name '$stab_id'" 1
 }
 
 stattab_entry_env_reset ()
