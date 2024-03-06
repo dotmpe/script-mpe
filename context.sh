@@ -101,7 +101,7 @@ context_sh_files () # ~ <Switch:-list> <...>
         : "$(context_files)" &&
         #mapfile -t files <<< "$_" &&
         #stderr script_debug_arr files
-        <<< "$_" foreach2 test_isfile
+        <<< "$_" foreach2 os_isfile
       ;;
     ( check-local )
         # TODO: use statusdir or other to go over unique names

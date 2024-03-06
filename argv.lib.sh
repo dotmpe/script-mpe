@@ -1,33 +1,41 @@
 
 ## Helpers
 
-argv_is_seq () # ~ <Argv...> # True if immediate item is seq. end '--'
-{
-  test "${1-}" = "--"
-}
-
 # Read sequence of arguments and flags until end '--' or long-option.
 argv_hseq () # ~ <Arr> <Argv...> [--* ...]
 {
-  declare si=2
-  declare -n arr=${1:?}
-  while argv_more "${@:$si}"
+  argv_more=argv_opt_more argv_seq "$@"
+}
+
+argv_is_seq () # ~ <Argv...> # True if immediate item is seq. end '--'
+{
+  [[ "${1-}" = "--" ]]
+}
+
+argv_opt_more () # ~ <Argv...> # True if more arguments (non-long-option or seq end)
+{
+  [[ $# -gt 0 && "${1:0:2}" != "--" ]]
+}
+
+argv_oseq () # ~ <offset> <arr> <args...> [--* ...]
+{
+  declare o=${1:?} &&
+  declare -n arr=${2:?} &&
+  arr+=( "${@:3:$o}" ) &&
+  o=$(( 3 + o )) &&
+  ${argv_seq:-argv_seq} "$2" "${@:$o}"
+}
+
+argv_scan () # ~ <var> <test> <args...>
+{
+  declare -n r=${1:?}
+  declare i test=${2:?}
+  shift 2
+  for (( i=1; i<$#; i++ ))
   do
-    arr+=( "${!si}" )
-    si=$(( si + 1 ))
+    $test "${!i}" || break
   done
-}
-
-argv_optseq () # ~ <Arr> <Long-opt> <args...> [--* ...]
-{
-  declare -n arr=${1:?} &&
-  test "--" = "${2:0:2}" && arr+=( "$2" ) &&
-  argv_hseq "$1" "${@:3}"
-}
-
-argv_more () # ~ <Argv...> # True if more arguments (non-long-option or seq end)
-{
-  test $# -gt 0 && test "${1:0:2}" != "--"
+  r=$i
 }
 
 # Read sequence of arguments until '--' (sequence end)
@@ -35,7 +43,7 @@ argv_seq () # ~ <Arr> <Argv... [-*]> <...>
 {
   declare si=2
   declare -n arr=${1:?}
-  while argv_seq_more "${@:$si}"
+  while ${argv_more:-argv_seq_more} "${@:$si}"
   do
     arr+=( "${!si}" )
     si=$(( si + 1 ))
@@ -44,7 +52,7 @@ argv_seq () # ~ <Arr> <Argv... [-*]> <...>
 
 argv_seq_more () # ~ <Argv...> # True if more for current sequence is available.
 {
-  test $# -gt 0 -a "${1-}" != "--"
+  [[ $# -gt 0 && "${1-}" != "--" ]]
 }
 
 #

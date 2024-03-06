@@ -30,6 +30,20 @@ sh_noe ()
   "$@" >/dev/null 2>&1
 }
 
+# Merge all associative arrays into first. Last index takes preference.
+assoc_concat () # ~ <To-array> <From-arrays...>
+{
+  declare -n dest=${1:?} src
+  shift
+  declare k
+  for src
+  do
+    for k in "${!src[@]}"
+    do
+      dest[$k]=${src[$k]}
+    done
+  done
+}
 
 # Run command X times. Ignore status. Does nothing for IO, see
 # Either Cmd or function test_<name> is executed <Iter-count> times, remaining
@@ -151,14 +165,15 @@ funbody ()
 time_gnu_parse_seconds ()
 {
   local min sec
-  read -r _ min sec <<< "${1/m/ }"
-  : "${sec%s}"
-  echo "$(( 60 * min + ${_/.*} )).${_/*.}"
+  read -r _ min sec <<< "${1/m/ }" &&
+  : "${sec%s}" &&
+  echo "$(( 60 * min + ${_/.*} )).${_/*.}" ||
+    $LOG error :time-gnu-parse-seconds "Parsing seconds" "E$?:\$1:$1" $?
 }
 
 run_time ()
 {
-  ${quiet:-true} ||
+  "${quiet:-true}" ||
       $LOG notice :run-time "Starting timed run" "$*"
   mapfile -t time_lines <<< "$( (time "$@" 2>&3 ) 3>&2 2>&1 )"
   time_real=$(time_gnu_parse_seconds "${time_lines[1]}") &&
@@ -172,7 +187,8 @@ sample_time ()
   shift
   for sample in $(seq 1 $samples)
   do
-    run_time "$@" || return
+    run_time "$@" ||
+      $LOG error : " Failed parsing run time" "E$?:($#):$*" $? || return
     ${quiet:-true} ||
         $LOG info :$sample/$samples "sampling runtime" "$time_real:$time_user:$time_sys"
     real=$( echo $real + $time_real | bc -l )
@@ -187,7 +203,7 @@ sample_time ()
 report_time () # ~ <Header=_> [<Tail...>]
 {
   set -- "${1:-$_}" "${*:2}"
-  : "${report_time_p:=5}"
+  : "${report_time_p:=4}"
   : "real:%.${_}f\tuser:%.${_}f\tsys:%.${_}f"
   #shellcheck disable=SC2059
   : "$(printf "$_" "0$avg_real" "0$avg_user" "0$avg_sys")"

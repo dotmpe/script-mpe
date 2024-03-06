@@ -26,26 +26,6 @@ test_exists() # Local-Name [ Base-Dir ]
   }
 }
 
-test_equals()
-{
-  test "$1" = "$2"
-}
-
-test_dir() # path
-{
-  test -d "$1" || {
-    error "no such dir: $1"
-    return 1
-  }
-}
-
-test_file() # Path
-{
-  test -f "$1" || {
-    $LOG warn :test-file "No such file" "$1" ${_E_fail:?}
-  }
-}
-
 # test wether glob expands to itself
 # XXX: which to use, what about symlinks.
 test_glob() # Glob

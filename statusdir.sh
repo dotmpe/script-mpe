@@ -334,7 +334,7 @@ main-bases statusdir sd main std
 main-local sd_be_h
 main-init-env \
   INIT_ENV="init-log strict 0 0-src 0-u_s dev ucache scriptpath std" \\
-  INIT_LIB="\$default_lib date statusdir notify log logger-std logger-theme main meta shell str-htd std stdio ctx-std ctx-statusdir class-uc"
+  INIT_LIB="\$default_lib date statusdir notify log logger-std logger-theme main meta shell str-htd std stdio ctx-std class-uc"
 
 #main-init \
   #test -n "${verbosity-}" || verbosity=${v:-5}

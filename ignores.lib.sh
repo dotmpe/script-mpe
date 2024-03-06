@@ -70,7 +70,7 @@ ignores_lib__load()
   }
 
   ignores_find_extra_expr=(
-    "-type d -a -exec test -e \"{}/$IGNORE_DIR\" ';' -a -prune"
+    "-type d -a -exec test -e \"{}\"/$IGNORE_DIR \";\" -a -prune"
   )
 }
 
@@ -92,7 +92,7 @@ ignores_lib__init()
 ignores_find_expr () # ~ <Groups...>
 {
   local glob ctx=${at_GlobList:-globlist}
-  printf -- '-false '
+  printf -- '-false\n'
   set -f
   for glob in $(${ctx}_raw "$@" | remove_dupes_nix)
   do
@@ -115,13 +115,15 @@ ignores_find_files () # ~ <Prune-groups...>
 # Just like gitignore.
 ignores_find_glob_expr ()
 {
-  local i=${find-i}
+  local i=${find_case_opt-i}
   case "${1:?}" in
-    ( /*/ ) printf -- '-o -%spath "./%s*" -a -prune ' $i "$1" ;;
-    (  */ ) printf -- '-o -type d -a -%spath "%s" -a -prune ' $i "$1" ;;
-    ( /*  ) printf -- '-o -%spath "./%s" -a -prune ' $i "${1:1}" ;;
-    ( */* ) printf -- '-o -%spath "./%s" -a -prune ' $i "${1:1}" ;;
-    (  *  ) printf -- '-o -%sname "%s" -a -prune ' $i "$1" ;;
+    ( /*/ )
+      printf -- '-o -%spath ".%s*" -a -prune\n' $i "${1:0:$(( ${#1} - 1 ))}" ;;
+    ( /*  ) printf -- '-o -%spath ".%s" -a -prune\n' $i "$1" ;;
+    (  */ )
+      printf -- '-o -type d -a -%spath "*/%s" -a -prune\n' $i "${1:0:$(( ${#1} - 1 ))}" ;;
+    ( */* ) printf -- '-o -%spath "./*/%s" -a -prune\n' $i "$1" ;;
+    (  *  ) printf -- '-o -%sname "%s" -a -prune\n' $i "$1" ;;
   esac
 }
 

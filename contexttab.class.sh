@@ -1,8 +1,8 @@
 
 class_ContextTab__load () # ~
 {
-  Class__libs[ContextTab]=context,class-uc,stattab-uc
-  Class__static_type[ContextTab]=ContextTab:StatTab
+  uc_class_declare ContextTab StatTab --libs context,class-uc,stattab-uc \
+    --static-methods
   : "${contexttab_methods:=}"
 }
 

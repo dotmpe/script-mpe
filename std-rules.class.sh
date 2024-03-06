@@ -1,7 +1,9 @@
 class_Std_Rules__load ()
 {
   uc_class_declare Std/Rules User/Conf --libs stattab-class \
-    --rel-types StatTab --uc-config uconf:rules.tab user/rules/new.tab
+    --uc-config rules StatTab ${UCONF:?}/user/rules/new.tab
+    #uconf:rules.tab
+    #--rel-types StatTab
 }
 
 class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
@@ -9,6 +11,20 @@ class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
   case "${call:?}" in
 
     ( :run )
+        # Initialize obj for rulestab
+        $self.get-config rules &&
+        # and for all entries
+        $self.rules.init &&
+        # loop over entries by reference to array key
+        declare -n items=$($self.rules@keys) &&
+        # alt. loop by reading keys from call output
+        #declare -a items &&
+        #sys_arr items $self.rules.keys &&
+        for item in "${items[@]}"
+        do
+          $item.
+        done
+
         test $# -gt 0 || set -- "${UCONF:?}/user/rules/new.tab"
         class_init StatTab{,Entry} &&
         class_new rules StatTab "$1" &&

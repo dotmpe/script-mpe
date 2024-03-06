@@ -136,14 +136,14 @@ meta_aprops_be1 () # ~ <Set> <Source>
 {
   if_ok "$(<<< "$meta_aprops_salt${2:?}" sha1sum)" &&
   : "${_%  -}" &&
-  var_set "${1:?}" "${_:0:2}/${_:2}.properties"
+  sys_set_var "${1:?}" "${_:0:2}/${_:2}.properties"
 }
 
 meta_aprops_be2 () # ~ <Set> <Source>
 {
   if_ok "$(<<< "$meta_aprops_salt${2:?}" sha256sum)" &&
   : "${_%  -}" &&
-  var_set "${1:?}" "${_:0:2}/${_:2:4}/${_:4}.properties"
+  sys_set_var "${1:?}" "${_:0:2}/${_:2:4}/${_:4}.properties"
 }
 
 meta_aprops_ref () # (:meta-{about,ref,path}) ~ <File>

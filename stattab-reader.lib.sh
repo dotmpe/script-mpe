@@ -5,6 +5,7 @@ stattab_reader_lib__load ()
   #   stb: global settings
   #   stab: instance vars
   lib_require date-htd match-htd str-htd todotxt || return
+  : "${gsed:=sed}"
   : "${stb_pri_sep:=/:,.+-}"
   : "${stb_stat_xr:=\/:,\.+-}" # Extra characters for stat fields (RE format)
   : "${stb_id_xr:=\/:$%&@_\.+-}" # Extra characters for id field (RE format)

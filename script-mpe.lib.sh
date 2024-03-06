@@ -69,7 +69,7 @@ fun_def fnmatch 'str_globmatch "${2:?fnmatch: \$2 not set}" "${1:?fnmatch: \$1 n
 
 str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
 {
-  test 2 -le $# || return ${_E_GAE:-193}
+  [[ 2 -le $# ]] || return ${_E_GAE:-193}
   case " ${*:2} " in
     ( *" ${1:?} "*) ;; #  | *" ${1:?} " | " ${1:?} "*) ;;
     ( * ) false ; esac
@@ -79,7 +79,7 @@ str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
 std_bool () # ~ <Cmd...> # Print true or false, based on command status
 {
   "$@" && printf true || {
-    test 1 -eq $? || BOOL= : ${BOOL:?Boolean status expected: E$_: $*}
+    [[ 1 -eq $? ]] || BOOL= : ${BOOL:?Boolean status expected: E$_: $*}
     printf false
   }
 }
@@ -90,7 +90,7 @@ fun_def not '! "$@";'
 # std_bool to test for 0 (true) or 1 (false) value, and prints either command.
 std_bit ()
 {
-  test $# -eq 1 -a 2 -gt "${1:-2}" || return ${_E_GAE:-193}
+  [[ $# -eq 1 && 2 -gt "${1:-2}" ]] || return ${_E_GAE:-193}
   std_bool test 1 -eq "${1:?}"
 }
 
@@ -116,7 +116,7 @@ std_quiet () # ~ <Cmd...> # Silence all output (std{out,err})
   "$@" >/dev/null 2>&1
 }
 
-std_stat () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only) if command returned zero-status
+std_nz () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only) if command returned zero-status
 {
   ! "$@"
 }
@@ -154,7 +154,7 @@ stderr_exit () # ~ <Status=$?> <...> # Verbosely exit passing status code,
 # with status message on stderr. See also std-v-exit.
 {
   local stat=${1:-$?}
-  stderr echo "$(test 0 -eq $stat &&
+  stderr echo "$([[ 0 -eq $stat ]] &&
     printf 'Exiting\n' ||
     printf 'Exiting (status %i)\n' $stat)" "$stat"
   exit $stat
@@ -185,7 +185,7 @@ stderr_sleep_int ()
   ! ${sleep_v:-true} ||
     printf "> sleep $*$(test -z "$last" || printf " because $last...")" >&2
   fun_wrap command sleep "$@" || {
-    test 130 -eq $? && {
+    [[ 130 -eq $? ]] && {
       "$sleep_q" ||
         echo " aborted (press again in ${sleep_itime:-1}s to exit)" >&2
       command sleep ${sleep_itime:-1} || return
@@ -298,6 +298,16 @@ sys_arr () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
 {
   if_ok "$("${@:2}")" &&
   <<< "$_" mapfile -t "$1"
+}
+
+# system-exception-trace: Helper to format callers list including custom head.
+sys_exc_trc () # ~ [<Head>] ...
+{
+  echo "${1:-Trace:}"
+  for (( i=1; 1; i++ ))
+  do
+    if_ok "$(caller $i)" && echo "  - $_" || break
+  done
 }
 
 error_handler ()

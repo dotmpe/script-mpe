@@ -5,7 +5,7 @@
 
 statusdir_lib__load ()
 {
-  lib_require str sys || return
+  lib_require date str sys || return
 
   # Setup static STATUSDIR_ROOT env to directory (including trailing-/)
   true "${STATUSDIR_DEFAULT="$HOME/.local/statusdir"}"

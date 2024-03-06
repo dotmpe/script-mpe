@@ -17,6 +17,7 @@ class_StatDirIndex__load ()
 {
   # about "StatTab file with lines representing stattab files in the statusdir/index folder" @StatDirIndex
   Class__static_type[StatDirIndex]=StatDirIndex:StatTab
+  #uc_class_declare
 }
 
 class_StatDirIndex_ () # :StatTab (super,self,id,call) ~ <Call-args...>
@@ -65,8 +66,9 @@ class_StatIndex_ () # (super,self,id,call) ~ <Call ...>
 class_StatTabEntry__load () # ~
 {
   : about "Entry in StatTab file" @StatTabEntry
-  Class__static_type[StatTabEntry]=StatTabEntry:Class
+  Class__static_type[StatTabEntry]=StatTabEntry:ParameterizedClass
   ctx_pclass_params=${ctx_pclass_params-}${ctx_pclass_params:+ }$stattab_var_keys
+
   declare -g -A StatTabEntry__btime=()
   declare -g -A StatTabEntry__ctime=()
   declare -g -A StatTabEntry__id=()
@@ -230,7 +232,7 @@ class_StatTab_ () # ~
       ;;
 
     .__init__ )
-        test -e "${2-}" || {
+        [[ -e "${2-}" ]] || {
             $LOG error :"${self}" "Tab file expected" "${2:-\$2:unset}:$#:$*" 1 || return
         }
         class_super_optional_call "$1" "${@:4}" || return
@@ -253,12 +255,12 @@ class_StatTab_ () # ~
         Std__cache[$tabf:$eid]=$iid
 
         StatTab__entry[tid:iid]=eid
-        test "$tabf" = "${StatTab__file[tid]}"
+        [[ "$tabf" = "${StatTab__file[tid]}" ]] &&
 
         for field in $stattab_var_keys
         do
-          StatTabEntry__*[$iid]
-        done
+          StatTabEntry__*[$iid] || return
+        done &&
 
         # cache is for this type (table), related entry types. dont care for
         # housekeeping in Class
@@ -325,18 +327,18 @@ class_StatTab_ () # ~
     .tab ) if_ok "$($self.tab-ref)" &&
         stattab_tab "${1-}" "$_" ;;
     .tab-entry-class ) $self.attr entry_type StatTab ;;
-    .tab-exists ) test -s "$($self.tab-ref)" ;;
+    .tab-exists ) [[ -s "$($self.tab-ref)" ]] ;;
     .tab-init ) stattab_tab_init "$($self.tab-ref)" ;;
     .tab-ref ) $self.attr file StatTab ;;
     .tab-status ) # ~ [<>]
         # XXX: refresh status context_run_hook stat || return
         #local entry status
         $self.fetch local:entry "$1" &&
-          test -n "${entry-}" || return ${_E_NF:?}
+          [[ "${entry-}" ]] || return ${_E_NF:?}
         status=$($entry.attr status) &&
-        test -n "$status" &&
+        [[ "$status" ]] &&
         ! fnmatch "[${stb_pri_sep:?}]" "$_" && {
-          test 0 = "$_" ||
+          [[ 0 = "$_" ]] ||
           fnmatch "*[${stb_pri_sep:?}]0" "$_"
         }
       ;;

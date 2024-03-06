@@ -1057,8 +1057,8 @@ user_script_shell_mode ()
   #    sh_mode strict dev || return
   #  }
 
-  #test -z "${BASH_VERSION:-}" || {
-  ## XXX: test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && {
+  test -z "${BASH_VERSION:-}" || {
+  # XXX: test "$IS_BASH" = 1 -a "$IS_BASH_SH" != 1 && {
 
   #  set -u # Treat unset variables as an error when substituting. (same as nounset)
   #  set -o pipefail #
@@ -1066,12 +1066,20 @@ user_script_shell_mode ()
   #  test -z "${DEBUG:-}" || {
 
   #    set -h # Remember the location of commands as they are looked up. (same as hashall)
-  #    set -E # If set, the ERR trap is inherited by shell functions.
-  #    set -T
-  #    set -e
-  #    shopt -s extdebug
+      set -E # If set, the ERR trap is inherited by shell functions.
+      set -T
+      set -e
+      shopt -s extdebug
+
+      lib_require sys || return
+      trap 'sys_exc_trc' ERR
+
+      #lib_require bash-uc || return
+      #trap 'bash_uc_errexit' ERR
+      #trap 'bash_uc_errexit Bash Exit:$? 2' EXIT
   #  }
-  #}
+  }
+
   test -z "${DEBUG:-}" ||
     : "${BASH_VERSION:?"Not sure how to do debug"}"
 
@@ -1295,12 +1303,13 @@ user_script_alsdefs ()
     # alias-name   alsdef-key     input-1,2,3...  --
   us_shell_alias_defs \
   \
-    sa_a1_act_lk   l-argv1-lk   act :-\$actdef ""         \${lkn:-\$act} -- \
-    sa_a1_act_lk_2 l-argv1-lk   act :-\$actdef :-\$base:\$act  "" -- \
+    sa_a1_act_lk   l-argv1-lk   act :-\$actdef ""   \${lkn:-\$act} -- \
+    sa_a1_act_nlk  l-argv1-lk   act :-\$actdef ""   \${n:?}:\${act:?} -- \
   \
     sa_a1_d_lk     de-argv1-lk      \$_1def    :?         \${lkn:-\$1} -- \
     sa_a1_d_lk_b   de-argv1-lk      \$_1def    :-\$base   \${lkn:-\$1} -- \
     sa_a1_d_nlk    de-argv1-lk      \$_1def    :?         \${lkn:-\${n:?}:\$1} -- \
+    sa_a1_d_nlk_b  de-argv1-lk      \$_1def    :-\$base   \${lkn:-\${n:?}:\$1} -- \
   \
     sa_E_nschc     err-u-nsk   \$lk "No such choice" "" 67 -- \
     sa_E_nsact     err-u-nsk   \$lk "No such action" \$act 67 -- \
@@ -1326,7 +1335,7 @@ us_shell_alsdefs ()
   uc_shell_alsdefs[l-argv1-lk]='
     local ${1:?}=\${1${2:?}}
     test \$# -eq 0 || shift
-    local lk=\"\${lk${3:-":-\$base"}}${4:+:}${4:-}\"
+    local lk=\"\${lk${3:-":-\${base}[$$]"}}${4:+:}${4:-}\"
   '
 
   uc_shell_alsdefs[d-argv1-lk]='

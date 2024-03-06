@@ -1,24 +1,5 @@
 #!/usr/bin/env bash
 
-ctx_statusdir_lib__load ()
-{
-  lib_require date || return
-  ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}Statusdir
-}
-# XXX: ctx_statusdir_depends=@Shell
-
-ctx_statusdir_lib__init ()
-{
-  test -z "${ctx_statusdir_lib_init:-}" || return $_
-}
-
-
-at_Statusdir__init ()
-{
-  true "${INIT_LOG:="$LOG"}" && lib_init statusdir ctx-statusdir
-}
-
-# XXX: at_Statusdir__include=statusdir.lib.sh
 
 # Store result of command in statusdir
 at_Statusdir__report_var () # Format [Record-Type [Record-Name]] [@Tags...] -- Command...
@@ -74,15 +55,20 @@ at_Statusdir__report_var () # Format [Record-Type [Record-Name]] [@Tags...] -- C
   esac
 }
 
-class_Statusdir__load ()
+class_StatusDir__load ()
 {
-  Class__static_type[Statusdir]=Statusdir:ParameterizedClass
-  declare -g -A Statusdir__params=()
-  declare -g -A Statusdir__backends=()
-  declare -g -A Statusdir__backend_types=()
+  uc_class_declare StatusDir XContext --libs ck,stattab-class \
+    --rel root StatDirIndex &&
+  #uc_class_declare StatusDir ParameterizedClass --libs ck,stattab-class &&
+  # XXX: unused?
+  declare -g -A Statusdir__params &&
+  # be-id => global-var
+  declare -g -A Statusdir__backends &&
+  # be-id -> Backend-Class
+  declare -g -A Statusdir__backend_types
 }
 
-class_Statusdir_ () # Instance-Id Message-Name Arguments...
+class_StatusDir_ () # Instance-Id Message-Name Arguments...
 {
   case "${call:?}" in
     .__init__ )
@@ -120,9 +106,21 @@ class_Statusdir_ () # Instance-Id Message-Name Arguments...
       ;;
 
     .be.* | \
-    .* )
+    .*.* )
         fnmatch ".be.*" "$m" && m=${m:3}
         ${Statusdir__backends[$id]}$m "$@"
+      ;;
+
+
+    ( --index )
+        Statusdir__index[${1:?}]=${*:2}
+      ;;
+
+    ( --key )
+        declare -n key=${1:?} &&
+        # XXX: read with ws? ie read all lines?
+        read -r -a data &&
+        key=$(ck_sha2 <<< "${data[*]}")
       ;;
 
     ( * ) return ${_E_next:?} ;;

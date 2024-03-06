@@ -45,7 +45,7 @@ script_bats__update()
 
 script_bats__parse_name()
 {
-  test_file "$1"
+  os_isfile "$1"
   check_argc 1
   # FIXME: dev this on *nix first
   #sh_isset spec_name || local spec_name=
@@ -67,7 +67,7 @@ script_bats_man_1__check_prefix='check-prefix PREFIX FILE'
 script_bats__check_prefix()
 {
   test -n "$1" || error "category prefix expected" 1
-  test_file "$2"
+  os_isfile "$2"
   check_argc 2
   grep '^@test\s' "$2"
 }

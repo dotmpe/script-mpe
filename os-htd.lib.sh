@@ -360,13 +360,13 @@ filter_content_lines () # (s) ~ [<Marker-Regex>] # Remove marked or empty lines 
 
 filter_dirs ()
 {
-  foreach "$@" | filter test_dir
+  foreach "$@" | filter os_isdir
 }
 
 filter_files ()
 {
   #act=filter_file s="" p="" foreach_do "$@"
-  foreach "$@" | filter test_file
+  foreach "$@" | filter os_isfile
 }
 
 # Strip comments, including line-continuations.

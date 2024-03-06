@@ -3014,7 +3014,7 @@ htd__open_paths()
   test -n "$1" -a -n "$2" || set -- "paths" "$1"
   test -n "$1" || set -- "paths" "$2"
   test -n "$2" || set -- "paths" "."
-  test_dir "$2" || return $?
+  os_isdir "$2" || return $?
   note "Listing open paths for '$2'"
   set -- "$1" "$(cd "$2" && pwd -P)"
 
