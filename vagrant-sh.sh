@@ -27,7 +27,7 @@ vagrant_sh__global_status=list
 vagrant_sh_spc__list_raw='list-raw [GLOB [FMT]]'
 vagrant_sh__list_raw()
 {
-  check_argc 2
+  assert argc 2 $# || return
   test -n "$2" && set -- "$1" "$(str_upper "$2")" || set -- "$1" TAB
   vagrant global-status | tail -n +3 |
     while read ID NAME PROVIDER STATE DIRECTORY

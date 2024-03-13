@@ -35,7 +35,7 @@ status_lib__init ()
 # path-context.
 status_dirs ()
 {
-  echo {,.}meta/{stat,tabs} {$HOME/.local/var,/var/{lib,local}}/statusdir
+  echo {,.}meta/{stat,tab} {$HOME/.local/var,/var/{lib,local}}/statusdir
 }
 
 status_key () # ~

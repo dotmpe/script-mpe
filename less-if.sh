@@ -2,9 +2,12 @@
 
 ## Less-if: 'execute even less' pager, and make it pretty
 
-# The primary function of a pager is to prevent terminal clobber. This takes a
-# multi-pronged approach wrapping `bat`, and some handling so it is safe to
-# use as value for PAGER env.
+# Listens to LINES and COLS, but also takes a threshold value from USER_LINES or
+# UC_OUTPUT_LINES that sets the maximum number of lines to output to an
+# interactive terminal inline. This is similar to less -F except the page size
+# is configurable as it where. The main purpose is to get the pager UI out of
+# the way when not needed. Secondary is making output pretty and formatted
+# depending on the context (inline, or separate buffer UI process).
 
 # Caveats:
 

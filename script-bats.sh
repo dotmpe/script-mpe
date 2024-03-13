@@ -45,8 +45,11 @@ script_bats__update()
 
 script_bats__parse_name()
 {
+  # local lk=${lk:-}:parse-name; assert argc 1 $# "$@"
+  [[ $# -eq 1 ]] || return ${_E_GAE:?}
+  #assert isfile "$1" &&
+  #assert argc 1 -- "$@" &&
   os_isfile "$1"
-  check_argc 1
   # FIXME: dev this on *nix first
   #sh_isset spec_name || local spec_name=
   #sh_isset feat_cat || local feat_cat=
@@ -67,8 +70,8 @@ script_bats_man_1__check_prefix='check-prefix PREFIX FILE'
 script_bats__check_prefix()
 {
   test -n "$1" || error "category prefix expected" 1
-  os_isfile "$2"
-  check_argc 2
+  assert argc 2 $# &&
+  assert isfile "$@" || ${_E_script:?}
   grep '^@test\s' "$2"
 }
 

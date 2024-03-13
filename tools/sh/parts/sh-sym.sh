@@ -1,4 +1,6 @@
 
+## sh-sym: identify given shell symbol
+
 # Output script for function or alias, followed by a comment about the type. If
 # the alias is single name, then recurse to that and display its type as well.
 # The registered autocompletions for <name> (interactive mode only) are listed

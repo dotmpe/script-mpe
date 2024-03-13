@@ -224,7 +224,8 @@ build_redo()
   test ! -e "$1" -o -n "$build_redo_changed" || {
 
     # Skip build in static-mode
-    words_to_lines "$@" | p= s= act=test_exists foreach_do && return
+    words_to_lines "$@" | p= s= act=lookup_exists foreach_do && return
+    # lookup_exists() # Local-Name [ Base-Dir ]
   }
   scriptpath= redo-ifchange "$@"
 }

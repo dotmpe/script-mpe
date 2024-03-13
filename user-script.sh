@@ -842,6 +842,7 @@ user_script_load () # ~ <Actions...>
               $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
           }
           test -z "${hooks:-}" && return
+          $LOG debug "$lk" "Running hooks" "$hooks"
           local hook
           for hook in $hooks
           do lk=$plk:user-script:hooks \

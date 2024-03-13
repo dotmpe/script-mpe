@@ -16,7 +16,6 @@ setup()
   func_exists test_glob
   func_exists arg_vars
   func_exists argv_vars
-  func_exists check_argc
   func_exists req_bin
 	func_exists req_path_arg
 	func_exists req_file_arg
@@ -34,11 +33,4 @@ setup()
     test_ok_nonempty &&
     test "${lines[*]}" = " foo=1 bar=b el_baz=false"
   } || stdfail
-}
-
-@test "$base: - check-argc" {
-  run check_argc 1 "foo"
-  test_ok_empty || stdfail 1
-  run check_argc 1 "foo" "bar"
-  test_nok_nonempty *"surplus arg"* || stdfail 2
 }

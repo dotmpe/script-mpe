@@ -1,5 +1,5 @@
 
-# XXX:
+# XXX: see ac-util
 #declare -gA user_build
 #
 #user_build_dep[user-shell-commands:a]=PATH

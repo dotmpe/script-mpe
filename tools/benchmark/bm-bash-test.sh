@@ -30,15 +30,22 @@ declare -xf local_xxx fun_{true,stat,keep{,1}}
 declare -A tests_bash_test=(
   [1-1]='[ 1 \> 0 ]'
   [1-1b]='[ 1 -gt 0 ]'
-  [1-2]='[ foo = bar ]'
+  [1-2a]='[ "$a" = 1 ]'
+  [1-2b]='[ "$b" != 1 ]'
 
   [2-1]='test 1 \> 0'
   [2-1b]='test 1 -gt 0'
-  [2-2]='test foo = bar'
+  [2-2a]='test "$a" -eq 1'
+  [2-2b]='test "$b" -ne 1'
 
   [3-1]='[[ 1 > 0 ]]'
   [3-1b]='[[ 1 -gt 0 ]]'
-  [3-2]='[[ foo = bar ]]'
+  [3-2a]='[[ $a = 1 ]]'
+  [3-2b]='[[ $b != 1 ]]'
+
+  [4-1]='(( 1 > 0 ))'
+  [4-2a]='(( a = 1 ))'
+  [4-2b]='(( b != 1 ))'
 )
 
 #declare -A tests_args_iter=(
@@ -99,8 +106,12 @@ declare -A tests_fstat=(
   [9-3b]='[[ -d tools ]]'
 )
 
-declare -A tests
-assoc_concat tests $(compgen -A arrayvar tests_)
+export a=1
+export b=2
+
+#declare -A tests
+#assoc_concat tests $(compgen -A arrayvar tests_)
+declare -n tests=tests_bash_test
 
 testcases=$(printf '%s\n' "${!tests[@]}" | sort -u)
 
@@ -109,7 +120,7 @@ testcases=$(printf '%s\n' "${!tests[@]}" | sort -u)
 testcount=1000
 # Note sample-count below, which acts as multiplier on this
 
-# Build test scripts
+# Build test scripts (XXX: clean cache by hand when changing testcount/code)
 for testcase in $testcases
 do
   testexpr=${tests[$testcase]}
@@ -125,7 +136,7 @@ done
 for testcase in $testcases
 do
   #echo "$testcase: ${tests[$testcase]}"
-  sample_time 10 bash "$TMPDIR/bash-test-$testcase.sh"
+  sample_time 100 bash "$TMPDIR/bash-test-$testcase.sh"
   report_time "${tests[$testcase]}"
 done
 

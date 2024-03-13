@@ -98,11 +98,11 @@ esac
 args_is_seq "$@" && {
   shift &&
 
-  args_arr_seq files "$@"
-  shift $argc
+  args_seq_arrv files "$@"
+  shift ${!files[*]}
 
-  args_arr_seq cmd "$@"
-  shift $argc
+  args_seq_arrv cmd "$@"
+  shift ${!cmd[*]}
 
   test 0 -eq $# || shift
 
@@ -112,8 +112,8 @@ args_is_seq "$@" && {
     TODO use defaults for file/cmd set from attributes file
 
   } || {
-    args_arr_seq files "$@" &&
-    shift $argc
+    args_seq_arrv files "$@" &&
+    shift ${!files[*]}
     cmd+=( "${1:?}" )
   }
   shift

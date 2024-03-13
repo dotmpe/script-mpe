@@ -411,7 +411,7 @@ transmission_item_peers_logupdate ()
 
   # Updated bt net peer/hash log
   echo "$peers" | transmission_fix_item_cols |
-      tee -a "${METADIR:?}/tabs/btpeers.list" |
+      tee -a "${METADIR:?}/tab/btpeers.list" |
       while read -r ipaddr mode pct up down client_agent
       do
         btp_seedlog=1 btpeers_logupdate "$ipaddr" "$btih" "${mode:--}" "$pct" "$client_agent"

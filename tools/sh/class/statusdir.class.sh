@@ -134,7 +134,7 @@ mixin.StatusDirIndex () # ~ <Id> <Message> [<Args...>]
   shift 2
   case "$m" in
       ( .names )
-          for bd in $(metadir_basedirs index tabs)
+          for bd in $(metadir_basedirs index tab)
           do
             #echo looking in $bd
             for name in $bd/$sdname*
