@@ -39,6 +39,9 @@ sh_sym_typeset () # ~ <Command-name>
       ac_spec "$1"
 
     } || {
+      #sh_var "$1" && {
+      #}
+
       if_ok "$(type "$1")" || return
       : "$_
 $(ac_spec "$1" || true)"

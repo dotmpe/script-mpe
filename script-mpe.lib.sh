@@ -232,13 +232,6 @@ sh_adef () # ~ <Array> <Key>
   test "(unset)" != "${!_:-(unset)}"
 }
 
-# Set given name is symbol for array variable (normal or associative)
-sh_arr () # ~ <Varname>
-{
-  if_ok "$(std_noerr declare -p ${1:?})" &&
-  case "$_" in ( "declare -"*[Aa]*" "* ) ;; * ) false; esac
-}
-
 # Call sys-arr unless array var with name exists.
 sh_arr_assert () # ~ <Var-name> <Command...>
 {

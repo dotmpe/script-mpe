@@ -9,18 +9,18 @@ uc_script_load user-script || ${us_stat:-exit} $?
   uc_script_load us-als-mpe || ${us_stat:-exit} $?
 
 class_sh__grp=user-script-sh
-class_sh__libs=lib-uc,uc-class
+class_sh__libs=lib-uc,context-uc,uc-class
 #class-uc,lib-uc,argv
 
-class_sh_ ()
+class_sh_ () # ~ <Switch> ...
 {
   local a1_def=summary; sa_switch_arg
   case "$switch" in
 
     ( e|eval ) # ~ ~ <script...> [ -- <script...> ]
         class_init XContext &&
-        declare xctx ctxref=local:xctx &&
-        class_new local:xctx XContext &&
+        declare xctx ctxref=xctx &&
+        class_new xctx XContext &&
         $xctx-e "$@"
       ;;
 
@@ -29,8 +29,8 @@ class_sh_ ()
         # only class-id), and treat arguments as a sequence of invocations on
         # that object.
         class_init XContext &&
-        declare xctx ctxref=local:xctx &&
-        class_new local:xctx XContext &&
+        declare xctx ctxref=xctx &&
+        class_new xctx XContext &&
         $xctx$switch &&
         #if_ok "$($xctx.class)/$($xctx.id)" || return
         context_cmd_seq xctx "$@"

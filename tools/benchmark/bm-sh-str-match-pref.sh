@@ -5,23 +5,40 @@
 # test  1.5s/100000 = 1.5 ms
 # case  1.2s/100000 = 1.2 ms
 
-# Test 1: match exactly one character in class [az]
+# Test 1: match exactly one character in class [apz]
 # Test 2: added comparison in case of data stream as well
+
+# Case, regex and test are all very elementary commands, and very close in
+# run-time. The actual test doesnt matter here, the intent is to look at worse
+# case run time before the commands return.
+#
+# On Bash, both case and Bash's [[ are the fasted, followed by a normal test,
+# regex, and finally using a double invocation of test.
+#
 
 test_1regex ()
 {
-  [[ "abc" =~ ^[az]$ ]]
+  [[ "${1:-abc}" =~ ^[apz]$ ]]
 }
 
-test_1test ()
+test_1test_1 ()
 {
-  #test "abc" = "a" -o "abc" = "z"
-  test "abc" = "a" || test "abc" = "z"
+  test "${1:-abc}" = "a" -o "${1:-abc}" = "z"
+}
+
+test_1test_2 ()
+{
+  test "${1:-abc}" = "a" || test "${1:-abc}" = "z"
+}
+
+test_1testb ()
+{
+  [[ "${1:-abc}" = "a" || "${1:-abc}" = "z" ]]
 }
 
 test_1case ()
 {
-  case "abc" in
+  case "${1:-abc}" in
       ( a ) true ;;
       ( z ) true ;;
       ( * ) false ;;
@@ -30,7 +47,7 @@ test_1case ()
 
 test_1grep ()
 {
-  echo "abc" | grep '^[az]$'
+  echo "${1:-abc}" | grep '^[apz]$'
 }
 
 
@@ -52,7 +69,7 @@ test_2regex ()
 {
   testdata_2 | while read -r data
   do
-    [[ "$data" =~ ^[az]$ ]]
+    test_1regex "$data"
   done
 }
 
@@ -60,7 +77,7 @@ test_2test ()
 {
   testdata_2 | while read -r data
   do
-    test "$data" = "a" || test "$data" = "z"
+    test_1test_1 "$data"
   done
 }
 
@@ -68,32 +85,39 @@ test_2case ()
 {
   testdata_2 | while read -r data
   do
-    case "$data" in
-        ( a ) true ;;
-        ( z ) true ;;
-        ( * ) false ;;
-    esac
+    test_2case "$data"
   done
 }
 
 test_2grep ()
 {
-  testdata_2 | grep '^[az]$'
+  testdata_2 | grep '^[apz]$'
 }
 
 
 source tools/benchmark/_lib.sh
 
 echo
-echo Test 1
+echo Test 1: run each test 100x
 runs=100
 echo -e "\nRunning regex..."; time run_test $runs 1regex
-echo -e "\nRunning test..."; time run_test $runs 1test
+echo -e "\nRunning test (one cmd)..."; time run_test $runs 1test_1
+echo -e "\nRunning test (two cmd..."; time run_test $runs 1test_2
+echo -e "\nRunning test in Bash..."; time run_test $runs 1testb
 echo -e "\nRunning case..."; time run_test $runs 1case
-#echo -e "\nRunning grep..."; time run_test 100 1grep
 
 echo
-echo Test 2
+echo Test 1: run each test 1000x
+runs=1000
+echo -e "\nRunning regex..."; time run_test $runs 1regex
+echo -e "\nRunning test (one cmd)..."; time run_test $runs 1test_1
+echo -e "\nRunning test (two cmd..."; time run_test $runs 1test_2
+echo -e "\nRunning test in Bash..."; time run_test $runs 1testb
+echo -e "\nRunning case..."; time run_test $runs 1case
+
+exit
+echo
+echo Test 2: just compare against grep
 runs=1
 echo -e "\nRunning regex..."; time run_test $runs 2regex
 echo -e "\nRunning test..."; time run_test $runs 2test
