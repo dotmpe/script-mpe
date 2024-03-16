@@ -25,6 +25,12 @@ class_sh_ () # ~ <Switch> ...
       ;;
 
     ( [@+]* ) # ~ <Class-ref> [<call> <args...> [ -- <call> <args...> ]]
+        ! sys_debug init || {
+          user_script_initlibs shell-command-script cached-timer || return
+          CT_VERBOSE=true
+          rule_run rules/begin "class.sh--$switch--${*// /_}" || return
+        }
+
         # Create class from reference (with no constructor arguments, ie. using
         # only class-id), and treat arguments as a sequence of invocations on
         # that object.
@@ -34,6 +40,13 @@ class_sh_ () # ~ <Switch> ...
         $xctx$switch &&
         #if_ok "$($xctx.class)/$($xctx.id)" || return
         context_cmd_seq xctx "$@"
+
+        local stat=$?
+        ! sys_debug init || {
+          sys_stat $stat
+          rule_run rules/end "class.sh--$switch--${*// /_}" || return
+        }
+        return $stat
       ;;
 
       * ) sa_E_nss

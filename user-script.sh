@@ -856,6 +856,13 @@ user_script_load () # ~ <Actions...>
         lib_load user-script shell-uc str args us &&
         lib_init shell-uc ;;
 
+      ( scriptenv )
+          user_script_initlibs sys || return
+          ! sys_debug assert || {
+            user_script_initlibs sys assert || return
+          }
+        ;;
+
       ( usage )
         lib_load user-script str-htd shell-uc us &&
         lib_init shell-uc ;;

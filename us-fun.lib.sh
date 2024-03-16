@@ -42,6 +42,17 @@ us_stbtab_init ()
     $LOG error : "Failed to load stattab index" "E$?:$STTAB" $?
 }
 
+us_class_init ()
+{
+  user_script_initlibs std-uc uc-class class-uc
+}
+
+us_stdenv_init ()
+{
+  #lib_load stattab-class &&
+  class_init StatTab
+}
+
 us_userdir_init ()
 {
   $xctx@User_Dir .init

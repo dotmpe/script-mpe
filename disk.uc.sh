@@ -482,7 +482,7 @@ disk_uc_loadenv ()
 
       ( disk )
           { lib_require \
-              argv statusdir statusdir-fsdir \
+              args statusdir statusdir-fsdir \
               date \
               disk disktab diskdoc htd-disk
           } || return

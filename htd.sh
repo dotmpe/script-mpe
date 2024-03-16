@@ -4736,7 +4736,7 @@ htd_init()
 
   # FIXME: instead going with hardcoded sequence for env-d like for lib.
   INIT_ENV="init-log 0 dev ucache scriptpath std box" \
-  INIT_LIB="os sys std log str match src main argv stdio vc std-ht shell"\
+  INIT_LIB="os sys std log str match src main args stdio vc std-ht shell"\
 " bash-uc ansi-uc"\
 " date str-htd logger-theme sys-htd vc-htd statusdir os-htd htd ctx-std" \
 . ${CWD:="$scriptpath"}/tools/main/init.sh ||  {
