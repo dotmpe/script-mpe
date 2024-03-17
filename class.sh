@@ -26,7 +26,7 @@ class_sh_ () # ~ <Switch> ...
 
     ( [@+]* ) # ~ <Class-ref> [<call> <args...> [ -- <call> <args...> ]]
         ! sys_debug init || {
-          user_script_initlibs shell-command-script cached-timer || return
+          user_script_load rulesenv || return
           CT_VERBOSE=true
           rule_run rules/begin "class.sh--$switch--${*// /_}" || return
         }
@@ -58,13 +58,14 @@ class_sh_ () # ~ <Switch> ...
 ## User-script parts
 
 class_sh_maincmds=""
-class_sh_shortdescr=""
+class_sh_shortdescr="Make calls to class instances"
 
 class_sh_aliasargv ()
 {
   test -n "${1:-}" || return ${_E_MA:?}
   case "${1//_/-}" in
-    ( "-?"|-h|h|help|user-script-help ) shift; set -- user_script_help "$@" ;;
+    ( "-?"|-h|h|--help|help|user-script-help ) shift; set -- user_script_help "$@" ;;
+    ( --usage|usage ) shift; user_script_usage "$@" ;;
       * ) set -- class_sh_ "$@"
   esac
 }
@@ -72,7 +73,8 @@ class_sh_aliasargv ()
 class_sh_loadenv ()
 {
   user_script_loadenv &&
-  user_script_initlog || return
+  user_script_initlog &&
+  user_script_load scriptenv || return
   export v=${v:-4}
   shopt -s nullglob nocaseglob
   sh_mode strict # dev

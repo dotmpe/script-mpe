@@ -14,6 +14,14 @@ then
 
   case "${1-}" in
 
+    ( delta )
+        ts1=$(date -d "${2:?}" '+%s')
+        ts2=$(date -d "${3:?}" '+%s')
+        ds=$(( ts2 - ts1 ))
+        echo "$ds seconds"
+        fmtdate_relative "" "$ds" "" || return
+      ;;
+
     ( ts-dt|timestamp-datetime ) shift;
         date -d @${1:?} ;;
 
@@ -24,12 +32,19 @@ then
     ( time-readable ) shift;
             echo "$1" | time_minsec_human_readable
         ;;
+    ( time-readable-pl ) shift;
+            time_minsec_human_readable
+        ;;
 
     ( time-readable-tag ) shift;
             time_minsec_human_readable_tag "$1"
         ;;
 
-    ( relative ) shift;
+    ( relative )  # ~ <Time> [<Delta>] [<suffix=' ago'>]
+        # human readable relative time of period since or until given <Time>
+        # from now.
+        # <Time> is substracted from <Now> to produce <Delta> if not given
+        shift;
         case "$2" in
             ( *"."* ) fmtdate_relative_f "$@" || return ;;
             ( * ) fmtdate_relative "$@" || return ;;

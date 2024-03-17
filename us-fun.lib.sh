@@ -31,8 +31,8 @@ at_ () # ~ <ctx> [<ctx|args..>]
 
 us_basedir_init ()
 {
-  $xctx@User_Conf :basedirtab &&
-  $xctx@User_Dir :init-basedir "${basedirtab:?}"
+  $xctx@User/Conf :basedirtab &&
+  $xctx@User/Dir :init-basedir "${basedirtab:?}"
 }
 
 us_stbtab_init ()
@@ -51,6 +51,12 @@ us_stdenv_init ()
 {
   #lib_load stattab-class &&
   class_init StatTab
+}
+
+us_userconf_init ()
+{
+  class_init User/Conf &&
+  class_new user_conf $_
 }
 
 us_userdir_init ()

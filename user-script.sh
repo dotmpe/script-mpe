@@ -856,6 +856,10 @@ user_script_load () # ~ <Actions...>
         lib_load user-script shell-uc str args us &&
         lib_init shell-uc ;;
 
+      ( rulesenv )
+          user_script_initlibs std-uc shell-command-script cached-timer
+        ;;
+
       ( scriptenv )
           user_script_initlibs sys || return
           ! sys_debug assert || {
@@ -1560,7 +1564,7 @@ test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
 
 ! script_isrunning "user-script" .sh || {
 
-  user_script_load || exit $?
+  #user_script_load || exit $?
 
   # Strip extension from SCRIPTNAME (and baseid)
   SCRIPT_BASEEXT=.sh
@@ -1568,7 +1572,7 @@ test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
   #script_defcmd=usage
   # Extra handlers for user-script-aliases to extract from
   user_script_defarg=defarg\ aliasargv
-  script_bases=user_script_sh
+  script_bases=class_sh\ user_script_sh
 
   # Pre-parse arguments and reset argv: resolve aliased commands or sets default
   eval "set -- $(user_script_defarg "$@")"
