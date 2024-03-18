@@ -10,9 +10,46 @@ std_ht_lib__load ()
 
 std_ht_lib__init ()
 {
-  test "${std_ht_lib_init-}" = "0" && return
-  test -n "$INIT_LOG" || return 102
-  $INIT_LOG info "" "Done std-ht"
+  test -z "${std_ht_lib_init-}" || return $_
+  #test -n "$INIT_LOG" || return 102
+  #$INIT_LOG info ":std-init" "Done"
+}
+
+
+# experiment rewriting console output
+clear_lines()
+{
+  local count=$1
+  test -n "$count" || count=0
+
+  while [ "$count" -gt -1 ]
+  do
+    # move forward to end, then erase one line
+    echo -ne "\033[200C"
+    echo -ne "\033[1K"
+    # move up
+    echo -ne "\033[1A"
+    count=$(( $count - 1 ))
+  done
+
+  # somehow col is one off, ie. the next regular echo has the first character
+  # eaten by the previous line. clean one line here
+  echo
+}
+
+# read stdin. Once done use clear_lines to reset stdout
+# could use this to post-process, reformat results of input.
+# XXX using fold to determine the real amount of lines a given stream would have
+# taken given terminal width ${cols}.
+capture_and_clear()
+{
+  local tmpf=$(setup_tmpf)
+  tee $tmpf
+  mv $tmpf $tmpf.tmp
+  fold -s -w $cols $tmpf.tmp > $tmpf
+  lines=$(wc -l $tmpf | awk '{print $1}')
+  clear_lines $lines
+  echo Captured $lines lines >&2
 }
 
 io_dev_path()
@@ -283,43 +320,6 @@ std_demo()
       $x "testing $x out"
     done
 }
-
-# experiment rewriting console output
-clear_lines()
-{
-  local count=$1
-  test -n "$count" || count=0
-
-  while [ "$count" -gt -1 ]
-  do
-    # move forward to end, then erase one line
-    echo -ne "\033[200C"
-    echo -ne "\033[1K"
-    # move up
-    echo -ne "\033[1A"
-    count=$(( $count - 1 ))
-  done
-
-  # somehow col is one off, ie. the next regular echo has the first character
-  # eaten by the previous line. clean one line here
-  echo
-}
-
-# read stdin. Once done use clear_lines to reset stdout
-# could use this to post-process, reformat results of input.
-# XXX using fold to determine the real amount of lines a given stream would have
-# taken given terminal width ${cols}.
-capture_and_clear()
-{
-  local tmpf=$(setup_tmpf)
-  tee $tmpf
-  mv $tmpf $tmpf.tmp
-  fold -s -w $cols $tmpf.tmp > $tmpf
-  lines=$(wc -l $tmpf | awk '{print $1}')
-  clear_lines $lines
-  echo Captured $lines lines >&2
-}
-
 
 
 # Main

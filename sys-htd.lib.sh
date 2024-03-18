@@ -53,6 +53,153 @@ sys_htd_lib__init()
   $INIT_LOG info "" "Loaded sys.lib" "$0"
 }
 
+
+# If any of VALUES it not in variable LIST, add it
+assert_list() # LIST VALUES...
+{
+	local to_add= list=$1 items="$(eval echo "\$$1")"
+	shift 1
+	to_add="$( for value in $@;
+		do
+			fnmatch "* $value *" " $items " && continue;
+			echo $value;
+		done )"
+	eval $list="$(echo $items $to_add)"
+}
+
+create_ram_disk()
+{
+  test -n "$1" || error "Name expected" 1
+  test -n "$2" || error "Size expected" 1
+  test -z "$3" || error "Surplus arguments '$3'" 1
+
+  case "$uname" in
+
+    darwin )
+        local size=$(( $2 * 2048 ))
+        diskutil erasevolume 'Case-sensitive HFS+' \
+          "$1" `hdiutil attach -nomount ram://$size`
+      ;;
+
+      # Linux
+      # mount -t tmpfs -o size=512m tmpfs /mnt/ramdisk
+
+    * )
+        error "Unsupported platform '$uname'" 1
+      ;;
+
+  esac
+}
+
+calc() { echo "$*" | bc; }
+dec2hex() { awk 'BEGIN { printf "%x\n",$1}'; }
+
+# If ITEM is in items of LIST, add VALUES not already in list
+expand_item() # LIST ITEM VALUES...
+{
+	local to_add= list=$1 item=$2 items="$(eval echo "\$$1")"
+	shift 2
+	fnmatch "* $item *" " $items " && {
+		assert_list $list "$@"
+	} || true
+}
+
+get_kv_k() # Key-Value-Str
+{
+  echo "$1" | cut -d'=' -f1
+}
+
+get_kv_v() # Key-Value-Str [Env-Prefix [Key-Str]]
+{
+  test -n "$3" || set -- "$1" "$2" "$(get_kv_k "$1")"
+  fnmatch "*=*" "$1" && {
+    eval echo \"$(expr_substr "$1" "$(( 2 + ${#3} ))" "$(( ${#1} - ${#3}  ))")\"
+  } || {
+    eval echo \"\$$2$3\"
+  }
+}
+
+hex2dec() { awk 'BEGIN { printf "%d\n",0x$1}'; }
+
+max()
+{
+  # XXX: use awk for this
+  p= s= act=echo foreach_do "$@" | sort | tail -n 1
+}
+
+min()
+{
+  # XXX: use awk for this
+  p= s= act=echo foreach_do "$@" | sort -r | tail -n 1
+}
+
+mktar() { tar czf "${1%%/}.tar.gz" "${1%%/}/"; }
+mkmine() { sudo chown -R ${USER} ${1:-.}; }
+
+pwd_p()
+{
+  test -n "${PWD_P-}"
+}
+
+pop_pwd()
+{
+  test -n "${PWD_P-}" || return 0
+  PWD_P="${PWD_P%:*}"
+  local pwd="${PWD_P//*:}"
+  #local pwd="$(echo "$PWD_P" | cut -d':' -f1)"
+  #PWD_P="$(echo "$PWD_P" | cut -d':' -f2- --output-delimiter=':')"
+  test -n "$PWD_P" || unset PWD_P
+  cd "$pwd"
+}
+
+pretty_print_var()
+{
+  sh_isset kvsep || kvsep='='
+  pretty_var="$(printf -- "$1" | tr -s '_' '-')"
+  falseish "$2" && {
+    printf "!$pretty_var\n"
+  } || {
+    trueish "$2" && {
+      printf "$pretty_var\n"
+    } || {
+      value="$(printf -- "$2" | sed 's/\ /\\ /g')"
+      printf "$pretty_var$kvsep$value\n"
+    }
+  }
+}
+
+print_var()
+{
+  case "$2" in
+    *'"'*|*" "*|*"'"* )
+      printf -- '%s\n' "$1=\"$2\"" ;;
+    * )
+      printf -- '%s\n' "$1=$2" ;;
+  esac
+}
+
+push_pwd() # [Dir]
+{
+  test -z "${1-}" || { cd $1 || return; }
+  case "$PWD_P" in *":$PWD" ) return ;; esac
+  PWD_P=${PWD_P}:$PWD
+}
+
+pwd_init()
+{
+  pwd_p || PWD_P=$PWD
+}
+
+# require vars to be initialized, regardless of value
+req_vars()
+{
+  while test $# -gt 0
+  do
+    sh_isset "$1" || { $LOG error "" "Missing variable" "$1"; return 1; }
+    shift
+  done
+}
+
 require_fs_casematch()
 {
   local CWD="$PWD"
@@ -86,159 +233,17 @@ require_fs_casematch()
   cd "$CWD"
 }
 
-# require vars to be initialized, regardless of value
-req_vars()
+sendkey ()
 {
-  while test $# -gt 0
-  do
-    sh_isset "$1" || { $LOG error "" "Missing variable" "$1"; return 1; }
-    shift
-  done
-}
-
-create_ram_disk()
-{
-  test -n "$1" || error "Name expected" 1
-  test -n "$2" || error "Size expected" 1
-  test -z "$3" || error "Surplus arguments '$3'" 1
-
-  case "$uname" in
-
-    darwin )
-        local size=$(( $2 * 2048 ))
-        diskutil erasevolume 'Case-sensitive HFS+' \
-          "$1" `hdiutil attach -nomount ram://$size`
-      ;;
-
-      # Linux
-      # mount -t tmpfs -o size=512m tmpfs /mnt/ramdisk
-
-    * )
-        error "Unsupported platform '$uname'" 1
-      ;;
-
-  esac
-}
-
-# If any of VALUES it not in variable LIST, add it
-assert_list() # LIST VALUES...
-{
-	local to_add= list=$1 items="$(eval echo "\$$1")"
-	shift 1
-	to_add="$( for value in $@;
-		do
-			fnmatch "* $value *" " $items " && continue;
-			echo $value;
-		done )"
-	eval $list="$(echo $items $to_add)"
-}
-
-# If ITEM is in items of LIST, add VALUES not already in list
-expand_item() # LIST ITEM VALUES...
-{
-	local to_add= list=$1 item=$2 items="$(eval echo "\$$1")"
-	shift 2
-	fnmatch "* $item *" " $items " && {
-		assert_list $list "$@"
-	} || true
-}
-
-pretty_print_var()
-{
-  sh_isset kvsep || kvsep='='
-  pretty_var="$(printf -- "$1" | tr -s '_' '-')"
-  falseish "$2" && {
-    printf "!$pretty_var\n"
-  } || {
-    trueish "$2" && {
-      printf "$pretty_var\n"
-    } || {
-      value="$(printf -- "$2" | sed 's/\ /\\ /g')"
-      printf "$pretty_var$kvsep$value\n"
-    }
-  }
-}
-
-print_var()
-{
-  case "$2" in
-    *'"'*|*" "*|*"'"* )
-      printf -- '%s\n' "$1=\"$2\"" ;;
-    * )
-      printf -- '%s\n' "$1=$2" ;;
-  esac
-}
-
-min()
-{
-  # XXX: use awk for this
-  p= s= act=echo foreach_do "$@" | sort -r | tail -n 1
-}
-
-max()
-{
-  # XXX: use awk for this
-  p= s= act=echo foreach_do "$@" | sort | tail -n 1
-}
-
-calc() { echo "$*" | bc; }
-hex2dec() { awk 'BEGIN { printf "%d\n",0x$1}'; }
-dec2hex() { awk 'BEGIN { printf "%x\n",$1}'; }
-mktar() { tar czf "${1%%/}.tar.gz" "${1%%/}/"; }
-mkmine() { sudo chown -R ${USER} ${1:-.}; }
-sendkey () {
   if [ $# -ne 0 ]; then
     echo '#' $*
     ssh $* 'cat >> ~/.ssh/authorized_keys' < ~/.ssh/id_dsa.pub
   fi
 }
 
-pwd_p()
-{
-  test -n "${PWD_P-}"
-}
-
-pwd_init()
-{
-  pwd_p || PWD_P=$PWD
-}
-
-push_pwd() # [Dir]
-{
-  test -z "${1-}" || { cd $1 || return; }
-  case "$PWD_P" in *":$PWD" ) return ;; esac
-  PWD_P=${PWD_P}:$PWD
-}
-
-pop_pwd()
-{
-  test -n "${PWD_P-}" || return 0
-  PWD_P="${PWD_P%:*}"
-  local pwd="${PWD_P//*:}"
-  #local pwd="$(echo "$PWD_P" | cut -d':' -f1)"
-  #PWD_P="$(echo "$PWD_P" | cut -d':' -f2- --output-delimiter=':')"
-  test -n "$PWD_P" || unset PWD_P
-  cd "$pwd"
-}
-
 sys_running () # ~ <Exec>
 {
   pgrep "$1" >/dev/null
-}
-
-get_kv_k() # Key-Value-Str
-{
-  echo "$1" | cut -d'=' -f1
-}
-
-get_kv_v() # Key-Value-Str [Env-Prefix [Key-Str]]
-{
-  test -n "$3" || set -- "$1" "$2" "$(get_kv_k "$1")"
-  fnmatch "*=*" "$1" && {
-    eval echo \"$(expr_substr "$1" "$(( 2 + ${#3} ))" "$(( ${#1} - ${#3}  ))")\"
-  } || {
-    eval echo \"\$$2$3\"
-  }
 }
 
 

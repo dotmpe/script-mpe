@@ -24,6 +24,7 @@ urlres_lib__init ()
 urlres () # ~ <Key> [<Inputs...>]
 {
   declare lk=${lk:-}:urlres
+  # Determine cache file names, do HTTP HEAD to determine extension if needed
   urlres_files "$@" || return
   #http_deref "$url" "$cachef" "$etagf"
   http_deref_cache_etagfile "$cachef" "$etagf" "$url"

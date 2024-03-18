@@ -659,7 +659,7 @@ str_quote ()
 
 str_quote_var ()
 {
-  echo "$( printf '%s' "$1" | grep -o '^[^=]*' )=$(str_quote "$( printf -- '%s' "$1" | sed 's/^[^=]*=//' )")"
+  echo "${1%%=*}=$(str_quote "${1#*=}")"
 }
 
 str_concat () # ~ <String-1> <String-2> <String-Sep>
@@ -677,6 +677,53 @@ str_concat () # ~ <String-1> <String-2> <String-Sep>
   }
 }
 
+# Center ellipsize: put ellipsis in middle
+str_c_ellipsize () # ~ <String> [<Maxlength> [<Ellipsis>]]
+{
+  local str=${1:?} maxlen=${2:-70} ellipsis=${3:-'…'} l{1,2,3,4}
+  l1=${#str} l2=${#ellipsis}
+  [[ $maxlen -ge $l1 ]] &&
+    echo "$str" || {
+      l3=$(( ( maxlen / 2 ) - 1 ))
+      l4=$(( l1 - ( maxlen / 2 ) - l2 ))
+      echo "${str:0:$l3}$ellipsis${str:$l4}"
+    }
+}
+
+# Ellipsize: put ellipsis at left, center or right if string exceeds maxlength
+str_ellipsize () # ~ <lcr> <String> [<Maxlength> [<Ellipsis>]]
+{
+  local switch=${1:-1} str=${2:?} maxlen=${3:-70} ellipsis=${4:-'…'} l{1,2,3}
+  l1=${#str} l2=${#ellipsis}
+  [[ $maxlen -ge $l1 ]] &&
+    echo "$str" ||
+    case "$switch" in
+      -1 )
+          l3=$(( l1 - maxlen + l2 ))
+          echo "$ellipsis${str:$l3}"
+        ;;
+      0 ) TODO "centered ellipsize or l+r ellipsis is something other than centered ellipsis"
+        ;;
+      1 )
+          l3=$(( maxlen - l2 ))
+          echo "${str:0:$l3}$ellipsis"
+    esac
+}
+
+str_ellipsize_l ()
+{
+  str_ellipsize -1 "$@"
+}
+
+str_ellipsize_c ()
+{
+  str_ellipsize 0 "$@"
+}
+
+str_ellipsize_r ()
+{
+  str_ellipsize 1 "$@"
+}
 
 # Convert As-is style formatted file to double-quoted variable declarations
 asis_to_vars () # ~ <File|Awk-argv> # Filter to rewrite .attributes to simple shell variables

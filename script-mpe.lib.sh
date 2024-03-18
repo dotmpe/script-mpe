@@ -121,7 +121,7 @@ std_nz () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only)
   ! "$@"
 }
 
-std_v () # ~ <Message ...> # Print message
+std_verbose () # ~ <Message ...> # Print message
 {
   stderr echo "$@" || return 3
 }
@@ -296,7 +296,7 @@ sys_arr () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
 # system-exception-trace: Helper to format callers list including custom head.
 sys_exc_trc () # ~ [<Head>] ...
 {
-  echo "${1:-Trace:}"
+  echo "${1:-script-mpe: E$? source trace:}"
   for (( i=1; 1; i++ ))
   do
     if_ok "$(caller $i)" && echo "  - $_" || break

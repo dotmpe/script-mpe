@@ -79,27 +79,29 @@ html_entities_unicode ()
 http_deref () # ~ <URL> [<Last-Modified>] [<ETag>] [<Curl-argv>]
 {
   declare lk=${lk:-}:http-deref
-  test -z "${2:-}" || {
-    test -z "${3:-}" || {
-      ! fnmatch "*/*" "$2" &&
-      ! fnmatch "*/*" "$3" || {
-        http_deref_cache_etagfile "$2" "$3" "$1" "${@:4}"
+  local -r url=${1:?} lm=${2-} etag=${3-}
+
+  test -z "$lm" || {
+    test -z "$etag" || {
+      ! fnmatch "*/*" "$lm" &&
+      ! fnmatch "*/*" "$etag" || {
+        http_deref_cache_etagfile "$lm" "$etag" "$url" "${@:4}"
         return
       }
     }
-    ! fnmatch "*/*" "$2" &&
-    set -- "${@:1:3}" -H "If-Modified-Since: $2" "${@:4}" || {
-      http_deref_cache "$2" "$1" "${@:4}"
+    ! fnmatch "*/*" "$lm" &&
+    set -- "${@:1:3}" -H "If-Modified-Since: $lm" "${@:4}" || {
+      http_deref_cache "$lm" "$url" "${@:4}"
       return
     }
   }
-  test -z "${3:-}" || set -- "${@:1:3}" -H "If-None-Match: ${3:?}" "${@:4}"
-  : "$(printf " '%s'" "${1:?}" "${@:4}")"
+
+  test -z "$etag" || set -- "${@:1:3}" -H "If-None-Match: ${etag:?}" "${@:4}"
+
+  : "$(printf " '%s'" "${url:?}" "${@:4}")"
   $LOG notice "$lk" "Contacting web" "curl ${curl_f:--sfL}$_"
-  curl ${curl_f:--sfL} "${1:?}" "${@:4}" && {
-    test -s "${etagf:?}" ||
-    rm "$_"
-  }
+
+  curl ${curl_f:--sfL} "${url:?}" "${@:4}"
 }
 
 http_deref_cache_etagfile () # ~ <Cache-file> <Etag-file> <URL-ref> [<Curl-argv>]
@@ -112,6 +114,10 @@ http_deref_cache () # ~ <Cache-file> <URL-ref> [<Curl-argv...>]
 {
   test -e "${1:?}" && set -- "$@" -z "${1:?}"
   http_deref "${2:?}" "" "" "${@:3}" -o "${1:?}"
+  #&& {
+  #  test -s "${etagf:?}" ||
+  #  rm "$_"
+  #}
 }
 
 
@@ -204,6 +210,12 @@ web_about () # ~ <URL> [<Output=->]
     curl -I "$1" || return
   } ||
     curl -I "$1" >| "${2:?}"
+}
+
+web_deref__libs=cache,ck
+web_deref () # ~ <URL> [<Alias>]
+{
+  local -r url=${1:?} urlkey urlalias=${2-}
 }
 
 web_fetch() # URL [Output=-]
