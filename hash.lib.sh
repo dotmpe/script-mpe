@@ -28,7 +28,7 @@ hash_run () # ~ <Algo> [<Files...>]
   case "$algo" in
 
     ( sha2 | sha256 )
-        hash="$(shasum -a 256 "$@")" || return
+        hash="$(shasum -a 256 "${@:--}")" || return
       ;;
     ( git | rhash-* )
         hash="$(cksum.py -a $algo "$@")" || return
@@ -38,7 +38,7 @@ hash_run () # ~ <Algo> [<Files...>]
       ;;
       * )
         exec=$(command -v ${algo}sum) &&
-        hash="$($exec "$@")" || return
+        hash="$($exec "${@:--}")" || return
   esac
   #"${urn:-true}"
   #&& sed 's/^/urn:'"$algo"':/g' || cat; }

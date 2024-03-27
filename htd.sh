@@ -253,16 +253,16 @@ htd_subcmd_load ()
 
     p ) # set (p)ackage -
         # Set package file and id, update. But don't require, see q.
-        package_lib_auto=0 sh_run package-init
+        package_lib_auto=true sh_run package-load package-init
       ;;
 
-    q | Q ) # re(q)uire package
-        # Update and include, but return on error
-        test "$x" = "Q" && package_lib_auto=2 || { # test "$x" = "q"
-            package_lib_auto=1
-            package_require=0
-        }
+    q | Q ) # request or require package
+        test "$x" = "Q" &&
+          package_lib_auto=true package_require=true ||
+          # test "$x" = "q" &&
+            package_lib_auto=true package_require=false
 
+        # Run function, sourcing package-init part first if not defined
         sh_run package-require package-init
       ;;
 
@@ -849,11 +849,26 @@ htd__copy() # Sub-To-Script [ From-Project-Checkout ]
 
 htd__wf__libs=ctx-base,context,context-uc
 
-htd_flags__current=fpql
+htd_flags__current=fql
 htd_libs__current=$htd__wf__libs\ htd-tasks
 htd__current()
 {
-  htd_wf_ctx_sub current "$@"
+  test $# -gt 0 || set -- ${package_lists_contexts_default:?}
+  # XXX: Old htd-wf
+  #htd_wf_ctx_sub current "$@"
+  # TODO: see context-run
+  lib_init &&
+  set -- $(context_class_names "$@") &&
+  local ctx &&
+  context_add "$@" &&
+  shift &&
+  for cn
+  do
+    $ctx.switch-class ctx "$cn" &&
+    $ctx:current ||
+    sys_astat -eq ${_E_not_found:?} && continue ||
+      return
+  done
 }
 
 

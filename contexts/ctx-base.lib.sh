@@ -18,16 +18,7 @@ htd_ctx__Dev__init ()
   echo hello world init @Dev
 }
 
-htd_ctx__base__current()
-{
-  vc_getscm && {
-    vc_unversioned || return $?
-    vc_modified || return $?
-  }
-  test -d "$package_log" && {
-    htd_log_current || return $?
-  }
-}
+# XXX: above deprecated until here
 
 htd_ctx__base__check()
 {

@@ -3,8 +3,8 @@
 
 context_lib__load()
 {
-  lib_require sys os-htd src-htd stattab{,-reader} ctx-base contextdefs match-htd \
-      contextdefs || return
+  lib_require sys os-htd src-htd uc-class stattab{,-reader} ctx-base contextdefs \
+    match-htd preproc contextdefs || return
 
   : "${CTX:=""}"
   : "${PCTX:=""}"
@@ -28,6 +28,7 @@ context_lib__init()
   test -e "$CTX_TAB" || {
     touch "$CTX_TAB" || return $?
   }
+  context_assert
 }
 
 
@@ -50,6 +51,41 @@ context ()
 
     ( * ) $LOG alert :context "No such option" "$_switch" ${_E_NF:=124}
   esac
+}
+
+context_add () # ~ [<PCTX>]
+{
+  : about "Look for tag refs"
+  local lk=${lk-}:context-add
+  [[ $# -gt 0 ]] || set -- ${PCTX?}
+  class_find "$@" &&
+  set -- $(filter_args 'class_loaded' "$@") &&
+  test $# -eq 0 && return ${_E_continue:?}
+  test -n "${ctx-}" || context_acquire ctx "${1:?}" && shift || return
+  while [[ $# -gt 0 ]]
+  do
+    $ctx.switch-class ctx "${1:?}" && shift ||
+      $LOG error "$lk" "Error switching to" "E$?:ctx=$1" $? || return
+  done
+}
+
+context_acquire () # ~ <var> <tag>
+{
+  local lk=${lk-}:context-acquire
+  class_init "${2:?}" &&
+  class_new "${1:?}" "$2" &&
+    $LOG info "$lk" "Acquired context" "$1=$2" ||
+    $LOG error "$lk" "Error initializing" "E$?:$1=$2" $?
+}
+
+context_assert () # ~ [<CTX>]
+{
+  : about "Require that present or given class references are present (exists and are loaded)"
+  test $# -gt 0 || set -- ${CTX?}
+  set -- $(context_class_names "$@") &&
+  test $# -eq 0 && return
+  class_init "$@"
+  #context_init "$@"
 }
 
 context_cache ()
@@ -89,6 +125,17 @@ context_check_inner () # ~ <Tag> <...>
       }
     }
   }
+}
+
+context_class_names ()
+{
+  local n
+  for n
+  do
+    case "$n" in [+@]* )
+      echo "${n:1}"
+    esac
+  done
 }
 
 # XXX: New more simple query, see context-uc-cmd-seq for old
@@ -484,6 +531,7 @@ context_require ()
   exit 123
 }
 
+# XXX: run every <spec>.run that exists with <arg>
 context_run () # ~ <Spec> <Arg...>
 {
   # stattab_data_list <fun arg...>

@@ -115,11 +115,26 @@ context_sh_files () # ~ <Switch:-list> <...>
         context_files_cached "$cached" &&
         cat "$cached"
       ;;
+    ( E | edit )
+        local -a files
+        if_ok "$(context_files)" &&
+        mapfile -t files <<< "$_" &&
+        $EDITOR "${files[@]}"
+      ;;
+
     ( f|find ) # XXX: get look path
         files_existing ".meta/stat/index/{context,ctx}{,-*}.list"
       ;;
     ( l|ls|list )
         context_sh_files -all && context_sh_files -find
+      ;;
+
+    ( p | preview )
+        shopt -s expand_aliases &&
+        . ${US_BIN:?}/tools/sh/parts/fzf.sh &&
+        # Alias will not resolve yet unless we return to root first, so just
+        # resolve the command by hand
+        context_files | eval "IF_LANG=todo.txt $(sh_als_cmd fzf-preview)"
       ;;
 
     ( pp|preproc )

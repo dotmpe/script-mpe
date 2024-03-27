@@ -1,5 +1,6 @@
 class_Std_Rules__load ()
 {
+  : about "TODO: Static 'run' handler loads @User/Conf/rules and goes over each key"
   uc_class_declare Std/Rules User/Conf --libs stattab-class \
     --uc-config rules StatTab ${UCONF:?}/user/rules/new.tab
     #uconf:rules.tab
@@ -9,6 +10,9 @@ class_Std_Rules__load ()
 class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
 {
   case "${call:?}" in
+
+    ( :current ) # TODO: show/list files, where runner is/was at, summarize
+      ;;
 
     ( :run )
         # Initialize obj for rulestab

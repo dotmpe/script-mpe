@@ -35,7 +35,7 @@ alias fzf-edit='$EDITOR $(fzf $FZF_EDIT_OPTS)'
 alias fzf-edit-preview='$EDITOR $(fzf-preview $FZF_EDIT_OPTS)'
 
 # Use batcat to preview highlighted plain-text files
-alias fzf-preview="fzf --preview='${BAT_BIN:-bat} --color always --style numbers {}'"
+alias fzf-preview="fzf --preview='${BAT_BIN:-bat}\${IF_LANG:+ -l \$IF_LANG} --color always --style numbers {}'"
 
 alias fzf-preview-bat-themes='bat --list-themes | fzf --preview="bat --theme={} --color=always ${FZF_PREVIEW_FILE:-~/bin/user-script.sh}"'
 

@@ -506,6 +506,7 @@ htd_wf_ctx_sub () # Flow-Id Tag-Refs...
   $LOG info "htd-workflow" "Preparing to run action for context(s)" "$ctx_base:$flow:$*"
   htd_current_context "$@" || return $?
 
+  # <base>_ctx__<Prim-ctx>__<call>
   sh_fun ${ctx_base}${primctx_id}__${fid} && {
     $LOG debug "htd-workflow" "Existing primary env" "ctx=$ctx"
   } || {
@@ -530,9 +531,13 @@ htd_wf_ctx_sub () # Flow-Id Tag-Refs...
 }
 
 
+# TODO: Initialize context using first reference, then add all other tags by
+# using .switch-class and maybe make sure some constructor or substitute call
+# (sequence) is run?
 # Get primary context...
-htd_current_context ()
+htd_current_context () # ~ [<Context-ref>]
 {
+  local lk=${lk-}:htd:current-context${1+:$1:}
   test -n "${1-}" && {
     test -e "$1" && {
       context_exists_tag "$1" && {
@@ -548,7 +553,7 @@ htd_current_context ()
     }
     fnmatch "@*" "$1" && {
       context_exists_tag $(echo "$1" | cut -c2-) || {
-        $LOG error "" "No such tag" "$1" $?
+        $LOG error "$lk" "No such tag" "$1" $?
         return $?
       }
       contexttab_init "$1"

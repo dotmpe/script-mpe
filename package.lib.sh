@@ -58,12 +58,11 @@ package_basedir_split () # ~ <Path>
   echo "$packagedir ${1:$(( 1 + ${#packagedir} ))}"
 }
 
-package_init () # [Package-Dir] [Package-Lib-Auto] [Package-Id]
+package_init () # [Package-Dir] [Package-Id]
 {
   test $# -gt 0 || set -- .
-  test $# -gt 1 || set -- "$1" "${package_lib_auto-}"
   # Keep seed value if set
-  test $# -gt 2 || set -- "$1" "$2" "${package_id-}"
+  test $# -gt 1 || set -- "$1" "${package_id-}"
 
   test -d "$1/$LCACHE_DIR" || mkdir -p "$1/$LCACHE_DIR"
   test -d "$1/$PACK_DIR" || mkdir -p "$1/$PACK_DIR"
@@ -187,17 +186,20 @@ package_env_unset ()
 #   - ignore static env, reset and then 0)
 # 3):
 #   - ignore static env, reset and then 1)
-package_lib_set_local () # Package-Path [Require] [Id]
+package_lib_set_local () # ~ <Package-path> [<Id>]
 {
+  test -d "${1-}" || error "package.lib set-local path" 1
   #test $# -gt 1 -a -n "${2-}" ||
   #    set -- "$1" "${package_lib_auto:-0}" "${3-}"
-  test -d "${1-}" || error "package.lib set-local path" 1
 
   # If static env loaded (non-zero ID), use that; abort further dynamic init
   #test "${PACKMETA_ID=0}" -eq 0 -a \( $2 -le 1 \) || return 0
 
   package_dir="$1"
-  package_detect || return
+  package_detect || {
+    sys_status -eq 1 || return
+    ! "${package_require:-false}" && return || return 127
+  }
 
   # Detect wether Pre-process is needed
   grep -q '^#include\ ' "$PACKMETA" && {
@@ -212,8 +214,8 @@ package_lib_set_local () # Package-Path [Require] [Id]
     package_lib_update_json || return
   }
 
-  test -n "${3-}" -a "${3-}" != "(main)" && {
-    package_id=$(package_id "$3") || return
+  test -n "${2-}" -a "${2-}" != "(main)" && {
+    package_id=$(package_id "$2") || return
 
   } || {
     default_package_id=$(package_default_id) || return

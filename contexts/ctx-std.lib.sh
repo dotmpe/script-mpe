@@ -62,11 +62,6 @@ scr__std__tags()
 }
 
 
-htd_ctx__std__current()
-{
-  try_context_actions current base -- "$@"
-}
-
 htd_ctx__std__list()
 {
   try_context_actions list base -- "$@"
