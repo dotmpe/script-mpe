@@ -217,6 +217,7 @@ class_StatTab__load ()
   declare -gA StatTab__file=()
   declare -gA StatTab__entry_type=()
   declare -gA StatTab__entry=()
+  #Class__field[]
 }
 
 # StatTab is a list of StatTabEntries, represented by a single file.

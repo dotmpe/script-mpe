@@ -33,6 +33,7 @@ stattab_lib__init ()
     test -s "${STTAB:?}" || stderr stattab__init
   } && {
 
+    # XXX:
     "${stb_main:-false}" && {
       stab_id=
     } || {
@@ -41,11 +42,13 @@ stattab_lib__init ()
   }
 }
 
+
+# Initialize statusdir main index, and local table
 stattab__init ()
 {
   "${stb_main:-false}" && {
     test -e "${STIDX:?}" || {
-      mkdir -p "$(dirname "$STTAB")" && touch "$STTAB" || return
+      mkdir -p "$(dirname "$STIDX")" && touch "$STIDX" || return
     }
   } || {
     test -e "${STTAB:?}" || {
@@ -182,7 +185,7 @@ stattab_data_outline_entry () # ~ <Handler <args...>>
 
 stattab_data_outline_dirln () # ~ <Handler <args...>>
 {
-  test -z "$rawline"  && return
+  test -z "${rawline?}" && return
 
   test "${rawline:0:1}" != "#" || {
     test "${rawline:1:2}" = "-:" && {

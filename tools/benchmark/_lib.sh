@@ -164,21 +164,28 @@ funbody ()
 
 time_gnu_parse_seconds ()
 {
-  local min sec
+  local min sec lk=${lk-}:time-gnu-parse-seconds
   read -r _ min sec <<< "${1/m/ }" &&
   : "${sec%s}" &&
+  test -n "$_" &&
   echo "$(( 60 * min + ${_/.*} )).${_/*.}" ||
-    $LOG error :time-gnu-parse-seconds "Parsing seconds" "E$?:\$1:$1" $?
+  $LOG error "$lk" "Parsing seconds" "E$?:\$1:$1:$(sys_exc "$lk")" $?
 }
 
 run_time ()
 {
+  local lk=${lk-}:run-time time
   "${quiet:-true}" ||
       $LOG notice :run-time "Starting timed run" "$*"
-  mapfile -t time_lines <<< "$( (time "$@" 2>&3 ) 3>&2 2>&1 )"
-  time_real=$(time_gnu_parse_seconds "${time_lines[1]}") &&
-  time_user=$(time_gnu_parse_seconds "${time_lines[2]}") &&
-  time_sys=$(time_gnu_parse_seconds "${time_lines[3]}")
+  time="$( (time "$@" 2>&3 ) 3>&2 2>&1 )" ||
+    stderr echo "Script '$*' exit status $?" # Ignore script status
+  mapfile -t time_lines <<< "$time" &&
+  test 4 -eq ${#time_lines[@]} ||
+    $LOG error "$lk" "Error reading run-time" "E$?:$time:$*:$(sys_exc "$lk")" $? ||
+    return
+  time_real=$(time_gnu_parse_seconds "${time_lines[1]:?}") &&
+  time_user=$(time_gnu_parse_seconds "${time_lines[2]:?}") &&
+  time_sys=$(time_gnu_parse_seconds "${time_lines[3]:?}")
 }
 
 sample_time ()
