@@ -69,13 +69,13 @@ context_add () # ~ [<PCTX>]
   done
 }
 
-context_acquire () # ~ <var> <tag>
+context_acquire () # ~ <var> <tag> [<constructor-args...>]
 {
   local lk=${lk-}:context-acquire
   class_init "${2:?}" &&
-  class_new "${1:?}" "$2" &&
-    $LOG info "$lk" "Acquired context" "$1=$2" ||
-    $LOG error "$lk" "Error initializing" "E$?:$1=$2" $?
+  class_new "${@:?}" &&
+    $LOG info "$lk" "Acquired context" "$1=$2:${*:3}" ||
+    $LOG error "$lk" "Error initializing" "E$?:$1=$2:${*:3}" $?
 }
 
 context_assert () # ~ [<CTX>]

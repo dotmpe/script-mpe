@@ -197,7 +197,7 @@ package_lib_set_local () # ~ <Package-path> [<Id>]
 
   package_dir="$1"
   package_detect || {
-    sys_status -eq 1 || return
+    sys_astat -eq 1 || return
     ! "${package_require:-false}" && return || return 127
   }
 

@@ -132,18 +132,20 @@ meta__aprops__update () # (-id:) ~ ( <key> <value> )+
 
 # Util: 'backends' handlers, function to generate cache file names given src
 
-meta_aprops_be1 () # ~ <Set> <Source>
+meta_aprops_be1 () # ~ <Var> <Source>
 {
-  if_ok "$(<<< "$meta_aprops_salt${2:?}" sha1sum)" &&
+  local -n mab__var=${1:?}
+  if_ok "$(<<< "${2:?}$meta_aprops_salt" sha1sum)" &&
   : "${_%  -}" &&
-  sys_set_var "${1:?}" "${_:0:2}/${_:2}.properties"
+  mab__var="${_:0:2}/${_:2}.properties"
 }
 
-meta_aprops_be2 () # ~ <Set> <Source>
+meta_aprops_be2 () # ~ <Var> <Source>
 {
-  if_ok "$(<<< "$meta_aprops_salt${2:?}" sha256sum)" &&
+  local -n mab__var=${1:?}
+  if_ok "$(<<< "${2:?}$meta_aprops_salt" sha256sum)" &&
   : "${_%  -}" &&
-  sys_set_var "${1:?}" "${_:0:2}/${_:2:4}/${_:4}.properties"
+  mab__var="${_:0:2}/${_:2:4}/${_:4}.properties"
 }
 
 meta_aprops_ref () # (:meta-{about,ref,path}) ~ <File>

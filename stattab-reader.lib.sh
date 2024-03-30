@@ -15,13 +15,13 @@ stattab_reader_lib__load ()
 # Assuming entry is updated replace or add to Stat-Tab
 stattab_commit () # ~ [<Stat-Tab>]
 {
-  test -n "${1-}" || set -- $STTAB
+  test -n "${1-}" || set -- ${STTAB:?}
   stattab_exists "" "" "$1" && {
 
-# XXX: observe different Id types in replace as well like in grep, probably..
-    local p_=$stab_id
-    #$(match_grep "$stab_id")
-    $gsed -i 's/^[0-9 +-]* '$p_':.*$/'"$(stattab_entry)"'/' "$1"
+    local _id=${stab_id:?} _e
+    if_ok "$(stattab_entry)" &&
+    if_ok "$(match_grep "$_")" &&
+    ${gsed:?} -i 's/^[0-9 +-]* '$_id':.*$/'"$_"'/' "$1"
     return
   } || {
     stattab_entry >>"$1"
@@ -48,9 +48,9 @@ stattab_print_STD_stat ()
 {
   #! "${stab_closed}" || echo "# "
   ! stattab_value "${stab_status-}" || echo "$_"
-  date_id "@$stab_btime"
-  date_id "@$stab_ctime"
-  ! stattab_value "${stab_utime-}" || date_id "@$stab_utime"
+  date_id "@$stab_btime" &&
+  date_id "@$stab_ctime" || return
+  ! stattab_value "${stab_utime-}" || date_id "@$stab_utime" || return
   ! stattab_value "${stab_directives-}" || echo "$_"
   ! stattab_value "${stab_passed-}" || echo "$_"
   ! stattab_value "${stab_skipped-}" || echo "$_"
@@ -98,7 +98,6 @@ stattab_entry_env_reset ()
   stab_idspec=
   stab_idrefs=
   stab_meta=
-  stab_tags_raw=
   stab_tags=
 
   stab_lineno=
@@ -316,10 +315,13 @@ stattab_parse_STD_ids ()
 
 stattab_parse_STD_stat () # ~ [Status] [BTime] [CTime] [UTime] [Dirs] [Passed] [Skipped] [Error] [Failed]
 {
+  [[ ! ${1-} ]] || {
+    [[ "$1" =~ ^[0-9]+$ ]] || set -- - "$@"
+  }
   ! stattab_value "${1-}" || stab_status=$1
-  ! stattab_value "${2-}" || stab_btime="$(stattab_date "$2")"
-  ! stattab_value "${3-}" || stab_ctime="$(stattab_date "$3")"
-  ! stattab_value "${4-}" || stab_utime="$(stattab_date "$4")"
+  ! stattab_value "${2-}" || stab_btime="$(stattab_date "$2")" || return
+  ! stattab_value "${3-}" || stab_ctime="$(stattab_date "$3")" || return
+  ! stattab_value "${4-}" || stab_utime="$(stattab_date "$4")" || return
   ! stattab_value "${5-}" || stab_directives=$5
   ! stattab_value "${6-}" || stab_passed=$6
   ! stattab_value "${7-}" || stab_skipped=$7
@@ -344,36 +346,23 @@ stattab_reader () # ~ (stb-fp) ~ [<StatTab-file>]
  }
 }
 
-# Set to new given entry and add it to table directly
-stattab_record () # ~ <Entry>
-{
-  test $# -gt 0 || return ${_E_MA:?}
-  test -n "$*" || return ${_E_GAE:?}
-  stattab_entry_init "$@" &&
-  stattab_entry_defaults &&
-  # XXX: stattab_entry >>"$1"
-  stattab_commit >>"$1"
-}
-
 stattab_record_parse () # (stab_record) ~
 {
   # stattab_parse ID_SPEC TAGS META SHORT
-
-  # TODO parse using glob specs
   stab_idspec=${stab_record%%:*}
-  stattab_parse_STD_ids $stab_idspec
+  stattab_parse_STD_ids $stab_idspec || return
 
-  stab_rest="$(echo "$stab_record"|cut -d : --output-delimiter : -f2-)"
-  # XXX: Stop short description at first tag?
-  stab_short="$(echo "$stab_rest"|$gsed 's/^\([^[+@<]*\).*$/\1/'|normalize_ws)"
+  stab_rest="${stab_record:$(( 2 + ${#stab_idspec} ))}"
 
+  stab_short="$($gsed 's/^\([^[+@<]*\).*$/\1/' <<< "$stab_rest")"
   stab_refs="$(todotxt_field_chevron_refs <<< "$stab_rest")"
   stab_idrefs="$(todotxt_field_hash_tags <<< "$stab_rest")"
   stab_meta="$(todotxt_field_meta_tags <<< "$stab_rest")"
-
-  # FIXME: seems like an old regex
-  stab_tags_raw="$(echo "$stab_rest"|$gsed 's/^[^\[+@<]*//'|normalize_ws)"
-  stab_tags="$(todotxt_field_context_tags <<< "$stab_tags_raw")"
+  : "$(
+    todotxt_field_context_tagrefs <<< "$stab_rest"
+    todotxt_field_project_tagrefs <<< "$stab_rest"
+  )"
+  stab_tags=${_//$'\n'/ }
 
   true
 }

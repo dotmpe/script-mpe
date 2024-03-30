@@ -139,9 +139,9 @@ user_script_initlog ()
     UC_LOG_LEVEL=${v:-5}
     . /etc/profile.d/uc-profile.sh && uc_log_init || return
     #shellcheck disable=1087 # Below is not an expansion
-    UC_LOG_BASE="${base}[$$]"
-    true "${lk:=$UC_LOG_BASE}"
-    uc_log "debug" "$lk" "uc-profile log loaded"
+    #: "${UC_LOG_BASE:="${base}[$$]"}"
+    #true "${lk:=$UC_LOG_BASE}"
+    uc_log "debug" "${lk-}" "uc-profile log loaded"
     LOG=uc_log
   } || {
     true "${lk:="${base}[$$]"}"

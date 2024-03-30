@@ -175,9 +175,9 @@ $(vc_stats . "        ")" || return 1
     test -d "$workspace/$prefix/.$scm/annex" && {
 
         htd_ws_stats_update disk-usage "
-              annex: $( disk_usage .$scm/annex)
-              scm: $( disk_usage .$scm )
-              (total): $( disk_usage )
+              annex: $(disk_usage .$scm/annex hs)
+              scm: $(disk_usage .$scm hs)
+              (total): $(disk_usage . hs)
               (date): $( date_microtime )" || return 1
 
       } || {

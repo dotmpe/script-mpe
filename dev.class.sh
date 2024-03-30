@@ -11,9 +11,8 @@ class_Dev_ ()
 
     ( :current )
         $LOG warn "$lk" "Looking at current Dev context..."
-        if_ok "$(compgen -A variable | grep scm)" &&
-        echo "$_" &&
-        stderr declare -p scm{,dir} package_{pd_meta_checks,log} $_
+        # TODO: look at some package scripts or 'current' if provided
+        # TODO: summarize SCM, see new vc-new.lib
         #vc_getscm && {
         #  vc_unversioned || return $?
         #  vc_modified || return $?
@@ -21,6 +20,7 @@ class_Dev_ ()
         test ! -d "$package_log" || {
           htd_log_current || return $?
         }
+        TODO "$self$call $*"
       ;;
 
       * ) return ${_E_next:?}

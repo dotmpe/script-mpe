@@ -31,8 +31,8 @@ at_ () # ~ <ctx> [<ctx|args..>]
 
 us_basedir_init ()
 {
-  $xctx@User/Conf :basedirtab &&
-  $xctx@User/Dir :init-basedir "${basedirtab:?}"
+  ${xctx:?}@User/Conf :basedirtab &&
+  ${xctx:?}@User/Dir :init-basedir "${basedirtab:?}"
 }
 
 us_stbtab_init ()
@@ -61,19 +61,19 @@ us_userconf_init ()
 
 us_userdir_init ()
 {
-  $xctx@User_Dir .init
+  ${xctx:?}@User/Dir .init
 }
 
 us_xctx_init ()
 {
-  local lk=${lk:-}:us:xctx-switch
+  local lk=${lk:-}:us-fun.lib:xctx-init
   class_init XContext &&
   class_new xctx XContext
 }
 
 us_xctx_switch () # ~ <Default-context> <User-provided...>
 {
-  declare defctx=${1:-@List} lk=${lk:-}:us:xctx-switch
+  declare defctx=${1:-@List} lk=${lk:-}:us-fun.lib:xctx-switch
   shift
 
   # Use tagref as user provided context
@@ -92,7 +92,7 @@ us_xctx_switch () # ~ <Default-context> <User-provided...>
   # Query to default or requested xcontext
   : "ctxref=${ctxref:-xctx} $xctx@$ctxclass"
   $LOG debug "$lk" "Switching context class" "$_"
-  ${xctx:?}@$ctxclass
+  ${xctx:?}@${ctxclass:?}
 
   $LOG notice "$lk" "Context ready" "E$?:$xctx@$ctxclass" $?
 }

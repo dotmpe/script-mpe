@@ -56,7 +56,7 @@ class_BaseDirTab_ ()
   case "${call:?}" in
 
     ( .__init__ )
-        $super.__init__ "${@:1:2}" "${3:-BaseDir}" "${@:4}" ;;
+        $super$call "${@:1:2}" "${3:-BaseDir}" "${@:4}" ;;
 
     ( .fetch ) # ~ <Path> <Symbol>
       ;;

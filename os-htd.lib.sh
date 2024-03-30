@@ -116,13 +116,6 @@ diff_files() # File-Path Path-Name...
 }
 # Sh-Copy: HT:tools/u-s/parts/diff-files.inc.sh vim:ft=bash:
 
-disk_usage()
-{
-  test -n "$1" || set -- "." "$2"
-  test -n "$2" || set -- "$1" "h"
-  du -$2s $1 | awk '{print $1}'
-}
-
 # Number lines from read-nix-style-file by src, filter comments after.
 enum_nix_style_file ()
 {

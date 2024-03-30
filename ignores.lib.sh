@@ -93,6 +93,7 @@ ignores_find_expr () # ~ <Groups...>
 {
   local glob ctx=${at_GlobList:-globlist}
   printf -- '-false\n'
+  # Disable glob (filename) expansion here
   set -f
   for glob in $(${ctx}_raw "$@" | remove_dupes_nix)
   do
@@ -101,6 +102,8 @@ ignores_find_expr () # ~ <Groups...>
   set +f
   printf -- '-o %s ' "${ignores_find_extra_expr[@]}"
   #printf -- '-o -true'
+  # Set status if no globs where found in for loop
+  [[ "${glob-}" ]] || return ${_E_user:?}
 }
 
 # Execute find, ignoring globs from groups

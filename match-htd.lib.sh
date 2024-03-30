@@ -53,10 +53,10 @@ match_load_defs()
 
 # Take any string and return a Regex to match that exact string, see
 # match-grep-pattern-test.
-match_grep () # ~ <String>
-{
-  echo "$1" | $gsed -E 's/([^A-Za-z0-9{}(),?!@+_])/\\\1/g'
-}
+#match_grep () # ~ <String>
+#{
+#  echo "$1" | $gsed -E 's/([^A-Za-z0-9{}(),?!@+_])/\\\1/g'
+#}
 
 # Get AWK pattern
 match_awk () # ~ <String>

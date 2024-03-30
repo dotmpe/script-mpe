@@ -148,8 +148,8 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
 
     .set )
         ! stattab_value "${StatTabEntry__status[$id]-}" || stab_status=$_
-        ! stattab_value "${StatTabEntry__btime[$id]}"  || stab_btime=$_
-        ! stattab_value "${StatTabEntry__ctime[$id]}"  || stab_ctime=$_
+        ! stattab_value "${StatTabEntry__btime[$id]}"   || stab_btime=$_
+        ! stattab_value "${StatTabEntry__ctime[$id]}"   || stab_ctime=$_
         ! stattab_value "${StatTabEntry__utime[$id]-}"  || stab_utime=$_
         ! stattab_value "${StatTabEntry__id[$id]-}"     || stab_id=$_
         ! stattab_value "${StatTabEntry__short[$id]-}"  || stab_short=$_
@@ -190,11 +190,15 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
         $self.set &&
         $self.entry
       ;;
+
     .update )
         $self.set &&
-        stattab_update "$@" &&
+        stab_ctime="$(date '+%s')" &&
+        if_ok "$($self.tab-ref)" &&
+        stattab_commit "$_" &&
         $self.get
       ;;
+
     .var ) # ~ <Var-key>             # Get field value from regular env variable
         : "stab_${1//-/_}"
         echo "${!_}"

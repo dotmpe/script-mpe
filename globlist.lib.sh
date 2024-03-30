@@ -19,7 +19,7 @@ globlist_lib__load()
 
 globlist_lib__init()
 {
-  test -z "${globlist_lib_init:-}" || return $_
+  test -z "${globlist_lib_init-}" || return $_
   ! "${globlist_static_init:-false}" && return
   # This will set the globlist{s,_groups} data and global IGNORES, <base>_IGNORE
   # variables. Using parameterized contexts with class.GlobList allows for more
