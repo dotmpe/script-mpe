@@ -2,9 +2,10 @@ class_Std_Rules__load ()
 {
   : about "TODO: Static 'run' handler loads @User/Conf/rules and goes over each key"
   uc_class_declare Std/Rules User/Conf --libs stattab-class \
-    --uc-config rules StatTab ${UCONF:?}/user/rules/new.tab
+    --uc-config rules StatTab ${UCONF:?}/user/rules/new.tab &&
     #uconf:rules.tab
     #--rel-types StatTab
+  true
 }
 
 class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
@@ -14,28 +15,33 @@ class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
     ( :current ) # TODO: show/list files, where runner is/was at, summarize
       ;;
 
-    ( :run )
-        # Initialize obj for rulestab
-        $self.get-config rules &&
-        # and for all entries
-        $self.rules.init &&
+    ( :run ) # ~ ~ [<Tab>]
+        local ruletab
+        ruletab=${1:-$($self.get-config rules -)} &&
+        [[ -e "$ruletab" ]] || return
+        $LOG notice "$lk" "Starting rules" "$ruletab"
+
+        class_init StatTab{,Entry} &&
+        class_new rules StatTab "$ruletab" &&
+
+        #$rules.__items__ &&
+        #$rules.__cache__ &&
+        #stderr script_debug_arrs StatTab__entry &&
+
         # loop over entries by reference to array key
-        declare -n items=$($self.rules@keys) &&
+        #declare -n items=$($self.rules@keys) &&
+
         # alt. loop by reading keys from call output
-        #declare -a items &&
-        #sys_arr items $self.rules.keys &&
-        for item in "${items[@]}"
+        local rule_id rule &&
+        declare -a items &&
+        sys_arr items $rules.keys &&
+        for rule_id in "${items[@]}"
         do
-          $item.
+          $rules.fetch rule "$rule_id" &&
+          $rule.toString
         done
 
-        test $# -gt 0 || set -- "${UCONF:?}/user/rules/new.tab"
-        class_init StatTab{,Entry} &&
-        class_new rules StatTab "$1" &&
-        $rules.__cache__
         return
-
-        $rules.__items__ &&
 
         # Debug
         for cid in "${!StatTab__entry[@]}"
@@ -48,7 +54,6 @@ class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
             echo "  $f: ${!_-(unset)}"
           done
         done
-        #stderr script_debug_arrs StatTab__entry
       ;;
 
       * ) return ${_E_next:?}

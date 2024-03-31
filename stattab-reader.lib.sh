@@ -281,7 +281,9 @@ stattab_parse () # ~ <Grep-line>
 # XXX: set for dynamic (id) context
 stattab_meta_parse () # ~ <Arr-var-pref>
 {
-  sh_arr "$1"_keys || return ${_E_GAE:?}
+  #assert is-arr "$1"_keys ||
+  sh_vfl a "$1"_keys ||
+    $LOG error : "Expected array" "$1"_keys ${_E_GAE:?} || return
   declare metatag metakey metaval
   declare -a keys
   for metatag in $stab_meta

@@ -74,7 +74,7 @@ class_StatTabEntry__load () # ~
   declare -g -A StatTabEntry__id=()
   declare -g -A StatTabEntry__idrefs=()
   declare -g -A StatTabEntry__meta=()
-  declare -g -A StatTabEntry__meta_keys=()
+  declare -g -a StatTabEntry__meta_keys=()
   declare -g -A StatTabEntry__short=()
   declare -g -A StatTabEntry__refs=()
   declare -g -A StatTabEntry__stattab=()
@@ -234,13 +234,6 @@ class_StatTab_ () # ~
 {
   case "${call:?}" in
 
-    -init ) # ~ var tab entry
-        declare tab=${2:?}
-        declare -n var=${1:?}
-        class_init "${3:-StatTabEntry}" &&
-        class_new $1 StatTab "$tab"
-      ;;
-
     .__init__ )
         [[ -e "${2-}" ]] || {
             $LOG error :"${self}" "Tab file expected" "${2:-\$2:unset}:$#:$*" 1 || return
@@ -248,13 +241,6 @@ class_StatTab_ () # ~
         class_super_optional_call "$1" "${@:4}" || return
         StatTab__file[$id]=${2:?} &&
         StatTab__entry_type[$id]=${3:-StatTabEntry}
-      ;;
-
-    .__del__ )
-        unset StatTab__file"[$id]" &&
-        unset StatTab__entry_type"[$id]" &&
-        ignore unset StatTab__entry"[$id]" &&
-        ${super:?}.__del__
       ;;
 
     .__cache__ )
@@ -277,12 +263,20 @@ class_StatTab_ () # ~
         class.StatusDir --key var <<< "$*"
       ;;
 
+    .__del__ )
+        unset StatTab__file"[$id]" &&
+        unset StatTab__entry_type"[$id]" &&
+        ignore unset StatTab__entry"[$id]" &&
+        ${super:?}.__del__
+      ;;
+
     .__items__ )
         declare eid oid entry ids=()
         sys_arr ids $self.list &&
         for eid in "${ids[@]}"
         do
-          $self.fetch local:entry "$eid" || return
+          $self.fetch entry "$eid" ||
+            $LOG error : "Error fetching entry" E$?:$eid $? || return
           : "${entry% }"
           : "${_##* }"
           oid=$_
@@ -361,6 +355,14 @@ class_StatTab_ () # ~
           [[ 0 = "$_" ]] ||
           fnmatch "*[${stb_pri_sep:?}]0" "$_"
         }
+      ;;
+
+
+    -init ) # ~ var tab entry
+        declare tab=${2:?}
+        declare -n var=${1:?}
+        class_init "${3:-StatTabEntry}" &&
+        class_new $1 StatTab "$tab"
       ;;
 
       * ) return ${_E_next:?}
