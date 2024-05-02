@@ -6,4 +6,7 @@ lib_require args std-uc shell-uc lib-uc class-uc uc-class
 lib_init
 class_init Std/Rules
 class_new runner Std/Rules
-${runner:?}${1:-:run} test/index.list
+
+${runner:?}.load-file "${2:-test/index.list}"
+
+${runner:?}${1:-:run-all}

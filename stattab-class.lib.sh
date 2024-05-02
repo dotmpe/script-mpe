@@ -213,11 +213,11 @@ class_StatTab__load ()
 {
   : about "File with lines or blocks representing entries consisting of status and description fields for some entity" @StatTab
   Class__static_type[StatTab]=StatTab:Class
-  Class__rel_types[StatTab]=StatTabEntry
+  Class__rel_types[StatTab]=StatTabEntry,OS/FileStat
   declare -gA StatTab__file=()
   declare -gA StatTab__entry_type=()
   declare -gA StatTab__entry=()
-  #Class__field[]
+  declare -gA StatTab__filestat=()
 }
 
 # StatTab is a list of StatTabEntries, represented by a single file.
@@ -243,7 +243,8 @@ class_StatTab_ () # ~
         StatTab__entry_type[$id]=${3:-StatTabEntry}
       ;;
 
-    .__cache__ )
+    .__cache__ ) # ~ ~ # Prepared cached entry
+
         declare tabf
         tabf=$($self.tab-ref) &&
 
@@ -255,7 +256,8 @@ class_StatTab_ () # ~
 
         for field in $stattab_var_keys
         do
-          StatTabEntry__*[$iid] || return
+          stderr declare -p field
+          StatTabEntry__${field:?}[$iid] || return
         done &&
 
         # cache is for this type (table), related entry types. dont care for
@@ -270,9 +272,10 @@ class_StatTab_ () # ~
         ${super:?}.__del__
       ;;
 
-    .__items__ )
+    .load )
+        # Iterate over ids and entry objects
         declare eid oid entry ids=()
-        sys_arr ids $self.list &&
+        sys_arr ids $self.ids &&
         for eid in "${ids[@]}"
         do
           $self.fetch entry "$eid" ||
@@ -281,8 +284,17 @@ class_StatTab_ () # ~
           : "${_##* }"
           oid=$_
           declare -g "StatTab__entry[$id:$oid]"=$eid
-          #$eid
-          $entry.toString
+        done
+      ;;
+
+    .__items__ )
+        # Iterate over ids and entry objects
+        declare eid oid entry ids=()
+        sys_arr ids $self.ids &&
+        for eid in "${ids[@]}"
+        do
+          declare -g "StatTab__entry[$id:$oid]"=$eid
+          class.Class --ref ${oid}
         done
       ;;
 
@@ -294,7 +306,7 @@ class_StatTab_ () # ~
       ;;
 
     .fetch ) # ~ ~ <Var-name> <Stat-id> [<Id-type>]
-        : "${1:?Expected Var-name argument}"
+
         ! str_wordmatch "$1" self id super call ext class tab ||
           $LOG alert "" "Cannot use reserved variable name" "$1" 1 || return
 
@@ -310,7 +322,30 @@ class_StatTab_ () # ~
         $obj.get
       ;;
 
-    .list|.ids|.keys ) # ~ ~ [<Key-match>]
+    .filestat ) # ~ ~ [<Var>]
+        : about "Return current FileStat instance"
+        : extended "Instance is created if missing"
+        local filestat_v="StatTab__filestat[\"$OBJ_ID\"]"
+        local -n __filestat="$filestat_v"
+        [[ "${__filestat+set}" ]] || {
+          local tabf
+          tabf=$($self.tab-ref) &&
+          class_new __filestat OS/FileStat "$tabf" || return
+        }
+        case "${1-}" in
+          local:* )
+              eval "${1#local:}=$filestat_v"
+            ;;
+          * ) declare -gn "${1:-filestat}=$filestat_v" ;;
+        esac
+      ;;
+
+    .keys|.list ) # ~ ~ [<Key-match>]
+        stderr echo "Deprecated: call=$call from $(caller 1)"
+        $self.ids "$@"
+      ;;
+
+    .ids ) # ~ ~ [<Key-match>]
         stattab_list "${1-}" "$($self.tab-ref)"
       ;;
 
@@ -365,6 +400,6 @@ class_StatTab_ () # ~
         class_new $1 StatTab "$tab"
       ;;
 
-      * ) return ${_E_next:?}
+    * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }

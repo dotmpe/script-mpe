@@ -1,4 +1,6 @@
 
+# XXX: initial setup hold table.* files?
+
 class_Table__load ()
 {
   #Class__libs[Table]=
