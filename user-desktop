@@ -12,7 +12,7 @@ uc_script_load user-script || ${stat:-exit} $?
 }
 
 
-background () # ~ (:-info)
+background () # (y) ~ (:-info)
 {
   local act=${1:-info}; test $# -eq 0 || shift
   case "$act" in
@@ -53,7 +53,7 @@ background () # ~ (:-info)
   esac
 }
 
-backgrounds () # ~ <-list>
+backgrounds () # (y) ~ <-list>
 {
   local act=${1:-list}; test $# -eq 0 || shift
   case "$act" in
@@ -151,7 +151,7 @@ background_set () # ~ <File> <Display>...
   unset fn d
 }
 
-files () # ~ (:-info)
+files () # (y) ~ (:-info)
 #            <content-type-tag> [<base-folder> [<tags...>]]
 {
   local act=${1:-info}; test $# -eq 0 || shift
@@ -182,7 +182,7 @@ files () # ~ (:-info)
   esac
 }
 
-preview () # ~ <Path> [<Mediatype>]
+preview () # (y) ~ <Path> [<Mediatype>]
 {
   test $# -gt 1 || set -- "${1:?}" "$(file -bi "$1")"
   #local mime_param

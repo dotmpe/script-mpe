@@ -271,7 +271,7 @@ day () # ~ # Switch to light colorscheme
   colorscheme light
 }
 
-colorscheme () # ~ ([dark]|light)
+colorscheme () # (y) ~ <Variant>
 {
   case "${1:-dark}" in
       ( dark ) set_colors Tango-dark && set_shade 15 ;;
@@ -346,7 +346,7 @@ dumpinfo ()
 }
 
 
-system_terminal_maincmds=sensible\ run\ day\ night\ terminal\ name\ user_script_help\ user_script_version\ user_script_commands\ user_script_aliases
+system_terminal_maincmds=sensible\ run\ day\ night\ sessions\ shells\ terminal\ name\ user_script_help\ user_script_version\ user_script_commands\ user_script_aliases
 system_terminal_shortdescr='Start new terminals in various modes'
 
 system_terminal_usage ()

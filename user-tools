@@ -113,7 +113,7 @@ hour ()
   }
 }
 
-hours_europe_anglo ()
+hours_europe_anglo () # (y) ~ Give local labels/tags for hour of the day
 {
   case "${1:?}" in
 
@@ -131,7 +131,7 @@ hours_europe_anglo ()
   esac
 }
 
-hours_europe_latin ()
+hours_europe_latin () # (y) ~ Give local labels/tags for hour of the day
 {
   case "${1:?}" in
 
@@ -149,7 +149,7 @@ hours_europe_latin ()
   esac
 }
 
-hours_europe_medieval ()
+hours_europe_medieval () # (y) ~ Give local labels/tags for hour of the day
 {
   case "${1:?}" in
 
@@ -179,7 +179,7 @@ season () # ~
   season_"${UC_SEASON:-meteorological}"
 }
 
-season_meteorological () # ~ [<Month>]
+season_meteorological () # ~ [<Month>] # Give season based on month of year
 {
   test $# -gt 0 || set -- $(date -d "${DT_NOW:-now}" +"%m"|sed 's/^0//')
 
@@ -243,7 +243,7 @@ state ()
   }
 }
 
-state_icon_fa ()
+state_icon_fa () # (y) ~ <State>
 {
   case "${1:-}" in
       ( ok ) printf "%s" "$nf_fa_check" ;;
@@ -286,7 +286,7 @@ sessions_tmpfile_cleanup ()
   printf '%i: `%s` <%s>\n' "$pid" "$cmdln" "$fn"
 }
 
-sessions ()
+sessions () # (y) ~ <Action ...> # List and check user sessions
 {
   case "${1:-list}" in
   ( check|chk )
