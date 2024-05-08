@@ -6,9 +6,12 @@
 # This doesnt really try hard at being sensible but its a start
 sensible () # ~ <Run-argv> # Determine colorscheme and run
 {
+  # Use given UC_NIGHTTIME function, or determine one using other env
   test -n "${UC_NIGHTTIME:-}" || {
     sensible_colorscheme || true
   }
+  # Start terminal with: <Env...> [ -- <Shell-argv> ]
+  # default shell argv: -l
   run "$@"
 }
 
@@ -128,7 +131,8 @@ termexec () # ~ <Cmd-argv...> # Fork to terminal, the normal run action
 
   # Eval exec command with uc_term_* part
   # NOTE: urxvt does not require quotes around command and arguments.
-  eval "CS=$cs exec $(uc_term_$UC_TERM) $bin \"\$@\""
+  if_ok "$(uc_term_$UC_TERM)" &&
+  eval "CS=$cs exec $_ $bin \"\$@\""
 }
 
 # Echo URxvt command-line
@@ -275,12 +279,20 @@ colorscheme () # ~ ([dark]|light)
   esac
 }
 
-shells ()
+# See also user-tools sessions
+sessions () # ~ # List both (user) shell and terminal sessions
 {
-  WS=`command -v whatshell.sh`
-  test -x "$WS" || {
-    echo "Cannot find <whatshell.sh>" >&2
-    return 1
+  echo "$UC_SH_ID"
+  #ls "${SD_SHELL_DIR:?}/$UC_SH_ID"*
+  #ls "${SD_SHELL_DIR:?}/"*:*.sh
+}
+
+shells () # ~ # List all shells on system
+{
+  test "${PERFORM_WS:-0}" != "1" || {
+    WS=`command -v whatshell.sh` &&
+    test -x "$WS" ||
+      $LOG error "${lk:-:shells}" "Cannot find" E$?:whatshell.sh $? || return
   }
 
   for p in /bin /usr/bin /usr/local/bin /sbin /usr/sbin
@@ -301,19 +313,17 @@ shells ()
           */[bdlmr][akz]sh | \
           */[r][blm][ak]sh | \
           */ksh2020 )
+        # XXX: skip other stuff
       ;; * ) continue
       ;; esac
 
-      test "${PERFORM_WS:-0}" = "1" || {
-        echo "$sh"
-        continue
-      }
+      test "${PERFORM_WS:-0}" = "1" && shver=`$sh $WS 2>/dev/null` || shver=
 
       test -h "$sh" &&
           p="$sh (-> $(realpath --relative-base=$(dirname "$sh") "$sh"))" ||
           p="$sh"
 
-      echo "$p: `$sh $WS 2>/dev/null`"
+      echo "$p${shver+:} $shver"
     done
   done
 }
@@ -335,22 +345,26 @@ dumpinfo ()
   infocmp > "${UCONF:?}/etc/terminfo/${TERM:?}"
 }
 
+
 system_terminal_maincmds=sensible\ run\ day\ night\ terminal\ name\ user_script_help\ user_script_version\ user_script_commands\ user_script_aliases
 system_terminal_shortdescr='Start new terminals in various modes'
 
 system_terminal_usage ()
 {
-  printf \
-'    %s <Command <Arg...>>
+  user_script_usage "$@"
+
+  printf '
+Helper to launch user terminal and have it run certain env, shell, WM-attr,
+colors, etc. The default subcommand is `sensible`. Other main commands are:
+
     %s (sensible|day|night) [ENV...]
       Start terminal, in dark or light mode.
-    %s terminal EXEC <Run-Argv...>
-      Start terminal instance of EXEC.
     %s name NAME <Run-Argv...>
       Start terminal with name.
+    %s terminal EXEC <Run-Argv...>
+      Start terminal instance of EXEC (urxvt only)
 
-Helper to launch user terminal and have it run certain env, shell,
-WM-attr, colors, etc.
+(Only urxvt terminal is currenty implemented)
 
 Much of the get/set-colors setup was inspired by
 <https://github.com/sos4nt/dynamic-colors>
@@ -366,7 +380,8 @@ Env:
     GEO_HOME <lat>,<long> Provided by the user
     UC_TERM_NAME <Name> Window name for terminal (should be made available on
         the windows WM_CLASS attribute).
-' "$base" "$base" "$base" "$base"
+    PERFORM_WS (0|1) Run whatshell.sh check when listing available shells
+' "$base" "$base" "$base"
 }
 
 system_terminal_loadenv ()

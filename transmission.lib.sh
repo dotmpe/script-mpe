@@ -72,7 +72,7 @@ transmission_active () # ~
   test $# -gt 0 || set -- tab
   local lk=${lk:-}:transmission-active
   case "$1" in
-    ( ids|nums )
+    ( nums )
           transmission_list ids active ;; #active tab | awk '{print $1}' ;;
     ( key|keys|cols ) # ~ <Var:Field...>
           #local act="$1"; shift; set -- "$1" fix-cols active -- "$@"
@@ -264,14 +264,14 @@ transmission_item_echo () # ~
 transmission_item_files () # ~
 {
   filetabs=$(transmission_client_remote -t "$num" -if | tail -n +3)
-  printf '%s:\n%s\n' "$name" "$(echo "$filetabs" | sed 's/^/  /')"
+  printf '%i. %s:\n%s\n' "$num" "$name" "$(echo "$filetabs" | sed 's/^/  /')"
 }
 
 # Util. item wrapper to fetch and map properties from transmission-info.
 # Without inner handler this prints the values retrieved, prefixed with ID and
 # Name fields, or single values if only one map given (and ti_keymap!=1).
 # To print all values in a single row, without keys, set ti_row=1. In this case
-# no mappings, only field parts are needed. See transmission-info.
+# no mappings, only field parts are needed. See transmission-torrent-info.
 transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
 {
   local keymap
@@ -282,6 +282,8 @@ transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
     $LOG error "$lk:item-keys" "Expected key-map"
     return 1
   }
+
+  # Retrieve metadata for share num from running transmission client
   local ti
   transmission_torrent_info "$num" $keymap || return
 
@@ -303,6 +305,7 @@ transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
 
     return $?
   } || {
+    # Defer to inner handler
     test "$1" = "--" || "$@"
   }
 }

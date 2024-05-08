@@ -1113,7 +1113,7 @@ user_script_shell_mode ()
 }
 
 # Display description how to evoke command or handler
-user_script_usage () # ~ [<
+user_script_usage () # ~ [<Cmd>]
 {
   local short=0 slf_l
 
@@ -1145,7 +1145,7 @@ user_script_usage () # ~ [<
   # TODO func-comment Needs abit of polishing. and be moved to use for other
   # functions as well
   test -n "$handlers" || {
-    $LOG error :user-script:usage "No handler found" "$*"
+    $LOG error :user-script:usage "No handler(s) found" "$*"
     #return 1
 
     "${baseid}"_loadenv all || return
@@ -1157,17 +1157,20 @@ user_script_usage () # ~ [<
     #. $U_S/src/sh/lib/src.lib.sh
     func_comment "$handlers" "$fun_src" ||
       $LOG warn :user-script:usage "No function comment" "$*"
+    return
   }
 
   # Gather functions again, look for choice-esacs
-  local sub_funs actions
-  test $slf_l -eq 0 && {
-      user_script_usage_choices "$handlers" ||
-        $LOG info :user-script:usage "No choice usage" "E$?:$handlers"
-    } || {
-      user_script_usage_choices "$handlers" "${2:-}" ||
-        $LOG info :user-script:usage "No choice usage" "E$?:${2:-}:$handlers"
-    }
+  test -z "$handlers" || {
+    local sub_funs actions
+    test $slf_l -eq 0 && {
+        user_script_usage_choices "$handlers" ||
+          $LOG info :user-script:usage "No choice usage" "E$?:$handlers"
+      } || {
+        user_script_usage_choices "$handlers" "${2:-}" ||
+          $LOG info :user-script:usage "No choice usage" "E$?:${2:-}:$handlers"
+      }
+  }
 
   test $short -eq 1 && {
     test -z "${script_defcmd-}" ||
