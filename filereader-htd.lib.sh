@@ -68,7 +68,9 @@ filereader_statusdir_cache ()
     sd=${fileid:3}
     str_globmatch "$sd" "*:*" && {
       sd_bdid=${sd%:*} sd_id=${sd#*:}
-      sd_bd=${!sd_bdid:?Expected $sd_bdid env}/$metadir_default/cache
+      : "${!sd_bdid:?"$(sys_exc "$sd_bdid env")"}"
+      : "$_/${metadir_default:?"$(sys_exc "metadir-default env")"}"
+      sd_bd=$_/cache
     } ||
       sd_id=${fileid:3} sd_bd=${STATUSDIR_ROOT}cache
   } ||

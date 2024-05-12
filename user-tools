@@ -312,7 +312,7 @@ sessions () # (y) ~ <Action ...> # List and check user sessions
       test $# -eq 0 && return ${_E_nsk:?}
       wc -l "$@"
     ;;
-  ( * ) return ${_E_nsk:-67}
+  ( * ) return ${_E_nsa:-68}
   esac
 }
 

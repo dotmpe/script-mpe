@@ -17,39 +17,39 @@ class_sh_ () # ~ <Switch> ...
   local a1_def=summary; sa_switch_arg
   case "$switch" in
 
-    ( e|eval ) # ~ ~ <script...> [ -- <script...> ]
-        class_init XContext &&
-        declare xctx ctxref=xctx &&
-        class_new xctx XContext &&
-        $xctx-e "$@"
-      ;;
+  ( e|eval ) # ~ ~ <script...> [ -- <script...> ]
+      class_init XContext &&
+      declare xctx ctxref=xctx &&
+      class_new xctx XContext &&
+      $xctx-e "$@"
+    ;;
 
-    ( [@+]* ) # ~ <Class-ref> [<call> <args...> [ -- <call> <args...> ]]
-        ! sys_debug init || {
-          user_script_load rulesenv || return
-          CT_VERBOSE=true
-          rule_run rules/begin "class.sh--$switch--${*// /_}" || return
-        }
+  ( [@+]* ) # ~ <Class-ref> [<call> <args...> [ -- <call> <args...> ]]
+      ! sys_debug init || {
+        user_script_load rulesenv || return
+        CT_VERBOSE=true
+        rule_run rules/begin "class.sh--$switch--${*// /_}" || return
+      }
 
-        # Create class from reference (with no constructor arguments, ie. using
-        # only class-id), and treat arguments as a sequence of invocations on
-        # that object.
-        class_init XContext &&
-        declare xctx ctxref=xctx &&
-        class_new xctx XContext &&
-        $xctx$switch &&
-        #if_ok "$($xctx.class)/$($xctx.id)" || return
-        context_cmd_seq xctx "$@"
+      # Create class from reference (with no constructor arguments, ie. using
+      # only class-id), and treat arguments as a sequence of invocations on
+      # that object.
+      class_init XContext &&
+      declare xctx ctxref=xctx &&
+      class_new xctx XContext &&
+      $xctx$switch &&
+      #if_ok "$($xctx.class)/$($xctx.id)" || return
+      context_cmd_seq xctx "$@"
 
-        local stat=$?
-        ! sys_debug init || {
-          sys_stat $stat
-          rule_run rules/end "class.sh--$switch--${*// /_}" || return
-        }
-        return $stat
-      ;;
+      local stat=$?
+      ! sys_debug init || {
+        sys_stat $stat
+        rule_run rules/end "class.sh--$switch--${*// /_}" || return
+      }
+      return $stat
+    ;;
 
-      * ) sa_E_nss
+    * ) sa_E_nss
   esac
   __sa_switch_arg
 }
@@ -64,9 +64,9 @@ class_sh_aliasargv ()
 {
   test -n "${1:-}" || return ${_E_MA:?}
   case "${1//_/-}" in
-    ( "-?"|-h|h|--help|help|user-script-help ) shift; set -- user_script_help "$@" ;;
-    ( --usage|usage ) shift; user_script_usage "$@" ;;
-      * ) set -- class_sh_ "$@"
+  ( "-?"|-h|h|--help|help|user-script-help ) shift; set -- user_script_help "$@" ;;
+  ( --usage|usage ) shift; user_script_usage "$@" ;;
+    * ) set -- class_sh_ "$@"
   esac
 }
 

@@ -14,20 +14,20 @@ file_ ()
   local a1_def=summary; sa_switch_arg
   case "$switch" in
 
-    ( ml|modeline )
-        lib_require sys os str-uc || return
-        declare file{version,id,mode}
-        fml_lvar=true file_modeline "$1" &&
-        {
-          : "file:${1-}"
-          : "$_${fileid:+:id=$fileid}"
-          : "$_${fileversion:+:ver=$fileversion}"
-          : "$_${filemode:+:mode=$filemode}"
-          $LOG notice "" "Modeline" "$_"
-        }
-      ;;
+  ( ml|modeline )
+      lib_require sys os str-uc || return
+      declare file{version,id,mode}
+      fml_lvar=true file_modeline "$1" &&
+      {
+        : "file:${1-}"
+        : "$_${fileid:+:id=$fileid}"
+        : "$_${fileversion:+:ver=$fileversion}"
+        : "$_${filemode:+:mode=$filemode}"
+        $LOG notice "" "Modeline" "$_"
+      }
+    ;;
 
-      * ) sa_E_nss
+    * ) sa_E_nss
   esac
   __sa_switch_arg
 }
@@ -42,8 +42,8 @@ file_aliasargv ()
 {
   test -n "${1:-}" || return ${_E_MA:?}
   case "${1//_/-}" in
-    ( "-?"|-h|h|help|user-script-help ) shift; set -- user_script_help "$@" ;;
-      * ) set -- file_ "$@"
+  ( "-?"|-h|h|help|user-script-help ) shift; set -- user_script_help "$@" ;;
+    * ) set -- file_ "$@"
   esac
 }
 

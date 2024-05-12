@@ -34,16 +34,16 @@ meta_sh_check () # ~ \!TODO
   local a1_def=summary; sa_switch_arg
   case "$switch" in
 
-    ( summary )
-          stderr echo SD-Local: ${SD_LOCAL:?}
-          sym=$($xctx.attr basedir-symbol User_Dir) &&
-          bd=$($xctx.attr path Dir) &&
-          stderr echo "$sym: $bd/"
+  ( summary )
+        stderr echo SD-Local: ${SD_LOCAL:?}
+        sym=$($xctx.attr basedir-symbol User_Dir) &&
+        bd=$($xctx.attr path Dir) &&
+        stderr echo "$sym: $bd/"
 
-          $LOG warn : TODO check 1
-        ;;
+        $LOG warn : TODO check 1
+      ;;
 
-      * ) sa_E_nss
+    * ) sa_E_nss
 
   esac
   __sa_switch_arg
@@ -91,14 +91,14 @@ meta_sh_local () # ~ <Action> #  XXX: local
   local sa_lk=:local a1_def=basedir; sa_switch_arg
   case "$switch" in
 
-    ( basedir )
-        sym=$($xctx.attr basedir-symbol User_Dir) &&
-        bd=$($xctx.attr path Dir) &&
-        #bd=${!sym} || return
-        echo $sym=$bd/
-      ;;
+  ( basedir )
+      sym=$($xctx.attr basedir-symbol User_Dir) &&
+      bd=$($xctx.attr path Dir) &&
+      #bd=${!sym} || return
+      echo $sym=$bd/
+    ;;
 
-      * ) sa_E_nss
+    * ) sa_E_nss
   esac
   __sa_switch_arg
 }
@@ -115,8 +115,8 @@ meta_sh_aliasargv ()
 {
   test -n "${1-}" || return
   case "${1//_/-}" in
-    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
-    #  * ) set -- meta_sh_ "$@"
+  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  # * ) set -- meta_sh_ "$@"
   esac
 }
 

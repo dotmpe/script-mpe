@@ -11,12 +11,12 @@ rulesets () # ~
   local lk=${lk:-}:rule-sets
   case "${1:?}" in
 
-    ( l|list ) # ~ [<Level>] [<Header> <Glob>] [<Cmd-Regex>] [<Format>]
-          shift
-          test $# -gt 0 || set -- '*'
-          rules_list user/diag "$@" ;;
+  ( l|list ) # ~ [<Level>] [<Header> <Glob>] [<Cmd-Regex>] [<Format>]
+        shift
+        test $# -gt 0 || set -- '*'
+        rules_list user/diag "$@" ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+  ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
 }
 

@@ -426,7 +426,7 @@ context_files_cached () # (ctx-tab) ~ <Cached-enum-file>
     # (Re)generate src,linenr,ref,file table
     {
       if_ok "$(realpath "$context_tab")" &&
-      printf "\t\t%s\t%s" "${context_tab/#$HOME\//~\/}" "$_" &&
+      printf "\t\t%s\t%s\n" "${context_tab/#$HOME\//~\/}" "$_" &&
       preproc_includes_enum "" "$context_tab"
     } >| "$1" || return
   }
@@ -527,8 +527,8 @@ context_read_include () # ~ <Ref> <File> [<Src-file> <Src-line>]
 
 context_require ()
 {
-  uc_field
-  exit 123
+  uc_field &&
+  TODO "context-require $* ($(sys_callers))"
 }
 
 # XXX: run every <spec>.run that exists with <arg>

@@ -26,94 +26,94 @@ tasks_ ()
   local a1_def=summary; sa_switch_arg
   case "$switch" in
 
-    ( all-ng )
-        user_script_initlibs context &&
-        context_require Locate TodoTxt Status &&
+  ( all-ng )
+      user_script_initlibs context &&
+      context_require Locate TodoTxt Status &&
 
-        # @Locate/all,ignore-case,existing
-        @Sh/data:tf \
-        @Locate/Aie \
-          '*/todo.txt' 'out_fmt=${out_fmt:-summary} tasks_scan_prio "$tf"'
-      ;;
+      # @Locate/all,ignore-case,existing
+      @Sh/data:tf \
+      @Locate/Aie \
+        '*/todo.txt' 'out_fmt=${out_fmt:-summary} tasks_scan_prio "$tf"'
+    ;;
 
-    ( all )
-        script_part=all user_script_load groups || return
-        : "${1:-files}"
-        : "${_//-/}"
-        declare out_fmt=$_ tfiles tf &&
-        if_ok "$(locate -Aie '*/todo.txt')" &&
-        mapfile -t tfiles <<< "$_" || return
-        declare cnt=0 pass=0 errs=0
-        for tf in "${tfiles[@]}"
-        do
-          stbctx=${stbtab:?} tasks_scan "$tf" || return
-        done
-        : $(( cnt + pass + errs ))
-        : "Checked $_ files,"
-        : "$_ $(( errs + pass )) files skipped ($errs non-task files),"
-        : "$_ $cnt task files have priorities set"
-        $LOG notice :tasks:all "$_"
-      ;;
+  ( all )
+      script_part=all user_script_load groups || return
+      : "${1:-files}"
+      : "${_//-/}"
+      declare out_fmt=$_ tfiles tf &&
+      if_ok "$(locate -Aie '*/todo.txt')" &&
+      mapfile -t tfiles <<< "$_" || return
+      declare cnt=0 pass=0 errs=0
+      for tf in "${tfiles[@]}"
+      do
+        stbctx=${stbtab:?} tasks_scan "$tf" || return
+      done
+      : $(( cnt + pass + errs ))
+      : "Checked $_ files,"
+      : "$_ $(( errs + pass )) files skipped ($errs non-task files),"
+      : "$_ $cnt task files have priorities set"
+      $LOG notice :tasks:all "$_"
+    ;;
 
-    ( C|check ) TODO check $*
-      ;;
+  ( C|check ) TODO check $*
+    ;;
 
-    ( count ) $todotxt.count-tasks ;;
+  ( count ) $todotxt.count-tasks ;;
 
-    ( debug )
-        #$todotxt.class-debug
-        us_stbtab_init &&
-        ${stbtab:?}.class-debug
-      ;;
+  ( debug )
+      #$todotxt.class-debug
+      us_stbtab_init &&
+      ${stbtab:?}.class-debug
+    ;;
 
-    ( I|index ) TODO index $*
-      ;;
+  ( I|index ) TODO index $*
+    ;;
 
-    ( info )
-        us_stbtab_init &&
-        stderr echo "StatTab table file: $(${stbtab:?}.tab-ref)"
-        stderr echo "Tasks file: $(${todotxt:?}.attr file FileReader)"
-      ;;
+  ( info )
+      us_stbtab_init &&
+      stderr echo "StatTab table file: $(${stbtab:?}.tab-ref)"
+      stderr echo "Tasks file: $(${todotxt:?}.attr file FileReader)"
+    ;;
 
-    ( l|ls|list )
-        $todotxt.list-tasks
-      ;;
+  ( l|ls|list )
+      $todotxt.list-tasks
+    ;;
 
-    ( list-files )
-        us_stbtab_init &&
-        ${stbtab:?}.list
-      ;;
+  ( list-files )
+      us_stbtab_init &&
+      ${stbtab:?}.list
+    ;;
 
-    ( ml|modeline )
-        test 0 -lt $# || {
-          if_ok "$($todotxt.attr file FileReader)" || return
-          set -- "$_"
-        }
-        declare file{version,id,mode}
-        fml_lvar=true filereader_modeline "$1" ft=todo ft=todo.txt &&
-        {
-          : "file:${1-}"
-          : "$_${fileid:+:id=$fileid}"
-          : "$_${fileversion:+:ver=$fileversion}"
-          : "$_${filemode:+:mode=$filemode}"
-          $LOG notice "" "Found" "$_"
-        }
-      ;;
+  ( ml|modeline )
+      test 0 -lt $# || {
+        if_ok "$($todotxt.attr file FileReader)" || return
+        set -- "$_"
+      }
+      declare file{version,id,mode}
+      fml_lvar=true filereader_modeline "$1" ft=todo ft=todo.txt &&
+      {
+        : "file:${1-}"
+        : "$_${fileid:+:id=$fileid}"
+        : "$_${fileversion:+:ver=$fileversion}"
+        : "$_${filemode:+:mode=$filemode}"
+        $LOG notice "" "Found" "$_"
+      }
+    ;;
 
-    ( S|status )
-        $todotxt.priorities
-        return
-        $todotxt.byPriority "0"
-      ;;
+  ( S|status )
+      $todotxt.priorities
+      return
+      $todotxt.byPriority "0"
+    ;;
 
-    ( s|short|summary )
-        stderr echo BaseDir $sym=$bd/ &&
-        stderr $todotxt.class-tree &&
-        stderr $todotxt.class-params &&
-        TODO summary $*
-      ;;
+  ( s|short|summary )
+      stderr echo BaseDir $sym=$bd/ &&
+      stderr $todotxt.class-tree &&
+      stderr $todotxt.class-params &&
+      TODO summary $*
+    ;;
 
-      * ) sa_E_nss
+    * ) sa_E_nss
   esac
   __sa_switch_arg
 }
@@ -128,8 +128,8 @@ tasks_aliasargv ()
 {
   test -n "${1:-}" || return ${_E_MA:?}
   case "${1//_/-}" in
-    ( "-?"|-h|h|help|user-script-help ) shift; set -- user_script_help "$@" ;;
-      * ) set -- tasks_ "$@"
+  ( "-?"|-h|h|help|user-script-help ) shift; set -- user_script_help "$@" ;;
+    * ) set -- tasks_ "$@"
   esac
 }
 

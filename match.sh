@@ -101,8 +101,8 @@ match_aliasargv ()
 {
   test -n "${1:-}" || return
   case "${1//_/-}" in
-    ( local|user-box ) shift; set -- match_box "$@" ;;
-    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( local|user-box ) shift; set -- match_box "$@" ;;
+  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 
