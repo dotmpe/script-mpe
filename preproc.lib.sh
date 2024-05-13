@@ -35,30 +35,33 @@ preproc_run () # ~ <source-file> <cache-handler> <read-handler> <file-res-handle
   ! grep -q '^#include\ ' "${1:?}" && {
     return
   } || {
-    stderr echo $(caller): preproc_run: $*
-    declare cache_file ref
+    declare cache_file ref res=${4:-src_htd_resolve_fileref}
     cache_file=$("${2:?}" "${1:?}") || return
 
     stderr echo "cache: $cache_file"
     stderr wc -l "$cache_file"* || true
+
     test ! -e "$cache_file.lock" ||
         $LOG error : "Lock exists" "$cache_file:$*" $? || return
 
-    > "$cache_file.sources" \
-    preproc_recurse preproc_includes "${4:?}" 'echo "$file"' "${1:?}" &&
+    >| "$cache_file.sources" \
+    preproc_recurse preproc_includes "$res" 'echo "$file"' "${1:?}" &&
 
     while read -r include_file
     do
-      preproc_run "$include_file" "${2:?}" "${3:?}" "${4:?}" || return
+      preproc_run "$include_file" "${2:?}" "${3:?}" "$res" || return
     done < "$cache_file.sources" &&
+
+    stderr echo "Sources: $(< "$cache_file.sources")"
 
     < "$cache_file.sources" \
     os_up_to_date "$cache_file" &&
     $LOG info : "Cache is up to date" "$cache_file" || {
+      stderr echo "Generating $cache_file.preproc bc OOD sources"
       touch "$cache_file.lock"
-      preproc_read_include=${3:?} preproc_expand "" "$1" > "$cache_file.preproc" ||
+      preproc_read_include=${3:?} preproc_expand "" "$1" >| "$cache_file.preproc" ||
         ignore_sigpipe || return
-      file -s "$cache_file"*
+      stderr file -s "$cache_file"*
       $LOG info : "TODO: Updated cache" "$cache_file"
       rm "$cache_file.lock"
     }
@@ -194,8 +197,7 @@ preproc_resolve_sedscript_item ()
 src_htd_resolve_fileref () # [cache=0,cache_key=def] ~ <Ref>
 {
   local fileref
-  stderr echo $(sh_caller 0) $# $*
-  exit 123
+
   [[ "${1:?}" =~ /^([\<\"])(.*)[\>\"]$/ ]] && {
     test "${BASH_REMATCH[1]}" = '"' && {
       set -- src_htd_resolve_pathref "${BASH_REMATCH[2]}" "${2-}"

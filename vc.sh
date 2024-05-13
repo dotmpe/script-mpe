@@ -20,16 +20,16 @@ vc_sh_branches () # ~
 {
   local actdef='l' n='branches'; sa_a1_act_lk_2
   case "$act" in
-    ( l|all|list|list-all ) # ~ [<remotes>]
-        test 0 -lt $# || set -- origin github dotmpe
-        for vc_rt in "$@"
-        do
-          #vc_ rt $vc_rt &&
-          vc_branches_git all
-        done | remove_dupes
-      ;;
+  ( l|all|list|list-all ) # ~ [<remotes>]
+      test 0 -lt $# || set -- origin github dotmpe
+      for vc_rt in "$@"
+      do
+        #vc_ rt $vc_rt &&
+        vc_branches_git all
+      done | remove_dupes
+    ;;
 
-    ( * ) sa_E_nsa ;;
+  ( * ) sa_E_nsa
   esac
 }
 
@@ -151,7 +151,7 @@ vc_sh_aliasargv ()
   test -n "${1:-}" || return
   case "${1//_/-}" in
 
-    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 

@@ -53,8 +53,8 @@ status () # ~ # Show file and playing time info
 state ()
 {
   case "$1" in
-     ( 3 ) echo playing ;;
-     ( * ) echo unknown ;;
+  ( 3 ) echo playing ;;
+  ( * ) echo unknown ;;
   esac
 }
 
@@ -182,8 +182,7 @@ urldecode_chars ()
 urldecode ()
 {
   case "$1" in
-
-    ( "file://"* ) urldecode_chars "$1" | cut -c8- ;;
+  ( "file://"* ) urldecode_chars "$1" | cut -c8- ;;
   esac
 }
 

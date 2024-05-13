@@ -121,7 +121,7 @@ pl_shortdescr='Media playlist utils'
 pl_aliasargv ()
 {
   case "$1" in
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 

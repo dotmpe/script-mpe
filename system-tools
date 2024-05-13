@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+
+test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+uc_script_load user-script
+
+! script_isrunning "system-tools" || {
+  ALIASES=1 user_script_shell_mode
+}
+
+
+### User tools for OS and system
+
+# Stuff that doesnt fir or categorize into other system-* scripts or user-*
+
+sdmmc_init ()
+{
+  #local sys{blk,dev} cid
+  : "${sdmmc:=mmcblk0}"
+  : "${sysblk:=/sys/block/${sdmmc:?}}"
+  : "${sysdev:=${sysblk:?}/device}"
+}
+
+sdmmctab__libs=blocktab
+sdmmctab__hooks=lib_init,sdmmc_init
+sdmmctab ()
+{
+  local actdef='current' n='sdmmctab'; sa_a1_act_nlk
+  case "$act" in
+
+  ( entry ) # ~ ~ [<CId>]
+    local cid=${1:-}
+    if_ok "${cid:=$( < $sysdev/cid )}" &&
+    # IIRC the last two chars (31 & 32) are derived otherwise from reader apparatus?
+    grep ${grep_f:-} '\ \<'${cid:0:30}'[0-9a-f]*\>\ SD\ ' ${sdmmctab:?}
+  ;;
+
+  ( exists ) # ~ ~ [<CId>]
+    grep_f=-q sdmmctab entry "$@"
+  ;;
+
+  ( current ) # ~ ~ [<CId|Num>]
+    #sdmmctab entry "$@"
+    sdmmctab load "$@" &&
+    local k v &&
+    for k in nr cid type size manfid date oemid hwrev name serial
+    do v=sdmmc_${k:?} &&
+      echo "$k: ${!v:--}"
+    done
+    grep " SD:${sdmmc_nr:?} " "${burnlog}"
+  ;;
+
+  ( current-raw )
+      : "${sysdev:?}" &&
+      echo "${sdmmc_nr:--} "$(cat $sysdev/cid) $(cat $sysdev/type) \
+$(cat $sysblk/size) \
+$(cat $sysdev/manfid) \
+$(cat $sysdev/date) \
+$(cat $sysdev/oemid) \
+$(cat $sysdev/hwrev) \
+$(cat $sysdev/name) \
+$(cat $sysdev/serial)
+  ;;
+
+  ( init )
+    sdmmctab exists || sdmmctab new
+  ;;
+
+  ( load ) # ~ ~ [<CId>]
+    sdmmctab_entry="$(sdmmctab entry "$@")" &&
+    <<< "$sdmmctab_entry" \
+    read -r sdmmc_{nr,cid,type,size,manfid,date,oemid,hwrev,name,serial}
+  ;;
+
+  ( new )
+    if_ok "$(sdmmctab current-raw)" &&
+    echo "$_" | tee -a ${sdmmctab:?}
+  ;;
+
+  ( verify )
+    local tab cur
+    tab=$(sdmmctab entry) &&
+    cur=$(sdmmctab current-raw) &&
+    test "${tab#* }" = "${cur#* }" &&
+    $LOG info "$lk" "OK" "$tab" ||
+    $LOG error "$lk" "No match" "$cur" 1
+  ;;
+
+  ( * ) sa_E_nsact
+  esac
+}
+
+
+system_tools_loadenv ()
+{
+  sh_mode strict &&
+  user_script_loadenv &&
+  #lk=":loadenv"
+  user_script_initlog &&
+  user_script_baseless=true \
+  script_part=${1#system[_-]tools[_-]} \
+    user_script_load groups &&
+  true # lib_load nerdfonts && lib_init nerdfonts
+}
+
+
+# Main entry (see user-script.sh for boilerplate)
+
+! script_isrunning "system-tools" || {
+  user_script_load || exit $?
+  # Pre-parse arguments
+  script_defcmd=short
+  user_script_defarg=defarg\ aliasargv
+  eval "set -- $(user_script_defarg "$@")"
+}
+
+# Execute argv and return
+script_entry "system-tools" "$@"
+#

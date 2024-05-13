@@ -113,7 +113,7 @@ hour ()
   }
 }
 
-hours_europe_anglo ()
+hours_europe_anglo () # (y) ~ Give local labels/tags for hour of the day
 {
   case "${1:?}" in
 
@@ -131,7 +131,7 @@ hours_europe_anglo ()
   esac
 }
 
-hours_europe_latin ()
+hours_europe_latin () # (y) ~ Give local labels/tags for hour of the day
 {
   case "${1:?}" in
 
@@ -149,7 +149,7 @@ hours_europe_latin ()
   esac
 }
 
-hours_europe_medieval ()
+hours_europe_medieval () # (y) ~ Give local labels/tags for hour of the day
 {
   case "${1:?}" in
 
@@ -179,7 +179,7 @@ season () # ~
   season_"${UC_SEASON:-meteorological}"
 }
 
-season_meteorological () # ~ [<Month>]
+season_meteorological () # ~ [<Month>] # Give season based on month of year
 {
   test $# -gt 0 || set -- $(date -d "${DT_NOW:-now}" +"%m"|sed 's/^0//')
 
@@ -243,7 +243,7 @@ state ()
   }
 }
 
-state_icon_fa ()
+state_icon_fa () # (y) ~ <State>
 {
   case "${1:-}" in
       ( ok ) printf "%s" "$nf_fa_check" ;;
@@ -257,6 +257,64 @@ ssh_agent_key_count ()
   echo "$count"
 }
 
+sessions_tmpfile_check ()
+{
+  local fn=${1:?} pid
+  : "${fn%:mpe-*}"
+  : "${_##*:}"
+  pid="$_"
+  [[ "$pid" =~ ^[0-9]+$ ]] && if_ok "$(ps -o cmd= "$pid")"
+}
+
+sessions_tmpfile_cleanup ()
+{
+  local fn=${1:?} pid cmdln
+  : "${fn%:mpe-*}"
+  : "${_##*:}"
+  pid="$_"
+  [[ "$pid" =~ ^[0-9]+$ ]] || {
+    stderr echo "Not a PID: $pid: $fn"
+    ls -la "$fn"
+    #stat "$fn"
+    #lsof "$fn"
+    return ${_E_next:?}
+  }
+  cmdln=$(ps -o cmd= "$pid") || {
+    rm -v "$fn"
+    return ${_E_next:?}
+  }
+  printf '%i: `%s` <%s>\n' "$pid" "$cmdln" "$fn"
+}
+
+sessions () # (y) ~ <Action ...> # List and check user sessions
+{
+  case "${1:-list}" in
+  ( check|chk )
+      shopt -s nullglob &&
+      exec_exp "$SD_SHELL_DIR/*:mpe-{login,rc}*" sessions_tmpfile_check
+    ;;
+  ( cleanup|cln )
+      shopt -s nullglob &&
+      exec_exp "$SD_SHELL_DIR/*:mpe-{login,rc}*" sessions_tmpfile_cleanup
+    ;;
+  ( list|ls )
+      cat "$SD_SLOG"
+    ;;
+  ( temp-files|lf )
+      shopt -s nullglob &&
+      set -- $SD_SHELL_DIR/*:mpe-{login,rc}*
+      test $# -eq 0 && return ${_E_nsk:?}
+      ls "$@"
+    ;;
+  ( temp-files-lines|llf )
+      shopt -s nullglob
+      set -- $SD_SHELL_DIR/*:mpe-{login,rc}*
+      test $# -eq 0 && return ${_E_nsk:?}
+      wc -l "$@"
+    ;;
+  ( * ) return ${_E_nsa:-68}
+  esac
+}
 
 ## User-script parts
 

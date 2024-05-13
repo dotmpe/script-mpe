@@ -8,15 +8,15 @@ outline ()
   local lk=${lk:-:outline}:$act
   case "$act" in
 
-    ( g|generate ) # TODO:
-          outline=$(outline_fetch "$@")
-          expand_sentinel outline "$outline"
-        ;;
+  ( g|generate ) # TODO:
+        outline=$(outline_fetch "$@")
+        expand_sentinel outline "$outline"
+      ;;
 
-    ( h|header ) outline_header "$@" ;;
-    ( l|fetch ) outline_fetch "$@" ;;
+  ( h|header ) outline_header "$@" ;;
+  ( l|fetch ) outline_fetch "$@" ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+  ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
 }
 
@@ -45,12 +45,12 @@ outline_sh_maincmds="help fetch version"
 outline_sh_aliasargv ()
 {
   case "$1" in
-      ( header ) shift; set -- outline_header "$@" ;;
-      ( fetch ) shift; set -- outline_fetch "$@" ;;
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( header ) shift; set -- outline_header "$@" ;;
+  ( fetch ) shift; set -- outline_fetch "$@" ;;
+  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
 
-      # TODO: define fallback for everything else?
-      #( * ) shift; set -- outline "$@" ;;
+  # TODO: define fallback for everything else?
+  #( * ) shift; set -- outline "$@" ;;
   esac
 }
 

@@ -71,18 +71,18 @@ transmission_active () # ~
 {
   test $# -gt 0 || set -- tab
   local lk=${lk:-}:transmission-active
-  case "$1" in
-    ( ids|nums )
-          transmission_list ids active ;; #active tab | awk '{print $1}' ;;
-    ( key|keys|cols ) # ~ <Var:Field...>
-          #local act="$1"; shift; set -- "$1" fix-cols active -- "$@"
-          transmission_list keys fix-cols active -- "${@:2}" ;;
-    ( tab )
-          transmission_list active ;;
-    ( xtab )
-          transmission_list fix-cols active ;;
+  case "${1:?}" in
+  ( nums )
+        transmission_list ids active ;; #active tab | awk '{print $1}' ;;
+  ( key|keys|cols ) # ~ <Var:Field...>
+        #local act="$1"; shift; set -- "$1" fix-cols active -- "$@"
+        transmission_list keys fix-cols active -- "${@:2}" ;;
+  ( tab )
+        transmission_list active ;;
+  ( xtab )
+        transmission_list fix-cols active ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1" 67
+  ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
 }
 
@@ -126,39 +126,41 @@ transmission_id () # ~ (id|hash|name) <Hash-or-Num-or-Name>
   }
 
   local ti=
-  case "$1" in
-    ( info-hash|btih|hash ) # ~ <Id-Spec> # Ensure BTIH env for torrent ID
-          test -n "$btih" || transmission_torrent_info "$1" btih:Hash
-        ;;
-    ( id|num ) # ~ <Id-Spec> # Ensure numeric ID env for torrent ID
-          test -n "$num" || transmission_torrent_info "$1" num:ID
-        ;;
-    ( info-name|name ) # ~ <Id-Spec> # Ensure Info-Name env for torrent ID
-          test -n "$name" || transmission_torrent_info "$1" name:Name
-        ;;
-    ( - ) ;;
+  case "${1:?}" in
+  ( info-hash|btih|hash ) # ~ <Id-Spec> # Ensure BTIH env for torrent ID
+        test -n "$btih" || transmission_torrent_info "$1" btih:Hash
+      ;;
+  ( id|num ) # ~ <Id-Spec> # Ensure numeric ID env for torrent ID
+        test -n "$num" || transmission_torrent_info "$1" num:ID
+      ;;
+  ( info-name|name ) # ~ <Id-Spec> # Ensure Info-Name env for torrent ID
+        test -n "$name" || transmission_torrent_info "$1" name:Name
+      ;;
+  ( - ) ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+  ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
 }
 
 transmission_info ()
 {
   case "${1:?}" in
-    ( stats ) transmission_client_remote -st
-      ;;
-    ( session-info ) transmission_client_remote -si
-      ;;
-    ( up|down|up-down|updown )
-        transmission_client_remote -l | tail -n 1 | {
-          read -r _ _ _ up down
-          case "$1" in
-            ( up ) echo "$up";;
-            ( down ) echo "$down";;
-            ( up-down|updown ) echo "$up $down";;
-          esac
-        }
-      ;;
+  ( stats ) transmission_client_remote -st
+    ;;
+  ( session-info ) transmission_client_remote -si
+    ;;
+  ( up|down|up-down|updown )
+      transmission_client_remote -l | tail -n 1 | {
+        read -r _ _ _ up down
+        case "${1:?}" in
+          ( up ) echo "$up";;
+          ( down ) echo "$down";;
+          ( up-down|updown ) echo "$up $down";;
+          ( * ) $LOG error "$lk" "No such key" "$1" ${_E_nsk:-67} || return
+        esac
+      }
+    ;;
+  ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
 }
 
@@ -192,18 +194,18 @@ transmission_is_item () # ~ [name|hash] <Info-Name-or-Hash>
   test $# -gt 0 || return 64
   test $# -gt 1 || set -- name "$1"
   local lk=${lk:-}:is-item
-  case "$1" in
-    ( hash )
-          shift; for i in "$TRANSMISSIONBT_TORRENTS_DIR/"*".${1:0:16}.torrent"
-          do test -e "$i" && return || true; done; return 1
-        ;;
+  case "${1:?}" in
+  ( hash )
+        shift; for i in "$TRANSMISSIONBT_TORRENTS_DIR/"*".${1:0:16}.torrent"
+        do test -e "$i" && return || true; done; return 1
+      ;;
 
-    ( name )
-          shift; for i in "$TRANSMISSIONBT_TORRENTS_DIR/$1."*".torrent"
-          do test -e "$i" && return || true; done; return 1
-        ;;
+  ( name )
+        shift; for i in "$TRANSMISSIONBT_TORRENTS_DIR/$1."*".torrent"
+        do test -e "$i" && return || true; done; return 1
+      ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+  ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
 }
 
@@ -224,12 +226,13 @@ transmission_item_check () # ~ [ <Handler <Arg...>> ]
 
   # Check if read loop works correctly, we may have to catch some more
   # ETA or have-formats.
-  case "$status" in
-    ( Idle | Downloading | Seeding | Uploading | Stopped | Up-Down | Queued | Finished ) ;;
-    ( * )
-      test $ti_c_quiet -eq 1 ||
-        $LOG error "$lk" "Unknown status '$status'" "$name";
-      return 1 ;; esac
+  case "${status:?}" in
+  ( Idle | Downloading | Seeding | Uploading | Stopped | Up-Down | Queued | Finished ) ;;
+  ( * )
+    test $ti_c_quiet -eq 1 ||
+      $LOG error "$lk" "Unknown status '$status'" "$name";
+    return ${_E_nsk:-67}
+  esac
 
   # Finish check. Or defer to inner handler if args given
   test $# -eq 0 && {
@@ -264,14 +267,14 @@ transmission_item_echo () # ~
 transmission_item_files () # ~
 {
   filetabs=$(transmission_client_remote -t "$num" -if | tail -n +3)
-  printf '%s:\n%s\n' "$name" "$(echo "$filetabs" | sed 's/^/  /')"
+  printf '%i. %s:\n%s\n' "$num" "$name" "$(echo "$filetabs" | sed 's/^/  /')"
 }
 
 # Util. item wrapper to fetch and map properties from transmission-info.
 # Without inner handler this prints the values retrieved, prefixed with ID and
 # Name fields, or single values if only one map given (and ti_keymap!=1).
 # To print all values in a single row, without keys, set ti_row=1. In this case
-# no mappings, only field parts are needed. See transmission-info.
+# no mappings, only field parts are needed. See transmission-torrent-info.
 transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
 {
   local keymap
@@ -282,6 +285,8 @@ transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
     $LOG error "$lk:item-keys" "Expected key-map"
     return 1
   }
+
+  # Retrieve metadata for share num from running transmission client
   local ti
   transmission_torrent_info "$num" $keymap || return
 
@@ -303,6 +308,7 @@ transmission_item_keys () # ~ <Keys...> [ -- <Handler <Argv...>> ]
 
     return $?
   } || {
+    # Defer to inner handler
     test "$1" = "--" || "$@"
   }
 }
@@ -344,7 +350,7 @@ transmission_item_pause () # ~ [<Modes...>] [-- <Inner-handler>]
   ! ${skip_issues:-true} || {
     ${has_issue:-false} && return
   }
-  case "$status" in ( Stopped | Finished | Queued ) return 0 ;; esac
+  case "${status:?}" in ( Stopped | Finished | Queued ) return 0 ;; esac
   transmission_item_clearenv
   transmission_item_share_select "$@" || return
 
@@ -462,7 +468,7 @@ transmission_info_fields ()
   local fields="$*"
   set -- $(for field in $fields
       do test -z "${!field:-}" || continue # Skip already defined vars
-        case "$field" in
+        case "${field:?}" in
         ( num|numid|pct|have|eta|up|down|ratio|status|name ) ;;
         ( btih ) echo $field:Hash ;;
         ( progress ) echo $field:Percent.Done ;;
@@ -479,7 +485,7 @@ transmission_info_fields ()
   local field
   for field in $fields
   do
-    case "$field" in
+    case "${field:?}" in
     ( num|numid|pct|have|eta|up|down|ratio|status|name ) ;;
     ( btih ) ;;
     ( progress )
@@ -615,74 +621,74 @@ transmission_list () # ~ <Action ...> # Filter/process clients list output
 {
   test $# -gt 0 || set -- tab
   local lk=${lk:-}:transmission-list
-  case "$1" in
+  case "${1:?}" in
 
-    ( a|active )
-        transmission_client_remote -l | grep ${grep_f:-} -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
-    ( S|not-stopped )
-        transmission_client_remote -l | grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
-    ( idle )
-        transmission_client_remote -l | grep ${grep_f:-} 'Idle' ;;
-    ( e|errors|issues )
-        transmission_client_remote -l | grep ${grep_f:--E} '^ *[0-9]+\* ' ;;
-    ( popular )
-        transmission_client_remote -l |
-          grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
-          transmission_fix_item_cols | sort -k7n
-      ;;
-    ( s|stopped|paused )
-        transmission_client_remote -l |
-          grep ${grep_f:-} '\(None\|[0-9][0-9]*\) * Stopped ' ;;
+  ( a|active )
+      transmission_client_remote -l | grep ${grep_f:-} -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
+  ( S|not-stopped )
+      transmission_client_remote -l | grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
+  ( idle )
+      transmission_client_remote -l | grep ${grep_f:-} 'Idle' ;;
+  ( e|errors|issues )
+      transmission_client_remote -l | grep ${grep_f:--E} '^ *[0-9]+\* ' ;;
+  ( popular )
+      transmission_client_remote -l |
+        grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
+        transmission_fix_item_cols | sort -k7n
+    ;;
+  ( s|stopped|paused )
+      transmission_client_remote -l |
+        grep ${grep_f:-} '\(None\|[0-9][0-9]*\) * Stopped ' ;;
 
-    ( fix-cols )
-        shift; transmission_list "$@" | transmission_fix_item_cols ;;
-    ( I|ids )
-        shift; transmission_list "$@" | awk '{print $1}' ;;
-    ( i|items ) # ~ (<Handler>) <Id-Spec...> # Shortcut to run given handler on selected IDs
-        shift; local handler=${1:-lognote}; shift
-        transmission_list_run fix-cols items-by-nums "$@" -- \
-            transmission_item_$handler ;;
-    ( lognotes )
-        shift; local handler=${1:-lognote}; shift
-        transmission_list_run transmission_item_$handler
-      ;;
-    ( items-by-nums ) # ~ [<List-Arg...> -- ] <Id...>
-        local listarg listargc
-        shift; transmission_listarg "$@" && shift $listargc
-        test $# -gt 0 ||
-          $LOG error "$lk" "Item ID arguments expected" "" 64 || return
-        transmission_list $listarg | grep "^ *\<$( grep_or "$@" )\> "
-      ;;
-    ( key|keys|cols ) # ~ [ <List-Arg...> -- ] <Var:Field...>
-        test "$1" = "cols" && ti_row=1 || {
-          test "$1" = "key" -o "$1" = "col" && ti_keymap=0 || ti_keymap=1;
-        }
-        local listarg listargc
-        shift; transmission_listarg "$@" && shift $listargc
-        test $# -gt 0 ||
-          $LOG error "$lk" "Key var names or map arguments expected" "" 64 ||
-          return
-        transmission_list_run $listarg -- transmission_item_keys "$@"
-      ;;
-    ( summary )
-          transmission_list_summary ;
-          $LOG notice "$lk:summary" \
+  ( fix-cols )
+      shift; transmission_list "$@" | transmission_fix_item_cols ;;
+  ( I|ids )
+      shift; transmission_list "$@" | awk '{print $1}' ;;
+  ( i|items ) # ~ (<Handler>) <Id-Spec...> # Shortcut to run given handler on selected IDs
+      shift; local handler=${1:-lognote}; shift
+      transmission_list_run fix-cols items-by-nums "$@" -- \
+          transmission_item_$handler ;;
+  ( lognotes )
+      shift; local handler=${1:-lognote}; shift
+      transmission_list_run transmission_item_$handler
+    ;;
+  ( items-by-nums ) # ~ [<List-Arg...> -- ] <Id...>
+      local listarg listargc
+      shift; transmission_listarg "$@" && shift $listargc
+      test $# -gt 0 ||
+        $LOG error "$lk" "Item ID arguments expected" "" 64 || return
+      transmission_list $listarg | grep "^ *\<$( grep_or "$@" )\> "
+    ;;
+  ( key|keys|cols ) # ~ [ <List-Arg...> -- ] <Var:Field...>
+      test "$1" = "cols" && ti_row=1 || {
+        test "$1" = "key" -o "$1" = "col" && ti_keymap=0 || ti_keymap=1;
+      }
+      local listarg listargc
+      shift; transmission_listarg "$@" && shift $listargc
+      test $# -gt 0 ||
+        $LOG error "$lk" "Key var names or map arguments expected" "" 64 ||
+        return
+      transmission_list_run $listarg -- transmission_item_keys "$@"
+    ;;
+  ( summary )
+        transmission_list_summary ;
+        $LOG notice "$lk:summary" \
 "Sharing $sum in $cnt shares, current transfer rates: $down down, $up up"
-      ;;
-    ( tab|all )
-        transmission_client_remote -l ;;
-    ( u|unknown )
-        transmission_list xtab | grep Unknown | grep -E '^ *[0-9]+\*?  *n/a' ;;
-    ( v|validate )
-        transmission_list_run transmission_item_validate ;;
-    ( xtab )
-        transmission_list fix-cols tab ;;
-    ( count )
-        : "$( transmission_list | count_lines )"
-        echo $(( _ - 2 ))
-      ;;
+    ;;
+  ( tab|all )
+      transmission_client_remote -l ;;
+  ( u|unknown )
+      transmission_list xtab | grep Unknown | grep -E '^ *[0-9]+\*?  *n/a' ;;
+  ( v|validate )
+      transmission_list_run transmission_item_validate ;;
+  ( xtab )
+      transmission_list fix-cols tab ;;
+  ( count )
+      : "$( transmission_list | count_lines )"
+      echo $(( _ - 2 ))
+    ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1" 67
+  ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
 }
 
@@ -859,16 +865,16 @@ transmission_share ()
   local lk=${lk:-}:transmission-share
   case "${1:?}" in
 
-    ( find ) # ~ <Id-Spec> <Path>
-          transmission_remote_do -t "${2:?}" --find "${3:?}" ;;
-    ( move ) # ~ <Id-Spec> <Path>
-          transmission_remote_do -t "${2:?}" --move "${3:?}" ;;
-    ( s|start ) # ~ <Id-Spec>
-          transmission_remote_do -t "${2:?}" --start ;;
-    ( S|stop ) # ~ <Id-Spec>
-          transmission_remote_do -t "${2:?}" --stop ;;
+  ( find ) # ~ <Id-Spec> <Path>
+        transmission_remote_do -t "${2:?}" --find "${3:?}" ;;
+  ( move ) # ~ <Id-Spec> <Path>
+        transmission_remote_do -t "${2:?}" --move "${3:?}" ;;
+  ( s|start ) # ~ <Id-Spec>
+        transmission_remote_do -t "${2:?}" --start ;;
+  ( S|stop ) # ~ <Id-Spec>
+        transmission_remote_do -t "${2:?}" --stop ;;
 
-    ( * ) $LOG error "$lk" "No such action" "$1"; return 67 ;;
+  ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
 }
 

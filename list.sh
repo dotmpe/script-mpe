@@ -72,9 +72,9 @@ list_sh_aliasargv ()
 {
   test -n "${1:-}" || return
   case "${1//_/-}" in
-    ( attrs ) shift; set -- attributes "$@" ;;
-    ( group ) shift; set -- list_sh_files -groups "$@" ;;
-    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( attrs ) shift; set -- attributes "$@" ;;
+  ( group ) shift; set -- list_sh_files -groups "$@" ;;
+  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 

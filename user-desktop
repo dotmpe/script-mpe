@@ -12,66 +12,66 @@ uc_script_load user-script || ${stat:-exit} $?
 }
 
 
-background () # ~ (:-info)
+background () # (y) ~ (:-info)
 {
   local act=${1:-info}; test $# -eq 0 || shift
   case "$act" in
-    ( h|help )
-        echo "~ c|choose # select background picture"
-        echo "~ gradient <...>"
-        echo "~ set <Image>"
-        echo "~ preview"
-      ;;
-    ( c|choose )
-          img=$(backgrounds preview) && background set "$img" ;;
-    ( gradient )
-        . ${US_BIN:?}/im-gradient.sh || return
-        case "${1:-day-blue}" in
-          ( h|help )
-              echo "~ gradient dust|orange-glow"
-              echo "~ gradient gas|poison|day-green"
-              echo "~ gradient day|day-blue"
-              echo "~ gradient orange"
-              echo "~ gradient night|green"
-            ;;
-          ( dust|orange-glow ) user_background_gradient 12x12 chauvet-dystopic-glow 180 ;;
-          ( gas|poison|day-green ) user_background_gradient 12x12 chauvet-day-green 0 ;;
-          ( day|day-blue ) user_background_gradient 12x12 chauvet-day-blue 0 ;;
-          ( orange ) user_background_gradient 12x12 chauvet-dark-orange-mono 0 180 ;;
-          ( night|green ) user_background_gradient 12x12 chauvet-dark-green-mono 0 180 ;;
-          ( * ) $LOG error ":$act:$1" "No such gradient setting"
-            return 1
-        esac
-      ;;
-    ( i|info ) false ;; # TODO
-    ( s|set )
-          feh --bg-fill "$@" ;;
-    ( p|preview )
-          backgrounds preview "$@" ;;
+  ( h|help )
+      echo "~ c|choose # select background picture"
+      echo "~ gradient <...>"
+      echo "~ set <Image>"
+      echo "~ preview"
+    ;;
+  ( c|choose )
+        img=$(backgrounds preview) && background set "$img" ;;
+  ( gradient )
+      . ${US_BIN:?}/im-gradient.sh || return
+      case "${1:-day-blue}" in
+        ( h|help )
+            echo "~ gradient dust|orange-glow"
+            echo "~ gradient gas|poison|day-green"
+            echo "~ gradient day|day-blue"
+            echo "~ gradient orange"
+            echo "~ gradient night|green"
+          ;;
+        ( dust|orange-glow ) user_background_gradient 12x12 chauvet-dystopic-glow 180 ;;
+        ( gas|poison|day-green ) user_background_gradient 12x12 chauvet-day-green 0 ;;
+        ( day|day-blue ) user_background_gradient 12x12 chauvet-day-blue 0 ;;
+        ( orange ) user_background_gradient 12x12 chauvet-dark-orange-mono 0 180 ;;
+        ( night|green ) user_background_gradient 12x12 chauvet-dark-green-mono 0 180 ;;
+        ( * ) $LOG error ":$act:$1" "No such gradient setting"
+          return 1
+      esac
+    ;;
+  ( i|info ) false ;; # TODO
+  ( s|set )
+        feh --bg-fill "$@" ;;
+  ( p|preview )
+        backgrounds preview "$@" ;;
 
-    ( * ) $LOG error ":$act" "No such action" "$act"; return 67
+  ( * ) $LOG error ":$act" "No such action" "$act" ${_E_nsa:-68}
   esac
 }
 
-backgrounds () # ~ <-list>
+backgrounds () # (y) ~ <-list>
 {
   local act=${1:-list}; test $# -eq 0 || shift
   case "$act" in
 
-    ( l|list ) # List user's desktop background images
-        backgrounds_list ;;
+  ( l|list ) # List user's desktop background images
+      backgrounds_list ;;
 
-    ( p|preview ) # ~ [<Fzf-Opts...>] # Use fzf+feh to browse through images
-        local bg=${preview_bg:-}
-        # TODO: move to Chauvet dark/light theme files
-        test -n "$bg" || {
-          test "${CS:-dark}" = "dark" && bg="#1c1c1c" || bg="#dadada"
-        }
-        backgrounds_list | fzf-tmux \
-          --preview='feh --title feh-preview -B "'"$bg"'" -Z {} -.' \
-          --preview-window=0 "$@" ;;
+  ( p|preview ) # ~ [<Fzf-Opts...>] # Use fzf+feh to browse through images
+      local bg=${preview_bg:-}
+      # TODO: move to Chauvet dark/light theme files
+      test -n "$bg" || {
+        test "${CS:-dark}" = "dark" && bg="#1c1c1c" || bg="#dadada"
+      }
+      backgrounds_list | fzf-tmux \
+        --preview='feh --title feh-preview -B "'"$bg"'" -Z {} -.' \
+        --preview-window=0 "$@" ;;
 
-      * ) $LOG error ":$act" "No such action" "($#) $*" 67 ;
+    * ) $LOG error ":$act" "No such action" "($#) $*" ${_E_nsa:-68}
   esac
 }
 
@@ -151,84 +151,85 @@ background_set () # ~ <File> <Display>...
   unset fn d
 }
 
-files () # ~ (:-info)
+files () # (y) ~ (:-info)
 #            <content-type-tag> [<base-folder> [<tags...>]]
 {
   local act=${1:-info}; test $# -eq 0 || shift
   case "$act" in
-    ( audio|music )
-      ;;
-    ( desktop|desk|current@local )
-      ;;
-    ( documents|docs )
-      ;;
-    ( downloads )
-      ;;
-    ( images|pictures )
-      ;;
-    ( info ) TODO ;; # TODO
-    ( projects )
-      ;;
-    ( projectdirs )
-      ;;
-    ( shares )
-      ;;
-    ( src )
-      ;;
-    ( videos|movies )
-      ;;
+  ( audio|music ) TODO "files $act"
+    ;;
+  ( desktop|desk|current@local ) TODO "files $act"
+    ;;
+  ( documents|docs ) TODO "files $act"
+    ;;
+  ( downloads ) TODO "files $act"
+    ;;
+  ( images|pictures ) TODO "files $act"
+    ;;
+  ( info ) TODO "files $act"
+    ;;
+  ( projects ) TODO "files $act"
+    ;;
+  ( projectdirs ) TODO "files $act"
+    ;;
+  ( shares ) TODO "files $act"
+    ;;
+  ( src ) TODO "files $act"
+    ;;
+  ( videos|movies ) TODO "files $act"
+    ;;
 
-    ( * ) $LOG error ":$act" "No such action" "$act"; return 67
+  ( * ) $LOG error ":$act" "No such action" "$act" ${_E_nsa:-68}
   esac
 }
 
-preview () # ~ <Path> [<Mediatype>]
+preview () # (y) ~ <Path> [<Mediatype>]
 {
   test $# -gt 1 || set -- "${1:?}" "$(file -bi "$1")"
   #local mime_param
   #mime_param=${2#*; }
   case "${2%;*}" in
 
-    ( "application/epub+zip" )
-          exec fbreader --name=user-preview "$1" 2>/dev/null
-        ;;
-
-    ( "application/pdf" )
-        exec evince --gtk-name=user-preview "$1" ;;
-
-    ( "application/vnd.openxmlformats-officedocument.wordprocessingml.document" | \
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" | \
-      "application/vnd.ms-excel" \
-    )
-        exec libreoffice --nologo --norestore --show --view "$1" ;;
-
-    ( "application/zip" | \
-      "application/x-bzip2" | \
-      "application/gzip" \
-    )
-        exec file-roller --gtk-name=user-preview "$1" ;;
-
-    ( "image/gif" )
-        : "$(identify "$1" | wc -l)"
-        test 1 -lt $_ && {
-          exec mpv --x11-name=gif-preview --no-terminal "$1"
-        } || {
-          preview "$1" image/
-          return
-        }
+  ( "application/epub+zip" )
+        exec fbreader --name=user-preview "$1" 2>/dev/null
       ;;
 
-    #( "image/x-xcf " )
-    ( "image/"* )
-        exec feh --title feh-preview -B black -Z "$1" -. ;;
+  ( "application/pdf" )
+      exec evince --gtk-name=user-preview "$1" ;;
 
-    ( "text/"* )
-        exec system-terminal sensible UC_TERM_NAME=user-preview -- -c "vim \"$1\""
-      ;;
+  ( "application/vnd.openxmlformats-officedocument.wordprocessingml.document" | \
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" | \
+    "application/vnd.ms-excel" \
+  )
+      exec libreoffice --nologo --norestore --show --view "$1" ;;
 
-    ( * ) echo "Don't know how to preview '$2'" >&2
-        return 1
-      ;;
+  ( "application/zip" | \
+    "application/x-bzip2" | \
+    "application/gzip" \
+  )
+      exec file-roller --gtk-name=user-preview "$1" ;;
+
+  ( "image/gif" )
+      : "$(identify "$1" | wc -l)"
+      test 1 -lt $_ && {
+        exec mpv --x11-name=gif-preview --no-terminal "$1"
+      } || {
+        preview "$1" image/
+        return
+      }
+    ;;
+
+  #( "image/x-xcf " )
+  ( "image/"* )
+      exec feh --title feh-preview -B black -Z "$1" -. ;;
+
+  ( "text/"* )
+      exec system-terminal sensible UC_TERM_NAME=user-preview -- -c "vim \"$1\""
+    ;;
+
+  ( * ) echo "Don't know how to preview '$2'" >&2
+      return ${_E_nsk:-67}
+    ;;
   esac
 }
 
@@ -305,7 +306,7 @@ switch_cs ()
 theme ()
 {
   desktop_conf || return
-  dash $LOG info "" "Using conf manager" "$DESKTOP_CONF"
+  $LOG info "" "Using conf manager" "$DESKTOP_CONF"
   "${DESKTOP_CONF}"_widget_theme "$@"
 }
 
@@ -344,14 +345,14 @@ user_desktop_loadenv ()
 user_desktop_aliasargv ()
 {
   case "$1" in
-      ( b|bg ) shift; set -- background "$@" ;;
-      ( bgS | backgrounds-select ) shift; set -- backgrounds_select "$@" ;;
-      ( bgs ) shift; set -- backgrounds "$@" ;;
-      ( update-for-cs ) shift; set -- update_for_cs "$@" ;;
-      ( switch-cs ) shift; set -- switch_cs "$@" ;;
-      ( set-bg ) shift; set -- background set "$@" ;;
-      ( themes ) shift; set -- list_themes "$@" ;;
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( b|bg ) shift; set -- background "$@" ;;
+  ( bgS | backgrounds-select ) shift; set -- backgrounds_select "$@" ;;
+  ( bgs ) shift; set -- backgrounds "$@" ;;
+  ( update-for-cs ) shift; set -- update_for_cs "$@" ;;
+  ( switch-cs ) shift; set -- switch_cs "$@" ;;
+  ( set-bg ) shift; set -- background set "$@" ;;
+  ( themes ) shift; set -- list_themes "$@" ;;
+  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 
