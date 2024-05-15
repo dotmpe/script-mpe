@@ -71,22 +71,24 @@ meta_be_loaded () # ~ <Backend-name>
 
 meta_cache_proc () # ~ <Src> <Src-key> <Cmd...>
 {
+  : about "Check derived cache against source, regenerate if OOD"
   test 3 -le $# || return ${_E_MA:?}
   local src=${1:?} sk=${2:?meta-cache-proc: Source key expected} cached
   shift 2
-  cached=${LCACHE_DIR:?}/$sk.out
+  cached=${LCACHE_DIR:?}/$sk
   test -e "$cached" &&
   test "$src" -ot "$cached" || {
     "$@" >| "$cached"
   }
 }
 
+# XXX: source key is same as cache key...
 meta_cache_proc_srckey () # ~ <Src-key> <Cmd...>
 {
   test 2 -le $# || return ${_E_MA:?}
-  local sv=${1:?meta-cache-proc-srckey: Source variable expected} cached
+  local svar=${1:?meta-cache-proc-srckey: Source variable expected} cached
   shift
-  meta_cache_proc "${!sv:?}" "$sv" "$@"
+  meta_cache_proc "${!svar:?}" "$svar" "$@"
 }
 
 # Accumulate data from providers and format.
@@ -99,76 +101,87 @@ meta_dump () # ~ <Paths...>
   done
 }
 
-meta_properties () # ~ <Target-file> <Cmd...>
+meta_properties () # ~ <Properties-file>
 {
-  local tf=${1:?} cmd=${2:-}
+  : about "Read simple metadata format"
+  grep -Ev '^\s*(#.*|\s*)$' "$@" |
+  awk '{ st = index($0,":") ;
+      key = substr($0,0,st-1) ;
+      gsub(/[^A-Za-z0-9]/,"_",key) ;
+      print toupper(key) "=\"" substr($0,st+2) "\"" }'
+}
+
+meta_run () # ~ <Target-file> <Cmd...>
+{
+  : about "Manage metadata on files"
+  local tf=${1:?} cmd=${2:-list-all}
   shift 2
   case "$cmd" in
 
-    ( assert-tags ) # ~ ~ <Tags...> # Include unique tags with current set
-        meta_assert=combine-words \
-        meta_properties "$tf" assert-words tags "$@"
-      ;;
+  ( assert-tags ) # ~ ~ <Tags...> # Include unique tags with current set
+      meta_assert=combine-words \
+      meta_run "$tf" assert-words tags "$@"
+    ;;
 
-    ( assert-words ) # ~ ~ <Field> <Words...>
-        declare field=${1:?} var
-        shift
-        meta_new_id
-        meta__${meta_be:?}__new "$tf" &&
-        meta__${meta_be:?}__loaded && {
-          meta_id=$(meta__${meta_be:?}__obj_id "$tf") || return
-        } || {
-          meta__${meta_be:?}__exists || {
-            meta__${meta_be:?}__init "$field" "$*" &&
-            meta__${meta_be:?}__commit &&
-            $LOG info : "Created" "$meta_path"
-            return
-          }
-          meta__${meta_be:?}__fetch ||
-            $LOG error : "Failed to retrieve" "E$?:$meta_id:$meta_ref" $? ||
-            return
-        }
-        var="meta_aprop__${field}[${meta_id:?}]"
-        case "${meta_assert:-}" in
-          ( combine-words )
-              if_ok "$(unique_args ${!var-} "$@")" &&
-              <<< "$_" mapfile -t new_args &&
-              new_value=${new_args[*]}
-            ;;
-          ( reset-words )
-              if_ok "$(unique_args "$@")" &&
-              new_value=${_//$'\n'/ }
-            ;;
-            * ) return ${_E_nsa:?}
-        esac || return
-        test "${!var-}" = "$new_value" && {
-          $LOG debug : "No change" "$meta_path"
-          return
-        } || {
-          meta__${meta_be:?}__update "$field" "$_" &&
+  ( assert-words ) # ~ ~ <Field> <Words...>
+      declare field=${1:?} var
+      shift
+      meta_new_id
+      meta__${meta_be:?}__new "$tf" &&
+      meta__${meta_be:?}__loaded && {
+        meta_id=$(meta__${meta_be:?}__obj_id "$tf") || return
+      } || {
+        meta__${meta_be:?}__exists || {
+          meta__${meta_be:?}__init "$field" "$*" &&
           meta__${meta_be:?}__commit &&
-          $LOG info : "Updated" "$meta_path"
+          $LOG info : "Created" "$meta_path"
           return
         }
-      ;;
+        meta__${meta_be:?}__fetch ||
+          $LOG error : "Failed to retrieve" "E$?:$meta_id:$meta_ref" $? ||
+          return
+      }
+      var="meta_aprop__${field}[${meta_id:?}]"
+      case "${meta_assert:-}" in
+        ( combine-words )
+            if_ok "$(unique_args ${!var-} "$@")" &&
+            <<< "$_" mapfile -t new_args &&
+            new_value=${new_args[*]}
+          ;;
+        ( reset-words )
+            if_ok "$(unique_args "$@")" &&
+            new_value=${_//$'\n'/ }
+          ;;
+          * ) return ${_E_nsa:?}
+      esac || return
+      test "${!var-}" = "$new_value" && {
+        $LOG debug : "No change" "$meta_path"
+        return
+      } || {
+        meta__${meta_be:?}__update "$field" "$_" &&
+        meta__${meta_be:?}__commit &&
+        $LOG info : "Updated" "$meta_path"
+        return
+      }
+    ;;
 
-    ( exists )
-        meta__${meta_be:?}__new "$tf" &&
-        meta__${meta_be:?}__exists
-      ;;
+  ( exists )
+      meta__${meta_be:?}__new "$tf" &&
+      meta__${meta_be:?}__exists
+    ;;
 
-    ( fetch )
-        meta__${meta_be:?}__new "$tf"
-        meta_new_id
-        meta__${meta_be:?}__fetch
-      ;;
+  ( fetch )
+      meta__${meta_be:?}__new "$tf"
+      meta_new_id
+      meta__${meta_be:?}__fetch
+    ;;
 
-    ( reset-tags ) # ~ ~ <Tags...> # Set to unique tags from given
-        meta_assert=reset-words \
-        meta_properties "$tf" assert-words tags "$@"
-      ;;
+  ( reset-tags ) # ~ ~ <Tags...> # Set to unique tags from given
+      meta_assert=reset-words \
+      meta_run "$tf" assert-words tags "$@"
+    ;;
 
-      * ) return ${_E_nsk:?}
+  ( * ) return ${_E_nsk:?}
   esac
 }
 

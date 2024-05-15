@@ -9,15 +9,25 @@
 # the way when not needed. Secondary is making output pretty and formatted
 # depending on the context (inline, or separate buffer UI process).
 
+# All env:
+# IF_PAGER <self>
+# USER_LINES <int>
+# UC_OUTPUT_LINES <int>
+# IF_LANG <language> Language syntax name as recognized by batcat
+# IF_PLAIN (0|1)
+# IF_PAGE (0|1)
+
 # Caveats:
 
 # XXX: Paging for long or infinite streams is currently not practical.
 
 # FIXME: cat does not really prevent clobbering from ANSI, may want to add
 # filter (fancy=false?) or reset to TERM defaults? at EOF or even each line
-# end, depending on the data that is dumped.
+# end, depending on the data that is dumped. etc.
 
-# XXX: ``gh search repos`` does not observe COL{S,UMNS},WIDTH?
+# XXX: git delta does does not observe COL{S,UMNS},WIDTH, neither does e.g ``gh
+# search repos`` so to prevent broken layout numbering needs to be turned off
+# using IF_PLAIN
 
 
 ## Shell mode
@@ -150,17 +160,24 @@ maxlines=${USER_LINES:-${UC_OUTPUT_LINES:-${LINES:?}}}
 case "${IF_PAGER##*/}" in
 
   ( "$bat_exe" )
-      test $maxlines -le $lines && {
-        test ${v:-${verbosity:-3}} -lt 6 ||
-          echo "bat-if read $lines lines, max inline output is $maxlines" >&2
-        bat_opts=--paging=always\ --style=rule,numbers
+      # XXX: IF_PAGE
+      test 1 -eq "${IF_PLAIN:-0}" && {
+        bat_opts=--style=plain
+
       } || {
-        # Display 'File: ... <EMPTY>' (without deco) even if there is no content
-        # but only if quiet_empty=false (see below)
-        test $lines -eq 0 &&
-            bat_opts=--paging=never\ --style=plain || {
-            bat_opts=--paging=never\ --style=grid,numbers
-          }
+
+        test $maxlines -le $lines && {
+          test ${v:-${verbosity:-3}} -lt 6 ||
+            echo "bat-if read $lines lines, max inline output is $maxlines" >&2
+          bat_opts=--paging=always\ --style=rule,numbers
+        } || {
+          # Display 'File: ... <EMPTY>' (without deco) even if there is no content
+          # but only if quiet_empty=false (see below)
+          test $lines -eq 0 &&
+              bat_opts=--paging=never\ --style=plain || {
+              bat_opts=--paging=never\ --style=grid,numbers
+            }
+        }
       }
 
       # Display 'File:' header for both paging and nonpaging if known, but
@@ -198,6 +215,7 @@ esac
 
 test ${v:-${verbosity:-3}} -lt 6 ||
   $LOG notice :exec "Starting pager pipeline" "$IF_PAGER:$#:$*"
+
 printf '%s' "$data" | exec $IF_PAGER "$@"
 
 # Id: script.mpe less-if [2023]

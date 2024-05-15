@@ -315,14 +315,6 @@ var2tags()
   done)
 }
 
-# XXX: just passing grep expression
-attributes_tagged () # ~ <Tags>
-{
-  < "${attributes_src:-.attributes}" grep " $*\($\| \)"
-  #meta_cache_proc attributes_src
-  #< "${attributes_src:-.attributes}" attributes2sh
-}
-
 # Read meta file and re-format (like mkvid) for shell use
 meta2sh()
 {
@@ -358,7 +350,7 @@ properties2sh()
 
 # Take some Propertiesfile compatible lines, strip/map the keys prefix and
 # reformat them as mkvid for use in shell script export/eval/...
-sh_properties()
+sh_properties () # ~ <File|-> [<Prefix> [<Substitution>]]
 {
   test -n "$*" || error "sh-properties expects args: '$*'" 1
   test -e "$1" -o "$1" = "-" || error "sh-properties file '$1'" 1
@@ -366,6 +358,7 @@ sh_properties()
   # hard-to-debug syntax failures here or in the local evaluation
   read_nix_style_file $1 | grep '^'"$2" | sed 's/^'"$2"'/'"$3"'/g' | properties2sh -
 }
+# See also derived build.lib:properties_sh
 
 # A simple string based key-value lookup with some leniency and translation convenience
 property () # PROPSFILE PREFIX SUBST KEYS...

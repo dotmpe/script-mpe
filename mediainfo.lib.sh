@@ -1,31 +1,47 @@
 mediainfo_lib__load ()
 {
-    : "${mnfo_tpldir:=${RAM_TMPDIR:-${RAMDIR:-/tmp}}}"
+  lib_require meta &&
+  : "${mdnfo_cache:=${METADIR/cache}}"
+}
+
+mediainfo_lib__init ()
+{
+  echo "General;%Duration%" > ${mdnfo_cache:?}/gen-durms.mdnfo-tpl
+  echo "General;%Format%" > ${mdnfo_cache:?}/gen-ffmt.mdnfo-tpl
+  echo "Video;%Format%" > ${mdnfo_cache:?}/vid-fmt.mdnfo-tpl
+  echo "Video;%DisplayAspectRatio/String%" > ${mdnfo_cache:?}/vid-dar.mdnfo-tpl
+  echo "Video;%Width%x%Height%" > ${mdnfo_cache:?}/vid-res.mdnfo-tpl
 }
 
 
 mediainfo_durationms () # ~ <Media-File>
 {
-  echo "General;%Duration%" > ${mnfo_tpldir:?}/template.txt
-  mediainfo --Output=file://${mnfo_tpldir:?}/template.txt "$1"
+  mediainfo --Output=file://${mdnfo_cache:?}/gen-durms.mdnfo-tpl "$1"
+}
+
+mediainfo_fileformat () # ~ <Media-File>
+{
+  mediainfo --Output=file://${mdnfo_cache:?}/gen-ffmt.mdnfo-tpl "$1"
 }
 
 mediainfo_resolution () # ~ <Media-File>
 {
-  echo "Video;%Width%x%Height%" > ${mnfo_tpldir:?}/template.txt
-  mediainfo --Output=file://${mnfo_tpldir:?}/template.txt "$1"
+  mediainfo --Output=file://${mdnfo_cache:?}/vid-res.mdnfo-tpl "$1"
 }
 
 mediainfo_pixelaspectratio () # ~ <Media-File>
 {
-  echo "Video;%PixelAspectRatio/String%" > ${mnfo_tpldir:?}/template.txt
-  mediainfo --Output=file://${mnfo_tpldir:?}/template.txt "$1"
+  mediainfo --Output=file://${mdnfo_cache:?}/vid-par.mdnfo-tpl "$1"
 }
 
 mediainfo_displayaspectratio () # ~ <Media-File>
 {
-  echo "Video;%DisplayAspectRatio/String%" > ${mnfo_tpldir:?}/template.txt
-  mediainfo --Output=file://${mnfo_tpldir:?}/template.txt "$1"
+  mediainfo --Output=file://${mdnfo_cache:?}/vid-dar.mdnfo-tpl "$1"
+}
+
+mediainfo_videoformat () # ~ <Media-File>
+{
+  mediainfo --Output=file://${mdnfo_cache:?}/vid-fmt.mdnfo-tpl "$1"
 }
 
 # XXX: mediainfo tpl formats and placeholders:

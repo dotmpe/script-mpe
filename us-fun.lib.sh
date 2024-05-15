@@ -61,7 +61,13 @@ us_userconf_init ()
 
 us_userdir_init ()
 {
-  ${xctx:?}@User/Dir .init
+  # XXX: add user-dir as field on context somehow? Or fix query menchanism on
+  # XContext, ie. so it implements (constructs, etc) and remembers each
+  # supported type.
+  #@User/Dir :init
+  #${xctx:?}@User/Dir :init
+  class_init User/Dir &&
+  class_new user_dir User/Dir
 }
 
 us_xctx_init ()

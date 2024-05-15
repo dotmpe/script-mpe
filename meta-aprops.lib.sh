@@ -14,7 +14,7 @@ meta_aprops_lib__init ()
   do
     declare -gA "meta_aprop__${field:?}=()"
   done
-  : "${meta_aprops_salt:-$RANDOM}"
+  : "${meta_aprops_salt:=$(stderr echo "!!! dynamic salt set:" $RANDOM; echo $_)}"
 }
 
 
@@ -36,7 +36,8 @@ meta__aprops__direct_set () # ~ <Key> <Value>
   sed -i "s/^$key = .*$/$key = ${2-}/g" "${meta_path:?}"
 }
 
-meta__aprops__dump () # ~
+# TODO: out-fmt
+meta__aprops__dump () # ~ <File>
 {
   declare key
   echo "[${meta_ref:?}]"
@@ -150,10 +151,11 @@ meta_aprops_be2 () # ~ <Var> <Source>
 
 meta_aprops_ref () # (:meta-{about,ref,path}) ~ <File>
 {
+  : about "Set meta:{ref,about,path} env"
   meta_ref="${1:?Meta about ref expected}"
   meta_about=${meta_ref#*:}
   local be_path
-  "${meta_aprops_be:-meta_aprops_be1}" local:be_path "$meta_ref"
+  "${meta_aprops_be:-meta_aprops_be1}" be_path "$meta_ref"
   meta_path="${APROPS_DIR:?}/$be_path"
 }
 

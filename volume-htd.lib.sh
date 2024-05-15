@@ -43,7 +43,9 @@ htd_list_volumes()
     disk_list | while read dev
     do
       source_device_catalog "$dev" "$hostname" || continue
-      test -n "$disk_volumes" || exit 123
+      test -n "$disk_volumes" ||
+        $LOG error "$lk" "Disk volumes env expected" "$hostname:$dev" 1 ||
+        return
 
       idx=0
       for volume in $disk_volumes

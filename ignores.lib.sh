@@ -28,7 +28,8 @@
 
 ignores_lib__load()
 {
-  lib_require str-htd date-htd meta globlist || return
+  lib_require globlist || return
+  # XXX: cleanup str-htd
 
   : "${ignores_basename:=ignore}"
   : "${ignores_prefix=${base:-htd}}"

@@ -7,28 +7,27 @@ meta_fsattr_lib__load ()
 
 
 # XXX: user. prefix is not removed or filtered upon, fields are not mapped
-meta__fsattr__dump ()
+meta__fsattr__dump () # (out-fmt) ~ <File>
 {
   local data
   data=$(meta__fsattr__raw "$@") &&
   case "${out_fmt:-kv}" in
-    ( fields )
-        echo "$data"
-      ;;
-    ( tsv|pairs )
-        echo "$data" | sed 's/: /\t/'
-      ;;
-    ( kv|kqv )
-        echo "$data" | sed 's/: /=/' | str_quote_kvpairs
-      ;;
-    ( pkv|shkv )
-        echo "$data" | conv_fields_shell
-      ;;
+  ( fields )
+      echo "$data"
+    ;;
+  ( tsv|pairs )
+      echo "$data" | sed 's/: /\t/'
+    ;;
+  ( kv|kqv )
+      echo "$data" | sed 's/: /=/' | str_quote_kvpairs
+    ;;
+  ( pkv|shkv )
+      echo "$data" | conv_fields_shell
+    ;;
 
-    ( * ) return 4 ;;
+  ( * ) return ${_E_nsk:?}
   esac
 }
-
 
 meta__fsattr__get () # ~ <File> <Key>
 {
@@ -38,6 +37,11 @@ meta__fsattr__get () # ~ <File> <Key>
   capture_vars local:meta_fsattr_ xattr -p user.${2:?} "${1:?}" || return
   fnmatch "No such xattr: *" "${meta_fsattr_stderr}" && return 1 ||
   echo "${meta_fsattr_stdout}"
+}
+
+meta__fsattr__new () # ~ <File>
+{
+  TODO "@meta/fsattr.new"
 }
 
 meta__fsattr__set () # ~ <File> <Key> <Value>

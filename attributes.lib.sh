@@ -4,6 +4,12 @@ attributes_lib__load ()
   : "${CONFIG_INCLUDE:=${US_BIN:-$HOME/bin}/etc:${XDG_CONFIG_HOME:-$HOME/.config}:/etc}"
 }
 
+attributes_lib__init ()
+{
+  test -z "${attributes_lib_init-}" || return $_
+  true
+}
+
 
 user_script_base ()
 {
@@ -54,14 +60,14 @@ user_settings_lookup () # ~ <Basename>
 user_settings_paths () # ~ [<Group-names...>]
 {
   local pathsepc filelist ctx=${at_Attributes:-attributes}
-  if_ok "$(${ctx}_pathspecs "$@")" || return
+  if_ok "$(${ctx}_pathspecs "$@")" &&
   for pathspec in $_
   do
     case "$pathspec" in
-      ( etc:* ) at_Settings=$ctx user_settings_lookup "${pathspec#etc:}" ;;
-      ( meta:* )
-        ;; # user_lookup_pathvars SCRIPT_PREFIXES -- "${pathspec#meta:}" ;;
-      ( * ) echo "$pathspec" ;;
+    ( etc:* ) at_Settings=$ctx user_settings_lookup "${pathspec#etc:}" ;;
+    ( meta:* )
+      ;; # user_lookup_pathvars SCRIPT_PREFIXES -- "${pathspec#meta:}" ;;
+    ( * ) echo "$pathspec" ;;
     esac
   done
 }
@@ -142,9 +148,13 @@ attributes_stddef ()
   stderr script_debug_arrs $groupkey $specskey
 }
 
-attributes_tagged ()
+# XXX: just passing Tag args as grep expression
+attributes_tagged () # ~ <Tags...>
 {
-  false
+  < "${attributes_src:-.attributes}" grep " $*\($\| \)"
+  #meta_cache_proc attributes_src
+  #< "${attributes_src:-.attributes}" attributes2sh
 }
+
 
 #

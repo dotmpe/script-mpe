@@ -8,7 +8,7 @@ lib_require str date-htd os-htd args str-uc
 note () { $LOG notice : "$1" "${2:+E}$2" ${2:-0}; }
 error () { $LOG error : "$1" "E$2" ${2:?}; }
 warn () { $LOG warn : "$1" "${2:+E}$2" ${2:-0}; }
-TODO () { error "$*" 123 || exit $?; }
+TODO () { error "$*" ${_E_missing:-125} || exit $?; }
 
 reseed () # Reload env
 {

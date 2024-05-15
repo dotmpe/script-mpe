@@ -3,7 +3,7 @@
 ## Catalog: maintain card records for files with Id and meta info
 
 
-catalog_lib__load()
+catalog_lib__load ()
 {
   true "${CATALOG_DEFAULT:="catalog.yml"}"
 
@@ -13,7 +13,8 @@ catalog_lib__load()
   test -n "${CATALOGS-}" || CATALOGS=$CATALOG_CACHE_DIR/catalogs.list
 
   # Global catalog list file
-  test -n "${GLOBAL_CATALOGS-}" || GLOBAL_CATALOGS=$XDG_CONFIG_HOME/catalogs.list
+  test -n "${GLOBAL_CATALOGS-}" ||
+    GLOBAL_CATALOGS=${XDG_CONFIG_HOME:-$HOME/.config}/catalogs.list
 
   test -n "${Catalog_Status-}" ||
       Catalog_Status=$CATALOG_CACHE_DIR/catalog-status.vars
@@ -26,7 +27,7 @@ catalog_lib__load()
   }
 }
 
-catalog_lib__init()
+catalog_lib__init ()
 {
   test "${catalog_lib_init-}" = "0" && return
   true "${define_all:=1}" # XXX: override htd-load to set any argv opts to vars
@@ -65,7 +66,11 @@ catalog_listtree () # ~ [PATH]
 
 catalog_listtree_find () # ~ [PATH]
 {
-  ignores_cache || return
+  # XXX: hack
+  lib_init shell-uc || return
+  globlist_cache || return
+  stderr ignores_find "$IGNORES"
+  #ignores_cache || return
 
   local find_ignores="-false $(ignores_find "$IGNORES") "\
 " -o -exec test ! \"{}\" = \"$1\" -a -e \"{}/$CATALOG_DEFAULT\" ';' -a -prune "\
@@ -130,16 +135,6 @@ catalog_name () # ~ [PATH=.]
     }
 }
 
-htd_catalog__paths() # List catalog path-names ~
-{
-  trueish "${choice_global:-0}" && {
-    htd_catalog__req_global
-    return $?
-  } || {
-    htd_catalog__req_local
-  }
-}
-
 # Remove ignored paths from stdin
 catalog_paths_filter ()
 {
@@ -148,9 +143,9 @@ catalog_paths_filter ()
   grep -vf "$IGNORES.regex"
 }
 
-htd_catalog__as_json()
+htd_catalog__as_json ()
 {
-  test -n "$1" || set -- "$CATALOG"
+  test $# -gt 0 || set -- "$CATALOG"
   local jsonfn s=''
   jsonfn="$(pathname "$1" .yml .yaml).json"
   { test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
@@ -168,16 +163,16 @@ htd_catalog__as_json()
   cat "$jsonfn"
 }
 
-htd_catalog__from_json()
+htd_catalog__from_json ()
 {
-  test -n "$1" || set -- "$CATALOG"
+  test $# -gt 0 || set -- "$CATALOG"
   local jsonfn="$(pathname "$1" .yml .yaml).json"
   jsotk json2yaml --ignore-alias "$jsonfn" "$1"
 }
 
 
 # Look for exact string match in catalog files
-htd_catalog__find() # Str
+htd_catalog__find () # Str
 {
   htd_catalog__req_local | while read -r catalog; do
     grep -qF "$1" "$catalog" || continue
@@ -185,7 +180,7 @@ htd_catalog__find() # Str
   done
 }
 
-htd_catalog__ignores()
+htd_catalog__ignores ()
 {
   {
     ignores_cat global ignore scm
@@ -193,7 +188,7 @@ htd_catalog__ignores()
 }
 
 # List tree leafs, and check entries exists for each file-name
-htd_catalog__index() # Check each listtree fname ~ Path
+htd_catalog__index () # Check each listtree fname ~ Path
 {
   catalog_listtree "${1:-"."}" | while read -r fname
     do
@@ -351,7 +346,7 @@ htd_catalog__check ()
 }
 
 # Process htd-catalog-check results
-req_catalog_status()
+req_catalog_status ()
 {
   status=$(echo $(cut -d'=' -f2 $Catalog_Status|tr '\n' ' ')|tr ' ' '+'|bc ) ||
       return
@@ -370,7 +365,7 @@ req_catalog_status()
 
 # Get status for catalog and directory, normally validate + check index.
 # Set full to fsck subsequently.
-htd_catalog__status()
+htd_catalog__status ()
 {
   test ${choice_global:-0} -eq 1 && {
 
@@ -398,15 +393,17 @@ htd_catalog__status()
 
 
 # Check schema for given catalog
-htd_catalog__validate() # CATALOG
+htd_catalog__validate () # CATALOG
 {
   test $# -gt 0 || set -- $CATALOG
+  lib_require schema &&
+  lib_init schema &&
   htd_schema_validate "$1" "$scriptpath/schema/catalog.yml"
 }
 
 
 # Set fn env var to full path for name
-set_cataloged_file()
+set_cataloged_file ()
 {
   test -e "$1" && fn="$1" || fn="$(find . -iname "$1")"
   test -e "$fn" -o -h "$fn" || {
@@ -419,7 +416,7 @@ set_cataloged_file()
   # TODO: trueish "$strict" require catalog entry
 }
 
-htd_catalog__req_local()
+htd_catalog__req_local ()
 {
   test -e $CATALOGS && {
     cat $CATALOGS
@@ -429,7 +426,7 @@ htd_catalog__req_local()
   }
 }
 
-htd_catalog__req_global()
+htd_catalog__req_global ()
 {
   test -e $GLOBAL_CATALOGS && {
     cat $GLOBAL_CATALOGS
@@ -439,7 +436,7 @@ htd_catalog__req_global()
   }
 }
 
-catalog_has_file() # ~ FILE [CATALOG]
+catalog_has_file () # ~ FILE [CATALOG]
 {
   test -n "${2:-}" || set -- "${1:-}" "$CATALOG"
   test $# -eq 2 -a -e "$1" || return 177
@@ -459,13 +456,13 @@ htd_catalog__check_keys () # CKS...
   done
 }
 
-htd_catalog__get_by_name() # [CATALOG] NAME
+htd_catalog__get_by_name () # [CATALOG] NAME
 {
   record="$( htd_catalog__as_json "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
   echo $record | jsotk --pretty json2yaml -
 }
 
-htd_catalog__get_by_key() # [CATALOG] CKS...
+htd_catalog__get_by_key () # [CATALOG] CKS...
 {
   local cat="$1" ; shift ; test -n "$cat" || cat=$CATALOG
   while test $# -gt 0
@@ -538,7 +535,7 @@ htd_catalog__generate_entry__video () # ~ <File>
   true
 }
 
-htd_catalog__add_file() # ~ <File>
+htd_catalog__add_file () # ~ <File>
 {
   # TODO: check other catalogs, dropped entries too before adding.
   catalog_has_file "$1" && {
@@ -580,7 +577,7 @@ htd_catalog__add_file() # ~ <File>
 # Add entries for given paths
 # Attn: records only the basename so duplicate basenames (from any directory)
 # will not be added, only the first occurence.
-htd_catalog__add() # File..
+htd_catalog__add () # File..
 {
   while test $# -gt 0
   do
@@ -599,22 +596,22 @@ htd_catalog__add() # File..
 }
 
 # Add all untracked files (if default; use_find=0)
-htd_catalog__add_all()
+htd_catalog__add_all ()
 {
   htd_catalog__add_all_larger "." -1
 }
 
 # Add everything from given fodler, optionally pass size
-htd_catalog__add_from_folder()
+htd_catalog__add_from_folder ()
 {
   test -n "$2" || set -- "$1" -1
   use_find=1 htd_catalog__add_all_larger "$1" "$2"
 }
 
 # Add every untracked file, larger than
-htd_catalog__add_all_larger() # DIR SIZE
+htd_catalog__add_all_larger () # DIR SIZE
 {
-  test -n "$1" || set -- . "$2"
+  test $# -gt 0 || set -- . "$2"
   test -n "$2" || set -- "$1" 1048576
   note "Adding larger than '$2' from '$1'"
   catalog_listtree "$1" | while read -r fn
@@ -630,7 +627,7 @@ htd_catalog__add_all_larger() # DIR SIZE
 }
 
 # See listtree, check all files for catalog entry or echo local path
-htd_catalog__untracked()
+htd_catalog__untracked ()
 {
   catalog_listtree "$1" | while read -r fn
   do
@@ -641,9 +638,9 @@ htd_catalog__untracked()
 }
 
 # Copy record between catalogs (eval record)
-htd_catalog__copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
+htd_catalog__copy_by_name () # CATALOG NAME [ DIR | CATALOG ]
 {
-  test -n "$1" || set -- $CATALOG "$2" "$3"
+  test $# -gt 0 || set -- $CATALOG "$2" "$3"
   record="$( htd_catalog__as_json "$1" | jq -c ' .[] | select(.name=="'"$2"'")' )"
   test -f "$3" || {
     test -d "$3" && {
@@ -658,7 +655,7 @@ htd_catalog__copy_by_name() # CATALOG NAME [ DIR | CATALOG ]
 }
 
 # Get path for record, or find it by searching for basename
-htd_catalog__record_get_path() # Record [Name]
+htd_catalog__record_get_path () # Record [Name]
 {
   src_path="$(echo "$1" | jq -r '.path')"
   test -n "$src_path" -a "$src_path" != "null" || {
@@ -677,13 +674,13 @@ htd_catalog__record_get_path() # Record [Name]
 }
 
 # Remove record by name
-htd_catalog__drop() # NAME
+htd_catalog__drop () # NAME
 {
   htd_catalog__drop_by_name "" "$1"
 }
 
 # Remove record and src-file by name
-htd_catalog__delete() # NAME
+htd_catalog__delete () # NAME
 {
   htd_catalog__drop_by_name "" "$1"
   htd_catalog__record_get_path "$record" "$1" && {
@@ -693,9 +690,9 @@ htd_catalog__delete() # NAME
   }
 }
 
-htd_catalog__drop_by_name() # [CATALOG] NAME
+htd_catalog__drop_by_name () # [CATALOG] NAME
 {
-  test -n "$1" || set -- $CATALOG "$2"
+  test $# -gt 0 || set -- $CATALOG "$2"
   test -s "$1" && file_backup "$1" || echo "[]" > $1
   htd_catalog__as_json "$1" |
       jq -c ' del( .[] | select(.name=="'"$2"'")) ' |
@@ -703,7 +700,7 @@ htd_catalog__drop_by_name() # [CATALOG] NAME
 }
 
 # Copy record and file
-htd_catalog__copy() # CATALOG NAME [ DIR | CATALOG ]
+htd_catalog__copy () # CATALOG NAME [ DIR | CATALOG ]
 {
   htd_catalog__copy_by_name "$1" "$2" "$3" || return
   htd_catalog__record_get_path "$record" "$2" || error "Lookup up file '$2'" 1
@@ -713,7 +710,7 @@ htd_catalog__copy() # CATALOG NAME [ DIR | CATALOG ]
 }
 
 # Transfer record and move file
-htd_catalog__move() # [CATALOG] NAME [ DIR | CATALOG ]
+htd_catalog__move () # [CATALOG] NAME [ DIR | CATALOG ]
 {
   htd_catalog__copy_by_name "$1" "$2" "$3" || return
   htd_catalog__record_get_path "$record" "$2" || error "Lookup up file '$2'" 1
@@ -725,7 +722,7 @@ htd_catalog__move() # [CATALOG] NAME [ DIR | CATALOG ]
 
 
 # Echo src/via URL YAML key-values to append to catalog in raw mode
-htd_catalog__file_wherefrom() # ~ Src-File
+htd_catalog__file_wherefrom () # ~ Src-File
 {
   wherefrom_sh="$(wherefrom "$1" 2>/dev/null )" || {
     $LOG "error" "$scriptname $subcmd Error" "Retrieving wherefrom" "$1" 1
@@ -739,7 +736,7 @@ htd_catalog__file_wherefrom() # ~ Src-File
 
 
 # Echo first-seen YAML key-values to append to catalog in raw mode
-htd_catalog__file_birth_date() # ~ Src-File
+htd_catalog__file_birth_date () # ~ Src-File
 {
   dob_ts=$(filebtime "$1")
   test $dob_ts -ne 0 || dob_ts=$(filemtime "$1") || return
@@ -751,9 +748,9 @@ htd_catalog__file_birth_date() # ~ Src-File
 }
 
 # Set one key/string-value pair for one record in catalog
-htd_catalog__set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
+htd_catalog__set_key () # [Catalog] Entry-Id Key Value [Entry-Key]
 {
-  test -n "$1" || set -- "$CATALOG" "$2" "$3" "$4" "$5"
+  test $# -gt 0 || set -- "$CATALOG" "$2" "$3" "$4" "$5"
   test -n "$2" || error "catalog-set: 2:Entry-ID required" 1
   test -n "$3" || error "catalog-set: 3:Key required" 1
   test -n "$4" || error "catalog-set: 4:Value required" 1
@@ -782,10 +779,10 @@ htd_catalog__set_key() # [Catalog] Entry-Id Key Value [Entry-Key]
 
 # Like htd-catalog-set-key, except allow for JSON values to update a single
 # entry key value, or a JQ script-file to do any JSON update
-htd_catalog__update() # ~ [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key] )
+htd_catalog__update () # ~ [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key] )
 {
   local jq_scr=
-  test -n "$1" || set -- "$CATALOG" "$2" "$3" "$4"
+  test $# -gt 0 || set -- "$CATALOG" "$2" "$3" "$4"
   test -f "$2" -a -z "$3" -a -z "$4" && {
       jq_scr="$2"
     } || {
@@ -816,9 +813,9 @@ htd_catalog__update() # ~ [Catalog] ( Jq-Script | Entry-Id JSON-Value [Entry-Key
 # Add/update entries from Annex. Even if a file does not exist, this can take
 # keys, tags and other metadata from GIT annex. See annex-metadata. The
 # standard SHA256E backend provides with bytesize and SHA256 cksum metadata.
-htd_catalog__from_annex() # ~ [Annex-Dir] [Annexed-Paths]
+htd_catalog__from_annex () # ~ [Annex-Dir] [Annexed-Paths]
 {
-  test -n "$1" || { shift ; set -- "." "$@" ; }
+  test $# -gt 0 || { shift ; set -- "." "$@" ; }
   local jq_scr="$PWD/.cllct/annex-update.jq" r='' cwd="$PWD"
   mkdir -p .cllct ; rm -f "$jq_scr"
   # Change to Annex Dir and get metadata
@@ -851,7 +848,7 @@ htd_catalog__from_annex() # ~ [Annex-Dir] [Annexed-Paths]
   return $r
 }
 
-htd_catalog__from_annex_json()
+htd_catalog__from_annex_json ()
 {
   # XXX: JSON directly makes it hard to filter -lastchanged out..?
   # XXX: Annex 5.2 json output is botched,
@@ -867,18 +864,18 @@ htd_catalog__from_annex_json()
 }
 
 # TODO: Import files from LFS test-server content dir (by SHA2)
-htd_catalog__lfs_import()
+htd_catalog__lfs_import ()
 {
   lfs_content_list "$1"
 }
 
 # TODO: import all checksum table files
-htd_catalog__ck_import()
+htd_catalog__ck_import ()
 {
   catalog.py --catalog="$CATALOG" importcks "$@"
 }
 
-req_scm_opt()
+req_scm_opt ()
 {
   test -n "$scm_all" || {
     # TODO prompt "Scan untracked only, or all (SCM untracked and excluded files)?"
@@ -888,9 +885,9 @@ req_scm_opt()
 
 # TODO: Consolidate any file; list files and check for index.
 # See htd-catalog-listtree to control which files to check
-htd_catalog__consolidate()
+htd_catalog__consolidate ()
 {
-  test -n "$1" || set -- "."
+  test $# -gt 0 || set -- "."
   catalog_listtree | while read -r fpath
   do
     case "$fpath" in
@@ -911,10 +908,10 @@ htd_catalog__consolidate()
     esac
   done
 }
-htd_catalog__cons() { htd_catalog__consolidate "$@"; }
+htd_catalog__cons () { htd_catalog__consolidate "$@"; }
 
 # TODO: consolidate data from metafiles
-htd_catalog__consolidate_metafiles()
+htd_catalog__consolidate_metafiles ()
 {
   find ./ -iname '*.meta' | while read -r metafile
   do
@@ -924,7 +921,7 @@ htd_catalog__consolidate_metafiles()
 }
 
 # TODO: merge all local catalogs (from subtrees to PWD)
-htd_catalog__consolidate_catalogs()
+htd_catalog__consolidate_catalogs ()
 {
   htd_catalog__req_local | while read -r catalog; do
     sameas "$CATALOG" "$catalog" && continue
@@ -934,7 +931,7 @@ htd_catalog__consolidate_catalogs()
 
 # Call appropiate scan_for per checksum name, hash pair read on stdin
 # Scan-for sequires local or global catalogs list
-htd_catalog__scan_for()
+htd_catalog__scan_for ()
 {
   while read -r ck key
   do
@@ -943,7 +940,7 @@ htd_catalog__scan_for()
   done
 }
 
-htd_catalog__scan_for_md5()
+htd_catalog__scan_for_md5 ()
 {
   note "Looking for MD5: $1..."
   while read -r catalog
@@ -959,7 +956,7 @@ htd_catalog__scan_for_md5()
 #htd_catalog__scan_for_sha1 "$1" && return
 
 # Can also include some Annex backends and LFS
-htd_catalog__scan_for_sha2()
+htd_catalog__scan_for_sha2 ()
 {
   note "Looking for SHA2: $1..."
   while read -r catalog
@@ -972,7 +969,7 @@ htd_catalog__scan_for_sha2()
 }
 
 # Separate subtree entries. Go about by moving each file individually
-htd_catalog__separate() # PATH
+htd_catalog__separate () # PATH
 {
   test -d "$1" || error "dir expected" 1
   while test $# -gt 0
@@ -985,9 +982,9 @@ htd_catalog__separate() # PATH
   done
 }
 
-htd_catalog__update_keys() # Entry-Id [Keys...]
+htd_catalog__update_keys () # Entry-Id [Keys...]
 {
-  test -n "$1" || error "expected properties to update" 1
+  test $# -gt 0 || error "expected properties to update" 1
   # Get entry name
   local fn="$1" ; shift
   local bn="$(basename "$fn" | sed 's/"/\\"/g')" pn="$(find . -iname "$fn" | head -n 1)"
@@ -1005,9 +1002,9 @@ htd_catalog__update_keys() # Entry-Id [Keys...]
   done
 }
 
-htd_catalog__update_all()
+htd_catalog__update_all ()
 {
-  test -n "$1" || error "expected properties to update" 1
+  test $# -gt 0 || error "expected properties to update" 1
   catalog_listtree | while read -r fn
   do
     test -f "$fn" || continue
@@ -1019,9 +1016,9 @@ htd_catalog__update_all()
   done
 }
 
-htd_catalog__addempty()
+htd_catalog__addempty ()
 {
-  test -n "${1:-}" || set -- "$CATALOG"
+  test $# -gt 0 || set -- "$CATALOG"
 
   test ! -s "$1" || {
     htd_catalog__get_by_key "$1" \
@@ -1050,7 +1047,7 @@ EOM
   } >> "$1"
 }
 
-#htd_catalog__dedupe() # DIR|GLOB|-
+#htd_catalog__dedupe () # DIR|GLOB|-
 #{
 #  htd_catalog__untracked | while read fn
 #  do
@@ -1071,7 +1068,7 @@ EOM
 
 # Assume annex is fully synced. Update catalog for missing files, and drop
 # annexed paths .
-htd_catalog__cleanup_annex_missing()
+htd_catalog__cleanup_annex_missing ()
 {
   #test -s .cllct/annex-missing.list || {
   #  git annex get . | grep '^get' | sed 's/get\ \(.*\)\ (not\ available)/\1/g' > .cllct/annex-missing.list
@@ -1092,9 +1089,9 @@ htd_catalog__cleanup_annex_missing()
 }
 
 # Create simple one-file-per-line manifests for files, bytesize, sha2 and name
-catalog_sha2list()
+catalog_sha2list ()
 {
-  test -n "$1" || set -- .cllct/catalog.sha2list
+  test $# -gt 0 || set -- .cllct/catalog.sha2list
   while read -r filename
   do
     test -e "$filename" || return
@@ -1106,7 +1103,7 @@ catalog_sha2list()
 }
 
 # Get an checksum manifest by unpacking and checksumming, and insert size
-catalog_archive_manifest() # Archive-File
+catalog_archive_manifest () # Archive-File
 {
   case "$1" in
 
@@ -1122,7 +1119,7 @@ catalog_archive_manifest() # Archive-File
 }
 
 # Unpack and use catalog_sha2list to build a content manifest
-catalog_tar_archive_manifest()
+catalog_tar_archive_manifest ()
 {
   local archive="$(realpath "$1")" ext=$(filenamext "$1")
   test -s "$archive" || return 1
@@ -1147,7 +1144,7 @@ catalog_tar_archive_manifest()
 }
 
 # Unpack and use catalog_sha2list to build a content manifest
-catalog_zip_archive_manifest()
+catalog_zip_archive_manifest ()
 {
   local archive="$(realpath "$1")" ext=$(filenamext "$1")
   test -s "$archive" || return 1
@@ -1171,7 +1168,7 @@ catalog_zip_archive_manifest()
 }
 
 # Line-by-line rewrite for size-sha2-filename list to Annex SHA256E backend keys
-lconv_sha2list_to_sha256e()
+lconv_sha2list_to_sha256e ()
 {
   awk '{
     ext=$0;
@@ -1181,21 +1178,21 @@ lconv_sha2list_to_sha256e()
 }
 
 # Line-by-line rewrite for Annex SHA256E backend keys to size-sha2-filename list
-lconv_sha256e_to_sha2list()
+lconv_sha256e_to_sha2list ()
 {
   sed 's/SHA256E-s\([0-9]*\)--\([0-9a-f]*\)\(\..*\)/\1 \2 \3/g' "$@"
 }
 
 # List all keys now dropped, content can be safely removed if left unused
-htd_catalog__droppedkeys()
+htd_catalog__droppedkeys ()
 {
-  test -n "$1" || set -- .catalog/dropped.sha2list
+  test $# -gt 0 || set -- .catalog/dropped.sha2list
   lconv_sha2list_to_sha256e "$1"
 }
 
-htd_catalog__doctree()
+htd_catalog__doctree ()
 {
-  test -n "$1" || set -- dev cabinet note Home Shop Application data
+  test $# -gt 0 || set -- dev cabinet note Home Shop Application data
   # FIXME personal sysadmin web
   test -s .cllct/catalog.yml || {
     CATALOG=.cllct/catalog.yml htd_catalog__addempty
@@ -1207,7 +1204,7 @@ htd_catalog__doctree()
 
 # Catalog files by sha2sum, using temp dir
 
-cllct_find_by_sha256e_keyparts()
+cllct_find_by_sha256e_keyparts ()
 {
   content_key="SHA256E-s${1}--${2}${3}"
   for annex in $content_annices
@@ -1225,7 +1222,7 @@ cllct_find_by_sha256e_keyparts()
   return 1
 }
 
-cllct_sha256e_tempkey()
+cllct_sha256e_tempkey ()
 {
   name_key=$(echo "$1" | sha1sum - | tr -d '\n -')
   test -e .cllct/tmp/$name_key.sh || {
@@ -1242,7 +1239,7 @@ cllct_sha256e_tempkey()
   test -z "$ext" || ext=.$ext
 }
 
-cllct_cons_by_sha256e_tempkey()
+cllct_cons_by_sha256e_tempkey ()
 {
   test -n "$noact" || noact=1
   trueish "$noact" && pref="echo" || pref=""

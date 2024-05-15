@@ -279,12 +279,73 @@ colorscheme () # (y) ~ <Variant>
   esac
 }
 
-# See also user-tools sessions
-sessions () # ~ # List both (user) shell and terminal sessions
+sessions_tmpfile_check ()
 {
-  echo "$UC_SH_ID"
-  #ls "${SD_SHELL_DIR:?}/$UC_SH_ID"*
-  #ls "${SD_SHELL_DIR:?}/"*:*.sh
+  local fn=${1:?} pid
+  : "${fn%:mpe-*}"
+  : "${_##*:}"
+  pid="$_"
+  [[ "$pid" =~ ^[0-9]+$ ]] && if_ok "$(ps -o cmd= "$pid")"
+}
+
+sessions_tmpfile_cleanup ()
+{
+  local fn=${1:?} pid cmdln
+  : "${fn%:mpe-*}"
+  : "${_##*:}"
+  pid="$_"
+  [[ "$pid" =~ ^[0-9]+$ ]] || {
+    stderr echo "Not a PID: $pid: $fn"
+    ls -la "$fn"
+    #stat "$fn"
+    #lsof "$fn"
+    return ${_E_next:?}
+  }
+  cmdln=$(ps -o cmd= "$pid") || {
+    rm -v "$fn"
+    return ${_E_next:?}
+  }
+  printf '%i: `%s` <%s>\n' "$pid" "$cmdln" "$fn"
+}
+
+# See also user-tools sessions
+sessions () # (y) ~ <Action> # List both (user) shell and terminal sessions
+{
+  case "${1:-list}" in
+  ( chk|check )
+      exec_expa "$SD_SHELL_DIR/*:mpe-{login,rc}*" sessions_tmpfile_check
+    ;;
+  ( cln|cleanup )
+      exec_expa "$SD_SHELL_DIR/*:mpe-{login,rc}*" sessions_tmpfile_cleanup
+    ;;
+  ( i|current )
+      echo "$UC_SH_ID"
+    ;;
+  ( ls|list )
+      declare -A pids
+      #exec_expaa "${SD_SHELL_DIR:?}/"*:mpe-{login,rc}:*.sh \
+      #  sessions_readpidtab
+      #  sessions_cleanup
+      local sf pid
+      for sf in "${SD_SHELL_DIR:?}/"*:mpe-{login,rc}:*.sh
+      do
+        : "${sf%:mpe-*}"
+        : "${_##*:}"
+        pid="$_"
+        [[ "$pid" =~ ^[0-9]+$ ]] || {
+          $LOG error "$lk" "Unexpected" "E$??pid=$pid"
+          continue
+        }
+        if_ok "$(ps -o cmd= "$pid")" || {
+          $LOG warn "$lk" "No longer running" "pid=$pid"
+          continue
+        }
+        pids["$pid"]=$_
+      done
+      strfmt_hashtab '%i\t%s\n' pids
+    ;;
+  ( * ) return ${_E_nsa:-68}
+  esac
 }
 
 shells () # ~ # List all shells on system
@@ -386,8 +447,10 @@ Env:
 
 system_terminal_loadenv ()
 {
+  shopt -s nullglob &&
+
   # Stick themes among all others.
-  true "${THEME_DIR:="$HOME/.local/share/themes"}"
+  true "${THEME_DIR:="$HOME/.local/share/themes"}" &&
 
   lib_load user-script term
 }

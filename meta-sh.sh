@@ -12,7 +12,7 @@ version=0.0.4-dev # script-mpe
 
 # XXX mediainfo for OSX brew
 
-meta_sh_man_1__info="Print meta_shdata (default command)"
+meta_sh_man_1__info="Print metadata (default command)"
 meta_sh__info()
 {
   test -n "$1" || error "Expected path" 1
@@ -30,8 +30,8 @@ meta_sh__info()
 
 annex_md_update()
 {
-  test "$(git annex meta_shdata --get=$1 "$3")" = "$2" || {
-    git annex meta_shdata --set $1=$2 "$3"
+  test "$(git annex metadata --get=$1 "$3")" = "$2" || {
+    git annex metadata --set $1=$2 "$3"
   }
 }
 
@@ -89,7 +89,7 @@ meta_sh_man_1__edit_main="Edit the main script file"
 meta_sh_spc__edit_main="-E|edit-main"
 meta_sh__edit_main()
 {
-  locate_name $scriptname || exit "Cannot find $scriptname"
+  locate_name $scriptname || error "Cannot find $scriptname" 1
   note "Invoking $EDITOR $fn"
   $EDITOR $fn
 }

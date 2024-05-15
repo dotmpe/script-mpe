@@ -297,7 +297,7 @@ exec_watch_poll_pathlist() # LIST CMD CMD-ARG...
 
   check() { test "$1" -ot "$watchme"; }
   check_watchlist_mtimes() { check_pathlist_modified "$watchme"; }
-  run_and_relist() { ret=; exec_arg "$@" || ret=$?; relist;
+  run_and_relist() { ret=; execa_cmd "$@" || ret=$?; relist;
       test -z "$ret" || warn "exec-watch-poll-pathlist:inner '$*': $ret"
       return $ret; }
 

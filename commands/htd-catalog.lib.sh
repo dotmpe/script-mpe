@@ -82,10 +82,20 @@ htd__catalog ()
   subcmd_prefs=${base}_catalog__ try_subcmd_prefixes "$@"
 }
 htd_flags__catalog=ilIAO
-htd_libs__catalog='match str-htd date-htd schema list ignores file archive ck-htd ck catalog' # XXX: match-htd statusdir src-htd
+htd_libs__catalog='match str-htd date-htd list ignores file archive ck-htd ck catalog' # XXX: match-htd statusdir src-htd
 
 htd_als__catalogs='catalog list'
 htd_als__fsck_catalog='catalog fsck'
+
+htd_catalog__paths () # List catalog path-names ~
+{
+  trueish "${choice_global:-0}" && {
+    htd_catalog__req_global
+    return $?
+  } || {
+    htd_catalog__req_local
+  }
+}
 
 htd_catalog__help ()
 {
@@ -96,6 +106,8 @@ htd_catalog__help ()
 htd_catalog__info () # Some catalog info ~
 {
   $LOG header $scriptname:catalog:info
+
+  lib_init catalog || return
 
   $LOG header2 "Catalog-Default" "$CATALOG_DEFAULT"
   $LOG header2 "Catalog" "$CATALOG" "$(echo $( filesize "$CATALOG" && {

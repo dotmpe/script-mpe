@@ -257,46 +257,9 @@ ssh_agent_key_count ()
   echo "$count"
 }
 
-sessions_tmpfile_check ()
-{
-  local fn=${1:?} pid
-  : "${fn%:mpe-*}"
-  : "${_##*:}"
-  pid="$_"
-  [[ "$pid" =~ ^[0-9]+$ ]] && if_ok "$(ps -o cmd= "$pid")"
-}
-
-sessions_tmpfile_cleanup ()
-{
-  local fn=${1:?} pid cmdln
-  : "${fn%:mpe-*}"
-  : "${_##*:}"
-  pid="$_"
-  [[ "$pid" =~ ^[0-9]+$ ]] || {
-    stderr echo "Not a PID: $pid: $fn"
-    ls -la "$fn"
-    #stat "$fn"
-    #lsof "$fn"
-    return ${_E_next:?}
-  }
-  cmdln=$(ps -o cmd= "$pid") || {
-    rm -v "$fn"
-    return ${_E_next:?}
-  }
-  printf '%i: `%s` <%s>\n' "$pid" "$cmdln" "$fn"
-}
-
 sessions () # (y) ~ <Action ...> # List and check user sessions
 {
   case "${1:-list}" in
-  ( check|chk )
-      shopt -s nullglob &&
-      exec_exp "$SD_SHELL_DIR/*:mpe-{login,rc}*" sessions_tmpfile_check
-    ;;
-  ( cleanup|cln )
-      shopt -s nullglob &&
-      exec_exp "$SD_SHELL_DIR/*:mpe-{login,rc}*" sessions_tmpfile_cleanup
-    ;;
   ( list|ls )
       cat "$SD_SLOG"
     ;;

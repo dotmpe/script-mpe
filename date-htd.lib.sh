@@ -262,7 +262,14 @@ fmtdate_relative_f () # ~ <Time-Spec>
 # (ie. 10E-24 to 10E+24)
 # XXX: want more resolution for fmtdate_relative.
 # Also printing several orders together. But not a lot of customization.
+
 seconds_fmt_relative_f () # ~ <Timestamp> <Delta>
+{
+  stderr echo "deprecated: seconds_fmt_relative_f: $(sys_caller)"
+  fmttime_relative_f "$@"
+}
+
+fmttime_relative_f ()
 {
   test -z "${1-}" && shift || {
     test -n "${2:-}" && shift ||

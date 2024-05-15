@@ -4,13 +4,12 @@
 
 schema_lib__load ()
 {
-  test -n "${ajv_cli-}" || ajv_cli=$scriptpath/node_modules/ajv-cli/index.js
+  true "${ajv_cli:=${scriptpath:?}/node_modules/ajv-cli/index.js}"
 }
 
 schema_lib__init ()
 {
-  test -x "$ajv_cli" ||
-      $LOG error "" "Installation needed" "ajv-cli" 1
+  test -x "$ajv_cli" || $LOG error "" "Installation needed" "ajv-cli" 1
 }
 
 schema_fordoc()

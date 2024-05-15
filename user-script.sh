@@ -845,9 +845,8 @@ user_script_load () # ~ <Actions...>
           $LOG debug "$lk" "Running hooks" "$hooks"
           local hook
           for hook in $hooks
-          do lk=$plk:user-script:hooks \
-            "$hook" || $LOG error "$lk" "Failed in hook" "E$?:$hook" $? ||
-            return
+          do lk=$plk:user-script:hooks "$hook" ||
+            $LOG error "$lk" "Failed in hook" "E$?:$hook" $? || return
           done
         ;;
 
@@ -908,8 +907,11 @@ user_script_loadenv ()
   #: "${_E_cont:=100}"
   : "${_E_recursion:=111}" # unwanted recursion detected
 
+  #: "${_E_bug:=121}" # BUG: known issue
+  #: "${_E_fixme:=122}" # FIXME/task: cleanup required or incomplete specs/code/...
+  : "${_E_xxx:=123}" # XXX/deprecated: attention/removal required
   : "${_E_NF:=124}" # no-file/no-such-file(set): file missing or nullglob
-  : "${_E_todo:=125}" # impl. missing
+  : "${_E_missing:=125}" # TODO: impl. missing
   : "${_E_not_exec:=126}" # NEXEC not-an-executable
   : "${_E_not_found:=127}" # NSFC no-such-file-or-command
   # 128+ is mapped for signals (see trap -l)
@@ -922,7 +924,7 @@ user_script_loadenv ()
   : "${_E_retry:=198}" # failed, but can or must reinvoke
   : "${_E_limit:=199}" # generic value/param OOB error?
 
-  TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_todo:?}; }
+  TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_missing:?}; }
 
   error () { $LOG error : "$1" "E$2" ${2:?}; }
   warn () { $LOG warn : "$1" "E$2" ${2:?}; }

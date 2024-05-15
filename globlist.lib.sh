@@ -5,7 +5,7 @@
 
 globlist_lib__load()
 {
-  lib_require os date-htd meta || return
+  lib_require os shell-uc date-htd meta || return
   #os:if_ok
 	#os:remove_dupes_nix
   #os:filter_lines
@@ -20,6 +20,8 @@ globlist_lib__load()
 globlist_lib__init()
 {
   test -z "${globlist_lib_init-}" || return $_
+  # FIXME: lib_require shell-uc || return
+
   ! "${globlist_static_init:-false}" && return
   # This will set the globlist{s,_groups} data and global IGNORES, <base>_IGNORE
   # variables. Using parameterized contexts with class.GlobList allows for more
