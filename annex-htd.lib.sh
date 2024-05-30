@@ -6,21 +6,17 @@ annex_htd_lib__load()
   lib_require os-uc annex srv-htd class-uc || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}AnnexTab
   : "${HTD_DEFAULT_ANNEX:=archive-1}" # Primary Annex, to select during init
+  : "${SHARE_DIR:=/srv/share-local}"
+  : "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"
 }
 
-#annex_htd_lib__init ()
-#{
-#  test 0 = "${class_uc_lib_init:-}" && {
-#    test 0 = "${annex_htd_lib_init:-}" || unset annex_htd_lib_init
-#  } || {
-#    return 198
-#  }
-#  # lib_initialized class-uc ||
-#  test -z "${annex_htd_lib_init:-}" || return $_
-#  create annexes AnnexTab $ANNEXTAB &&
-#  ! "${annex_htd_autoload:-true}" || annex_htd_load_default
-#}
 
+annex_htd_init_default ()
+{
+  class_init AnnexTab{,Entry} &&
+  create annexes AnnexTab $ANNEXTAB || return
+  : "${annexes:?Expected annexes table}"
+}
 
 annex_htd_load_default ()
 {

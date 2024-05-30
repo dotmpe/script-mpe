@@ -61,10 +61,7 @@ match_load_defs()
 # Get AWK pattern
 match_awk () # ~ <String>
 {
-  echo "$1" | $gsed -E '
-      s/([^A-Za-z0-9{},?!@+_&#~ ])/\\\1/g
-      s/'"'"'/\\&/g
-  '
+  <<< "$1" ${gsed:-sed} -E 's/([][\\^$.|()*+?{}])/\\\1/g'
 }
 
 #

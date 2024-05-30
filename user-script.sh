@@ -186,10 +186,10 @@ script_cmdid ()
     }
 }
 
-script_debug_args () # ~ <Array-var> # Pretty print array
+script_debug_args () # ~ <Args> # Pretty-print arguments
 {
   test 0 -lt $# || return ${_E_MA:?}
-  local arg i=0
+  local arg i=1
   for arg in "$@"
   do
     echo "$i: $arg"
@@ -198,7 +198,7 @@ script_debug_args () # ~ <Array-var> # Pretty print array
 }
 
 # Turn declaration into pretty print using sed
-script_debug_arr () # ~ <Array-var> # Pretty print array
+script_debug_arr () # ~ <Array-var> # Pretty-print array
 {
   test 1 -eq $# || return ${_E_MA:?}
   if_ok "$(declare -p ${1:?})" &&

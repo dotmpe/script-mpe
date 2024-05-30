@@ -5,9 +5,6 @@
 
 transmission_lib__load ()
 {
-  : "${SHARE_DIR:=/srv/share-local}"
-  : "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"
-
   : "${TRANSMISSIONBT_UC_DIR:=$HOME/.config/transmission}"
   : "${TRANSMISSIONBT_BLOCKLIST_DIR:=${TRANSMISSIONBT_UC_DIR:?}/blocklist}"
   : "${TRANSMISSIONBT_TORRENTS_DIR:=${TRANSMISSIONBT_UC_DIR:?}/torrents}"
@@ -216,10 +213,10 @@ transmission_is_item () # ~ [name|hash] <Info-Name-or-Hash>
 # be using the validate function now when things go amiss.
 transmission_item_check () # ~ [ <Handler <Arg...>> ]
 {
-  true "${ti_c_quiet:=${quiet:-0}}"
+  true "${ti_c_quiet:=${quiet:-false}}"
 
   [[ $numid =~ \*$ ]] && {
-    test $ti_c_quiet -eq 1 ||
+    "$ti_c_quiet" ||
       $LOG error "$lk" "Issues exist for" "$name"
     return ${_E_next:?}
   }
@@ -229,20 +226,21 @@ transmission_item_check () # ~ [ <Handler <Arg...>> ]
   case "${status:?}" in
   ( Idle | Downloading | Seeding | Uploading | Stopped | Up-Down | Queued | Finished ) ;;
   ( * )
-    test $ti_c_quiet -eq 1 ||
+    "$ti_c_quiet" ||
       $LOG error "$lk" "Unknown status '$status'" "$name";
     return ${_E_nsk:-67}
   esac
 
   # Finish check. Or defer to inner handler if args given
   test $# -eq 0 && {
-    test $ti_c_quiet -eq 1 ||
+    "$ti_c_quiet" ||
       $LOG notice "$lk" "$num OK" "$name; $status"
   } || "$@"
 }
 
-# Reset variables that are not read directly as part of while-read-loop.
-transmission_item_clearenv ()
+# Reset variables that are not read directly as part of while-read-loop (in
+# transmission-list-run).
+transmission_item_clearenv () # ~
 {
   tjs= mijs= btih= dn= tbn= in= length= parts=
   #tf
@@ -391,13 +389,13 @@ transmission_item_pause_post ()
 # Collect lists of currently connected peers per share
 transmission_item_peers () # ~ [<transmission_item_peers_logupdate>]
 {
-  ti_c_quiet=1 transmission_item_share_info -- || return
+  ti_c_quiet=${quiet:-true} transmission_item_share_info -- || return
 
   # NOTE: -pi is an alias for -ip and --info-peers
   peers=$(transmission_client_remote -t "$num" -pi | tail -n +2)
   test -n "$peers" || return ${_E_next:?}
 
-  test ${quiet:-0} -eq 1 || {
+  "${quiet:-false}" || {
     test $status = Idle &&
         echo "$numid. $name ($status, $pct of $avail)" ||
         echo "$numid. $name ($status, $pct of $avail, $up/$down)"
@@ -580,7 +578,7 @@ transmission_item_trackers () # ~ [<Inner-handler>]
   trackers=$(echo "$trackers_raw" | grep -oP '^ *Tracker\ [1-9][0-9]*: \K.*')
   # echo "$trackers_raw" | grep 'an error' | sed 's/Got an error //' || true
 
-  test ${quiet:-0} -eq 1 || {
+  "${quiet:-false}" || {
     echo "$numid. $name (Trackers: $tcnt)"
     echo "$trackers" | sed 's/^/  /'
   }
@@ -617,16 +615,18 @@ transmission_item_validate () # ~
 
 # Container for actions that wrap `transmission-remote -l`, for more complex
 # commands and batch operations see usage of transmission-list-run.
-transmission_list () # ~ <Action ...> # Filter/process clients list output
+transmission_list () # (y) ~ <Action ...> # Filter/process clients list output
 {
   test $# -gt 0 || set -- tab
   local lk=${lk:-}:transmission-list
   case "${1:?}" in
 
   ( a|active )
-      transmission_client_remote -l | grep ${grep_f:-} -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
+      transmission_client_remote -l |
+        grep ${grep_f:-} -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
   ( S|not-stopped )
-      transmission_client_remote -l | grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
+      transmission_client_remote -l |
+        grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
   ( idle )
       transmission_client_remote -l | grep ${grep_f:-} 'Idle' ;;
   ( e|errors|issues )
@@ -742,14 +742,14 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
   ! sh_fun "$1"_pre || {
     "$1"_pre "$@" || return
   }
-  $LOG info "$_lk" "Started list run" "quiet=${tlr_quiet:-${quiet:-0}}"
+  $LOG info "$_lk" "Started list run" "quiet=${tlr_quiet:-${quiet:-false}}"
   while read -r numid pct have eta up down ratio status name
   do
     test "$numid" = ID && continue
     test "$numid" != "Sum:" && {
-
       itcnt=$(( itcnt + 1 ))
       lk=${__lk/::/[$numid]}
+
       ! ${bounds:-false} || {
         test "$itcnt" -ge "$start_at" && {
           test "$stop_after" = "*" || test "$itcnt" -le "$stop_after"
@@ -771,7 +771,7 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
       test "$have" != None || have=
       test "$eta" != Unknown || eta=
 
-      test ${tlr_quiet:-${quiet:-0}} -eq 1 || {
+      "${tlr_quiet:-${quiet:-false}}" || {
         test $(expr $itcnt % ${tl_li:-100}) -ne 0 ||
           $LOG notice "$_lk" "$itcnt items read..."
       }
@@ -784,13 +784,13 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
           ret=1
           continue
         }
-        test ${tlr_quiet:-${quiet:-0}} -eq 1 ||
+        "${tlr_quiet:-${quiet:-false}}" ||
           $LOG error "$lk" "Failed on id $num" "E$r:$name"
         return $r
       }
 
     } || {
-      test ${tlr_quiet:-${quiet:-0}} -eq 1 ||
+      "${tlr_quiet:-${quiet:-false}}" ||
         $LOG notice "$lk" "All items read, summary:" \
             "size:$pct items:$itcnt xfer:: up:$have down:$eta"
       break

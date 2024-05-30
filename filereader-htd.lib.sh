@@ -91,12 +91,12 @@ class_FileReader_ () # ~ <Instance-Id> .<Message-name> <Args...>
 {
   case "${call:?}" in
 
-    ( .__init__ )
-        test -f "${2:?}"
-        FileReader__file[$id]=$_ &&
-        $super.__init__ "${@:1:2}" "${@:3}" ;;
+  ( .__init__ )
+      test -f "${2:?}"
+      FileReader__file[$id]=$_ &&
+      $super.__init__ "${@:1:2}" "${@:3}" ;;
 
-      * ) return ${_E_next:?};
+  ( * ) return ${_E_next:?};
 
   esac && return ${_E_done:?}
 }
@@ -112,7 +112,7 @@ class_ListFile_ () # ~ <Instance-Id> .<Message-name> <Args...>
 {
   case "${call:?}" in
 
-      * ) return ${_E_next:?}
+  ( * ) return ${_E_next:?}
 
   esac && return ${_E_done:?}
 }
@@ -127,31 +127,38 @@ class_TabFile_ () # ~
 {
   case "${call:?}" in
 
-    ( .grep-tab ) # ~ ~ <Grep-key> <Grep-type>
-        declare tabfile
-        tabfile=$($self.attr file FileReader) &&
-        < "$tabfile" tabfile_grep "$1" "${2:--val}"
-      ;;
+  ( .grep-tab ) # ~ ~ <Grep-key> <Grep-type>
+      declare tabfile
+      tabfile=$($self.attr file FileReader) &&
+      < "$tabfile" tabfile_grep "$1" "${2:--val}"
+    ;;
 
-    ( .by-column-value ) # ~ ~ ...
-        local grep_f=
-        $self.grep-tab "$@"
-      ;;
+  ( .by-column-value ) # ~ ~ ...
+      local grep_f=
+      $self.grep-tab "$@"
+    ;;
 
-    ( .key-by-index ) # ~ ~ <Match-col> <Val> <Select-col=0>
-        declare tabfile
-        tabfile=$($self.attr file FileReader) &&
-        < "$tabfile" awk "{ if ( \$$1 == \"$2\" ) print \$${3:-0}; }"
-      ;;
+  ( .key-by-index ) # ~ ~ <Match-col> <Val> <Select-col=0>
+      declare tabfile
+      tabfile=$($self.attr file FileReader) &&
+      < "$tabfile" awk "BEGIN {found=0}
+        { if ( \$$1 == \"$2\" ) {
+            print \$${3:-0};
+            found = 1
+            stop
+        } }
+        END {if(!found) exit 1}
+      "
+    ;;
 
-    ( .keys-by-index ) # ~ ~ <Col-index=1>
-        if_ok "$($self.attr file FileReader)" && < "$_" awk "
-          /^ *$/ { next; }
-          /^ *#/ { next; }
-          { print \$${1:-1} }"
-      ;;
+  ( .keys-by-index ) # ~ ~ <Col-index=1>
+      if_ok "$($self.attr file FileReader)" && < "$_" awk "
+        /^ *$/ { next; }
+        /^ *#/ { next; }
+        { print \$${1:-1} }"
+    ;;
 
-      * ) return ${_E_next:?}
+    * ) return ${_E_next:?}
 
   esac && return ${_E_done:?}
 }

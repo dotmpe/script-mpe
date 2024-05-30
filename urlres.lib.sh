@@ -106,7 +106,7 @@ urlres_ref_env () # ~ <...>
   declare lk=${lk:-}:ref-env
   pattern=${!kid:-}
   test -n "$pattern" && {
-    $LOG info "$lk" "Found pattern spec at key '$kid'" "${_//%/%%}"
+    $LOG debug "$lk" "Found pattern spec at key '$kid'" "${_//%/%%}"
     format=${pattern/:*}
     : "$(( ${#format} + 1 ))"
     pattern="${pattern:$_}"

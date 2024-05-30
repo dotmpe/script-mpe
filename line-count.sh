@@ -1,4 +1,4 @@
-# Count actual lines of files from find inv
+## Count actual lines in files, found with find invocation
 
 sh_mode strict dev
 lib_require os sys

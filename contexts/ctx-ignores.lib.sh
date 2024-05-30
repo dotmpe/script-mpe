@@ -1,7 +1,7 @@
 
 ctx_ignores_lib__load ()
 {
-  lib_require ctx-globlist || return
+  lib_require globlist || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types+" "}Ignores
   : "${ignores_methods:=find_expr find_files find_glob_expr stddef}"
 }
