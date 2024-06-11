@@ -178,6 +178,40 @@ print_var()
   esac
 }
 
+# prompt-ac is used to select a value based on a prefix that is either given as
+# pre-filled and/or entered by the user. This is useful when the user knows the
+# structure of all known values, to quickly get to a full string using only and
+# as minimal key inputs, and then to possibly amend that value to create a new
+# string before returning the whole value.
+#
+# When the structure is unclear, or the entire body of values is just to big, a
+# fuzzy matcher would be more appropiate for UX.
+# Also a proper UI with arrow key and other selections modes.
+#
+prompt_autocomplete () # ~ <Prompt> <Var> <ac>
+{
+  local prompt=${1:?} var=${2:?} ac=${3:?}
+  prompt_autocomplete_tab () {
+    # XXX: silence compgen about '-C may not work as expected'...
+    # maybe should rewrite to function
+    if_ok "$(compgen -C $ac "$READLINE_LINE" 2>/dev/null)" &&
+    mapfile -t matches <<< "$_" && {
+      [[ "${#matches[@]}" -eq 1 ]] &&
+      READLINE_LINE=${matches[0]} || {
+        # Print all possible values
+        stderr echo "No exact match, possible values:"
+        printf '%s\n' "${matches[@]}" | column
+        # Common string prefix from list: Longest match using sed
+        READLINE_LINE=$(<<< "$(printf '%s\n' "${matches[@]}")"  \
+          sed -e 'N;s/^\(.*\).*\n\1.*$/\1\n\1/;D' )
+      }
+    }
+    READLINE_POINT="${#READLINE_LINE}"
+  }
+  bind -x '"\t":"prompt_autocomplete_tab"';
+  read -rep "$prompt" "${var?}";
+}
+
 push_pwd() # [Dir]
 {
   test -z "${1-}" || { cd $1 || return; }
@@ -245,6 +279,5 @@ sys_running () # ~ <Exec>
 {
   pgrep "$1" >/dev/null
 }
-
 
 # Sync: U-S:src/sh/lib/sys.lib.sh

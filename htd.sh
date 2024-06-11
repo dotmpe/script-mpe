@@ -1426,7 +1426,7 @@ htd__main_doc_paths()
         error "Not a main-doc $1"
 
   } || set -- "$candidates"
-  for x in "$@"; do
+  for x ; do
     test -e "$x" || continue
     set -- "$x"; break; done
   echo "$(basename "$1" $DOC_EXT) $1"
@@ -1786,7 +1786,7 @@ htd__txt()
 
     number | enumerate ) shift
         offset=0
-        for list in "$@"
+        for list
         do
           enum_nix_style_file "$list" | while read num line
           do
@@ -2072,7 +2072,7 @@ htd__rename()
   test -z "$1" && {
     htd_git_rename "$from_pattern" "$to_pattern"
   } || {
-    { for p in "$@"; do echo $p; done ; echo -e "\l"; } |
+    { for p ; do echo $p; done ; echo -e "\l"; } |
     htd_git_rename "$from_pattern" "$to_pattern"
   }
 }
@@ -2173,7 +2173,7 @@ htd__update_checkout()
   test -n "$push" || push=0
   (
     cd $scriptpath
-    local branch=$1 ; shift ; for remote in "$@"
+    local branch=$1 ; shift ; for remote
     do
       # Check argument is a valid existing branch on remote
       git checkout "$branch" &&
@@ -2300,7 +2300,7 @@ htd__push_commit()
   }
   # Perform push
   trueish "$push" && {
-    for remote in "$@"
+    for remote
     do
       trueish "$any" && {
         git push --all $remote || failed "$base:$subcmd:push-any:$remote"
@@ -2451,7 +2451,7 @@ htd__save_ref()
   tags="$1"
 
   shift 1
-  for ref in "$@"
+  for ref
   do
     echo TODO: save $ref
   done
@@ -3535,7 +3535,7 @@ htd_spc__finfo="finfo DIR"
 htd__finfo()
 {
   req_dir_env HTDIR
-  for dir in "$@"
+  for dir
   do
     finfo.py --recurse --documents --env htdocs=HTDIR $dir \
       || return $?
@@ -3837,7 +3837,7 @@ htd__backup()
     note "Moving $# files to backup.."; bu_act=mv; bu_act_lbl=Move
   }
 
-  local srcpaths="$(for arg in "$@"
+  local srcpaths="$(for arg
     do
       test -f "$arg" || warn "Missing or not a file for backup: '$arg'" 1
       realpath "$arg"
@@ -4100,7 +4100,7 @@ htd__src_info()
 {
   test -n "$1" || set -- $0
   local functions=0 lines=0
-  for src in "$@"
+  for src
   do
     src_id=$(prefix_resolve $src)
     $htd_log file_warn $src_id "Listing info.." >&2
@@ -4719,7 +4719,7 @@ htd_main ()
 htd_optsv()
 {
   set -- $(lines_to_words $options)
-  for opt in "$@"
+  for opt
   do
     case "$opt" in
       -S* ) search="$(echo "$opt" | cut -c3-)" ;;

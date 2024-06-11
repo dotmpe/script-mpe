@@ -242,7 +242,7 @@ archive_verbose_list() # Archive Fields
   local f=$1
   shift 1
   test -n "$*" || error "archive-verbose-list:fields" 1
-  fields="$(for x in "$@"; do printf "\$$x "; done)"
+  fields="$(for x ; do printf "\$$x "; done)"
   case "$f" in
 
     *.zip )

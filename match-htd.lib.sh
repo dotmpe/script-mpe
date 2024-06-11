@@ -61,7 +61,7 @@ match_load_defs()
 # Get AWK pattern
 match_awk () # ~ <String>
 {
-  <<< "$1" ${gsed:-sed} -E 's/([][\\^$.|()*+?{}])/\\\1/g'
+  <<< "$1" ${gsed:-sed} -E 's/([][\\^$.|()*+?{}/])/\\\1/g'
 }
 
 #

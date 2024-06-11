@@ -106,13 +106,13 @@ bittorrent_read () # ~ <Torrent-File> # Read .torrent magnet info and metadata i
   bittorrent_magnet_read "$1" || return
 
   test "$btih" != null || {
-    test ${quiet:-0} -eq 1 ||
+    sys_debug quiet ||
       $LOG warn "torrent-read" "No BTIH in torrent file" "$tbn"
     return 11
   }
 
   test "$( echo "$tjs" | jq '.info' )" != "null" || {
-    test ${quiet:-0} -eq 1 ||
+    sys_debug quiet ||
       $LOG warn "torrent-read" "No metadata for BTIH" "$btih:$tbn"
     return 12
   }

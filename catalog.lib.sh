@@ -5,25 +5,25 @@
 
 catalog_lib__load ()
 {
-  true "${CATALOG_DEFAULT:="catalog.yml"}"
+  true "${CATALOG_DEFAULT:="catalog.yaml"}"
 
   true "${CATALOG_CACHE_DIR:=".meta/cache"}"
 
-  # List for all catalogs below PWD
-  test -n "${CATALOGS-}" || CATALOGS=$CATALOG_CACHE_DIR/catalogs.list
-
-  # Global catalog list file
+  # Global catalogs list file
   test -n "${GLOBAL_CATALOGS-}" ||
     GLOBAL_CATALOGS=${XDG_CONFIG_HOME:-$HOME/.config}/catalogs.list
+
+  # Local catalogs list file
+  test -n "${CATALOGS-}" || CATALOGS=$CATALOG_CACHE_DIR/catalogs.list
 
   test -n "${Catalog_Status-}" ||
       Catalog_Status=$CATALOG_CACHE_DIR/catalog-status.vars
   test -n "${Catalog_Duplicates-}" ||
       Catalog_Duplicates=$CATALOG_CACHE_DIR/catalog-duplicates
 
-  test -n "${ANNEX_DIR-}" || {
-    ANNEX_DIR="/srv/annex-local"
-    test ! -h "$ANNEX_DIR" || ANNEX_DIR="/srv/$(readlink /srv/annex-local)"
+  test -n "${ANNEX_VOL_DIR-}" || {
+    ANNEX_VOL_DIR="/srv/annex-local"
+    test ! -h "$ANNEX_VOL_DIR" || ANNEX_VOL_DIR="/srv/$(readlink /srv/annex-local)"
   }
 }
 
@@ -31,20 +31,55 @@ catalog_lib__init ()
 {
   test "${catalog_lib_init-}" = "0" && return
   true "${define_all:=1}" # XXX: override htd-load to set any argv opts to vars
-  test -d $CATALOG_CACHE_DIR || mkdir -p $CATALOG_CACHE_DIR
-  test -e "${CATALOG:-}" || CATALOG=$(catalog_name)
-  test -n "${CATALOG-}" || CATALOG="$CATALOG_DEFAULT"
-  test -n "${Archive_Catalogs:-}" || {
-
-    Archive_Catalogs=$(
-        for archive_dir in ${Archive_Dirs:-$HOME/Downloads $HOME/htdocs/cabinet}
-        do
-          catalog_list_names "$archive_dir" ||
-              $LOG warn "" "No catalog files found for Archive-Dir" "$archive_dir"
-        done )
+  test -d $CATALOG_CACHE_DIR || mkdir -p $CATALOG_CACHE_DIR || return
+  test -e "${CATALOG:-}" || {
+    CATALOG=$(catalog_name)
+    test -n "${CATALOG-}" || CATALOG="$CATALOG_DEFAULT"
   }
+  # TODO: determin global Id and cache path
+  CATALOG_JS=${CATALOG_CACHE_DIR:?}/$(os_basename "$CATALOG" .yml .yaml).json
+  #test -n "${Archive_Catalogs:-}" || {
+
+  #  Archive_Catalogs=$(
+  #      for archive_dir in ${Archive_Dirs:-$HOME/Downloads $HOME/htdocs/cabinet}
+  #      do
+  #        catalog_list_path "$archive_dir" ||
+  #            $LOG warn "" "No catalog files found for Archive-Dir" "$archive_dir"
+  #      done )
+  #}
 }
 
+
+catalog_js ()
+{
+  local jsfp=${CATALOG_JS:?}
+  test -e "${CATALOG:?}" || return 127
+  catalog_js_cache "$CATALOG" "$jsfp" &&
+  case "${1:?}" in
+  ( i | info )
+      set -- "${CATALOG:?}" "${CATALOG_JS:?}" .meta/stat/index/catalog.tab
+      echo Lines:
+      wc -l "$@"
+      echo Filesize:
+      du -hs "$@"
+    ;;
+  ( q | jq )
+      jq "${@:2}" "$jsfp"
+    ;;
+  ( * ) return ${_E_nsa:?}
+  esac
+}
+
+catalog_js_cache ()
+{
+  local source=${1:?} cache=${2:?}
+  test -e "$source" || return 127
+  test -s "$cache" -a "$cache" -nt "$source" || {
+    $LOG info "$lk" "Updating catalog JSON cache" "$cache"
+    jsotk yaml2json --ignore-alias "${@:?}" ||
+      $LOG error "$lk" "Failed updating catalog JSON cache" "E$?:$cache" $?
+  }
+}
 
 # Find untracked elements below PATH.
 catalog_listtree () # ~ [PATH]
@@ -102,16 +137,16 @@ catalog_list_global ()
   # NOTE: no brace-expansion here ('*/catalog{,-*}.y{,a}ml')
   { locate '*/catalog.yaml' '*/catalog.yml' \
     '*/catalog-*.yml' '*/catalog-*.yaml' || return
-  } | tee $CATALOGS || return
-  test -s $CATALOGS || { error "No catalog files found" ; return 1 ; }
+  } | tee "${GLOBAL_CATALOGS:?}" || return
+  test -s "${GLOBAL_CATALOGS:?}" || error "No global catalog files found" 1
 }
 
-# Cache catalogs list. Error if none found.
-catalog_list_names () # ~ [PATH=.]
+# Cache (local) catalogs list. Error if none found.
+catalog_list_path () # ~ [PATH=.]
 {
   { catalog_list_path_files "${1:-}" || return
-  } | tee "${1:-"."}/$CATALOGS" || return
-  test -s "${1:-"."}/$CATALOGS" || { error "No catalog files found" ; return 1 ; }
+  } | tee "${1:-"."}/${CATALOGS:?}" || return
+  test -s "${1:-"."}/${CATALOGS:?}" || error "No local catalog files found ($_)" 1
 }
 
 # List catalog file names below
@@ -126,6 +161,9 @@ catalog_list_path_files () # ~ [PATH=.]
   }
 }
 
+# FIXME: select by name.
+# Catalogs are tied to repositories, from which their globally unique Id is
+# derived.
 catalog_name () # ~ [PATH=.]
 {
   test -s "${1:-"./"}$CATALOGS" && {
@@ -143,23 +181,33 @@ catalog_paths_filter ()
   grep -vf "$IGNORES.regex"
 }
 
-htd_catalog__as_json ()
+htd_catalog_json ()
 {
   test $# -gt 0 || set -- "$CATALOG"
-  local jsonfn s=''
-  jsonfn="$(pathname "$1" .yml .yaml).json"
+  jsonfn="$(pathname "${1:?}" .yml .yaml).json"
+  local s=''
   { test -e "$jsonfn" -a "$jsonfn" -nt "$1" || {
         {
           trueish "${update_json-}" || test ! -e "$jsonfn"
         } && {
           jsotk yaml2json --ignore-alias "$1" "$jsonfn" || s=$?
           test ${s:-0} -eq 0 ||
-            error "Generating <$jsonfn>" $s
+            $LOG error "$lk" "Generating catalog JSON" "E$s:$jsonfn" $s ||
+              return
         } ||
-          alert "Updated needed from YAML <$jsonfn>" 1
+          $LOG alert "$lk" "Update needed from YAML" "$jsonfn" 1 ||
+            return
       }
     } >&2
-  test -e "$jsonfn" || error "Unable to get CATALOG json for '$1' '$jsonfn'" 1
+  test -e "$jsonfn" ||
+    $LOG error "$lk" "Unable to get CATALOG json for '$1' '$jsonfn'" "" 1 ||
+      return
+}
+
+htd_catalog__as_json ()
+{
+  local jsonfn
+  htd_catalog_json &&
   cat "$jsonfn"
 }
 
@@ -422,7 +470,7 @@ htd_catalog__req_local ()
     cat $CATALOGS
     $LOG "info" "$scriptname:catalog:req-local" "To update list run:" 'catalog list-local'
   } || {
-    catalog_list_names || return
+    catalog_list_path || return
   }
 }
 
@@ -431,9 +479,8 @@ htd_catalog__req_global ()
   test -e $GLOBAL_CATALOGS && {
     cat $GLOBAL_CATALOGS
     $LOG "info" "$scriptname:catalog:req-global" "To update list run:" 'catalog list-global'
-  } || {
+  } ||
     catalog_list_global || return
-  }
 }
 
 catalog_has_file () # ~ FILE [CATALOG]
@@ -488,7 +535,7 @@ htd_catalog__generate_entry () # ~ <File>
 - name: "$basename"
   mediatype: '$mtype'
   format: '$format'
-  keys:
+  key:
     ck: $cksum
     md5: $md5sum
     sha1: $sha1sum
@@ -1036,7 +1083,7 @@ htd_catalog__addempty ()
 - name: .empty
   format: empty
   mediatype: inode/x-empty; charset=binary
-  keys:
+  key:
     ck: 4294967295 0
     crc32: 0 0
     md5: d41d8cd98f00b204e9800998ecf8427e

@@ -1,13 +1,13 @@
 #!/bin/sh
 
-## Annex: GIT annex wrappers (consolidate and lock media-file versions)
+## Annex: consolidated, distributed (file) data collections
 
+# prototype in annex-htd uses classes
 
-annex_lib__load()
+annex_lib__load () # ~ ...
 {
-  lib_require class-uc stattab-uc || return
-
-  : "${ANNEXTAB:=${STATUSDIR_ROOT:?}index/annexes.tab}"
+  : "${HTD_ANNEX_DEFAULT:=cabinet}" # Primary Annex, to select during init
+  : "${ANNEX_VOL_DIR:=/srv/annex-local}"
 
   #: "${ANNEX_DIR:?}"
   #content_annices="$ANNEX_DIR/archive-old $ANNEX_DIR/backup $ANNEX_DIR/photos"
@@ -16,10 +16,16 @@ annex_lib__load()
   #content_annices="$()"
 }
 
-
-annex_lib__init ()
+annex_lib__init () # ~ ...
+# Initializes for use with one single directory. TODO: integrate annex-htd
 {
   test -z "${annex_lib_init:-}" || return $_
+
+  local id
+  id=${ANNEX_ID:-${HTD_ANNEX_DEFAULT:?}}
+  test -d "${ANNEX_VOL_DIR:?}/${id}" ||
+    $LOG warn "" "No such directory for annex" "$_" 127 || return
+  ANNEX_DIR=$_
 }
 
 annex_init()
@@ -266,7 +272,7 @@ git_annex_unusedkeys_drop_ifloggrep() # Key-List-File Grep...
     echo Key $x: $key
     log=.cllct/annex-unused/$key.log
     test -e "$log" || git log --stat -S"$key" > "$log"
-    for pat in "$@"
+    for pat
     do
       grep "$pat" "$log" && {
         git annex dropkey --force "$key" || true
@@ -520,7 +526,7 @@ annices_findbysha2list()
 annices_lookup_by_key()
 {
   std_info "Lookup by key '$1'.."
-  for annex in "$ANNEX_DIR"/*/
+  for annex in "$ANNEX_VOL_DIR"/*/
   do
     test -d "$annex/.git/annex/objects" || {
       continue # No content in annex
@@ -549,7 +555,7 @@ annices_lookup_by_key()
 annices_lookup_by_sha2()
 {
   std_info "Lookup by SHA-256 '$1'.."
-  for annex in "$ANNEX_DIR"/*/
+  for annex in "$ANNEX_VOL_DIR"/*/
   do
     test -d "$annex/.git/annex/objects" || {
       continue # No content in annex

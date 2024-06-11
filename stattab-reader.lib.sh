@@ -39,7 +39,10 @@ stattab_entry () #
   if_ok "$(stattab_print_STD_stat)" || return
   # FIXME?
   #echo "$_ $stab_id: $stab_short $stab_tags" | sh_normalize_ws
-  : "$_ $stab_id: $stab_short $stab_tags $stab_refs $stab_idrefs"
+  : "$_ $stab_id: $stab_short"
+  : "$_$([[ ! $stab_tags ]] || printf ' @%s' $stab_tags)"
+  : "$_$([[ ! $stab_refs ]] || printf ' <%s>' $stab_refs)"
+  : "$_$([[ ! $stab_idrefs ]] || printf ' #%s' $stab_idrefs)"
   echo ${_//[$'\n\t']/ }
   #echo "${_//  / }"
 }

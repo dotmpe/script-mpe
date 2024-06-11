@@ -120,7 +120,7 @@ prefix_resolve_all() # (Local-Path..|-)
   test "$1" = "-" && {
     while read p ; do prefix_resolve "$p" ; done
   } || {
-    for p in "$@"; do prefix_resolve "$p" ; done
+    for p ; do prefix_resolve "$p" ; done
   }
 }
 
@@ -136,7 +136,7 @@ prefix_expand() # Prefix
   test -n "$1" || error "Prefix-Path-Arg expected" 1
   {
     test "$1" = "-" && { cat - ; shift ; }
-    for a in "$@" ; do echo "$a" ; done
+    for a ; do echo "$a" ; done
   } | tr ':' ' ' | while read prefix lname
   do
     echo "$(eval echo \"\$$prefix\")/$lname"

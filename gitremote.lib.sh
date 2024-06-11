@@ -292,7 +292,7 @@ gitremotes_stat () # ~ [<Remote-Id...>]
 {
   test $# -gt 0 || set -- $(gitremote_names)
   local remote_id remote_list stat $(gitremote_lenvkeys)
-  for remote_id in "$@"
+  for remote_id
   do
     test "$remote_type" = "dummy" \
         && remote_list=$remote_items \
@@ -314,7 +314,7 @@ gitremotes_update () # ~ [<Remote-Id...>]
 {
   test $# -gt 0 || set -- $(gitremote_nameids)
   local r $(gitremote_lenvkeys)
-  for remote_id in "$@"
+  for remote_id
   do
     gitremote_stat && {
       notice "Cached '$remote_id' list up-to-date"

@@ -6,11 +6,4 @@ htd_annex_lib__load ()
     statdirtab-uc
 }
 
-
-#htd_annex_chdir ()
-#{
-#  cd "$ANNEX_DIR" ||
-#    $LOG error : "ANNEX_DIR" "cd $ANNEX_DIR:E$?" $? || return
-#}
-
 #

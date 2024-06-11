@@ -313,12 +313,12 @@ class_StatTab_ () # ~
         : "${2:?Expected Stat-id argument}"
         $LOG debug "" "Retrieving ${CLASS_NAME:?} entry" "$1=$2" &&
         if_ok "$($self.tab-ref)" &&
-
         stattab_fetch "$2" "${3-}" "$_" ||
           $LOG error "" "Failed fetching" "${3-}${3:+:}$1=$2:E$?" $? || return
 
         typeset -n obj=${1#local:}
-        class_new "$1" "StatTabEntry" "$id" "$stab_lineno" &&
+        if_ok "$($self.tab-entry-class)" &&
+        class_new "$1" "$_" "$id" "$stab_lineno" &&
         $obj.get
       ;;
 

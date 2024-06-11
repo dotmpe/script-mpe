@@ -126,12 +126,13 @@ script_run () # ~ <Action <argv...>>
 {
   export UC_LOG_BASE=${0##*\/}"[$$]":doenv
   #export UC_LOG_BASE=$script_name"[$$]":doenv
+  local scriptenv_argc=0
   script_doenv "$@" || return
   ! uc_debug ||
       $LOG info :uc:script-run "Entering user-script $(script_version)" \
           "cmd:$script_cmd:als:${script_cmdals-(unset)}"
-  #stdmsg '*debug' "Entering user-script $(script_version)"
-  shift
+  incr scriptenv_argc
+  shift ${scriptenv_argc:?}
   ! uc_debug ||
       $LOG info :script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
   export UC_LOG_BASE=$script_name"[$$]":${script_cmdals:-${script_cmdname:?}}
@@ -154,7 +155,7 @@ script_baseenv ()
     test -z "${!var_:-}"  || eval "script_$var=\"${!var_}\""
   done
   : "${script_name:="$user_script_name:$SCRIPTNAME"}"
-  : "${script_shortdescr:="User-script '$SCRIPTNAME' has no description. "}"
+  : "${script_shortdescr:="User-script '$script_name' has no description. "}"
 
   # Get inherited vars
   for var in maincmds
@@ -206,6 +207,7 @@ script_debug_arr () # ~ <Array-var> # Pretty-print array
       echo "Array '${_:11}' (empty)" ||
       <<< "Array '${_:11}" sed "s/=(\[/':\\n\\t/
 s/\" \[/\\n\\t/g
+s/]=\\\$/\\t\$/g
 s/]=\"/\\t/g
 s/\" *)//g
 "
@@ -287,7 +289,7 @@ script_debug_vars () # ~ <Var-names...>
 script_doenv () # ~ <Action <argv...>>
 {
   script_baseenv &&
-  script_cmdid "${1:?}" || return
+
   local _baseid stat
   for _baseid in $(${user_script_bases:-user_script_ bases} && echo $script_bases)
   do
@@ -300,7 +302,12 @@ script_doenv () # ~ <Action <argv...>>
       }
     }
   done
+
+  shift ${scriptenv_argc:?}
+
+  script_cmdid "${1:?}" || return
   script_cmdfun=${script_cmdname//-/_}
+
   # prefer to use most specific name, fallback to unprefixed handler function
   ! sh_fun "${baseid}_${script_cmdfun}" || script_cmdfun="$_"
   sh_fun "$script_cmdfun" || {
@@ -828,21 +835,25 @@ user_script_load () # ~ <Actions...>
             plk=${lk:-} \
             lk=${lk:-}:user-script:load[group]
           ctx="$name:$(${user_script_bases:-user_script_ bases} && echo $script_bases)"
-          $LOG notice "$lk" "Lookup grp/libs/hooks within bases" "$ctx"
+          sys_debug quiet ||
+            $LOG notice "$lk" "Lookup grp/libs/hooks within bases" "$ctx"
+
           user_script_node_lookup attr-libs "$name" &&
           user_script_node_lookup attr-hooks "$name" || return
           test -z "${libs:-}" && {
             test -n "${hooks:-}" || {
-              $LOG warn "$lk" "No grp/libs or hooks for user-script sub-command" "$ctx"
+              sys_debug quiet ||
+                $LOG warn "$lk" "No grp, libs or hooks for user-script sub-command" "$ctx"
               return ${_E_next:?}
             }
           } || {
-            $LOG notice "$lk" "Initializing libs for group" "$name:$libs"
+            sys_debug quiet ||
+              $LOG info "$lk" "Initializing libs for group" "$name:$libs"
             user_script_initlibs $libs ||
               $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
           }
           test -z "${hooks:-}" && return
-          $LOG debug "$lk" "Running hooks" "$hooks"
+          sys_debug quiet || $LOG debug "$lk" "Running hooks" "$hooks"
           local hook
           for hook in $hooks
           do lk=$plk:user-script:hooks "$hook" ||
@@ -886,9 +897,12 @@ user_script_load () # ~ <Actions...>
 }
 
 # Default loadenv for user-script, run at the end of doenv just before
-# deferring to handler.
+# deferring to handler. Really only to set some defaults copied from other
+# places for convenience.
 user_script_loadenv ()
 {
+  [[ 1 == "${user_script_loaded-}" ]] && return
+
   : "${US_BIN:="$HOME/bin"}"
   : "${PROJECT:="$HOME/project"}"
   : "${U_S:="$PROJECT/user-scripts"}"
@@ -932,20 +946,117 @@ user_script_loadenv ()
   test -d "$US_BIN" || {
     $LOG warn :loadenv "Expected US-BIN (ignored)" "$US_BIN"
   }
-  user_script_fix_shell_name
-  user_script_shell_mode
+
+  user_script_fix_shell_name &&
+  # TODO: user-script should know about the current user client (terminal and
+  # shell) session, and set modes and register callbacks
+  user_script_shell_mode &&
+
   # XXX: Load bash-uc because it sets errexit trap, should cleanup above shell-mode
-  test "$SCRIPTNAME" != user-script.sh && {
-    user_script_load bash-uc || return
-  } || {
-    user_script_load "${script_cmdals:-$script_cmd}" bash-uc
+  {
+    test "$SCRIPTNAME" != user-script.sh && {
+      user_script_load bash-uc || return
+    } || {
+      user_script_load "${script_cmdals:-$script_cmd}" bash-uc
+    }
+  } && {
+    # Now default verbosity to 3 (error) for batch-mode, or 5 (notice) for user
+    # script commands.
+    # Also make a note during (interactive) user-mode about any batch-mode
+    # command handlers ie. that dont generate notice level messages about
+    # command handling at all but focus on reliability and integrity and only
+    # report on non-nominal events?
+
+    "${BATCH_MODE:-false}" && {
+      : "${QUIET:=true}"
+      : "${DIAG:=false}"
+      : "${verbosity:=${v:-3}}"
+    } ||
+      : "${verbosity:=${v:-5}}"
+    v=$verbosity
+    export verbosity v
+
+    test -t 0 -o -t 1 &&
+      : "${INTERACTIVE:=true}" ||
+      : "${INTERACTIVE:=false}"
+
+    "${INTERACTIVE:?}" && {
+      sys_debug +diag +init &&
+      [[ "$v" -gt 3 ]] &&
+        $LOG alert "${lk-}:loadenv" "Running interactively"
+
+      : "${ASSERT:=true}"
+      #: "${DIAG:=true}"
+      #: "${INIT:=true}"
+    } || {
+      sys_debug -quiet +diag +init &&
+        $LOG notice "${lk-}:loadenv" "Running non-interactively"
+    }
+
+    # If verbosity is low, warn or notices if there are special verbosity modes
+    # active
+    [[ "$v" -le 5 ]] && {
+      ! "${INTERACTIVE:?}" || {
+        [[ "$v" -le 3 ]] && {
+          sys_debug +debug +diag +assert +init &&
+          $LOG alert "${lk-}:loadenv" "Script is running at reduced verbosity" \
+            "debug-modes: $(sys_debug_tag)"
+        } || {
+          #sys_debug quiet &&
+          "${QUIET:-false}" &&
+          sys_debug +debug +diag +assert +init &&
+          $LOG warn "${lk-}:loadenv" "Script is running quietly" \
+            "debug-modes: $(sys_debug_tag)"
+        }
+      }
+    } || {
+      ! sys_debug_mode quiet ||
+      sys_debug +debug +diag &&
+          $LOG warn "${lk-}:loadenv" "Script is running quietly" \
+            "debug-modes: $(sys_debug_tag)"
+    }
+
+    true
   } &&
-  user_script_loaded=1
+    user_script_loaded=1
 }
 
 user_script_longhelp () # ~ [<Name>]
 {
   longhelp=1 user_script_help "$@"
+}
+
+# TODO: prototype better sh-mode parts here
+
+#declare -g US_MODE
+#declare -gA US_MODES US_MODES_BI
+#
+#US_MODE_BI[strict]="private-group exception-log strict-shell"
+#US_MODE_BI[dev]="private-sharegroup exception-log strict-shell"
+
+# TODO: integrate accum. setup script from US:tools:sh-mode
+user_script_mode () # ~ <Modes...>
+{
+  local mode changed
+  for mode
+  do
+    [[ "${US_MODES["$mode"]:+set}" ]] && continue
+    case "${mode:?}" in
+    ( strict | dev | debug | diag | init | assert )
+    ;;
+    esac
+  done
+
+  ! "${DIAG:-false}" ||
+  ! "${changed:-false}" || {
+    str_globmatch "$US_MODE" "$- *" || {
+      "${ASSERT:-false}" || "${DEBUG:-false}" && : "$- <> $US_MODE" || : ""
+      $LOG warn "" "us-mode is not in sync with sh-mode" "$_"
+    }
+  }
+
+  #us_mode +dev +strict
+  ! "${changed:-false}" || US_MODE="$- ${!US_MODES[*]}"
 }
 
 # XXX: cannot define patterns dynamically without eval?
@@ -1094,8 +1205,9 @@ user_script_shell_mode ()
   #  }
   }
 
-  test -z "${DEBUG:-}" ||
+  ! "${DEBUG:-false}" || {
     : "${BASH_VERSION:?"Not sure how to do debug"}"
+  }
 
   test -z "${ALIASES:-}" || {
     : "${BASH_VERSION:?"Not sure how to do aliases"}"

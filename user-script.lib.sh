@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bas but shared by the handlers in the lib.
 
 ## Lib to bootstrap User-Script executables
 
@@ -23,7 +23,10 @@ user_script_lib__init ()
 
 user_script_announce () # ~ <Arg...>
 {
-  $LOG notice "$lk" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+  sys_debug -dev +quiet || {
+    : "${*@Q}"
+    $LOG notice "$lk" "User script loaded" "[-$-] (#$#) ~ ${_:0:100}"
+  }
 }
 
 user_script_check () # ~ # See that all variables are set

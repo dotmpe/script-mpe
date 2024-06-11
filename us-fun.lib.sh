@@ -29,6 +29,11 @@ at_ () # ~ <ctx> [<ctx|args..>]
   "$@"
 }
 
+uc_rulesenv ()
+{
+  user_script_load rulesenv
+}
+
 us_basedir_init ()
 {
   ${xctx:?}@User/Conf :basedirtab &&

@@ -28,7 +28,7 @@ args__argc_n ()
 {
   args__argc "$@" || return
   local arg
-  for arg in "$@"
+  for arg
   do
     test -n "$arg" && continue
     $LOG error "${1:-":(args-n)"}" "Got empty argument"
@@ -215,7 +215,7 @@ define_var_from_opt () # Option [Var-Name-Pref]
 # opt-args: all argv are filtered into $options or else $arguments
 opt_args()
 {
-  for arg in "$@"
+  for arg
   do { test "-" != "$arg" && fnmatch "-*" "$arg" ; } &&
       echo "$arg" >>$options || {
         test -n "$arg" &&

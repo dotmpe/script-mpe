@@ -1,40 +1,51 @@
 #!/bin/sh
 
-
 annex_htd_lib__load()
 {
-  lib_require os-uc annex srv-htd class-uc || return
+  : "${ANNEXTAB:=${STATUSDIR_ROOT:?}index/annexes.tab}"
+  : "${HTD_ANNEX_DEFAULT:=archive-1}" # Primary Annex, to select during init
+  lib_require annex os-uc class-uc stattab-uc srv-htd || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}AnnexTab
-  : "${HTD_DEFAULT_ANNEX:=archive-1}" # Primary Annex, to select during init
-  : "${SHARE_DIR:=/srv/share-local}"
-  : "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"
+}
+
+annex_htd_lib__init() # ~ ...
+{
+  test -z "${annex_htd_lib_init-}" || return $_
 }
 
 
 annex_htd_init_default ()
 {
+  #: "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"
+
   class_init AnnexTab{,Entry} &&
   create annexes AnnexTab $ANNEXTAB || return
   : "${annexes:?Expected annexes table}"
 }
 
+
 annex_htd_load_default ()
 {
   : "${annexes:?Expected annexes context}"
-  $annexes.fetch default_annex "${HTD_DEFAULT_ANNEX:?}" || {
+
+  $annexes.fetch default_annex "${HTD_ANNEX_DEFAULT:?}" || {
     $LOG error : "fetching default annextab entry" \
-        "E$?:$ANNEXTAB::$HTD_DEFAULT_ANNEX" $? || return
+        "E$?:$ANNEXTAB::$HTD_ANNEX_DEFAULT" $? || return
   }
 
   # Get canonical paths for storage folders with annex checkouts
   ANNEX_DIRS=$($default_annex.basedirs) &&
 
+  true
+  return
+
   # If not in profile, set ANNEX_DIR to local path.
   # XXX: there may not be a checkout there.
   # XXX: could pick one from ANNEX_DIRS based on volume-id filter
   $srvtab.fetch srv_annex srv/annex &&
+
   stderr ${srv_annex:?Srv-Annex entry expected}.entry &&
-  if_ok "${ANNEX_DIR:=$($srv_annex.local-dir)/$HTD_DEFAULT_ANNEX}"
+  if_ok "${ANNEX_DIR:=$($srv_annex.local-dir)/$HTD_ANNEX_DEFAULT}"
   $LOG info :annex.lib:init "Initialized user annex shell env" \
       "E$?:tab=$ANNEXTAB" $?
 }
@@ -50,7 +61,7 @@ annex_htd_banlist ()
     ( ips ) annex_htd_banlist exists && cut -d ' ' -f 2 "$BTP_BANNED" ; r=$? ;;
     ( update ) set -- $(annex_htd_banlist harvest | cut -d ' ' -f 2) && {
           test -e "$BTP_BANNED" || touch "$BTP_BANNED" || r=$?; } &&
-          for ipaddr in "$@"
+          for ipaddr
           do
             grep -q " $ipaddr$" "$BTP_BANNED" && continue
             echo "$(date +'%s') $ipaddr" >> "$BTP_BANNED"
@@ -65,7 +76,7 @@ annex_htd_banlist ()
         ;;
 
     ( update-pg-gz | update-peerguardian-gzip )
-          BLOCKLIST="$SHARE_DIR/meta/net/blocklist.pg" &&
+          BLOCKLIST="$ANNEX_DIR/meta/net/blocklist.pg" &&
           {
             cut -d ' ' -f 2 "$BTP_BANNED" | sed '
                     s/^[0-9\.]*$/&-&/
@@ -79,7 +90,7 @@ annex_htd_banlist ()
         ;;
 
     ( pg-summary )
-          for pgz in $SHARE_DIR/meta/net/*.gz
+          for pgz in $ANNEX_DIR/meta/net/*.gz
           do
             echo "$(basename "$pgz") $(zcat "$pgz" | wc -l) lines"
             #zcat "$pgz" | cut -d ':' -f 2 | wc -l
@@ -87,7 +98,7 @@ annex_htd_banlist ()
           done
         ;;
     ( pg )
-          for pgz in $SHARE_DIR/meta/net/*.gz
+          for pgz in $ANNEX_DIR/meta/net/*.gz
           do
             test "$(basename "$pgz" .gz)" != "blocklist" || continue
             zcat "$pgz"
@@ -117,7 +128,7 @@ annex_htd_banlist ()
     # XXX: try to scan for peers but need something proper to match ranges
     ( pg-scan-peerlog ) shift
           test $# -gt 0 || set -- "$BTLOG_PEERS"
-          for pl in "$@"
+          for pl
           do
               remove_dupes_at_col 2 < "$pl" | while read -r ts ipaddr _ mode client
               do
@@ -156,11 +167,12 @@ class_AnnexTabEntry_ () # ~ <Instance-Id> .<Message-name> <Args...>
 {
   case "${call:?}" in
 
-    ( .basedirs ) # ~~ # Return canonical paths for checkouts
-        $self.var refs | filter_dir_paths ;;
+  ( .basedirs ) # ~~ # Return canonical paths for checkouts
+      printf '%s\n' "${StatTabEntry__refs[$OBJ_ID]}"
+      # FIXME $self.var refs | filter_dir_paths
+    ;;
 
-      * ) return ${_E_next:?};
-
+    * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }
 
