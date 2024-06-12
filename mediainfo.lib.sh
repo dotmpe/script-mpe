@@ -1,16 +1,16 @@
 mediainfo_lib__load ()
 {
   lib_require meta &&
-  : "${mdnfo_cache:=${METADIR/cache}}"
+  : "${mdnfo_cache:=${METADIR:?}/cache}"
 }
 
 mediainfo_lib__init ()
 {
-  echo "General;%Duration%" > ${mdnfo_cache:?}/gen-durms.mdnfo-tpl
-  echo "General;%Format%" > ${mdnfo_cache:?}/gen-ffmt.mdnfo-tpl
-  echo "Video;%Format%" > ${mdnfo_cache:?}/vid-fmt.mdnfo-tpl
-  echo "Video;%DisplayAspectRatio/String%" > ${mdnfo_cache:?}/vid-dar.mdnfo-tpl
-  echo "Video;%Width%x%Height%" > ${mdnfo_cache:?}/vid-res.mdnfo-tpl
+  echo "General;%Duration%" >| ${mdnfo_cache:?}/gen-durms.mdnfo-tpl
+  echo "General;%Format%" >| ${mdnfo_cache:?}/gen-ffmt.mdnfo-tpl
+  echo "Video;%Format%" >| ${mdnfo_cache:?}/vid-fmt.mdnfo-tpl
+  echo "Video;%DisplayAspectRatio/String%" >| ${mdnfo_cache:?}/vid-dar.mdnfo-tpl
+  echo "Video;%Width%x%Height%" >| ${mdnfo_cache:?}/vid-res.mdnfo-tpl
 }
 
 

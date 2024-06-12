@@ -969,10 +969,14 @@ user_script_loadenv ()
 
     "${BATCH_MODE:-false}" && {
       : "${QUIET:=true}"
+      : "${VERBOSE:=false}"
       : "${DIAG:=false}"
       : "${verbosity:=${v:-3}}"
-    } ||
+    } || {
+      : "${QUIET:=false}"
+      : "${VERBOSE:=false}"
       : "${verbosity:=${v:-5}}"
+    }
     v=$verbosity
     export verbosity v
 
@@ -981,13 +985,17 @@ user_script_loadenv ()
       : "${INTERACTIVE:=false}"
 
     "${INTERACTIVE:?}" && {
-      sys_debug +diag +init &&
-      [[ "$v" -gt 3 ]] &&
-        $LOG alert "${lk-}:loadenv" "Running interactively"
-
       : "${ASSERT:=true}"
       #: "${DIAG:=true}"
       #: "${INIT:=true}"
+
+      sys_debug +diag +init && {
+        : "${QUIET:=false}"
+        : "${CT_VERBOSE:=true}"
+
+        [[ "$v" -gt 3 ]] &&
+          $LOG alert "${lk-}:loadenv" "Running interactively"
+      }
     } || {
       sys_debug -quiet +diag +init &&
         $LOG notice "${lk-}:loadenv" "Running non-interactively"

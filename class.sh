@@ -111,7 +111,8 @@ class_sh_aliasargv ()
   case "${1//_/-}" in
   ( "-?"|-h|h|--help|help|user-script-help ) set -- user_script_help "${@:2}" ;;
   ( --usage|usage ) user_script_usage "${@:2}" ;;
-  ( --list-all ) set -- info "$@" ;;
+  ( --list|--list-all|--static|--summary|--types )
+    set -- info "$@" ;;
   ( info ) ;;
     * ) set -- class_sh_ "$@"
   esac

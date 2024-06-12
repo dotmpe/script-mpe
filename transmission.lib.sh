@@ -858,6 +858,7 @@ transmission_list_runner () # [quiet] ~ <Handler <Args...>>
   done
   ! sh_fun "$1"_post || {
     $LOG debug "$lk" "Running post" "$_"
+    sys_stat "${ret:-0}"
     "$1"_post "$@" || return
   }
   $LOG info "$lk" "Finished reading" "E${ret:-0},items:$itcnt,failures:$flcnt"
