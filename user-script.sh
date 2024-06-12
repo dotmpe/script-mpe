@@ -835,25 +835,28 @@ user_script_load () # ~ <Actions...>
             plk=${lk:-} \
             lk=${lk:-}:user-script:load[group]
           ctx="$name:$(${user_script_bases:-user_script_ bases} && echo $script_bases)"
-          sys_debug quiet ||
+          "${QUIET:-false}" ||
+          ! "${VERBOSE:-false}" ||
             $LOG notice "$lk" "Lookup grp/libs/hooks within bases" "$ctx"
 
           user_script_node_lookup attr-libs "$name" &&
           user_script_node_lookup attr-hooks "$name" || return
           test -z "${libs:-}" && {
             test -n "${hooks:-}" || {
-              sys_debug quiet ||
+              "${QUIET:-false}" ||
                 $LOG warn "$lk" "No grp, libs or hooks for user-script sub-command" "$ctx"
               return ${_E_next:?}
             }
           } || {
-            sys_debug quiet ||
+            "${QUIET:-false}" ||
               $LOG info "$lk" "Initializing libs for group" "$name:$libs"
             user_script_initlibs $libs ||
               $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
           }
           test -z "${hooks:-}" && return
-          sys_debug quiet || $LOG debug "$lk" "Running hooks" "$hooks"
+          "${QUIET:-false}" ||
+          ! "${VERBOSE:-false}" ||
+            $LOG debug "$lk" "Running hooks" "$hooks"
           local hook
           for hook in $hooks
           do lk=$plk:user-script:hooks "$hook" ||
@@ -872,7 +875,8 @@ user_script_load () # ~ <Actions...>
 
       ( scriptenv )
           user_script_initlibs sys || return
-          ! sys_debug assert || {
+          "${QUIET:-false}" ||
+          ! "${ASSERT:-false}" || {
             user_script_initlibs sys assert || return
           }
         ;;
@@ -989,7 +993,9 @@ user_script_loadenv ()
       #: "${DIAG:=true}"
       #: "${INIT:=true}"
 
-      sys_debug +diag +init && {
+      "${QUIET:-false}" ||
+      ! "${DIAG:-false}" ||
+      ! "${INIT:-false}" || {
         : "${QUIET:=false}"
         : "${CT_VERBOSE:=true}"
 
@@ -997,7 +1003,9 @@ user_script_loadenv ()
           $LOG alert "${lk-}:loadenv" "Running interactively"
       }
     } || {
-      sys_debug -quiet +diag +init &&
+      "${QUIET:-false}" ||
+      ! "${DIAG:-false}" ||
+      ! "${INIT:-false}" ||
         $LOG notice "${lk-}:loadenv" "Running non-interactively"
     }
 
@@ -1006,21 +1014,30 @@ user_script_loadenv ()
     [[ "$v" -le 5 ]] && {
       ! "${INTERACTIVE:?}" || {
         [[ "$v" -le 3 ]] && {
-          sys_debug +debug +diag +assert +init &&
+          "${QUIET:-false}" ||
+          ! "${DEBUG:-false}" ||
+          ! "${DIAG:-false}" ||
+          ! "${ASSERT:-false}" ||
+          ! "${INIT:-false}" ||
           $LOG alert "${lk-}:loadenv" "Script is running at reduced verbosity" \
             "debug-modes: $(sys_debug_tag)"
         } || {
-          #sys_debug quiet &&
-          "${QUIET:-false}" &&
-          sys_debug +debug +diag +assert +init &&
+          ! "${QUIET:-false}" || {
+            ! "${DEBUG:-false}" ||
+            ! "${DIAG:-false}" ||
+            ! "${ASSERT:-false}" ||
+            ! "${INIT:-false}"
+          } ||
           $LOG warn "${lk-}:loadenv" "Script is running quietly" \
             "debug-modes: $(sys_debug_tag)"
         }
       }
     } || {
-      ! sys_debug_mode quiet ||
-      sys_debug +debug +diag &&
-          $LOG warn "${lk-}:loadenv" "Script is running quietly" \
+      ! "${QUIET:-false}" || {
+        ! "${DEBUG:-false}" ||
+        ! "${DIAG:-false}"
+      } ||
+        $LOG warn "${lk-}:loadenv" "Script is running quietly" \
             "debug-modes: $(sys_debug_tag)"
     }
 
@@ -1232,6 +1249,11 @@ user_script_shell_mode ()
   }
 
   user_script_shell_mode=1
+}
+
+user_script_unenv ()
+{
+  stderr trap
 }
 
 # Display description how to evoke command or handler
@@ -1558,6 +1580,19 @@ us_shell_alias_defs ()
 
 ## Other functions
 
+args_dump () # ~ <Argv...> # Print argv for re-eval
+{
+  while test $# -gt 0
+  do
+    # TODO: str_quote_shprop "$1"
+    str_quote "$1"
+    shift
+    test $# -gt 0 || break
+    printf ' '
+  done
+}
+# copy
+
 # TODO: eval this as part of us-load. Maybe use $3 or $6 or $9...
 #
 # use alt-io to comm with user, message class indicates severity usage,
@@ -1635,6 +1670,40 @@ script_listfun () # (s) ~ [<Grep>] # Wrap grep for function declarations scan
     }
   }
 }
+
+sh_type_fun_body ()
+{
+  { type -t -- "${1:?}" || return
+  } | tail -n +4 | head -n -1
+}
+# derive
+
+str_quote ()
+{
+  case "$1" in
+    ( "" ) printf '""' ;;
+    ( *" "* | *[\[\]\<\>$]* )
+      case "$1" in
+          ( *"'"* ) printf '"%s"' "$1" ;;
+          ( * ) printf "'%s'" "$1" ;;
+      esac ;;
+    ( * ) printf '%s' "$1" ;;
+  esac
+}
+# copy str.lib
+
+sys_debug_tag ()
+{
+  local var
+  [[ $# -gt 0 ]] || set -- DEV DEBUG DIAG ASSERT INIT
+  for var
+  do
+    [[ false = ${!var:-} ]] && printf "\-%s" "${var,,}"
+    [[ true = ${!var:-} ]] && printf "+%s" "${var,,}"
+  done
+  "${DEBUG:-false}" || printf ',v=%i' "$v"
+}
+# copy sys.lib
 
 #user_script_sh__grp=user-script
 #{

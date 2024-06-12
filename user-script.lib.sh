@@ -282,12 +282,6 @@ sh_type_esacs_tab () # ~ <Func> [<Inner-Block-Grep>]
   sh_type_esacs "${1:?}" "${2:-}" | sed -e 's/ ) */\t/' -e 's/ *;; *$//' -e 's/^ *//'
 }
 
-sh_type_fun_body ()
-{
-  { sh_type "${1:?}" || return
-  } | tail -n +4 | head -n -1
-}
-
 script_source ()
 {
   test -e "$0" && echo "$0" || command -v "$0"
