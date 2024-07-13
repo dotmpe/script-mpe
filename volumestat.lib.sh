@@ -19,7 +19,7 @@ volumestat_lib__init ()
   vstdir=${STATUSDIR_ROOT}tree/volumestat
   mkdir -vp "$vstdir/"
 
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Darwin )
         voldir=/Volumes
@@ -29,7 +29,7 @@ volumestat_lib__init ()
         voldir=/mnt
       ;;
 
-    * ) error "volumestat-lib-load uname=$uname" 1 ;;
+    * ) error "volumestat-lib-load uname=${OS_UNAME:?}" 1 ;;
 
   esac
 }
@@ -162,7 +162,7 @@ htd_volumestat_umount()
   htd_volumestat_deinit
   rm "$stat.umount"
   warn "Using sudo to mount $1"
-  test "$uname" = "Darwin" && {
+  test "${OS_UNAME:?}" = "Darwin" && {
     sudo diskutil unmount $voldir/$1/
   } || {
     sudo umount $voldir/$1/

@@ -54,10 +54,10 @@ capture_and_clear()
 
 io_dev_path()
 {
-  case "$uname" in
+  case "${OS_UNAME:?}" in
     Linux ) echo /proc/$$/fd ;;
     Darwin ) echo /dev/fd ;;
-    * ) error "io_dev_path $uname" 1
+    * ) error "io_dev_path $OS_UNAME" 1
   esac
 }
 
@@ -68,7 +68,7 @@ list_io_nums()
   test -n "$1" \| set -- $$
 
   # XXX: other IO's may be presetn, like 255? pipe-sort removes it.
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Linux )
         basenames /proc/$1/fd/*

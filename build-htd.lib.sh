@@ -271,7 +271,8 @@ build_sh_idx()
   mkdir -p $src_stat/functions
   _inner()
   {
-    local id= sid= docid= ; mksid "$(basename "$1" .sh)" ; docid=$sid
+    local id= docid
+    docid=$(str_sid "$(basename "$1" .sh)")
 
     build_redo $src_stat/functions/$docid.func-list || return
 
@@ -289,7 +290,8 @@ build_graphs()
 
   _inner()
   {
-    local id= sid= docid= ; mksid "$(basename "$1" .sh)" ; docid=$sid
+    local id= cid docid
+    docid=$(str_sid "$(basename "$1" .sh)")
     cid=$($package_component_name "$1")
 
     build_redo "$docbase/$docid.calls-1.dot.gv"
@@ -398,7 +400,6 @@ build_refdocs()
   {
     filename_baseid "$1" ; base_id="$id"
     comp_id="$$(package_component_name "$1")"
-    #mksid "$(basename "$1" .sh)" ; docid=$sid
 
     #note "Inner: '$*' $base_id $comp_id"
     #test -e "$cid.do" || continue
@@ -476,13 +477,14 @@ build_lib_call_gv() # Src-Lib Src-Func Dest-Lib Dest-Func
 {
   local srclib="$(basename "$1")" caller="$2" destlib="$(basename "$3")" callee="$4"
 
-  upper=0 mkvid "$2" ; _2=_$vid
-  upper=0 mkvid "$4" ; _4=_$vid
-  upper=0 mksid "$2" "-" "-"; _s2=$sid
-  upper=0 mksid "$4" "-" "-"; _s4=$sid
-  mksid "$(basename "$srclib" .sh)" ; srcid=$sid
-  mksid "$(basename "$destlib" .sh)" ; destid=$sid
-  mkvid "$(basename "$destlib" .sh)" ; destvid=$vid
+  local _{,s}{2,4} {src,dest{,v}}id lower=true
+  str_vword _2 "$2"
+  str_vword _4 "$4"
+  _s2=$(str_sid "$2" - -)
+  _s4=$(str_sid "$4" - -)
+  srcid=$(str_sid "$(basename "$srclib" .sh)")
+  destid=$(str_sid "$(basename "$destlib" .sh)")
+  str_vword destvid "$(basename "$destlib" .sh)"
 
   echo "  graph [ fontname=\"times bold\"; fontsize=14; label=\"$srcid <$srclib>\"; ]"
 
@@ -515,7 +517,7 @@ build_libs_deps_gv()
 {
   _gv_tpl_inner()
   {
-    mksid "$(basename "$1" .sh)" ; docid=$sid
+    docid=$(str_sid "$(basename "$1" .sh)")
     #note "Build-Libs-Deps-Gv: $1 ($sid)"
 
     build_lib_lib_calls "$docid" "$1" | while read -r srclib caller destlib callee
@@ -536,10 +538,10 @@ build_lib_lib_dep_gv() # Src-Lib Dest-Lib
 {
   test "$1" = "$2" && return
 
-  upper=0 mkvid "$1" ; _1=_$vid
-  upper=0 mkvid "$2" ; _2=_$vid
-  mksid "$(basename "$1" .sh)" ; srcid=$sid
-  mksid "$(basename "$2" .sh)" ; destid=$sid
+  str_vword _1 "$1"
+  str_vword _2 "$2"
+  srcid=$(str_sid "$(basename "$1" .sh)")
+  destid=$(str_sid "$(basename "$2" .sh)")
 
   echo " $_1 [ label=\"$1\", href=\"/$docbase/$srcid.rst\" ]"
   echo " $_2 [ label=\"$2\", href=\"/$docbase/$destid.rst\"  ]"

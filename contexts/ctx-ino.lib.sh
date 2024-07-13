@@ -35,9 +35,8 @@ at_Ino__boards()
     echo ID NameID MCU CPU Bootloader Protocol Speed
     for nameid in $(grep -o '^\(.*\)\.name=' $boards | sed 's/.name=.*$//g')
     do
-        mkvid "$(ino_boards_get_field $nameid name)"
         echo $nameid \
-            $vid \
+            $(str_word "$(ino_boards_get_field $nameid name)") \
             $(ino_boards_get_field $nameid build.mcu || echo '-') \
             $(ino_boards_get_field $nameid build.f_cpu || echo '-') \
             $(ino_boards_get_field $nameid bootloader.file || echo '-') \

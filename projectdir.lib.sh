@@ -283,7 +283,7 @@ pd_finddoc()
   pd_prefix="$(normalize_relative "$go_to_before")"
 
   # Build path name based on real Pd path
-  mksid "$pd_realpath" '' ''
+  sid=$(str_sid "$pd_realpath" '' '')
   fnmatch "*/*" "$sid" && error "Illegal chars sid='$sid'" 11
 
   p="$sid"

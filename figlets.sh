@@ -6,9 +6,9 @@
 
 set -euo pipefail
 
-: "${uname:=$(uname -s)}"
+: "${OS_UNAME:=$(uname -s)}"
 
-case "$uname" in
+case "${OS_UNAME:?}" in
 
   Darwin )
       esc=`echo '\033'`
@@ -25,7 +25,7 @@ case "$uname" in
       esac
     ;;
 
-  * ) error "No stdio-type for $uname" 1 ;;
+  * ) error "No stdio-type for $OS_UNAME" 1 ;;
 esac
 
 

@@ -643,8 +643,10 @@ context_tag_order() # Tag
   while test $# -gt 0
   do
     case "$1" in "@"* ) ;; * ) shift ; continue;; esac
-    ctx=${1:1}; mkvid $ctx; ctxid=$vid; tags="${tags}$ctx"
+    ctx=${1:1}
+    str_vword ctxid "$ctx"
     echo $ctx
+    tags="${tags}$ctx"
     context_tag_env "$ctx" && {
       set -- "$@" $rest
     }
@@ -743,8 +745,8 @@ contexttab_init()
   ctx="$1"
   primctx="$(echo "$1" | cut -f 1 -d ' ')"
   # Remove '@'
-  upper=0 mkvid "${primctx:1}" && primctx_sid="$vid"
-  upper= mkvid "${primctx:1}" && primctx_id="$vid"
+  primctx_sid="$(str_word "${primctx:1}")"
+  primctx_id="$(lower=true str_word "${primctx:1}")"
 }
 
 contexttab_load_entry()

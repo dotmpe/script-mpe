@@ -349,7 +349,7 @@ htd_filter() # [type_= expr_= mode_= ] [Path...]
 # Given ID, look for shell script with function
 htd_function_comment() # Func-Name [ Script-Path ]
 {
-  upper= mkvid "$1" ; shift ; set -- "$vid" "$@"
+  set -- $(str_id "$1") "${@:2}"
   test -n "$2" || {
     # TODO: use SCRIPTPATH?
     #set -- "$1" "$(first_match=1 functions_find "$1" $scriptpath/*.sh)"
@@ -500,7 +500,8 @@ gitrepos()
 # Given context or path with context, load ctx lib and run action.
 htd_wf_ctx_sub () # Flow-Id Tag-Refs...
 {
-  local flow=${1:?} fid; upper=0 mkvid "$1" ; shift ; fid="$vid"
+  local flow=${1:?} fid
+  str_vid fid "$1"
   test -n "${ctx_base-}" || local ctx_base=${base}_ctx__
 
   $LOG info "htd-workflow" "Preparing to run action for context(s)" "$ctx_base:$flow:$*"

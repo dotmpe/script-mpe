@@ -4,7 +4,7 @@
 
 # Custom scripts can provide <baseid>-*=<custom value> to use local values
 user_script_name="User-script"
-user_script_version=0.0.1-dev
+user_script_version=0.0.2-dev
 
 # The short help only lists main commands
 user_script_maincmds="help long-help aliases commands variables version"
@@ -104,6 +104,8 @@ TODO: fix help usage/maincmd so each gives proper info. Some tings mixed up now
 
 user_script__libs=user-script
 
+user_script_sh__grp=user-script
+
 
 # Execute when script is sourced, when given base matches SCRIPTNAME.
 # If the handlers prefixes don't match the exec name, use
@@ -112,59 +114,53 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
 {
   local SCRIPTNAME=${SCRIPTNAME:-}
   script_name || return
-  if test "$SCRIPTNAME" = "$1"
+  if [[ $SCRIPTNAME = "$1" ]]
   then
     shift
     script_run "$@" || return
   else
-    ! us_debug ||
+    ! sys_debug ||
       $LOG info :script-entry "Skipped non-matching command" "$1<>$SCRIPTNAME"
   fi
 }
 
-script_run () # ~ <Action <argv...>>
+script_envinit () # ~ <Bases...>
 {
-  export UC_LOG_BASE=${0##*\/}"[$$]":doenv
-  #export UC_LOG_BASE=$script_name"[$$]":doenv
-  local scriptenv_argc=0
-  script_doenv "$@" || return
-  ! uc_debug ||
-      $LOG info :uc:script-run "Entering user-script $(script_version)" \
-          "cmd:$script_cmd:als:${script_cmdals-(unset)}"
-  incr scriptenv_argc
-  shift ${scriptenv_argc:?}
-  ! uc_debug ||
-      $LOG info :script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
-  export UC_LOG_BASE=$script_name"[$$]":${script_cmdals:-${script_cmdname:?}}
-  "$script_cmdfun" "$@" || script_cmdstat=$?
-  export UC_LOG_BASE=$script_name"[$$]":unenv
-  script_unenv || return
+  std_silent declare -p ENVD_FUN || declare -gA ENVD_FUN=()
+  std_silent declare -p script_node || declare -gA script_node=()
+  std_silent declare -p script_node_base || declare -gA script_node_base=()
+  std_silent declare -p script_node_hooks || declare -gA script_node_hooks=()
+  std_silent declare -p script_node_libs || declare -gA script_node_libs=()
+  sys_default "script_node_base['user-script']" &&
+  user_script_graph_init "$@" &&
+  script_baseenv
 }
 
+# Setup env to start loading user-script(s) and parts. To prepare env for
+# commands, see loadenv handlers.
 script_baseenv ()
 {
-  local var var_ _baseid
-
-  : "${base:=${SCRIPTNAME:?}}"
-  : "${baseid:=$(user_script_mkvid "${base:?}")}"
-
-  # Get instance vars
-  for var in name version shortdescr
+  # Get initial instance vars, using initial base.
+  # Including override value for base, if such is ever needed or useful.
+  local var{,_}
+  for var in base defcmd name version shortdescr
   do
-    var_=${baseid}_$var;
-    test -z "${!var_:-}"  || eval "script_$var=\"${!var_}\""
+    var_=${script_baseid}_$var
+    test -z "${!var_:-}" || eval "script_$var=\"${!var_}\""
   done
+  : "${script_baseid:=$(str_id "${script_base%[, ]*}")}"
   : "${script_name:="$user_script_name:$SCRIPTNAME"}"
   : "${script_shortdescr:="User-script '$script_name' has no description. "}"
 
   # Get inherited vars
+  local _baseid
   for var in maincmds
   do
-    for _baseid in $(${user_script_bases:-user_script_ bases} && echo $script_bases)
+    for _baseid in $(user_script_baseids)
     do
       var_=${_baseid}_$var;
       test -n "${!var_:-}" || continue
-      eval "script_$var=\"$_\""
+      eval "script_$var=\"${_//,/ }\""
       continue 2
     done
   done
@@ -181,9 +177,9 @@ script_cmdid ()
   script_cmd="${1:?}"
   script_cmdname="${script_cmd##*/}"
   script_cmdname="${script_cmdname%% *}"
-  script_cmdid=$(user_script_mkvid "$script_cmd")
+  script_cmdid=$(str_id "$script_cmd")
   test -z "${script_cmdals:-}" || {
-      script_cmdalsid=$(user_script_mkvid "$script_cmdals")
+      script_cmdalsid=$(str_id "$script_cmdals")
     }
 }
 
@@ -226,6 +222,17 @@ script_debug_class_arr () # ~ <key> [<Class>] # Pretty print Class array
 {
   test 0 -lt $# -a 2 -ge $# || return ${_E_MA:?}
   script_debug_arr "${2:-Class}__${1:?}"
+}
+
+script_debug_env ()
+{
+  script_debug_vars \
+    script_{base{,id},cmd{name,fun},defcmd,defarg,maincmds,name,version,src,lib} \
+    user_script_defarg \
+    ENV_{SRC,LIB}
+  script_debug_arrs script_node{,_base}
+  stderr echo Bases: $(user_script_bases)
+  stderr echo Bases rev: $(user_script_bases | tac)
 }
 
 script_debug_frame () # ~ # Print stacktrace using FUNCNAME/caller
@@ -283,35 +290,71 @@ script_debug_vars () # ~ <Var-names...>
   stderr echo "$_"
 }
 
-# Handle env setup (vars & sources) for script-entry. Executes first existing
+# Handle env setup (vars & sources) for script-entry.
+# Executes first existing
 # loadenv hook, unless it returns status E:not-found then it continues on to
 # the next doenv hook on script-bases.
 script_doenv () # ~ <Action <argv...>>
 {
-  script_baseenv &&
+  [[ ${script_base-} ]] ||
+    script_envinit || return
 
-  local _baseid stat
-  for _baseid in $(${user_script_bases:-user_script_ bases} && echo $script_bases)
+  # Update bases, if there is one given for particular action, on any of the
+  # current bases.
+  if_ok "$(for base in $(user_script_bases)
+    do
+      echo "$base-${1:?}"
+    done)" &&
+  sys_loop user_script_cmdhandler_set $_ &&
+  script_baseenv || return
+  test -n "${script_cmdfun-}" &&
+    $LOG info "" "Found command handler" "$script_cmdfun" ||
+    $LOG warn"" "No command handler found" "$1"
+  ! "${DEBUG:-false}" || script_debug_env
+
+  local _baseid stat fail
+  # Run all loadenv hooks, going top-down from base to groups
+  for _baseid in $(user_script_baseids | tac)
   do
     ! sh_fun "$_baseid"_loadenv || {
-      ! us_debug || $LOG info :script:doenv "Loadenv" "$_baseid"
-      "$_baseid"_loadenv "$@" || {
-        test ${_E_not_found:?} -eq $? && continue ||
-          $LOG error :script:doenv "During loadenv" "E$_:$_baseid" $_ ||
-            return
+      local -n env_status=${_baseid}_env
+      ! sys_debug || $LOG debug "" "Loadenv" "$_baseid"
+      "$_baseid"_loadenv "$@"
+      # XXX: maybe...
+      test ${_E_not_found:-124} -eq $? ||
+      test 0 -eq $_ || {
+        env_status=$_
+        test ${_E_done:-200} -eq $env_status && fail=false
+        test ${_E_stop:-197} -eq $env_status && interrupt=true
+        test ${_E_continue:-195} -eq $env_status || {
+          test ${_E_next:-196} -eq $env_status && fail=true || {
+
+            $LOG error "" "During loadenv" "E$_:$_baseid" $_ ||
+              return
+          }
+        }
       }
+      ! sys_debug +debug +init ||
+        $LOG info "" "Finished 'loadenv' on base '$_baseid'" \
+              "${env_status+"S$env_status"}"
+      "${interrupt-false}" && return ${_E_int:-131}
+      ! "${fail-false}" || return
     }
   done
 
   shift ${scriptenv_argc:?}
 
   script_cmdid "${1:?}" || return
-  script_cmdfun=${script_cmdname//-/_}
+  : "${script_cmdfun:=${script_cmdname//-/_}}"
 
   # prefer to use most specific name, fallback to unprefixed handler function
-  ! sh_fun "${baseid}_${script_cmdfun}" || script_cmdfun="$_"
-  sh_fun "$script_cmdfun" || {
-    $LOG error : "No such function" "$script_cmdfun"
+  #! sh_fun "${baseid}_${script_cmdfun}" || script_cmdfun="$_"
+
+  sh_fun "$script_cmdfun" && {
+    ! sys_debug +diag +init ||
+      $LOG info "" "Script command handler ready" "$script_cmdname"
+  } || {
+    $LOG error "" "No such function" "$script_cmdfun"
     set -- $SCRIPTNAME usage -- "$script_cmd" "$@"
     user_script_load "$@" || return
     script_cmdfun=user_script_usage
@@ -344,14 +387,44 @@ script_name () # ~ <Command-name> # Set SCRIPTNAME env based on current $0
   : "${SCRIPTNAME:="$(basename -- "$0" ${SCRIPT_BASEEXT:-})"}"
 }
 
-# Undo env setup for script-entry (inverse of script-doenv)
-script_unenv ()
+script_run () # ~ <Action <argv...>>
 {
-  ! sh_fun "${baseid}"_unload || {
-    "${baseid}"_unload || {
-      $LOG warn ":user-script:unenv($baseid)" "Failure during unload" E$?
+  export UC_LOG_BASE=${0##*\/}"[$$]":doenv
+  #export UC_LOG_BASE=$script_name"[$$]":doenv
+  local scriptenv_argc=0
+  script_doenv "$@" ||
+    $LOG warn :uc:script-run "Script setup failed" "E$?:$#:$*" $? || return
+  ! uc_debug ||
+      $LOG info :uc:script-run "Entering user-script $(script_version)" \
+          "cmd:$script_cmd:als:${script_cmdals-(unset)}"
+  incr scriptenv_argc
+  shift ${scriptenv_argc:?}
+  ! uc_debug ||
+      $LOG info :script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
+  export UC_LOG_BASE=$script_name"[$$]":${script_cmdals:-${script_cmdname:?}}
+  "$script_cmdfun" "$@" || script_cmdstat=$?
+  export UC_LOG_BASE=$script_name"[$$]":unenv
+  script_unenv || return
+}
+
+# Undo env setup for script-entry. Almost the inverse of script-doenv, except
+# this doesnt get any arguments (to process argv or an action argument) as the
+# enitre env has been established.
+script_unenv () # ~
+{
+  local _baseid stat
+  for _baseid in $(user_script_baseids)
+  do
+    ! sh_fun "$_baseid"_unload || {
+      ! sys_debug || $LOG info "" "Loadenv" "$_baseid"
+      "$_baseid"_unload "$@" || {
+        test ${_E_not_found:?} -eq $? && continue ||
+        test ${_E_next:-196} -eq $_ && continue ||
+          $LOG error "" "During unload" "E$_:$_baseid" $_ ||
+            return
+      }
     }
-  }
+  done
 
   local cmdstat=${script_cmdstat:-0}
 
@@ -363,7 +436,14 @@ script_unenv ()
   test -z "${BASH_VERSION:-}" || set +uo pipefail
   test -z "${DEBUGSH:-}" || set +x
 
-  $LOG debug : "Unloaded env"
+  ! sys_debug +debug +diag +init || {
+    sys_debug assert && {
+      #[[ ${cmdstat:?} -eq 0 ]] &&
+      #  $LOG info :unenv "Cleanup OK after" "$base:$script_cmdname" ||
+      $LOG info "" "Cleanup OK after" "$base:$script_cmdname"
+    } ||
+      $LOG debug "" "Unloaded env"
+  }
   return ${cmdstat:?}
   #test 0 -eq "$cmdstat" && return
   #case "$cmdstat" in
@@ -374,12 +454,12 @@ script_unenv ()
 
 ## U-s functions
 
-# Helper to select/invoke handler specific to currently invoked user-script,
-# XXX
+# XXX: Helper to select/invoke next handler specific to current context and
+# inputs.
 user_script_ () # ~ <Hook-name> [<Hook-args...>]
 {
   : "${base:=${SCRIPTNAME:?}}"
-  : "${baseid:=$(user_script_mkvid "${base:?}")}"
+  : "${baseid:=$(str_id "${base:?}")}"
   sh_fun ${baseid}_${1//-/_} || : user_script_${1//-/_}
   "$_" "${@:2}"
 }
@@ -409,7 +489,7 @@ user_script_aliases () # ~ [<Name-globs...>] # List handlers with aliases
 
 user_script_aliases_raw ()
 {
-  for bid in $(${user_script_bases:-user_script_ bases} && echo $script_bases)
+  for bid in $(user_script_baseids)
   do
     for h in ${user_script_defarg:-defarg}
     do
@@ -419,7 +499,9 @@ user_script_aliases_raw ()
       echo "# $fun"
       case "${out_fmt:-}" in
 
-          raw ) sh_type_esacs_als $fun ;;
+          raw )
+              sh_type_esacs_als $fun
+            ;;
 
           * )
               sh_type_esacs_als $fun | sed '
@@ -435,52 +517,43 @@ user_script_aliases_raw ()
   done
 }
 
-# Script bases has bit of a chicken-and-the-egg problem, so the script-name
-# is used to select the initial function that resolves the current sequence.
-# (See user-script- bases).
-#
-# Getting all groups involves sourcing of scripts/libs that contain definitions
-# for bases that are included, but this implementation does not do that so
-# it can be used inside $() substitutions. The script-bases value can be pre-
-# seeded this way too. This adds either the current scriptname and all the
-# groups it is in, or whatever is given as arguments (and their groups). But
-# the set may be incomplete if not all their definitions are pre-sourced.
-user_script_bases () # ~ [script-bases] ~ <keys...>
+# List script node words, going from specific base or group to all containers
+user_script_baseids () # ~ [script-node-base] ~ <keys...>
 {
-  test $# -gt 0 || {
-    : "${base:=${SCRIPTNAME:?}}"
-    : "${baseid:=$(user_script_mkvid "${base:?}")}"
-    set -- $base
-  }
-
-  local _baseid
-  while test $# -gt 0
+  local base
+  if_ok "$(user_script_bases "$@")" &&
+  for base in $_
   do
-    _baseid=${1//[:.-]/_}
-    script_bases="${script_bases:-}${script_bases:+ }$_baseid"
-    shift
-    # Repeat loop while key has group attribute
-    : ${_baseid}__grp
-    test -z "${!_:-}" || set -- "$_" "$@"
+    str_word "$base"
   done
-
-  # Append user-script if it is not the last group?
-  #test "$baseid" = user_script ||
-  # XXX: or if only one element same as scriptname id?
-  test "$script_bases" != "$baseid" || script_bases="$script_bases user_script"
 }
 
-user_script_cli ()
+# List script node ids, going from specific base or group to all containers
+user_script_bases () # ~ [script-node-base] ~ <keys...>
 {
-  case "${1:?}" in
-    ( bases )
-        $LOG info : preseed-bases "${script_bases:-(unset)}"
-        ( ${user_script_bases:-user_script_ bases} "${@:2}" &&
-            echo $script_bases
-        )
-      ;;
-    ( * ) $LOG error :cli "?" "$1" 127 ;;
-  esac
+  local bases
+  [[ $# -gt 0 ]] || {
+    : ${script_base:?"$(sys_exc user-script:bases:start)"}
+    set -- ${_//,/ }
+  }
+  while test $# -gt 0
+  do
+    echo "${1:?}"
+    [[ ! ${script_node_base["$1"]-} ]] && shift && continue
+    bases=${script_node_base["$1"]?}
+    set -- $bases "${@:2}"
+  done
+}
+
+user_script_cmdhandler_set () # ~ <Node>
+{
+  sh_fun "${1//[:.-]/_}" && {
+    script_cmdfun=$_
+    script_cmdname=$1
+    #ENVD_FUN["$1"]=$script_cmdfun
+    return
+  }
+  return ${_E_continue:-195}
 }
 
 # TODO: commands differs from handlers in that it lists maincmds and aliases
@@ -508,31 +581,26 @@ user_script_defarg ()
   # Resolve aliases
   case "$1" in
 
-      # XXX: ( a|all ) shift && set -- user_scripts_all ;;
+  # XXX: ( a|all ) shift && set -- user_scripts_all ;;
 
-      ( bases|--list-script-bases ) shift; set -- user_script_ cli bases "$@" ;;
+  ( script-bases )              set -- script --bases "${@:2}" ;;
+  ( script-baseids )            set -- script --baseids "${@:2}" ;;
 
-      # Every good citizen on the executable lookup PATH should have these
-      ( "-?"|-h|help )
-            test $# -eq 0 || shift; set -- user_script_help "$@" ;;
-      ( --help|long-help )
-            test $# -eq 0 || shift; set -- user_script_longhelp "$@" ;;
-      ( -V|--version|version )
-            test $# -eq 0 || shift; set -- script_version "$@" ;;
+  # Every good citizen on the executable lookup PATH should have these
+  ( "-?"|-h|help )              set -- help "${@:2}" ;;
+  ( --help|long-help )          set -- longhelp "${@:2}" ;;
+  ( -V|--version|version )      set -- version "${@:2}" ;;
 
-      ( --aliases|aliases )
-            test $# -eq 0 || shift; set -- user_script_aliases "$@" ;;
-      ( --aliases-raw)
-            test $# -eq 0 || shift; set -- user_script_aliases_raw "$@" ;;
+  ( --aliases|aliases )         set -- aliases "${@:2}" ;;
+  ( --aliases-raw)              set -- aliases_raw "${@:2}" ;;
 
-      ( --handlers|handlers ) # Display all potential handlers
-            test $# -eq 0 || shift; set -- user_script_handlers "$@" ;;
+  ( --handlers|handlers )       # Display all potential handlers
+                                set -- handlers "${@:2}" ;;
 
-      ( --commands|commands ) # ....
-            test $# -eq 0 || shift; set -- user_script_commands "$@" ;;
+  ( --commands|commands )      # ....
+                               set -- commands "${@:2}" ;;
 
-      ( --env|variables )
-            test $# -eq 0 || shift; set -- user_script_envvars "$@" ;;
+  ( --env|variables )          set -- envvars "${@:2}" ;;
 
   esac
 
@@ -540,7 +608,7 @@ user_script_defarg ()
   # Script needs to be sourced or inlined from file to be able to modify
   # current arguments.
   local bid fun xtra_defarg
-  for bid in $(${user_script_bases:-user_script_ bases} && echo $script_bases)
+  for bid in $(user_script_baseids)
   do
     for h in ${user_script_defarg:-defarg}
     do
@@ -581,7 +649,7 @@ user_script_defcmdenv ()
 user_script_envvars () # ~ # Grep env vars from loadenv
 {
   local bid h
-  for bid in $(${user_script_bases:-user_script_ bases} && echo $script_bases)
+  for bid in $(user_script_baseids)
   do
     for h in loadenv ${script_xtra_envvars:-defaults}
     do
@@ -628,27 +696,60 @@ user_script_fix_shell_name ()
   }
 }
 
+user_script_graph_init () # ~ <Base ...> # Traverse (env) nodes, and record paths
+# and roots in script-node{,-base} resp.
+{
+  local base{,id,s} group
+  while [[ $# -gt 0 ]]
+  do
+    [[ ${script_node_base["${1:?}"]+set} ]] && {
+      set -- ${script_node_base["$1"]} "${@:2}"
+      continue
+    }
+    : "${1:?}"
+    baseid="${_//[:.-]/_}"
+    : "${baseid}__grp"
+    : "${!_:-}"
+    group=${_//,/ }
+    test -n "$group" || {
+      str_globmatch " $ENV_SRC " "* */$1.sh *" &&
+        shift && continue
+      uc_script_load "$1" || return
+      continue
+    }
+    bases=$_
+    #stderr echo "$FUNCNAME node $1: bases: $bases" &&
+    for base in $bases
+    do
+      str_vconcat "script_node[\"${base:?}\"]" "$1" &&
+      str_vconcat "script_node_base[\"$1\"]" "$base" || return
+    done
+    set -- $bases "${@:2}"
+  done
+}
+
 # Transform glob to regex and invoke script-listfun for libs and other source
 # files. This turns on script-listfun flag h by default.
 user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main script
 {
-  test $# -eq 0 && set -- "$(user_script_mkvid)" || set -- "$(grep_or "$@")"
+  test $# -eq 0 && set -- ".*" || set -- "\([a-z0-9_]*_\)\?$(grep_or "$@")"
 
   # NOTE: some shell allow all kinds of characters in functions.
   # sometimes I define scripts as /bin/bash and use '-', maybe ':'.
 
-  local name slf_h=${slf_h:-1}
+  local name slf_h=${slf_h:-1} exec
 
-  for name in $script_lib
+  for name in ${script_lib:-}
   do
     $LOG debug :handlers "Listing from lib" "$name:$1"
     script_listfun "$name" "$1" || true
   done
 
-  for name in $script_src
+  for name in ${script_src:?}
   do
-    $LOG debug :handlers "Listing from source" "$name:$(command -v "$name"):$1"
-    script_listfun "$(command -v "$name")" "$1" || true
+    exec=$(command -v "$name")
+    $LOG debug :handlers "Listing from source" "$name:$exec:$1"
+    script_listfun "$exec" "$1" || true
   done
 }
 
@@ -666,14 +767,13 @@ user_script_handlers () # ~ [<Name-globs...>] # Grep function defs from main scr
 user_script_help () # ~ [<Name>]
 {
   local _baseid
-
-  #for _baseid in $(${user_script_bases:-user_script_ bases} && echo $script_bases)
-  #do
-  #  ! sh_fun "${_baseid}"_usage || break
-  #done
-  #"${_baseid}"_usage "$@"
-
-  user_script_ usage "$@" || return
+  for _baseid in $(user_script_baseids)
+  do
+    ! sh_fun "${_baseid}"_usage || break
+  done
+  "${_baseid}"_usage "$@" || return
+  #at_ user-script usage --first "$@"
+  #user_script_ usage "$@" || return
 
   test $# -gt 0 -o "${longhelp:-0}" -eq 0 || {
 
@@ -751,66 +851,13 @@ user_script_initlibs__initialized ()
 # TODO: deprecate
 user_script_libload ()
 {
+  : "$(sys_exc user-script:libload Deprecated)"
   test $# -gt 0 || return
   while test $# -gt 0
   do
     . "${1:?}" || return
     script_lib=${script_lib:-}${script_lib:+ }$1
     shift
-  done
-}
-
-# Traverse <script-bases>, looking for <base>-<name> using the specified
-# handler. Keep prefixing arguments with <node-group> while set after running
-# each handler.
-#
-# myscript-myname
-#
-# script-loadenv
-# user-script-loadenv
-#
-# '<Node>[:.-]<Node-id>'
-#
-# <script-name>/<command-name>:grp sys
-# <base>/sys:libs sys-htd
-
-# Travel to root from name, evoking handler for every node.
-# XXX: user_script_baseless=true must be set for exception?
-user_script_node_lookup () # ~ <Handler> <Name> [<Groups...>]
-{
-  local node group _base handler=${1:?} script_bases
-  sh_fun "$handler" || handler=user_script_node_${1//[:.-]/_}
-  sh_fun "$handler" || {
-    TODO "$1" || return
-  }
-  shift
-  script_bases=$(${user_script_bases:-user_script_ bases} && echo $script_bases)
-  while test $# -gt 0
-  do
-    node=${1:?} nodeid=${1//[:.-]/_}
-    fnmatch "* $nodeid *" " $script_bases " && root=true || root=false
-    shift
-
-    # If node is a leaf in the primary base does not need to bear prefix,
-    # and if it is a base itself that would not make any sense. XXX: If node is
-    # a base it could still have another group that is not in bases.
-    ! ${user_script_baseless:-false} &&
-    ! $root || {
-      # Exception for leaf-most name, does not have to use base prefix
-      $handler ${node:?} || return
-      test -z "${group:-}" || {
-          #shift
-          set -- $group "$@"
-          continue
-      }
-    }
-    for _base in $script_bases
-    do
-      $handler ${_base:?}-${node:?} || return
-      test -n "${group:-}" || continue
-      set -- $_ "$@"
-      break
-    done
   done
 }
 
@@ -821,79 +868,113 @@ user_script_node_lookup () # ~ <Handler> <Name> [<Groups...>]
 #   groups: Scan for [<base>_]<script-part>__{grp,libs,hooks}
 #   usage: Load/init libs for usage
 #
-user_script_load () # ~ <Actions...>
+user_script_load () # (y*) ~ <Actions...>
 {
-  test $# -gt 0 || set -- defarg
-  while test $# -gt 0
+  [[ $# -gt 0 ]] || set -- default
+  while [[ $# -gt 0 ]]
   do
-    ! uc_debug ||
+    #! uc_debug ||
+    ! sys_debug ||
         $LOG info :user-script:load "Running load action" "$1"
     case "${1:?}" in
 
-      ( groups )
-          local name=${script_part:-$script_cmd} libs ctx \
-            plk=${lk:-} \
-            lk=${lk:-}:user-script:load[group]
-          ctx="$name:$(${user_script_bases:-user_script_ bases} && echo $script_bases)"
-          "${QUIET:-false}" ||
-          ! "${VERBOSE:-false}" ||
-            $LOG notice "$lk" "Lookup grp/libs/hooks within bases" "$ctx"
+    ( baseenv ) # Entire pre-init for script, ie. to use defarg
+        [[ ${script_base-} ]] || {
+          : "${SCRIPTNAME:?}"
+          : "${_//[^A-Za-z0-9_-]/-}"
+          script_base=$_
+          local -n group="$(str_id "${script_base:?}")__grp"
+          : "${group:=user-script}"
+        }
+        script_envinit ${script_base//,/ }
+      ;;
 
-          user_script_node_lookup attr-libs "$name" &&
-          user_script_node_lookup attr-hooks "$name" || return
-          test -z "${libs:-}" && {
-            test -n "${hooks:-}" || {
-              "${QUIET:-false}" ||
-                $LOG warn "$lk" "No grp, libs or hooks for user-script sub-command" "$ctx"
-              return ${_E_next:?}
-            }
-          } || {
+      # FIXME: probably want to use groups ehre as well
+    ( defarg )
+        lib_require us-fun us user-script shell-uc args &&
+        lib_init shell-uc
+      ;;
+
+    ( default ) # Entire pre-init for script, ie. to use defarg
+        export UC_LOG_BASE="${SCRIPTNAME}[$$]"
+        : "${script_defcmd:=usage-summary}"
+        set -- "$@" defarg baseenv
+      ;;
+
+    ( groups )
+        local name=${script_part:-${script_cmd:?}} libs hooks \
+          lk lctx plk=${lk:-}
+        lk=${plk:-}:user-script:load[group:$name]
+        lctx=
+        ! "${VERBOSE:-false}" ||
+          $LOG notice "$lk" "Loading groups " "$lctx"
+
+        for base in $(user_script_bases | tac)
+        do
+          : "${base//[:.-]/_}__libs"
+          test -z "${!_-}" || {
+            script_node_libs["$base"]=${_//,/ }
+            libs=${libs:-}${libs:+ }${script_node_libs["$base"]}
+          }
+          : "${base//[:.-]/_}__hooks"
+          test -z "${!_-}" || {
+            script_node_hooks["$base"]=${_//,/ }
+            hooks=${hooks:-}${hooks:+ }${script_node_hooks["$base"]}
+          }
+        done
+
+        test -z "${libs:-}" && {
+          test -n "${hooks:-}" || {
             "${QUIET:-false}" ||
-              $LOG info "$lk" "Initializing libs for group" "$name:$libs"
-            user_script_initlibs $libs ||
-              $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
+              $LOG warn "$lk" "No grp, libs or hooks for user-script sub-command" "$lctx"
+            return ${_E_next:-196}
           }
-          test -z "${hooks:-}" && return
+        } || {
           "${QUIET:-false}" ||
-          ! "${VERBOSE:-false}" ||
-            $LOG debug "$lk" "Running hooks" "$hooks"
-          local hook
-          for hook in $hooks
-          do lk=$plk:user-script:hooks "$hook" ||
-            $LOG error "$lk" "Failed in hook" "E$?:$hook" $? || return
-          done
-        ;;
+            $LOG info "$lk" "Initializing libs for group" "$name:$libs"
+          user_script_initlibs $libs ||
+            $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
+        }
+        test -z "${hooks:-}" && return
+        "${QUIET:-false}" ||
+        ! "${VERBOSE:-false}" ||
+          $LOG debug "$lk" "Running hooks" "$hooks"
+        local hook lk="$plk:user-script:hooks[group:$name]"
+        for hook in $hooks
+        do "$hook" ||
+          $LOG error "$lk" "Failed in hook" "E$?:$hook" $? || return
+        done
+      ;;
 
-        # FIXME: probably want to use groups ehre as well
-      ( defarg )
-        lib_load user-script shell-uc str args us &&
-        lib_init shell-uc ;;
+    ( rulesenv )
+        user_script_initlibs std-uc shell-command-script cached-timer
+      ;;
 
-      ( rulesenv )
-          user_script_initlibs std-uc shell-command-script cached-timer
-        ;;
+    ( scriptenv )
+        user_script_initlibs sys || return
+        "${QUIET:-false}" ||
+        ! "${ASSERT:-false}" || {
+          user_script_initlibs sys assert || return
+        }
+      ;;
 
-      ( scriptenv )
-          user_script_initlibs sys || return
-          "${QUIET:-false}" ||
-          ! "${ASSERT:-false}" || {
-            user_script_initlibs sys assert || return
-          }
-        ;;
+    ( node )
+        script_part=${script_cmd:-}
+      ;;
 
-      ( usage )
-        lib_load user-script str-htd shell-uc us &&
-        lib_init shell-uc ;;
+    ( usage )
+      lib_load user-script str-htd shell-uc us &&
+      lib_init shell-uc ;;
 
-      ( help ) set -- "" usage ;;
-      ( -- ) break ;;
+    ( help ) set -- "" usage ;;
+    ( -- ) break ;;
 
-      ( bash-uc ) lib_load bash-uc && lib_init bash-uc ;;
+    ( bash-uc ) lib_load bash-uc && lib_init bash-uc ;;
 
-      ( self-lib ) user_script_initlibs ${script_name} ;;
+    ( self-lib ) user_script_initlibs ${script_name} ;;
 
-      ( * ) $LOG error :user-script:load "No such load action" "$1" \
-          ${_E_not_found:?} ;;
+    ( * ) $LOG error :user-script:load "No such load action" "$1" \
+        ${_E_nsk:-67} || return
     esac ||
         $LOG error :user-script:load "In load action" "E$?:$1" $? || return
     shift
@@ -905,12 +986,19 @@ user_script_load () # ~ <Actions...>
 # places for convenience.
 user_script_loadenv ()
 {
-  [[ 1 == "${user_script_loaded-}" ]] && return
+  [[ ${user_script_loaded-} -eq 1 ]] && return
 
   : "${US_BIN:="$HOME/bin"}"
   : "${PROJECT:="$HOME/project"}"
   : "${U_S:="$PROJECT/user-scripts"}"
   : "${LOG:="$U_S/tools/sh/log.sh"}"
+
+  [[ ${QUIET:-} ]] && {
+    "${QUIET:?}" && VERBOSE=false || VERBOSE=true
+  } || {
+    : "${VERBOSE:=false}"
+    "${VERBOSE:?}" && QUIET=false || QUIET=true
+  }
 
   # See U-C:std-uc.lib for latest definitions
   : "${_E_fail:=1}"
@@ -972,15 +1060,17 @@ user_script_loadenv ()
     # report on non-nominal events?
 
     "${BATCH_MODE:-false}" && {
-      : "${QUIET:=true}"
-      : "${VERBOSE:=false}"
+      #: "${QUIET:=true}"
+      #: "${VERBOSE:=false}"
       : "${DIAG:=false}"
       : "${verbosity:=${v:-3}}"
     } || {
       : "${QUIET:=false}"
-      : "${VERBOSE:=false}"
+      #: "${VERBOSE:=false}"
       : "${verbosity:=${v:-5}}"
     }
+
+    # I really want every script to trigger, so we can adjust env properly
     v=$verbosity
     export verbosity v
 
@@ -993,9 +1083,10 @@ user_script_loadenv ()
       #: "${DIAG:=true}"
       #: "${INIT:=true}"
 
-      "${QUIET:-false}" ||
-      ! "${DIAG:-false}" ||
-      ! "${INIT:-false}" || {
+      ! "${QUIET:-false}" ||
+      ! {
+            "${DIAG:-false}" || "${INIT:-false}"
+      } || {
         : "${QUIET:=false}"
         : "${CT_VERBOSE:=true}"
 
@@ -1003,35 +1094,38 @@ user_script_loadenv ()
           $LOG alert "${lk-}:loadenv" "Running interactively"
       }
     } || {
-      "${QUIET:-false}" ||
-      ! "${DIAG:-false}" ||
-      ! "${INIT:-false}" ||
+      ! "${QUIET:-false}" ||
+      ! {
+          "${DIAG:-false}" || "${INIT:-false}"
+      } ||
         $LOG notice "${lk-}:loadenv" "Running non-interactively"
     }
 
     # If verbosity is low, warn or notices if there are special verbosity modes
     # active
     [[ "$v" -le 5 ]] && {
+
       ! "${INTERACTIVE:?}" || {
         [[ "$v" -le 3 ]] && {
-          "${QUIET:-false}" ||
-          ! "${DEBUG:-false}" ||
-          ! "${DIAG:-false}" ||
-          ! "${ASSERT:-false}" ||
-          ! "${INIT:-false}" ||
-          $LOG alert "${lk-}:loadenv" "Script is running at reduced verbosity" \
-            "debug-modes: $(sys_debug_tag)"
-        } || {
-          ! "${QUIET:-false}" || {
-            ! "${DEBUG:-false}" ||
-            ! "${DIAG:-false}" ||
-            ! "${ASSERT:-false}" ||
-            ! "${INIT:-false}"
+          ! "${QUIET:-false}" ||
+          ! {
+            "${DEBUG:-false}" || "${DIAG:-false}" || "${INIT:-false}"
           } ||
-          $LOG warn "${lk-}:loadenv" "Script is running quietly" \
-            "debug-modes: $(sys_debug_tag)"
+            $LOG alert "${lk-}:loadenv" \
+              "Script is running at reduced verbosity" \
+              "debug-modes: $(sys_debug_tag)"
+        } || {
+          ! "${QUIET:-false}" ||
+          ! {
+            "${DEBUG:-false}" || "${DIAG:-false}" || "${INIT:-false}"
+          } ||
+            $LOG warn "${lk-}:loadenv" \
+              "Script is running quietly" \
+              "debug-modes: $(sys_debug_tag)"
         }
       }
+      # No additional log/std notices for non-interactive runs?
+
     } || {
       ! "${QUIET:-false}" || {
         ! "${DEBUG:-false}" ||
@@ -1043,7 +1137,8 @@ user_script_loadenv ()
 
     true
   } &&
-    user_script_loaded=1
+    user_script_loaded=1 &&
+    return ${_E_continue:-195}
 }
 
 user_script_longhelp () # ~ [<Name>]
@@ -1084,46 +1179,6 @@ user_script_mode () # ~ <Modes...>
   ! "${changed:-false}" || US_MODE="$- ${!US_MODES[*]}"
 }
 
-# XXX: cannot define patterns dynamically without eval?
-user_script_mkvid ()
-{
-  test $# -le 1 || return ${_E_GAE:-3}
-  test $# -eq 0 && {
-    echo "[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*"
-    return
-  }
-  #echo "${1//[A-Za-z_${US_EXTRA_CHAR:-}][A-Za-z0-9_${US_EXTRA_CHAR:-}]*}"
-  echo "${1//[^A-Za-z0-9_]/_}"
-}
-
-user_script_node_attr_grp ()
-{
-  : "${1//[:.-]/_}__grp"
-  group="${!_:-}"
-  "${lookup_quiet:-false}" || test -z "$group" || echo "$group"
-}
-
-user_script_node_attr_libs ()
-{
-  : "${1//[:.-]/_}__libs"
-  test -z "${!_:-}" || {
-    #$LOG debug :attr:libs "Libs:" "$_"
-    libs=${libs:-}${libs:+ }${_//,/ }
-  }
-  lookup_quiet=true user_script_node_attr_grp "${1:?}"
-}
-
-user_script_node_attr_hooks ()
-{
-  : "${1//[:.-]/_}__hooks"
-  test -z "${!_:-}" || {
-    # TODO: maybe resolve hooks given current node/groups
-    #$LOG debug :atr:hooks "Hooks:" "$_"
-    hooks=${_//,/ }${hooks:+ }${hooks:-}
-  }
-  lookup_quiet=true user_script_node_attr_grp "${1:?}"
-}
-
 user_script_resolve_alias () # ~ <Name> #
 {
   echo "$us_aliases" | {
@@ -1145,7 +1200,7 @@ user_script_resolve_alias () # ~ <Name> #
 
 user_script_resolve_aliases () # ~ <Handlers...> # List aliases for given names
 {
-  for handle in "$@"
+  for handle
   do
       {
           user_script_resolve_alias "$handle" || echo
@@ -1189,6 +1244,21 @@ user_script_resolve_handlers () # ~ <Handlers...> # List handlers for given name
         done
       } || echo $handle
   done
+}
+
+user_script_script ()
+{
+  case "${1:?}" in
+  ( --bases )
+      $LOG info "" preseed-bases "${script_bases:-(unset)}"
+      ( user_script_bases "${@:2}" )
+    ;;
+  ( --baseids )
+      $LOG info "" preseed-baseids "${script_bases:-(unset)}"
+      ( user_script_baseids "${@:2}" )
+    ;;
+  ( * ) $LOG error :script "?" "$1" 127
+  esac
 }
 
 user_script_shell_mode ()
@@ -1251,9 +1321,10 @@ user_script_shell_mode ()
   user_script_shell_mode=1
 }
 
-user_script_unenv ()
+user_script_unload ()
 {
-  stderr trap
+  # reset error handler so main can do non-zero exit now
+  trap ERR
 }
 
 # Display description how to evoke command or handler
@@ -1264,8 +1335,8 @@ user_script_usage () # ~ [<Cmd>]
   test $# -eq 0 && {
     short=1 # Make it a list of brief descriptions
     slf_l=0
-    set -- $script_maincmds
-    printf 'Usage:\n\t%s <Command <Arg...>>\n' "$base"
+    printf 'Usage:\n\t%s <Command <Arg...>>\n' "${script_base%[, ]*}"
+    set -- ${script_maincmds:?}
   } || {
     slf_l=1 # Strip brief description
     printf 'Usage:\n'
@@ -1318,7 +1389,7 @@ user_script_usage () # ~ [<Cmd>]
 
   test $short -eq 1 && {
     test -z "${script_defcmd-}" ||
-      printf '\t%s (%s)\n' "$base" "$script_defcmd"
+      printf '\t%s (%s)\n' "${script_base%[, ]*}" "$script_defcmd"
     printf '\n%s\n' "${script_shortdescr:-(no-shortdescr)}"
   } || {
     true # XXX: func comments printf '%s\n\n' "$_usage"
@@ -1335,9 +1406,8 @@ user_script_usage_choices () # ~ <Handler> [<Choice>]
         fnmatch "* ?y? *" " $fun_spec " || continue
         echo "$fun_name"
       done)
-  test -n "$sub_funs" || {
-    $LOG debug "" "No choice specs" "$1" 1 || return
-  }
+  [[ $sub_funs ]] ||
+    $LOG debug "${lk-}:usage-choices" "No choice specs" "handler:$1" 1 || return
 
   # Always use long-help format if we're selecting a particular choice (set)
   test -n "${2:-}" -o ${longhelp:-0} -eq  1 && {
@@ -1427,9 +1497,11 @@ user_script_fetch_handlers ()
 }
 
 # Output formatted help specs for one or more handlers.
-user_script_usage_handlers ()
+user_script_usage_handlers () # ~ <Actions...>
 {
   user_script_fetch_handlers "$@" || return
+
+  #declare -p handlers
 
   # FIXME:
   # Do any loading required for handler, so script-src/script-lib is set
@@ -1442,7 +1514,7 @@ user_script_usage_handlers ()
   # Output handle name(s) with 'spec' and short descr.
   slf_h=1 user_script_handlers $handlers | sed "$alias_sed" | sed "
         s/^\t/\t\t/
-        s/^[^\t]/\t$base &/
+        s/^[^\t]/\t${script_base%[, ]*} &/
     "
 }
 
@@ -1466,9 +1538,9 @@ user_script_alsdefs ()
     sa_a1_act_nlk  l-argv1-lk   act :-\$actdef ""   \${n:?}:\${act:?} -- \
   \
     sa_a1_d_lk     de-argv1-lk      \$_1def    :?         \${lkn:-\$1} -- \
-    sa_a1_d_lk_b   de-argv1-lk      \$_1def    :-\$base   \${lkn:-\$1} -- \
+    sa_a1_d_lk_b   de-argv1-lk      \$_1def    :-\$script_base   \${lkn:-\$1} -- \
     sa_a1_d_nlk    de-argv1-lk      \$_1def    :?         \${lkn:-\${n:?}:\$1} -- \
-    sa_a1_d_nlk_b  de-argv1-lk      \$_1def    :-\$base   \${lkn:-\${n:?}:\$1} -- \
+    sa_a1_d_nlk_b  de-argv1-lk      \$_1def    :-\$script_base   \${lkn:-\${n:?}:\$1} -- \
   \
     sa_E_nschc     err-u-nsk   \$lk "No such choice" "" 67 -- \
     sa_E_nsact     err-u-nsk   \$lk "No such action" \$act 67 -- \
@@ -1494,19 +1566,19 @@ us_shell_alsdefs ()
   uc_shell_alsdefs[l-argv1-lk]='
     local ${1:?}=\${1${2:?}}
     test \$# -eq 0 || shift
-    local lk=\"\${lk${3:-":-\${base}[$$]"}}${4:+:}${4:-}\"
+    local lk=\"\${lk${3:-":-\${script_base}[$$]"}}${4:+:}${4:-}\"
   '
 
   uc_shell_alsdefs[d-argv1-lk]='
     test -n "\${1:-}" || {
       test $# -eq 0 || shift; set -- \"${1:?}\" "$@";
     }
-    local lk=\"\${lk${2:-:-\$base}}${3:+:}${3:-}\"
+    local lk=\"\${lk${2:-:-\$script_base}}${3:+:}${3:-}\"
   '
 
   uc_shell_alsdefs[de-argv1-lk]='
     test \$# -gt 0 || set -- \"${1:?}\"
-    local lk=\"\${lk${2:-:-\$base}}${3:+:}${3:-}\"
+    local lk=\"\${lk${2:-:-\$script_base}}${3:+:}${3:-}\"
   '
 
   # Take first argument and set to variable, and test for block device.
@@ -1514,7 +1586,7 @@ us_shell_alsdefs ()
     local ${1:?}=\${1${2:-":?"}}
     shift
     test -b \"\$${1:?}\" || {
-      \$LOG warn \"${3:-\$base}\" \"Block device expected\" \"\" \$?
+      \$LOG warn \"${3:-\$script_base}\" \"Block device expected\" \"\" \$?
       return ${4:-3}
     }
   '
@@ -1629,11 +1701,6 @@ stdstat () # ~ <Status-Int> <Status-Message> # Exit handler
   exit $1
 }
 
-us_debug ()
-{
-  ${US_DEBUG:-false}
-}
-
 # Lists name, spec and gist fields separated by tabs.
 # Fun flag t turns off column formatting
 # Fun flag h enables an alternative semi-readable help outline format
@@ -1673,8 +1740,8 @@ script_listfun () # (s) ~ [<Grep>] # Wrap grep for function declarations scan
 
 sh_type_fun_body ()
 {
-  { type -t -- "${1:?}" || return
-  } | tail -n +4 | head -n -1
+  { declare -f -- "${1:?}" || return
+  } | tail -n +3 | head -n -1
 }
 # derive
 
@@ -1692,49 +1759,51 @@ str_quote ()
 }
 # copy str.lib
 
-sys_debug_tag ()
+sys_loop () # ~ <Callback> <Items ...>
 {
-  local var
-  [[ $# -gt 0 ]] || set -- DEV DEBUG DIAG ASSERT INIT
-  for var
+  local fun=${1:?}
+  shift
+  while [[ $# -gt 0 ]]
   do
-    [[ false = ${!var:-} ]] && printf "\-%s" "${var,,}"
-    [[ true = ${!var:-} ]] && printf "+%s" "${var,,}"
+    "$fun" "${1:?}" && break
+    test ${_E_done:-200} -eq $? && return
+    test ${_E_continue:-195} -eq $_ || return $_
+    shift
   done
-  "${DEBUG:-false}" || printf ',v=%i' "$v"
 }
-# copy sys.lib
 
-#user_script_sh__grp=user-script
-#{
-#  user_script_bases >/dev/null
-#  script_bases="${script_bases:?} user_script_sh"
-#  echo "$script_bases"
-#}
 
-user_script_sh_aliasargv ()
+# FIXME: determine script listing method: find, locate, compgen or user data
+user_script_sh_list ()
+{
+  case "${1:?}" in
+  ( --find ) user_script_find "${@:2}"
+    ;;
+  ( * ) $LOG error "$lk" "No such action on list" "$1" 127
+  esac
+}
+
+
+user_script_sh_defarg ()
 {
   case "$1" in
-
-      ( find|--find-user-scripts ) shift; set -- user_script_find "$@" ;;
-
-      # FIXME: sh-type-esacs-als currently does not match var ref in argv alias
-      ( bases|--list-script-bases ) shift;
-          shift; set -- user_script_ cli bases "$@" ;;
-
+  ( --find-scripts )            set -- find "${@:2}" ;;
   esac
 }
 
 user_script_sh_loadenv ()
 {
-  : "${_E_next:=196}"
-
-  script_part=${base:-user-script} user_script_load groups ||
-      test ${_E_next:?} -eq $? || return $_
-
-  script_part=${1:?} user_script_load groups ||
-      # E:next means no libs found for given group(s).
-      test ${_E_next:?} -eq $? || return $_
+  local script_part fail
+  for script_part in ${script_cmdname:?} ${script_base//,/ }
+  do
+    # Start at first script node, load all libs and then execute hooks.
+    # XXX: use status to coordinate groups from multiple bases?
+    user_script_load groups && break || {
+      test ${_E_next:-195} -eq $? && fail=true
+    } ||
+      test ${_E_continue:-196} -eq $_ || return $_
+  done
+  ! "${fail:-false}"
 }
 
 usage ()
@@ -1754,11 +1823,18 @@ usage ()
 # Main boilerplate (mostly useless except for testing this script)
 # To list all user-script instances, see user-script.sh all.
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+#us-env -r user-script || ${us_stat:-exit} $?
+#test -n "${uc_lib_profile-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
+
+test -n "${uc_fun_profile-}" ||
+  . "${UCONF:?}/etc/profile.d/uc_fun.sh" ||
+  ${us_stat:-exit} $?
 
 ! script_isrunning "user-script" .sh || {
 
-  #user_script_load || exit $?
+  script_base=user-script-sh
+  : "${US_EXTRA_CHAR:=:-}"
+  user_script_load default || ${us_stat:-exit} $?
 
   # Strip extension from SCRIPTNAME (and baseid)
   SCRIPT_BASEEXT=.sh
@@ -1766,15 +1842,13 @@ test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
   #script_defcmd=usage
   # Extra handlers for user-script-aliases to extract from
   user_script_defarg=defarg\ aliasargv
-  script_bases=class_sh\ user_script_sh
 
   # Pre-parse arguments and reset argv: resolve aliased commands or sets default
-  eval "set -- $(user_script_defarg "$@")"
-
-  true "${US_EXTRA_CHAR:=:-}"
+  if_ok "$(user_script_defarg "$@")" &&
+  eval "set -- $_" &&
 
   # Execute argv and end shell
-  script_run "$@" || exit
+  script_run "$@" || ${us_stat:-exit} $?
 }
 
 user_script_loaded=0

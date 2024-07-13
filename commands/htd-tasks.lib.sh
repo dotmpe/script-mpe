@@ -300,7 +300,8 @@ htd__tasks_be_src()
 {
   #eval set -- $(lines_to_args "$arguments") # Remove options from args
 
-  local cmdid; mkvid "$1" ; cmid=$vid
+  local cmdid
+  str_vword cmdid "$1"
   . ./to/be-src.sh ; shift 1
   htd__tasks__src__${cmid} "$@"
 }
@@ -309,11 +310,11 @@ htd__tasks_be()
 {
   be=$(printf -- "$1" | cut -c4- )
   test -n "${be-}" || error "No default tasks backend" 1
-  mksid "$1" '' ''; ctxid=$sid
+  ctxid=$(str_sid "$1" '' '' )
   test -e ./to/$sid.sh || error "No tasks backend '$1' ($be)" 1
   . ./to/$ctxid.sh ;
-  mkvid "$be" ; beid=$vid
-  mkvid "$2" ; cmid=$vid
+  str_vword beid "$be"
+  str_vword cmid "$2"
   . ./to/$ctxid.sh ; shift 2
   htd__tasks__${beid}__${cmid} "$@"
 }
@@ -405,7 +406,7 @@ htd_tasks_load()
     # XXX local not accepted by osh $(map=package_ package_sh  id  )
     eval $(map=package_ package_sh  id  )
     test -n "$id" && {
-      upper=1 mksid "$id"
+      sid=$(upper=true str_sid "$id")
       todo_slug="$sid"
     }
   }
@@ -649,7 +650,8 @@ htd_tasks_hub() # ~ [group]
       ;;
 
     be.trc.* )
-        mksid "$(echo "$1" | cut -c8-)" ; shift
+        sid=$(str_sid "${1:8}")
+        shift
         lib_load tasks-trc
         tasks__trc $sid "$@"
       ;;

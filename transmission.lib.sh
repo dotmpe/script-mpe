@@ -93,22 +93,6 @@ transmission_fix_item_cols () # (std) ~ # Remove whitespace from column values
     '
 }
 
-# Ask transmission for download location of torrent
-# XXX: context key is simply var name
-transmission_share_path () # ~ <Id-spec> [<Context-key>]
-{
-  ti= transmission_torrent_info "$1" location:Location || return
-  local -n var=${2:-pp}
-  test -e "$location/$1" || return ${_E_next:?}
-  var="$location/$1"
-
-  #filetabs=$(transmission_client_remote -t "$num" -if | tail -n +3 | transmission_fix_item_cols)
-  #echo "num=$numid
-  #echo "$1"
-  #echo "$location"
-  #echo "$filetabs" | sed 's/^/  /'
-}
-
 # Helper for user input that sorts out what argument is given, and what to
 # fetch. If any. If we know what type of input we have, use transmission-*-env.
 transmission_id () # ~ (id|hash|name) <Hash-or-Num-or-Name>
@@ -161,46 +145,34 @@ transmission_info () # (y) ~
   esac
 }
 
-transmission_torrent_info () # ~ <Id-Spec> <Key...> # Parse info output and set vars
-{
-  if_ok "${ti:="$(transmission_client_remote -t "${1:?}" -i)"}" || return
-  shift
-  ti_sh="$(
-    while test $# -gt 0
-    do
-      fnmatch "*:*" "$1" && {
-        field=${1/*:}
-        var=${1/:*}
-      } || {
-        field=$1 var=${1// /_}
-      }
-      # NOTE: Availability field is duplicated for missing-metadata downloads
-      echo "${ti//\'/\\\'}" | grep -m 1 "^ *$field:" | sed '
-          s/^ *[^:]*: \(.*\)$/'"$var"'='"'"'\1'"'"'/
-        '
-      shift
-    done )"
-  eval "$ti_sh"
-}
-
 # To check wether a name or hash is a transmission share, this is far quicker
-# than calling transmission-remote. But there are a few cases it fails for
-# names.
-transmission_is_item () # ~ [name|hash] <Info-Name-or-Hash>
+# than calling transmission-remote. Also the remote does not show trailing
+# spaces in the name.
+transmission_is_share () # ~ [name|hash] <Info-Name-or-Hash...>
 {
   test $# -gt 0 || return 64
   test $# -gt 1 || set -- name "$1"
   local lk=${lk:-}:is-item
   case "${1:?}" in
   ( hash )
-        shift; for i in "$TRANSMISSIONBT_TORRENTS_DIR/"*".${1:0:16}.torrent"
-        do test -e "$i" && return || true; done; return 1
-      ;;
+      shift; for i in "${TRANSMISSIONBT_TORRENTS_DIR:?}/"*".${1:0:16}.torrent"
+      do test -e "$i" && return || true; done; return 1
+    ;;
 
   ( name )
-        shift; for i in "$TRANSMISSIONBT_TORRENTS_DIR/$1."*".torrent"
-        do test -e "$i" && return || true; done; return 1
-      ;;
+      shift; for i in "${TRANSMISSIONBT_TORRENTS_DIR:?}/$1."*".torrent"
+      do test -e "$i" && return || true; done; return 1
+    ;;
+
+  ( name-hash )
+      shift;
+      test -e "${TRANSMISSIONBT_TORRENTS_DIR:?}/$1.${2:0:16}.torrent"
+    ;;
+
+  ( name-hash-trailing-ws )
+      test -e "${TRANSMISSIONBT_TORRENTS_DIR:?}/$1 .${2:0:16}.torrent" ||
+      test -e "${TRANSMISSIONBT_TORRENTS_DIR:?}/$1.${2:0:16}.torrent"
+    ;;
 
   ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
@@ -258,24 +230,6 @@ transmission_item_clearenv () # ~
   test $# -eq 0 || "$@"
 }
 
-transmission_item_echo () # ~
-{
-  local out="$numid. $name
-    Status:$status Progress:${pct:-n/a}"
-  test -z "${eta:-}" || out="$out ETA:$eta"
-  test -z "${have:-}" || out="$out Have:$have"
-  test -z "${avail:-}" || out="$out Available:$avail"
-  test -z "${ratio:-}" || out="$out Ratio:$ratio"
-  test -z "${size_tot:-}" || out="$out Total-size:$size_tot"
-  test -z "$up" -a -z "$down" || out="$out Speed:$up/$down"
-  echo "$out"
-}
-
-transmission_item_files_raw ()
-{
-  transmission_client_remote -t "${num:?}" -if | tail -n +3
-}
-
 # List run handler: list file(s) in share at client backend
 transmission_item_files () # ~ (raw|paths|pathtab|arr)
 {
@@ -320,6 +274,56 @@ transmission_item_files () # ~ (raw|paths|pathtab|arr)
       }
     ;;
   esac
+}
+
+transmission_item_files_raw ()
+{
+  transmission_client_remote -t "${num:?}" -if | tail -n +3
+}
+
+# Format item regardless of current status
+transmission_item_format () # ~ (short|oneline|tabline|full) [<Var-ref=->]
+{
+  local _out
+  case "${1:-short}" in
+  ( full ) TODO "$1" ;;
+  ( oneline )
+      _out="$numid. $name"
+      [[ ! ${status-} ]] || _out="$_out status:$status"
+      [[ ! ${progress-} ]] || _out="$_out progress:$progress"
+      [[ ! ${eta-} ]] || _out="$_out eta:$eta"
+      [[ ! ${have-} ]] || _out="$_out have:$have"
+      [[ ! ${avail-} ]] || _out="$_out available:$avail"
+      [[ ! ${ratio-} ]] || _out="$_out ratio:$ratio"
+      [[ ! ${size_tot-} ]] || _out="$_out total-size:$size_tot"
+      [[ ! ${up-} && ! ${down-} ]] || _out="$_out speed:${up:--}/${down:--}"
+    ;;
+  ( short )
+      _out="$numid. $name
+  Status:$status Progress:${pct:-n/a}"
+      [[ ! ${eta-} ]] || _out="$_out eta:$eta"
+      [[ ! ${have-} ]] || _out="$_out have:$have"
+      [[ ! ${avail-} ]] || _out="$_out available:$avail"
+      [[ ! ${ratio-} ]] || _out="$_out ratio:$ratio"
+      [[ ! ${size_tot-} ]] || _out="$_out total-size:$size_tot"
+      [[ ! ${up-} && ! ${down-} ]] || _out="$_out speed:${up:--}/${down:--}"
+    ;;
+  ( tabline )
+      _out=
+      _out=$_out$'\t'"status:${status:--}"
+      _out=$_out$'\t'"progress:${progress:--}"
+      _out=$_out$'\t'"eta:${eta:--}"
+      _out=$_out$'\t'"have:${have:--}"
+      _out=$_out$'\t'"available:${avail:--}"
+      _out=$_out$'\t'"ratio:${ratio:--}"
+      _out=$_out$'\t'"total-size:${size_tot:--}"
+      _out=$_out$'\t'"speed:${up:--}/${down:--}"
+    ;;
+  ( * ) return ${_E_nsk:?}
+  esac || return
+  [[ "${2:--}" = - ]] && echo "$_out" && return
+  local -n __out=${2:?} &&
+  __out=$_out
 }
 
 # Util. item wrapper to fetch and map properties from transmission-info.
@@ -381,7 +385,7 @@ transmission_item_count () # ~ [<Modes...>] [-- <Inner-handler>]
     shift
     test $# -eq 0 && return
   done
-  #transmission_item_echo
+  #transmission_item_format
   $LOG notice ":$numid" "Counted share" "$lctx"
   counted=$(( counted + 1 ))
   sa_next_seq
@@ -495,7 +499,7 @@ transmission_item_select () # ~
     shift
     test $# -eq 0 && return
   done
-  transmission_item_echo
+  transmission_item_format
   selected=$(( selected + 1 ))
   sa_next_seq
   test $# -eq 0 || "$@"
@@ -607,7 +611,7 @@ transmission_item_start () # ~ [<Inner-handler>]
 
   ! ${DEBUG:-false} || {
     {
-      transmission_item_echo
+      transmission_item_format
     } >&2
   }
 
@@ -663,7 +667,8 @@ transmission_item_validate () # ~
     [[ $btih =~ ^[0-9a-f]{40}$ ]] || fail=Bt\ info-hash; }
   test -z "${fail-}" && return
 
-  ctx="id:$numid pct:$pct have:$have eta:$eta up:$up down:$down ratio:$ratio ih:${btih:-} status:$status n:$name"
+  ctx="id:$numid pct:${pct:--} have:${have:--} eta:${eta:--} up:${up:--} down:${down:--} ratio:${ratio:--} ih:${btih:-} status:$status n:$name"
+
   $LOG warn ":item-validate" "$fail failed" "${ctx//%/%%}"
 
   test ${ti_v_ff:-0} -eq 1 && return 1
@@ -681,34 +686,22 @@ transmission_list () # (y) ~ <Action ...> # Filter/process clients list output
   ( a|active )
       transmission_client_remote -l |
         grep ${grep_f:-} -e 'Uploading' -e 'Downloading' -e 'Seeding' ;;
-  ( S|not-stopped )
-      transmission_client_remote -l |
-        grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
-  ( idle )
-      transmission_client_remote -l | grep ${grep_f:-} 'Idle' ;;
+  ( count )
+      : "$( transmission_list | count_lines )"
+      echo $(( _ - 2 ))
+    ;;
   ( e|errors|issues )
       transmission_client_remote -l | grep ${grep_f:--E} '^ *[0-9]+\* ' ;;
-  ( popular )
-      transmission_client_remote -l |
-        grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
-        transmission_fix_item_cols | sort -k7n
-    ;;
-  ( s|stopped|paused )
-      transmission_client_remote -l |
-        grep ${grep_f:-} '\(None\|[0-9][0-9]*\) * Stopped ' ;;
-
   ( fix-cols )
-      shift; transmission_list "$@" | transmission_fix_item_cols ;;
+      transmission_list "${@:2}" | transmission_fix_item_cols ;;
   ( I|ids )
-      shift; transmission_list "$@" | awk '{print $1}' ;;
+      transmission_list "${@:2}" | awk '{print $1}' ;;
   ( i|items ) # ~ (<Handler>) <Id-Spec...> # Shortcut to run given handler on selected IDs
-      shift; local handler=${1:-lognote}; shift
-      transmission_list_run fix-cols items-by-nums "$@" -- \
+      local handler=${2:-lognote}
+      transmission_list_run fix-cols items-by-nums "${@:3}" -- \
           transmission_item_$handler ;;
-  ( lognotes )
-      shift; local handler=${1:-lognote}; shift
-      transmission_list_run transmission_item_$handler
-    ;;
+  ( idle )
+      transmission_client_remote -l | grep ${grep_f:-} 'Idle' ;;
   ( items-by-nums ) # ~ [<List-Arg...> -- ] <Id...>
       local listarg listargc
       shift; transmission_listarg "$@" && shift $listargc
@@ -727,6 +720,18 @@ transmission_list () # (y) ~ <Action ...> # Filter/process clients list output
         return
       transmission_list_run $listarg -- transmission_item_keys "$@"
     ;;
+  ( lognotes )
+      shift; local handler=${1:-lognote}; shift
+      transmission_list_run transmission_item_$handler
+    ;;
+  ( popular )
+      transmission_client_remote -l |
+        grep -E '  *[0-9]+\.[0-9]+  *[0-9]+\.[0-9]+  *[1-9][0-9]*\.[0-9] ' |
+        transmission_fix_item_cols | sort -k7n
+    ;;
+  ( s|stopped|paused )
+      transmission_client_remote -l |
+        grep ${grep_f:-} '\(None\|[0-9][0-9]*\) * Stopped ' ;;
   ( summary )
         transmission_list_summary ;
         $LOG notice "$lk:summary" \
@@ -740,10 +745,9 @@ transmission_list () # (y) ~ <Action ...> # Filter/process clients list output
       transmission_list_run transmission_item_validate ;;
   ( xtab )
       transmission_list fix-cols tab ;;
-  ( count )
-      : "$( transmission_list | count_lines )"
-      echo $(( _ - 2 ))
-    ;;
+  ( S|not-stopped )
+      transmission_client_remote -l |
+        grep ${grep_f:--v} '\(None\|[1-9][0-9]*\) * Stopped ' ;;
 
   ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
@@ -939,6 +943,55 @@ transmission_share ()
 
   ( * ) $LOG error "$lk" "No such action" "$1" ${_E_nsa:-68}
   esac
+}
+
+# Ask transmission for download location of torrent
+# XXX: context key is simply var name
+transmission_share_path () # ~ <Id-spec> [<Context-key>]
+{
+  stderr echo "1=${1@Q} key=$2"
+  ti= transmission_torrent_info "${1:?}" location:Location || return
+  local -n var=${2:-pp}
+  stderr echo "location=${location@Q} 1=${1@Q} key=$2"
+  test -e "$location/$1" || return ${_E_next:?}
+  var="$location/$1"
+
+  #filetabs=$(transmission_client_remote -t "$num" -if | tail -n +3 | transmission_fix_item_cols)
+  #echo "num=$numid
+  #echo "$1"
+  #echo "$location"
+  #echo "$filetabs" | sed 's/^/  /'
+}
+
+transmission_torrent_info () # ~ <Id-Spec> <Key...> # Parse info output and set vars
+{
+  if_ok "${ti:="$(transmission_client_remote -t "${1:?}" -i)"}" || return
+  shift
+  ti_sh="$(
+    while test $# -gt 0
+    do
+      fnmatch "*:*" "$1" && {
+        field=${1/*:}
+        var=${1/:*}
+      } || {
+        field=$1 var=${1// /_}
+      }
+      # NOTE: Availability field is duplicated for missing-metadata downloads
+      echo "${ti//\'/\\\'}" | grep -m 1 "^ *$field:" | sed '
+          s/^ *[^:]*: \(.*\)$/'"$var"'='"'"'\1'"'"'/
+        '
+      shift
+    done )"
+  eval "$ti_sh"
+}
+
+transmission_torrent_path () # ~ <Tbn-var> <Tf-var>
+{
+  local -n __ti_tbn=${1:-tbn} __ti_tf=${2:-tf}
+  : "${btih:?}"
+  : "${in:-${dn:?}}.${_:0:16}"
+  __ti_tbn="$_"
+  __ti_tf="${TRANSMISSIONBT_TORRENTS_DIR:?}/$tbn.torrent"
 }
 
 

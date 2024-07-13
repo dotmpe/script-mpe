@@ -23,9 +23,7 @@ box_lib__init()
   test -n "$BOX_DIR" || error "box-load: expected BOX-DIR env" 1
   test -d "$BOX_DIR" || mkdir -vp $BOX_DIR
 
-  mkvid $PWD
-  nid_cwd=$vid
-  unset vid
+  nid_cwd=$(str_word "$PWD")
 
   test ! -e "$BOX_DIR/bin/$box_name" ||
       box_file="$BOX_DIR/bin/$box_name"
@@ -330,7 +328,7 @@ box_lib_current_path()
   set -- $( ( while true ; do pwd && cd .. ; test "$PWD" != '/' || break; done ) |
       while read -r path
       do
-        mkvid "$path" && echo "$vid" && unset vid
+        str_word "$path"
       done | while read -r vid
       do
         sh="$BOX_DIR/${hostname}/${vid}.sh"

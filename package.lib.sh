@@ -401,7 +401,7 @@ update_temp_package()
   test -n "${pdoc-}" || error pdoc 21
   test -n "${ppwd-}" || local ppwd=$(cd $1 && pwd)
 
-  mkvid "$ppwd"
+  vid=$(str_word "$ppwd")
   metaf=$(setup_tmpf .yml "-meta-$vid")
   test -e $metaf || touch $metaf $pdoc
 
@@ -520,7 +520,7 @@ package_default_env()
 package_sh_get_env() # Name V-Id
 {
   test -n "$1" || error "Path/key name expected" 1
-  test -n "$2" || set -- "$1" "$(upper=0 mkvid "$1" ; echo "$vid")"
+  test -n "$2" || set -- "$1" "$(lower=true str_word "$1")"
   eval echo "\$package_${2}"
 }
 
@@ -693,10 +693,11 @@ package_component_roots()
 package_lists_contexts_map() #
 {
   test $# -gt 0 || return 98
-  local local_name="$1"
+  local local_name="$1" vid
   while test -z "${2-}"
   do
-    upper=0 mkvid "package_lists_contexts_map_$local_name" ;
+    : "$(lower=true str_word "$local_name")"
+    vid="package_lists_contexts_map_$_" ;
     #shellcheck disable=SC1083
     set -- $( eval echo \"\${$vid-}\" )
     test -z "${1-}" || echo "$1"

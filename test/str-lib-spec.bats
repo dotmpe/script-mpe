@@ -83,21 +83,21 @@ setup()
 }
 
 
-@test "$base: mkvid - can make ID from path" {
+@test "$base: str_vword vid - can make ID from path" {
   unset s c upper
 
-  mkvid "/var/lib"
+  str_vword vid "/var/lib"
   test "$vid" = "_var_lib"
-  mkvid "/var/lib/"
+  str_vword vid "/var/lib/"
   test "$vid" = "_var_lib_"
 }
 
-@test "$base: mkvid - cleans up ID from path" {
+@test "$base: str_vword vid - cleans up ID from path" {
   unset s c upper
 
-  mkvid "/var//lib//"
+  str_vword vid "/var//lib//"
   test "$vid" = "_var_lib_"
-  mkvid "/var//lib"
+  str_vword vid "/var//lib"
   test "$vid" = "_var_lib"
 }
 

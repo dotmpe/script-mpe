@@ -200,7 +200,7 @@ docstat_primctx() # [Prim-Ctx]
   export primctx="$1"
 
   # Make ID of first tag (without metachars)
-  upper=0 mkvid "$(echo "$primctx" | cut -c2-)"
+  vid=$(lower=true str_word "${primctx:2}")
 
   export primctx_id="$vid"
 

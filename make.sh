@@ -28,7 +28,7 @@ make_main ()
   make_script=$1
   make_scriptname=$(basename "$1" .sh)
   make_scriptpath=$(dirname "$1")
-  #local vid; mkvid $make_scriptname; local base=$vid
+  #local vid; str_vword vid "$make_scriptname"; local base=$vid
   local $make_main_parts
 
   grep -q '^MAKE-HERE$' "$1" && {

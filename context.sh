@@ -332,11 +332,11 @@ context_sh_shortdescr='Provide context entities and relations based on tags'
 
 context_sh_aliasargv ()
 {
-  case "$1" in
-  ( e|entries ) shift; set -- context_sh_entries "$@" ;;
-  ( l|list ) shift; set -- context_sh_entries -l "$@" ;;
-  ( s|short ) shift; set -- context_sh_status --short ;;
-  ( f|files ) shift; set -- context_sh_files "$@" ;;
+  case "${1:?}" in
+  ( e|entries ) set -- entries "${@:2}" ;;
+  ( l|list ) set -- entries -l "${@:2}" ;;
+  ( s|short ) set -- status --short ;;
+  ( f|files ) set -- files "${@:2}" ;;
   esac
 }
 
@@ -347,19 +347,9 @@ context_sh_init ()
 
 context_sh_loadenv ()
 {
-  sh_mode strict &&
-  user_script_loadenv &&
   user_script_initlog &&
-  shopt -s nullglob || return
-  user_script_baseless=true \
-  script_part=${1#context_sh_} user_script_load groups || {
-      # E:next means no libs found for given group(s).
-      test ${_E_next:?} -eq $? || return $_
-    }
-  # Fallback if no group/libs defined for given cmd-name is to load base lib
-  user_script_initlibs "${base//.*}" || return
-  lk="$UC_LOG_BASE" &&
-  $LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+  shopt -s nullglob &&
+  return ${_E_continue:?}
 }
 
 context_sh_unload ()
@@ -370,17 +360,17 @@ context_sh_unload ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "context.sh" || {
-  export UC_LOG_BASE="${SCRIPTNAME}[$$]"
-  user_script_load defarg || exit $?
+  script_base=context-sh,user-script-sh
+  user_script_load default || exit $?
+
   # Default value used if argv is empty
   script_defcmd=short
   user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
-  if_ok "$(user_script_defarg "$@")"
-  eval "set -- $_"
+  if_ok "$(user_script_defarg "$@")" &&
+  eval "set -- $_" &&
   script_run "$@"
 }

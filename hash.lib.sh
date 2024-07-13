@@ -11,7 +11,7 @@ hash_lib__load ()
 # Wrapper for generating hash/cksum from string
 hash_str () # ~ <Algo> <String> [<Check>]
 {
-  ck_${1:?} - "${@:3}" <<< "${2:?}"
+  ck_${1:?} - "${@:3}" <<< "${2:?"$(sys_exc hash-str "String expeced")"}"
 }
 
 # Output hash or checksum (in ASCII form) from input, and format. Default

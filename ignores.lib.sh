@@ -89,22 +89,32 @@ ignores_lib__init()
 
 
 # Return find options sequence to filter ignored paths. This generates prune
-# sequences for all globs from groups, and a few built-in cases.
+# sequences for all globs from groups, and a few built-in cases. Because this
+# function only needs a list of globs, the standard @GlobList context can be
+# bypassed by putting them on stdin and leaving arguments empty.
 ignores_find_expr () # ~ <Groups...>
 {
-  local glob ctx=${at_GlobList:-globlist}
-  printf -- '-false\n'
   # Disable glob (filename) expansion here
   set -f
-  for glob in $(${ctx}_raw "$@" | remove_dupes_nix)
+  local glob ctx=${at_GlobList-}
+  [[ ${ctx} || $# -gt 0 ]] && {
+    : "${ctx:=ignores}"
+    globlist=$(${ctx}_raw "$@" | remove_dupes_nix) || return
+  } || {
+    [[ ! -t 0 ]] ||
+      $LOG error "" "Expected globlist data context" E$? $? || return
+    globlist=$(</dev/stdin)
+  }
+  printf -- '-false\n'
+  for glob in $globlist
   do
     ignores_find_glob_expr "$glob" || return
   done
   set +f
   printf -- '-o %s ' "${ignores_find_extra_expr[@]}"
   #printf -- '-o -true'
-  # Set status if no globs where found in for loop
-  [[ "${glob-}" ]] || return ${_E_user:?}
+  # Set status based on last glob, as to imply none where found in for loop
+  [[ ${glob-} ]] || return ${_E_user:?}
 }
 
 # Execute find, ignoring globs from groups

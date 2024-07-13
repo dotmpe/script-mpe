@@ -479,7 +479,9 @@ any_component() # Spec-Set Comp-Id...
   _c="$1"; spec=$( show_spec "$1" ) ; shift
   while test $# -gt 0
   do
-    mkid "$1" "" "-_*"; mksid "$1" ; mkvid "$1"
+    id=$(str_id "$1" "" "-_*")
+    sid=$(str_sid "$1")
+    vid=$(str_word "$1")
     std_info "Looking for $_c component '$1' '$id' '$sid' '$vid'"
     for x in $spec
     do

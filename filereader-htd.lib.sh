@@ -24,7 +24,7 @@ src_reader_ ()
 }
 
 
-filereader_modeline ()
+filereader_modeline () # ~ <File>
 {
   test 1 -lt $# || return ${_E_MA:-194}
   file_modeline "$1" &&
@@ -92,10 +92,24 @@ class_FileReader_ () # ~ <Instance-Id> .<Message-name> <Args...>
   case "${call:?}" in
 
   ( .__init__ )
-      test -f "${2:?}"
+      test -f "${2:?}" || return ${_E_no_file:-124}
       FileReader__file[$id]=$_ &&
       $super.__init__ "${@:1:2}" "${@:3}" ;;
 
+  ( .count )
+      local -n reader_fp="FileReader__file[\"$OBJ_ID\"]" &&
+      count_lines "$reader_fp"
+    ;;
+  ( .init )
+      local -n reader_fp="FileReader__file[\"$OBJ_ID\"]" &&
+      test -s "$reader_fp" || {
+        echo "# Id:${*:- -}${*:+ $*} <$reader_fp> reader:$CLASS_NAME" >| "$reader_fp"
+      }
+    ;;
+  ( .toString )
+      local -n reader_fp="FileReader__file[\"$OBJ_ID\"]" &&
+      echo "<FileReader:file=$reader_fp>"
+    ;;
   ( * ) return ${_E_next:?};
 
   esac && return ${_E_done:?}
@@ -127,10 +141,16 @@ class_TabFile_ () # ~
 {
   case "${call:?}" in
 
-  ( .grep-tab ) # ~ ~ <Grep-key> <Grep-type>
-      declare tabfile
-      tabfile=$($self.attr file FileReader) &&
-      < "$tabfile" tabfile_grep "$1" "${2:--val}"
+  ( .append-varstab )
+      local -n tab_fp="FileReader__file[\"$OBJ_ID\"]" &&
+      >> "$tab_fp" sys_varstab "$@"
+    ;;
+  ( .col-by-index ) # ~ ~ <Col-index=1> # Print every value in column
+      local -n tab_fp="FileReader__file[\"$OBJ_ID\"]" &&
+      < "$tab_fp" awk "
+        /^ *$/ { next; }
+        /^ *#/ { next; }
+        { print \$${1:-1} }"
     ;;
 
   ( .by-column-value ) # ~ ~ ...
@@ -138,10 +158,10 @@ class_TabFile_ () # ~
       $self.grep-tab "$@"
     ;;
 
-  ( .key-by-index ) # ~ ~ <Match-col> <Val> <Select-col=0>
-      declare tabfile
-      tabfile=$($self.attr file FileReader) &&
-      < "$tabfile" awk "BEGIN {found=0}
+  ( .by-key-at-index ) # ~ ~ <Match-col> <Val> <Select-col=0>
+    # An AWK script that makes it easy to run a simple match query on TSV
+      local -n tab_fp="FileReader__file[\"$OBJ_ID\"]" &&
+      < "$tab_fp" awk "BEGIN {found=0}
         { if ( \$$1 == \"$2\" ) {
             print \$${3:-0};
             found = 1
@@ -151,11 +171,16 @@ class_TabFile_ () # ~
       "
     ;;
 
-  ( .keys-by-index ) # ~ ~ <Col-index=1>
-      if_ok "$($self.attr file FileReader)" && < "$_" awk "
-        /^ *$/ { next; }
-        /^ *#/ { next; }
-        { print \$${1:-1} }"
+  ( .grep-tab ) # ~ ~ <Grep-key> <Grep-type>
+      local -n tab_fp="FileReader__file[\"$OBJ_ID\"]" &&
+      #local tabfile
+      #tabfile=$($self.attr file FileReader) &&
+      < "$tab_fp" tabfile_grep "$1" "${2:--val}"
+    ;;
+
+  ( .where-index ) # ~ ~ <Match-col> <Val> <Select-col=0> <Var-name> #
+      local -n result=${4:?} &&
+      result=$( call=.by-key-at-index class_TabFile_ "${@:1:3}" )
     ;;
 
     * ) return ${_E_next:?}

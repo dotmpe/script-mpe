@@ -4,7 +4,7 @@
 export_stage()
 {
   test -n "${1:-}" || return 100
-  test -n "${2:-}" || set -- "$1" "$(mkvid $1 && echo $vid)"
+  test -n "${2:-}" || set -- "$1" "$(str_word "$1")"
 
   export stage=$1 stage_id=$2 ${2}_ts="$($gdate +%s.%N)"
   ci_stages="${ci_stages-}${ci_stages+" "}$stage_id"
@@ -83,7 +83,9 @@ ci_env() # Var
 
 ci_check() # Label Command-Line...
 {
-  local label="$1" vid= stat=; upper=1 mkvid "$1"; shift
+  local label="$1" vid= stat=
+  upper=true str_vword vid "$1"
+  shift
   eval ${vid}_LABEL=\"$label\"
   "$@" && stat=1 || stat=0
   eval ${vid}=$stat

@@ -6,8 +6,10 @@
 os_htd_lib__load()
 {
   lib_require os || return
-  : "${uname:="$(uname -s)"}"
-  : "${os:="$(uname -o)"}"
+  : "${OS_HOST:="$(hostname -f)"}"
+  : "${OS_HOSTNAME:="$(hostname -s)"}"
+  : "${OS_NAME:="$(uname -o)"}"
+  : "${OS_UNAME:="$(uname -s)"}"
 }
 
 os_htd_lib__init()
@@ -156,7 +158,7 @@ file_rotate () # ~ <Name> [<.Ext>]
 filebtime() # ~ <File-path>
 {
   local flags=- ; file_stat_flags
-  case "${uname:?}" in
+  case "${OS_UNAME:?}" in
     Darwin )
         trueish "${file_names-}" && pat='%N %B' || pat='%B'
         stat -f "$pat" $flags "$1" || return 1
@@ -175,14 +177,14 @@ filectime() # ~ <File-path>
 {
   while test $# -gt 0
   do
-    case "${uname:?}" in
+    case "${OS_UNAME:?}" in
       Darwin )
           stat -L -f '%c' "$1" || return 1
         ;;
       Linux | CYGWIN_NT-6.1 )
           stat -L -c '%Z' "$1" || return 1
         ;;
-      * ) $os_lib_log error "os" "filectime: $uname?" "" 1 ;;
+      * ) $os_lib_log error "os" "filectime: $OS_UNAME?" "" 1 ;;
     esac; shift
   done
 }
@@ -190,12 +192,12 @@ filectime() # ~ <File-path>
 filextensions () # ~ <File-path>
 {
   test -e "$1" || error "expected existing path <$1>" 1
-  case "${uname:?}" in
+  case "${OS_UNAME:?}" in
 
     Darwin ) file -b --mime-type "$1" ;;
     Linux ) file -bi "$1" ;;
 
-    * ) error "No file MIME-type on $uname" 1 ;;
+    * ) error "No file MIME-type on $OS_UNAME" 1 ;;
 
   esac
 }
@@ -204,11 +206,11 @@ filextensions () # ~ <File-path>
 fileformat () # ~ <File-path>
 {
   local flags= ; file_tool_flags
-  case "${uname:?}" in
+  case "${OS_UNAME:?}" in
     Darwin | Linux )
         file -${flags} "$1" || return 1
       ;;
-    * ) error "fileformat: $uname?" 1 ;;
+    * ) error "fileformat: $OS_UNAME?" 1 ;;
   esac
 }
 
@@ -218,7 +220,7 @@ filemtime() # ~ <File-path <...>>
   local flags=- ; file_stat_flags
   while test $# -gt 0
   do
-    filemtime_${uname,,} "$1" || return
+    filemtime_${OS_UNAME,,} "$1" || return
     shift
   done
 }
@@ -241,14 +243,14 @@ filemtime_linux ()
 filemtype () # ~ <File-path>
 {
   local flags= ; file_tool_flags
-  case "${uname:?}" in
+  case "${OS_UNAME:?}" in
     Darwin )
         file -${flags}I "$1" || return 1
       ;;
     Linux )
         file -${flags}i "$1" || return 1
       ;;
-    * ) error "filemtype: $uname?" 1 ;;
+    * ) error "filemtype: $OS_UNAME?" 1 ;;
   esac
 }
 
@@ -318,14 +320,14 @@ filesize () # ~ <File-path <...>>
   local flags=- ; file_stat_flags
   while test $# -gt 0
   do
-    case "${uname:?}" in
+    case "${OS_UNAME:?}" in
       Darwin )
           stat -L -f '%z' "$1" || return 1
         ;;
       Linux | CYGWIN_NT-6.1 )
           stat -L -c '%s' "$1" || return 1
         ;;
-      * ) $os_lib_log error "os" "filesize: $uname?" "" 1 ;;
+      * ) $os_lib_log error "os" "filesize: $OS_UNAME?" "" 1 ;;
     esac; shift
   done
 }
@@ -467,11 +469,7 @@ foreach_inscol ()
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
 }
 
-foreach_line_do () # (args) ~ <Cmd...>
-{
-  while read -r args
-  do "$@" $args || return; done
-}
+# foreach-line-do: see sys-for-do
 
 # Execute act/no-act based on expression match, function/command or shell statement
 # Types are [g]lob-match, grep-[r]egex, local-cmd e[x]pression or [e]val expression.
@@ -1102,7 +1100,7 @@ symlink_assert () # <Symlink-Path> <Target>
 wherefrom ()
 {
   # XXX: this sould fail if no os given, TODO: look at lib-{load,req} specs
-  lib_load ${os:="$(str_lower "${uname:-"$(uname -s)"}")"} || return
+  lib_load ${os:="$(str_lower "${OS_UNAME:-"$(uname -s)"}")"} || return
   ${os,,}_wherefrom "$@"
 }
 
@@ -1116,7 +1114,7 @@ xargs_fun () # (s) ~ <Command <Argv...>> # Suffix lines to argv and run
 # BSD helper
 xsed_rewrite () # ~ <Sed-argv...>
 {
-  case "${uname:?}" in
+  case "${OS_UNAME:?}" in
     Darwin ) sed -i.applyBack "$@";;
     Linux ) sed -i "$@";;
     * ) return 60 ;;

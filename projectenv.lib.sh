@@ -47,8 +47,8 @@ prepare_env()
     do
       out="$( provided_by_env $id || continue )"
       test -n "$out" && echo $id=$out
-      mkvid "$id"
-      echo projectenv_dep_$vid=1
+      str_vword id
+      echo projectenv_dep_$id=1
     done)
 }
 
@@ -82,8 +82,8 @@ provided_by_env()
   # File exists
   test -e "$1" && return || true
 
-  local vid=
-  mkvid "$1"
+  local vid
+  str_vword vid "$1"
 
   # Check for titled Varname value
   fnmatch "[A-Z]*" "$vid" && {

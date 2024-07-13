@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
-test -n "${uc_lib_profile:-}" ||
-  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${us_stat:-exit} $?
-
-uc_script_load user-script || ${us_stat:-exit} $?
+us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "class.sh" ||
-  uc_script_load us-als-mpe || ${us_stat:-exit} $?
+  uc_script_load us-als-mpe || ${uc_stat:-exit} $?
 
-class_sh__grp=user-script-sh
-class_sh__libs=lib-uc,context-uc,uc-class
+class__grp=user-script
+class_sh__grp=class
+#class__grp=
+#script_base=class-sh,user-script-sh
+#class_sh__grp=user-script-sh
+class_sh_main__grp=class-sh
+class_sh_main__libs=lib-uc,context-uc,uc-class
 
-class_sh_ () # ~ <Switch> ...
+class_sh_main () # ~ <Switch> ...
 {
   local a1_def=summary; sa_switch_arg
   case "$switch" in
@@ -109,23 +111,17 @@ class_sh_aliasargv ()
 {
   test -n "${1:-}" || return ${_E_MA:?}
   case "${1//_/-}" in
-  ( "-?"|-h|h|--help|help|user-script-help ) set -- user_script_help "${@:2}" ;;
-  ( --usage|usage ) user_script_usage "${@:2}" ;;
   ( --list|--list-all|--static|--summary|--types )
     set -- info "$@" ;;
   ( info ) ;;
-    * ) set -- class_sh_ "$@"
+  #  * ) set -- main "$@"
   esac
 }
 
 class_sh_loadenv ()
 {
-  user_script_loadenv &&
-  user_script_initlog &&
-  user_script_load scriptenv || return
-  export v=${v:-4}
+  user_script_load scriptenv &&
   shopt -s nullglob nocaseglob
-  sh_mode strict # dev
 }
 
 class_sh_unload ()
@@ -135,16 +131,15 @@ class_sh_unload ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
-
 ! script_isrunning "class.sh" || {
-  export UC_LOG_BASE="${SCRIPTNAME}[$$]"
-  user_script_load defarg || exit $?
+  script_base=class-sh,user-script-sh
+  user_script_load || exit $?
   # Default value used if argv is empty
-  script_defcmd=--summary
+  # FIXME:
+  script_defcmd=info\ --summary
   user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
-  eval "set -- $(user_script_defarg "$@")"
+  if_ok "$(user_script_defarg "$@")" &&
+  eval "set -- $_" &&
   script_run "$@"
 }

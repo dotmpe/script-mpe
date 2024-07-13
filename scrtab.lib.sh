@@ -51,9 +51,8 @@ scrtab_entry_name() # Tags...
 {
   test -n "$scr_primctx" || scrtab_entry_ctx "$@"
   set -- $scr_tags ; shift ; test $# -gt 0 && set -- "-" "$@" || set --
-  local sid
-  upper=0 mksid "$scr_primctx_id-$username-$hostname$*"
-  scr_id="$sid"
+
+  scr_id="$(lower=true str_sid "$scr_primctx_id-$username-$hostname$*")"
   scr_src=
   note "New Id $scr_id"
 }
@@ -162,9 +161,8 @@ scrtab_entry_ctx ()
   scr_primctx="$1"
 
   # Make ID of first tag (without metachars)
-  #upper=0 mkvid "$(str_slice "$scr_primctx" 2)" || return
-  local vid ; upper=0 mkvid "${scr_primctx:1}"
-  scr_primctx_id="$vid"
+  : "$(str_word "${scr_primctx:1}")"
+  scr_primctx_id="$_"
 
   # export scr_tags
 
@@ -414,7 +412,7 @@ scrtab_entry_defaults () # Tags
       scr_file="$SCRDIR/$scr_basename"
   } || scr_file=
 
-  true "${scr_vid:="$( upper=0 mkvid "$scr_id" && echo "$vid" )"}"
+  true "${scr_vid:="$(str_word "$scr_id")"}"
 
   test -n "$scr_tags" || {
 

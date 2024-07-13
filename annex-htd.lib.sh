@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# XXX: probably rename annex-htd->uc-annex
+
+
 annex_htd_lib__load()
 {
   : "${ANNEXTAB:=${STATUSDIR_ROOT:?}index/annexes.tab}"
@@ -14,6 +17,30 @@ annex_htd_lib__init() # ~ ...
 }
 
 
+# Get user-config file and retrieve record for current ANNEX_ID, setting
+# ANNEX_DIR to the local primary basedir.
+annex_htd_dir_init ()
+{
+  annex_htd_init_default &&
+  $annexes.fetch annex_htd ${ANNEX_ID:?} &&
+  : "${ANNEX_DIR:=/srv/annex-local/$ANNEX_ID}" &&
+  test -d "$ANNEX_DIR" && {
+    ANNEX_DIR=$(realpath "$ANNEX_DIR")
+  } || {
+    ANNEX_DIR=$($annex_htd.basedir) ||
+      $LOG alert "$lk" "No annex basedir" "E$?:$ANNEX_DIR" $? || return
+  }
+  [[ $PWD = "$ANNEX_DIR" ]] && {
+    $LOG info "$lk" "Found annex basedir" "$ANNEX_DIR"
+  } || {
+    [[ "$(os_dirname "$PWD")" == "${ANNEX_ID:?}" ]] || {
+      std_silent pushd "$ANNEX_DIR" &&
+      $LOG notice "$lk" "Moved to primary ${ANNEX_ID:?} repository"
+    }
+  }
+}
+
+# Setup base env, after lib env has completely initialized
 annex_htd_init_default ()
 {
   #: "${SHARE_DIRS:=$SHARE_DIR:/srv/share-1:/srv/share-2}"
@@ -23,18 +50,14 @@ annex_htd_init_default ()
   : "${annexes:?Expected annexes table}"
 }
 
-
+# Helper to get dynamic annex env/context
 annex_htd_load_default ()
 {
   : "${annexes:?Expected annexes context}"
 
-  $annexes.fetch default_annex "${HTD_ANNEX_DEFAULT:?}" || {
-    $LOG error : "fetching default annextab entry" \
-        "E$?:$ANNEXTAB::$HTD_ANNEX_DEFAULT" $? || return
-  }
-
+  ANNEX_DIRS=$($annex_htd.basedirs) &&
+  #stderr echo "annex_htd.basedirs: $($annex_htd.basedirs)"
   # Get canonical paths for storage folders with annex checkouts
-  ANNEX_DIRS=$($default_annex.basedirs) &&
 
   true
   return
@@ -167,6 +190,12 @@ class_AnnexTabEntry_ () # ~ <Instance-Id> .<Message-name> <Args...>
 {
   case "${call:?}" in
 
+  ( .basedir ) # ~~ # Return local primary basedir/checkout path
+      # XXX: just using initial record, should use [,+-]<tag> in name or scheme
+      # to select on role of value
+      : "${StatTabEntry__refs[$OBJ_ID]}"
+      echo "${_%%$'\n'*}"
+    ;;
   ( .basedirs ) # ~~ # Return canonical paths for checkouts
       printf '%s\n' "${StatTabEntry__refs[$OBJ_ID]}"
       # FIXME $self.var refs | filter_dir_paths

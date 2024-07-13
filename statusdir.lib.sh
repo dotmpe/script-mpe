@@ -205,7 +205,7 @@ statusdir_record () # [expiration-opts] [keep_err=0] ~ [<Max-Age> [<Expire-In>] 
   test "$1" == "--" || return 64
   shift
 
-  test -n "$cache_id" || cache_id=$(mkvid "$*" && echo "$vid")
+  test -n "$cache_id" || cache_id=$(str_vword "$*")
   test -n "$age_sec" || age_sec=$STATUSDIR_EXPIRY_AGE
   test -n "$expire_sec" || expire_sec=$STATUSDIR_CLEAN_AGE
 

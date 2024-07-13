@@ -1,4 +1,4 @@
-#!/usr/bin/env bas but shared by the handlers in the lib.
+#!/usr/bin/env bash
 
 ## Lib to bootstrap User-Script executables
 
@@ -85,8 +85,10 @@ user_script_filter () # ~ #
   done
 }
 
-# The find-exec part of this routine builds a find command observing
-# htdignore rules.
+user_script_find__libs=ignores
+
+# XXX: this uses find and glob expression let loose on SP-US-BIN to scan for
+# executable scripts and then detect user-script derivatives.
 user_script_find () # ~ # Find user-scripts in user-dirs
 {
   user_script_find_exec | while read -r execpath
@@ -100,20 +102,26 @@ user_script_find () # ~ # Find user-scripts in user-dirs
     scre=$(grep '^ *script_entry [^ ]* "$@"\( \|$\)' "$execpath") && {
         read -r _ scrna _ <<< "$scre"
         eval "echo $scrna $execpath"
+        continue
     }
     scrr=$(grep '^ *script_run "$@"\( \|$\)' "$execpath") && {
         eval "echo - $execpath"
+        continue
     }
   done
 }
 
-user_script_find_exec () # ~ # Find executables from user-dirs
+# TODO: turn US_BIN into path var, to where all user-scripts can live
+# FIXME user_script_find_exec__grp=user-script-find
+user_script_find_exec__libs=ignores
+user_script_find_exec () # ~ <Basedirs> # Find executables from user-dirs
 {
-  test $# -gt 0 || set -- $US_BIN $UCONF/script $UCONF/path/$uname
-  # $UCONF/script/$uname $UCONF/script/Generic
+  test $# -gt 0 || set -- ${SP_US_BIN//:/ }
 
   local find_ignores
-  find_ignores="$(ignores_find_expr < ~/bin/.htdignore.names)" || return
+  find_ignores="$(ignores_find_expr < ~/bin/.htdignore.names)" ||
+    $LOG error "" "Getting ignore globs" E$? $? || return
+  find_ignores=${find_ignores//$'\n'/ }
 
   local bd
   for bd in "$@"
@@ -164,7 +172,7 @@ user_scripts_all ()
 
   # Entry points:
   $stdmsg "*note" "User-script entry points" "$PWD"
-  git grep -nH '^script_entry "' | tr -d '"' | tr ' ' ':' |
+  git grep -nH '^\( *script_run\|script_entry\) "' | tr -d '"' | tr ' ' ':' |
       cut -d ':' -f1,2,4 --output-delimiter ' '
 }
 
@@ -255,7 +263,7 @@ sh_type_esacs () # ~ <Func> [<Inner-Block-Grep>]
 # Extract first argument for all case/esac branches from case-set-argv typeset
 sh_type_esacs_als () # ~ <Fun> # Extract first replacement argv with each branch key
 {
-  sh_type_esacs "${1:?}" '.* set -- [a-z_:-][a-z0-9_:-]* .*'
+  sh_type_esacs "${1:?}" '.*\bset -- [a-z_:-][a-z0-9_:-]* .*'
 }
 
 sh_type_esacs_choices () # ~ <Func> # List keys for each esac branch

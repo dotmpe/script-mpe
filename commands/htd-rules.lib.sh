@@ -106,12 +106,12 @@ htd__rules()
     env-id ) shift
         test -n "$htd_rule_id" || { local sid=
           test -n "$package_id" && {
-              mksid "$CWD $package_id $CMD"
+              sid=$(str_sid "$CWD $package_id $CMD")
             } || {
               test -n "$ENV_NAME" && {
-                mksid "$CWD $ENV_NAME $CMD"
+                sid=$(str_sid "$CWD $ENV_NAME $CMD")
               } || {
-                mksid "$CWD $CMD"
+                sid=$(str_sid "$CWD $CMD")
               }
             }
             htd_rule_id=$sid

@@ -92,14 +92,14 @@ class_NamespacesTab_ () # ~ :TabFile (super,self,id,call) ~ <Call-args...>
         tabline=${grepline:$(( ${#srcln} + 1 ))} &&
 
         # XXX: old alt to get entry
-        #if_ok "$($self.key-by-index 1 "${2:?}")" &&
+        #if_ok "$($self.by-key-at-index 1 "${2:?}")" &&
 
         # Parse with Namespace class
         class_new "$1" Namespace "$self" "$srcln" "$tabline"
       ;;
 
     ( .ids ) # ~ [...]
-        $self.keys-by-index 1
+        $self.col-by-index 1
       ;;
 
       * ) return ${_E_next:?}

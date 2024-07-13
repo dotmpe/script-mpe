@@ -1,35 +1,87 @@
 bittorrent_lib__load ()
 {
   : "${BTCLIENTS:=transmission}"
-  test -z "${BTCLIENTS:-}" && return
+  #test -z "${BTCLIENTS:-}" && return
   lib_require meta $BTCLIENTS || return
 
   : "${BT_INFODIR:=${METADIR:?}/info}"
   : "${BT_LOGDIR:=${METADIR:?}/log}"
+  : "${BT_TABS:=${METADIR:?}/tab}"
+
+  : "${BT_CACHEDIR:=${METADIR:?}/cache}"
+
   : "${BTLOG_PEERS:=$BT_LOGDIR/torrents-net.log}"
 }
 
-bittorent_lib__init ()
+bittorrent_lib__init ()
 {
+  lib_require cache || return
   test -z "${BTCLIENTS:-}" && return
   test -d "$BT_LOGDIR" || mkdir -vp "$BT_LOGDIR" >&2
   test -d "$BT_INFODIR" || mkdir -vp "$BT_INFODIR" >&2
+
+  bittorrent_info_vars_static="{info_{length,name,pcs,priv},magnet_{dn,btih}}"
+  set -- {info_{length,name,pcs,priv},magnet_{dn,btih}}
+  bittorrent_info_vars=$_
 }
 
-bittorent_lib__install ()
+bittorrent_lib__install ()
 {
   command -v pytp >/dev/null 2>&1 &&
   command -v jq >/dev/null 2>&1
 }
 
+# Read all simple values from torrent (currently 11 values, using files found
+# in the wild).
+# Other complex values: announce-list, info.files, and info.pieces.
+bittorrent_info_vars () # ~ <Key>
+{
+  [[ $# -eq 11 ]] ||
+    set -- ${1:-torrent_}{info_{length,name,pcs,priv,enc,comment,by,date},magnet_{dn,btih},announce}
+  json_read_oneline '[
+        .info.length // " ",
+        .info.name // " ",
+        .info["piece length"] // " ",
+        .info.private // " ",
+        .info.encoding // " ",
+        .info.comment // " ",
+        .info["created by"] // " ",
+        .info["creation date"] // " ",
+        .["magnet-info"]["display-name"] // " ",
+        .["magnet-info"].info_hash // " ",
+        .announce // " "
+      ] | join("\t")' "$@"
+}
 
-bittorrent_instances ()
+bittorrent_instances () # ~ ...
 {
   local btclient
   for btclient in $BTCLIENTS
   do
     "$btclient"_instances
   done
+}
+
+bittorrent_json () # ~ <Torrent-file> <JSON-file>
+{
+  pytp "${1:?}" >| "${2:?}"
+}
+
+# Cach JSON from torrent file
+bittorrent_json_cache () # ~ <Torrent-file> [<Var-key=bittorrent_json_>]
+{
+  [[ -s "${1:?}" ]] || return ${_E_no_file:-124}
+  local $cache_lib_vars &&
+  cache_ref bittorrent-file "${1:?}" &&
+  : "${2:-bittorrent_json_}" &&
+  local -n cachef=${_}file \
+      cacheref=${_}ref \
+      cachename=${_}cachename &&
+  cacheref=$cache_ref &&
+  cachename=$cache_name &&
+  cachef=${BT_CACHEDIR:?}/$cache_name.json || return
+  [[ -s "$cachef" && "$cachef" -nt "$1" ]] ||
+  bittorrent_json "$1" "$cachef"
 }
 
 # FIXME: client-id is not properly tracked yet, but one instance works fine
@@ -89,15 +141,16 @@ bittorrent_magnet_parse () # ~ <Magnet-uriref> # Decode and set $magnetref_{dn,b
 bittorrent_magnet_read () # ~ <Torrent-file> # Read torrent-magnet parts: infohash and displayname
 {
   tjs= mijs= btih= dn=
-  tjs="$(pytp "$1")" &&
+  bittorrent_read_json "${1:?}" tjs &&
   # Parse-out and keep magnet-info JSON since if info/parts etc present JSON
   # can be much larger than just magnet-info.
-  mijs="$(echo "$tjs" | jq -r '.["magnet-info"]')" &&
-  btih="$(echo "$mijs" | jq -r '.info_hash')" &&
-  dn="$(echo "$mijs" | jq -r '.["display-name"]')"
+  mijs="$(<<< "$tjs" jq -r '.["magnet-info"]')" &&
+  btih="$(<<< "$mijs" jq -r '.info_hash')" &&
+  dn="$(<<< "$mijs" jq -r '.["display-name"]')"
 }
 
-# Use pytp to parse torrent file to JSON, and get pieces of data from it.
+# Use pytp to parse torrent file to JSON, and get pieces of data from it,
+# TODO progressively parse json
 # Return 12 if magnet info but no share metadata is present.
 bittorrent_read () # ~ <Torrent-File> # Read .torrent magnet info and metadata if available
 {
@@ -111,20 +164,38 @@ bittorrent_read () # ~ <Torrent-File> # Read .torrent magnet info and metadata i
     return 11
   }
 
-  test "$( echo "$tjs" | jq '.info' )" != "null" || {
+  test "$(<<< "$tjs" jq '.info' )" != "null" || {
     sys_debug quiet ||
       $LOG warn "torrent-read" "No metadata for BTIH" "$btih:$tbn"
     return 12
   }
 
   # Read torrent metadata: file or folder name
-  in="$(echo "$tjs" | jq -r '.info.name')"
+  in="$(<<< "$tjs" jq -r '.info.name' )"
 
   # If we find a length, we have a single-part torrent. Otherwise we have a
   # folder.
-  length=$(echo "$tjs" | jq '.["info"].length')
+  length=$(<<< "$tjs" jq '.["info"].length' )
   test "${length:-null}" != "null" && parts= || {
     length=
-    parts=$(echo "$tjs" | jq '.["info"].files | length')
+    parts=$(<<< "$tjs" jq '.["info"].files | length' )
   }
+}
+
+bittorrent_read_json () # ~ <Torrent-file> <Result-ref>
+{
+  local -n __tjs=${2:-tjs} &&
+  __tjs=$(pytp "${1:?}")
+}
+
+json_read_oneline () # ~ <Query> <Vars...>
+{
+  if_ok "$(jq -r "${1:?}")" &&
+  IFS=$'\t\n' read -r ${*:2} <<< "$_" &&
+  # NOTE: unfortenately Bash insist on reading non-zero values, so we do a bit
+  # of cleaning.
+  local var &&
+  for var in ${*:2}
+  do [[ "${!var}" != " " ]] || eval "$var="
+  done
 }

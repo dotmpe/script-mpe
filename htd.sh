@@ -652,7 +652,7 @@ htd__doctor()
   #  fixed_table $ns_tab SID CONTEXTS | while read vars
   #  do
   #    eval local "$vars"
-  #    upper=1 mkvid "$SID"
+  #    upper=true str_vword vid "$SID"
   #    echo $vid
 
   #  done
@@ -2578,10 +2578,10 @@ htd__get_backend()
       ;;
     * ) error "get-backend '$1'?" 1 ;;
   esac
-  mksid $be
+  sid=$(str_sid $be)
   scr=$( htd__extensions $2$sid )
   test -n "$scr" || return 1
-  mkvid ${be}__${3} ; cb=${vid} ; . $scr ; func_exists "$cb"
+  cb=$(str_word ${be}__${3}) ; . $scr ; func_exists "$cb"
 }
 htd_grp__get_backend=htd-rules
 
@@ -2889,7 +2889,7 @@ htd__current_events()
 htd_man_1__port='List command, pid, user, etc. for open port'
 htd__port()
 {
-  case "$uname" in
+  case "${OS_UNAME:?}" in
     Darwin ) ${sudo}lsof -i :$1 || return ;;
     Linux ) ${sudo}netstat -an $1 || return ;;
   esac
@@ -3145,8 +3145,8 @@ htd__service_list()
       # FIXME: would want package metadata. req. new code getting type specific
       # metadata. Not sure yet where to group it.. services, environment.
       #package_get_key "$DIR" $package_id label name id
-      upper=1 mkvid "$TYPE"
-      NAME=$(eval echo \$${vid}_NAME)
+      : "$(upper=true str_word "$TYPE")_NAME"
+      NAME=${!_}
       echo "$UNID: $NAME @$TYPE $(htd_service_status_info "$TYPE" "$EXP") <$DIR>"
       continue
     }
@@ -3440,7 +3440,7 @@ htd__domain()
 # exit succesfully after receiving 4 replies
 htd__ping()
 {
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Darwin )
         ping -ot 4 $1 || return $?
@@ -3481,10 +3481,10 @@ htd__name_exists() # DIR NAME
 {
   name="$2"
   test -e "$1/$2" && return
-  upper=0 mksid "$2"
+  sid=$(lower=true str_sid "$2")
   name="$sid"
   test -e "$1/$sid" && return
-  upper= mksid "$(str_title "$2")"
+  sid=$(str_sid "$(str_title "$2")")
   name="$sid"
   test -e "$1/$sid" && return
   return 1
@@ -4299,7 +4299,7 @@ unit if specified'
 htd__date_shift()
 {
   test -e "$1" || stderr error "date-shift $1"
-  case "$uname" in
+  case "${OS_UNAME:?}" in
     Linux )
         test -n "$2" || set -- "$1" '-1 day'
         touch -r "$1" -d $2 "$1"

@@ -15,7 +15,7 @@ ctx_urls_lib__load()
   #tree ~/Library/Application\ Support/Google/Chrome/Default/Extensions/$chrome_ext_instance/1.4.134_0/backup
   #ls -la "/Users/berend/Library//Application Support/Google/Chrome/Default/Extensions/$chrome_ext_instance/1.4.134_0"
 
-  #case "$uname" in
+  #case "${OS_UNAME,,}" in
   #    darwin ) to_leveldb="$HOME/Library/Application Support/Google/Chrome/Default/IndexedDB/chrome-extension_${chrome_ext_id}_0.indexeddb.leveldb" ;;
   #    linux ) to_leveldb=$HOME/.config/google-chrome/Default/IndexedDB/chrome-extension_${chrome_ext_id}_0.indexeddb.leveldb ;;
   #esac

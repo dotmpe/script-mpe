@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-test -n "${uc_lib_profile:-}" ||
-  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${stat:-exit} $?
-uc_script_load user-script || ${stat:-exit} $?
+us-env -r user-script || ${uc_stat:-exit} $?
 
 # Use alsdefs set to cut down on small multiline boilerplate bits.
 #user_script_alsdefs
@@ -11,6 +9,9 @@ uc_script_load user-script || ${stat:-exit} $?
 
 
 ### List: manage and utilize globlist files
+
+list_sh__grp=list
+list__grp=user-script
 
 # Primary use is to filter file names,
 
@@ -70,37 +71,29 @@ list_sh_shortdescr='Manage and use globlists'
 
 list_sh_aliasargv ()
 {
-  test -n "${1:-}" || return
+  [[ ${1-} ]] || return ${_E_MA:?}
   case "${1//_/-}" in
   ( attrs ) shift; set -- attributes "$@" ;;
-  ( group ) shift; set -- list_sh_files -groups "$@" ;;
-  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( group ) shift; set -- files -groups "$@" ;;
   esac
 }
 
 list_sh_loadenv () # ~ <Cmd-argv...>
 {
-  user_script_loadenv || return
   ignores_use_local_config_dirs=false
   #ignores_prefix=local
   ignores_prefix=htd
   globlist_prefix=htd
-  script_part=${1:?} user_script_load groups || {
-      # E:next means no libs found for given group(s).
-      test ${_E_next:?} -eq $? || return $_
-    }
-  lib_load list script-mpe &&
-  lib_init list script-mpe || return
-  lk="$UC_LOG_BASE"
-  $LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+  lib_load list &&
+  return ${_E_continue:?}
 }
 
 # Main entry (see user-script.sh for boilerplate)
 
 ! script_isrunning "list.sh" || {
-  export UC_LOG_BASE="${SCRIPTNAME}[$$]"
   user_script_load || exit $?
   user_script_defarg=defarg\ aliasargv
-  eval "set -- $(user_script_defarg "$@")"
+  if_ok "$(user_script_defarg "$@")" &&
+  eval "set -- $_" &&
   script_run "$@"
 }

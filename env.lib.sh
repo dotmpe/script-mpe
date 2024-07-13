@@ -26,7 +26,7 @@ env_update ()
   lib_init $ENV_LIBS || return
   local lib_id vid
   for lib_id in $ENV_LIBS
-  do mkvid $lib_id
+  do str_vword vid "$lib_id"
     ${vid}_lib_env | tee $ENV_CACHE/$lib_id-lib-env.sh
   done >$ENV_CACHE/env.sh
 }

@@ -4,11 +4,11 @@
 # Set env for str.lib.sh
 str_htd_lib__load ()
 {
-  test -n "${uname-}" || export uname="$(uname -s)"
-  case "$uname" in
+  : "${OS_UNAME:="$(uname -s)"}"
+  case "${OS_UNAME:?}" in
       Darwin ) expr=bash-substr ;;
       Linux ) expr=sh-substr ;;
-      * ) error "Unable to init expr for '$uname'" 1;;
+      * ) error "Unable to init expr for '$OS_UNAME'" 1;;
   esac
 
   test -n "${ext_groupglob-}" || {
@@ -28,69 +28,6 @@ str_htd_lib__load ()
   #}
 
   test -x "$(which php)" && bin_php=1 || bin_php=0
-}
-
-# Web-like ID for simple strings, input can be any series of characters.
-# Output has limited ascii.
-#
-# alphanumerics, periods, hyphen, underscore, colon and back-/fwd dash
-# Allowed non-hyhen/alphanumeric ouput chars is customized with env 'c'
-#
-# mkid STR '-' '\.\\\/:_'
-mkid() # Str Extra-Chars Substitute-Char
-{
-  local s="${2-}" c="${3-}"
-  # Use empty c if given explicitly, else default
-  test $# -gt 2 || c='\.\\\/:_'
-  test -n "$s" || s=-
-  test -n "${upper-}" && {
-    test "$upper" = "1" && {
-      id=$(printf -- "%s" "$1" | tr -sc '[:alnum:]'"$c$s" "$s" | tr '[:lower:]' '[:upper:]')
-    }
-    test "$upper" = "0" && {
-      id=$(printf -- "%s" "$1" | tr -sc '[:alnum:]'"$c$s" "$s" | tr '[:upper:]' '[:lower:]')
-    }
-  } || {
-    id=$(printf -- "%s" "$1" | tr -sc '[:alnum:]'"$c$s" "$s" )
-  }
-}
-
-# A lower- or upper-case mkid variant with only alphanumerics and hypens.
-# Produces ID's for env vars or maybe a issue tracker system.
-# TODO: introduce a snake+camel case variant for Pretty-Tags or Build_Vars?
-# For real pretty would want lookup for abbrev. Too complex so another function.
-mksid() # STR
-{
-  test $# -gt 2 || set -- "${1-}" "${2-}" "_"
-  mkid "$@" ; sid=$id ; unset id
-}
-
-# Variable-like ID for any series of chars, only alphanumerics and underscore
-mkvid() # STR
-{
-  test $# -eq 1 -a -n "${1-}" || error "mkvid argument expected ($*)" 1
-  local upper=${upper-"-1"} ; test -n "$upper" || upper=-1
-  test 1 -eq $upper && {
-    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr '[:lower:]' '[:upper:]')
-    return
-  }
-  test 0 -eq $upper && {
-    vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g' | tr '[:upper:]' '[:lower:]')
-    return
-  }
-  vid=$(printf -- "$1" | sed 's/[^A-Za-z0-9_]\{1,\}/_/g')
-  # Linux sed 's/\([^a-z0-9_]\|\_\)/_/g'
-}
-
-# Simpler than mksid but no case-change
-mkcid()
-{
-  cid=$(echo "$1" | sed 's/\([^A-Za-z0-9-]\|\-\)/-/g')
-}
-
-mknameid()
-{
-  local id; upper=0 mkid "$1"; nameid="$(echo "$id" | tr -d '-')"
 }
 
 # A either args or stdin STR to lower-case pipeline element
@@ -315,7 +252,7 @@ var2tags()
   done)
 }
 
-# Read meta file and re-format (like mkvid) for shell use
+# Read meta file and re-format for shell use
 meta2sh()
 {
   # NOTE: AWK oneliner to transforms keys for ':' as-is MIME header style
@@ -331,7 +268,7 @@ meta2sh()
 }
 # Sh-Copy: HT:tools/u-s/parts/ht-meta-to-sh.inc.sh vim:ft=bash:
 
-# Read properties file and re-format (like mkvid) for shell use
+# Read properties file and re-format for shell use
 properties2sh()
 {
   # NOTE: AWK oneliner to transforms keys for '=' separated kv list, leaving the
@@ -349,7 +286,7 @@ properties2sh()
 }
 
 # Take some Propertiesfile compatible lines, strip/map the keys prefix and
-# reformat them as mkvid for use in shell script export/eval/...
+# reformat them for use in shell script export/eval/...
 sh_properties () # ~ <File|-> [<Prefix> [<Substitution>]]
 {
   test -n "$*" || error "sh-properties expects args: '$*'" 1
@@ -368,7 +305,7 @@ property () # PROPSFILE PREFIX SUBST KEYS...
   local tmpf=$(setup_tmpf)
   sh_properties "$1" "$2" "$3" > $tmpf
   shift 3
-  test -z "$subst" || upper=0 mkvid "$subst"
+  test -z "$subst" || lower=true str_vword vid "$subst"
   (
     . $tmpf
     rm $tmpf

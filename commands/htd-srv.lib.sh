@@ -181,8 +181,8 @@ htd__srv_list()
 
     case "$out_fmt" in
         DOT )
-            NAME=$(mkvid "$name"; echo $vid)
-            TRGT=$(mkvid "$target"; echo $vid)
+            NAME=$(str_word "$name")
+            TRGT=$(str_word "$target")
             case "$target" in
               /mnt*|/media*|/Volumes* )
 
@@ -191,7 +191,7 @@ htd__srv_list()
 
                   DISK="$(cd /srv; disk.sh id $target)"
 
-                  #TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
+                  #TRGT_P=$(str_word "$(dirname "$target")")
                   #echo "$TRGT_P [ shape=plaintext, label=\"$(dirname $target)\" ] ;"
 
                   test -z "$DISK" ||
@@ -203,7 +203,7 @@ htd__srv_list()
                   echo "$NAME [ shape=folder, label=\"$name\"] ; // 2.1"
                   test $depth -eq 1 && {
 
-                    TRGT_P=$(mkvid "$(dirname "$target")";echo $vid)
+                    TRGT_P=$(str_word "$(dirname "$target")")
                     echo "$TRGT_P [ label=\"$(dirname "$target")\" ] ;"
                     echo "$NAME -> $TRGT_P [ label=\"$(basename "$target")\" ] ;"
                     stderr info "Chain link '$name' to $target"
@@ -216,8 +216,8 @@ htd__srv_list()
                     }
                   } ;;
             esac
-          #        echo "$(mkvid "$(dirname "$target")";echo $vid) [ label=\"$(dirname $target)\" ]; "
-          #        echo "$(mkvid "$(dirname "$target")";echo $vid) -> $TRGT ; "
+          #        echo "$(str_word "$(dirname "$target")") [ label=\"$(dirname $target)\" ]; "
+          #        echo "$(str_word "$(dirname "$target")") -> $TRGT ; "
           ;;
     esac
 

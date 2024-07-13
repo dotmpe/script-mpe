@@ -84,7 +84,7 @@ htd_package__debug()
   package_lib_set_local "$(pwd -P)"
   test -n "${1-}" && {
     # Turn args into var-ids
-    _p_extra() { for k in $@; do mkvid "$k"; printf -- "$vid "; done; }
+    _p_extra() { for k in $*; do : "$(str_word "$k")" && printf -- "$_ "; done; }
     _p_lookup() {
       . $PACK_SH
       # See if lists are requested, and defer
@@ -119,7 +119,7 @@ htd_package__open_url()
   test -n "${1-}" || error "name expected" 1
   test -n "${PACK_SH-}" || package_lib_set_local "$(pwd -P)"
   . $PACK_SH
-  url=$( upper=0 mkvid "$1" && eval echo \$package_urls_$vid )
+  url=$(: "$(lower=true str_word "$1")" && eval echo \$package_urls_$_)
   test -n "$url" || error "no url for name '$1'" 1
   note "Opening '$1': <$url>"
   open "$url"
@@ -169,7 +169,7 @@ htd_package__write_script() # [env script_out=.htd/scripts/NAME] : NAME
 
   } || {
     . "$PACK_SH"
-    upper=0 mkvid "$1"
+    vid=$(lower=true str_word "$1")
     test -n "$package_shell" || package_shell="$default_package_shell"
     mkdir -vp "$(dirname "$script_out")" &&
     #trueish "$script_line_eval" && { {

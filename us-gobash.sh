@@ -1,4 +1,6 @@
-sh_mode strict
+sh_mode strict dev
+lib_require sys
+
 CACHE_DIR=/dev/shm/tmp
 lib_require sec-mpe
 

@@ -27,7 +27,7 @@ htd_draft_id_from_title() # Title...
   test -n "$*" || {
     set -- $(basename $PWD)
   }
-  htd_draft_id=$(mkvid "$*" ; echo $vid)
+  htd_draft_id=$(str_word "$*")
 }
 
 htd_draft_open ()

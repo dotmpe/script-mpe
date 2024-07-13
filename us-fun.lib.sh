@@ -1,6 +1,14 @@
 
 us_fun_lib__load ()
 {
+  : "${us_fun_funset:=$(echo \
+    at_ \
+    us_{basedir,stbtab,class,stdenv,userconf,userdir,xctx}_init \
+    us_xctx_switch)}"
+}
+
+us_fun_lib__init ()
+{
   lib_require sys lib-uc class-uc
 }
 
@@ -27,11 +35,6 @@ at_ () # ~ <ctx> [<ctx|args..>]
   done
   test 0 -eq $# && return
   "$@"
-}
-
-uc_rulesenv ()
-{
-  user_script_load rulesenv
 }
 
 us_basedir_init ()

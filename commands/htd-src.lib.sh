@@ -442,7 +442,7 @@ htd_filter_functions_output_csv()
       }
       continue
     }
-    upper=0 mkvid "$script_name"
+    vid=$(lower=true str_word "$script_name")
     value="$( eval echo \"\$${vid}_${func_attr_key}__${func_key}\" )"
     fnmatch "*\n*\n*" "$value" &&
       value="$( echo "$value" | sed 's/$/\\n/g' | tr -d '\n' )"
@@ -466,7 +466,7 @@ htd_filter_functions_output_yaml()
       echo "  - subcmd: $(echo $func_key | tr '_' '-')"
       continue
     }
-    upper=0 mkvid "$script_name"
+    vid=$(lower=true str_word "$script_name")
     value="$( eval echo \"\$${vid}_${func_attr_key}__${func_key}\" )"
     fnmatch "*\n*\n*" "$value" && {
       value="$(echo "$value" | jsotk encode -)"

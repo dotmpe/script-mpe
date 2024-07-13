@@ -15,7 +15,7 @@ uc_script_load user-script
 
 meta_sh__grp=meta
 meta_sh__hooks=us_userdir_init
-#meta__grp=status
+meta__grp=status-uc
 meta__libs=meta,us-fun
 meta__hooks=us_xctx_init
 #status__libs=status
@@ -132,7 +132,7 @@ meta_sh_loadenv ()
   #script_part=${1:?} user_script_load groups && return
   #test ${_E_next:?} -eq $? || return $_
   #$LOG notice :meta.sh "No specific env for script or command" "$*"
-  uc_log notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+  user_script_announce "$@"
 }
 
 meta_sh_unload ()

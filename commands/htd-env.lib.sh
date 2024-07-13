@@ -134,7 +134,7 @@ htd__home()
 
 htd__whoami()
 {
-  note "Host: $(whoami) ($uname)"
+  note "Host: $(whoami) (${OS_NAME:-${OS_UNAME}})"
   note "GIT: $(git config --get user.name)"
 }
 

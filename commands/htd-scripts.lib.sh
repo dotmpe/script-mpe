@@ -33,7 +33,9 @@ htd_scripts_list()
 # a few milisec more than using env.
 htd_scripts_id_exist_grep () # Name-ID
 {
-  local vid; upper=0 mkvid "$1" ; set -- scripts_${vid} "${2-}"
+  local vid
+  lower=true str_vword vid "$1"
+  set -- scripts_${vid} "${2-}"
   test -n "$2" || set -- "$1" "$PACK_SH"
   grep -q '^\<\(package_'"${1}"'\|package_'"${1}"'__0\)\>=' "$2"
 }
@@ -41,7 +43,9 @@ htd_scripts_id_exist_grep () # Name-ID
 # Determine wether package script exists while pacakge.sh is loaded into env
 htd_scripts_id_exist_env ()
 {
-  local vid; upper=0 mkvid "$1" ; set -- scripts_${vid}
+  local vid
+  lower=true str_vword vid "$1"
+  set -- scripts_${vid}
   package_sh_list_exists "$1" || package_sh_key_exists "$1"
 }
 

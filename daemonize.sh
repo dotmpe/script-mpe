@@ -49,7 +49,7 @@ daemonize__fork()
 daemonize__child()
 {
   note "Child $$: 0=$0 @$@"
-  case "$uname" in
+  case "${OS_UNAME:?}" in
     Darwin )
       setup_launchd_service
       start_launchd_service

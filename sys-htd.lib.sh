@@ -11,7 +11,7 @@ sys_htd_lib__load()
   #test -n "$MIN_SIZE" || MIN_SIZE=1
   test -n "${MIN_SIZE-}" || MIN_SIZE=$_6MB
 
-  test -n "${os-}" || os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  : "${htd_os:="$(uname -s | tr '[:upper:]' '[:lower:]')"}"
   test -n "${username-}" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
   test -n "${arch-}" || arch="$(uname -p)"
   test -n "${mach-}" || mach="$(uname -m)"
@@ -73,7 +73,7 @@ create_ram_disk()
   test -n "$2" || error "Size expected" 1
   test -z "$3" || error "Surplus arguments '$3'" 1
 
-  case "$uname" in
+  case "$htd_os" in
 
     darwin )
         local size=$(( $2 * 2048 ))
@@ -85,7 +85,7 @@ create_ram_disk()
       # mount -t tmpfs -o size=512m tmpfs /mnt/ramdisk
 
     * )
-        error "Unsupported platform '$uname'" 1
+        error "Unsupported platform '$htd_os'" 1
       ;;
 
   esac

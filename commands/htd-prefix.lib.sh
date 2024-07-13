@@ -122,9 +122,9 @@ htd__prefixes()
     check )
         # Read index and look for env vars
         prefix_names | while read name
-        do mkvid "$name"
-            #val="${!vid}"
-            val="$( eval echo \"\$$vid\" )"
+      do : "$(str_word "$name")"
+            #val="${!_}"
+            val="$( eval echo \"\$$_\" )"
             test -n "$val" || warn "No env for $name"
         done
       ;;

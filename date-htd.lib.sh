@@ -41,10 +41,10 @@ date_htd_lib__init()
 
   lib_require sys-htd os-htd str || return
 
-  test -n "${gdate-}" || case "$uname" in
+  test -n "${gdate-}" || case "${OS_UNAME:?}" in
     Darwin ) gdate="gdate" ;;
     Linux ) gdate="date" ;;
-    * ) $INIT_LOG "error" "" "uname" "$uname" 1 ;;
+    * ) $INIT_LOG "error" "" "OS_UNAME" "$OS_UNAME" 1 ;;
   esac
 
   TZ_OFF_1=$($gdate -d '1 Jan' +%z)

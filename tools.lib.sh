@@ -248,10 +248,12 @@ tools_PIP_uninstall () # id ~
 
 tools_generate_tool () # ~ Tools-JSON Tool-Id
 {
-  local installer id="$2" toolid; mkvid "$id"; toolid=$vid
+  local installer id="$2" toolid
+  str_vword toolid "$id"
   installer="$(tools_m_installer "$@")"
 
-  local vid installerid; mkvid "$installer"; installerid=$vid
+  local vid installerid
+  str_vword installerid "$installer"
 
   lib_load tools-installers
 

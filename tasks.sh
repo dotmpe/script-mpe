@@ -149,7 +149,7 @@ tasks_loadenv () # ~ <Cmd-argv...>
   script_part=${1:?} user_script_load groups && return
   test ${_E_next:?} -eq $? || return $_
   $LOG notice :tasks.sh "No specific env for script or command" "$*"
-  uc_log notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+  user_script_announce "$@"
 }
 
 tasks_unload ()

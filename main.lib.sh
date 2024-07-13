@@ -60,7 +60,7 @@ echo_local() # Subcmd [ Property [ Base ] ]
   test -n "${2-}" -o -n "${1-}" || return
   test -n "${3-}" || {
     # XXX: cleanup box-*
-    test -n "${box_prefix:-}" || box_prefix=$(upper=0 mkvid $base  && echo $vid)
+    test -n "${box_prefix:-}" || box_prefix=$(upper=true str_word "$base")
     set -- "${1-}" "${2-}" "$box_prefix"
   }
   test -z "$1" || set -- "__$1" "$2" "$3"
@@ -254,16 +254,17 @@ try_subcmd_prefixes()
 {
   test -n "${subcmd_prefs-}" || return
   test -n "$*" || set -- "${subcmd_default:-"help"}"
-  local vid p cmd
-  upper=0 mkvid "$1" ; shift ;
+  local pref p cmd
+  str_vword pref "$1"
+  shift
   for p in ${subcmd_prefs}
   do
-    func_exists "${p}$vid" || continue
-    cmd=${p}$vid
+    func_exists "${p}$pref" || continue
+    cmd=${p}$pref
     $cmd "$@"
     return $?
   done
-  error "No prefixed subcmd func for '$vid' ($subcmd_prefs)" 1
+  error "No prefixed subcmd func for '$pref' ($subcmd_prefs)" 1
 }
 
 try_package_action()
@@ -289,9 +290,10 @@ try_context_actions()
     return $?
   }
 
+  local ctx{,_id}
   for ctx in $ctxts
   do
-    upper=0 mkvid "$ctx" ; ctx_id="$vid"
+    str_vword ctx_id "$ctx"
     htd_ctx__${ctx_id}__${action} "$@"
     return $?
   done
@@ -404,7 +406,7 @@ parse_box_subcmd_opts()
 main_subcmd_run ()
 {
   local main=${main-"subcmd"} r group vid
-  if_ok "${baseid:="$(mkvid $base && printf "$vid")"}" &&
+  if_ok "${baseid:="$(str_word $base)"}" &&
   if_ok "${baseids:="$baseid main std"}" || return
 
   main_handle "$baseids" subcmd_load main_${main}_load || true
@@ -460,8 +462,8 @@ setup_stat()
 stat_key()
 {
   test -n "$1" || set -- stat
-  mkvid "$PWD"
-  eval $1_key="$hnid:${base}-${subcmd}:$vid"
+  : "$(str_word "$PWD")"
+  eval $1_key="$hnid:${base}-${subcmd}:$_"
 }
 
 # Write/Parse simple line protocol from main_bg instance at main_sock

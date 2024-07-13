@@ -8,9 +8,6 @@ main_make_lib__load()
   type main_define >/dev/null 2>&1 ||
       . $CWD/main-defs.lib.sh
 
-  type mkvid >/dev/null 2>&1 ||
-      . $HOME/.conf/script/str-uc.lib.sh
-
   { type trueish >/dev/null 2>&1 &&
       type type_exists >/ev/null 2>&1
   } ||

@@ -217,7 +217,8 @@ box__new()
   #echo This is $func in $script
 EOF
 )"
-  mkvid c_${name}_${cmd}
+  local vid
+  str_vword vid c_${name}_${cmd}
   note "TODO add invocation to script function"
   #box_add_idx $vid $script $func
 }

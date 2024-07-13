@@ -119,7 +119,7 @@ match_loadenv () # ~ <Cmd-argv...>
   lib_load "${base}" &&
   lib_init "${base}" || return
   lk="$UC_LOG_BASE"
-  $LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+  user_script_announce "$@"
 }
 
 # Main entry (see user-script.sh for boilerplate)

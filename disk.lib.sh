@@ -5,7 +5,7 @@
 
 disk_lib__load ()
 {
-  : "${uname:=$(uname -s)}"
+  : "${OS_UNAME:=$(uname -s)}"
   : "${username:=$(whoami)}"
   #test -n "${username-}" || username="$(whoami | tr -dc 'A-Za-z0-9_-')"
   #test -n "${hostname-}" || hostname="$(hostname -s)"
@@ -173,7 +173,7 @@ disk_devices_numbers () # ~ # List major number and driver for block devices
 disk_fdisk_id () # ~ <Disk-dev>
 {
   test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
-  case "${uname:?}" in
+  case "${OS_UNAME:?}" in
 
       Linux )
             { # List partition table
@@ -189,7 +189,7 @@ disk_fdisk_id () # ~ <Disk-dev>
               ${fdisk:?} -d $1 || return $?
           ;;
 
-    * ) error "Disk-fdisk-Id: $uname" 1 ;;
+    * ) error "Disk-fdisk-Id: ${OS_UNAME:?}" 1 ;;
   esac
 }
 
@@ -275,7 +275,7 @@ disk_lsblk_show () # ~ <Disk-dev> <Columns...>
 disk_model () # ~ <Device>
 {
   test -b "${1:?}" || return $_E_GAE
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Linux ) req_parted disk-model || return
 
@@ -297,7 +297,7 @@ disk_model () # ~ <Device>
           | cut -d ':' -f 2)
       ;;
 
-    * ) error "Disk-Model: $uname" 1 ;;
+    * ) error "Disk-Model: ${OS_UNAME:?}" 1 ;;
   esac
 }
 
@@ -305,7 +305,7 @@ disk_model () # ~ <Device>
 disk_mounts() # [TYPES]
 {
   test $# -gt 0 || set -- vfat ntfs ext2 ext3 ext4
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Darwin | Linux )
         mount | {
@@ -316,7 +316,7 @@ disk_mounts() # [TYPES]
         } | cut -d' ' -f1,3,5
       ;;
 
-    * ) error "Disk-Mounts not supported on: $uname" 1 ;;
+    * ) error "Disk-Mounts not supported on: ${OS_UNAME:?}" 1 ;;
   esac
 }
 
@@ -359,9 +359,9 @@ disk_list_by_nr () # [List-Partitions] [Major-Types]
 # also this does not handle patterns in minor and will miss actual disks
 disk_list ()
 {
-  case "$uname" in [a-z]* ) uname=${uname^} ;; esac
+  case "${OS_UNAME:?}" in [a-z]* ) uname=${uname^} ;; esac
 
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Linux )
         test $# -gt 0 || set -- "sd*[a-z]"
@@ -384,7 +384,7 @@ disk_list ()
             grep -v '[0-9]s[0-9]*$'
       ;;
 
-    * ) error "Disk-List: $uname" 1 ;;
+    * ) error "Disk-List: ${OS_UNAME:?}" 1 ;;
   esac
 }
 
@@ -394,7 +394,7 @@ disk_list_part_local () # ~ # List partition devices
   local glob=
   test $# -gt 0 -a -n "${1-}" || error "Device or disk-id required" 1
   test $# -eq 1 || return 64
-  case "$uname" in
+  case "${OS_UNAME:?}" in
     Linux )
         test -z "$1" && glob=/dev/sd*[a-z]*[0-9] \
           || glob=$1[0-9]
@@ -405,7 +405,7 @@ disk_list_part_local () # ~ # List partition devices
         test -z "$1" && glob=/dev/disk0s*[0-9] \
           || glob=$1[0-9]
       ;;
-    * ) error "Disk-List-Part-Local: $uname" 1 ;;
+    * ) error "Disk-List-Part-Local: ${OS_UNAME:?}" 1 ;;
   esac
 
   test "$(echo $glob)" = "$glob" || {
@@ -436,7 +436,7 @@ disk_partition_size () # ~ <Device>
 disk_serial_id ()
 {
   test -b "${1:?}" || return $_E_GAE
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Linux )
         udevadm info --query=all --name=$1 | grep ID_SERIAL_SHORT \
@@ -474,7 +474,7 @@ disk_serial_id ()
         error "unkown disk $bsd_name" 1
       ;;
 
-    * ) error "Disk-fdisk-Id: $uname" 1 ;;
+    * ) error "Disk-fdisk-Id: ${OS_UNAME:?}" 1 ;;
   esac
 }
 
@@ -639,7 +639,7 @@ disk_partition_uuids ()
 disk_size () # ~ <Disk-dev>
 {
   test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Linux ) req_parted disk-size || return
         req_parted disk-size || return
@@ -656,14 +656,14 @@ disk_size () # ~ <Disk-dev>
           | cut -d ':' -f 2 | cut -d ' ' -f 2 )GB
       ;;
 
-    * ) error "Disk-Size: $uname" 1 ;;
+    * ) error "Disk-Size: ${OS_UNAME:?}" 1 ;;
   esac
 }
 
 disk_tabletype () # ~ <Disk-dev>
 {
   test $# -gt 0 -a -b "${1:?}" || return ${_E_GAE:-3}
-  case "$uname" in
+  case "${OS_UNAME:?}" in
 
     Linux ) req_parted disk-tabletype || return
         req_parted disk-tabletype || return
@@ -682,7 +682,7 @@ disk_tabletype () # ~ <Disk-dev>
         echo gpt
       ;;
 
-    * ) error "Disk-Tabletype: $uname" 1 ;;
+    * ) error "Disk-Tabletype: ${OS_UNAME:?}" 1 ;;
   esac
 }
 

@@ -14,7 +14,7 @@ htd__disk()
   #disk_lib__init || return
 
   test -z "$(lib_path $os)" || lib_load $os || return
-  test "$uname" = linux && {
+  test "${OS_UNAME,,}" = linux && {
     test -e /proc || error "/proc/* required" 1
   }
   test -n "${1-}" || set -- mounts

@@ -9,7 +9,7 @@ main_main() # Base Default-Subcmd Script-Aliases
 {
   test $# -gt 0 -a $# -le 3 || return
   test -n "${main_id-}" || {
-    local vid; mkvid $1; main_id=$vid
+    str_vword main_id "$1"
   }
 
   test -n "${main_script-}" || main_script="\$0"
@@ -73,7 +73,7 @@ main_make () # Script-Name
 {
   test -n "${make_pref-}" || make_pref=eval
   test -n "${main_id-}" || {
-    local vid; mkvid $1; main_id=$vid
+    str_vword main_id "$1"
   }
 
   # Declare an entry point for base unless main-bases is given

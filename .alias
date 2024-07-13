@@ -44,6 +44,8 @@ alias rabo2myLedger=rabo2myLedger.py
 
 #alias basename-reg-old=basename-reg.py
 
+alias disk-usage=disk-usage.sh
+
 alias dictdiff-yaml.php=dictdiff.php
 alias finfo-app.py=finfo.py
 alias jsotk=jsotk.py

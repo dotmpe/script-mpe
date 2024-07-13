@@ -642,7 +642,7 @@ htd_log_base_spec () # ~ [SPEC | PATH YSEP MSEP EXT # PARTS... ]
       log_parts="$*"
     }
   } || {
-    eval $(mkvid "$1" && map=package_logs_$vid: package_sh $htd_log_keys)
+    eval $(map=package_logs_$(str_word "$1"): package_sh $htd_log_keys)
   }
   test -d "$1" && {
     fnmatch "*/" "$1" || set -- "$1/"

@@ -141,7 +141,7 @@ htd_doc_file() # [date=now] [query=] [edit=] [create=] ~ [Title-Descr..]
   test -n "$1" || error "Name-Id required" 1
   test -n "$htd_doc_init_fields" || htd_doc_init_fields="title created"
 
-  #upper=0 mkvid "$package_permalog_method" ; method=$vid
+  #lower=true str_vword method "$package_permalog_method"
   # doc_${method}_new "$@"
 
   # Parse pre-given filename to embed it in archive path

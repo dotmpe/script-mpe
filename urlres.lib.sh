@@ -50,7 +50,7 @@ urlres_cachekey_plain () # ~ <Key> <Inputs...>
 {
   # Concatenate key+inputs by ':'
   local oldIFS=$IFS;IFS=:
-  cache_name=$(echo "${urlres_key_prefix:-}$*")
+  cache_name=$(echo "${urlres_key_prefix:-}${*:?}")
   IFS=$oldIFS
 }
 
@@ -148,12 +148,6 @@ urlres_parse_arg () # ~ <Key> <Inputs...>
   declare -ga inputs=( "${@:2}" )
 
   urlres_cachekey_${urlres_cachekey_format:-cksums} "$@"
-}
-
-
-uc_format_printf () # ~ <printf-fmt> <printf-args...>
-{
-  printf -- "$@"
 }
 
 #

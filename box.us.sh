@@ -56,8 +56,7 @@ box_us_loadenv ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "box.us" .sh || {
   user_script_load || exit $?

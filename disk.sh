@@ -198,7 +198,7 @@ disk__mounts()
 # Need to skip/alternate some steps ie. for Htd ls-volumes
 disk__x_local()
 {
-  test "$uname" = "Darwin" && {
+  test "${OS_UNAME:?}" = "Darwin" && {
 
     #xml=$(darwin_profile_xml "SPUSBDataType")
     #echo '---------------------------'

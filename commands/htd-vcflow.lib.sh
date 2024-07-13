@@ -207,12 +207,13 @@ htd_vcflow_check_devline()
 htd_vcflow_new_feature() # Id Msg...
 {
   htd_vcflow_check_devline || return
-  local id= sid= feature_id=
-  lower=1 mksid "$1" ; id="$1" ; shift ; feature_id="$sid"
-  vc_exists "feature/$sid" && {
-      warn "Branch for '$id' already exists 'feature/$sid'" 1
+  local id=${1:?} feature_id
+  feature_id=$(lower=true str_sid "$1")
+  shift
+  vc_exists "feature/$sfeature_id" && {
+      warn "Branch for '$id' already exists 'feature/$feature_id'" 1
   }
-  note "Branching 'feature/$sid'..."
+  note "Branching 'feature/$feature_id'..."
   test -n "$1" || set -- "Starting feature '$id' (feature/$feature_id)"
   gitflow_fork_feature "feature/$feature_id" "$*"
 }
