@@ -2,10 +2,7 @@
 
 ## Bootstrap
 
-test -n "${uc_lib_profile:-}" ||
-  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${us_stat:-exit} $?
-
-uc_script_load user-script
+us-env -r user-script || ${uc_stat:-exit} $?
 
 # Define aliases immediately, before function declarations and before entering
 # main script_{entry,run}
@@ -13,7 +10,7 @@ uc_script_load user-script
   uc_script_load us-als-mpe || ${us_stat:-exit} $?
 
 
-meta_sh__grp=meta
+meta_sh__grp=meta,user-script-sh
 meta_sh__hooks=us_userdir_init
 meta__grp=status-uc
 meta__libs=meta,us-fun
@@ -122,17 +119,8 @@ meta_sh_aliasargv ()
 
 meta_sh_loadenv ()
 {
-  user_script_loadenv &&
-  user_script_initlog || return
-  shopt -s nullglob nocaseglob
-  script_part=${base:?} user_script_load groups || {
-    # E:next means no libs found for given group(s).
-    test ${_E_next:?} -eq $? || return $_
-  }
-  #script_part=${1:?} user_script_load groups && return
-  #test ${_E_next:?} -eq $? || return $_
-  #$LOG notice :meta.sh "No specific env for script or command" "$*"
-  user_script_announce "$@"
+  shopt -s nullglob nocaseglob &&
+  return ${_E_continue:-195}
 }
 
 meta_sh_unload ()
@@ -142,16 +130,12 @@ meta_sh_unload ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
-
 ! script_isrunning "meta.sh" || {
-  export UC_LOG_BASE="${SCRIPTNAME}[$$]"
+  #script_bases=meta-sh,user-script-sh
   user_script_load || exit $?
 
   # Pre-parse arguments
   script_defcmd=check
-  #user_script_defarg=defarg\ aliasargv
   eval "set -- $(user_script_defarg "$@")"
 
   script_run "$@"

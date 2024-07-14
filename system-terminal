@@ -411,11 +411,15 @@ system_terminal_loadenv ()
   lib_load user-script term
 }
 
+system_terminal_unload ()
+{
+  shopt -u nullglob
+}
+
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "system-terminal" || {
   user_script_load || exit $?

@@ -4,6 +4,8 @@
 
 #version=0.0.4-dev # script-mpe
 
+box_us__grp=user-script
+
 
 rulesets () # ~
 {
@@ -29,29 +31,16 @@ box_us_shortdescr='Generic user shell tool.'
 box_us_aliasargv ()
 {
   case "$1" in
-    ( l|list) shift; set -- rulesets list "$@" ;;
-    ( rs|rulesets ) shift; set -- rulesets "$@" ;;
-
-    ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( l|list) shift; set -- rulesets list "$@" ;;
+  ( rs|rulesets ) shift; set -- rulesets "$@" ;;
   esac
 }
 
 box_us_loadenv ()
 {
-  server_sh_loadenv
-}
-
-box_us_bases ()
-{
-  user_script_bases >/dev/null
-  script_bases="${script_bases:?} server_sh"
-  echo "$script_bases"
-}
-
-
-box_us_loadenv ()
-{
-  . /srv/project-local/conf-wtwta/script/Generic/server.sh
+  #server_sh_loadenv
+  # XXX: cleanup . /srv/project-local/conf-wtwta/script/Generic/server.sh
+  return ${_E_continue:-195}
 }
 
 # Main entry (see user-script.sh for boilerplate)
@@ -59,6 +48,7 @@ box_us_loadenv ()
 us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "box.us" .sh || {
+  script_base=box-us,user-script-sh
   user_script_load || exit $?
 
   # Strip extension from scriptname (and baseid)
@@ -67,7 +57,6 @@ us-env -r user-script || ${uc_stat:-exit} $?
   script_defcmd=stat
   # To extract aliases for help
   user_script_defarg=defarg\ aliasargv
-  user_script_bases=box_us_bases
 
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"

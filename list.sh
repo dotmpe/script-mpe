@@ -72,7 +72,7 @@ list_sh_shortdescr='Manage and use globlists'
 list_sh_aliasargv ()
 {
   [[ ${1-} ]] || return ${_E_MA:?}
-  case "${1//_/-}" in
+  case "$1" in
   ( attrs ) shift; set -- attributes "$@" ;;
   ( group ) shift; set -- files -groups "$@" ;;
   esac

@@ -2,9 +2,7 @@
 
 ### User desktop: helper commands for appearance and window manager
 
-test -n "${uc_lib_profile:-}" ||
-  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${stat:-exit} $?
-uc_script_load user-script || ${stat:-exit} $?
+us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "user-desktop" || {
   PATH=$PATH:${US_BIN:?}/tools/sh/parts uc_script_load \
@@ -324,7 +322,7 @@ find_nonhidden_files ()
 
 ## User-script parts
 
-user_desktop_maincmds="background backgrounds backgrounds_select help screenshots themes update_for_cs switch_cs version"
+user_desktop_maincmds="background backgrounds backgrounds_select help screenshots themes update-for-cs switch-cs version"
 user_desktop_shortdescr='User desktop tools'
 
 #shellcheck disable=1091 # env.sh and .meta.sh do not need to exist
@@ -336,7 +334,6 @@ user_desktop_loadenv ()
   test -e "${BG_DIR:="$HOME/Pictures/Backgrounds"}/.meta.sh" && {
     . "${BG_DIR}/.meta.sh"
   }
-  #user_script_loadenv || test ${_E_retry:-198} -eq $? || return $_
   : "${_E_not_found:=127}" # NSFC no-such-file-or-command
   user_desktop_defaults &&
   lib_require os sys-htd str-htd desktop xorg
@@ -346,13 +343,10 @@ user_desktop_aliasargv ()
 {
   case "$1" in
   ( b|bg ) shift; set -- background "$@" ;;
-  ( bgS | backgrounds-select ) shift; set -- backgrounds_select "$@" ;;
+  ( bgS | backgrounds-select ) shift; set -- backgrounds-select "$@" ;;
   ( bgs ) shift; set -- backgrounds "$@" ;;
-  ( update-for-cs ) shift; set -- update_for_cs "$@" ;;
-  ( switch-cs ) shift; set -- switch_cs "$@" ;;
   ( set-bg ) shift; set -- background set "$@" ;;
   ( themes ) shift; set -- list_themes "$@" ;;
-  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 
@@ -366,10 +360,8 @@ user_desktop_defaults ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
-
 ! script_isrunning "user-desktop" || {
+  user_script_baseless=true
   user_script_load || exit $?
 
   user_script_defarg=defarg\ aliasargv

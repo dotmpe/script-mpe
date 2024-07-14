@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-test -n "${uc_lib_profile:-}" ||
-  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${stat:-exit} $?
-uc_script_load user-script || ${stat:-exit} $?
+us-env -r user-script || ${uc_stat:-exit} $?
 
 # Use alsdefs set to cut down on small multiline boilerplate bits.
 #user_script_alsdefs
@@ -125,10 +123,11 @@ match_loadenv () # ~ <Cmd-argv...>
 # Main entry (see user-script.sh for boilerplate)
 
 ! script_isrunning "match" .sh || {
-  export UC_LOG_BASE="$SCRIPTNAME.sh[$$]"
   user_script_load || exit $?
   script_defcmd=local\ check
   user_script_defarg=defarg\ aliasargv
-  eval "set -- $(user_script_defarg "$@")"
+  # Resolve aliased commands or set default
+  if_ok "$(user_script_defarg "$@")" &&
+  eval "set -- $_" &&
   script_run "$@"
 }

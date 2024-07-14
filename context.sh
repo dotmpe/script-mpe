@@ -347,9 +347,8 @@ context_sh_init ()
 
 context_sh_loadenv ()
 {
-  user_script_initlog &&
   shopt -s nullglob &&
-  return ${_E_continue:?}
+  return ${_E_continue:-195}
 }
 
 context_sh_unload ()

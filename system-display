@@ -173,8 +173,7 @@ system_display_shortdescr='System monitors, window server, and window managers.'
 system_display_aliasargv ()
 {
   case "$1" in
-      ( monitor ) shift; set -- mouse "$@" ;;
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( monitor ) shift; set -- mouse "$@" ;;
   esac
 }
 
@@ -182,7 +181,8 @@ system_display_loadenv ()
 {
   . "$US_BIN"/xorg.lib.sh &&
   . "$US_BIN"/user-script.lib.sh &&
-  . "$US_BIN"/user-desktop
+  . "$US_BIN"/user-desktop &&
+  return ${_E_continue:-195}
 }
 
 system_display_usage ()
@@ -201,10 +201,10 @@ and other config tools do provide actual monitor names
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "system-display" || {
+  script_bases=system-display,user-script-sh
   user_script_load || exit $?
   # Pre-parse arguments
   script_defcmd=list

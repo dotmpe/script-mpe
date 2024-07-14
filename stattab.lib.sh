@@ -78,7 +78,7 @@ stattab_data_dirln () # (stbdr) ~
   }
 
   str_globmatch "${rawline:0:1}" "[# $STTAB_FS]" ||
-    return ${_E_continue:-196}
+    return ${_E_continue:-195}
 }
 
 stattab_data_line () # (:stbdr) ~ <Data-handler> [<Args...>]
@@ -158,7 +158,7 @@ stattab_data_list () # (stbdr:) ~ <Handler <args...>>
     ln=$(( ln + 1 ))
 
     "${stb_dld:-stattab_data_dirln}" && continue || {
-      test "${_E_continue:-196}" = "$?" || return $_
+      test "${_E_continue:-195}" = "$?" || return $_
     }
 
     "${stb_dli:-stattab_data_line}" "$@"
@@ -196,7 +196,7 @@ stattab_data_outline_dirln () # ~ <Handler <args...>>
     }
   }
 
-  return ${_E_continue:-196}
+  return ${_E_continue:-195}
 }
 
 # Output entry from current stab_* values

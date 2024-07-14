@@ -301,7 +301,8 @@ script_doenv () # ~ <Action <argv...>>
 
   # Update bases, if there is one given for particular action, on any of the
   # current bases.
-  if_ok "$(for base in $(user_script_bases)
+  ! "${user_script_baseless:-false}" && : "" || : "${1:?} "
+  if_ok "$_$(for base in $(user_script_bases)
     do
       echo "$base-${1:?}"
     done)" &&
@@ -1799,9 +1800,9 @@ user_script_sh_loadenv ()
     # Start at first script node, load all libs and then execute hooks.
     # XXX: use status to coordinate groups from multiple bases?
     user_script_load groups && break || {
-      test ${_E_next:-195} -eq $? && fail=true
+      test ${_E_next:-196} -eq $? && fail=true
     } ||
-      test ${_E_continue:-196} -eq $_ || return $_
+      test ${_E_continue:-195} -eq $_ || return $_
   done
   ! "${fail:-false}"
 }
