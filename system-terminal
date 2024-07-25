@@ -379,9 +379,9 @@ colors, etc. The default subcommand is `sensible`. Other main commands are:
     %s name NAME <Run-Argv...>
       Start terminal with name.
     %s terminal EXEC <Run-Argv...>
-      Start terminal instance of EXEC (urxvt only)
+      Start terminal instance of EXEC (rxvt only)
 
-(Only urxvt terminal is currenty implemented)
+(Only rxvt terminal is currenty implemented)
 
 Much of the get/set-colors setup was inspired by
 <https://github.com/sos4nt/dynamic-colors>

@@ -27,7 +27,7 @@ htd_subcmd_load ()
   c=1 ; shift
 
   # Default-Env upper-case: shell env constants
-  local upper=1 title=
+  local upper=true title=
 
   # XXX: cleanup; CWD=$PWD
   #not_trueish "$DEBUG" || {
@@ -2618,7 +2618,7 @@ htd__table_reformat()
     local fields="$(fixed_table_hd_ids "$1")"
   }
   test -n "$cutf" || fixed_table_cuthd "$1" "$fields"
-  upper=0 default_env out-fmt json
+  upper=false default_env out-fmt json
   test "$out_fmt" = "csv" && { echo "#"$fields | tr ' ' ',' ; }
   fixed_table "$1" $cutf | while read vars
   do
@@ -2923,7 +2923,8 @@ htd_man_1__ps='Using ps, print properties for the given or current process.
 htd_spc__ps='ps PID'
 htd__ps()
 {
-  upper=0 default_env out-fmt yaml
+  local upper=false
+  default_env out-fmt yaml
   default_env pretty 1
   test -n "$1" || set -- $$
   # Cannot parse the headers for fixed-table, other than try sort them out into

@@ -287,14 +287,12 @@ user_tools_shortdescr='User tools.'
 user_tools_aliasargv ()
 {
   case "$1" in
-      ( m|media ) shift; set -- us_media "$@" ;;
-      ( sort|media-sort ) shift; set -- catalog_uc_sort "$@" ;;
-      ( key-count ) shift; set -- ssh_agent_key_count "$@" ;;
-      ( darktime ) # ~
-          # Test wether dark or light colorscheme (CS) should be used
-          shift; set -- actual_darktime "$@" ;;
-      ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
-
+  ( m|media ) shift; set -- us_media "$@" ;;
+  ( sort|media-sort ) shift; set -- catalog_uc_sort "$@" ;;
+  ( key-count ) shift; set -- ssh_agent_key_count "$@" ;;
+  ( darktime ) # ~
+      # Test wether dark or light colorscheme (CS) should be used
+      shift; set -- actual_darktime "$@" ;;
   esac
 }
 

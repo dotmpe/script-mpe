@@ -229,8 +229,8 @@ box_spc__function='-n|function [[<name>=$hostname] <cmd>=run]'
 box__function()
 {
   local name= cmd=run c=0
-  upper=0 default_env scope "box"
-  upper=0 default_env action "insert"
+  upper=false default_env scope "box"
+  upper=false default_env action "insert"
   box_name_args $@
   test -e $script || error "script $name does not exist" 1
   echo TODO add function to script

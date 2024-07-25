@@ -13,10 +13,8 @@ us-env -r user-script || ${uc_stat:-exit} $?
 meta_sh__grp=meta,user-script-sh
 meta_sh__hooks=us_userdir_init
 meta__grp=status-uc
-meta__libs=meta,us-fun
+meta__libs=meta,class-uc,us-fun
 meta__hooks=us_xctx_init
-#status__libs=status
-#status__grp=user-script
 
 
 meta_sh_attributes () # ~
@@ -107,12 +105,11 @@ meta_sh_local () # ~ <Action> #  XXX: local
 #meta_sh_version=xxx
 meta_sh_maincmds="attributes context help short version"
 meta_sh_shortdescr='Track metadata'
+meta_sh_defcmd=check
 
 meta_sh_aliasargv ()
 {
-  test -n "${1-}" || return
-  case "${1//_/-}" in
-  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  case "$1" in
   # * ) set -- meta_sh_ "$@"
   esac
 }
@@ -131,12 +128,10 @@ meta_sh_unload ()
 # Main entry (see user-script.sh for boilerplate)
 
 ! script_isrunning "meta.sh" || {
-  #script_bases=meta-sh,user-script-sh
   user_script_load || exit $?
 
   # Pre-parse arguments
-  script_defcmd=check
-  eval "set -- $(user_script_defarg "$@")"
-
+  if_ok "$(user_script_defarg "$@")" &&
+  eval "set -- $_" &&
   script_run "$@"
 }

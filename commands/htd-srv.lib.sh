@@ -163,7 +163,7 @@ htd_spc__srv_list="out_fmt= srv-list"
 htd_of__srv_list='DOT'
 htd__srv_list()
 {
-  upper=0 default_env out-fmt plain
+  upper=false default_env out-fmt plain
   out_fmt="$(echo $out_fmt | str_upper)"
   case "$out_fmt" in
       DOT )  echo "digraph htd__srv_list { rankdir=RL; ";; esac

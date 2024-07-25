@@ -3,8 +3,10 @@
 
 htd_cabinet_lib__load()
 {
-  default_env Cabinet-Dir "cabinet" || debug "Using Cabinet-Dir '$CABINET_DIR'"
-  default_env Jrnl-Dir "personal/journal" || debug "Using Jrnl-Dir '$JRNL_DIR'"
+  default_env Cabinet-Dir "cabinet" ||
+    debug "Using Cabinet-Dir '${CABINET_DIR:?}'"
+  default_env Jrnl-Dir "personal/journal" ||
+    debug "Using Jrnl-Dir '${JRNL_DIR:?}'"
 }
 
 

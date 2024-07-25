@@ -322,8 +322,8 @@ htd_man_1__filter_functions='
 htd_spc__filter_functions='filter-functions Attr-Filter [Src-Files...]'
 htd__filter_functions() # Attr-Filter [Src-Files...]
 {
-  upper=0 default_env out-fmt names
-  title=1 default_env Inclusive-Filter 1
+  upper=false default_env out-fmt names
+  title=true default_env Inclusive-Filter 1
   # With no filter env, use first argument or set default
   test -n "$Attr_Filter" || {
     test -n "$1" || { shift; set -- grp=box-src "$@"; }

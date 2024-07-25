@@ -81,7 +81,7 @@ htd__couchdb_htd_scripts()
   local src= grp=
   test -n "$*" || set -- htd
   # *.lib.sh
-  upper=0 default_env out-fmt names
+  upper=false default_env out-fmt names
   groups="$( htd__list_function_groups "$@" | lines_to_words )"
   export verbosity=4 DEBUG=
   for src in "$@"

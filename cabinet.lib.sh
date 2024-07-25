@@ -4,7 +4,7 @@
 
 cabinet_lib__load()
 {
-  title= upper=1 default_env HtDir "$HOME/htdocs" &&
+  title= upper=true default_env HtDir "$HOME/htdocs" &&
   cabinet_init
 }
 
@@ -16,9 +16,9 @@ cabinet_init()
     true "${CABINET_DIR:="$HTDIR/cabinet"}"
   }
   # XXX: cleanup default-env
-  #  title= upper=1 default_env Cabinet-Dir "$PWD/cabinet"
+  #  title= upper=true default_env Cabinet-Dir "$PWD/cabinet"
   #} || {
-  #  title= upper=1 default_env Cabinet-Dir "$HTDIR/cabinet"
+  #  title= upper=true default_env Cabinet-Dir "$HTDIR/cabinet"
   #}
 }
 

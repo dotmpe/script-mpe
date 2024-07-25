@@ -121,7 +121,6 @@ pl_shortdescr='Media playlist utils'
 pl_aliasargv ()
 {
   case "$1" in
-  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
   esac
 }
 
@@ -138,7 +137,7 @@ pl_loadenv ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-uc_script_load user-script
+us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "pl" .sh || {
   user_script_load || exit $?

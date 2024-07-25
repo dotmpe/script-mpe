@@ -20,8 +20,8 @@ test 3 -le $# -o 6 -ge $# && {
     -map_metadata -1:s \
     -map_metadata -1:c \
     -map_metadata -1:p \
-    -metadata title="${new_title:?}" \
-    -metadata comment="${new_comment:?}" \
+    -metadata title="${new_title?}" \
+    -metadata comment="${new_comment?}" \
     "${out:?}"
   exit $?
 } || {

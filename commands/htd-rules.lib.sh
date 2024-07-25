@@ -282,8 +282,8 @@ htd__edit_rules()
 htd__show_rules()
 {
   # TODO use optparse htd_host_arg
-  upper=0 default_env out-fmt plain
-  upper=0 default_env raw false
+  upper=true default_env out-fmt plain
+  upper=true default_env raw false
   test -s "${htd_rules-}" || error "No rules found <${htd_rules-}>" 1
   trueish "$raw" && {
     test -z "$*" || error "Raw mode does not accept filter arguments" 1

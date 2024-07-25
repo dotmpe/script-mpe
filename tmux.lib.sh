@@ -5,7 +5,7 @@
 
 tmux_lib__load ()
 {
-  local upper=1
+  local upper=true
   # TODO: document where this was needded
   #which tmux 1>/dev/null || {
   #  export PATH=/usr/local/bin:$PATH

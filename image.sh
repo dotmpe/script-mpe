@@ -33,7 +33,7 @@ colorize () # ~ <In> <Out> <Color> <Percentage <G, B>
 uc_script_load user-script
 
 # Parse arguments
-! script_isrunning "image" || {
+! script_isrunning "image" .sh || {
   user_script_load || exit $?
   eval "set -- $(user_script_defarg "$@")"
 

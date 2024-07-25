@@ -232,7 +232,7 @@ vagrant_sh_als___e=edit
 #  # Vagrant-Sh lib
 #' '
 #  # Vagrant-Sh load
-#  local upper=1
+#  local upper=true
 #  default_env Vagrant-Home "$HOME/.vagrant"
 #  default_env Vagrant-Home "default"
 #' '
