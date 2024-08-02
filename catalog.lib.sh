@@ -166,6 +166,7 @@ catalog_list_path_files () # ~ [PATH=.]
 # derived.
 catalog_name () # ~ [PATH=.]
 {
+  $LOG info "" "Looking for local catalog" ""
   test -s "${1:-"./"}$CATALOGS" && {
       head -n1 "${1:-"./"}$CATALOGS" || return
     } || {

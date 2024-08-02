@@ -140,15 +140,15 @@ script_envinit () # ~ <Bases...>
 # commands, see loadenv handlers.
 script_baseenv ()
 {
+  : "${script_baseid:=$(str_id "${script_base%[, ]*}")}"
   # Get initial instance vars, using initial base.
   # Including override value for base, if such is ever needed or useful.
   local var{,_}
   for var in base defcmd name version shortdescr
   do
-    var_=${script_baseid}_$var
+    var_=${script_baseid:?"$(sys_exc us:script-baseenv:scriptid)"}_$var
     test -z "${!var_:-}" || eval "script_$var=\"${!var_}\""
   done
-  : "${script_baseid:=$(str_id "${script_base%[, ]*}")}"
   : "${script_name:="$user_script_name:$SCRIPTNAME"}"
   : "${script_shortdescr:="User-script '$script_name' has no description. "}"
 
@@ -297,7 +297,8 @@ script_debug_vars () # ~ <Var-names...>
 script_doenv () # ~ <Action <argv...>>
 {
   [[ ${script_base-} ]] ||
-    script_envinit || return
+    script_envinit ||
+    $LOG error "" "During script env init" "E$?:$*" $? || return
 
   # Update bases, if there is one given for particular action, on any of the
   # current bases.
@@ -307,7 +308,8 @@ script_doenv () # ~ <Action <argv...>>
       echo "$base-${1:?}"
     done)" &&
   sys_loop user_script_cmdhandler_set $_ &&
-  script_baseenv || return
+  script_baseenv ||
+    $LOG error "" "During base env" "E$?" $? || return
   test -n "${script_cmdfun-}" &&
     $LOG info "" "Found command handler" "$script_cmdfun" ||
     $LOG warn"" "No command handler found" "$1"
@@ -326,7 +328,7 @@ script_doenv () # ~ <Action <argv...>>
       test 0 -eq $_ || {
         env_status=$_
         test ${_E_done:-200} -eq $env_status && fail=false
-        test ${_E_stop:-197} -eq $env_status && interrupt=true
+        test ${_E_break:-197} -eq $env_status && interrupt=true
         test ${_E_continue:-195} -eq $env_status || {
           test ${_E_next:-196} -eq $env_status && fail=true || {
 
@@ -345,7 +347,8 @@ script_doenv () # ~ <Action <argv...>>
 
   shift ${scriptenv_argc:?}
 
-  script_cmdid "${1:?}" || return
+  script_cmdid "${1:?}" ||
+    $LOG error "" "Command ID" "E$?:$1" $? || return
   : "${script_cmdfun:=${script_cmdname//-/_}}"
 
   # prefer to use most specific name, fallback to unprefixed handler function
@@ -390,18 +393,17 @@ script_name () # ~ <Command-name> # Set SCRIPTNAME env based on current $0
 
 script_run () # ~ <Action <argv...>>
 {
-  export UC_LOG_BASE=${0##*\/}"[$$]":doenv
-  #export UC_LOG_BASE=$script_name"[$$]":doenv
+  export UC_LOG_BASE=${script_name:?}"[$$]":doenv
   local scriptenv_argc=0
   script_doenv "$@" ||
-    $LOG warn :uc:script-run "Script setup failed" "E$?:$#:$*" $? || return
+    $LOG warn :/script-run "Script setup failed" "E$?:$#:$*" $? || return
   ! uc_debug ||
-      $LOG info :uc:script-run "Entering user-script $(script_version)" \
+      $LOG info :/script-run "Entering user-script $(script_version)" \
           "cmd:$script_cmd:als:${script_cmdals-(unset)}"
   incr scriptenv_argc
   shift ${scriptenv_argc:?}
   ! uc_debug ||
-      $LOG info :script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
+      $LOG info :/script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
   export UC_LOG_BASE=$script_name"[$$]":${script_cmdals:-${script_cmdname:?}}
   "$script_cmdfun" "$@" || script_cmdstat=$?
   export UC_LOG_BASE=$script_name"[$$]":unenv
@@ -910,7 +912,10 @@ user_script_load () # (y*) ~ <Actions...>
         ! "${VERBOSE:-false}" ||
           $LOG notice "$lk" "Loading groups " "$lctx"
 
-        for base in $(user_script_bases | tac)
+        user_script_graph_init "$name" &&
+        if_ok "$(user_script_bases "$name" | tac)" || return
+
+        for base in $_
         do
           : "${base//[:.-]/_}__libs"
           test -z "${!_-}" || {
@@ -939,7 +944,7 @@ user_script_load () # (y*) ~ <Actions...>
         test -z "${hooks:-}" && return
         "${QUIET:-false}" ||
         ! "${VERBOSE:-false}" ||
-          $LOG debug "$lk" "Running hooks" "$hooks"
+          $LOG debug "$lk" "Running hooks" "${hooks// /,}"
         local hook lk="$plk:user-script:hooks[group:$name]"
         for hook in $hooks
         do "$hook" ||
@@ -1339,7 +1344,7 @@ user_script_usage () # ~ [<Cmd>]
     printf 'Usage:\n\t%s <Command <Arg...>>\n' "${script_base%[, ]*}"
     set -- ${script_maincmds:?}
   } || {
-    slf_l=1 # Strip brief description
+    slf_l=1 # Strip brief description, just show arg spec
     printf 'Usage:\n'
   }
 
@@ -1461,7 +1466,7 @@ user_script_usage_choices () # ~ <Handler> [<Choice>]
   test -n "${2:-}" && {
     printf "\nChoice '%s':\n" "$2"
   } || {
-    printf "\nAction choices:\n"
+    printf "\nAction choices '%s':\n" "$1"
   }
   echo "$actions" | sed 's/^/\t/'
 }
@@ -1501,8 +1506,7 @@ user_script_fetch_handlers ()
 user_script_usage_handlers () # ~ <Actions...>
 {
   user_script_fetch_handlers "$@" || return
-
-  #declare -p handlers
+  #stderr declare -p handlers
 
   # FIXME:
   # Do any loading required for handler, so script-src/script-lib is set
@@ -1788,7 +1792,7 @@ user_script_sh_list ()
 user_script_sh_defarg ()
 {
   case "$1" in
-  ( --find-scripts )            set -- find "${@:2}" ;;
+  ( scripts-find|--find-scripts )            set -- find "${@:2}" ;;
   esac
 }
 
@@ -1799,10 +1803,13 @@ user_script_sh_loadenv ()
   do
     # Start at first script node, load all libs and then execute hooks.
     # XXX: use status to coordinate groups from multiple bases?
-    user_script_load groups && break || {
-      test ${_E_next:-196} -eq $? && fail=true
-    } ||
-      test ${_E_continue:-195} -eq $_ || return $_
+    user_script_load groups && {
+      #stderr echo load groups done at $script_part
+      break
+    } || {
+      test ${_E_next:-196} -eq $? && fail=true ||
+        test ${_E_continue:-195} -eq $_ || return $_
+    }
   done
   ! "${fail:-false}"
 }

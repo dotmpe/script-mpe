@@ -4,10 +4,10 @@
 context__grp=user-script
 context_sh__grp=context
 context_sh__hooks=context_sh_init
+context_sh__libs=os-htd,context
 
 # all-tags
 #   List tag names
-context_sh_entries__libs=os-htd,context
 context_sh_entries () # (y) ~ <action:-list> <...>
 # all-tags
 #   List tag names
@@ -77,9 +77,9 @@ context_sh_entries () # (y) ~ <action:-list> <...>
   ( * ) $LOG error "$lk" "No such action" "-$act:$*" ${_E_nsa:-68}
   esac
 }
+context_sh_entries__grp=context-sh
 
-context_sh_files__libs=os-htd\ context
-context_sh_files () # ~ <Switch:-list> <...>
+context_sh_files () # (y) ~ <Switch:-list> <...>
 {
   local act=${1-}
   act="${act:+$(str_globstripcl "$act" "-")}" || return
@@ -125,6 +125,12 @@ context_sh_files () # ~ <Switch:-list> <...>
   ( f|find ) # XXX: get look path
       files_existing ".meta/stat/index/{context,ctx}{,-*}.list"
     ;;
+  ( g|grep )
+      local -a files
+      if_ok "$(context_files)" &&
+      mapfile -t files <<< "$_" &&
+      grep "$@" "${files[@]}"
+    ;;
   ( l|ls|list )
       context_sh_files -all && context_sh_files -find
     ;;
@@ -163,6 +169,7 @@ context_sh_files () # ~ <Switch:-list> <...>
   ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
   esac
 }
+context_sh_files__grp=context-sh
 
 context_sh_path ()
 {
@@ -181,7 +188,7 @@ context_sh_path ()
   ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68} ;;
   esac
 }
-context_sh_path__libs=sys
+context_sh_path__grp=context-sh
 
 context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-args...>]
 {
@@ -249,7 +256,7 @@ context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-a
   esac
 }
 context_sh_shell__grp=context-sh
-context_sh_shell__libs=user-script-htd,context-uc
+context_sh_shell__libs=user-script-htd,str-uc,context-uc
 
 context_sh_status () # ~
 {
@@ -282,7 +289,8 @@ context_sh_status () # ~
   ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
   esac
 }
-context_sh_status__libs=context-uc,class-uc
+context_sh_status__grp=context-sh
+context_sh_status__libs=str-uc,context-uc,class-uc
 
 context_sh_tag ()
 {
@@ -299,8 +307,8 @@ context_sh_tag ()
   ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
   esac
 }
+context_sh_tag__grp=context-sh
 
-context_sh_tags__libs=context
 context_sh_tags () # ~ <Switch:-list> <...>
 {
   local act=${1-}
@@ -312,12 +320,15 @@ context_sh_tags () # ~ <Switch:-list> <...>
   ( for )
       contexttab_related_tags "${1:-}" && echo $tag_rel
     ;;
+  ( count|c )
+      context_tags_list | count_lines ;;
   ( list )
       context_tags_list ;;
 
   ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
   esac
 }
+context_sh_tags__grp=context-sh
 
 
 ## User-script parts
@@ -333,16 +344,18 @@ context_sh_shortdescr='Provide context entities and relations based on tags'
 context_sh_aliasargv ()
 {
   case "${1:?}" in
-  ( e|entries ) set -- entries "${@:2}" ;;
-  ( l|list ) set -- entries -l "${@:2}" ;;
-  ( s|short ) set -- status --short ;;
-  ( f|files ) set -- files "${@:2}" ;;
+  ( entries|e ) set -- entries "${@:2}" ;;
+  ( tags|t ) set -- tags "${@:2}" ;;
+  ( list|l ) set -- entries -l "${@:2}" ;;
+  ( short|s ) set -- status --short ;;
+  ( files|f ) set -- files "${@:2}" ;;
   esac
 }
 
 context_sh_init ()
 {
-  user_script_initlibs stattab-class class-uc xcontext-class
+  user_script_initlibs stattab-class class-uc context &&
+  class_init XContext
 }
 
 context_sh_loadenv ()
@@ -359,7 +372,7 @@ context_sh_unload ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-us-env -r user-script || ${uc_stat:-exit} $?
+us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "context.sh" || {
   script_base=context-sh,user-script-sh

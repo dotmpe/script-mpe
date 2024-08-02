@@ -1,30 +1,26 @@
 #!/usr/bin/env bash
-#
-##shellcheck disable=1087
 
-# User is not really a concrete script itself, instead it is a skeleton for
-# autocompletions and a trigger for any of those definitions within contexts.
+### User auto-complete menu
 
-# TODO: test if <TAB> handling can load additional script
-#
-# XXX: and given that the right aliases and modules are loaded, to actually
-# trigger commands in the current shell or any other context.
-
+#shellcheck disable=1087
 
 # Build pseudo command for exploring completion
 alias user="echo user"
 
-# There are many completion groups already,
+declare -ga UC_AC_COMP
+declare -g UC_UM_DEFAULT=default
 declare -gA __UC_UM_ROOT
 __UC_UM_ROOT=(
-  [compgen]=""
-  [alias]="uc:alias"
+  [compgen]=uc:um:compgen
+  [alias]=uc:um:compgen:alias
 )
 
+# TODO: build from user (shell) alias table
 #declare -gA __UC_UM_ALIAS
 #__UC_UM_ALIAS=(
 #)
 
+# Simple user-menu with command-option map for compgen AC sets
 declare -gA __UC_UM_COMPGEN
 __UC_UM_COMPGEN=(
   ["alias"]="compgen:-a"
@@ -41,7 +37,7 @@ __UC_UM_COMPGEN=(
   ["keywords"]="compgen:-k"
   ["user"]="compgen:-A user"
   ["group"]="compgen:-A group"
-  ["menu"]=""
+  ["default"]="uc:ac:compgen-all"
 )
 
 # TODO: need to handle associative arrays, could use maybe to map/translate
@@ -67,19 +63,17 @@ __UC_UM_MENU_FOO=(
 #    esac
 #done
 
-__uc_um_ac__uc ()
+__uc_ac__bin ()
 {
-  __uc_um_ac__compgen -a
+  mapfile COMPREPLY <<< "$("${@:?}")"
 }
 
-__uc_um_ac__compgen ()
+__uc_um_ac ()
 {
-  mapfile COMPREPLY <<< "$(compgen "${@:?}" -- $cur)"
-  #COMPREPLY=( $(compgen "${@:?}" -- $cur) )
-}
+  [[ $COMP_CWORD -gt 1 ]] && {
+    false
+  } || ctx=uc:um:root key=${COMP_WORDS[COMP_CWORD]}
 
-__uc_um_complete ()
-{
   declare ref mvar mname=${1:-root} prev=${2:?} cur=${3:-}
   mvar=__UC_UM_${mname^^}
   #eval "menu=( \"\${${mvar}[@]}\" )"
@@ -100,11 +94,16 @@ __uc_user_menu ()
   # Only do root
   test $COMP_CWORD -eq 1 && {
     COMPREPLY=( $(compgen -W "${!__UC_UM_ROOT[*]}" -- $cur) )
+    UC_COMP[$cur]=uc:um:root
     return
   }
+
+  # Look at which level and context we are
   declare prev
   prev=${COMP_WORDS[$((COMP_CWORD-1))]}
-  echo cword=$COMP_CWORD >&2
+  key=${UC_COMP["$prev"]:?}
+  declare -n arr=__${key//:/_}
+
   test $COMP_CWORD -eq 2 && {
     declare ref dir
     __uc_um_complete "" "$prev" "$cur" || return
@@ -172,6 +171,6 @@ __uc_user_menu ()
   return 1
 }
 
-complete -F __uc_user_menu user
+complete -F __uc_um_ac user
 
 #

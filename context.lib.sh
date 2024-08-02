@@ -25,6 +25,7 @@ context_lib__init()
   : "${CTX_TAB:="${STATUSDIR_ROOT:?}index/${CTX_TAB_NAME:-context.list}"}"
   : "${CTX_CACHE:="${STATUSDIR_ROOT:?}cache"}"
   : "${CTX_TAB_CACHE:="${CTX_CACHE:?}/context.tab"}"
+  #: "${CTX_TAB_CACHE:="${CTX_CACHE:?}/context.list"}"
   test -e "$CTX_TAB" || {
     touch "$CTX_TAB" || return $?
   }
@@ -456,6 +457,7 @@ context_list_raw () # ~ <File>
 {
   export -f context_read_include \
         context_file_attributes context_file_attribute std_noerr
+
   preproc_run "${1:?}" filereader_statusdir_cache context_read_include
 }
 
@@ -593,8 +595,9 @@ context_tab_cache () # [Ctx-tab] ~
   local cached=${CTX_TAB_CACHE:?}
   $LOG debug :context-tab-cache "Checking cache file" "$cached"
   context_files | os_up_to_date "$cached" || {
-    $LOG info :context-tab-cache "Updating cache file" "$cached"
     local context_tab="${context_tab:-${CTX_TAB:?}}"
+    test -s "$context_tab" &&
+    $LOG info :context-tab-cache "Updating from table" "$context_tab" &&
     context_list_raw "${context_tab:?}" >| "$cached"
   }
 }

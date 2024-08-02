@@ -62,21 +62,21 @@ filereader_skip ()
 filereader_statusdir_cache ()
 {
   declare sd_{{bd,},id} file{version,id,modeline}
-  fml_lvar=true file_modeline "${1:?}" &&
+  fml_lvar=true file_modeline "${1:?}"
   test -n "${fileid-}" &&
   test "${fileid:0:3}" = "SD:" && {
     sd=${fileid:3}
     str_globmatch "$sd" "*:*" && {
       sd_bdid=${sd%:*} sd_id=${sd#*:}
       : "${!sd_bdid:?"$(sys_exc "$sd_bdid env")"}"
-      : "$_/${metadir_default:?"$(sys_exc "metadir-default env")"}"
-      sd_bd=$_/cache
+      : "${_:?}/${METADIR:?"$(sys_exc "metadir env")"}"
+      sd_bd=${_:?}/cache
     } ||
       sd_id=${fileid:3} sd_bd=${STATUSDIR_ROOT}cache
   } ||
     sd_id=$fileid
 
-  echo "$sd_bd/$sd_id"
+  echo "${sd_bd:-"${STATUSDIR_ROOT:?}cache"}/${sd_id:?}"
 }
 
 

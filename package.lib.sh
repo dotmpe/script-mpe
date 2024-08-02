@@ -47,7 +47,7 @@ package_lib_unset () #
 package_basedir_for_paths () # ~ <Paths...>
 {
   #metadir_basedirs "${@:?}"
-  fs_basedir_with ${metadir_default:?}/package/main.json "${@:?}"
+  fs_basedir_with "${METADIR:?}"/package/main.json "${@:?}"
 }
 
 #

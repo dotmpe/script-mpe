@@ -36,33 +36,41 @@ preproc_run () # ~ <source-file> <cache-handler> <read-handler> <file-res-handle
     return
   } || {
     declare cache_file ref res=${4:-src_htd_resolve_fileref}
+    local lk="${lk-}:pp-run[$2,$3,$4]"
     cache_file=$("${2:?}" "${1:?}") || return
 
-    stderr echo "cache: $cache_file"
-    stderr wc -l "$cache_file"* || true
+    [[ -w "$(dirname "$cache_file")" ]] || {
+      #stderr sys_source_trace cache-file:ro "Read only" 3 cache_file ref res
+      #stderr script_debug_args "$@"
+      $LOG error "$lk" "Unwritable" "$cache_file" 3 || return
+    }
+
+    #stderr echo "cache: $cache_file"
+    #[[ ! -e "$cache_file" ]] ||
+    #  stderr wc -l "$cache_file"*
 
     test ! -e "$cache_file.lock" ||
-        $LOG error : "Lock exists" "$cache_file:$*" $? || return
+        $LOG error "$lk" "Lock exists" "$cache_file:$*" $? || return
 
     >| "$cache_file.sources" \
     preproc_recurse preproc_includes "$res" 'echo "$file"' "${1:?}" &&
 
     while read -r include_file
     do
+      # XXX: recurse during preproc...
       preproc_run "$include_file" "${2:?}" "${3:?}" "$res" || return
     done < "$cache_file.sources" &&
+    if_ok "$(< "$cache_file.sources" count_lines)" &&
+    $LOG info "$lk" "Counting '$_' sources" "$cache_file" &&
 
-    stderr echo "Sources: $(< "$cache_file.sources")"
-
-    < "$cache_file.sources" \
-    os_up_to_date "$cache_file" &&
-    $LOG info : "Cache is up to date" "$cache_file" || {
-      stderr echo "Generating $cache_file.preproc bc OOD sources"
+    < "$cache_file.sources" os_up_to_date "$cache_file" &&
+    $LOG info "$lk" "Cache is up to date" "$cache_file" || {
+      $LOG notice "$lk" "Generating OOD cache" "$cache_file.preproc"
       touch "$cache_file.lock"
       preproc_read_include=${3:?} preproc_expand "" "$1" >| "$cache_file.preproc" ||
         ignore_sigpipe || return
-      stderr file -s "$cache_file"*
-      $LOG info : "TODO: Updated cache" "$cache_file"
+      cat "$cache_file.preproc" &&
+      $LOG info "$lk" "Generated cache" "$cache_file" &&
       rm "$cache_file.lock"
     }
   }
@@ -214,7 +222,7 @@ src_htd_resolve_fileref () # [cache=0,cache_key=def] ~ <Ref>
   # Ref must be absolute path (or var-ref), or we prefix the file's basedir
   fnmatch "[/~]*" "$1" \
       && fileref=$1 \
-      || fileref=$(dirname -- "$2")/$1 # make abs path
+      || fileref=$(dirname -- "${2:?}")/$1 # make abs path
 
   #file="$(eval "echo \"$fileref\"" | sed 's#^\~/#'"${HOME:?}"'/#')" # expand vars, user
   file=$(os_normalize "${fileref/#~\//${HOME:?}/}") &&
