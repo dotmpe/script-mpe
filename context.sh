@@ -258,6 +258,7 @@ context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-a
 context_sh_shell__grp=context-sh
 context_sh_shell__libs=user-script-htd,str-uc,context-uc
 
+# TODO: show info about ctx/cache, and last computed status
 context_sh_status () # ~
 {
   local act=${1-}
@@ -265,7 +266,7 @@ context_sh_status () # ~
   : "${act:=short}"
   test $# -eq 0 || shift
   local lk=${lk:-:context}:status:-$act
-  context_load @Status || return
+  #context_load @Status || return
   case "$act" in
   ( i|info )
           stderr echo "Main file: ${CTX_TAB:-(unset)}"
@@ -273,7 +274,7 @@ context_sh_status () # ~
           stderr echo "File count: $(context_sh_files c-a)"
       ;;
   ( s|short )
-          script_part=files user_script_load groups &&
+          script_part=context-sh-files user_script_load groups &&
           context_sh_files check
           $LOG info "$lk" "Files check" E$? $? || return
           wc -l $(context_sh_files -a)
@@ -292,6 +293,7 @@ context_sh_status () # ~
 context_sh_status__grp=context-sh
 context_sh_status__libs=str-uc,context-uc,class-uc
 
+# XXX:
 context_sh_tag ()
 {
   local act=${1-}
@@ -329,6 +331,24 @@ context_sh_tags () # ~ <Switch:-list> <...>
   esac
 }
 context_sh_tags__grp=context-sh
+
+context_sh_user () # (y) ~ <Switch:-> ...
+{
+  local act=${1-}
+  act="${act:+$(str_globstripcl "${act-}" "-")}" || return
+  : "${act:=list}"
+  test $# -eq 0 || shift
+  local lk=${lk:-:context}:user:-$act
+  case "$act" in
+  ( list ) locate -ibe 'user-*.class.sh' ;;
+  ( basedir ) us_xctx_init && us_basedir_init ;;
+  ( conf ) us_userconf_init && $user_conf.class-tree;;
+  ( dir ) us_userdir_init && $user_dir.class-tree;;
+
+  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  esac
+}
+context_sh_user__grp=context-sh
 
 
 ## User-script parts

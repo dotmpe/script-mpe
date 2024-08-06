@@ -29,10 +29,11 @@ user_script_announce () # ~ <Arg...>
   }
 }
 
+# XXX: check user-script context
 user_script_check () # ~ # See that all variables are set
 {
-  echo "Base/id: $base ($baseid)"
-  echo "Default command: $script_defcmd"
+  echo "Base/id: ${script_base:?} (${script_baseid:?})"
+  echo "Default command: ${script_defcmd:?}"
   echo "Default arg handlers: ${user_script_defarg:-defarg}"
 }
 

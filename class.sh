@@ -10,10 +10,9 @@ class_sh__grp=class
 #class__grp=
 #script_base=class-sh,user-script-sh
 #class_sh__grp=user-script-sh
-class_sh_main__grp=class-sh
-class_sh_main__libs=lib-uc,context-uc,uc-class
 
-class_sh_main () # ~ <Switch> ...
+
+class_sh_main () # (y) ~ <Switch> ...
 {
   local a1_def=summary; sa_switch_arg
   case "$switch" in
@@ -54,9 +53,11 @@ class_sh_main () # ~ <Switch> ...
   esac
   __sa_switch_arg
 }
+class_sh_main__grp=class-sh
+class_sh_main__libs=lib-uc,context-uc,uc-class
 
 
-class_sh_info ()
+class_sh_info () # (y) ~ <Switch> ...
 {
   local a1_def=--summary; sa_switch_arg
   case "$switch" in
@@ -100,20 +101,20 @@ class_sh_info ()
   esac
   __sa_switch_arg
 }
+class_sh_info__grp=class-sh
 
 
 ## User-script parts
 
-class_sh_maincmds=""
+class_sh_maincmds="info main"
 class_sh_shortdescr="Make calls to class instances"
 
 class_sh_aliasargv ()
 {
-  test -n "${1:-}" || return ${_E_MA:?}
-  case "${1//_/-}" in
+  case "${1:?}" in
   ( --list|--list-all|--static|--summary|--types )
     set -- info "$@" ;;
-  ( info ) ;;
+  #( info ) ;;
   #  * ) set -- main "$@"
   esac
 }

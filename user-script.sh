@@ -83,8 +83,9 @@ Some of these things may need to be turned into hooks as well.
 The current hooks mainly revolve around command alias functionality.
 
 defarg
-    Provide <baseid>_defarg and use it to pre-process argv instead of
-    user_script_defarg.
+    Process arguments and print new argument line followed by (global) env
+    to set before entering script.
+
     To help user-script-aliases find case/esac items set script-extra-defarg.
 
     Custom scripts may not want to take on the defarg boilerplate however,
@@ -501,20 +502,19 @@ user_script_aliases_raw ()
       }
       echo "# $fun"
       case "${out_fmt:-}" in
+      ( raw )
+          sh_type_esacs_als $fun
+        ;;
 
-          raw )
-              sh_type_esacs_als $fun
-            ;;
-
-          * )
-              sh_type_esacs_als $fun | sed '
-                      s/ set -- \([^ ]*\) .*$/ set -- \1/g
-                      s/ *) .* set -- /: /g
-                      s/^ *//g
-                      s/ *| */, /g
-                      s/"//g
-                  '
-            ;;
+      ( * )
+          sh_type_esacs_als $fun | sed '
+                  s/ set -- \([^ ]*\) .*$/ set -- \1/g
+                  s/ *) .* set -- /: /g
+                  s/^ *//g
+                  s/ *| */, /g
+                  s/"//g
+              '
+        ;;
       esac
     done
   done
@@ -572,17 +572,40 @@ user_script_commands () # ~ # Resolve aliases and list command handlers
 
 # Output argv line after doing 'default' stuff. Because these script snippets
 # have to change the argv of the function, it is not possible to move them to
-# subroutines. And user-script implementations will have to copy these scripts,
-# and follow changes to it.
+# subroutines hence they are copy-pasted and evaluated in-line. The defarg
+# phase should process (initial) arguments (and flags, options) and may prepare
+# some initial environment needed before invoking script-run or script-entry.
 user_script_defarg ()
 {
-  local rawcmd="${1:-}" defcmd=
+  #local rawcmd="${1:-}"
+
+  declare -A script_defenv
 
   # Track default command, and allow it to be an alias
-  user_script_defcmd "$@" || set -- $script_defcmd
+  [[ $# -gt 0 ]] || {
+    set -- "${script_defcmd:="usage"}"
+    script_defenv[script_defcmd]=${script_defcmd:?}
+  }
+
+  # Hook-in more for current user-script or other bases
+  # Script needs to be sourced or inlined from file to be able to modify
+  # current arguments.
+  local bid fun xtra_defarg
+  for bid in $(user_script_baseids)
+  do
+    for h in ${user_script_defarg:-defarg}
+    do
+      sh_fun "${bid}_${h}" || {
+        continue
+      }
+      # Be careful not to recurse to current function
+      test "$h" != defarg -o "$bid" != user_script || continue
+      eval "$(sh_type_fun_body $bid"_"$h)" || return
+    done
+  done
 
   # Resolve aliases
-  case "$1" in
+  case "${1:?}" in
 
   # XXX: ( a|all ) shift && set -- user_scripts_all ;;
 
@@ -607,46 +630,22 @@ user_script_defarg ()
 
   esac
 
-  # Hook-in more for current user-script or other bases
-  # Script needs to be sourced or inlined from file to be able to modify
-  # current arguments.
-  local bid fun xtra_defarg
-  for bid in $(user_script_baseids)
-  do
-    for h in ${user_script_defarg:-defarg}
-    do
-      sh_fun "${bid}_${h}" || {
-        continue
-      }
-      # Be careful not to recurse to current function
-      test "$h" != defarg -o "$bid" != user_script || continue
-      eval "$(sh_type_fun_body $bid"_"$h)" || return
-    done
-  done
+  # [[ $1 = "${script_defcmd:?}" ]] || script_defenv[script_cmdals]=
 
   # Print everything using appropiate quoting
   args_dump "$@" &&
 
-  # Print defs for some core vars for eval as well
-  user_script_defcmdenv "$@"
-}
+  # XXX: do so more script/shell session/mode, but note that defarg almost
+  # always runs in a subshell.
+  user_script_stdv_defenv &&
 
-user_script_defcmd ()
-{
-  true "${script_defcmd:="usage"}"
-  test $# -gt 0 && defcmd=0 || {
-    defcmd=1
-    return 1
-  }
-}
-
-user_script_defcmdenv ()
-{
-  test "$1" = "$rawcmd" \
-      && printf "; script_cmdals=" \
-      || printf "; script_cmdals='%s'" "$rawcmd"
-  printf "; script_defcmd='%s'" "$script_defcmd"
-  printf "; script_cmddef='%s'" "$defcmd"
+  # Print defaults for some vars wanted/needed before entering script
+  # (ie. for the particular bootstrap, loadenv, hooks, etc. we expect).
+  for var in "${!script_defenv[@]}"
+  do
+    [[ ${!var-} = "${script_defenv["$var"]}" ]] ||
+      printf '; %s=%s' "$var" "${script_defenv["$var"]}"
+  done
 }
 
 user_script_envvars () # ~ # Grep env vars from loadenv
@@ -901,7 +900,41 @@ user_script_load () # (y*) ~ <Actions...>
     ( default ) # Entire pre-init for script, ie. to use defarg
         export UC_LOG_BASE="${SCRIPTNAME}[$$]"
         : "${script_defcmd:=usage-summary}"
-        set -- "$@" defarg baseenv
+        set -- "$@" defarg baseenv screnv
+      ;;
+
+    ( screnv )
+        test -t 0 -o -t 1 &&
+          : "${INTERACTIVE:=true}" ||
+          : "${INTERACTIVE:=false}"
+
+        # Now default verbosity to 3 (error) for batch-mode, or 5 (notice) for user
+        # script commands.
+        # Also make a note during (interactive) user-mode about any batch-mode
+        # command handlers ie. that dont generate notice level messages about
+        # command handling at all but focus on reliability and integrity and only
+        # report on non-nominal events?
+        : "${DIAG:=false}"
+        : "${ASSERT:=true}"
+        : "${INIT:=false}"
+        : "${INTERACTIVE:=false}"
+
+        "${INTERACTIVE:?}" &&
+          : "${BATCH_MODE:=false}" ||
+          : "${BATCH_MODE:=true}"
+
+        "${BATCH_MODE:?}" && {
+          : "${QUIET:=true}"
+          : "${verbosity:=${v:-3}}"
+        } || {
+          : "${QUIET:=false}"
+          : "${verbosity:=${v:-5}}"
+        }
+
+        v=$verbosity
+
+        # I really want every script to trigger, so we can adjust env properly
+        export verbosity v
       ;;
 
     ( groups )
@@ -999,47 +1032,7 @@ user_script_loadenv ()
   : "${U_S:="$PROJECT/user-scripts"}"
   : "${LOG:="$U_S/tools/sh/log.sh"}"
 
-  [[ ${QUIET:-} ]] && {
-    "${QUIET:?}" && VERBOSE=false || VERBOSE=true
-  } || {
-    : "${VERBOSE:=false}"
-    "${VERBOSE:?}" && QUIET=false || QUIET=true
-  }
-
-  # See U-C:std-uc.lib for latest definitions
-  : "${_E_fail:=1}"
-  # 1: fail: generic non-success status, not an error per se
-  : "${_E_script:=2}"
-  # 2: script: error caused by broken syntax or script misbehavior
-  : "${_E_user:=3}"
-  # 3: user: usage error or faulty data
-
-  : "${_E_nsk:=67}"
-  #: "${_E_nsa:=68}"
-  #: "${_E_cont:=100}"
-  : "${_E_recursion:=111}" # unwanted recursion detected
-
-  #: "${_E_bug:=121}" # BUG: known issue
-  #: "${_E_fixme:=122}" # FIXME/task: cleanup required or incomplete specs/code/...
-  : "${_E_xxx:=123}" # XXX/deprecated: attention/removal required
-  : "${_E_NF:=124}" # no-file/no-such-file(set): file missing or nullglob
-  : "${_E_missing:=125}" # TODO: impl. missing
-  : "${_E_not_exec:=126}" # NEXEC not-an-executable
-  : "${_E_not_found:=127}" # NSFC no-such-file-or-command
-  # 128+ is mapped for signals (see trap -l)
-  # on debian linux last mapped number is 192: RTMAX signal
-  : "${_E_GAE:=193}" # generic-argument-error/exception
-  : "${_E_MA:=194}" # missing-arguments
-  : "${_E_continue:=195}" # fail but keep going
-  : "${_E_next:=196}"  # Try next alternative
-  : "${_E_break:=197}" # success; last step, finish batch, ie. stop loop now and wrap-up
-  : "${_E_retry:=198}" # failed, but can or must reinvoke
-  : "${_E_limit:=199}" # generic value/param OOB error?
-
-  TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_missing:?}; }
-
-  error () { $LOG error : "$1" "E$2" ${2:?}; }
-  warn () { $LOG warn : "$1" "E$2" ${2:?}; }
+  user_script_stdstat_env
 
   test -d "$US_BIN" || {
     $LOG warn :loadenv "Expected US-BIN (ignored)" "$US_BIN"
@@ -1058,37 +1051,10 @@ user_script_loadenv ()
       user_script_load "${script_cmdals:-$script_cmd}" bash-uc
     }
   } && {
-    # Now default verbosity to 3 (error) for batch-mode, or 5 (notice) for user
-    # script commands.
-    # Also make a note during (interactive) user-mode about any batch-mode
-    # command handlers ie. that dont generate notice level messages about
-    # command handling at all but focus on reliability and integrity and only
-    # report on non-nominal events?
-
-    "${BATCH_MODE:-false}" && {
-      #: "${QUIET:=true}"
-      #: "${VERBOSE:=false}"
-      : "${DIAG:=false}"
-      : "${verbosity:=${v:-3}}"
-    } || {
-      : "${QUIET:=false}"
-      #: "${VERBOSE:=false}"
-      : "${verbosity:=${v:-5}}"
-    }
-
-    # I really want every script to trigger, so we can adjust env properly
-    v=$verbosity
-    export verbosity v
-
-    test -t 0 -o -t 1 &&
-      : "${INTERACTIVE:=true}" ||
-      : "${INTERACTIVE:=false}"
+    # XXX: run again or guard against redefs?
+    #user_script_stdv_defenv
 
     "${INTERACTIVE:?}" && {
-      : "${ASSERT:=true}"
-      #: "${DIAG:=true}"
-      #: "${INIT:=true}"
-
       ! "${QUIET:-false}" ||
       ! {
             "${DIAG:-false}" || "${INIT:-false}"
@@ -1325,6 +1291,60 @@ user_script_shell_mode ()
   }
 
   user_script_shell_mode=1
+}
+
+user_script_stdstat_env ()
+{
+  # See U-C:std-uc.lib for latest definitions
+  : "${_E_fail:=1}"
+  # 1: fail: generic non-success status, not an error per se
+  : "${_E_script:=2}"
+  # 2: script: error caused by broken syntax or script misbehavior
+  : "${_E_user:=3}"
+  # 3: user: usage error or faulty data
+
+  : "${_E_nsk:=67}"
+  #: "${_E_nsa:=68}"
+  #: "${_E_cont:=100}"
+  : "${_E_recursion:=111}" # unwanted recursion detected
+
+  #: "${_E_bug:=121}" # BUG: known issue
+  #: "${_E_fixme:=122}" # FIXME/task: cleanup required or incomplete specs/code/...
+  : "${_E_xxx:=123}" # XXX/deprecated: attention/removal required
+  : "${_E_NF:=124}" # no-file/no-such-file(set): file missing or nullglob
+  : "${_E_missing:=125}" # TODO: impl. missing
+  : "${_E_not_exec:=126}" # NEXEC not-an-executable
+  : "${_E_not_found:=127}" # NSFC no-such-file-or-command
+  # 128+ is mapped for signals (see trap -l)
+  # on debian linux last mapped number is 192: RTMAX signal
+  : "${_E_GAE:=193}" # generic-argument-error/exception
+  : "${_E_MA:=194}" # missing-arguments
+  : "${_E_continue:=195}" # fail but keep going
+  : "${_E_next:=196}"  # Try next alternative
+  : "${_E_break:=197}" # success; last step, finish batch, ie. stop loop now and wrap-up
+  : "${_E_retry:=198}" # failed, but can or must reinvoke
+  : "${_E_limit:=199}" # generic value/param OOB error?
+
+  TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_missing:?}; }
+
+  error () { $LOG error : "$1" "E$2" ${2:?}; }
+  warn () { $LOG warn : "$1" "E$2" ${2:?}; }
+}
+
+user_script_stdv_defenv ()
+{
+  [[ ${script_defenv[QUIET]-} ]] || script_defenv[QUIET]=${QUIET:-false}
+  [[ ${script_defenv[QUIET]:?} ]] && {
+    "${script_defenv[QUIET]:?}" &&
+      script_defenv[VERBOSE]=false ||
+      script_defenv[VERBOSE]=true
+
+  } || {
+    [[ ${script_defenv[VERBOSE]-} ]] || script_defenv[VERBOSE]=${VERBOSE:-false}
+    "${script_defenv[VERBOSE]:?}" &&
+      script_defenv[QUIET]=false ||
+      script_defenv[QUIET]=true
+  }
 }
 
 user_script_unload ()

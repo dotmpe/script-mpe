@@ -64,7 +64,7 @@ stattab_print_STD_stat ()
 stattab_entry_id () # ~ <StatTab-SId> [<StatTab-Id>]
 {
   test $# -gt 1 || {
-    if_ok "$(mkid "$1" && printf "$id")" || return
+    if_ok "$(uc_mkid "$1" && printf "$id")" || return
     set -- "$1" "$_"
   }
   stab_sid="$1"
