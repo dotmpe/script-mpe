@@ -79,7 +79,7 @@ STDIN
 #
 prompt_term_choice () # ~ <Prompt-choices-string> [<Pass-globs...>]
 {
-  choices=$(echo "$1" | grep -Po '(?<=\[).(?=\])' | tr '\n' ' ')
+  choices=$(echo "$1" | grep -oP '(?<=\[).(?=\])' | tr '\n' ' ')
   while true
   do
     read -n 1 -p "$1: " choice
@@ -108,7 +108,7 @@ prompt_term_choice () # ~ <Prompt-choices-string> [<Pass-globs...>]
 #
 prompt_term_choice_lines () # ~ <Prompt-choices-lines>
 {
-  choices=$(echo "$1" | grep -Po '(?<=\[).(?=\])' | tr '\n' ' ')
+  choices=$(echo "$1" | grep -oP '(?<=\[).(?=\])' | tr '\n' ' ')
   choices_lines=$(( $(echo "$1" | wc -l) - 1 ))
   prompt_line=${1%%$'\n'*}
   while true

@@ -47,7 +47,19 @@ context_sh_entries () # (y) ~ <action:-list> <...>
         # Get file references from other table
         context_sh_files tab | sed 's/^/#id /'
       ;;
-  ( g|any|grepi )
+  ( G|anycs|grep ) # ~ ~ <Grep> <Mode> # Like g|any|grepi but case sensitive
+        test $# -gt 1 || set -- "${1:?}" -any
+        test $# -gt 2 || set -- "${1:?}" "${2:?}" "${CTX_TAB_CACHE:?}"
+        {
+          : "${ctx_grep_f:-Ev}"
+          echo "# $ ctx_grep_f=$_ generator=context_tab stattab_grep ${@@Q}"
+          generator=context_tab stattab_grep "$@"
+        } |
+          IF_LANG=todo.txt $PAGER
+      ;;
+  ( g|any|grepi ) # ~ ~ <Grep> <Mode> # Normal mode -any greps entire line,
+      # Set -alias (or -id) to match only the entry Id part.
+      # Since tab only includes entries, not all modes make sense.
         test $# -gt 1 || set -- "${1:?}" -any
         test $# -gt 2 || set -- "${1:?}" "${2:?}" "${CTX_TAB_CACHE:?}"
         {
@@ -340,6 +352,16 @@ context_sh_user () # (y) ~ <Switch:-> ...
   test $# -eq 0 || shift
   local lk=${lk:-:context}:user:-$act
   case "$act" in
+  ( debug )
+      script_debug_genv -i script
+      script_debug_genv -i context
+      script_debug_genv -i base
+      script_debug_genv -i dir
+      script_debug_genv -i meta
+      script_debug_genv -i '\(user\|usr\)'
+      script_debug_genv -i 'tab'
+      script_debug_genv -i '^xdg'
+    ;;
   ( list ) locate -ibe 'user-*.class.sh' ;;
   ( basedir ) us_xctx_init && us_basedir_init ;;
   ( conf ) us_userconf_init && $user_conf.class-tree;;
@@ -369,7 +391,8 @@ context_sh_aliasargv ()
   ( list|l ) set -- entries -l "${@:2}" ;;
   ( short|s ) set -- status --short ;;
   ( files|f ) set -- files "${@:2}" ;;
-  esac
+  esac &&
+  script_defenv[HT]=${HT:-${HTDIR:-${HTDOCS:-$HOME/htdocs}}}
 }
 
 context_sh_init ()

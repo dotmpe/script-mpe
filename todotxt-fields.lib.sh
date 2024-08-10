@@ -8,52 +8,52 @@ todotxt_fields_lib__load ()
 
 todotxt_field_chevron_refs ()
 {
-  $ggrep -Po '(?<=<)[^ ]+(?=>)'
+  $ggrep -oP '(?<=<)[^ ]+(?=>)'
 }
 
 todotxt_field_context_tags ()
 {
-  $ggrep -Po '\ @\K[^ ]+'
+  $ggrep -oP '\ @\K[^ ]+'
 }
 
 todotxt_field_context_tagrefs ()
 {
-  $ggrep -Po '\ \K@[^ ]+'
+  $ggrep -oP '\ \K@[^ ]+'
 }
 
 todotxt_field_hash_tags ()
 {
-  $ggrep -Po '(?<=#)[^ ]+(?= |$)'
+  $ggrep -oP '(?<=#)[^ ]+(?= |$)'
 }
 
 todotxt_field_meta_tags ()
 {
-  $ggrep -Po '[^ ]+:[^ ]+'
+  $ggrep -oP '[^ ]+:[^ ]+'
 }
 
 todotxt_field_prios ()
 {
-  $ggrep -Po "^\\(${ttf_pp:-\K}[$TTXT_PRIOC]*(?=\\))"
+  $ggrep -oP "^\\(${ttf_pp:-\K}[$TTXT_PRIOC]*(?=\\))"
 }
 
 todotxt_field_project_tags ()
 {
-  $ggrep -Po '\ \+\K[^ ]+'
+  $ggrep -oP '\ \+\K[^ ]+'
 }
 
 todotxt_field_project_tagrefs ()
 {
-  $ggrep -Po '\ \K\+[^ ]+'
+  $ggrep -oP '\ \K\+[^ ]+'
 }
 
 todotxt_field_square_refs ()
 {
-  $ggrep -Po '(?<=\[)[^ ]+(?=\])'
+  $ggrep -oP '(?<=\[)[^ ]+(?=\])'
 }
 
 todotxt_field_single_rev9 ()
 {
-  $ggrep -Po '(?<=\`)[^\`]+(?=\`)'
+  $ggrep -oP '(?<=\`)[^\`]+(?=\`)'
 }
 
 todotxt_fielda_words ()

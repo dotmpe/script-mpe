@@ -228,7 +228,7 @@ disk__list_local_mounts()
   test -n "$out_fmt" || local out_fmt=list
   case "$out_fmt" in
     csv )
-        echo '# Partition-Id, Disk-Index, Disk-Id, Partition-Index, Hostname, Mount-Point'
+        echo '# Partition-Id, Disk-Index, Disk-Id, Partition-Index, Hostname, Mount-oPint'
       ;;
   esac
   disk__list_mount_paths | while read mp

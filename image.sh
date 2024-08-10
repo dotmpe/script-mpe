@@ -31,6 +31,8 @@ colorize () # ~ <In> <Out> <Color> <Percentage <G, B>
 # Main entry (see user-script.sh for boilerplate)
 
 uc_script_load user-script
+# TODO: fix commands list output for baseless=true
+#image__grp=user-script
 
 # Parse arguments
 ! script_isrunning "image" .sh || {

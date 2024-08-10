@@ -317,7 +317,7 @@ context_file_attributes () # ~ <Keys...>
   do
     v=$(${xp}xattr -p user.${1:?} "$context_tab")
     test -n "$v" && echo "$v" || {
-      v=$(grep -Po '#'"${1:?}"' \K.*' "$context_tab") ||
+      v=$(grep -oP '#'"${1:?}"' \K.*' "$context_tab") ||
         v=_$RANDOM
       context_file_attribute ${1:?} "${v:?}" "$context_tab" ||
         $LOG warn : "Failed caching ${1:?} attribute" "$context_tab"
@@ -332,7 +332,7 @@ context_file_flush_xattr_cache ()
   local c v xp
   xp=${xattr_noerr:+std_noerr }
   v=$(${xp}xattr -p user.${1:?} "${3:?}") &&
-  c=$(grep -Po '#'"${1:?}"' \K.*' "$context_tab") && {
+  c=$(grep -oP '#'"${1:?}"' \K.*' "$context_tab") && {
     test "$c" = "$v" ||
         sed -m 's/^#'"${1:?}"' .*$/#'"${1:?}"' '"${v:?}"'/' "${3:?}" ||
             return
@@ -450,7 +450,7 @@ context_hook () # ~ <Call> <Arg...>
 
 context_ids_list ()
 {
-  context_tab | grep -Po '^['"$STTAB_FS$STTAB_STATC"']* \K((.*(?=:($| )))|[^ ]*)'
+  context_tab | grep -oP '^['"$STTAB_FS$STTAB_STATC"']* \K((.*(?=:($| )))|[^ ]*)'
 }
 
 context_list_raw () # ~ <File>
@@ -659,7 +659,7 @@ context_tag_order() # Tag
 
 context_tags_list () # ~ # Scan for every referred tag
 {
-  context_tab | grep -Po ' \K(@|\+)[^ ]*' | remove_dupes
+  context_tab | grep -oP ' \K(@|\+)[^ ]*' | remove_dupes
 }
 
 # TODO: context-update-env

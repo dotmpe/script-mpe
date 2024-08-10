@@ -13,14 +13,19 @@ catalog_lib__load ()
   test -n "${GLOBAL_CATALOGS-}" ||
     GLOBAL_CATALOGS=${XDG_CONFIG_HOME:-$HOME/.config}/catalogs.list
 
-  # Local catalogs list file
-  test -n "${CATALOGS-}" || CATALOGS=$CATALOG_CACHE_DIR/catalogs.list
+  # Auto-detect local catalogs list file
+  test -n "${CATALOGS-}" || {
+    test -s .meta/stat/index/catalogs.list &&
+    CATALOGS=.meta/stat/index/catalogs.list ||
+    CATALOGS=$CATALOG_CACHE_DIR/catalogs.list
+  }
 
   test -n "${Catalog_Status-}" ||
       Catalog_Status=$CATALOG_CACHE_DIR/catalog-status.vars
   test -n "${Catalog_Duplicates-}" ||
       Catalog_Duplicates=$CATALOG_CACHE_DIR/catalog-duplicates
 
+  # XXX: cleanup
   test -n "${ANNEX_VOL_DIR-}" || {
     ANNEX_VOL_DIR="/srv/annex-local"
     test ! -h "$ANNEX_VOL_DIR" || ANNEX_VOL_DIR="/srv/$(readlink /srv/annex-local)"
@@ -31,10 +36,10 @@ catalog_lib__init ()
 {
   test "${catalog_lib_init-}" = "0" && return
   true "${define_all:=1}" # XXX: override htd-load to set any argv opts to vars
-  test -d $CATALOG_CACHE_DIR || mkdir -p $CATALOG_CACHE_DIR || return
-  test -e "${CATALOG:-}" || {
+  test -d ${CATALOG_CACHE_DIR:?} || mkdir -p $CATALOG_CACHE_DIR || return
+  test -s "${CATALOG-}" || {
     CATALOG=$(catalog_name)
-    test -n "${CATALOG-}" || CATALOG="$CATALOG_DEFAULT"
+    test -s "$CATALOG" || CATALOG="$CATALOG_DEFAULT"
   }
   # TODO: determin global Id and cache path
   CATALOG_JS=${CATALOG_CACHE_DIR:?}/$(os_basename "$CATALOG" .yml .yaml).json
@@ -48,7 +53,6 @@ catalog_lib__init ()
   #      done )
   #}
 }
-
 
 catalog_js ()
 {
@@ -141,37 +145,46 @@ catalog_list_global ()
   test -s "${GLOBAL_CATALOGS:?}" || error "No global catalog files found" 1
 }
 
-# Cache (local) catalogs list. Error if none found.
-catalog_list_path () # ~ [PATH=.]
-{
-  { catalog_list_path_files "${1:-}" || return
-  } | tee "${1:-"."}/${CATALOGS:?}" || return
-  test -s "${1:-"."}/${CATALOGS:?}" || error "No local catalog files found ($_)" 1
-}
-
 # List catalog file names below
-catalog_list_path_files () # ~ [PATH=.]
+catalog_list_path_files () # ~ <Path=.> [<Find-args...>]
 {
-  find -L ${1:-"."} \( \
-      -iname 'catalog.y*ml' -o -iname 'catalog-*.y*ml' \
-  \) -not -ipath '*/schema/*' | {
-
-    # Remove './'-prefix
-    test ${1:-"."} = "." && cut -c3- || cat
-  }
+  local cat_i{name,path} from=${1:-.}
+  set -- "${@:2}"
+  [[ $# -gt 0 ]] || set -- -print
+  for cat_ipath in ${CATALOG_INGORE:-\*/schema/\*}
+  do
+    set -- -not -ipath "${cat_ipath:?}" "$@"
+  done
+  set -- -false \) "$@"
+  for cat_iname in ${CATALOG_GLOBNAMES:-catalog.y\*ml catalog-\*.y\*ml}
+  do
+    set -- -iname "${cat_iname:?}" -or "$@"
+  done
+  find -L "${from:?}" \( "$@"
+  # XXX: just use printf %P to remove base
+  #| {
+      # Remove './'-prefix
+      #test ${1:-"."} = "." && cut -c3- || cat
+  #}
 }
 
-# FIXME: select by name.
+# autoselect name
 # Catalogs are tied to repositories, from which their globally unique Id is
-# derived.
+# derived. For simple repositories a single file will suffice, but to manage
+# several repositories it is useful to keep copies of catalogs and to track
+# their use. CATALOGS holds the list of all catalogs for a user dir, and it
+# can be generated from attributes using find. CATALOGS can be made into a user
+# file by making a copy (of the generated cache file) in stat/index, to add
+# metadata on a per-file basis.
 catalog_name () # ~ [PATH=.]
 {
   $LOG info "" "Looking for local catalog" ""
-  test -s "${1:-"./"}$CATALOGS" && {
-      head -n1 "${1:-"./"}$CATALOGS" || return
-    } || {
-      catalog_list_path_files "${1:-}" | head -n1
-    }
+  set -- "${1:-.}"
+  { test -s "$1/${CATALOGS:?}" ||
+    >| "$1/${CATALOGS:?}" catalog_list_path_files "$1" \
+    -printf '- %C@ %T@ <%P> depth=%d size=%s sparseness=%S\n'
+  } &&
+    grep -m1 -oP '(?<= <)\K[^>]+(?=.* depth=1\b)' "$1/${CATALOGS:?}"
 }
 
 # Remove ignored paths from stdin
@@ -467,12 +480,9 @@ set_cataloged_file ()
 
 htd_catalog__req_local ()
 {
-  test -e $CATALOGS && {
-    cat $CATALOGS
-    $LOG "info" "$scriptname:catalog:req-local" "To update list run:" 'catalog list-local'
-  } || {
-    catalog_list_path || return
-  }
+  test -s "${CATALOG-}" || CATALOG=$(catalog_name)
+  test -s "$CATALOG" || CATALOG="$CATALOG_DEFAULT"
+  test -s "$CATALOG"
 }
 
 htd_catalog__req_global ()

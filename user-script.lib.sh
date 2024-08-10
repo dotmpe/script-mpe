@@ -283,7 +283,7 @@ sh_type_esacs_fmt () # (s) ~ # Collapse whitespace formatting of case/esac sh ty
 
 sh_type_esacs_gpo () # ~ [<Inner-re>] # Match one case branch with inner code block.
 {
-  grep -Po ' \(? .* \) '"${1:-".*"}"';;'
+  grep -oP ' \(? .* \) '"${1:-".*"}"';;'
 }
 
 sh_type_esacs_tab () # ~ <Func> [<Inner-Block-Grep>]

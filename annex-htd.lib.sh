@@ -33,7 +33,7 @@ annex_htd_dir_init ()
   [[ $PWD = "$ANNEX_DIR" ]] && {
     $LOG info "$lk" "Found annex basedir" "$ANNEX_DIR"
   } || {
-    [[ "$(os_dirname "$PWD")" == "${ANNEX_ID:?}" ]] || {
+    [[ "$(os_basename "$PWD")" == "${ANNEX_ID:?}" ]] || {
       std_silent pushd "$ANNEX_DIR" &&
       $LOG notice "$lk" "Moved to primary ${ANNEX_ID:?} repository"
     }

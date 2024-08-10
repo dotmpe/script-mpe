@@ -79,7 +79,7 @@ preproc_run () # ~ <source-file> <cache-handler> <read-handler> <file-res-handle
 preproc_lines () # [grep_f] ~ <Dir-match> [<File|Grep-argv>] # Select only preprocessing lines
 {
   local grep_re=${1:-"\K[\w].*"}; test $# -eq 0 || shift
-  grep ${grep_f:--Po} '^#'"$grep_re" "$@"
+  grep ${grep_f:--oP} '^#'"$grep_re" "$@"
 }
 
 preproc_includes () # [grep_f] ~ [<File|Grep-argv>] # Select args for preproc lines

@@ -197,6 +197,9 @@ stattab_grep () # ~ <Sttab-Id> [<Search-Type>] [<Stat-Tab>]
         $ggrep $grep_f "$p_" ;;
     id )
         $ggrep $grep_f "^[0-9 ${stb_pri_sep:?}]* $p_:\\?\\(\\ \\|\$\\)" ;;
+    idp )
+        echo "# $ggrep $grep_f '^[0-9 ${stb_pri_sep:?}]* $1:\\?\\(\\ \\|\$\\)'"
+        $ggrep $grep_f "^[0-9 ${stb_pri_sep:?}]* $1:\\?\\(\\ \\|\$\\)" ;;
     local )
         $ggrep $grep_f "${st_}[^:]*:$p_:\?\(\\ \|\$\)" ;;
     ref ) todotxt_grep_ ref ;;

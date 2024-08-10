@@ -27,7 +27,7 @@ meta__aprops__commit () # (id) ~
 meta__aprops__direct_get () # ~ <Key>
 {
   declare key=${1:?meta:aprops:get: Key expected}
-  grep -Po -m1 "^$key = \K.*" "${meta_path:?}"
+  grep -oP -m1 "^$key = \K.*" "${meta_path:?}"
 }
 
 meta__aprops__direct_set () # ~ <Key> <Value>

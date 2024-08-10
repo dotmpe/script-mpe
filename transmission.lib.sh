@@ -921,7 +921,7 @@ transmission_session_id ()
   local remote
   remote="${TRANSMISSIONBT_REMOTE:-${REMOTE:-${TRANSMISSIONBT_DEFAULT_CLIENT:?}}}"
   curl -qs --head "$remote"/transmission/rpc/ |
-      grep -Po 'X-Transmission-Session-Id: \K.*'
+      grep -oP 'X-Transmission-Session-Id: \K.*'
 }
 
 transmission_share ()

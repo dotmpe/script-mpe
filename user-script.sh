@@ -225,15 +225,24 @@ script_debug_class_arr () # ~ <key> [<Class>] # Pretty print Class array
   script_debug_arr "${2:-Class}__${1:?}"
 }
 
-script_debug_env ()
+script_debug_env () # ~ [<Var-names...>]
 {
-  script_debug_vars \
-    script_{base{,id},cmd{name,fun},defcmd,defarg,maincmds,name,version,src,lib} \
-    user_script_defarg \
-    ENV_{SRC,LIB}
-  script_debug_arrs script_node{,_base}
-  stderr echo Bases: $(user_script_bases)
-  stderr echo Bases rev: $(user_script_bases | tac)
+  [[ ${1-} ]] && {
+    set -- $(compgen -A variable "${1:?}") $(compgen -A arrayvar "${1:?}")
+  } || {
+    set -- \
+      script_{base{,id},cmd{name,fun},defcmd,defarg,maincmds,name,version,src,lib} \
+      user_script_defarg \
+      ENV_{SRC,LIB} \
+      script_node{,_base}
+    stderr echo Bases: $(user_script_bases)
+    #stderr echo Bases rev: $(user_script_bases | tac)
+  }
+  [[ $# -gt 0 ]] || return ${_E_MA:?}
+  : "$(for a; do sh_var "$a" && echo "$a"; done)"
+  test -z "$_" || script_debug_vars $_
+  : "$(for a; do sh_arr "$a" && echo "$a"; done)"
+  test -z "$_" || script_debug_arrs $_
 }
 
 script_debug_frame () # ~ # Print stacktrace using FUNCNAME/caller
@@ -265,6 +274,15 @@ script_debug_funs () # ~ <Fun...> # List shell functions
   done
 }
 
+script_debug_genv () # ~ <Grep-argv ...>
+{
+  # Hide status
+  set -- $(compgen -A variable | grep "${@:?}") \
+    $(compgen -A arrayvar | grep "${@:?}")
+  [[ $# -gt 0 ]] || return ${_E_MA:?}
+  script_debug_env $*
+}
+
 script_debug_libs () # ~ # List shell libraries loaded and load/init states
 {
   echo "lib_loaded: $lib_loaded"
@@ -276,7 +294,7 @@ $( lib_uc_hook pairs _lib_init | sort | sed 's/^/   /' )
   stderr echo "$_"
 }
 
-script_debug_vars () # ~ <Var-names...>
+script_debug_vars () # ~ <Var-names...> # Print simple list of assignments
 {
   : "${def_stat:=-}"
   : "${def_val:=(unset)}"
@@ -899,7 +917,7 @@ user_script_load () # (y*) ~ <Actions...>
 
     ( default ) # Entire pre-init for script, ie. to use defarg
         export UC_LOG_BASE="${SCRIPTNAME}[$$]"
-        : "${script_defcmd:=usage-summary}"
+        : "${script_defcmd:=usage-nocmd}"
         set -- "$@" defarg baseenv screnv
       ;;
 
@@ -1541,6 +1559,11 @@ user_script_usage_handlers () # ~ <Actions...>
         s/^\t/\t\t/
         s/^[^\t]/\t${script_base%[, ]*} &/
     "
+}
+
+user_script_usage_nocmd ()
+{
+  user_script_usage && return ${_E_user:-3}
 }
 
 script_version () # ~ # Output {name,version} from script-baseenv

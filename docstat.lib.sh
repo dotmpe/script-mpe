@@ -89,7 +89,7 @@ docstat_parse() # Tab-Entry
   tags="$(echo "$_rest" | grep -o '[+@][^ ]*')"
   _rest="$(echo "$_rest" | sed -e 's/[+@][^ ]\+//g')" # see todotxt tags
 
-  meta="$(echo "$_rest" | grep -Po '[^ :]+:[^ $]+')"
+  meta="$(echo "$_rest" | grep -oP '[^ :]+:[^ $]+')"
   eval $( echo $meta | tr ':' '=' )
   _rest="$(echo "$_rest" | sed -e 's/[^ :]\+:[^ $]\+//g')"
 
