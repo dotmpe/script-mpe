@@ -18,6 +18,8 @@ sh_sym_typeset () # ~ <Command-name>
       declare -f "$1"
 
       ac_spec "$1" || true
+
+      sh_sym_fexp "$1"
     }
 
   } || {
@@ -50,6 +52,14 @@ $(ac_spec "$1" || true)"
   }
 }
 # Copy: Shell/symbol-typeset
+
+# Print export line for function, if found exported for current env
+sh_sym_fexp () # ~ <Name>
+{
+  if_ok "$(printf 'BASH_FUNC_%s%%%%=() { ' "${1:?}")" &&
+  env | grep -q "$_" || return 0
+  echo "declare -fx $1"
+}
 
 # Show usage text or other information for shell keywords, buitins and other
 # commands, or print the typeset for functions or complex aliases. Also include

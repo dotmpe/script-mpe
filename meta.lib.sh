@@ -13,10 +13,13 @@ meta_lib__load ()
 meta_lib__init ()
 {
   test -z "${meta_lib_init:-}" || return $_
-  test -d "$METADIR" || {
-      mkdir -p "$METADIR"
-      $LOG warn : "Created local metadir" "$METADIR"
-    }
+  [[ ${METADIR_INIT+set} ]] && {
+    test -d "${METADIR_INIT:=${PWD:?}}/${METADIR:?}" ||
+    stderr mkdir -vp "${METADIR_INIT:=${PWD:?}}/${METADIR:?}"
+  } || {
+    test -d "${METADIR:?}" ||
+      $LOG warn "" "No local metadir configured yet" "$METADIR"
+  }
   : "${meta_providers:=fsattr git-annex dotattr aprops}"
   : "${meta_be:=aprops}"
   declare -ga meta=()

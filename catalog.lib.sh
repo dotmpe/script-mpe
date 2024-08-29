@@ -5,6 +5,9 @@
 
 catalog_lib__load ()
 {
+  # When create a new catalog file for a repository or user-dir, this would be
+  # the default name for that. The actual selection is done using a tagged glob
+  # (attributes) or preconfigured filename (properties/package).
   true "${CATALOG_DEFAULT:="catalog.yaml"}"
 
   true "${CATALOG_CACHE_DIR:=".meta/cache"}"
@@ -168,7 +171,9 @@ catalog_list_path_files () # ~ <Path=.> [<Find-args...>]
   #}
 }
 
-# autoselect name
+# autoselect name,
+# also generates CATALOGS from scratch if missing but does no updates.
+
 # Catalogs are tied to repositories, from which their globally unique Id is
 # derived. For simple repositories a single file will suffice, but to manage
 # several repositories it is useful to keep copies of catalogs and to track
@@ -180,9 +185,11 @@ catalog_name () # ~ [PATH=.]
 {
   $LOG info "" "Looking for local catalog" ""
   set -- "${1:-.}"
-  { test -s "$1/${CATALOGS:?}" ||
-    >| "$1/${CATALOGS:?}" catalog_list_path_files "$1" \
-    -printf '- %C@ %T@ <%P> depth=%d size=%s sparseness=%S\n'
+  { test -s "$1/${CATALOGS:?}" || {
+      CATALOGS=$CATALOG_CACHE_DIR/catalogs.list
+      >| "$1/${CATALOGS:?}" catalog_list_path_files "$1" \
+      -printf '- %C@ %T@ <%P> depth=%d size=%s sparseness=%S\n'
+    }
   } &&
     grep -m1 -oP '(?<= <)\K[^>]+(?=.* depth=1\b)' "$1/${CATALOGS:?}"
 }

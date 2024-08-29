@@ -76,7 +76,7 @@ us_userdir_init ()
   #@User/Dir :init
   #${xctx:?}@User/Dir :init
   class_init User/Dir &&
-  class_new user_dir User/Dir
+  class_new user_dir User/Dir "${1:-${PWD:?}}"
 }
 
 us_xctx_init ()

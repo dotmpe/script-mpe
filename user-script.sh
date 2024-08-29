@@ -1847,7 +1847,7 @@ user_script_sh_loadenv ()
     # Start at first script node, load all libs and then execute hooks.
     # XXX: use status to coordinate groups from multiple bases?
     user_script_load groups && {
-      #stderr echo load groups done at $script_part
+      $LOG notice "${lk-}:user-script[$script_part]" "Finished libs & hooks for group"
       break
     } || {
       test ${_E_next:-196} -eq $? && fail=true ||

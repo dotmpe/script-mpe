@@ -32,9 +32,10 @@ fun_def if_ok return\;
 fun_true () { :; }
 fun_def noop :\;
 #fun_def cite :\;
-fun_wrap () { "$@"; }
+fun_w1c () { "$@"; }
+fun_w1cnz () { test -n "$("$@")" && echo "$_"; }
 
-ignore () { "$@"; true; }
+ignore () { "$@" || true; }
 
 sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body
 {

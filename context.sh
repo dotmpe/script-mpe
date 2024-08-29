@@ -34,14 +34,25 @@ context_sh_entries () # (y) ~ <action:-list> <...>
   ( e|exists|tags-exist )
       context --exists "$@"
     ;;
-  #( i|ids )
-  #    ;;
   ( F|fr|fetch-raw )
         context_tag_entry "${1:?}"
       ;;
   ( f|fetch )
         if_ok "$(context_tag_entry "${1:?}")" &&
         context_parse "$_"
+      ;;
+  ( find-by-id-part | grep-id )
+        [[ $# -eq 1 ]] || return ${_E_MA:?}
+        {
+          : "${ctx_grep_f:-Ev}"
+          echo "# $ grep_f=-i ctx_grep_f=$_ generator=context_tab stattab_grep ${@@Q}"
+          grep_f=-i \
+          generator=context_tab stattab_grep "${1:?}" -idp "${CTX_TAB_CACHE:?}"
+        } |
+          IF_LANG=todo.txt $PAGER
+      ;;
+  ( find-id | fuzzy-id | list-id )
+        context_sh_entries find-by-id-part ".*${1:?}.*"
       ;;
   ( fl|files )
         # Get file references from other table
