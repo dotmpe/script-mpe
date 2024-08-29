@@ -135,12 +135,27 @@ std_v_exit () # ~ <Cmd ...> # Wrapper to command that exits verbosely
 
 std_v_stat ()
 {
+  : source "script-mpe.lib.sh"
   "$@"
   stderr_stat $? "$@"
 }
 
+std_v1c () # ~ <Cmd ...> # Wrapper that echoes both command and status
+{
+  : param "<Cmd ...>"
+  : note "Strictly for debugging of script branches (or DEBUG, DIAG mode etc)"
+  : source "script-mpe.lib.sh"
+  stderr echo "Running command: $*"
+  "$@"
+  stderr_stat $? "$@"
+}
+# Copy: std-uc.lib
+
 std_vs () # ~ <Message ...> # Print message, but pass previous status code.
 {
+  : about "Print message, but pass previous status code"
+  : param "<Message ...>"
+  : source "script-mpe.lib.sh"
   local stat=$?
   stderr echo "$@" || return 3
   return $stat
@@ -148,8 +163,10 @@ std_vs () # ~ <Message ...> # Print message, but pass previous status code.
 
 stderr () # ~ <Cmd <...>>
 {
+  : source "script-mpe.lib.sh"
   "$@" >&2
 }
+# Copy: std-uc.lib
 
 stderr_exit () # ~ <Status=$?> <...> # Verbosely exit passing status code,
 # with status message on stderr. See also std-v-exit.
