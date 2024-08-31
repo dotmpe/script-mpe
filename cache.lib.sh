@@ -22,6 +22,8 @@ cache_lib__init ()
 {
   set -- cache_{name,ref{,_format,_pattern}} cachekey{,_{format,inputs,name}}
   cache_lib_vars=$*
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized cache.lib" "$(sys_debug_tag)"
 }
 
 

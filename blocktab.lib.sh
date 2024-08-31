@@ -26,4 +26,6 @@ blocktab_lib__init ()
   #  $LOG error ":sys:disk:main-env" "No uc file" "" 1
   #  return
   #}
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized blocktab.lib" "$(sys_debug_tag)"
 }

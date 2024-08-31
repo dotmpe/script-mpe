@@ -14,6 +14,8 @@ urlstat_lib__init ()
   test -e "$URLSTAT_TAB" || {
     touch "$URLSTAT_TAB" || return
   }
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized urlstat.lib" "$(sys_debug_tag)"
 }
 
 # Get lines to initial stat descr for

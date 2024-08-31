@@ -30,6 +30,12 @@ colorize () # ~ <In> <Out> <Color> <Percentage <G, B>
 
 # Main entry (see user-script.sh for boilerplate)
 
+image_name=Image.sh
+image_version=0.0.0-alpha
+image_shortdescr=""
+image_defcmd=short
+image_maincmds=""
+
 uc_script_load user-script
 # TODO: fix commands list output for baseless=true
 #image__grp=user-script

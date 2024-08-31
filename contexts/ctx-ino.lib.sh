@@ -18,6 +18,8 @@ ctx_ino_lib__init()
 
     * ) $LOG warn "" "Unknown Arduino dir" "$ino" ;;
   esac
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized ctx-ino.lib" "$(sys_debug_tag)"
 }
 
 ino_boards_get_field()

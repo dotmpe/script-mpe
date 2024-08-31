@@ -26,6 +26,8 @@ annex_lib__init () # ~ ...
   test -d "${ANNEX_VOL_DIR:?}/${id}" ||
     $LOG warn "" "No such directory for annex" "$_" 127 || return
   ANNEX_DIR=$_
+  ! sys_debug -dev -init ||
+    $LOG notice "" "Initialized annex.lib" "$(sys_debug_tag)"
 }
 
 annex_init()

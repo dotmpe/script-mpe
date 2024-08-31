@@ -27,6 +27,8 @@ box_lib__init()
 
   test ! -e "$BOX_DIR/bin/$box_name" ||
       box_file="$BOX_DIR/bin/$box_name"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized box.lib" "$(sys_debug_tag)"
 }
 
 

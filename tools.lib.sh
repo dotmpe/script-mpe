@@ -20,9 +20,12 @@ tools_lib__load ()
 
 tools_lib__init () # [B] ~
 {
-  test -d $B || mkdir -p $B
-  default_env Htd-ToolsSchemaFile ~/bin/schema/tools.yml
-  tools_json
+  test -d "$B" || stderr mkdir -vp $B
+  default_env Htd-ToolsSchemaFile ~/bin/schema/tools.yml &&
+  tools_json || return
+
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized tools.lib" "$(sys_debug_tag)"
 }
 
 # Create $B/tools.json from HTD_TOOLSFILE yaml

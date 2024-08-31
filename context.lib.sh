@@ -29,7 +29,10 @@ context_lib__init()
   test -e "$CTX_TAB" || {
     touch "$CTX_TAB" || return $?
   }
-  context_assert
+  context_assert || return
+  #! sys_debug -dev -debug -init ||
+  ! { "${DEBUG:-false}" || "${DEV:-false}" || "${INIT:-false}"; } ||
+    $LOG notice "" "Initialized context.lib" "$(sys_debug_tag)"
 }
 
 

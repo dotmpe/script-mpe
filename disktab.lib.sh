@@ -23,6 +23,8 @@ disktab_lib__init()
     mkdir -p "$(dirname "$DTAB")" && touch "$DTAB"
   }
   dtab_id=
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded disktab.lib" "$(sys_debug_tag)"
 }
 
 

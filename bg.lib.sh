@@ -13,6 +13,8 @@ bg_lib__init ()
 {
   true "${BG_BASE:=${SHELL_NAME:?}-bg}"
   #bg_sock=$BG_RUNB.sock
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized bg.lib" "$(sys_debug_tag)"
 }
 
 

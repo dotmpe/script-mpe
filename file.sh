@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+us-env -r us:boot.screnv &&
+
 us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "file" .sh ||
@@ -32,9 +34,11 @@ file_ ()
 
 ## User-script parts
 
+file_name=File.sh
+file_version=0.0.0-alpha
+file_shortdescr=""
 file_defcmd=short
 file_maincmds=""
-file_shortdescr=""
 
 #file_aliasargv ()
 #{

@@ -28,6 +28,8 @@ status_lib__init ()
 {
   test -z "${status_lib_init:-}" || return $_
   true #lib_require
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized status.lib" "$(sys_debug_tag)"
 }
 
 

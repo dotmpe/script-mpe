@@ -92,7 +92,8 @@ disk_lib__init ()
       dev_pref="sudo" ;;
   esac
 
-  $log info "" "Loaded disk.lib" "$0"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized disk.lib" "$(sys_debug_tag)"
 }
 
 

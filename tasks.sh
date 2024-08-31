@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 
-test -n "${uc_lib_profile:-}" ||
-  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${us_stat:-exit} $?
+us-env -r us:boot.screnv &&
 
-uc_script_load user-script || ${us_stat:-exit} $?
+us-env -r user-script || ${uc_stat:-exit} $?
+
+#test -n "${uc_lib_profile:-}" ||
+#  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${us_stat:-exit} $?
+#
+#uc_script_load user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "tasks" .sh ||
   uc_script_load us-als-mpe || ${us_stat:-exit} $?

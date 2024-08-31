@@ -5,6 +5,8 @@ htd_date_lib__init ()
 {
   lib_load user-script || return
   lib_require shell-uc && shell_uc_lib__init || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized htd-date.lib" "$(sys_debug_tag)"
 }
 
 

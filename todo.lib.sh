@@ -11,6 +11,8 @@ todo_lib__init ()
   true "${package_pd_meta_tasks_document:=""}"
   true "${package_pd_meta_tasks_done:=""}"
   true "${package_todotxtm_src:="$UCONF/etc/todotxtm/*.ttxtm $UCONF/etc/todotxtm/project/*.ttxtm"}"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized todo.lib" "$(sys_debug_tag)"
 }
 
 

@@ -17,6 +17,8 @@ projectdir_lib__init ()
   test -n "${PD_SYNC_AGE-}" || export PD_SYNC_AGE=$_3HOUR
   true "${SCRIPT_MPE:=$HOME/bin}"
   projectdir_lib_parts_load || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized projectdir.lib" "$(sys_debug_tag)"
 }
 
 # Load support includes

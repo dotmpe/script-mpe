@@ -9,7 +9,9 @@ us_fun_lib__load ()
 
 us_fun_lib__init ()
 {
-  lib_require sys lib-uc class-uc
+  lib_require sys lib-uc class-uc || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized us-fun.lib" "$(sys_debug_tag)"
 }
 
 

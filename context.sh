@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
 
+context_sh_name=Context.sh
+context_sh_version=0.0.0-alpha
+context_sh_shortdescr='Provide context entities and relations based on tags'
+context_sh_maincmds="entries files help list path shell status short version"
+
 context__grp=user-script
 context_sh__grp=context
 context_sh__hooks=context_sh_init
@@ -386,11 +391,6 @@ context_sh_user__grp=context-sh
 
 ## User-script parts
 
-#context_sh_name=foo
-#context_sh_version=xxx
-context_sh_maincmds="entries files help list path shell status short version"
-context_sh_shortdescr='Provide context entities and relations based on tags'
-
 # Not using shell aliases in this script because they are a pain. But I wonder
 # if they could make below setup a bit nicer.
 
@@ -425,6 +425,8 @@ context_sh_unload ()
 
 
 # Main entry (see user-script.sh for boilerplate)
+
+us-env -r us:boot.screnv &&
 
 us-env -r user-script || ${us_stat:-exit} $?
 

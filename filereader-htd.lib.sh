@@ -3,6 +3,8 @@ filereader_htd_lib__load()
   lib_require class-uc tabfile || return
   ctx_class_types=${ctx_class_types-}${ctx_class_types:+" "}\
 ListFile\ TabFile\ FileReader
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded filereader-htd.lib" "$(sys_debug_tag)"
 }
 
 

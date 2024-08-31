@@ -14,6 +14,8 @@ main_lib__init()
 
   req_init_log || return
   $us_log info "" "Loaded main.lib" "$0"
+  #! sys_debug -dev -debug -init ||
+  #  $LOG notice "" "Initialized main.lib" "$(sys_debug_tag)"
 }
 
 main_lib_log() { req_init_log; }

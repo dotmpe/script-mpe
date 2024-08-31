@@ -55,6 +55,8 @@ date_htd_lib__init()
     IS_DST=1 || IS_DST=0
 
   export gdate
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized date-htd.lib" "$(sys_debug_tag)"
 }
 
 

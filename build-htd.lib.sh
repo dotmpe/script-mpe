@@ -19,6 +19,8 @@ build_htd_lib__load ()
 build_htd_lib__init ()
 {
   lib_require package vc-htd sys-htd logger-std log || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized build-htd.lib" "$(sys_debug_tag)"
 }
 
 

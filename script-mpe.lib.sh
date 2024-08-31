@@ -8,6 +8,8 @@
 script_mpe_lib__init ()
 {
   export -f sh_notfound sh_errsyn sh_errusr
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized script-mpe.lib" "$(sys_debug_tag)"
 }
 
 
@@ -139,6 +141,7 @@ std_v_stat ()
   "$@"
   stderr_stat $? "$@"
 }
+std_v1c_stat () { std_v_stat "$@"; }
 
 std_v1c () # ~ <Cmd ...> # Wrapper that echoes both command and status
 {

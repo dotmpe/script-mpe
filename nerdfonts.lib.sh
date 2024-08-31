@@ -32,6 +32,8 @@ nerdfonts_lib__init ()
     nerdfonts_lib_load_rawbe || return
   }
   nf_mdi_plug=$nf_mdi_power_plug
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized nerdfonts.lib" "$(sys_debug_tag)"
 }
 
 # Generate selection for local script-repository.

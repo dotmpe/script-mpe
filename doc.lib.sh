@@ -27,6 +27,9 @@ doc_lib__init()
   DOC_MAIN_RE="\\$(printf -- "$DOC_MAIN" | $gsed -e 's/\ /\\|/g' -e 's/[\/]/\\&/g')"
   DOC_EXTS_GLOB="{**/,}*.{$( set -- $DOC_EXTS; while test $# -gt 1; do printf "${1:1},"; shift; done; printf "${1:1}"; )}"
   DOC_EXTS_FNMATCH="$( set -- $DOC_EXTS; test $# -gt 1 && { printf -- '"*%s"' $1; shift; }; printf -- ' "*%s"' $@; )"
+
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded doc.lib" "$(sys_debug_tag)"
 }
 
 doc_path_args()

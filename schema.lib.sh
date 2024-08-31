@@ -10,6 +10,8 @@ schema_lib__load ()
 schema_lib__init ()
 {
   test -x "$ajv_cli" || $LOG error "" "Installation needed" "ajv-cli" 1
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized schema.lib" "$(sys_debug_tag)"
 }
 
 schema_fordoc()

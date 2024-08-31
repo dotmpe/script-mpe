@@ -55,6 +55,8 @@ catalog_lib__init ()
   #            $LOG warn "" "No catalog files found for Archive-Dir" "$archive_dir"
   #      done )
   #}
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized catalog.lib" "$(sys_debug_tag)"
 }
 
 catalog_js ()

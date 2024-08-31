@@ -7,7 +7,8 @@ attributes_lib__load ()
 attributes_lib__init ()
 {
   test -z "${attributes_lib_init-}" || return $_
-  true
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized attributes.lib" "$(sys_debug_tag)"
 }
 
 

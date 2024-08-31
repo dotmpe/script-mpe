@@ -2,13 +2,16 @@
 
 ## Bootstrap
 
+# Scriptenv vars intended to control local script, export must be turned off first.
+us-env -r us:boot.screnv &&
+
 us-env -r user-script || ${uc_stat:-exit} $?
 
 # Define aliases immediately, before function declarations and before entering
 # main script_{entry,run}
-! script_isrunning "meta.sh" ||
+! script_isrunning "meta.sh" || {
   uc_script_load us-als-mpe || ${us_stat:-exit} $?
-
+}
 
 meta_sh__grp=meta,user-script-sh
 meta_sh__hooks=us_userdir_init
@@ -24,6 +27,7 @@ meta_sh_attributes () # ~
 meta_sh_attributes__grp=meta-sh
 
 
+meta_sh_check__grp=meta-sh
 meta_sh_check () # ~ \!TODO
 {
   local a1_def=summary; sa_switch_arg
@@ -101,10 +105,11 @@ meta_sh_local () # ~ <Action> #  XXX: local
 
 ## User-script parts
 
-#meta_sh_name=foo
-#meta_sh_version=xxx
+meta_sh_name=Meta.sh
+meta_sh_version=0.0.0-alpha
 meta_sh_maincmds="attributes context help short version"
 meta_sh_shortdescr='Track metadata'
+#meta_sh_description=Metadata\ data\ backends
 meta_sh_defcmd=check
 
 meta_sh_aliasargv ()
@@ -129,7 +134,6 @@ meta_sh_unload ()
 
 ! script_isrunning "meta.sh" || {
   user_script_load || exit $?
-
   # Pre-parse arguments
   if_ok "$(user_script_defarg "$@")" &&
   eval "set -- $_" &&

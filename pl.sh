@@ -118,6 +118,11 @@ update () # ~ <Basename>.<Ext> [ <Alt-tabfile> [ <Alt-output> ]]
 ## User-script parts
 
 pl_shortdescr='Media playlist utils'
+pl_name=Playlists
+pl_version=0.0.0-alpha
+pl_maincmds="files globs"
+#pl_defcmd=
+
 pl_aliasargv ()
 {
   case "$1" in
@@ -133,9 +138,9 @@ pl_loadenv ()
 }
 
 
-
-
 # Main entry (see user-script.sh for boilerplate)
+
+us-env -r us:boot.screnv &&
 
 us-env -r user-script || ${us_stat:-exit} $?
 

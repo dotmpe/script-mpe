@@ -23,6 +23,8 @@ bittorrent_lib__init ()
   bittorrent_info_vars_static="{info_{length,name,pcs,priv},magnet_{dn,btih}}"
   set -- {info_{length,name,pcs,priv},magnet_{dn,btih}}
   bittorrent_info_vars=$_
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized bittorrent.lib" "$(sys_debug_tag)"
 }
 
 bittorrent_lib__install ()

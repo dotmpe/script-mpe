@@ -23,6 +23,8 @@ meta_lib__init ()
   : "${meta_providers:=fsattr git-annex dotattr aprops}"
   : "${meta_be:=aprops}"
   declare -ga meta=()
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized meta.lib" "$(sys_debug_tag)"
 }
 
 

@@ -9,7 +9,9 @@ stattab_class_lib__load ()
 stattab_class_lib__init () # ~
 {
   test -z "${stattab_class_lib_init-}" || return $_
-  lib_require stattab stattab-reader
+  lib_require stattab stattab-reader || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded stattab-class.lib" "$(sys_debug_tag)"
 }
 
 

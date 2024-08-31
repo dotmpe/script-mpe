@@ -11,6 +11,8 @@ env_lib__init ()
   test "${env_lib_init-}" = "0" && return # One time init
   test -n "${ENV_CACHE-}" || ENV_CACHE=$METADIR/cache
   test -n "${ENV_LIBS-}" || ENV_LIBS=
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded env.lib" "$(sys_debug_tag)"
 }
 
 # List static env files

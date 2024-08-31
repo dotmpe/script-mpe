@@ -2,6 +2,8 @@
 
 ### User desktop: helper commands for appearance and window manager
 
+us-env -r us:boot.screnv &&
+
 us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "user-desktop" || {

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+us-env -r us:boot.screnv &&
+
 us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "class.sh" ||
@@ -106,8 +108,11 @@ class_sh_info__grp=class-sh
 
 ## User-script parts
 
-class_sh_maincmds="info main"
+class_sh_name=Class.sh
+class_sh_version=0.0.0-alpha
 class_sh_shortdescr="Make calls to class instances"
+class_sh_maincmds="info main"
+#class_sh_defcmd=short
 
 class_sh_aliasargv ()
 {

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+us-env -r us:boot.screnv &&
+
 us-env -r user-script || ${uc_stat:-exit} $?
 
 # Use alsdefs set to cut down on small multiline boilerplate bits.

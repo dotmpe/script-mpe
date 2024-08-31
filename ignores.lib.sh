@@ -85,6 +85,9 @@ ignores_lib__init()
   # Begin with an initial IGNORE_GLOBFILE value with local filename based on
   # frontend, i.e. for `htd` this by default would be HTD_IGNORE=.htdignore
   true #globlist_init "$ignores_prefix" "" IGNORE
+
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized ignores.lib" "$(sys_debug_tag)"
 }
 
 

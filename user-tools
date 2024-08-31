@@ -2,6 +2,8 @@
 
 ### User tools: commands for generic desktop ops, config and misc. scripts
 
+us-env -r us:boot.screnv
+
 
 forecast () # ~
 {
