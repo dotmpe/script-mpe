@@ -9,7 +9,7 @@ user_script_version=0.0.2-dev
 # The short help only lists main commands
 user_script_maincmds="help long-help aliases commands variables version"
 
-# TODO: This short help starts with a short usage.
+# The short help starts with a short usage description.
 user_script_shortdescr='This is a boilerplate and library to write executable shell scripts.
 See help and specifically help user-script for more info'
 
@@ -446,7 +446,8 @@ script_name () # ~ <Command-name> # Set SCRIPTNAME env based on current $0
 
 script_run () # ~ <Action <argv...>>
 {
-  export UC_LOG_BASE=${script_name:?}"[$$]":doenv
+  local extlogbase=${UC_LOG_BASE-}${UC_LOG_BASE+/}
+  export UC_LOG_BASE=${extlogbase}${script_name:?}"[$$]":doenv
   local scriptenv_argc=0
   script_doenv "$@" ||
     $LOG warn :/script-run "Script setup failed" "E$?:$#:$*" $? || return
@@ -456,11 +457,12 @@ script_run () # ~ <Action <argv...>>
   incr scriptenv_argc
   shift ${scriptenv_argc:?}
   ! uc_debug ||
-      $LOG info :/script-run:$base "Running main handler" "fun:$script_cmdfun:$*"
-  export UC_LOG_BASE=$script_name"[$$]":${script_cmdals:-${script_cmdname:?}}
+      $LOG info :/script-run "Running main handler" "fun:$script_cmdfun:$*"
+  export UC_LOG_BASE=${extlogbase}$script_name"[$$]":${script_cmdals:-${script_cmdname:?}}
   "$script_cmdfun" "$@" || script_cmdstat=$?
-  export UC_LOG_BASE=$script_name"[$$]":unenv
+  export UC_LOG_BASE=${extlogbase}$script_name"[$$]":unenv
   script_unenv || return
+  export UC_LOG_BASE=${extlogbase}
 }
 
 # Undo env setup for script-entry. Almost the inverse of script-doenv, except
@@ -953,11 +955,13 @@ user_script_load () # (y*) ~ <Actions...>
 
     ( default ) # Entire pre-init for script, ie. to use defarg
         : "${script_defcmd:=usage-nocmd}"
-        set -- "$@" logbase defarg baseenv screnv
+        set -- "$@" log defarg baseenv screnv
       ;;
 
-    ( logbase )
-        export UC_LOG_BASE="${SCRIPTNAME}[$$]"
+    ( log )
+        #export UC_LOG_BASE="${UC_LOG_BASE-}${UC_LOG_BASE+/}${SCRIPTNAME}[$$]"
+        lib_require user-script &&
+        user_script_initlog
       ;;
 
     ( screnv )
@@ -1534,7 +1538,10 @@ user_script_usage_choices () # ~ <Handler> [<Choice>]
          do
            sh_type_esacs_tab $fun_name
          done |
+             grep -v '^\*'$'\t' |
              sed 's/\t/\t$ /' | column -c2 -s $'\t' -t )
+
+        true
     } || {
 
        actions=$( for fun_name in $sub_funs
@@ -1563,12 +1570,15 @@ user_script_usage_choices () # ~ <Handler> [<Choice>]
            # Fetch usage as well for called routine
            user_script_usage "$alias_cmdname" | tail -n +3 | sed 's/^/ \t \t/'
          done | column -c2 -s $'\t' -t )
+
+       true
     }
 
   } || {
     actions=$(for fun_name in $sub_funs
         do sh_type_esacs_choices $fun_name
         done | grep -v '^\*$' )
+
   }
   test -n "$actions" || {
     $LOG error "" "Cannot get choices" "fun:${1:?}"

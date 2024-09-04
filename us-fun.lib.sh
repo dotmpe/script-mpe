@@ -65,8 +65,10 @@ us_stdenv_init ()
 
 us_userconf_init ()
 {
-  class_init User/Conf &&
-  class_new user_conf $_
+  [[ ${user_conf-} ]] || {
+    class_init User/Conf &&
+    class_new user_conf $_
+  }
 }
 
 us_userdir_init ()

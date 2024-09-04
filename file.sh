@@ -36,15 +36,14 @@ file_ ()
 
 file_name=File.sh
 file_version=0.0.0-alpha
-file_shortdescr=""
-file_defcmd=short
-file_maincmds=""
+#file_shortdescr=""
+#file_defcmd=short
+#file_maincmds=""
 
 #file_aliasargv ()
 #{
 #  test -n "${1:-}" || return ${_E_MA:?}
 #  case "${1//_/-}" in
-#  #( "-?"|-h|h|help|user-script-help ) shift; set -- user_script_help "$@" ;;
 #    * ) set -- file_ "$@"
 #  esac
 #}

@@ -15,11 +15,16 @@ then
   case "${1-}" in
 
     ( delta )
-        ts1=$(date -d "${2:?}" '+%s')
-        ts2=$(date -d "${3:?}" '+%s')
-        ds=$(( ts2 - ts1 ))
-        echo "$ds seconds"
-        fmtdate_relative "" "$ds" "" || return
+        stderr echo "From $2 to $3" &&
+        ts1=$(date -d "${2:?}" '+%s') &&
+        ts2=$(date -d "${3:?}" '+%s') &&
+        ds=$(( ts2 - ts1 )) &&
+        printf "%'d seconds\n" "$ds" &&
+        {
+          [[ ${ds:0:1} = - ]] && o=1 pref= suf=" before" || o=0 pref= suf=" after"
+        } &&
+        if_ok "$(fmtdate_relative "" "${ds:$o}" "")" &&
+        echo "$pref$_$suf" || return
       ;;
 
     ( ts-dt|timestamp-datetime ) shift;
