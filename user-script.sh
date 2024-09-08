@@ -532,7 +532,7 @@ user_script_aliases () # ~ [<Name-globs...>] # List handlers with aliases
   }
 
   local bid fun vid
-  user_script_aliases_raw | grep "\<$1\>" | {
+  user_script_aliases_raw | grep "\<$1\> .*)" | {
 
     # Handle output formatting
     test -n "${u_s_env_fmt:-}" || {
@@ -1627,7 +1627,6 @@ user_script_fetch_handlers ()
 user_script_usage_handlers () # ~ <Actions...>
 {
   user_script_fetch_handlers "$@" || return
-  #stderr declare -p handlers
 
   # FIXME:
   # Do any loading required for handler, so script-src/script-lib is set
@@ -1934,7 +1933,7 @@ user_script_sh_loadenv ()
       break
     } || {
       test ${_E_next:-196} -eq $? && fail=true ||
-        test ${_E_continue:-195} -eq $_ || return $_
+      test ${_E_continue:-195} -eq $_ || return $_
     }
   done
   ! "${fail:-false}"

@@ -41,7 +41,9 @@ annex_htd_dir_init ()
   } || {
     [[ "$(os_basename "$PWD")" == "${ANNEX_ID:?}" ]] || {
       std_silent pushd "$ANNEX_DIR" &&
-      $LOG notice "$lk" "Moved to primary ${ANNEX_ID:?} repository"
+      # XXX: strict mode?
+      $LOG warn "$lk" "Moved to primary ${ANNEX_ID:?} repository"
+      #$LOG notice "$lk" "Moved to primary ${ANNEX_ID:?} repository"
     }
   }
 }
