@@ -15,6 +15,8 @@ scrtab_lib__init ()
     mkdir -p "$(dirname "$SCRTAB")" && touch "$SCRTAB"
   }
   test -n "${package_lists_contexts_default-}" || package_lists_contexts_default=@Std
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized scrtab.lib" "$(sys_debug_tag)"
 }
 
 # Prepare env for Scr-Id

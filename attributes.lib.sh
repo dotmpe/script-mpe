@@ -7,7 +7,8 @@ attributes_lib__load ()
 attributes_lib__init ()
 {
   test -z "${attributes_lib_init-}" || return $_
-  true
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized attributes.lib" "$(sys_debug_tag)"
 }
 
 
@@ -149,12 +150,24 @@ attributes_stddef ()
 }
 
 # XXX: just passing Tag args as grep expression
-attributes_tagged () # ~ <Tags...>
+attributes_tagged_one () # ~ <Tags...>
 {
   < "${attributes_src:-.attributes}" grep " $*\($\| \)"
   #meta_cache_proc attributes_src
   #< "${attributes_src:-.attributes}" attributes2sh
 }
 
+attributes_tagged_all () # ~ <Tags...>
+{
+  attributes_tagged_one "..*" |
+  while read -r line
+  do
+    for exp
+    do
+      [[ $line =~ $exp($| ) ]] || continue 2
+    done
+    echo "$line"
+  done
+}
 
 #

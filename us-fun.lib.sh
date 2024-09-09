@@ -9,7 +9,9 @@ us_fun_lib__load ()
 
 us_fun_lib__init ()
 {
-  lib_require sys lib-uc class-uc
+  lib_require sys lib-uc class-uc || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized us-fun.lib" "$(sys_debug_tag)"
 }
 
 
@@ -63,8 +65,10 @@ us_stdenv_init ()
 
 us_userconf_init ()
 {
-  class_init User/Conf &&
-  class_new user_conf $_
+  [[ ${user_conf-} ]] || {
+    class_init User/Conf &&
+    class_new user_conf $_
+  }
 }
 
 us_userdir_init ()
@@ -76,7 +80,7 @@ us_userdir_init ()
   #@User/Dir :init
   #${xctx:?}@User/Dir :init
   class_init User/Dir &&
-  class_new user_dir User/Dir
+  class_new user_dir User/Dir "${1:-${PWD:?}}"
 }
 
 us_xctx_init ()

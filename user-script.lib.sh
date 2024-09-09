@@ -18,6 +18,8 @@ user_script_lib__init ()
   true "${uname:="$(uname -s)"}"
   true "${US_BIN:=$HOME/bin}"
   true "${SCRIPT_ETC:=$US_BIN/etc}"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized user-script.lib" "$(sys_debug_tag)"
 }
 
 
@@ -142,27 +144,11 @@ user_script_find_exec () # ~ <Basedirs> # Find executables from user-dirs
 # reason.
 user_script_initlog ()
 {
-  # Setup user-output formatter/'logger'.
-  # Not using any formatting is the fasted for batched execution, but does not
-  # call any loggers and is not very readable. Should probably use UC_LOG_LEVEL
-  # and may be profile that a bit because it can hide levels as well and would
-  # be better for i.e. crond batch execution.
-  test ${quicklog:-0} -eq 0 && {
-    UC_LOG_LEVEL=${v:-5}
-    . /etc/profile.d/uc-profile.sh && uc_log_init || return
-    #shellcheck disable=1087 # Below is not an expansion
-    #: "${UC_LOG_BASE:="${base}[$$]"}"
-    #true "${lk:=$UC_LOG_BASE}"
-    uc_log "debug" "${lk-}" "uc-profile log loaded"
-    LOG=uc_log
-  } || {
-    true "${lk:="${base}[$$]"}"
-    # With many log statements and high verbosity may be this makes a difference
-    # and is worth turning on for batch mode. But while running tl v it barely
-    # makes 10% difference. uc-log should have other useful facilities as well.
-    uc_log() { $LOG "$@"; }
-    LOG=quicklog
-  }
+  UC_LOG_LEVEL=${verbosity:-${v:-5}} &&
+  . /etc/profile.d/uc-profile.sh &&
+  uc_log_init &&
+  uc_log "debug" "${lk-}" "uc-profile log loaded" &&
+  LOG=uc_log
 }
 
 # Last line of a user-script should be 'script_entry "<Scriptname>" ...'

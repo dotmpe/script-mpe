@@ -21,6 +21,8 @@ docstat_lib__init()
   test -e "$DOCSTAT_TAB" || {
     mkdir -p "$(dirname "$DOCSTAT_TAB")" && touch "$DOCSTAT_TAB" || return
   }
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded docstat.lib" "$(sys_debug_tag)"
 }
 
 # Verbose docstat-file-init with user-sanity check

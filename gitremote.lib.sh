@@ -12,6 +12,8 @@ gitremote_lib__init()
 {
   export GIT_REMOTE_CONF
   true "${GITREMOTE_MAX_AGE:=${_1DAY:?}}"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded gitremote.lib" "$(sys_debug_tag)"
 }
 
 

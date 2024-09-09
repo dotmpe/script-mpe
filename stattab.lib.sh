@@ -40,6 +40,8 @@ stattab_lib__init ()
       stab_id=
     }
   }
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded stattab.lib" "$(sys_debug_tag)"
 }
 
 

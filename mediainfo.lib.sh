@@ -6,10 +6,13 @@ mediainfo_lib__load ()
 
 mediainfo_lib__init ()
 {
-  echo "General;%Duration%" >| ${mdnfo_cache:?}/gen-durms.mdnfo-tpl
-  echo "General;%Format%" >| ${mdnfo_cache:?}/gen-ffmt.mdnfo-tpl
-  echo "Video;%Format%" >| ${mdnfo_cache:?}/vid-fmt.mdnfo-tpl
-  echo "Video;%DisplayAspectRatio/String%" >| ${mdnfo_cache:?}/vid-dar.mdnfo-tpl
+  # NOTE: afacs the urlref paths cannot be relative
+  [[ ${mdnfo_cache:0:1} = / ]] ||
+    mdnfo_cache=$(realpath "${mdnfo_cache:?}") || return
+  echo "General;%Duration%" >| ${mdnfo_cache:?}/gen-durms.mdnfo-tpl &&
+  echo "General;%Format%" >| ${mdnfo_cache:?}/gen-ffmt.mdnfo-tpl &&
+  echo "Video;%Format%" >| ${mdnfo_cache:?}/vid-fmt.mdnfo-tpl &&
+  echo "Video;%DisplayAspectRatio/String%" >| ${mdnfo_cache:?}/vid-dar.mdnfo-tpl &&
   echo "Video;%Width%x%Height%" >| ${mdnfo_cache:?}/vid-res.mdnfo-tpl
 }
 

@@ -429,8 +429,10 @@ transmission_item_pause () # ~ [<Modes...>] [-- <Inner-handler>]
     test $# -eq 0 && return
   done
 
-  transmission_remote_do -t "$num" -S &&
-      $LOG notice ":$numid" "Paused" "$lctx" ||
+  transmission_remote_do -t "$num" -S && {
+    sys_debug quiet ||
+      $LOG notice ":$numid" "Paused" "$lctx"
+  } ||
       $LOG error ":$numid" "Error pausing" "E$?:$lctx" $?
   paused=$(( paused + 1 ))
   sa_next_seq
@@ -615,8 +617,11 @@ transmission_item_start () # ~ [<Inner-handler>]
     } >&2
   }
 
-  transmission_remote_do -t "$num" -s &&
-      $LOG notice ":$numid" "Started share" "$lctx" ||
+  transmission_remote_do -t "$num" -s && {
+    sys_debug quiet ||
+    #"${QUIET:-false}" ||
+      $LOG notice ":$numid" "Started share" "$lctx"
+  } ||
       $LOG error ":$numid" "Error starting share" "E$?:$lctx" $?
   started=$(( started + 1 ))
   sa_next_seq

@@ -50,7 +50,9 @@ sys_htd_lib__init()
     $INIT_LOG info "$scriptname" "TMPDIR=$TMPDIR (should be in shell profile)" >&2
   }
 
-  $INIT_LOG info "" "Loaded sys.lib" "$0"
+  #$INIT_LOG info "" "Loaded sys.lib" "$0"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized sys-htd.lib" "$(sys_debug_tag)"
 }
 
 

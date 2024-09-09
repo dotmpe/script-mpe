@@ -10,7 +10,9 @@ volume_htd_lib__load ()
 
 volume_htd_lib__init ()
 {
-  true
+  test -z "${volume_htd_lib_init:-}" || return $_  # Run once
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized volume-htd.lib" "$(sys_debug_tag)"
 }
 
 

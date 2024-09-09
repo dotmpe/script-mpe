@@ -26,6 +26,8 @@ ctx_urls_lib__init()
 {
   test ${ctx_urls_lib_init-1} -eq 0 && return
   urlstab=$(statusdir_lookup index urlstat.list)
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized ctx-urls.lib" "$(sys_debug_tag)"
 }
 
 @URLs.list()

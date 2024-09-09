@@ -2,7 +2,6 @@
 
 ### User tools: commands for generic desktop ops, config and misc. scripts
 
-
 forecast () # ~
 {
   forecast_tab |
@@ -22,6 +21,55 @@ forecast_tab ()
 location_weather_info ()
 {
   curl "v2n.wttr.in/${wttr_loc-}?format=j1"
+}
+
+scripts () # ~ <Switch>
+# Switches:
+#   --annex
+#   --path
+#   --scriptpath
+#      Append paths from annex-dirs, path or scriptpath env to arguments.
+# Actions:
+#   --tool <suite>[/<sub>...]
+#      XXX: List basepaths where parts are provided.
+#   --tools
+#      List subpaths below 'tools' at basedirs that hold scripts
+#   --script <suite>[/<sub>]
+#      XXX: List script files just in subpath.
+#   --scripts
+#      List subpaths below 'tools' at basedirs of every script
+{
+  local switch=${1-} action
+  [[ $# -eq 0 ]] || shift
+  case "$switch" in
+  ( --annex )
+      user_script_initlibs annex-uc &&
+      uc_annex_static &&
+      if_ok "$(eval "echo ${ANNEX_DIRS:?}")" &&
+      set -- "$@" $_
+    ;;
+  ( --path ) set -- "$@" ${PATH//:/ } ;;
+  ( --scriptpath ) set -- "$@" ${SCRIPTPATH//:/ } ;;
+  ( --* ) $LOG error ":$act" "No such switch" "$switch" ${_E_nsk:-67}
+  esac || return
+  action=${1:-summary}
+  shift
+  local base
+  case "$action" in
+  ( --scripts )
+      for base
+      do [[ -e "$base/tools" ]] || continue
+        find "$base/tools" -type f -printf '%P\n'
+      done | awk '!a[$0]++'
+    ;;
+  ( --tools )
+      for base
+      do [[ -e "$base/tools" ]] || continue
+        find "$base/tools" -type d -a -not -empty -a -not -path "$base/tools" -printf '%P\n'
+      done | awk '!a[$0]++'
+    ;;
+  ( * ) $LOG error ":$act" "No such action" "$action" ${_E_nsa:-68}
+  esac
 }
 
 weather () # ~
@@ -339,7 +387,11 @@ user_tools_loadenv ()
 # Main entry (see user-script.sh for boilerplate)
 
 test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+
+us-env -r us:boot.screnv
+
+us-env -r user-script
+#uc_script_load user-script
 
 ! script_isrunning "user-tools" || {
   user_script_load || exit $?

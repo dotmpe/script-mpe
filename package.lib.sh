@@ -24,8 +24,14 @@ package_lib__init () #
   : "${PACK_SCRIPTS:=$PACK_DIR/scripts}"
 
   # Clear to skip auto-load, or set to give local require-level
-  ! "${package_lib_auto:-true}" && return
-  package_init
+  ! "${package_lib_auto:-true}" && {
+    ! sys_debug -dev -debug -init ||
+      $LOG notice "" "Pre-initialized package.lib" "$(sys_debug_tag)"
+  } || {
+    package_init || return
+    ! sys_debug -dev -debug -init ||
+      $LOG notice "" "Initialized package.lib" "$(sys_debug_tag)"
+  }
 }
 
 # Output lib env for static profile, cached load

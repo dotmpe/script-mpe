@@ -21,6 +21,8 @@ list_lib__load ()
 list_lib__init ()
 {
   lib_require os || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized list.lib" "$(sys_debug_tag)"
 }
 
 

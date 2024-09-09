@@ -14,7 +14,8 @@ vc_htd_lib__load ()
 vc_htd_lib__init ()
 {
   test -z "${vc_htd_lib_init:-}" || return $_  # Run once
-  true
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized vc-htd.lib" "$(sys_debug_tag)"
 }
 
 

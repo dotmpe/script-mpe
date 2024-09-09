@@ -14,6 +14,8 @@ annex_htd_lib__load()
 annex_htd_lib__init() # ~ ...
 {
   test -z "${annex_htd_lib_init-}" || return $_
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized annex-htd.lib" "$(sys_debug_tag)"
 }
 
 
@@ -21,7 +23,11 @@ annex_htd_lib__init() # ~ ...
 # ANNEX_DIR to the local primary basedir.
 annex_htd_dir_init ()
 {
-  annex_htd_init_default &&
+  [[ ${annexes-} ]] || {
+    # Below call recurses back here after doing annexes init
+    annex_htd_init_default ; return
+  }
+
   $annexes.fetch annex_htd ${ANNEX_ID:?} &&
   : "${ANNEX_DIR:=/srv/annex-local/$ANNEX_ID}" &&
   test -d "$ANNEX_DIR" && {
@@ -35,7 +41,9 @@ annex_htd_dir_init ()
   } || {
     [[ "$(os_basename "$PWD")" == "${ANNEX_ID:?}" ]] || {
       std_silent pushd "$ANNEX_DIR" &&
-      $LOG notice "$lk" "Moved to primary ${ANNEX_ID:?} repository"
+      # XXX: strict mode?
+      $LOG warn "$lk" "Moved to primary ${ANNEX_ID:?} repository"
+      #$LOG notice "$lk" "Moved to primary ${ANNEX_ID:?} repository"
     }
   }
 }
@@ -48,12 +56,15 @@ annex_htd_init_default ()
   class_init AnnexTab{,Entry} &&
   create annexes AnnexTab $ANNEXTAB || return
   : "${annexes:?Expected annexes table}"
+
+  [[ ${annex_htd-} ]] || annex_htd_dir_init
 }
 
 # Helper to get dynamic annex env/context
 annex_htd_load_default ()
 {
   : "${annexes:?Expected annexes context}"
+  : "${annex_htd:?Expected annex-htd context}"
 
   ANNEX_DIRS=$($annex_htd.basedirs) &&
   #stderr echo "annex_htd.basedirs: $($annex_htd.basedirs)"

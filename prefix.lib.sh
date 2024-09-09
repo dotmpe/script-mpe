@@ -13,6 +13,8 @@ prefix_lib__init()
   test -z "${prefix_lib_init-}" || return $_
   test -n "${UCONF-}" || UCONF=$HOME/.conf
   test -n "${BASEDIR_TAB-}" || BASEDIR_TAB=${STATUSDIR_ROOT}index/basedirs.tab
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized prefix.lib" "$(sys_debug_tag)"
 }
 
 

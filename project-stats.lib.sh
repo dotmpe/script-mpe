@@ -9,7 +9,9 @@ project_stats_lib__load()
 project_stats_lib__init ()
 {
   test "${project_stats_init-}" = "0" && return
-  project_stats_init && project_stats_req
+  project_stats_init && project_stats_req || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized project-stats.lib" "$(sys_debug_tag)"
 }
 
 

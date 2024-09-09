@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+us-env -r us:boot.screnv &&
+
 us-env -r user-script || ${uc_stat:-exit} $?
 
 # Use alsdefs set to cut down on small multiline boilerplate bits.
@@ -66,8 +68,11 @@ list_sh_names () # ~ [@Context] <Groups...> # List paths for globlists in group
 
 ## User-script parts
 
+list_sh_name=List.sh
+list_sh_version=0.0.0-alpha
 list_sh_maincmds="files globs"
 list_sh_shortdescr='Manage and use globlists'
+#list_sh_defcmd=
 
 list_sh_aliasargv ()
 {

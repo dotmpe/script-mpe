@@ -38,6 +38,8 @@ statusdir_lib__init ()
     statusdir_lib_start ||
         $sd_log error "" "Failed to start" "E$?" $? || return
   }
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized statusdir.lib" "$(sys_debug_tag)"
 }
 
 # Auto-detect backend, and load global settings. Already run by lib-load.

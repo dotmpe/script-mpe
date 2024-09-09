@@ -32,6 +32,8 @@ volumestat_lib__init ()
     * ) error "volumestat-lib-load uname=${OS_UNAME:?}" 1 ;;
 
   esac
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized volumestat.lib" "$(sys_debug_tag)"
 }
 
 htd_volumestat_check() # Volume-Name [Volume-Path]

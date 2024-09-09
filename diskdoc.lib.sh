@@ -20,6 +20,8 @@ diskdoc_lib__init ()
   test -s "${USER_DISKS:-}" || {
     $INIT_LOG error "" "User disks doc missing or empty" "${USER_DISKS:-null}"
   }
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded diskdoc.lib" "$(sys_debug_tag)"
 }
 
 

@@ -13,6 +13,8 @@ std_ht_lib__init ()
   test -z "${std_ht_lib_init-}" || return $_
   #test -n "$INIT_LOG" || return 102
   #$INIT_LOG info ":std-init" "Done"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized std-ht.lib" "$(sys_debug_tag)"
 }
 
 

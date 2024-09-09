@@ -55,6 +55,8 @@ date_htd_lib__init()
     IS_DST=1 || IS_DST=0
 
   export gdate
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized date-htd.lib" "$(sys_debug_tag)"
 }
 
 
@@ -160,13 +162,13 @@ date_newest() # ( FILE | DTSTR | @TS ) ( FILE | DTSTR | @TS )
 # of purposes. See fmtdate_relative_f
 fmtdate_relative () # ~ [ Previous-Timestamp | ""] [Delta] [suffix=" ago"]
 {
-  local spec=$1
-  shift
+  #local spec=$1
+  #shift
   # FIXME:
-  set -- "$(time_parse_seconds "$spec")" "$@"
+  #set -- "$(time_parse_seconds "$spec")" "$@"
 
   # Calculate delta based on now
-  test -n "${2-}" || set -- "${1-}" "$(( $(date +%s) - $1 ))" ${3:-}
+  test -n "${2-}" || set -- "${1:?}" "$(( $(date +%s) - ${1:?} ))" "${@:3}"
 
   # Set default suffix
   test $# -gt 2 || set -- "${1-}" "$2" " ${datefmt_suffix:-"ago"}"

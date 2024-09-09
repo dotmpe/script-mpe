@@ -13,6 +13,8 @@ htd_tasks_lib__load ()
 htd_tasks_lib__init ()
 {
   test -n "${tasks_hub-}" -o -z "${PACKMETA-}" || htd_tasks_init || return
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized htd-tasks.lib" "$(sys_debug_tag)"
 }
 
 htd_tasks_init ()
@@ -302,7 +304,7 @@ htd__tasks_be_src()
 
   local cmdid
   str_vword cmdid "$1"
-  . ./to/be-src.sh ; shift 1
+  # XXX: old, . ./to/be-src.sh ; shift 1
   htd__tasks__src__${cmid} "$@"
 }
 

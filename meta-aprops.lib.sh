@@ -15,6 +15,8 @@ meta_aprops_lib__init ()
     declare -gA "meta_aprop__${field:?}=()"
   done
   : "${meta_aprops_salt:=$(stderr echo "!!! dynamic salt set:" $RANDOM; echo $_)}"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized meta-aprops.lib" "$(sys_debug_tag)"
 }
 
 

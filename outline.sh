@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 
 outline ()
@@ -47,8 +47,6 @@ outline_sh_aliasargv ()
   case "$1" in
   ( header ) shift; set -- outline_header "$@" ;;
   ( fetch ) shift; set -- outline_fetch "$@" ;;
-  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
-
   # TODO: define fallback for everything else?
   #( * ) shift; set -- outline "$@" ;;
   esac
@@ -57,19 +55,24 @@ outline_sh_aliasargv ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+outline_sh_name=Outline.sh
+outline_sh_version=0.0.0-alpha
+outline_sh_shortdescr=""
+outline_sh_maincmds=""
+outline_sh_defcmd=fetch
+
+us-env -r us:boot.screnv &&
+
+us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "outline.sh" || {
   user_script_load || exit $?
 
-  # Default value used if argv is empty
-  script_defcmd=fetch
   # To extract aliases for help
   user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
   eval "set -- $(user_script_defarg "$@")"
 
-  script_entry "$@"
+  script_run "$@"
 }
 #

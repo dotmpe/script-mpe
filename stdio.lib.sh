@@ -9,7 +9,8 @@ stdio_lib__init ()
   lib_assert log || return
 
   req_init_log || return
-  $us_log info "" "Loaded stdio.lib" "$0"
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Initialized stdio.lib" "$(sys_debug_tag)"
 }
 
 

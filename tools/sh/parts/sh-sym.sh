@@ -10,6 +10,7 @@
 # what ``declare`` can print is known about those (see symbol-reference).
 sh_sym_typeset () # ~ <Command-name>
 {
+  : source "sh-sym.sh"
   test $# -eq 1 || return ${_E_GAE:-193}
   sh_fun "${1:?}" && {
     local srcln srcfn
@@ -20,6 +21,8 @@ sh_sym_typeset () # ~ <Command-name>
       declare -f "$1"
 
       ac_spec "$1" || true
+
+      sh_sym_fexp "$1"
     }
 
   } || {
@@ -53,12 +56,22 @@ $(ac_spec "$1" || true)"
 }
 # Copy: Shell/symbol-typeset
 
+# Print export line for function, if found exported for current env
+sh_sym_fexp () # ~ <Name>
+{
+  : source "sh-sym.sh"
+  if_ok "$(printf 'BASH_FUNC_%s%%%%=() { ' "${1:?}")" &&
+  env | grep -q "$_" || return 0
+  echo "declare -fx $1"
+}
+
 # Show usage text or other information for shell keywords, buitins and other
 # commands, or print the typeset for functions or complex aliases. Also include
 # the auto-complete declarations (interactive sessions only) and variable
 # declarations matching <Name> as well.
 sh_sym_ref () # ~ <Names...>
 {
+  : source "sh-sym.sh"
   local __{sym,tp}
   for __sym in "$@"
   do

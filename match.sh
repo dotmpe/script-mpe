@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+us-env -r us:boot.screnv &&
+
 us-env -r user-script || ${uc_stat:-exit} $?
 
 # Use alsdefs set to cut down on small multiline boilerplate bits.
@@ -13,7 +15,7 @@ us-env -r user-script || ${uc_stat:-exit} $?
 
 ## Main command handlers
 
-names ()
+match_names () # ~ <Action> ...
 {
   local _1def='list-local' n='names'; sa_a1_d_nlk
   : "${MATCH_NAMETAB:=${METADIR:?}/tab/names.list}"
@@ -49,15 +51,16 @@ names ()
   status_dirs
   out_fmt=list cwd_lookup_path ${status_dirs:?}
 }
-names__libs=meta\ match-htd\ class-uc\ sys\ status
+match_names__grp=match
+match_names__libs=meta,match-htd,class-uc,sys,status
 
-var_names ()
+match_var_names () # ~ ...
 {
   TODO
 }
 
 # TODO: build tables from user data
-match_box ()
+match_box () # ~ <Action> ...
 {
   local _1def='stat' n='user-box'; sa_a1_d_nlk
   while test 0 -lt $#
@@ -92,39 +95,25 @@ match_box ()
 
 ## User-script parts
 
-match_maincmds="names var-names"
+match__grp=user-script,user-script-sh
+
+match_name=Match.sh
+match_maincmds="box names var-names"
 match_shortdescr='Split and assemble file names and strings from patterns'
+match_defcmd=local\ check
 
 match_aliasargv ()
 {
   test -n "${1:-}" || return
   case "${1//_/-}" in
-  ( local|user-box ) shift; set -- match_box "$@" ;;
-  ( "-?"|-h|h|help ) shift; set -- user_script_help "$@" ;;
+  ( local|user-box ) shift; set -- box "$@" ;;
   esac
-}
-
-match_loadenv () # ~ <Cmd-argv...>
-{
-  #user_script_loadenv || return
-  : "${_E_not_found:=127}"
-  : "${_E_next:=196}"
-  user_script_baseless=true \
-  script_part=${1:?} user_script_load groups || {
-      # E:next means no libs found for given group(s).
-      test ${_E_next:?} -eq $? || return $_
-    }
-  lib_load "${base}" &&
-  lib_init "${base}" || return
-  lk="$UC_LOG_BASE"
-  user_script_announce "$@"
 }
 
 # Main entry (see user-script.sh for boilerplate)
 
 ! script_isrunning "match" .sh || {
   user_script_load || exit $?
-  script_defcmd=local\ check
   user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
   if_ok "$(user_script_defarg "$@")" &&

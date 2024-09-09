@@ -26,6 +26,8 @@ os_htd_lib__init()
     #uc_script_load os-als
 
     #$os_htd_lib_log debug "" "Initialized os-htd.lib" "$0"
+    ! sys_debug -dev -debug -init ||
+      $LOG notice "" "Initialized os-htd.lib" "$(sys_debug_tag)"
   }
 }
 

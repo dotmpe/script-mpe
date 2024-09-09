@@ -29,7 +29,12 @@ globlist_lib__init()
   # like that anyway, the global at_GlobList could be used to configure another
   # static context as well, should that be useful somehow...
   local ctx=${at_GlobList:-globlist}
-  ${ctx}_stddef # && ${ctx}_init
+  ${ctx}_stddef &&
+  # && ${ctx}_init
+  true || return
+
+  ! sys_debug -dev -debug -init ||
+    $LOG notice "" "Loaded globlist.lib" "$(sys_debug_tag)"
 }
 
 
