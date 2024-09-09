@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 
 ## sh-sym: identify given shell symbol
 
@@ -57,7 +59,7 @@ $(ac_spec "$1" || true)"
 # declarations matching <Name> as well.
 sh_sym_ref () # ~ <Names...>
 {
-  local __sym __tp
+  local __{sym,tp}
   for __sym in "$@"
   do
     ! __tp=$(type -t "$__sym") || {
