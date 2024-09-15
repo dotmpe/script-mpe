@@ -58,7 +58,8 @@ class_BaseDirTab_ ()
     ( .__init__ )
         $super$call "${@:1:2}" "${3:-BaseDir}" "${@:4}" ;;
 
-    ( .fetch ) # ~ <Path> <Symbol>
+    ( .fetch-pathsym ) # ~ <Path> <Symbol>
+        TODO
       ;;
 
       * ) return ${_E_next:?}

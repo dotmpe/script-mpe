@@ -28,7 +28,7 @@ annex_htd_dir_init ()
     annex_htd_init_default ; return
   }
 
-  $annexes.fetch annex_htd ${ANNEX_ID:?} &&
+  $annexes.fetch-var annex_htd ${ANNEX_ID:?} &&
   : "${ANNEX_DIR:=/srv/annex-local/$ANNEX_ID}" &&
   test -d "$ANNEX_DIR" && {
     ANNEX_DIR=$(realpath "$ANNEX_DIR")
@@ -76,7 +76,7 @@ annex_htd_load_default ()
   # If not in profile, set ANNEX_DIR to local path.
   # XXX: there may not be a checkout there.
   # XXX: could pick one from ANNEX_DIRS based on volume-id filter
-  $srvtab.fetch srv_annex srv/annex &&
+  $srvtab.fetch-var srv_annex srv/annex &&
 
   stderr ${srv_annex:?Srv-Annex entry expected}.entry &&
   if_ok "${ANNEX_DIR:=$($srv_annex.local-dir)/$HTD_ANNEX_DEFAULT}"

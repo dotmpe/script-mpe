@@ -2,7 +2,7 @@
 
 preproc_lib__load()
 {
-  true "${CACHE_DIR:=${STATUSDIR_ROOT:?}cache}"
+  : "${CACHE_DIR:=${STATUSDIR_ROOT:?}cache}"
 }
 
 

@@ -83,7 +83,7 @@ class_NamespacesTab_ () # ~ :TabFile (super,self,id,call) ~ <Call-args...>
     ( .__init__ ) # ~ <Concrete-type> <Tab-file> <Entry-type> <...>
         $super.__init__ "${@:1:2}" "${3:-Namespace}" "${@:4}" ;;
 
-    ( .fetch ) # ~ ~ <Var> <Id> [...]
+    ( .fetch-var ) # ~ ~ <Var> <Id> [...]
         ! uc_debug || $LOG debug "$lk" "Retrieving" "${1#local:}=$2"
         # Get entry and source linenr with Id
         declare {grep,tab}line srcln

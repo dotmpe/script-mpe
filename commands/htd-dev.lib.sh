@@ -21,7 +21,7 @@ htd__dev ()
         : "${t:?Expected topic tag}"
         lib_require ctx-htd && INIT_LOG=$LOG lib_init $lib_loaded || return
         create idx StatTab ${HTDIR:?}/.meta/stat/index/context-dev.list &&
-        $idx.fetch devtag "$t" &&
+        $idx.fetch-var devtag "$t" &&
         @Dev $devtag.edit-notes ;;
 
     ( list )

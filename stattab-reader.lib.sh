@@ -34,15 +34,14 @@ stattab_date ()
   fnmatch "@*" "$1" && echo "${1:2}" || date_pstat "$1"
 }
 
-stattab_entry () #
+stattab_entry () # (:stab-*) ~
 {
-  if_ok "$(stattab_print_STD_stat)" || return
-  # FIXME?
-  #echo "$_ $stab_id: $stab_short $stab_tags" | sh_normalize_ws
-  : "$_ $stab_id: $stab_short"
-  : "$_$([[ ! $stab_tags ]] || printf ' @%s' $stab_tags)"
-  : "$_$([[ ! $stab_refs ]] || printf ' <%s>' $stab_refs)"
-  : "$_$([[ ! $stab_idrefs ]] || printf ' #%s' $stab_idrefs)"
+  if_ok "$(stattab_print_STD_stat)" &&
+  if_ok "$_ $stab_id: $stab_short" &&
+  if_ok "$_$([[ ! $stab_tags ]] || printf ' @%s' $stab_tags)" &&
+  if_ok "$_$([[ ! $stab_refs ]] || printf ' <%s>' $stab_refs)" &&
+  if_ok "$_$([[ ! $stab_idrefs ]] || printf ' #%s' $stab_idrefs)" &&
+  #if_ok "$_$([[ ! $stab_meta ]] || printf ' #%s' $stab_idrefs)" &&
   echo ${_//[$'\n\t']/ }
   #echo "${_//  / }"
 }
@@ -64,8 +63,8 @@ stattab_print_STD_stat ()
 stattab_entry_id () # ~ <StatTab-SId> [<StatTab-Id>]
 {
   test $# -gt 1 || {
-    if_ok "$(uc_mkid "$1" && printf "$id")" || return
-    set -- "$1" "$_"
+    #if_ok "$(uc_mkid "$1" && printf "$id")" || return
+    set -- "$1" "$1"
   }
   stab_sid="$1"
   stab_id="$2"
@@ -295,10 +294,10 @@ stattab_meta_parse () # ~ <Arr-var-pref>
   for metatag in $stab_meta
   do
     metakey=${metatag%:*}
-    keys+=( "$metakey" )
+    keys+=( "${metakey:?}" )
     metaval=${metatag##*:}
     : "${metakey//:/__}"
-    : "${metakey//-/_}"
+    : "${_//[.-]/_}"
     declare -g "$1__${_}[$id]=$metaval"
   done
   declare -g "$1_keys[$id]=${keys[*]}"
@@ -360,19 +359,21 @@ stattab_record_parse () # (stab_record) ~
   stab_idspec=${stab_record%%:*}
   stattab_parse_STD_ids $stab_idspec || return
 
-  stab_rest="${stab_record:$(( 2 + ${#stab_idspec} ))}"
-
-  stab_short="$($gsed 's/^\([^[+@<]*\).*$/\1/' <<< "$stab_rest")"
-  stab_refs="$(todotxt_field_chevron_refs <<< "$stab_rest")"
-  stab_idrefs="$(todotxt_field_hash_tags <<< "$stab_rest")"
-  stab_meta="$(todotxt_field_meta_tags <<< "$stab_rest")"
-  : "$(
-    todotxt_field_context_tagrefs <<< "$stab_rest"
-    todotxt_field_project_tagrefs <<< "$stab_rest"
-  )"
+  stab_rest="${stab_record:$(( 2 + ${#stab_idspec} ))}" &&
+  stab_short="$($gsed 's/^\([^[+@<]*\).*$/\1/' <<< "$stab_rest")" &&
+  stab_refs="$(todotxt_field_chevron_refs <<< "$stab_rest" ||
+      sys_astat -eq 1 || return)" &&
+  stab_idrefs="$(todotxt_field_hash_tags <<< "$stab_rest" ||
+      sys_astat -eq 1 || return)" &&
+  stab_meta="$(todotxt_field_meta_tags <<< "$stab_rest" ||
+      sys_astat -eq 1 || return)" &&
+  if_ok "$(
+    todotxt_field_context_tagrefs <<< "$stab_rest" ||
+      sys_astat -eq 1 || return
+    todotxt_field_project_tagrefs <<< "$stab_rest" ||
+      sys_astat -eq 1 || return
+  )" &&
   stab_tags=${_//$'\n'/ }
-
-  true
 }
 
 # List entries; first argument is glob, converted to (grep) line-regex.

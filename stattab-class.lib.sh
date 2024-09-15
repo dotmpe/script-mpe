@@ -29,11 +29,11 @@ class_StatDirIndex_ () # :StatTab (super,self,id,call) ~ <Call-args...>
     ( .__init__ )
         $super.__init__ "${@:1:2}" "${3:-StatIndex}" "${@:4}" ;;
 
-    ( .fetch ) # ~ <Var-name> <Stat-id> [<Id-type>]
+    ( .fetch-var ) # ~ <Var-name> <Stat-id> [<Id-type>]
         # First process as StatTabEntry and then turn instance into StatIndex
         # bc. we need to parse the stattab line to get attributes that determine
         # the actual file name to use as indextab.
-        $super.fetch "$@" &&
+        $super.fetch-var "$@" &&
         declare ref="${1#local:}" &&
         ${!ref:?Expected $1 reference}.get &&
         $LOG notice :$id "Retrieved ${CLASS_NAME:?} entry" "$1=$2" || return
@@ -99,12 +99,18 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
   case "${call:?}" in
 
     .__init__ )
+        ${super:?}.__init__ "$1" "$2" "${@:4}" &&
         StatTabEntry__stattab[$id]=${2:?} &&
         StatTabEntry__seqidx[$id]=${3:?} &&
-        StatTabEntry__status[$id]=- &&
-        StatTabEntry__btime[$id]=- &&
-        StatTabEntry__ctime[$id]=- &&
-        ${super:?}.__init__ "$1" "${@:4}"
+        local statfield &&
+        for statfield in ${StatTab__statfields[$3]:-status btime ctime}
+        do
+          local -n __field="StatTabEntry__${statfield}[$id]"
+          __field=-
+        done &&
+        #StatTabEntry__btime[$id]=- &&
+        #StatTabEntry__ctime[$id]=- &&
+        true
       ;;
     .__del__ )
         unset StatTabEntry__stattab[$id] &&
@@ -125,6 +131,11 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
 
     .attr ) # ~ <Key> [<Class>]          # Get field value from class instance value
         $super.attr "$1" "${2:-StatTabEntry}" ${3-} ;;
+
+    .class-dump )
+        $super.class-dump &&
+        class_akdump StatTabEntry ${1:-\$OBJ_ID} stattab seqidx ${stattab_var_keys:?}
+      ;;
 
     .commit )
       $self.set &&
@@ -214,12 +225,19 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
 class_StatTab__load ()
 {
   : about "File with lines or blocks representing entries consisting of status and description fields for some entity" @StatTab
-  Class__static_type[StatTab]=StatTab:Class
-  Class__rel_types[StatTab]=StatTabEntry,OS/FileStat
+  Class__static_type[StatTab]=StatTab:CachedClass
+  Class__rel_types[StatTab]=StatTabEntry,OS/FileStat,CachedClass
+  # Map of object-id to stattab file path
   declare -gA StatTab__file=()
+  # Can vary type per entry, set to default StatTabEntry on construction
   declare -gA StatTab__entry_type=()
+  # Cache for entries holds <stattab-obj-id>,<entry-obj-id> to <entry-obj-ref>
   declare -gA StatTab__entry=()
+  # Cache that maps entry-id to an cached entry-key
+  declare -gA StatTab__entryid=()
+  # Cache for OS/FileStat instances
   declare -gA StatTab__filestat=()
+  declare -gA StatTab__statfields=()
 }
 
 # StatTab is a list of StatTabEntries, represented by a single file.
@@ -230,7 +248,8 @@ class_StatTab_ () # ~
 #   .tab-init
 #   .exists <Entry-Id> <Type>
 #   .init
-#   .fetch <Var-Name> <Entry-Id>
+#   .fetch <Entry-Id>
+#   .fetch-var <Var-Name> <Entry-Id>
 #   .update
 #   .commit
 {
@@ -240,7 +259,9 @@ class_StatTab_ () # ~
         [[ -e "${2-}" ]] || {
             $LOG error :"${self}" "Tab file expected" "${2:-\$2:unset}:$#:$*" 1 || return
         }
-        class_super_optional_call "$1" "${@:4}" || return
+        # XXX: as long as there is no iface for 'unique', and static cache is
+        # incomplete keep filepath in cparams for CachedClass to use
+        class_super_optional_call "$1" "$2" "${@:4}" || return
         StatTab__file[$id]=${2:?} &&
         StatTab__entry_type[$id]=${3:-StatTabEntry}
       ;;
@@ -274,58 +295,86 @@ class_StatTab_ () # ~
         ${super:?}.__del__
       ;;
 
-    .load )
-        # Iterate over ids and entry objects
+    .assert )
+        $self.init "$@" && $self.commit
+      ;;
+
+    .load ) ## Populate StatTab:entry (init entry type for all ids)
+        # Iterate over ids (eid) and create entry objects (entry with oid)
         declare eid oid entry ids=()
         sys_arr ids $self.ids &&
         for eid in "${ids[@]}"
         do
-          $self.fetch entry "$eid" ||
+          $self.fetch "$eid" ||
             $LOG error : "Error fetching entry" E$?:$eid $? || return
-          : "${entry% }"
-          : "${_##* }"
-          oid=$_
-          declare -g "StatTab__entry[$id:$oid]"=$eid
         done
       ;;
 
     .__items__ )
-        # Iterate over ids and entry objects
-        declare eid oid entry ids=()
-        sys_arr ids $self.ids &&
-        for eid in "${ids[@]}"
+        declare key oid
+        for key in "${!StatTab__entry[@]}"
         do
-          declare -g "StatTab__entry[$id:$oid]"=$eid
-          class.Class --ref ${oid}
+          [[ $key =~ ^$id, ]] || continue
+          #class.Class --ref ${oid}
+          echo "${StatTab__entry["$key"]:?}"
         done
+      ;;
+
+    .class-dump )
+        $super.class-dump &&
+        arr_kdump StatTab__file "$id"  &&
+        arr_kdump StatTab__entry_type "$id"  &&
+        arr_kpdump StatTab__entryid "$id,"  &&
+        { [[ ! ${StatTab__filestat[id]+set} ]] ||
+          arr_kdump StatTab__filestat "$id" || return
+        } &&
+        arr_kpdump StatTab__entry "$id," &&
+        local item &&
+        local -a items &&
+        sys_arr items $self.__items__ &&
+        for item in "${items[@]}"
+        do
+          ${item:?}.class-dump || return
+        done
+      ;;
+
+    ( .check-fs ) TODO
       ;;
 
     .count ) if_ok "$($self.tab-ref)" && wc -l "$_" ;;
 
     .exists ) # ~ ~ <Id>
-        if_ok "$($self.tab-ref)" &&
-        stattab_exists "$1" "" "$_"
+        local -n entryid="StatTab__entryid[\"${OBJ_ID:?},${1:?}\"]"
+        [[ ${entryid+set} ]] || {
+          if_ok "$($self.tab-ref)" &&
+          stattab_exists "$1" "" "$_"
+        }
       ;;
 
-    .fetch ) # ~ ~ <Var-name> <Stat-id> [<Id-type>]
+    .fetch ) # ~ ~ <Stat-id> [<Id-type>]
+        local -n entryid="StatTab__entryid[\"${OBJ_ID:?},${1:?}\"]"
+        [[ ${entryid+set} ]] && {
+          $self.check-fs
+          # entry=$(class.Class --ref $entryid)
+        } || {
+          # Cannot store directly at cache array without having instance Id
+          local entry
+          $self.fetch-var entry "${@:?}" &&
+          $self:stattab:cache:set "${1:?}" "$entry"
+        }
+      ;;
 
+    .fetch-var ) # ~ ~ <Var-name> <Stat-id> [<Id-type>]
         ! str_wordmatch "$1" self id super call ext class tab ||
           $LOG alert "" "Cannot use reserved variable name" "$1" 1 || return
-
-        : "${2:?Expected Stat-id argument}"
-        $LOG debug "" "Retrieving ${CLASS_NAME:?} entry" "$1=$2" &&
-        if_ok "$($self.tab-ref)" &&
-        stattab_fetch "$2" "${3-}" "$_" ||
-          $LOG error "" "Failed fetching" "${3-}${3:+:}$1=$2:E$?" $? || return
-
-        typeset -n obj=${1#local:}
-        if_ok "$($self.tab-entry-class)" &&
-        class_new "$1" "$_" "$id" "$stab_lineno" &&
-        $obj.get
+        $LOG debug "" "Retrieving ${CLASS_NAME:?} entry" "$1=$2${3+:}${3-}" &&
+        $self:stattab:entry:fetch "${@:2}" &&
+        $self:stattab:entry:newobj "${1:?}"
       ;;
 
-    .filestat ) # ~ ~ [<Var>]
-        : about "Return current FileStat instance"
+
+    /filestat ) # ~ ~
+        : about "Create FileStat instance"
         : extended "Instance is created if missing"
         local filestat_v="StatTab__filestat[\"$OBJ_ID\"]"
         local -n __filestat="$filestat_v"
@@ -334,6 +383,44 @@ class_StatTab_ () # ~
           tabf=$($self.tab-ref) &&
           class_new __filestat OS/FileStat "$tabf" || return
         }
+      ;;
+
+# This does a cached access to /filestat
+# not sure if that is useful here, but in itself its a useful pattern to
+# explore and work out for speeding up more serious work.
+
+    ( :filestat ) # ~ ~ [<Var>]
+        local dirty tabf
+        $self:filestat+fromcache || {
+          stderr echo $SELF_NAME:filestat cache miss
+          $self/filestat &&
+          dirty=true || return
+        }
+        $self:filestat+env || return
+        stderr script_debug_arrs StatTab__filestat
+        stderr script_debug_vars filestat
+        stderr echo filestat=$filestat
+        $filestat.refresh os-filestat || return
+        ! "${dirty:-false}" || {
+          $filestat.commit-cache
+        }
+      ;;
+
+    ( :filestat+fromcache ) # ~ ~ [<Var>]
+        tabf=$($self.tab-ref) &&
+        class.CachedClass --get-from-cache "$tabf" filestat os-filestat
+        #class.OS-FileStat --get-from-cache-old filestat "$tabf" "${CACHE_DIR:?}/os-filestat.sh"
+      ;;
+
+    ( :filestat+env ) # ~ ~ [<Var>]
+        local -n __filestat=${1:-filestat}
+        __filestat="${StatTab__filestat["$OBJ_ID"]}"
+        return
+
+        local filestat_v="StatTab__filestat[\"$OBJ_ID\"]" &&
+        # TODO: refresh on TTL
+        #local -n __filestat="$filestat_v" &&
+        #${__filestat:?}.class-dump &&
         case "${1-}" in
           local:* )
               eval "${1#local:}=$filestat_v"
@@ -343,7 +430,7 @@ class_StatTab_ () # ~
       ;;
 
     .keys|.list ) # ~ ~ [<Key-match>]
-        stderr echo "Deprecated: call=$call from $(caller 1)"
+        stderr echo "Deprecated: call=$call from $(caller 1) (use .ids)"
         $self.ids "$@"
       ;;
 
@@ -351,19 +438,37 @@ class_StatTab_ () # ~
         stattab_list "${1-}" "$($self.tab-ref)"
       ;;
 
-    .init ) # ~ ~ <Var> <Entry> # Create entry instance from provided
-        declare -n var=$1
-        stattab_entry_init "${*:2}" &&
-        if_ok "$($self.tab-entry-class)" &&
-        class_new "$1" "$_" "$id" "-1" &&
-        $var.commit
+    .init ) # ~ ~ <Stat-id> <Entry...> # Wrap exists/new or fetch in one call, but do not commit
+        # See also .assert
+        $self.exists "${1:?}" && {
+          $self.fetch "${1:?}" || return
+        } || {
+          $self.new "${@:?}"
+        }
       ;;
 
-    .new ) # ~ ~ <Var> <Id> [<Rest>] # Create entry from id and label+annotation
-        local tbref dtnow
-        tbref="$($self.tab-ref)" &&
-        dtnow="$(date_id $(date --iso=min))" &&
-        stattab_entry_init "$1" "- $dtnow $2:${3:+ }${3-}"
+    .init-var ) # ~ ~ <Var> <Entry...> #
+        $self.exists-var "${1:?}" "${2:?}" && {
+          $self.fetch-var "${1:?}" "${2:?}" || return
+        } || {
+          $self.new-var "${@:?}"
+        }
+      ;;
+
+    .new ) # ~ ~ <Stat-id> [<Rest...>] # Create entry from id and label+annotation
+        local entry
+        $self.new-var entry "${@:?}" &&
+        $self:stattab:cache:set "${1:?}" "$entry"
+      ;;
+
+    .new-var ) # ~ ~ <Var> <Stat-id> [<Rest..>] # Create entry from id and label+annotation
+        # New but bypass stattab:entry cache
+        $self:stattab:entry:init "${@:2}" &&
+        $self:stattab:entry:newobj "${1:?}"
+      ;;
+
+    .new-with ) # ~ ~ <Id> <Entry-type> [<Rest..>]
+        TODO "may want custom entry type per entry"
       ;;
 
     .new-direct ) # ~ ~ <Id> [<Rest>] # Create entry from id and label+annotation
@@ -384,7 +489,7 @@ class_StatTab_ () # ~
     .tab-status ) # ~ [<>]
         # XXX: refresh status context_run_hook stat || return
         #local entry status
-        $self.fetch local:entry "$1" &&
+        $self.fetch-var local:entry "$1" &&
           [[ "${entry-}" ]] || return ${_E_NF:?}
         status=$($entry.attr status) &&
         [[ "$status" ]] &&
@@ -392,6 +497,70 @@ class_StatTab_ () # ~
           [[ 0 = "$_" ]] ||
           fnmatch "*[${stb_pri_sep:?}]0" "$_"
         }
+      ;;
+
+
+    --find-cache ) # ~ ~ <StatTab-file>
+        # Override class.CachedClass --find-cache
+        local oid &&
+        for oid in "${!StatTab__file[@]}"
+        do
+          [[ ${StatTab__file[$oid]} = "${1:?}" ]] || continue
+          echo "$oid"
+        done
+
+      ;;
+
+    # FIXME: remove after proper static uc-class impl.
+    --load-from-cache-old ) # ~ ~ <Obj-ref> <StatTab-file> <Stattab-sh-cache-file>
+        . "${3:?}" &&
+        local -n __obj=${1:?} &&
+        local oid &&
+        for oid in "${!StatTab__file[@]}"
+        do
+          [[ ${StatTab__file[$oid]} = "${2:?}" ]] || continue
+          __obj=$(class.Class --ref $oid) ||
+            test 200 -eq $? || return $_
+          return
+        done
+      ;;
+
+
+    :stattab:cache:set )
+        : "${1:?Expected entry-id argument}"
+        : "${2:?Expected entry-instance-reference argument}"
+        local entryid=${1:?} entryref=${2:?}
+        # Extract object Id of entry
+        : "${entryref% }" &&
+        : "${_##* }" &&
+        local -i oid=${_:?} &&
+        # Store ref
+        declare -g "StatTab__entry[\"${OBJ_ID:?},$oid\"]=$entryref"
+        #! [[ ${2:-} = ]] ||
+        declare -g "StatTab__entryid[\"${OBJ_ID:?},${entryid:?}\"]"=${oid}
+      ;;
+
+    :stattab:entry:fetch )
+        : "${1:?Expected Stat-id argument}"
+        if_ok "$($self.tab-ref)" &&
+        stattab_fetch "$1" "${2-}" "$_"
+      ;;
+
+    :stattab:entry:init )
+        : "${1:?Expected Stat-id argument}"
+        # Create from record (without stat), add minimal stat descriptor
+        local tbref dtnow
+        tbref="$($self.tab-ref)" &&
+        dtnow="$(date_id $(date --iso=min))" &&
+        stattab_entry_init "- $dtnow ${1:?}:${2:+ }${2-}"
+      ;;
+
+    :stattab:entry:newobj )
+        : "${1:?Expected var name argument}"
+        typeset -n __fetch_obj=${1#local:}
+        if_ok "$($self.tab-entry-class)" &&
+        class_new "$1" "$_" "$id" "${stab_lineno:--}" &&
+        ${__fetch_obj:?}.get
       ;;
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-### Helpers to sort through Transmission downloads
+### Helpers to sort through Transmission (BitTorrent client) downloads
 
 
 transmission_lib__load ()

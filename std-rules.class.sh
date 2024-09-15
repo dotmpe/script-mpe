@@ -53,7 +53,7 @@ class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
       do
         stderr declare -p rule
         IFS=$oldIFS
-      #  #$rules.fetch rule "$rule_id" &&
+      #  #$rules.fetch-var rule "$rule_id" &&
         stderr echo $rule.toString
         $rule.toString
       done
@@ -75,7 +75,7 @@ class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
       # Output rules
       #for rule_id in "${items[@]}"
       #do
-      #  $rules.fetch rule "$rule_id" &&
+      #  $rules.fetch-var rule "$rule_id" &&
       #  $rule.toString
       #done
 
