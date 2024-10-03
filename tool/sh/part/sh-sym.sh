@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 
 ## sh-sym: identify given symbol
 
