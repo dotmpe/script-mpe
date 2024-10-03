@@ -38,11 +38,11 @@ declare -xa args=(
   ljasiljdqwo
   aclskjasdlj
 )
-declare -fx argvr_arr sys_arra
+declare -fx argvr_arr sys_mapl
 
 declare -A tests_bash_test=(
   [1-1]='foo=(); argvr_arr foo "${args[@]}"'
-  [1-2]='foo=(); sys_arra foo "${args[@]}"'
+  [1-2]='foo=(); sys_mapl foo "${args[@]}"'
   [1-3]='foo=( "${args[@]}" )'
 )
 

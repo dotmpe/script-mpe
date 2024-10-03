@@ -10,7 +10,7 @@
     url = https://github.com/jakepetroules/wherefrom.git
 
 [submodule "tools/chrome/htdocs"]
-	path = tools/chrome/htdocs
+	path = tool/chrome/htdocs
     url = https://github.com/dotmpe/google-chrome-htdocs.git
 
 [submodule "gherkin-assert"]

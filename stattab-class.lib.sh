@@ -302,7 +302,7 @@ class_StatTab_ () # ~
     .load ) ## Populate StatTab:entry (init entry type for all ids)
         # Iterate over ids (eid) and create entry objects (entry with oid)
         declare eid oid entry ids=()
-        sys_arr ids $self.ids &&
+        sys_execmap ids $self.ids &&
         for eid in "${ids[@]}"
         do
           $self.fetch "$eid" ||
@@ -331,7 +331,7 @@ class_StatTab_ () # ~
         arr_kpdump StatTab__entry "$id," &&
         local item &&
         local -a items &&
-        sys_arr items $self.__items__ &&
+        sys_execmap items $self.__items__ &&
         for item in "${items[@]}"
         do
           ${item:?}.class-dump || return

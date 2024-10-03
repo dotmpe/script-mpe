@@ -70,7 +70,7 @@ class_Std_Rules_ () # ~ :User/Conf (super,self,id,call) ~ <Call-args...>
       # alt. loop by reading keys from call output
       #local rule_id rule &&
       #declare -a items &&
-      #sys_arr items $rules.ids &&
+      #sys_execmap items $rules.ids &&
 
       # Output rules
       #for rule_id in "${items[@]}"

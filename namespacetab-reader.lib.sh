@@ -10,7 +10,7 @@ namespacetab_reader_parse ()
   id=${1:?} flags=${2:?} value=${3:-} ctags=() refs=() trefs=()
   shift 3
   test "${value:0:2}" != "--" || value=
-  <<< "$*" sys_arr ctags todotxt_field_context_tags ||
+  <<< "$*" sys_execmap ctags todotxt_field_context_tags ||
     ctags=( Namespace )
   [[ "$id" =~ ^[A-Za-z_-][A-Za-z0-9_-]+$ ]] && root=true
   label=$(todotxt_fielda_words "$*")
@@ -31,7 +31,7 @@ namespacetab_reader_parse ()
       ;;
     ( -r )
         type=reference
-        <<< "$*" sys_arr refs todotxt_field_chevron_refs &&
+        <<< "$*" sys_execmap refs todotxt_field_chevron_refs &&
         value=${value:-${refs[0]:?}} &&
         ctags+=( NS/Resource ) ;;
     ( -p ) # Path (sub) NS
@@ -54,7 +54,7 @@ namespacetab_reader_parse ()
       ;;
     ( -u )
         type=universal
-        <<< "$*" sys_arr trefs todotxt_field_square_refs &&
+        <<< "$*" sys_execmap trefs todotxt_field_square_refs &&
         title=$(<<< "$*" todotxt_field_single_rev9) &&
         #printf -v label '`%s`' "$title"
         value=${trefs[0]:-(fixme:noref)} &&

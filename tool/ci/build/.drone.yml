@@ -11,7 +11,7 @@ pipeline:
     commands:
      - export USER=treebox;
        export HOME=/home/treebox;
-       DEBIAN_FRONTEND=noninteractive sudo apt-get update -qqy && 
+       DEBIAN_FRONTEND=noninteractive sudo apt-get update -qqy &&
        DEBIAN_FRONTEND=noninteractive sudo apt-get install -qqy
              tidy pv
              php7.0-cli php-dom

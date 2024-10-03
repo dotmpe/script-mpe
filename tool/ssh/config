@@ -6,3 +6,4 @@ Host *
   ServerAliveInterval 10
   LogLevel error
 
+# ex:ft=sshconfig:

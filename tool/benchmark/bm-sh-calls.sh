@@ -46,7 +46,4 @@ report $(timer myfunc2 1 23 6) "Functions (2) calls: "
 report $(timer myfunc3 1 23 6) "Function in subshells: "
 report $(timer myfunc4 1 23 6) "Functions (2) calls: "
 
-
-
-
-
+#

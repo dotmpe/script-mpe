@@ -91,7 +91,7 @@ box_instance_init()
 
   INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
   INIT_LIB="\$default_lib logger-theme main std str sys stdio src-htd box" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+    . ${CWD:="$scriptpath"}/tool/main/init.sh || return
   # -- box_instance box init sentinel --
   export scriptname=$scriptname_old
 }

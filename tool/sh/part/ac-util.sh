@@ -27,7 +27,7 @@ us_complete_commands () # ~ <Command-name> <Complete-word> <Previous-word>
   # Make sure commands are cached (in global array) before entring into subshell
   #sh_arr_assert user_shell_commands us_exec_commands || return
   # Get completions from subshell and read into array
-  sys_arr COMPREPLY uc_compgen_from_array "${2-}" user_shell_commands
+  sys_execmap COMPREPLY uc_compgen_from_array "${2-}" user_shell_commands
 }
 
 # List only executable names found on PATH. Normal `compgen -c` lists other

@@ -128,21 +128,23 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
 script_envinit () # ~ <Bases...>
 {
   std_silent declare -p ENVD_FUN || declare -gA ENVD_FUN=()
-  std_silent declare -p script_node || declare -gA script_node=()
-  std_silent declare -p script_node_base || declare -gA script_node_base=()
-  std_silent declare -p script_node_hooks || declare -gA script_node_hooks=()
-  std_silent declare -p script_node_libs || declare -gA script_node_libs=()
-  sys_default "script_node_base['user-script']" &&
+  std_silent declare -p us_node || declare -gA us_node=()
+  std_silent declare -p us_node_base || declare -gA us_node_base=()
+  std_silent declare -p us_node_hooks || declare -gA us_node_hooks=()
+  std_silent declare -p us_node_libs || declare -gA us_node_libs=()
+
+  #sys_default "us_node_base['user-script']" &&
   user_script_graph_init "$@" &&
   script_baseenv
 }
 
 # Setup env to start loading user-script(s) and parts. To prepare env for
 # commands, see loadenv handlers.
+#
 script_baseenv ()
 {
-  local script_bases=${script_base//,/ }
-  local script_base script_baseid
+  local script_bases=${script_base//,/ } script_base{,id}
+
   for script_base in ${script_bases:?}
   do
     #: "${script_baseid:=$(str_id "${script_base%[, ]*}")}"
@@ -173,6 +175,7 @@ script_baseenv ()
     done
   done
 
+  : "${SCRIPTNAME:?"$(sys_exc script-loadenv:SCRIPTNAME)"}"
   local SCRIPTNAME_ext=${SCRIPT_BASEEXT:-}
   : "${script_src:="$SCRIPTNAME$SCRIPTNAME_ext"}"
   test "$script_src" = user-script.sh || script_src="$script_src user-script.sh"
@@ -243,7 +246,7 @@ script_debug_env () # ~ [<Names...>]
       script_{base{,id},cmd{name,fun},defcmd,defarg,maincmds,name,version,src,lib} \
       user_script_defarg \
       ENV_{SRC,LIB} \
-      script_node{,_base}
+      us_node{,_base}
     stderr echo Bases: $(user_script_bases)
   }
   #stderr echo Bases rev: $(user_script_bases | tac)
@@ -428,14 +431,17 @@ script_edit () # ~ # Invoke $EDITOR on script source(s)
 # Unlike when calling script-name, this will not pollute the environment.
 script_isrunning () # [SCRIPTNAME] ~ <Scriptname> [<Name-ext>]# argument matches zeroth argument
 {
-  test $# -ge 1 -a $# -le 2 || return ${_E_GAE:-3}
-  test $# -eq 2 && {
-    SCRIPT_BASEEXT="${2:?}"
+  [[ $# -ge 1 && $# -le 2 ]] || return ${_E_GAE:-3}
+  [[ ${SCRIPTNAME:+set} ]] && {
+    [[ $SCRIPTNAME = "$1" ]]
+    return
   }
+  [[ $# -eq 2 ]] && SCRIPT_BASEEXT="${2:?}"
   script_name &&
-      test "${SCRIPTNAME:?Expected SCRIPTNAME after script_name}" = "$1" || {
-      test $# -lt 2 || unset SCRIPT_BASEEXT
-      unset SCRIPTNAME; return 1
+  [[ "${SCRIPTNAME:?Expected SCRIPTNAME after script_name}" = "$1" ]] || {
+    [[ $# -lt 2 ]] || unset SCRIPT_BASEEXT
+    unset SCRIPTNAME
+    return 1
   }
 }
 
@@ -593,11 +599,14 @@ user_script_bases () # ~ [script-node-base] ~ <keys...>
     : ${script_base:?"$(sys_exc user-script:bases:start)"}
     set -- ${_//,/ }
   }
+  local -A _bases
   while test $# -gt 0
   do
+    [[ ${_bases["$1"]+set} ]] && shift && continue
+    _bases["$1"]=
     echo "${1:?}"
-    [[ ! ${script_node_base["$1"]-} ]] && shift && continue
-    bases=${script_node_base["$1"]?}
+    [[ ! ${us_node_base["$1"]-} ]] && shift && continue
+    bases=${us_node_base["$1"]?}
     set -- $bases "${@:2}"
   done
 }
@@ -755,30 +764,36 @@ user_script_fix_shell_name ()
 user_script_graph_init () # ~ <Base ...> # Traverse (env) nodes, and record paths
 # and roots in script-node{,-base} resp.
 {
-  local base{,id,s} group
+  local base{,id,s}
   while [[ $# -gt 0 ]]
   do
-    [[ ${script_node_base["${1:?}"]+set} ]] && {
-      set -- ${script_node_base["$1"]} "${@:2}"
+    stderr echo graph-init $1 ${us_node_base["${1:?}"]+set} ${us_node_base["${1:?}"]-unset}
+
+    [[ ${us_node_base["${1:?}"]+set} ]] && {
+      set -- ${us_node_base["$1"]} "${@:2}"
       continue
     }
     : "${1:?}"
     baseid="${_//[:.-]/_}"
     : "${baseid}__grp"
     : "${!_:-}"
-    group=${_//,/ }
-    test -n "$group" || {
+    bases=${_//,/ }
+    test -n "$bases" || {
       str_globmatch " $ENV_SRC " "* */$1.sh *" &&
         shift && continue
+      # Load script base or fail graph-init.
       uc_script_load "$1" || return
+      # Retry but with base source file loaded.
       continue
     }
-    bases=$_
+    [[ $bases ]] ||
+      $LOG error "" "Unable to init graph for group '$1'" "$baseid" $? || return
+
     #stderr echo "$FUNCNAME node $1: bases: $bases" &&
     for base in $bases
     do
-      str_vconcat "script_node[\"${base:?}\"]" "$1" &&
-      str_vconcat "script_node_base[\"$1\"]" "$base" || return
+      sys_nconcatl "us_node[\"${base:?}\"]" "$1" &&
+      sys_nconcatn "us_node_base[\"$1\"]" base || return
     done
     set -- $bases "${@:2}"
   done
@@ -926,7 +941,7 @@ user_script_libload ()
 #
 user_script_load () # (y*) ~ <Actions...>
 {
-  [[ $# -gt 0 ]] || set -- default
+  [[ $# -gt 0 ]] || set -- defarg
   while [[ $# -gt 0 ]]
   do
     #! uc_debug ||
@@ -947,18 +962,16 @@ user_script_load () # (y*) ~ <Actions...>
         script_envinit ${script_base//,/ }
       ;;
 
-      # FIXME: probably want to use groups ehre as well
-    ( defarg )
-        lib_require us-fun us user-script shell-uc args &&
-        lib_init shell-uc
-      ;;
-
-    ( default ) # Entire pre-init for script, ie. to use defarg
+    ( defarg ) # Entire pre-init for script, ie. to use defarg
         : "${script_defcmd:=usage-nocmd}"
-        set -- "$@" log defarg baseenv screnv
+        lib_require us-fun us user-script shell-uc args &&
+        lib_init shell-uc &&
+        set -- "$@" log baseenv screnv
       ;;
 
     ( log )
+        #lib_uc_hook pairs _lib_load &&
+        #lib_uc_hook pairs _lib_init &&
         #export UC_LOG_BASE="${UC_LOG_BASE-}${UC_LOG_BASE+/}${SCRIPTNAME}[$$]"
         lib_require user-script &&
         user_script_initlog
@@ -1016,20 +1029,24 @@ user_script_load () # (y*) ~ <Actions...>
         ! "${VERBOSE:-false}" ||
           $LOG notice "$lk" "Loading groups " "$lctx"
 
-        user_script_graph_init "$name" &&
-        if_ok "$(user_script_bases "$name" | tac)" || return
-
+        stderr echo script_base=$script_base
+        stderr echo script_part=$script_part
+        stderr echo for $script_part at bases $(user_script_bases "$name" | tac)
+        stderr echo all bases $(user_script_bases | tac)
+        #stderr echo groups for $script_part at bases $(user_script_bases "$name" | tac)
+        #if_ok "$(user_script_bases "$name" | tac)" || return
+        if_ok "$(user_script_bases | tac)" || return
         for base in $_
         do
           : "${base//[:.-]/_}__libs"
           test -z "${!_-}" || {
-            script_node_libs["$base"]=${_//,/ }
-            libs=${libs:-}${libs:+ }${script_node_libs["$base"]}
+            us_node_libs["$base"]=${_//,/ }
+            libs=${libs:-}${libs:+ }${us_node_libs["$base"]}
           }
           : "${base//[:.-]/_}__hooks"
           test -z "${!_-}" || {
-            script_node_hooks["$base"]=${_//,/ }
-            hooks=${hooks:-}${hooks:+ }${script_node_hooks["$base"]}
+            us_node_hooks["$base"]=${_//,/ }
+            hooks=${hooks:-}${hooks:+ }${us_node_hooks["$base"]}
           }
         done
 
@@ -1924,7 +1941,8 @@ user_script_sh_defarg ()
 user_script_sh_loadenv ()
 {
   local script_part fail
-  for script_part in ${script_cmdname:?} ${script_base//,/ }
+  set -- ${script_cmdname:?} ${script_base//,/ }
+  for script_part
   do
     # Start at first script node, load all libs and then execute hooks.
     # XXX: use status to coordinate groups from multiple bases?
@@ -1934,6 +1952,7 @@ user_script_sh_loadenv ()
     } || {
       test ${_E_next:-196} -eq $? && fail=true ||
       test ${_E_continue:-195} -eq $_ || return $_
+      fail=false
     }
   done
   ! "${fail:-false}"

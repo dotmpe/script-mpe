@@ -37,5 +37,4 @@ done 2>&1 >/dev/null )
 #printf "Redis: $(redis-cli get git)\n\n"
 #printf "Memcached: $(membash get git)\n\n"
 
-
-
+#

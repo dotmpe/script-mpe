@@ -4690,8 +4690,8 @@ htd_main ()
     passed= skipped= error= failed=
 
   #test -n "$U_S" || U_S=/srv/project-local/user-scripts
-  #test -n "$htd_log" || htd_log=$U_S/tools/sh/log.sh
-  test -n "${script_util-}" || script_util=$scriptpath/tools/sh
+  #test -n "$htd_log" || htd_log=$U_S/tool/sh/log.sh
+  test -n "${script_util-}" || script_util=$scriptpath/tool/sh
   test -n "${htd_log-}" || htd_log=$script_util/log.sh
   test -n "${verbosity-}" || verbosity=4
   htd_init || $htd_log error htd-main "During htd-init: $?" "$0" $? || return
@@ -4755,8 +4755,8 @@ htd_init()
   INIT_LIB="os sys std log str match src main args stdio vc std-ht shell"\
 " bash-uc ansi-uc"\
 " date str-htd logger-theme sys-htd vc-htd statusdir os-htd htd ctx-std" \
-. ${CWD:="$scriptpath"}/tools/main/init.sh ||  {
-    $htd_log error htd-init "E$?" "tools/main/init" $? || return
+. ${CWD:="$scriptpath"}/tool/main/init.sh ||  {
+    $htd_log error htd-init "E$?" "tool/main/init" $? || return
   }
 
   trap bash_uc_errexit ERR

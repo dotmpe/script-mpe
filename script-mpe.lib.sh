@@ -1,8 +1,8 @@
 
 ### Global shell function set ('lib') for this repository
 
-# TODO: move to tools/us/? as part, or lib?
-# TODO: derive from tools/u-s/
+# TODO: move to tool/us/? as part, or lib?
+# TODO: derive from tool/u-s/
 
 
 script_mpe_lib__init ()
@@ -61,7 +61,7 @@ $(sh_funbody "${2:?sh-fclone: Reference function name expected}")
 }
 
 
-. "${U_S:?}/tools/sh/parts/sh-mode.sh"
+. "${U_S:?}/tool/sh/part/sh-mode.sh"
 
 
 str_globmatch () # ~ <String> <Glob-pattern>
@@ -256,7 +256,7 @@ sh_adef () # ~ <Array> <Key>
 # Call sys-arr unless array var with name exists.
 sh_arr_assert () # ~ <Var-name> <Command...>
 {
-  sh_arr "$1" || sys_arr "$@"
+  sh_arr "$1" || sys_execmap "$@"
 }
 
 sh_arr_def () # ~ <Var-name>
@@ -296,11 +296,13 @@ sh_errusr ()
 
 sh_noerr ()
 {
+  : source "script-mpe.lib.sh"
   std_noerr "$@" || true
 }
 
 sh_caller ()
 {
+  : source "script-mpe.lib.sh"
   : "$(( ${1:-0} + 1 ))"
   if_ok "$(caller $_)" || return
   : "${_#* }"
@@ -308,11 +310,13 @@ sh_caller ()
   echo "$_"
 }
 
-sys_arr () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
+sys_execmap () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
 {
+  : source "script-mpe.lib.sh"
   if_ok "$("${@:2}")" &&
   <<< "$_" mapfile -t "$1"
 }
+# Copy: sys.lib.sh
 
 # system-exception-trace: Helper to format callers list including custom head.
 sys_exc_trc () # ~ [<Head>] ...
@@ -322,6 +326,7 @@ sys_exc_trc () # ~ [<Head>] ...
   do
     if_ok "$(caller $i)" && echo "  - $_" || break
   done
+  : source "script-mpe.lib.sh"
 }
 
 error_handler ()

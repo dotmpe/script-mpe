@@ -27,7 +27,7 @@ sh_build_array () # ~ <Var-name> <Key> <Cmd...>
   test -e "$cache" -a -e "$cachebn.key" &&
   test "${2:?}" = "$(<"$cachebn.key")" || {
     #stderr echo "(Re)generating cached array '$1'..."
-    sys_arr "${1:?}" "${@:3}" &&
+    sys_execmap "${1:?}" "${@:3}" &&
     if_ok "$(declare -p "${1:?}")" &&
     echo "declare -ga ${_:11}" >| "$cache" &&
     echo "${2:?}" >| "$cachebn.key" || return

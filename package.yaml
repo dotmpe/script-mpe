@@ -1,12 +1,12 @@
-- environments:
+- environment:
   - dev
-  tools:
+  tool:
     redo:
-      parts:
-        bases:
-        - tools/\$package_build_tool/parts
-        - \$UCONF/tools/\$package_build_tool/parts
-      targets:
+      part:
+        base:
+        - tool/\$package_build_tool/part
+        - \$UCONF/tool/\$package_build_tool/part
+      target:
         all: init check build test pack
         main: help all init check build test pack dist
   environment:
@@ -36,7 +36,7 @@
   #  || { compo eval "cd \$CWD && c-groups ht && ht-attributes"; }'
   #- '. \$CWD/.meta/attributes.sh'
   - '. \$CWD/.meta/package/main.sh'
-  - 'CWD=\$UCONF . "\${_ENV:="\$UCONF/tools/\${ENV_GROUP:="sh"}/env.sh"}" || return'
+  - 'CWD=\$UCONF . "\${_ENV:="\$UCONF/tool/\${ENV_GROUP:="sh"}/env.sh"}" || return'
   - 'test -z "${SCRIPTPATH:-}" || export PATH=$SCRIPTPATH:$PATH'
   main: script-2008b-mpe
   type: application/vnd.org.wtwta.project
@@ -81,7 +81,7 @@
       -r test-requirements.txt
     project-test: lib_load build-test && project_test "\$@"
     build-docker:
-    - ( cd tools/ci/build && drone exec )
+    - ( cd tool/ci/build && drone exec )
     - 'docker tag ubuntu-user-script:build freyr/ubuntu-user-script:build'
     - 'docker push freyr/ubuntu-user-script:build'
     - 'docker rmi ubuntu-user-script:build localhost:5000/ubuntu-user-script:build'
@@ -115,11 +115,11 @@
     build:
     - export SCR_SYS_SH=bash-sh
     - scriptname="init"
-    - . ./tools/sh/init.sh
-    - . ./tools/sh/env.sh
-    - . ./tools/ci/parts/init.sh
+    - . ./tool/sh/init.sh
+    - . ./tool/sh/env.sh
+    - . ./tool/ci/part/init.sh
     - scriptname=script
-    - . ./tools/ci/parts/build.sh
+    - . ./tool/ci/part/build.sh
     #build:
     #  - compo-seq c-groups tools -- tools-main generate > install-dependencies.sh
     test:
@@ -146,7 +146,7 @@
     list-tests: lib_load build-test && project_tests "\$@"
     tasks-update: htd tasks --Check-All-Tags --Check-All-Files
     tasks-list: tasks.py -t \$package_pd_meta_tasks_document list-issues
-    tasks: radical.py -u todo.txt --ignore-empty --exclude .git/info/exclude -X './tools/chrome/htdocs/*' .
+    tasks: radical.py -u todo.txt --ignore-empty --exclude .git/info/exclude -X './tool/chrome/htdocs/*' .
     host-init:
     - htd srv
     db-deinit:
@@ -154,11 +154,11 @@
     install:
     - export SCR_SYS_SH=bash-sh
     - scriptname="before-install"
-    - . ./tools/sh/init.sh
-    - . ./tools/sh/env.sh
-    - . ./tools/ci/parts/init.sh
+    - . ./tool/sh/init.sh
+    - . ./tool/sh/env.sh
+    - . ./tool/ci/part/init.sh
     - scriptname=install
-    - . ./tools/ci/parts/install.sh
+    - . ./tool/ci/part/install.sh
     test-feature: lib_load build-test && test_any_feature "\$@"
 
   rst:
@@ -176,7 +176,7 @@
       coops:
       - HTD
       - NODE-SITEFILE
-      grep: ./tools/sh/tags.sh
+      grep: ./tool/sh/tags.sh
       hub: ~/htdocs/to
       tags:
       - TODO
@@ -184,15 +184,15 @@
       - FIXME
       - BUG
       - NOTE
-      grep-filter: ./tools/sh/parts/tags-filter.sh
+      grep-filter: ./tool/sh/part/tags-filter.sh
       done: .done.txt
       document: todo.txt
     stats: unique-filelines unique-lines
     git-hooks:
-      pre-commit: ./tools/git-hooks/pre-commit.sh
+      pre-commit: ./tool/git-hooks/pre-commit.sh
       pre-commit-script: htd check
     init: './install-dependencies.sh git:init'
-    build: ':vagrant:tools/ci/vbox'
+    build: ':vagrant:tool/ci/vbox'
     run:
       behat-defs: './vendor/bin/behat:-dl'
       behat-specs: './vendor/bin/behat:--dry-run:--no-multiline:--no-expand:--tags:~@todo&&~@skip'

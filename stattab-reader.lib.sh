@@ -38,7 +38,7 @@ stattab_entry () # (:stab-*) ~
 {
   if_ok "$(stattab_print_STD_stat)" &&
   if_ok "$_ $stab_id: $stab_short" &&
-  if_ok "$_$([[ ! $stab_tags ]] || printf ' @%s' $stab_tags)" &&
+  if_ok "$_$([[ ! $stab_tags ]] || printf ' %s' $stab_tags)" &&
   if_ok "$_$([[ ! $stab_refs ]] || printf ' <%s>' $stab_refs)" &&
   if_ok "$_$([[ ! $stab_idrefs ]] || printf ' #%s' $stab_idrefs)" &&
   #if_ok "$_$([[ ! $stab_meta ]] || printf ' #%s' $stab_idrefs)" &&

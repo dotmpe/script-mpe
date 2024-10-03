@@ -28,7 +28,7 @@ todotxt_field_hash_tags ()
 
 todotxt_field_meta_tags ()
 {
-  $ggrep -oP '[^ ]+:[^ ]+'
+  $ggrep -oP '[A-Za-z0-9_-]+:[^ ]+'
 }
 
 todotxt_field_prios ()

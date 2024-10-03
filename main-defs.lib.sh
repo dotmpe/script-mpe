@@ -90,7 +90,7 @@ ${main_id}_main_init()
   local scriptname_old=\$scriptname; export scriptname=$1-main-init
 
 ${main_init-}
-  ${main_init_env-} . \${CWD:="\$scriptpath"}/tools/main/init.sh || return
+  ${main_init_env-} . \${CWD:="\$scriptpath"}/tool/main/init.sh || return
   # -- $1 box init sentinel --
   export scriptname=\$scriptname_old
 }

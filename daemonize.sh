@@ -198,7 +198,7 @@ daemonize_init()
   local scriptname_old=$scriptname; export scriptname=daemonize-init
   test -z "$BOX_INIT" || return 1
   INIT_ENV="init-log strict 0 0-src 0-u_s 0-1-lib-sys ucache scriptpath box" \
-    . ${CWD:="$scriptpath"}/tools/main/init.sh || return
+    . ${CWD:="$scriptpath"}/tool/main/init.sh || return
   lib_load logger-theme main box darwin match || return
   # -- daemonize box init sentinel --
   export scriptname=$scriptname_old
