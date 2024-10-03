@@ -171,13 +171,15 @@ stderr () # ~ <Cmd <...>>
 }
 # Copy: std-uc.lib
 
-stderr_exit () # ~ <Status=$?> <...> # Verbosely exit passing status code,
+stderr_exit () # ~ <Status=$?> [<Exit-msg>] [<Nz-exit-msg>] <...> # Verbosely exit passing status code,
 # with status message on stderr. See also std-v-exit.
 {
   local stat=${1:-$?}
-  stderr echo "$([[ 0 -eq $stat ]] &&
-    printf 'Exiting\n' ||
-    printf 'Exiting (status %i)\n' $stat)" "$stat"
+  if_ok "$([[ $stat -eq 0 ]] &&
+    printf "${2:-"Exiting\\n"}" ||
+    printf "${3:-"Exiting (status %i)\\n"}" $stat)" &&
+  stderr echo "$_" ||
+    stderr printf 'Failed formatting status (E%i)\n' "$?"
   exit $stat
 }
 
@@ -327,19 +329,6 @@ sys_exc_trc () # ~ [<Head>] ...
     if_ok "$(caller $i)" && echo "  - $_" || break
   done
   : source "script-mpe.lib.sh"
-}
-
-error_handler ()
-{
-  test $# -gt 0 || return ${_E_GAE:-3}
-  test $# -eq 1 && {
-    echo "$1"
-    return
-  }
-  test $# -eq 2 && {
-    echo "$1"
-    return $2
-  }
 }
 
 #

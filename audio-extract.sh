@@ -1,9 +1,9 @@
 set -euo pipefail
 
-test $# -gt 0 || stderr error_handler "Need one filename argument" 2
+test $# -gt 0 || stderr_exit 2 "" "Need one filename argument"
 test $# -ge 1 && {
   test -e "$1" || {
-    stderr error_handler "Find basename for '$1'" 2
+    stderr_exit 2 "" "Find basename for '$1'"
   }
 }
 
@@ -11,17 +11,17 @@ test -z "${cext:=${2:-}}" || convert=true
 
 $LOG notice : "Inputs: ..."
 file -s "${1%%.*}".* ||
-  stderr error_handler "Unexpected E$?" $?
+  stderr_exit $? "" "Unexpected E$?"
 
 fn_music=
 ! "${convert:-false}" && {
   fn_a=${1%.webm}.audio.webm
   test ! -e "$fn_a" || {
-    stderr error_handler "Audio container already exists" 3
+    stderr_exit 3 "" "Audio container already exists"
   }
 } || {
   test -e ~/Downloads -a -e ~/Music -a -e ~/Videos ||
-    stderr error_handler "Unexpected home" 3
+    stderr_exit 3 "" "Unexpected home"
   fn_a=${1%.webm}.$cext
   str_wordmatch Music ${fn_a//\// } && {
     : "${fn_a:?}"
@@ -30,7 +30,7 @@ fn_music=
     : "${_//Videos/Music\/Media\/Audio}"
     fn_music=$_
     test -e "$(dirname "$fn_music")" ||
-      stderr error_handler "Expected dest dir" 3
+      stderr_exit 3 "" "Expected dest dir"
     # XXX: would like to handle alt basedirs
     #fnmatch "*/*" "$_" ||
   }
@@ -52,4 +52,4 @@ ffmpeg \
 
 $LOG notice : "Results: ..."
 file -s "${fn_music:-${fn_a:?}}" ||
-  stderr error_handler "Unexpected E$? at file $_" $?
+  stderr_exit $? "" "Unexpected E$? at file $_"

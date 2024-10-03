@@ -19,29 +19,182 @@
 # and Id for resulting set of symbols, the Id then is used to find a sh-sym-ref
 # handler specific to that type of symbol.
 declare -gA sh_sym_det=(
-  [shell-lang-cmd]="command -v "
-  [shell-lang-var]="declare -p"
-  [shell-lang-ac]="complete -p"
+  [shell-lang-name]="type -t"
+  [shell-lang-cmd]="sys_os_name" # As command -v but only return where type is file
   [sys-os-path]="sys_os_path"
+  [shell-lang-var]="std_noerr declare -p" # aka sh-vspec
+  [shell-lang-ac]="complete -p"
   [sys-os-package]="sys_os_package" # Dont know of exact-match query for dpkg -S
 )
 
+sh_sym_ref () # ~ <Names...>
+{
+  : source "sh-sym.sh"
+  local __{cb{,i},sym,tp{,d}}
+  for __sym in "${@:?"Expected one or more symbols"}"
+  do
+    for __cbi in ${!sh_sym_det[*]}
+    do
+      ! __tpd=$(std_noerr ${sh_sym_det[$__cbi]} "$__sym") || {
+        #stderr echo "found, '$__cbi' has symbol '$__sym' declared as '$__tpd'"
+        sh_sym_ref__${__cbi//[^A-Za-z0-9_]/_}
+      }
+    done
+  done | sh_sym_refpager
+}
+# Copy: Shell/symbol-reference
+
+sh_sym_refpager ()
+{
+  IF_LANG=bash ${REFPAGER:-${PAGER:?}}
+}
+
+sh_sym_ref__shell_lang_ac ()
+{
+  echo "$__tpd"
+}
+
+sh_sym_ref__shell_lang_cmd ()
+{
+  echo "${__tpd%%: *}"
+  echo "# ${__tpd#*: }"
+  #if_ok "$(ac_spec "$__sym" | sed 's/^/  /')" &&
+  #echo -e "\nCompletions:\n$_"
+}
+
+sh_sym_ref__shell_lang_name ()
+{
+  case "$__tpd" in
+  ( alias )
+      if_ok "$(sh_als_exp "$__sym")" || return
+      als="$_"
+      : "${als%% *}"
+      : "${_## }"
+      test "$als" = "$_" && {
+        echo "alias $__sym=$als"
+        sh_sym_ref "$als" || return
+      } || {
+        echo "alias $__sym='${BASH_ALIASES[$__sym]}'"
+        echo "# alias \`$__sym' expands to script:"
+        echo "$als" | sed 's/^/   /'
+      }
+      ! if_ok "$(which -- "$__sym" 2>/dev/null)" ||
+        echo "# alias shadows \`$__sym' exec $_"
+    ;;
+  ( keyword | builtin )
+      if_ok "$(help "$__sym")" && echo -e "Usage: $_\n" || r=$?
+      echo " \`$__sym' is a shell $__tp"
+      #! if_ok "$(ac_spec "$__sym" | sed 's/^/  /')" ||
+      #  echo -e "\nCompletions:\n$_"
+      #! if_ok "$(sh_vspec "$__sym")" ||
+      #  echo -e "\nVariable:\n  $_"
+      return ${r-}
+    ;;
+  ( file )
+        [[ -x "$file" ]] && {
+          "$__sym" --help 2>&1 || r=$?
+        }
+        #test "$__sym" = "$(command -v $__sym)" ||
+        #  echo -e "\n \`$__sym' is exec $_"
+        #! if_ok "$(ac_spec "${__sym##*/}" | sed 's/^/  /')" ||
+        #  echo -e "\nCompletions:\n$_"
+        #! if_ok "$(sh_vspec "$__sym")" ||
+        #  echo -e "\nVariable:\n  $_"
+        return ${r-}
+    ;;
+  ( function )
+      local srcln srcfn
+      if_ok "$(declare -F "$__sym")" &&
+      read -r _ srcln srcfn <<< "$_" &&
+      {
+        echo "# Source <$srcfn> line $srcln"
+        declare -f "$__sym"
+        #ac_spec "$__sym" || true
+        sh_sym_fexp "$__sym"
+      }
+    ;;
+
+  ( * )
+      $LOG alert : "Symbol type?" "$__tpd:$__sym" 1
+  esac
+}
+
+sh_sym_ref__shell_lang_var ()
+{
+  : "$__tpd
+# Length: $( declare -n __symval=$__sym
+sh_arr "$__sym" &&  {
+  echo "${#__symval[@]}"
+} || {
+  echo "${#__symval}"
+})" &&
+  echo "$_"
+}
+
+sh_sym_ref__sys_os_path ()
+{
+  echo "${__tpd%%: *} ()"
+  echo "{"
+  echo "  : description \"${__tpd#*: }\""
+  stat --format '  : access "%A %U(%u):%G(%g)"
+  : size %s' "${__tpd%: *}"
+  echo "}"
+}
+
+sh_sym_ref__sys_os_package ()
+{
+  echo "# $__tpd"
+}
+
+# Print export line for function, if found exported for current env
+sh_sym_fexp () # ~ <Name>
+{
+  : source "sh-sym.sh"
+  if_ok "$(printf 'BASH_FUNC_%s%%%%=() { ' "${1:?}")" &&
+  env | grep -q "$_" || return 0
+  echo "declare -fx $1"
+}
+
+sh_vspec () # ~ <Shell-sym> # Print declaration for shell variable
+{
+  : source "sh-sym.sh"
+  declare -p "${1:?}" 2>/dev/null
+}
+
 std_if ()
 {
+  : source "sh-sym.sh"
   if_ok "$("$@")" && echo "$_"
 }
 
 sys_os_package ()
 {
   : "${1:?"sys-os-package: symbol expected"}"
+  : source "sh-sym.sh"
   [[ ${1:0:1} = / ]] && : "$1" || if_ok "$(command -v "$1")" || return
   test -n "$_" &&
   dpkg -S "$_"
 }
 
+sys_os_name ()
+{
+  : "${1:?"sys-os-name: command name expected"}"
+  : source "sh-sym.sh"
+  [[ ${1:0:1} = / ]] && : "$1" || {
+    local __path
+    __path="$(command -v "$1")" &&
+    [[ ${__path:0:1} = / ]] || return
+    : "$__path"
+  }
+  test -n "$_" &&
+  test -x "$_" &&
+  echo "$_"
+}
+
 sys_os_path ()
 {
-  [[ ${1:0:1} = / ]] && : "$1" || if_ok "$(sys_os_path_lookup "$1")" || return
+  : "${1:?"sys-os-path: name or path reference expected"}"
+  test "${_:0:1}" = / ]] && : "$1" || if_ok "$(sys_os_path_lookup "$1")" || return
   test -n "$_" &&
   file -s "$_"
 }
@@ -55,154 +208,13 @@ sys_os_path_lookup ()
   local __bd
   local -a __path
   sys_execmap __path echo "${PATH//:/$'\n'}" &&
-  for __bd in "${__path[@]}"
+  for __bd in "$PWD" "${__path[@]}"
   do
-    [[ -e $__bd/$1 ]] || continue
+    [[ -e "$__bd/$1" || -h "$__bd/$1" ]] || continue
     echo "$__bd/$1"
     return
   done
   false
-}
-
-sh_sym_ref__sys_os_package ()
-{
-  false
-}
-
-sh_sym_ref () # ~ <Names...>
-{
-  : source "sh-sym.sh"
-  local __{cb{,i},sym,tp{,d}}
-  for __sym in "$@"
-  do
-    stderr echo sym: $__sym
-    for __cbi in ${!sh_sym_det[*]}
-    do
-      stderr echo cbi: $__cbi
-      ! __tpd=$(std_noerr ${sh_sym_det[$__cbi]} "$__sym") || {
-        stderr echo "found '$__cbi' symbol '$__sym' declared as '$__tpd'"
-      }
-    done
-    continue
-
-    ! __tp=$(type -t "$__sym") || {
-      case "$__tp" in
-        ( keyword | builtin )
-            {
-               if_ok "$(help "$__sym")" && echo -e "Usage: $_\n" || r=$?
-               echo " \`$__sym' is a shell $__tp"
-               ! if_ok "$(ac_spec "$__sym" | sed 's/^/  /')" ||
-                 echo -e "\nCompletions:\n$_"
-               ! if_ok "$(sh_vspec "$__sym")" ||
-                 echo -e "\nVariable:\n  $_"
-               return ${r-}
-            } |
-              IF_LANG=help \
-              ${REFPAGER:-${PAGER:?}}
-          ;;
-        ( alias | function )
-            sh_sym_typeset "$__sym" |
-              IF_LANG=bash \
-              ${REFPAGER:-${PAGER:?}}
-          ;;
-        ( file )
-            {
-              "$__sym" --help 2>&1 || r=$?
-              test "$__sym" = "$(command -v $__sym)" ||
-                echo -e "\n \`$__sym' is exec $_"
-              ! if_ok "$(ac_spec "${__sym##*/}" | sed 's/^/  /')" ||
-                echo -e "\nCompletions:\n$_"
-               ! if_ok "$(sh_vspec "$__sym")" ||
-                 echo -e "\nVariable:\n  $_"
-              return ${r-}
-            } | IF_LANG=help ${REFPAGER:-${PAGER:?}}
-          ;;
-        ( * )
-            $LOG alert : "Symbol type?" "$__tp:$__sym" 1
-      esac || return
-      continue
-    }
-
-    ! if_ok "$(sh_vspec "$__sym")" || {
-      : "$_
-# Length: $( declare -n a=$__sym
-sh_arr "$__sym" &&  {
-  echo "${#a[@]}"
-} || {
-  echo "${#a}"
-})"
-      <<< "$_" IF_LANG=bash ${REFPAGER:-${PAGER:?}}
-    }
-  done
-}
-# Copy: Shell/symbol-reference
-
-
-# Output script for function or alias, followed by a comment about the type. If
-# the alias is single name, then recurse to that and display its type as well.
-# The registered autocompletions for <name> (interactive mode only) are listed
-# also. This does not look for variable names as well, as nothing special beyond
-# what ``declare`` can print is known about those (see symbol-reference).
-sh_sym_typeset () # ~ <Command-name>
-{
-  : source "sh-sym.sh"
-  test $# -eq 1 || return ${_E_GAE:-193}
-  sh_fun "${1:?}" && {
-    local srcln srcfn
-    if_ok "$(declare -F "$1")" &&
-    read -r _ srcln srcfn <<< "$_" &&
-    {
-      echo "# Source <$srcfn> line $srcln"
-      declare -f "$1"
-
-      ac_spec "$1" || true
-
-      sh_sym_fexp "$1"
-    }
-
-  } || {
-    sh_als "$1" && {
-      if_ok "$(sh_als_exp "$1")" || return
-      als="$_"
-      : "${als%% *}"
-      : "${_## }"
-      test "$als" = "$_" && {
-        sh_sym_typeset "$als" || return
-        echo "alias $1=$als"
-      } || {
-        echo "alias $1='${BASH_ALIASES[$1]}'"
-        echo "# alias \`$1' expands to script:"
-        echo "$als" | sed 's/^/   /'
-      }
-      ! if_ok "$(which -- "$1" 2>/dev/null)" ||
-        echo "# shadows \`$1' exec $_"
-      ac_spec "$1"
-
-    } || {
-      #sh_var "$1" && {
-      #}
-
-      if_ok "$(type "$1")" || return
-      : "$_
-$(ac_spec "$1" || true)"
-      echo "# $_"
-    }
-  }
-}
-# Copy: Shell/symbol-typeset
-
-# Print export line for function, if found exported for current env
-sh_sym_fexp () # ~ <Name>
-{
-  : source "sh-sym.sh"
-  if_ok "$(printf 'BASH_FUNC_%s%%%%=() { ' "${1:?}")" &&
-  env | grep -q "$_" || return 0
-  echo "declare -fx $1"
-}
-
-sh_vspec () # ~ <Shell-sym> # Print declaration for shell variable
-{
-  declare -p "${1:?}" 2>/dev/null
 }
 
 #
