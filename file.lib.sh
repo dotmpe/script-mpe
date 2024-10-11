@@ -158,7 +158,7 @@ file_size_histogram()
 
 file_find()
 {
-  foreach "$@" | catalog_sha2list /dev/fd/1 | file_find_by_sha2list
+  foreach_item "$@" | catalog_sha2list /dev/fd/1 | file_find_by_sha2list
 }
 
 file_find_by_sha2list() # SHA2LIST...
@@ -168,7 +168,7 @@ file_find_by_sha2list() # SHA2LIST...
 
 file_find_by_sha256e()
 {
-  foreach "$@" | while read -r KEY
+  foreach_item "$@" | while read -r KEY
   do
     annices_content_lookupbykey "$KEY" || return
   done
@@ -182,7 +182,7 @@ file_drop()
   git="$( go_to_dir_with .git && pwd )" || return 62
   # XXX base="$( go_to_dir_with .cllct && pwd )" || return 63
 
-  foreach "$@" | while read -r fn
+  foreach_item "$@" | while read -r fn
   do
     {
       test -n "$annex" &&

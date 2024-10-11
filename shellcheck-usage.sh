@@ -19,7 +19,7 @@ wiki () # ~ <SCREF> # Dump wikipage to text on stdout
 ex_quote_args ()
 {
   set -- "$(echo "Line 1"; echo "Line 2"; echo "Line 3")"
-  foreach "$@"
+  foreach_item "$@"
   echo argc:$#
 }
 

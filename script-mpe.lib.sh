@@ -39,8 +39,15 @@ fun_w1cnz () { test -n "$("$@")" && echo "$_"; }
 
 ignore () { "$@" || true; }
 
+sh_fun () #
+{
+  : source "script-mpe.lib.sh"
+  declare -F "${1:?}" 2>/dev/null >&2
+}
+
 sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body
 {
+  : source "script-mpe.lib.sh"
   : "${1:?sh-funbody: Function name expected}"
   if_ok "$(declare -f "$_")" || return
   : "${_#* () }"
@@ -53,6 +60,7 @@ sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body
 
 sh_fclone () # ~ <New-name> <Copy-ref> # alias:fun-clone
 {
+  : source "script-mpe.lib.sh"
   : "${1:?sh-fclone: New function name expected}"
   if_ok "$_ () {
 $(sh_funbody "${2:?sh-fclone: Reference function name expected}")
@@ -72,6 +80,7 @@ fun_def fnmatch 'str_globmatch "${2:?fnmatch: \$2 not set}" "${1:?fnmatch: \$1 n
 
 str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
 {
+  : source "script-mpe.lib.sh"
   [[ 2 -le $# ]] || return ${_E_GAE:-193}
   case " ${*:2} " in
     ( *" ${1:?} "*) ;; #  | *" ${1:?} " | " ${1:?} "*) ;;
@@ -81,6 +90,7 @@ str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
 # Helper to generate true or false command.
 std_bool () # ~ <Cmd...> # Print true or false, based on command status
 {
+  : source "script-mpe.lib.sh"
   "$@" && printf true || {
     [[ 1 -eq $? ]] || BOOL= : ${BOOL:?Boolean status expected: E$_: $*}
     printf false
@@ -93,6 +103,7 @@ fun_def not '! "$@";'
 # std_bool to test for 0 (true) or 1 (false) value, and prints either command.
 std_bit ()
 {
+  : source "script-mpe.lib.sh"
   [[ $# -eq 1 && 2 -gt "${1:-2}" ]] || return ${_E_GAE:-193}
   std_bool test 1 -eq "${1:?}"
 }
@@ -100,37 +111,44 @@ std_bit ()
 # XXX: match command status against globspec.
 std_ifstat () # ~ <Spec> <Cmd...>
 {
+  : source "script-mpe.lib.sh"
   "${@:2}"
   str_globmatch "$?" "$1"
 }
 
 std_noerr ()
 {
+  : source "script-mpe.lib.sh"
   "$@" 2>/dev/null
 }
 
 std_noout ()
 {
+  : source "script-mpe.lib.sh"
   "$@" >/dev/null
 }
 
 std_quiet () # ~ <Cmd...> # Silence all output (std{out,err})
 {
+  : source "script-mpe.lib.sh"
   "$@" >/dev/null 2>&1
 }
 
 std_nz () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only) if command returned zero-status
 {
+  : source "script-mpe.lib.sh"
   ! "$@"
 }
 
 std_verbose () # ~ <Message ...> # Print message
 {
+  : source "script-mpe.lib.sh"
   stderr echo "$@" || return 3
 }
 
 std_v_exit () # ~ <Cmd ...> # Wrapper to command that exits verbosely
 {
+  : source "script-mpe.lib.sh"
   "$@"
   stderr_exit $?
 }
@@ -185,6 +203,7 @@ stderr_exit () # ~ <Status=$?> [<Exit-msg>] [<Nz-exit-msg>] <...> # Verbosely ex
 
 stderr_v_exit () # ~ <Message> [<Status>] # Exit shell after printing message
 {
+  : source "script-mpe.lib.sh"
   local stat=$?
   stderr echo "$1" || return 3
   exit ${2:-$stat}
@@ -203,6 +222,7 @@ fun_def stderr_ \
 # sleep-v.
 stderr_sleep_int ()
 {
+  : source "script-mpe.lib.sh"
   local last=$_
   : "${sleep_q:=$(bool not ${sleep_v:-true})}"
   ! ${sleep_v:-true} ||
@@ -221,6 +241,7 @@ stderr_sleep_int ()
 
 stderr_stat ()
 {
+  : source "script-mpe.lib.sh"
   local last=$_ stat=${1:-$?} ref=${*:2}
   : "${ref:-$last}"
   test 0 -eq $stat &&
@@ -231,6 +252,7 @@ stderr_stat ()
 
 sh_var_incr ()
 {
+  : source "script-mpe.lib.sh"
   local v=${!1:-0}
   declare -g ${1:?}=$(( v + 1 ))
 }
@@ -238,18 +260,21 @@ sh_var_incr ()
 # Store given or previous last argument value at variable
 sh_var_setval () # ~ <Var-name> [<Value-or-last>]
 {
+  : source "script-mpe.lib.sh"
   declare -g ${1:?}="${2:-$_}";
 }
 
 # Copy value from to new
 sh_var_copy () # ~ <New-var> <From-ref>
 {
+  : source "script-mpe.lib.sh"
   declare -g ${1:?}="${!2}"
 }
 
 # Check for array variable, and for value set at key (zerowidth or otherwise)
 sh_adef () # ~ <Array> <Key>
 {
+  : source "script-mpe.lib.sh"
   sh_arr "${1:?}" &&
   : "${1:?}[${2:?}]" &&
   test "(unset)" != "${!_:-(unset)}"
@@ -258,11 +283,13 @@ sh_adef () # ~ <Array> <Key>
 # Call sys-arr unless array var with name exists.
 sh_arr_assert () # ~ <Var-name> <Command...>
 {
+  : source "script-mpe.lib.sh"
   sh_arr "$1" || sys_execmap "$@"
 }
 
 sh_arr_def () # ~ <Var-name>
 {
+  : source "script-mpe.lib.sh"
   sh_arr "${1:?}" &&
   declare -n arr=${1:?} &&
   test "${arr[*]+set}" = "set"
@@ -270,6 +297,7 @@ sh_arr_def () # ~ <Var-name>
 
 sh_arr_len () # ~ <Var-name>
 {
+  : source "script-mpe.lib.sh"
   #sh_arr_def "${1:?}" &&
   declare -n arr=${1:?} &&
   test "${arr[*]+set}" = "set" &&

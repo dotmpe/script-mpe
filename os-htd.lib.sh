@@ -357,13 +357,13 @@ filter_content_lines () # (s) ~ [<Marker-Regex>] # Remove marked or empty lines 
 
 filter_dirs ()
 {
-  foreach "$@" | filter os_isdir
+  foreach_item "$@" | filter os_isdir
 }
 
 filter_files ()
 {
   #act=filter_file s="" p="" foreach_do "$@"
-  foreach "$@" | filter os_isfile
+  foreach_item "$@" | filter os_isfile
 }
 
 # Strip comments, including line-continuations.
@@ -423,7 +423,7 @@ find_one () # ~ DIR NAME
 #
 # If this routine is given no data is hangs indefinitely. It does not have
 # indicators for data availble at stdin.
-foreach () # [(s)] ~ ['-' | <Arg...>]
+foreach_item () # [(s)] ~ ['-' | <Arg...>]
 {
   {
     test -n "$*" && {
@@ -446,10 +446,10 @@ foreach () # [(s)] ~ ['-' | <Arg...>]
 # to line. See foreach-do for other details.
 foreach_addcol ()
 {
-  foreach "$@" | read_addcol
+  foreach_item "$@" | read_addcol
 }
 
-# Read `foreach` lines and act, default is echo ie. same result as `foreach`
+# Read `foreach-item` lines and act, default is echo ie. same result as `foreach-item`
 # but with p(refix) and s(uffix) wrapped around each item produced. The
 # unwrapped loop-var is _S.
 # The return status of action is not handled.
@@ -458,7 +458,7 @@ foreach_do ()
   test -n "${p-}" || local p= # Prefix string
   test -n "${s-}" || local s= # Suffix string
   test -n "${act-}" || local act="echo"
-  foreach "$@" | while ${read:-read -r} _S ; do S="$p$_S$s" && $act "$S" ; done
+  foreach_item "$@" | while ${read:-read -r} _S ; do S="$p$_S$s" && $act "$S" ; done
 }
 
 # See -addcol and -do.
@@ -467,7 +467,7 @@ foreach_inscol ()
   test -n "${p-}" || local p= # Prefix string
   test -n "${s-}" || local s= # Suffix string
   test -n "${act-}" || local act="echo"
-  foreach "$@" | while ${read:-read -r} _S
+  foreach_item "$@" | while ${read:-read -r} _S
     do S="$p$_S$s" && printf -- '%s\t%s\n' "$($act "$S")" "$S" ; done
 }
 

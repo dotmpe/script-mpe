@@ -141,7 +141,7 @@ doc_main_files()
 # The cksums list is build by htd-rst-doc-create-update for new boilerplates
 htd_doc_cleanup_generated()
 {
-  foreach "$cksums" | {
+  foreach_item "$cksums" | {
       local f cksum new_ck
       while test $# -gt 0; do read cksum || {
             error "No cksums left for '$1'" ; return 1 ; }

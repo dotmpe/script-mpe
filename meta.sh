@@ -74,7 +74,7 @@ meta_sh_context () # ~ [ <Paths...> ] # List attributes at paths and parents
     shift
   done
 
-  for path in $(foreach "${!metapaths[@]}" | sort )
+  for path in $(foreach_item "${!metapaths[@]}" | sort )
   do
     attr="${metapaths[$path]:-}"
     test -n "$attr" || continue
