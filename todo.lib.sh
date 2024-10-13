@@ -2,7 +2,7 @@
 
 todo_lib__load ()
 {
-  #sh_isset ggrep || . $scriptpath/tools/sh/parts/env-0-1-lib-sys.sh
+  #sh_isset ggrep || . $scriptpath/tool/sh/part/env-0-1-lib-sys.sh
   : "${ggrep:=grep}"
 }
 

@@ -46,7 +46,7 @@ test -z "$TRAVIS_BRANCH" || {
 
 set +o nounset # NOTE: apply nounset only during init
 # XXX: sync with current user-script tooling; +user-scripts
-# : "${script_env_init:=$CWD/tools/sh/parts/env.sh}"
+# : "${script_env_init:=$CWD/tool/sh/part/env.sh}"
 # . "$script_env_init"
 lib_load projectenv
 
@@ -85,7 +85,7 @@ BRANCH_NAMES="$(echo $(git ls-remote origin | grep -F "$GIT_CHECKOUT" | sed 's/.
 
 project_env_bin node npm lsof
 
-. "$script_util/parts/env-test-feature.sh"
+. "$script_util/part/env-test-feature.sh"
 
 TAP_COLORIZE="script-bats.sh colorize"
 
@@ -216,11 +216,11 @@ test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 export PYTHONPATH="$HOME/lib/py:$PYTHONPATH"
 
 
-#. $script_util/parts/env-basher.sh
-#. $script_util/parts/env-logger-stderr-reinit.sh
-#. $script_util/parts/env-github.sh
+#. $script_util/part/env-basher.sh
+#. $script_util/part/env-logger-stderr-reinit.sh
+#. $script_util/part/env-github.sh
 # XXX: user-env?
-#. $script_util/parts/env-scriptpath.sh
+#. $script_util/part/env-scriptpath.sh
 
 
 ### Env of build job parameterisation

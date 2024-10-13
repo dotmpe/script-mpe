@@ -3,13 +3,26 @@
 ## An helper script to deal with the X system user session
 
 
-lock ()
+i3wm_userlock ()
 {
   local bg=${lock_bg:-}
   test -n "$bg" || {
     test "${CS:-dark}" = "dark" && bg="#121212" || bg="#767676"
   }
   i3lock -f -e -c "$bg"
+}
+
+i3wm_userlogoff ()
+{
+  i3-nagbar -t warning \
+    -m 'You pressed the exit shortcut. Do you really want to exit i3? This will '\
+' end your X session.' \
+    -B 'Yes, exit i3' 'i3-msg exit'
+}
+
+i3wm_exitnow ()
+{
+  i3-msg exit
 }
 
 pm_suspend_dbus ()
@@ -81,8 +94,9 @@ true "${SYS_PM:=dbus}"
 
 case "${1:-}" in
 
-    ( "lock" ) lock ;;
-    ( "now"|"session" ) i3-msg exit ;;
+    ( "lock" ) i3wm_userlock ;;
+    ( "logout" ) i3wm_userlogoff ;;
+    ( "now" | "session" ) i3wm_exit_now ;;
 
     ( "switch" ) dm-tool switch-to-greeter ;;
     ( "guest" ) dm-tool switch-to-guest ;;

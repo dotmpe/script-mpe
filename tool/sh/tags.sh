@@ -7,7 +7,7 @@ test $SHLVL -gt ${lib_lvl:-$SHLVL} && status=return || {
   lib_lvl=$SHLVL && set -eu -o posix && status=exit
 }
 
-scriptname=tools/sh/tags
+scriptname=tool/sh/tags
 # npm bash-parser cannot handle expr with nested subshells
 #test -n "$scriptpath" || scriptpath="$(dirname_ 3 "$0")"
 test -n "${verbose-}" || verbose=true
@@ -17,7 +17,7 @@ lname=script-mpe
 test -n "${scriptpath-}" || scriptpath=$(dirname "$(dirname "$(dirname "$0")")")
 
 type lib_load 2> /dev/null 1> /dev/null ||
-    util_mode=lib . $scriptpath/tools/sh/init-wrapper.sh
+    util_mode=lib . $scriptpath/tool/sh/init-wrapper.sh
 
 lib_load sys os std str shell log os-htd sys-htd str-htd
 INIT_LOG=$LOG lib_init
@@ -73,7 +73,7 @@ test -e .git &&
   "
 
 type sh_include 2> /dev/null 1> /dev/null ||
-  CWD=$PWD . $U_S/tools/sh/parts/include.sh
+  CWD=$PWD . $U_S/tool/sh/part/include.sh
 
 sh_include print-err
 
@@ -107,4 +107,4 @@ test $max -ge $cruft && {
 trueish "$exit" && $status $ret || $status 0
 
 # Sync:
-# Id: script-mpe/0.0.4-dev tools/sh/tags.sh
+# Id: script-mpe/0.0.4-dev tool/sh/tags.sh

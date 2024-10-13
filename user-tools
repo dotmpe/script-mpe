@@ -352,7 +352,7 @@ user_tools_loadenv ()
     case "$1" in
 
       #( sh-mode )
-      #      user_script_libload "${U_S:?}"/tools/sh/parts/sh-mode.sh ;;
+      #      user_script_libload "${U_S:?}"/tool/sh/part/sh-mode.sh ;;
       #( error-handler )
       #      declare -f sh_mode >/dev/null && {
       #        sh_mode dev || return

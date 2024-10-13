@@ -89,7 +89,7 @@ main ()
   nmenu=9menu\ -font\ "$xfont"
   bg=bg.sh
 
-  . "${US_BIN:=${HOME:?}/bin}/tools/sh/parts/fnmatch.sh"
+  . "${US_BIN:=${HOME:?}/bin}/tool/sh/part/fnmatch.sh"
 
   main_act "$@"
 }

@@ -165,7 +165,7 @@ context_sh_files () # (y) ~ <Switch:-list> <...>
 
   ( p | preview )
       shopt -s expand_aliases &&
-      . ${US_BIN:?}/tools/sh/parts/fzf.sh &&
+      . ${US_BIN:?}/tool/sh/part/fzf.sh &&
       # Alias will not resolve yet unless we return to root first, so just
       # resolve the command by hand
       context_files | eval "IF_LANG=todo.txt $(sh_als_cmd fzf-preview)"

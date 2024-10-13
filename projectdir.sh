@@ -1435,7 +1435,7 @@ pd_preload()
   true "${PD_ENV:="$scriptpath/.meta/package/envs/main.sh"}"
   CWD="$scriptpath"
   test ! -e $PD_ENV || { source $PD_ENV || return; }
-  test -n "${LOG-}" -a -x "${LOG-}" || export LOG=$CWD/tools/sh/log.sh
+  test -n "${LOG-}" -a -x "${LOG-}" || export LOG=$CWD/tool/sh/log.sh
   : "${EDITOR:=nano}"
   : "${hostname:=$(hostname -s)}"
   : "${uname:=$(uname -s)}"
@@ -1707,10 +1707,10 @@ pd_subcmd_unload()
 pd_init()
 {
   pd_preload || exit $?
-  . $scriptpath/tools/sh/parts/env-0-1-lib-sys.sh
-  . $scriptpath/tools/sh/init.sh || return
+  . $scriptpath/tool/sh/part/env-0-1-lib-sys.sh
+  . $scriptpath/tool/sh/init.sh || return
   lib_load str sys os std stdio src match main args str-htd std-ht sys-htd htd
-  # XXX: . $scriptpath/tools/sh/box.env.sh
+  # XXX: . $scriptpath/tool/sh/box.env.sh
   #box_run_sh_test
   lib_load meta box package src-htd
   # -- pd box init sentinel --

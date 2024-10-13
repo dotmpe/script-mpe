@@ -9,7 +9,7 @@ test -z "${SCRIPTPATH-}" ||
 
 for func_dep in fnmatch trueish remove_dupes unique_paths script_package_include
 do test "$(type -t $func_dep 2>/dev/null)" = function && continue
-  . $U_S/tools/sh/parts/${func_dep//_/-}.sh
+  . $U_S/tool/sh/part/${func_dep//_/-}.sh
 done
 
 test -n "${SH_EXT-}" || {

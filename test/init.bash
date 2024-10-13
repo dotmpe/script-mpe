@@ -91,9 +91,9 @@ test_env_load()
   . ~/.local/etc/profile.d/_local.sh
 
   true "${U_S:="/srv/project-local/user-scripts"}"
-  . "$sh_tools/parts/fnmatch.sh"
-  . "$U_S/tools/sh/parts/include.sh"
-  . "$U_S/tools/ci/parts/print-err.sh"
+  . "$sh_tools/part/fnmatch.sh"
+  . "$U_S/tool/sh/part/include.sh"
+  . "$U_S/tool/ci/part/print-err.sh"
 
   . "$U_S/contexts/ctx-ctx.lib.sh" &&
   ctx_lib_load
@@ -128,8 +128,8 @@ test_env_load()
     $INIT_LOG "debug" "" "Loading env-part" "$env_d"
     #echo sh_include $env_d >&2
     #sh_include $env_d
-    #part=$ci_tools/parts/$env_d.sh
-    #test -e "$part" || part=$sh_tools/parts/$env_d.sh
+    #part=$ci_tools/part/$env_d.sh
+    #test -e "$part" || part=$sh_tools/part/$env_d.sh
     #. "$part" ||
     #    $INIT_LOG "warn" "" "Failed env-part"  "$? $env_d"
   done
@@ -137,7 +137,7 @@ test_env_load()
 
   test -n "$base" || return 12 # NOTE: sanity
   test -n "$INIT_LOG" || return 109 # NOTE: sanity
-  $INIT_LOG "info" "" "Env initialized from parts"
+  $INIT_LOG "info" "" "Env initialized from part"
 }
 
 # Set env and other per-specfile init
@@ -176,9 +176,9 @@ init() # ( 0 | 1 [~ [~ [~]]] )
   test -z "$lib_loaded" || return 105
 
   test -n "$CWD" || CWD=$(pwd -P)
-  test -n "$sh_tools" || sh_tools=$CWD/tools/sh
+  test -n "$sh_tools" || sh_tools=$CWD/tool/sh
   script_util=$sh_tools
-  test -n "$ci_tools" || ci_tools=$CWD/tools/ci
+  test -n "$ci_tools" || ci_tools=$CWD/tool/ci
   test -d "$sh_tools" || return 103 # NOTE: sanity
 
   # Get lib-load, and optional libs/boot script/helper
@@ -197,7 +197,7 @@ init() # ( 0 | 1 [~ [~ [~]]] )
 
   test "$1" = "0" && return
 
-  # Load tools/*/parts bits
+  # Load tool/*/part bits
   test_env_load || return
 
   # Set variables for init.sh script
@@ -211,7 +211,7 @@ init() # ( 0 | 1 [~ [~ [~]]] )
     test "$4" = "0" || init_sh_boot=$init_sh_boot' script'
   }
 
-  . $U_S/tools/sh/init.sh
+  . $U_S/tool/sh/init.sh
 # XXX: use dep U-S . $u_s_util/init.sh
 }
 
@@ -224,7 +224,7 @@ load_init() # [ 0 ]
   }
 
   test -n "$TMPDIR" || TMPDIR=/tmp
-  . "./tools/sh/parts/env-test-bats.sh"
+  . "./tool/sh/part/env-test-bats.sh"
   load_init_bats
 #  test "$PWD" = "$scriptpath"
 }

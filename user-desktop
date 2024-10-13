@@ -7,7 +7,7 @@ us-env -r us:boot.screnv &&
 us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "user-desktop" || {
-  PATH=$PATH:${US_BIN:?}/tools/sh/parts uc_script_load \
+  PATH=$PATH:${US_BIN:?}/tool/sh/part uc_script_load \
     us-als-mpe feh || ${stat:-exit} $?
 }
 

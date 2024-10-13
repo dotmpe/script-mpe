@@ -2,7 +2,7 @@
 set -euo pipefail
 
 : "${SUITE:="Main"}"
-. ./tools/ci/env.sh
+. ./tool/ci/env.sh
 
 $LOG "info" "" "Started main env" "$_ENV"
 # Sync: U-s

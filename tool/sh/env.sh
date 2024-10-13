@@ -6,10 +6,10 @@ test -z "${sh_env_:-}" && sh_env_=1 || return 98 # Recursion
 
 test ${DEBUG:-0} -ne 0 || DEBUG=
 : "${CWD:="$PWD"}"
-: "${sh_tools:="$CWD/tools/sh"}"
+: "${sh_tools:="$CWD/tool/sh"}"
 
 test "${env_strict_-}" = "0" || {
-  . "$U_S/tools/sh/parts/env-strict.sh" && env_strict_=$?; }
+  . "$U_S/tool/sh/part/env-strict.sh" && env_strict_=$?; }
 
 # FIXME: generate local static env
 true "${BIN:="$HOME/bin"}"
@@ -40,4 +40,4 @@ suite_source "${build_txt}" "${SUITE}" 0
 test -z "${DEBUG:-}" || print_green "" "Finished sh:env ${SUITE} <$0>"
 
 # Sync: U-S:
-# Id: Script.mpe/0.0.4-dev tools/sh/env.sh
+# Id: Script.mpe/0.0.4-dev tool/sh/env.sh

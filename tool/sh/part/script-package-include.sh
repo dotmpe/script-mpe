@@ -15,4 +15,4 @@ script_package_include () # SH_EXT=sh ~ SCRIPT_PATH
   return 1
 }
 
-# Sync: U-S:tools/sh/parts/script-package-include.sh              vim:ft=bash:
+# Sync: U-S:tool/sh/part/script-package-include.sh              vim:ft=bash:

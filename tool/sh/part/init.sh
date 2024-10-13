@@ -5,7 +5,7 @@
 usage()
 {
   echo 'Usage:'
-  echo '  ./tools/sh/parts/init.sh <function name>'
+  echo '  ./tool/sh/part/init.sh <function name>'
 }
 abort() { usage && exit 2; } # XXX: see CI/c-bail also
 
@@ -21,7 +21,7 @@ init-git-hooks()
 {
   test -e .git/hooks/pre-commit || {
     rm .git/hooks/pre-commit || true
-    ln -s ../../tools/git/hooks/pre-commit.sh .git/hooks/pre-commit || return
+    ln -s ../../tool/git/hooks/pre-commit.sh .git/hooks/pre-commit || return
   }
 }
 
@@ -250,15 +250,15 @@ case "$(basename -- "$0" .sh)" in
   -* ) ;; # No main regardless
 
   init )
-      test "$(basename "$(dirname "$0")")/$(basename "$0")" = parts/init.sh ||
+      test "$(basename "$(dirname "$0")")/$(basename "$0")" = part/init.sh ||
         exit 105 # Sanity
 
       set -euo pipefail
       : "${CWD:="$PWD"}"
-      . "$CWD/tools/sh/parts/env-0-1-lib-sys.sh"
-      . "$CWD/tools/sh/parts/env-0-src.sh"
-      . "$CWD/tools/sh/parts/env-0.sh"
-      # XXX: . "${ci_tools:="$CWD/tools/ci"}/env.sh"
+      . "$CWD/tool/sh/part/env-0-1-lib-sys.sh"
+      . "$CWD/tool/sh/part/env-0-src.sh"
+      . "$CWD/tool/sh/part/env-0.sh"
+      # XXX: . "${ci_tools:="$CWD/tool/ci"}/env.sh"
 
       "$@"
     ;;

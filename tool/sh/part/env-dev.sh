@@ -8,8 +8,8 @@ ENV_DEV=1
 : "${hostname:="`hostname -s`"}"
 
 : "${sh_src_base:="/src/sh/lib"}"
-: "${sh_util_base:="/tools/sh"}"
-: "${ci_util_base:="/tools/ci"}"
+: "${sh_util_base:="/tool/sh"}"
+: "${ci_util_base:="/tool/ci"}"
 
 : "${scriptpath:="$CWD"}" # No-Sync
 : "${userscript:="$U_S"}"

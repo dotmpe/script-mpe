@@ -12,8 +12,8 @@ main_make_lib__load()
       type type_exists >/ev/null 2>&1
   } ||
       . $HOME/.conf/script/util-min-uc.lib.sh
-      #. $CWD/tools/sh/parts/func_exists.lib.sh
-      #. $CWD/tools/sh/parts/trueish.lib.sh
+      #. $CWD/tool/sh/part/func_exists.lib.sh
+      #. $CWD/tool/sh/part/trueish.lib.sh
 
   test ${main_lib_load:-1} -eq 0 || {
     . $CWD/main.lib.sh || exit
@@ -149,7 +149,7 @@ make_preproc()
   main_script=$make_script
   main_base=$make_scriptname
   main_scriptpath="$(dirname "$make_script")"
-  # Create main parts but do not eval yet
+  # Create main part but do not eval yet
   eval "main_make $make_scriptname"
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# XXX: $script_util/parts/init.sh all
+# XXX: $script_util/part/init.sh all
 
 sh_include init
 
@@ -37,7 +37,7 @@ fnmatch "* basename-reg *" " $TEST_SPECS " && {
     cp basename-reg.yaml ~/.basename-reg.yaml
 } || true
 
-#$scriptpath/tools/sh/parts/init.sh all
+#$scriptpath/tool/sh/part/init.sh all
 
 pip install -r requirements.txt
 pip uninstall -y docopt || true

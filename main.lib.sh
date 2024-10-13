@@ -520,10 +520,10 @@ run_check()
 #      #- projectdir.sh run :git:status
 #      - SCR_SYS_SH=bash-sh
 #      - scriptname="check-includes"
-#      - . ./tools/sh/init.sh
-#      - . ./tools/sh/env.sh
-#      - . ./tools/ci/parts/init.sh
-#      - . ./tools/ci/check-env.sh
+#      - . ./tool/sh/init.sh
+#      - . ./tool/sh/env.sh
+#      - . ./tool/ci/part/init.sh
+#      - . ./tool/ci/check-env.sh
 #
 #    check-rst:
 #      - . ~/.pyvenv/htd/bin/activate ;

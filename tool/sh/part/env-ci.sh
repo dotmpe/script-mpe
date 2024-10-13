@@ -30,14 +30,14 @@ test  "$USER" = "treebox" && : "${dckr_pref:="sudo "}"
 : "${U_S:="$HOME/.basher/cellar/packages/dotmpe/user-scripts"}"
 : "${u_s_version:="feature/docker-ci"}"
 : "${package_build_tool:="redo"}"
-: "${sh_tools:="$CWD/tools/sh"}"
-: "${ci_tools:="$CWD/tools/ci"}"
+: "${sh_tools:="$CWD/tool/sh"}"
+: "${ci_tools:="$CWD/tool/ci"}"
 # XXX: rename or reserve or something
 : "${script_util:="$sh_tools"}"
 export scriptname=${scriptname:-"`basename -- "$0"`"}
 
 : "${verbosity:=5}"
-: "${LOG:="$CWD/tools/sh/log.sh"}"
+: "${LOG:="$CWD/tool/sh/log.sh"}"
 : "${INIT_LOG:=$LOG}"
 
 # Sync: U-S:

@@ -3,7 +3,7 @@
 # Env without any pre-requisites.
 
 
-: "${LOG:="$CWD/tools/sh/log.sh"}"
+: "${LOG:="$CWD/tool/sh/log.sh"}"
 
 : "${verbosity:=4}"
 : "${SCRIPTPATH:=}"

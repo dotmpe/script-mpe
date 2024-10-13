@@ -1135,7 +1135,7 @@ user_script_loadenv ()
   : "${US_BIN:="$HOME/bin"}"
   : "${PROJECT:="$HOME/project"}"
   : "${U_S:="$PROJECT/user-scripts"}"
-  : "${LOG:="$U_S/tools/sh/log.sh"}"
+  : "${LOG:="$U_S/tool/sh/log.sh"}"
 
   user_script_stdstat_env
 
@@ -1349,7 +1349,7 @@ user_script_shell_mode ()
 
   #test -z "${DEBUGSH:-}" || set -x
 
-  #"${U_S:?}"/tools/sh/parts/sh-mode.sh &&
+  #"${U_S:?}"/tool/sh/part/sh-mode.sh &&
   #test "${DEBUG:-0}" = "0" && {
   #    sh_mode strict || return
   #  } || {

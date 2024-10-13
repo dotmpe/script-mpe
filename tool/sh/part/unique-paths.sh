@@ -9,5 +9,5 @@ unique_paths () # ~ PATHNAME...
   done | remove_dupes
 }
 
-# Sync: U-S:tools/sh/parts/unique-paths.sh
-# Id: BIN:tools/sh/parts/unique-paths.sh                          vim:ft=bash:
+# Sync: U-S:tool/sh/part/unique-paths.sh
+# Id: BIN:tool/sh/part/unique-paths.sh                          vim:ft=bash:

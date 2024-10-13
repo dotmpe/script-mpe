@@ -8,22 +8,22 @@
 true                          . ~/.bash_profile
 # export DEBUG=1 verbosity=7
 
-script_util=$PWD/tools/sh
-  ci_tools=$PWD/tools/ci
-    true                      . "./tools/sh/env.sh"
-    true                      . "./tools/ci/env.sh"
+script_util=$PWD/tool/sh
+  ci_tools=$PWD/tool/ci
+    true                      . "./tool/sh/env.sh"
+    true                      . "./tool/ci/env.sh"
 
 
 # varspec                     cmdspec                                         #
 
-    true                      ./tools/sh/parts/init.sh init-git
-    true                      ./tools/sh/parts/init.sh init-basher
-    true                      ./tools/sh/parts/init.sh init-redo
-    true                      ./tools/sh/parts/init.sh init-dependencies
+    true                      ./tool/sh/part/init.sh init-git
+    true                      ./tool/sh/part/init.sh init-basher
+    true                      ./tool/sh/part/init.sh init-redo
+    true                      ./tool/sh/part/init.sh init-dependencies
 
-#    true                      ./tools/sh/parts/init.sh init-golang
-#    true                      ./tools/sh/parts/init.sh init-github-release
-#    true                      ./tools/sh/parts/init.sh init-symlinks
+#    true                      ./tool/sh/part/init.sh init-golang
+#    true                      ./tool/sh/part/init.sh init-github-release
+#    true                      ./tool/sh/part/init.sh init-symlinks
 
 #true                          . ./sh-treebox-us-inner
 
@@ -65,11 +65,11 @@ ENV_NAME=testing              . ./sh-treebox-ci
 #  docker pull dotmpe/treebox:dev &&
 #  docker run --rm \
 #      -w /dut \
-#      -v $(pwd -P)/tools/ci/docker.sh:/dut/run.sh \
+#      -v $(pwd -P)/tool/ci/docker.sh:/dut/run.sh \
 #      dotmpe/treebox:dev sh ./run.sh
 #  exit $?
 #
-#  . ./tools/sh/env.sh
+#  . ./tool/sh/env.sh
 #  test_any_feature "$@"
 #  exit $?
 #

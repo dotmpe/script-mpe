@@ -27,7 +27,7 @@ alias user-bg-init='
     shell-uc str-uc args-uc stdlog-uc ansi-uc syslog-uc \
     uc-profile &&
   user-bg-eval lib_init &&
-  user-bg-eval . ${U_C:?}/tools/sh/log.sh &&
+  user-bg-eval . ${U_C:?}/tool/sh/log.sh &&
   user-bg-eval uc_log_init '
 
 # Execute uc-profile

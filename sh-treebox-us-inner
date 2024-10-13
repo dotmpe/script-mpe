@@ -11,7 +11,7 @@ cd /src/github.com/dotmpe/oil && \
 make configure &&
 build/dev.sh minimal
 
-. $U_S/tools/sh/init.sh
+. $U_S/tool/sh/init.sh
 
 $LOG notice $(basename $0) "Success!"
 #lib_load std

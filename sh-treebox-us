@@ -42,8 +42,8 @@ test -n "$1" || {
   test $# -eq 2 -a "$2" = "*" && set -- "$scriptname.tab" "$2"
 }
   
-. "./tools/sh/parts/print-color.sh"
-CWD=$PWD U_S=$PWD . "./tools/sh/parts/env-0.sh"
+. "./tool/sh/part/print-color.sh"
+CWD=$PWD U_S=$PWD . "./tool/sh/part/env-0.sh"
 
 docker pull ${sh_treebox_img:="dotmpe/sandbox:dev"}
 
@@ -57,8 +57,8 @@ test ! -e "$PWD"/"$1" && {
   test $# -eq 2 || set -- "$1" "*"
 
   U_S=/srv/project-local/user-scripts
-  . "$U_S/tools/ci/parts/std-stack.sh"
-  . "$U_S/tools/ci/parts/std-runner.sh"
+  . "$U_S/tool/ci/part/std-stack.sh"
+  . "$U_S/tool/ci/part/std-runner.sh"
 
   sh_spec "$1" | grep -v '^\s*\(#.*\|\s*\)$' | while read scriptline
   do

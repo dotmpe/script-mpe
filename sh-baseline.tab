@@ -17,26 +17,26 @@ set -u
  /SCRIPTPATH                                   test -z "${SCRIPTPATH:-}"
 
 true                                           . ./sh-main
-CWD=$PWD                                       . ./tools/sh/env.sh
-CWD=$PWD                                       . ./tools/ci/env.sh
+CWD=$PWD                                       . ./tool/sh/env.sh
+CWD=$PWD                                       . ./tool/ci/env.sh
 
-true                                           . ./tools/sh/util.sh
-. ./tools/sh/util.sh                           . ./tools/ci/util.sh
+true                                           . ./tool/sh/util.sh
+. ./tool/sh/util.sh                           . ./tool/ci/util.sh
 
 set -euo pipefail
 
- . ./tools/sh/env.sh                           echo 1.1. $SCRIPTPATH
+ . ./tool/sh/env.sh                           echo 1.1. $SCRIPTPATH
  /SCRIPTPATH
-  . ./tools/sh/env.sh                          echo 1.2. $SCRIPTPATH
+  . ./tool/sh/env.sh                          echo 1.2. $SCRIPTPATH
 
- . ./tools/ci/env.sh                           echo 2.1. $SCRIPTPATH
+ . ./tool/ci/env.sh                           echo 2.1. $SCRIPTPATH
  /SCRIPTPATH
-  . ./tools/ci/env.sh                          echo 2.2. $SCRIPTPATH
+  . ./tool/ci/env.sh                          echo 2.2. $SCRIPTPATH
 
  #verbosity=4; CWD=$PWD;
- export sh_tools=tools/sh ci_tools=tools/ci
-  . ./tools/sh/util.sh
-   . ./tools/sh/parts/env-dev.sh
+ export sh_tools=tool/sh ci_tools=tool/ci
+  . ./tool/sh/util.sh
+   . ./tool/sh/part/env-dev.sh
     sh_include env-log
      sh_include remove-dupes unique-paths
       sh_include env-scriptpath-deps lib-load
@@ -46,15 +46,15 @@ set -euo pipefail
 #true                                           ./sh-main lines sh-baseline.tab >/dev/null
 
 set -euo pipefail
-  true                                         . ./tools/sh/parts/env-strict.sh
-  DOCKER_NS=dotmpe                             . ./tools/sh/parts/env-docker-hub.sh
+  true                                         . ./tool/sh/part/env-strict.sh
+  DOCKER_NS=dotmpe                             . ./tool/sh/part/env-docker-hub.sh
   # XXX: sh_include required:
-  #true                                         . ./tools/sh/parts/env-dev.sh
-  true                                         . ./tools/sh/parts/env-0.sh
-  true                                         . ./tools/sh/parts/env-0-src.sh
-  true                                         . ./tools/sh/parts/env-std.sh
-  true                                         . ./tools/sh/parts/env-test.sh
-  true                                         . ./tools/sh/parts/env-test-bats.sh
+  #true                                         . ./tool/sh/part/env-dev.sh
+  true                                         . ./tool/sh/part/env-0.sh
+  true                                         . ./tool/sh/part/env-0-src.sh
+  true                                         . ./tool/sh/part/env-std.sh
+  true                                         . ./tool/sh/part/env-test.sh
+  true                                         . ./tool/sh/part/env-test-bats.sh
 
 # varspec                                      cmdspec                        #
 #true                                           ./sh-main run-parts build.txt Sh 0
@@ -63,17 +63,17 @@ set -euo pipefail
 #true                                           ./sh-main run-parts build.txt Main 0 1
 #true                                           ./sh-main run-parts build.txt Test 0
 #true                                           ./sh-main run-parts build.txt CI 0 1 2 3 4 || true
-#LOG=$PWD/tools/sh/log.sh                       ./tools/git-hooks/pre-commit.sh
+#LOG=$PWD/tool/sh/log.sh                       ./tool/git-hooks/pre-commit.sh
 
 
 # varspec                                      cmdspec                        #
 
 set -euo pipefail
  CWD=$PWD;
-  . tools/sh/env.sh                            . ./tools/sh/init.sh
+  . tool/sh/env.sh                            . ./tool/sh/init.sh
 
 # ./bin/u-s update
-#   f_lib_load= util_mode= default_lib=         . ./tools/sh/init-wrapper.sh
+#   f_lib_load= util_mode= default_lib=         . ./tool/sh/init-wrapper.sh
 #    SCRIPTPATH=
 
 
@@ -83,8 +83,8 @@ set -euo pipefail
 # export CWD=$PWD verbosity VND_SRC_PREFIX
 #  set -euo pipefail
 #   true                                        bats test/baseline/bats.bats
-#   . tools/sh/env.sh
-#    . tools/ci/util.sh
+#   . tool/sh/env.sh
+#    . tool/ci/util.sh
 #        v=4                                    ci_test test/baseline/bats.bats
 #        v=4                                    ci_test_negative test/baseline/bats-negative.bats
 #      v=4                                      ci_test test/unit/std-stack.bats

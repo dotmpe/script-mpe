@@ -2,6 +2,12 @@
 test -z "${sh_util_:-}" && sh_util_=1 || return 198 # Recursion
 
 
+# XXX: need to integrate setup, build-up using arrays.
+#sh_require os || sh_include os
+
+#sh_require
+#stderr echo us-bin:tool/sh/util.sh
+
 # TODO: move some of below to CI util.sh
 
 . $HOME/bin/tools/sh/init-include.sh # Initialize sh_include
