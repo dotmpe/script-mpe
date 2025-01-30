@@ -237,7 +237,7 @@ sys_os_path_lookup ()
   : "${1:?"sys-os-path-lookup: name or path reference expected"}"
   local __bd
   local -a __path
-  sys_execmap __path echo "${PATH//:/$'\n'}" &&
+  sys_exec_mapfile __path echo "${PATH//:/$'\n'}" &&
   for __bd in "$PWD" "${__path[@]}"
   do
     [[ -e "$__bd/$1" || -h "$__bd/$1" ]] || continue

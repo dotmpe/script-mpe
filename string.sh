@@ -100,44 +100,47 @@ function cpad {
 
 
 
-if [[ "${0##*/}" == "string-util" ]]
-then
+[[ ${SCRIPTNAME+set} ]] || {
+  : "${0##*/}"; : "${_%.sh}"; SCRIPTNAME=$_;
 
-  case "${1-}" in
-  ( if-pref | if-prefix )
-      [[ "${2:?}" = "${3:0:${#2}}" ]]
-    ;;
+  case "${SCRIPTNAME?}" in
 
-  ( * ) exit 64 ;;
+  ( "symlink-util" )
+    set -euETo pipefail
 
+    case "${1-}" in
+
+    ( if-pref | if-prefix ) # ~ ~ <Prefix> <In-string>
+        [[ "${2:?}" = "${3:0:${#2}}" ]]
+      ;;
+
+    ( * ) exit ${_E_nsk:-67}
+    esac
+  ;;
+
+  ( "string" )
+    string_load
+
+    case "${1-}" in
+
+    ( len ) str_len "$2" ;;
+    ( tmux-len ) str_fmt=tmux str_len "$2" ;;
+
+    ( sh-clean ) str_sh_clean "$2" ;;
+    ( tmux-clean ) str_tmux_clean "$2" ;;
+
+    ( str-padd-left ) str_sh_padd_ch "$2" "$3" "$4" ;;
+    ( str-padd-right ) str_sh_padd_ch "$2" "" "$4" "$3" ;;
+    ( tmux-str-padd-left ) str_tmux_padd_ch "$2" "$3" "$4" ;;
+    ( tmux-str-padd-right ) str_tmux_padd_ch "$2" "" "$4" "$3" ;;
+
+    ( append-if-len ) test -z "$2" || echo "$2$3" ;;
+    ( prepend-if-len ) test -z "$2" || echo "$3$2" ;;
+
+    ( * ) exit ${_E_nsk:-67}
+    esac
+  ;;
+
+  ( * ) exit ${_E_nsc:-64}
   esac
-
-elif [[ "${0##*/}" == "string" ]]
-then
-  string_load
-
-  case "${1-}" in
-
-    len ) str_len "$2" ;;
-    tmux-len ) str_fmt=tmux str_len "$2" ;;
-
-    sh-clean ) str_sh_clean "$2" ;;
-    tmux-clean ) str_tmux_clean "$2" ;;
-
-    str-padd-left ) str_sh_padd_ch "$2" "$3" "$4" ;;
-    str-padd-right ) str_sh_padd_ch "$2" "" "$4" "$3" ;;
-    tmux-str-padd-left ) str_tmux_padd_ch "$2" "$3" "$4" ;;
-    tmux-str-padd-right ) str_tmux_padd_ch "$2" "" "$4" "$3" ;;
-
-    append-if-len ) test -z "$2" || echo "$2$3" ;;
-    prepend-if-len ) test -z "$2" || echo "$3$2" ;;
-
-    * | "" ) exit 64 ;;
-
-  esac
-
-elif [ "$(basename -- "$0")" == "string.sh" ]
-then
-  string_load
-  "$@"
-fi
+}

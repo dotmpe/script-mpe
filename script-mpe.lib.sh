@@ -77,6 +77,7 @@ $(sh_funbody "${2:?sh-fclone: Reference function name expected}")
 
 
 # Helper to generate true or false command.
+# XXX: [[ ${key:-false} != true ]] || ... seems like a more terse, fitting idiom
 std_bool () # ~ <Cmd...> # Print true or false, based on command status
 {
   : source "script-mpe.lib.sh"
@@ -97,7 +98,8 @@ std_bit ()
   std_bool test 1 -eq "${1:?}"
 }
 
-# XXX: match command status against globspec.
+# XXX: match command status against globspec. not sure how [[ compares to
+# case & glob impl. in terms of speed.
 std_ifstat () # ~ <Spec> <Cmd...>
 {
   : source "script-mpe.lib.sh"
@@ -161,13 +163,26 @@ std_v1c () # ~ <Cmd ...> # Wrapper that echoes both command and status
 }
 # Copy: std-uc.lib
 
-std_vs () # ~ <Message ...> # Print message, but pass previous status code.
+# standard visual status (on stderr). see also std-nvs
+stderr_vs () # ~ <Message ...> # Print message, pass previous status code.
 {
-  : about "Print message, but pass previous status code"
+  : about "Print message, pass previous status code"
   : param "<Message ...>"
   : source "script-mpe.lib.sh"
   local stat=$?
-  stderr echo "$@" || return 3
+  stderr echo "$@"
+  return $stat
+}
+# Copy uc:script/std-uc.lib
+
+# standard non-visual status triggers output non non-zero, also std-vs
+std_nvse () # ~ <Message ...> # Pass status code and print message if non-zero
+{
+  : about "Pass status code and print message if non-zero"
+  : param "<Message ...>"
+  : source "script-mpe.lib.sh"
+  local stat=$?
+  [[ $stat -eq 0 ]] || stderr echo "$@"
   return $stat
 }
 
@@ -262,18 +277,18 @@ str_vword () # ~ <Variable> [<String>] # Transform string to word
   v="${_//[^A-Za-z0-9_]/_}"
 }
 
-# Restrict used characters to 'word' class (alpha numeric and underscore)
+# Restrict used characters to 'word' class (alpha numeric and underscore);
+# string-util function with optional case conversion.
 str_word () # ~ <String> # Transform string to word
 {
   : source "str.lib.sh"
   : "${1:?}"
-  : "${_//[^A-Za-z0-9_]/_}"
-  "${upper:-false}" "$_" &&
-  echo "${_^^}" || {
-    "${lower:-false}" "$_" &&
-      echo "${_,,}" ||
-      echo "$_"
-  }
+  local out="${_//[^A-Za-z0-9_]/_}"
+  [[ "${upper:-false}" != true ]] && {
+    [[ "${lower:-false}" != true ]] &&
+      echo "$out" ||
+      echo "${out,,}"
+  } || echo "${out^^}"
 }
 
 sh_var ()
@@ -316,7 +331,7 @@ sh_adef () # ~ <Array> <Key>
 sh_arr_assert () # ~ <Var-name> <Command...>
 {
   : source "script-mpe.lib.sh"
-  sh_arr "$1" || sys_execmap "$@"
+  sh_arr "$1" || sys_exec_mapfile "$@"
 }
 
 sh_arr_def () # ~ <Var-name>
@@ -373,15 +388,18 @@ sh_caller ()
   echo "$_"
 }
 
-# Read output lines of command onto array, appending after existing items
-sys_execmap () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
+# Read output lines of command onto array, appending after existing items.
+# A simple mapfile wrapper that executes command, buffers output, checking
+# status and reads zero-len value as line items onto end of array.
+sys_exec_mapfile () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
 {
   : source "script-mpe.lib.sh"
+  : group util
   : "${1:?"$(sys_exc sys-execmap:array-name)"}"
   : "${2:?"$(sys_exc sys-execmap:command)"}"
   local outname=${1} offset
-  local -n __sys_execmap_arr=${outname}
-  offset=${#__sys_execmap_arr[@]}
+  local -n __sys_exec_mapfile_arr=${outname}
+  offset=${#__sys_exec_mapfile_arr[@]}
   if_ok "$("${@:2}")" &&
   test -n "$_" &&
   <<< "$_" mapfile -O ${offset:-0} ${mapfile_f:--t} ${outname}
@@ -391,7 +409,9 @@ sys_execmap () # ~ <Var-name> <Cmd...> # Read out (lines) from command into arra
 # system-exception-trace: Helper to format callers list including custom head.
 sys_exc_trc () # ~ [<Head>] ...
 {
+  : group debug
   echo "${1:-script-mpe: E$? source trace:}"
+  local i
   for (( i=1; 1; i++ ))
   do
     if_ok "$(caller $i)" && echo "  - $_" || break

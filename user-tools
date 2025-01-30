@@ -147,7 +147,7 @@ hour_tags () # ~ [<Hour>]
 {
   test $# -gt 0 || set -- $(hour)
 
-  echo $( for group in ${UC_DAY_HOURS:-europe_anglo europe_latin europe_medieval}
+  echo $( for group in ${UC_DAY_HOURS:-europe_english europe_latin europe_medieval}
       do hours_$group "$@"
       done)
 }
@@ -161,7 +161,8 @@ hour ()
   }
 }
 
-hours_europe_anglo () # (y) ~ Give local labels/tags for hour of the day
+# 24-hour, day+night period.
+hours_europe_english () # (y) ~ Give local labels/tags for hour number
 {
   case "${1:?}" in
 

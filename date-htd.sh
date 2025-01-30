@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+date_load () # ~
+{
+  set -e
+  . "${US_BIN:-"$HOME/bin"}"/date-htd.lib.sh
+  test -z "${DEBUG:-}" || set -x
+}
+
 date_load ()
 {
   set -e
@@ -7,11 +14,8 @@ date_load ()
   test -z "${DEBUG:-}" || set -x
 }
 
-
-if [ "$(basename -- "$0")" == "date-util" ]
-then
-  date_load
-
+date_util_ ()
+{
   case "${1-}" in
 
     ( delta )
@@ -71,11 +75,33 @@ then
 
     #* ) echo "relative|relative-abbrev"; exit 1 ;;
     * ) exit 2 ;;
-
   esac
+}
 
-elif [ "$(basename -- "$0")" == "date.sh" ]
-then
-  date_load
-  "$@"
-fi
+[[ ${SCRIPTNAME+set} ]] || {
+  : "${0##*/}"; : "${_%.sh}"; SCRIPTNAME=$_;
+
+  case "${SCRIPTNAME?}" in
+  ( "date-util" )
+    date_load &&
+    date_util_ "${@}" || exit $?
+  ;;
+
+  ( "datetime-util" )
+    datetime_load &&
+    datetime_util_ "${@}" || exit $?
+  ;;
+
+  ( "date-htd" )
+    date_htd_load &&
+    date_htd_ "${@}" || exit $?
+  ;;
+
+  #( "date" )
+  #  date_htd_load &&
+  #  TODO script_run "$@"
+  #;;
+
+  ( * ) exit ${_E_nsc:-64}
+  esac
+}

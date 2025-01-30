@@ -1421,8 +1421,12 @@ user_script_stdstat_env ()
   : "${_E_user:=3}"
   # 3: user: usage error or faulty data
 
-  : "${_E_nsk:=67}"
-  #: "${_E_nsa:=68}"
+  #: "${_E_nsc:=64}" # Command name-context conflict
+  #: "${_E_nss:=65}" # Generic namespace failure
+  #: "${_E_nsl:=66}" # Name lookup failure
+  #: "${_E_nsk:=67}"  # No such key (by static or builtin tag, ie. flag, option)
+  #: "${_E_nsa:=68}"  # No such action (by argument or meta)
+
   #: "${_E_cont:=100}"
   : "${_E_recursion:=111}" # unwanted recursion detected
 
