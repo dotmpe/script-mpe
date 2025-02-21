@@ -1,14 +1,55 @@
 #!/bin/sh
 
-#lib_load()
-#{
-#}
-
-ssh_keygen() # Tag
+ssh_lib__load ()
 {
-  test -n "$1" || return
-  test -n "$2" || set -- "$1" "$(whoami)+$1@$(hostname)"
-  ssh-keygen -t rsa -C "$2" -f "$HOME/.ssh/$1-id_rsa"
+  true
+}
+
+ssh_lib__init ()
+{
+  test -z "${ssh_lib_init-}" || return $_
+  #metash_makegroup ssh_lib_profile \
+  #  SSH_KEY_DIR $HOME/.ssh
+  #  SSH_KEY_IDPREF id_
+  #  SSH_KEY_LEN 2048 -- \
+  #  SSH_KEY_ROUNDS 150 -- \
+  #  SSH_KEY_TYPE rsa -- \
+  #  DSA has been removed from latest Debian. The *-sk variants use USB HID
+  #  or FIDO using SSH_SK_PROVIDER path, but note sure what the deal is.
+  : "${SSH_KEY_TYPES:=ecdsa ecdsa-sk ed25519 ed25519-sk rsa}"
+  : "${SSH_RSA_LEN:=3072}"
+  : "${SSH_DSA_LEN:=1024}"
+  : "${SSH_ECDSA_LEN:=521}"
+}
+
+# This always expects a passphrase.
+ssh_keygen () # (lib) ~ <Tag> [<Comment>] ... # Create id for tag, and with comment
+{
+  local \
+    tag=${1:?} comment=${2-} fn lk=${lk-}:ssh-keygen flags ktpword \
+    klen=${SSH_KEY_LEN-} \
+    kpref=${SSH_KEY_IDPREF:=id_} \
+    krnds=${SSH_KEY_ROUNDS:-150} \
+    ktp=${SSH_KEY_TYPE:-rsa}
+  ktpword=${ktp//-/_}
+  ktpword=${ktpword,,}
+  test -n "${klen}" || {
+    local klen_ref=SSH_${ktpword^^}_LEN
+    klen=${!klen_ref-}
+  }
+  test -n "${comment}" || {
+    local user=${SSH_USER:-${USER:-$(whoami)}}
+    local host=${SSH_USER_HOST:-${OS_HOSTNAME:-$(hostname)}}
+    test -n "$user" -a -n "$host" ||
+      $LOG alert "$lk" "Unable to build comment" "" ${_E_fail:-1} || return
+    comment="$user+$tag@$host"
+  }
+  fn="${kpref}${ktpword},${tag}"
+  ! "${QUIET:-false}" && "${VERBOSE:-false}" || flags=-q
+  ssh-keygen ${flags-} \
+    -a ${krnds} ${klen:+-b ${klen}} -t ${ktp} \
+    -P "${SSH_KEY_PHRASE:?}" \
+    -C "$comment" -f "${SSH_KEY_DIR:-$HOME/.ssh}/${fn}"
 }
 
 # Echo path for private SSH key
