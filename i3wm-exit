@@ -96,7 +96,7 @@ case "${1:-}" in
 
     ( "lock" ) i3wm_userlock ;;
     ( "logout" ) i3wm_userlogoff ;;
-    ( "now" | "session" ) i3wm_exit_now ;;
+    ( "now" | "session" ) i3wm_exitnow ;;
 
     ( "switch" ) dm-tool switch-to-greeter ;;
     ( "guest" ) dm-tool switch-to-guest ;;
