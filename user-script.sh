@@ -985,7 +985,8 @@ user_script_load () # (y*) ~ <Actions...>
         #lib_uc_hook pairs _lib_init &&
         #export UC_LOG_BASE="${UC_LOG_BASE-}${UC_LOG_BASE+/}${SCRIPTNAME}[$$]"
         lib_require user-script &&
-        user_script_initlog
+        user_script_initlog &&
+        true
       ;;
 
     ( screnv )
