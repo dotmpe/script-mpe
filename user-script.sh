@@ -2002,7 +2002,7 @@ test -n "${uc_fun_profile-}" ||
 
   script_base=user-script-sh,user-script
   : "${US_EXTRA_CHAR:=:-}"
-  user_script_load default || ${us_stat:-exit} $?
+  user_script_load defarg || ${us_stat:-exit} $?
 
   # Strip extension from SCRIPTNAME (and baseid)
   SCRIPT_BASEEXT=.sh

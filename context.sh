@@ -432,7 +432,7 @@ us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "context.sh" || {
   script_base=context-sh,user-script-sh
-  user_script_load default || exit $?
+  user_script_load defarg || exit $?
 
   # Default value used if argv is empty
   script_defcmd=short
