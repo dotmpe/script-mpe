@@ -1,1 +1,0 @@
-tools/sh/log.sh

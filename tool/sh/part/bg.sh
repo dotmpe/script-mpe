@@ -32,6 +32,7 @@ alias user-bg-init='
 
 # Execute uc-profile
 alias user-bg-start='
+  _INFO "Running user-bg-start alias"
   user-bg-eval uc_profile_boot "" preload &&
   user-bg-eval uc_profile_init user-bg &&
   user-bg-eval uc_profile_boot "" profile &&

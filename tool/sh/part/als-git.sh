@@ -3,6 +3,7 @@
 script_mpe_part_als_git_load ()
 {
   : source script-mpe:tool/sh/part/als-git.sh
+  . "${US_BIN:?}/tool/sh/part/fun-git.sh"
 }
 
 # Change levels with bool chatty.
@@ -26,7 +27,7 @@ alias git-v='{
 
 
 ## Global
-alias git-aliases="alias | grep '^alias git' | sed 's/^alias git//' && git config --get-regex 'alias.*'"
+alias git-aliases="alias | grep -Po '^alias \Kgit.*$' && git config --get-regex 'alias.*'"
 alias git-authors='git shortlog --summary --email'
 
 

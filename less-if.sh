@@ -89,7 +89,7 @@ while (<>) {
   }
 }
 
-ENV_CTX=${ENV_CTX-}${ENV_CTX:+ }":less-if[$$]"
+ENV_CTX=${ENV_CTX-}":less-if[$$]"
 
 $LOG info "${ENV_CTX-}" "Executing even less" \
   "IF_PAGER=${IF_PAGER:-(unset)}"

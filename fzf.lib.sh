@@ -5,7 +5,7 @@
 # FZF_CTRL_T_COMMAND
 # FZF_CTRL_T_OPTS
 
-fzf_start ()
+fzf_shell_start ()
 {
   fnmatch "* --color=*" "${FZF_DEFAULT_OPTS:?}" || {
     FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:-}${FZF_DEFAULT_OPTS:+ }$FZF_CHAUVET"
@@ -18,26 +18,21 @@ fzf_start ()
   test -z "${FZF_EDIT_OPTS:-}" || declare -gx FZF_EDIT_OPTS
 }
 
-
-# Quick file-select and edit for given (Fzf and Vim) query string(s), using
-#
-# Start search using query and edit single match, or run Fzf prompt to manually
-# select file(s) to edit. If second argument is given, a Vim forward-search
-# command option is passed upon invoking $EDITOR.
-#
-# See: FZF_EDIT_OPTS
-fzf_edit_preview () # ~ <Fzf-query-> <Vim-search-re->
+fzf_edit_preview ()
 {
-  local fzf_q="${1:-}" fzf_a vim_q="${2:-}" vim_a
+  local fzf_q="${1-}" fzf_a vim_q="${2-}" vim_a
 
   # Customize UI (see also FZF_DEFAULT_OPTS for user options)
-  set -- --header "Choose file(s) to edit" --prompt='> ' \
+  set -- --header "Choose file(s) to edit" --prompt='> '
 
-  # If query is already provided, let Fzf skip query-edit
-  # if result is 1-item set.
-  test -z "$fzf_q" \
+  # If query is already provided, let Fzf skip the query-edit prompt if result
+  # is a single item set.
+  [ -z "$fzf_q" ] \
     && set -- "$@" ${FZF_EDIT_OPTS:-} \
     || set -- "$@" ${FZF_EDIT_OPTS:-} --select-1 --query "$fzf_q"
+
+  # TODO: get multiple queries somehow as well, but need switch then for
+  # vim-query arg
 
   # Get filename(s) from FZF or return
   #shellcheck disable=2046
@@ -48,6 +43,24 @@ fzf_edit_preview () # ~ <Fzf-query-> <Vim-search-re->
   test -z "$vim_q" || set -- -c "/$vim_q" "$@"
 
   ${fork:-true} && exec $EDITOR $vim_a "$@" || command $EDITOR $vim_a "$@"
+}
+
+# Quick file-select and edit for given (Fzf and Vim) query string(s), using
+#
+# Start search using query and edit single match, or run Fzf prompt to manually
+# select file(s) to edit. If second argument is given, a Vim forward-search
+# command option is passed upon invoking $EDITOR.
+#
+# See: FZF_EDIT_OPTS
+fzf_edit_preview_all () # ~ <Fzf-query-> <Vim-search-re->
+{
+  case "${1-}" in
+    ( -a | --all ) false
+      ;;
+    ( "" ) _ERROR "Fuzzy finger query expected"
+      return 1 ;;
+    ( * ) fzf_edit_preview "$@" ;;
+  esac
 }
 
 # Same as fzf-edit-preview, but provide dirs to search as well.

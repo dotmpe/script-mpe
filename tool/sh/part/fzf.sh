@@ -2,7 +2,7 @@
 
 ## Fzf utils for use in user-shell
 
-. ${US_BIN:?}/fzf.lib.sh
+[ -n "${fzf_lib_load-}" ] || . ${US_BIN:?}/fzf.lib.sh
 
 : "${FZF_DEFAULT_COMMAND:=find . -not -type l}"
 

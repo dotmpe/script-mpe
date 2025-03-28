@@ -377,7 +377,7 @@ script_doenv () # ~ <Action <argv...>>
   #stderr declare -p DEV DEBUG DIAG INIT ASSERT QUIET VERBOSE
   test -n "${script_cmdfun-}" &&
     $LOG info "" "Found command handler" "$script_cmdfun" ||
-    $LOG warn"" "No command handler found" "$1"
+    $LOG warn"" "No command handler found" "$1:$(sys_callers)"
   ! "${DEBUG:-false}" || script_debug_env
 
   local _baseid stat fail
