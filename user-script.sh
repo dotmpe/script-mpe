@@ -129,10 +129,14 @@ script_envinit () # ~ <Bases...>
 {
   # TODO: transpile and source us-env functions
   add_path "${U_S?}/tool/us/part" &&
-  uc_script_load "-us-env.base" &&
-  # XXX: start us-env
-  us_env_declare &&
-  us_env_load "${1:?}"
+  add_path "${U_S?}/tool/us/exec" &&
+  uc_script_load "us-env.node" &&
+  us-env:define-env &&
+
+  #>&2 echo TODO: need dyn setup with 'static' parts, ie. cached slices
+  #us_env_load "${1:?}" ||
+  true ||
+    return
 
   std_silent declare -p ENVD_FUN || declare -gA ENVD_FUN=()
   std_silent declare -p us_node || declare -gA us_node=()
@@ -361,7 +365,7 @@ script_debug_vars () # ~ <Var-names...> # Print simple list of assignments
 script_doenv () # ~ <Action <argv...>>
 {
   [[ ${script_base-} ]] ||
-    script_envinit ||
+    user_script_load baseenv ||
     $LOG error "" "During script env init" "E$?:$*" $? || return
 
   # Update bases, if there is one given for particular action, on any of the
@@ -970,6 +974,7 @@ user_script_load () # (y*) ~ <Actions...>
           # XXX: local -n group="$(str_word "${script_base:?}")__grp"
           : "${group:=user-script}"
         }
+        : ${script_base:?Expected script base env}
         script_envinit ${script_base//,/ }
       ;;
 
