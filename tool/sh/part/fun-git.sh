@@ -3,6 +3,11 @@ script_mpe_part_fun_git_load ()
   : source script-mpe:tool/sh/part/fun-git.sh
 }
 
+git_fun ()
+{
+  : source script-mpe:tool/sh/part/fun-git.sh
+}
+
 # TODO: provide function part for git-grep.sh functionality
 git_grep_all () # ~ <Git-grep-args> [-- <Basedirs>]
 {

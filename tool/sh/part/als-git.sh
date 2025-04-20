@@ -3,7 +3,12 @@
 script_mpe_part_als_git_load ()
 {
   : source script-mpe:tool/sh/part/als-git.sh
-  . "${US_BIN:?}/tool/sh/part/fun-git.sh"
+  . "${US_BIN:?}"/tool/sh/part/fun-git.sh
+}
+
+git_als ()
+{
+  : source script-mpe:tool/sh/part/als-git.sh
 }
 
 # Change levels with bool chatty.
@@ -27,8 +32,8 @@ alias git-v='{
 
 
 ## Global
-alias git-aliases="alias | grep -Po '^alias \Kgit.*$' && git config --get-regex 'alias.*'"
 alias git-authors='git shortlog --summary --email'
+alias git-sh-aliases="alias | grep -Po '^alias \Kgit.*$' && git config --get-regex 'alias.*'"
 
 
 ## Local
@@ -123,3 +128,6 @@ alias git-commit-now-accum-comment='git commit -m "Accumulated at $hostname"'
 ## Quick-commit and all commit-combination aliases (4)
 alias git-ci-nc=git-commit-now-no-comment
 alias git-ci-now=git-commit-now-accum-comment
+
+# See alos user-grep work
+alias git-grep=''
