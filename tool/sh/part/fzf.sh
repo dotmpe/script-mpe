@@ -37,7 +37,9 @@ alias fzf-edit-preview='$EDITOR $(fzf-preview $FZF_EDIT_OPTS)'
 # Use batcat to preview highlighted plain-text files
 alias fzf-preview="fzf --preview='${BAT_BIN:-bat}\${IF_LANG:+ -l \$IF_LANG} --color always --style numbers {}'"
 
-alias fzf-preview-bat-themes='bat --list-themes | fzf --preview="bat --theme={} --color=always ${FZF_PREVIEW_FILE:-~/bin/user-script.sh}"'
+declare -gx bat_exe="${bat_exe:-bat}"
+
+alias fzf-preview-bat-themes='$bat_exe --list-themes | fzf --preview="$bat_exe --theme={} --color=always ${FZF_PREVIEW_FILE:-~/bin/user-script.sh}"'
 
 # Feh is a good choice for any WM env I think
 alias fzf-view-nomux="fzf --preview='feh --title feh-preview -B ${feh_bg:-} -Z {} -.' --preview-window=0"
@@ -63,7 +65,7 @@ fzf_ripgrep_preview ()
         --query "$INITIAL_QUERY" \
         --bind "change:reload:sleep 0.1; $RG_PREFIX {q} || true" \
         --delimiter : \
-        --preview 'bat --color=always {1} --highlight-line {2}' \
+        --preview '$bat_exe --color=always {1} --highlight-line {2}' \
         --preview-window 'right:53%:noborder'
   )
   echo "Selected: ${selected[*]}"
