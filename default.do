@@ -17,7 +17,7 @@ do
 done
 
 # Start standardized redo for build.lib
-. "${UCONF:?}/tools/redo/local.do"
+. "${UCONF:?}/tool/redo/local.do"
 
 # Sync: US
 # Id: Us-bin:default.do                                     ex:ft=bash:
