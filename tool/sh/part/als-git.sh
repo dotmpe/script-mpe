@@ -36,6 +36,23 @@ alias git-authors='git shortlog --summary --email'
 alias git-sh-aliases="alias | grep -Po '^alias \Kgit.*$' && git config --get-regex 'alias.*'"
 
 
+## Long-name (shell) aliases for sub commands
+
+alias git-push=git\ push
+alias git-pull=git\ pull
+alias git-status=git\ status
+# See also user-grep, git-grep.sh, etc.
+alias git-grep=git\ grep
+
+
+## Short-form aliases (shell)
+
+alias gG=git-grep
+alias gP=git-pull
+alias gp=git-push
+alias gS=git-status
+
+
 ## Local
 
 # Basic repo info
@@ -121,13 +138,15 @@ alias git-push-every='{
 
 alias git-commit-message='$EDITOR "$(git rev-parse --git-path COMMIT_EDITMSG)"'
 
+
 ## Basic Quick-commit aliases (2)
 alias git-commit-now-no-comment='git commit -m "-"'
 alias git-commit-now-accum-comment='git commit -m "Accumulated at $hostname"'
+
 
 ## Quick-commit and all commit-combination aliases (4)
 alias git-ci-nc=git-commit-now-no-comment
 alias git-ci-now=git-commit-now-accum-comment
 
-# See alos user-grep work
-alias git-grep=''
+
+# ex:ft=bash:
