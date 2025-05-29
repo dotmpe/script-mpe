@@ -22,16 +22,22 @@ git_grep_all () # ~ <Git-grep-args> [-- <Basedirs>]
   done
   [[ ${#git_grep_args[@]} -gt 0 ]] ||
     _ERROR "Grep expression expected" || return
-  test $# -gt 0 || {
-    local -a _basedirs
-    read -r -a _basedirs <<< "${PATH//:/$'\n'}"
-    set -- -- "${_basedirs[@]}"
-  }
   shift
+  [[ ${#} -gt 0 ]] || {
+    local -a _basedirs
+    #read -r -a _basedirs <<< "${PATH//:/ }"
+    mapfile -t _basedirs <<< "${PATH//:/$'\n'}"
+    set -- "${_basedirs[@]}"
+  }
   [[ ${#} -gt 0 ]] ||
     _ERROR "Basedirs expected" || return
+  _IFVBS _WARN "Grepping ${#} dirs..."
   for tp
   do
+    [[ -e ${tp}/.git ]] || {
+      _IFVBS _WARN "Not a repository: $tp"
+      continue
+    }
     std_quiet pushd "$tp" || return
     "${QUIET:-false}" ||
       stderr echo "$tp> $ git grep '${git_grep_args[*]}'"
@@ -48,16 +54,21 @@ git_status_all () # ~ <Git-status-args> [-- <Basedirs>]
     git_status_args+=( "$1" )
     shift
   done
-  test $# -gt 0 || {
-    local -a _basedirs
-    read -r -a _basedirs <<< "${PATH//:/$'\n'}"
-    set -- -- "${_basedirs[@]}"
-  }
   shift
+  [[ ${#} -gt 0 ]] || {
+    local -a _basedirs
+    mapfile -t _basedirs <<< "${PATH//:/$'\n'}"
+    set -- "${_basedirs[@]}"
+  }
   [[ ${#} -gt 0 ]] ||
     _ERROR "Basedirs expected" || return
+  _IFVBS _WARN "Tracking ${#} dirs..."
   for tp
   do
+    [[ -e ${tp}/.git ]] || {
+      _IFVBS _WARN "Not a repository: $tp"
+      continue
+    }
     std_quiet pushd "$tp" || return
     "${QUIET:-false}" ||
       stderr echo "$tp> $ git status${git_status_args:+" '${git_status_args[*]}'"}"
