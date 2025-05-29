@@ -18,6 +18,8 @@ vim_cmd_stdout () # ~ <Cmd>
 # Copy: vim.lib:
 
 
+# Override both vim and vimdiff with function that wraps sudo as well, so I
+# never need to think about access rights.
 vim () {
   : source "us-bin+mpe:tool/sh/part/vim.sh"
   SUDO_SHADOW_ALL_ARGS=${SUDO_SHADOW_ALL_ARGS:-1} \
@@ -29,6 +31,9 @@ vimdiff () {
   SUDO_SHADOW_ALL_ARGS=${SUDO_SHADOW_ALL_ARGS:-1} \
   bin_opts="-u ~/.vimrc" \
   shadow=vimdiff bin_shadow_edit__sudo_nonwritable "$@"; }
+
+vim_ro () {
+  command vim "$@"; }
 
 # XXX:
 alias edit-file='${EDITOR:?}'

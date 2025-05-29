@@ -52,9 +52,6 @@ alias yaml2yaml='jsotk dump -Oyaml --ignore-aliases --pretty'
 
 alias yaml2js="python3 -c 'import sys, yaml, json; json.dump(yaml.load(sys.stdin, yaml.Loader), sys.stdout, indent=4)'"
 
-# df with all fields
-alias dff='df --output'
-
 # This should perhaps use command timeout. @devtools @shell
 # and have more useful features like looping during wait to check for proc
 timeout_sh ()
