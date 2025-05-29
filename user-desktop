@@ -151,6 +151,16 @@ background_set () # ~ <File> <Display>...
   unset fn d
 }
 
+design ()
+{
+  false
+}
+
+picture ()
+{
+  false
+}
+
 files () # (y) ~ (:-info)
 #            <content-type-tag> [<base-folder> [<tags...>]]
 {
@@ -178,6 +188,24 @@ files () # (y) ~ (:-info)
     ;;
   ( videos|movies ) TODO "files $act"
     ;;
+
+  ( * ) $LOG error ":$act" "No such action" "$act" ${_E_nsa:-68}
+  esac
+}
+
+fill () # (y) ~ (:--V)
+# fill are design or picture panes to use as blanks in tiling window manager
+# layouts
+{
+  local act=${1:--V}; test $# -eq 0 || shift
+  case "$act" in
+  ( -H | horizontal ) false ;; # TODO
+  ( -h|help )
+      echo "~ -h|help ..."
+      echo "~ -H|horizontal <...>"
+      echo "~ -V|vertical <...>"
+    ;;
+  ( -V | vertical ) false ;; # TODO
 
   ( * ) $LOG error ":$act" "No such action" "$act" ${_E_nsa:-68}
   esac
@@ -324,7 +352,7 @@ find_nonhidden_files ()
 
 ## User-script parts
 
-user_desktop_maincmds="background backgrounds backgrounds_select help screenshots themes update-for-cs switch-cs version"
+user_desktop_maincmds="background backgrounds backgrounds_select fill help screenshots themes update-for-cs switch-cs version"
 user_desktop_shortdescr='User desktop tools'
 
 #shellcheck disable=1091 # env.sh and .meta.sh do not need to exist
@@ -349,14 +377,16 @@ user_desktop_aliasargv ()
   ( bgs ) shift; set -- backgrounds "$@" ;;
   ( set-bg ) shift; set -- background set "$@" ;;
   ( themes ) shift; set -- list_themes "$@" ;;
+  ( vertical-fill ) shift; set -- fill -V "$@" ;;
+  ( horizontal-fill ) shift; set -- fill -H "$@" ;;
   esac
 }
 
 user_desktop_defaults ()
 {
-  true "${PICTURES:=$HOME/Pictures}"
-  true "${BG_DIR:=$PICTURES/Backgrounds}"
-  true "${user_bgtag:="background"}"
+  : "${PICTURES:=$HOME/Pictures}"
+  : "${BG_DIR:=$PICTURES/Backgrounds}"
+  : "${user_bgtag:="background"}"
 }
 
 

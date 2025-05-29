@@ -4377,28 +4377,6 @@ htd__photos()
 }
 
 
-htd_man_1__ispyvenv='Check wether shell env has Python virtualenv, get prefix
-
-Return 1 if false, or prints the virtualenv prefix. On env choice-interactive
-prints a warning or notice to stderr as well.
-'
-htd__ispyvenv()
-{
-  python -c 'import sys
-if not hasattr(sys, "real_prefix"): sys.exit(1)' && {
-        trueish "$choice_interactive" && note "Running with Python virutalenv:"
-        python -c 'import sys
-print sys.prefix'
-        return 0
-    } || {
-        trueish "$choice_interactive" && warn "No Python virtualenv set"
-        return 1
-    }
-}
-htd_als__pyvenv=ispyvenv
-htd_als__venv=ispyvenv
-
-
 
 htd_grp__catalog=htd-catalog
 htd_grp__catalogs=htd-catalogs

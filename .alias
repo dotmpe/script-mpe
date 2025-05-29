@@ -55,6 +55,20 @@ alias yaml2js="python3 -c 'import sys, yaml, json; json.dump(yaml.load(sys.stdin
 # df with all fields
 alias dff='df --output'
 
+# This should perhaps use command timeout. @devtools @shell
+# and have more useful features like looping during wait to check for proc
+timeout_sh ()
+{
+  "$@" & pid=$!
+  sleep ${TIMEOUT:-2}
+  ! ps $pid &&
+  echo command already complete || {
+    echo timeout reached
+    pkill "${1:?}"
+  }
+}
+#TIMEOUT=6; echo -e "item1\nitem2\nitem3\nitem4" | timeout_sh xmenu
+
 test -z "${USER_CONF_DEBUG-}" || {
   $LOG "info" "" "Done sourcing" "~/bin/.alias"
   $LOG "info" :bin:alias "Done sourcing" "~/bin/.alias"

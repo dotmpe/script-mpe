@@ -25,6 +25,7 @@ declare -gA sh_sym_det=(
   [shell-lang-var]="std_noerr declare -p" # aka sh-vspec
   [shell-lang-ac]="complete -p"
   [sys-os-package]="sys_os_package" # Dont know of exact-match query for dpkg -S
+  [sysd-unit]="sysd_unit"
 )
 
 sh_sym_ref () # ~ <Names...>
@@ -119,7 +120,7 @@ sh_sym_ref__shell_lang_name ()
         echo -e "EOM\n}"
       }
       test "$__sym" = "$(command -v $__sym)" ||
-        echo -e "\n \`$__sym' is exec $_"
+        echo -e "\n# \`$__sym' is exec $_"
 
       ac_spec "${__sym##*/}"
       sh_vspec "$__sym"
@@ -170,6 +171,11 @@ sh_sym_ref__sys_os_package ()
   echo "# $__tpd"
 }
 
+sh_sym_ref__sysd_unit ()
+{
+  false
+}
+
 # Print export line for function, if found exported for current env
 # XXX: there is no flag or attribute spec retrievable for functions? Using
 # `env|grep` here as that seems like the only option, cannot check for variable
@@ -202,8 +208,9 @@ sys_os_package ()
   : "${1:?"sys-os-package: symbol expected"}"
   : source "sh-sym.sh"
   [[ ${1:0:1} = / ]] && : "$1" || if_ok "$(command -v "$1")" || return
+  if_ok "$(test -n "$_" && dpkg -S "$_")" &&
   test -n "$_" &&
-  dpkg -S "$_"
+  echo -e "Package for command path:\n$_"
 }
 
 sys_os_name ()
@@ -245,6 +252,12 @@ sys_os_path_lookup ()
     return
   done
   false
+}
+
+sysd_unit ()
+{
+  systemctl --user status "${1}" ||
+  systemctl status "${1}"
 }
 
 #
