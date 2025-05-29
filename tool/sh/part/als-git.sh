@@ -180,7 +180,7 @@ alias git-update-clone='git:pull:v --all && git:push:v --all'
 # Actually pull (from the remote ref for current branch at) all remotes (ie.
 # only those remotes that have it, as known from the last fetch)
 alias git:pull:every='{
-  g=$(gitdir) ||
+  g=$(git:info:dir) ||
     $LOG error : "No GIT dir" E$? $?
   test ! -e $g/MERGE_HEAD && {
     current_branch=$(git:info:branch) && for remote in $(git:remotes);
@@ -200,7 +200,7 @@ alias git:pull:every='{
 # Idem. as git:pull:every (for current branch) only now for git-push (again only
 # those remotes that already ahd that branch at last fetch)
 alias git:push:every='{
-  g=$(gitdir) ||
+  g=$(git:info:dir) ||
     $LOG error : "No GIT dir" E$? $?
   test ! -e $g/MERGE_HEAD && {
     current_branch=$(git:info:branch) && for remote in $(git:remotes);
