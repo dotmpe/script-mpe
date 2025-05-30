@@ -251,6 +251,7 @@ alias :glu=':git:list:unknown'
 alias :glU=':git:list:untracked'
 alias :gP=:git:pull
 alias :gp=:git:push
+alias :gs=:git:sync
 alias :gS=:git:info:status
 alias :gSp=:git:status:pack
 alias :gSu=:git:status:user
