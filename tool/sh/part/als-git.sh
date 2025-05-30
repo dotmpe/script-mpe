@@ -230,10 +230,10 @@ alias :git:ci:now=:git:commit-now-accum-comment
 
 # XXX: remove vc command first alias vc=:git:commit-message
 
-alias :gcA='git add -u && gcn'
+alias :gcA='git add -u && :gcn'
 alias :gca='git commit --amend'
-alias :gCa=gcan
-alias :gcan='gca --no-edit'
+alias :gCa=:gcan
+alias :gcan=':gca --no-edit'
 alias :gcm=':git:commit-message'
 alias :gcN=':git:ci:nc'
 alias :gcn=':git:ci:now'
@@ -263,9 +263,9 @@ alias :gPa=:git:push:every
 ## Synchronize local branch from and to remotes with this branch.
 # No new branches are synced.
 # XXX: initial git-sync. May want more fancy per-project.
-alias :git:sync=':git:fetch:v --all && gpa && gPa'
+alias :git:sync=':git:fetch:v --all && :gpa && :gPa'
 
-alias :git:update=':git:fetch:v --all && gpa'
+alias :git:update=':git:fetch:v --all && :gpa'
 
 # XXX: also want to update clones, maybe work in bare repos for this?
 alias :git:update-all-clones=
