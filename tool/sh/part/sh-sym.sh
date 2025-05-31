@@ -40,7 +40,7 @@ sh_sym_ref () # ~ <Names...>
     # Attempt to resolve by trying 'detector' command and then handler
     for __cbi in ${!sh_sym_det[*]}
     do
-      ! __tpd=$(std_noerr ${sh_sym_det[$__cbi]} "$__sym") || {
+      ! __tpd=$(${sh_sym_det[$__cbi]} "$__sym") || {
         ! "${DEBUG:-false}" ||
           stderr echo "Found $__cbi symbol '$__sym'"
         #stderr echo "found, '$__cbi' has symbol '$__sym' declared as '$__tpd'"
@@ -158,12 +158,17 @@ sh_arr "$__sym" &&  {
 
 sh_sym_ref__sys_os_path ()
 {
-  echo "${__tpd%%: *} ()"
-  echo "{"
-  echo "  : description \"${__tpd#*: }\""
-  stat --format '  : access "%A %U(%u):%G(%g)"
-  : size %s' "${__tpd%: *}"
-  echo "}"
+  local _ref file_path description
+  while IFS=': ' read -r file_path _ description
+  do
+    echo "${file_path} () {"
+    echo "  : description \"${description}\""
+    stat --format '  : access "%A %U(%u):%G(%g)"
+  : size %s' "${file_path}"
+    test ! -h "$file_path" ||
+      echo "  : realpath \"$(realpath "$file_path")\""
+    echo "}"
+  done <<< "${__tpd}"
 }
 
 sh_sym_ref__sys_os_package ()
@@ -231,9 +236,11 @@ sys_os_name ()
 sys_os_path ()
 {
   : "${1:?"sys-os-path: name or path reference expected"}"
-  test "${_:0:1}" = / ]] && : "$1" || if_ok "$(sys_os_path_lookup "$1")" || return
+  [[ "${_:0:1}" = / ]] && : "$1" || if_ok "$(sys_os_path_lookup "$1")" || return
   test -n "$_" &&
-  file -s "$_"
+  file -s "$_" || return
+  test ! -h "$_" ||
+    sys_os_path "$(realpath "$_")"
 }
 
 # Unfortunately I dont know of any command to locate (any, ie. including
