@@ -1,4 +1,6 @@
 
+#uc_env -r :uc-env:uconf-shell-core-dsl
+
 # FIXME: seems like regexes are not passed/quoted correctly from fzf
 
 #: "${FZF_DEFAULT_COMMAND:=}"
@@ -12,10 +14,10 @@ fzf_shell_start ()
   }
 
   # Defined by Fzf
-  test -z "${FZF_DEFAULT_OPTS:-}" || declare -gx FZF_DEFAULT_OPTS
-  test -z "${FZF_DEFAULT_COMMAND:-}" || declare -gx FZF_DEFAULT_COMMAND
+  [[ -z "${FZF_DEFAULT_OPTS-}" ]] || declare -gx FZF_DEFAULT_OPTS
+  [[ -z "${FZF_DEFAULT_COMMAND-}" ]] || declare -gx FZF_DEFAULT_COMMAND
   # Defined by this lib
-  test -z "${FZF_EDIT_OPTS:-}" || declare -gx FZF_EDIT_OPTS
+  [[ -z "${FZF_EDIT_OPTS-}" ]] || declare -gx FZF_EDIT_OPTS
 }
 
 fzf_edit_preview ()
@@ -25,8 +27,8 @@ fzf_edit_preview ()
   # Customize UI (see also FZF_DEFAULT_OPTS for user options)
   set -- --header "Choose file(s) to edit" --prompt='> '
 
-  # If query is already provided, let Fzf skip the query-edit prompt if result
-  # is a single item set.
+  # If query is provided, let Fzf skip the query-edit prompt if result is a
+  # single item resultset.
   [ -z "$fzf_q" ] \
     && set -- "$@" ${FZF_EDIT_OPTS:-} \
     || set -- "$@" ${FZF_EDIT_OPTS:-} --select-1 --query "$fzf_q"
@@ -34,15 +36,18 @@ fzf_edit_preview ()
   # TODO: get multiple queries somehow as well, but need switch then for
   # vim-query arg
 
+  # XXX: fzf-preview args is unused here, maybe use fzfp-args: fzf-preview
+  # is an alias, not a command
+
   # Get filename(s) from FZF or return
   #shellcheck disable=2046
-  set -- $(fzf-preview $fzf_a "$@") &&
-    test $# -gt 0 || return
+  set -- $(fzf-preview ${fzf_a-} "$@") &&
+    [[ $# -gt 0 ]] || return
 
   # Query within first document using Vim query
-  test -z "$vim_q" || set -- -c "/$vim_q" "$@"
+  [[ -z "$vim_q" ]] || set -- -c "/$vim_q" "$@"
 
-  ${fork:-true} && exec $EDITOR $vim_a "$@" || command $EDITOR $vim_a "$@"
+  "${fork:-true}" && exec $EDITOR ${vim_a-} "$@" || command $EDITOR ${vim_a-} "$@"
 }
 
 # Quick file-select and edit for given (Fzf and Vim) query string(s), using

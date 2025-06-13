@@ -16,7 +16,7 @@ transmission_lib__load ()
 
   : "${TARGET_SEED_RATIO:=2}"
 
-  : "${_E_next:=196}" # failed, but can proceeed with batch/loop
+  : "${_E_next:=196}" # failed, but can proceeed with batch/loop @copy
 }
 
 # Manages just one default instance

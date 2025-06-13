@@ -53,7 +53,7 @@ context ()
         stb_fp=${ctx_tab:-${CTX_TAB_CACHE:?}} stattab_exist_all "$@"
       ;;
 
-    ( * ) $LOG alert :context "No such option" "$_switch" ${_E_NF:=124}
+    ( * ) $LOG alert :context "No such switch" "$_switch" ${_E_nss:-69}
   esac
 }
 

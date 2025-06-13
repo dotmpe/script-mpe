@@ -42,8 +42,8 @@ sh_sym_ref () # ~ <Names...>
     do
       ! __tpd=$(${sh_sym_det[$__cbi]} "$__sym") || {
         ! "${DEBUG:-false}" ||
-          stderr echo "Found $__cbi symbol '$__sym'"
-        #stderr echo "found, '$__cbi' has symbol '$__sym' declared as '$__tpd'"
+          >&2 echo "Found $__cbi symbol '$__sym'"
+        #>&2 echo "found, '$__cbi' has symbol '$__sym' declared as '$__tpd'"
         sh_sym_ref__${__cbi//[^A-Za-z0-9_]/_}
       }
     done
@@ -84,7 +84,7 @@ sh_sym_ref__shell_lang_name ()
         # Single aliased word, no further expansions
         echo "alias $__sym=$als_exp"
         ! "${DEBUG:-false}" ||
-          stderr echo "Recursing for symbol '$als_exp' from alias '$__sym'"
+          >&2 echo "Recursing for symbol ${als_exp@Q} from alias '$__sym'"
         # Recurse for aliased word
         sh_sym_ref "$als_exp" || return
       } || {
@@ -98,7 +98,7 @@ sh_sym_ref__shell_lang_name ()
           echo "$als_exp" | sed 's/^/   /'
         }
         [[ $als_exp =~ ^{\ .*\;\ }$ ]] || {
-          echo "# ! TODO:check for pipeline or bool expr? \`$__sym' \`$als_exp'"
+          echo "# ! TODO:check for pipeline or bool expr? \`$__sym' ${als_exp@Q}"
         }
       }
       ! if_ok "$(which -- "$__sym" 2>/dev/null)" ||

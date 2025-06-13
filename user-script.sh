@@ -1419,39 +1419,39 @@ user_script_shell_mode ()
 
 user_script_stdstat_env ()
 {
-  # See U-C:std-uc.lib for latest definitions
-  : "${_E_fail:=1}"
+  # Deprecated, See U-C:std-uc.lib for current setup, @copy
+  : "${_E_fail:=1}" # @deprecated
   # 1: fail: generic non-success status, not an error per se
-  : "${_E_script:=2}"
+  : "${_E_script:=2}" # @deprecated
   # 2: script: error caused by broken syntax or script misbehavior
-  : "${_E_user:=3}"
+  : "${_E_user:=3}" # @deprecated
   # 3: user: usage error or faulty data
 
-  #: "${_E_nsc:=64}" # Command name-context conflict
-  #: "${_E_nss:=65}" # Generic namespace failure
-  #: "${_E_nsl:=66}" # Name lookup failure
-  #: "${_E_nsk:=67}"  # No such key (by static or builtin tag, ie. flag, option)
-  #: "${_E_nsa:=68}"  # No such action (by argument or meta)
+  #: "${_E_nsc:=64}" # Command name-context conflict @draft
+  #: "${_E_nss:=65}" # Generic namespace failure @draft
+  #: "${_E_nsl:=66}" # Name lookup failure @draft
+  #: "${_E_nsk:=67}"  # No such key (by static or builtin tag, ie. flag, option) @draft
+  #: "${_E_nsa:=68}"  # No such action (by argument or meta) @draft
 
-  #: "${_E_cont:=100}"
-  : "${_E_recursion:=111}" # unwanted recursion detected
+  #: "${_E_cont:=100}" @draft
+  : "${_E_recursion:=111}" # unwanted recursion detected # @deprecated
 
-  : "${_E_ifenv:=121}" # ifenv/BUG/issue: faulty behaviour
+  : "${_E_ifenv:=121}" # ifenv/BUG/issue: faulty behaviour # @deprecated
   : "${_E_doenv:=122}" # doenv/FIXME/task: integration/cleanup required or incomplete specs/code/...
   : "${_E_noenv:=123}" # noenv/XXX/deprecated: pending caution, restart or other action required
   : "${_E_NF:=124}" # no-file/no-such-file(set): missing file or nullglob encountered
   : "${_E_missing:=125}" # TODO: impl. missing (not OK. see also 12{1,2,3} for more specific faults)
-  : "${_E_not_exec:=126}" # NEXEC not-an-executable
-  : "${_E_not_found:=127}" # NSFC no-such-file-or-command
+  : "${_E_not_exec:=126}" # NEXEC not-an-executable # @deprecated
+  : "${_E_not_found:=127}" # NSFC no-such-file-or-command # @deprecated
   # 128+ is mapped for signals (see trap -l)
   # on debian linux last mapped number is 192: RTMAX signal
-  : "${_E_GAE:=193}" # generic-argument-error/exception
-  : "${_E_MA:=194}" # missing-arguments
-  : "${_E_continue:=195}" # fail but keep going
-  : "${_E_next:=196}"  # Try next alternative
-  : "${_E_break:=197}" # success; last step, finish batch, ie. stop loop now and wrap-up
-  : "${_E_retry:=198}" # failed, but can or must reinvoke
-  : "${_E_limit:=199}" # generic value/param OOB error?
+  : "${_E_GAE:=193}" # generic-argument-error/exception # @deprecated
+  : "${_E_MA:=194}" # missing-arguments # @deprecated
+  : "${_E_continue:=195}" # fail but keep going # @deprecated
+  : "${_E_next:=196}"  # Try next alternative # @deprecated
+  : "${_E_break:=197}" # success; last step, finish batch, ie. stop loop now and wrap-up # @deprecated
+  : "${_E_retry:=198}" # failed, but can or must reinvoke # @deprecated
+  : "${_E_limit:=199}" # generic value/param OOB error? # @deprecated
 
   TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_missing:?}; }
 

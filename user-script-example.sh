@@ -53,7 +53,7 @@ user_script_example_extusage=
 user_script_example_loadenv ()
 {
   #user_script_loadenv || return
-  : "${_E_next:=196}"
+  : "${_E_next:=196}" # stalled, next alternative @copy
   script_part=${1:?} user_script_load groups || {
       # E:next means no libs found for given group(s).
       test ${_E_next:?} -eq $? || return $_

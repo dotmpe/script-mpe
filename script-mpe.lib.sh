@@ -13,61 +13,27 @@ script_mpe_lib__init ()
 }
 
 
-# sh_func_decl
-fun_def () {
-  : "${2:?fun-def: $1: Function body expected}"
-  : "${1:?fun-def: Function name expected} () { ${*:2} }"
-  eval "$_"
-}
+uc_env +d dx :mkFun '_Sh_Fun_Eval "$@"'
 
-# Could declare all fun-* this way, but what is the point atm. May be if fun-
-# def tracked metadata. See env-*. Keeping aliases together with fun-*() copy.
-#fun_def fun_false false\;
-#fun_def fun_keeparg ': "${1:-}";'
-# XXX: commented: unused
-#fun_false () { false; }
-fun_keep1 () { : "${1:-}"; }
-fun_keep () { : "$_"; }
-fun_stat () # ~ <...> # alias:is_ok
-{ return ${1:-$?}; }
-fun_def if_ok return\;
-fun_true () { :; }
-fun_def noop :\;
-#fun_def cite :\;
-fun_w1c () { "$@"; }
-fun_w1cnz () { test -n "$("$@")" && echo "$_"; }
+# This is all mostly useless
+:mkFun noop :
+#:mkFun cite :
+:mkFun :ignore '"$@" || true'
+:mkFun :keepLast ': "$_"'
+:mkFun :keepStatus ': "$?"'
+:mkFun :keepArgCount ': "$#"'
+:mkFun :keepArgConcat ': "$*"'
+:mkFun :keepFirstArg ': "$1"'
+:mkFun :wac '"$@"'
+:mkFun :wacnz 'test -n "$("$@")" && echo "$_"'
 
-ignore ()
-{
-  "$@" || true
-}
-
-
-sh_fun () #
-{
-  : source "script-mpe.lib.sh"
-  declare -F "${1:?}" 2>/dev/null >&2
-}
-
-sh_funbody () # ~ <Ref-fun> <...> # alias:sh-fbody,fun-body
-{
-  : source "script-mpe.lib.sh"
-  : "${1:?sh-funbody: Function name expected}"
-  if_ok "$(declare -f "$_")" || return
-  : "${_#* () }"
-  : "${_:4:-2}"
-  #: "${c#* () $'\n'}"
-  #: "${_#\{ $'\n'}"
-  #: "${_%$'\n'\}}"
-  echo "$_"
-}
 
 sh_fclone () # ~ <New-name> <Copy-ref> # alias:fun-clone
 {
   : source "script-mpe.lib.sh"
-  : "${1:?$FUNCNAME: New function name expected}"
-  if_ok "$_ () {
-$(sh_funbody "${2:?sh-fclone: Reference function name expected}")
+  : input "${1:?$FUNCNAME: New function name expected}"
+  :pass "$_ () {
+$(_Sh_Fun_Body "${2:?sh-fclone: Reference function name expected}")
 }" &&
   eval "$_"
 }
@@ -86,8 +52,8 @@ std_bool () # ~ <Cmd...> # Print true or false, based on command status
     printf false
   }
 }
-fun_def bool 'std_bool "$@";'
-fun_def not '! "$@";'
+:mkFun bool 'std_bool "$@"'
+:mkFun not '! "$@"'
 
 # Boolean-bit: validate 0/1, or return NZ for other arguments. This uses
 # std_bool to test for 0 (true) or 1 (false) value, and prints either command.
@@ -134,7 +100,7 @@ std_nz () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only)
 std_verbose () # ~ <Message ...> # Print message
 {
   : source "script-mpe.lib.sh"
-  stderr echo "$@" || return 3
+  >&2 echo "$@" || return 3
 }
 
 std_v_exit () # ~ <Cmd ...> # Wrapper to command that exits verbosely
@@ -157,7 +123,7 @@ std_v1c () # ~ <Cmd ...> # Wrapper that echoes both command and status
   : param "<Cmd ...>"
   : note "Strictly for debugging of script branches (or DEBUG, DIAG mode etc)"
   : source "script-mpe.lib.sh"
-  stderr echo "Running command: $*"
+  >&2 echo "Running command: $*"
   "$@"
   stderr_stat $? "$@"
 }
@@ -170,7 +136,7 @@ stderr_vs () # ~ <Message ...> # Print message, pass previous status code.
   : param "<Message ...>"
   : source "script-mpe.lib.sh"
   local stat=$?
-  stderr echo "$@"
+  >&2 echo "$@"
   return $stat
 }
 # Copy uc:script/std-uc.lib
@@ -182,26 +148,19 @@ std_nvse () # ~ <Message ...> # Pass status code and print message if non-zero
   : param "<Message ...>"
   : source "script-mpe.lib.sh"
   local stat=$?
-  [[ $stat -eq 0 ]] || stderr echo "$@"
+  [[ $stat -eq 0 ]] || >&2 echo "$@"
   return $stat
 }
-
-stderr () # ~ <Cmd <...>>
-{
-  : source "script-mpe.lib.sh"
-  "$@" >&2
-}
-# Copy: std-uc.lib
 
 stderr_exit () # ~ <Status=$?> [<Exit-msg>] [<Nz-exit-msg>] <...> # Verbosely exit passing status code,
 # with status message on stderr. See also std-v-exit.
 {
   local stat=${1:-$?}
-  if_ok "$([[ $stat -eq 0 ]] &&
+  :pass "$([[ $stat -eq 0 ]] &&
     printf "${2:-"Exiting\\n"}" ||
     printf "${3:-"Exiting (status %i)\\n"}" $stat)" &&
-  stderr echo "$_" ||
-    stderr printf 'Failed formatting status (E%i)\n' "$?"
+  >&2 echo "$_" ||
+    >&2 printf 'Failed formatting status (E%i)\n' "$?"
   exit $stat
 }
 
@@ -209,16 +168,16 @@ stderr_v_exit () # ~ <Message> [<Status>] # Exit shell after printing message
 {
   : source "script-mpe.lib.sh"
   local stat=$?
-  stderr echo "$1" || return 3
+  >&2 echo "$1" || return 3
   exit ${2:-$stat}
 }
 
 # Like stderr-v-exit, but exits only if status is given explicitly, or else
 # if previous status was non-zero.
-fun_def stderr_ \
-  local stat=\$?\;\
-  stderr echo \"\$1\" "||" return 3\;\
-  test -z \"\${2:-}\" "&&" test 0 -eq \"\$stat\" "||" exit \$_\;
+:mkFun stderr_ '
+  local stat=$?
+  >&2 echo "$1" || return 3
+  test -z "${2:-}" && test 0 -eq "$stat" || exit $_'
 
 # Show whats going on during sleep, print at start and end. Makes it easier to
 # find interrupt points for sensitive scripts. Verbose sleep prints to stderr
@@ -230,17 +189,17 @@ stderr_sleep_int ()
   local last=$_
   : "${sleep_q:=$(bool not ${sleep_v:-true})}"
   ! ${sleep_v:-true} ||
-    printf "> sleep $*$(test -z "$last" || printf " because $last...")" >&2
+    printf "> sleep $*$(test -z "$last" || >&2 printf " because $last...")"
   fun_wrap command sleep "$@" || {
     [[ 130 -eq $? ]] && {
       "$sleep_q" ||
-        echo " aborted (press again in ${sleep_itime:-1}s to exit)" >&2
+        >&2 echo " aborted (press again in ${sleep_itime:-1}s to exit)"
       command sleep ${sleep_itime:-1} || return
       return
     } || return $_
   }
   ! ${sleep_v:-true} ||
-    echo " ok, continue run" >&2
+    >&2 echo " ok, continue run"
 }
 
 stderr_stat ()
@@ -253,12 +212,6 @@ stderr_stat ()
     printf "Fail E%i: '%s'\\n" "$stat" "$ref"
   return $stat
 }
-
-str_globmatch () # ~ <String> <Glob-pattern>
-{
-  case "${1:?}" in ${2:?} ) ;; ( * ) false ;; esac
-}
-fun_def fnmatch 'str_globmatch "${2:?fnmatch: \$2 not set}" "${1:?fnmatch: \$1 not set}";'
 
 str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
 {
@@ -318,13 +271,14 @@ sh_var_copy () # ~ <New-var> <From-ref>
   declare -g ${1:?}="${!2}"
 }
 
-# Check for array variable, and for value set at key (zerowidth or otherwise)
 sh_adef () # ~ <Array> <Key>
 {
-  : source "script-mpe.lib.sh"
+  : about "Check for array variable, and for value set at key (zerowidth or otherwise)"
   sh_arr "${1:?"$(sys_exc script-mpe.lib:sh-adef@1:array)"}" &&
   : "${1:?}[${2:?"$(sys_exc script-mpe.lib:sh-adef@2:key)"}]" &&
-  test "(unset)" != "${!_:-(unset)}"
+  #[[ "(unset)" != "${!_:-(unset)}" ]]
+  [[ ${!_:+set} ]]
+  : source "script-mpe.lib.sh"
 }
 
 # Call sys-arr unless array var with name exists.
@@ -346,9 +300,16 @@ sh_arr_len () # ~ <Var-name>
 {
   : source "script-mpe.lib.sh"
   #sh_arr_def "${1:?}" &&
-  declare -n arr=${1:?} &&
-  test "${arr[*]+set}" = "set" &&
-  echo ${#arr[@]}
+  local -n _arr=${1:?} &&
+  [[ ${_arr[*]+set} ]] &&
+  echo ${#_arr[@]}
+}
+
+sh_arr_nz () # ~ <Var-name>
+{
+  local -n _arr=${1}
+  [[ ${_arr[*]+set} ]]
+  #&& [[ ${#_arr[@]} -gt 0 ]]
 }
 
 sh_fclone inc sh_var_incr
@@ -382,7 +343,7 @@ sh_caller ()
 {
   : source "script-mpe.lib.sh"
   : "$(( ${1:-0} + 1 ))"
-  if_ok "$(caller $_)" || return
+  :pass "$(caller $_)" || return
   : "${_#* }"
   : "${_% *}"
   echo "$_"
@@ -400,7 +361,7 @@ sys_exec_mapfile () # ~ <Var-name> <Cmd...> # Read out (lines) from command into
   local outname=${1} offset
   local -n __sys_exec_mapfile_arr=${outname}
   offset=${#__sys_exec_mapfile_arr[@]}
-  if_ok "$("${@:2}")" &&
+  :pass "$("${@:2}")" &&
   test -n "$_" &&
   <<< "$_" mapfile -O ${offset:-0} ${mapfile_f:--t} ${outname}
 }
@@ -414,7 +375,7 @@ sys_exc_trc () # ~ [<Head>] ...
   local i
   for (( i=1; 1; i++ ))
   do
-    if_ok "$(caller $i)" && echo "  - $_" || break
+    :pass "$(caller $i)" && echo "  - $_" || break
   done
   : source "script-mpe.lib.sh"
 }

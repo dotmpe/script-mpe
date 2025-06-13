@@ -364,7 +364,7 @@ user_desktop_loadenv ()
   test -e "${BG_DIR:="$HOME/Pictures/Backgrounds"}/.meta.sh" && {
     . "${BG_DIR}/.meta.sh"
   }
-  : "${_E_not_found:=127}" # NSFC no-such-file-or-command
+  : "${_E_not_found:=127}" # NSFC no-such-file-or-command @copy
   user_desktop_defaults &&
   lib_require os sys-htd str-htd desktop xorg
 }
