@@ -89,6 +89,7 @@ user_script_filter () # ~ #
   done
 }
 
+# TODO: should see about merging this with uconf or user bases group.
 user_script_find__libs=ignores
 
 # XXX: this uses find and glob expression let loose on SP-US-BIN to scan for

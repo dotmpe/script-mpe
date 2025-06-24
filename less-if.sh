@@ -64,9 +64,7 @@ while (<>) {
 ## Script settings
 
 : "${bat_exe:=bat}"
-
-: "${DEBUG:=true}"
-
+: "${DEBUG:=false}"
 : "${PAGER_WRAPPERS:=delta,$bat_exe}"
 
 

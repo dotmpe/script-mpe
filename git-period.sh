@@ -3,10 +3,29 @@
 #   git-period.sh [--follow] [<paths...>]
 
 test $# -gt 0 || set -- $PWD
-: "${gitlog_f:=--follow}"
+
+git_log_dates_cmd=( git log --date=short --format="%cd" )
+#git_log_last_date_cmd=( "${git_log_dated_cmd[@]}" -n 1 )
+# XXX: --reverse somehow has unpredictable results. so rewriting routine
+# to read entire list anyway
+#git_log_dates_rev_cmd=( "${git_log_dated_cmd[@]}" --reverse )
+
+cmd_args=()
+while [[ $# -gt 0 && "$1" =~ ^- ]]
+do
+  cmd_args+=( "${1:?}" )
+  shift
+done
+[[ ${#cmd_args[*]} -gt 0 ]] || cmd_args=( --follow )
 for path
 do
-  end=$(git log ${gitlog_f-} --date=short --format="%cd" -n 1 "${path:?}") &&
-  read -r start <<< $(git log ${gitlog_f-} --date=short --format="%cd" --reverse "$path")
-  echo "- $start $end $path"
+  first= last=
+  >&2 echo "> $ ${git_log_dates_cmd[*]} ${cmd_args[*]} ${path:?}..."
+  :pass "$("${git_log_dates_cmd[@]}" "${cmd_args[@]}" "$path")" &&
+  while read -r date
+  do
+    [[ ${last:+set} ]] && first=$date || last=$date
+  done <<< "${_}" &&
+  echo "- $first $last $path" ||
+  _ERR "Failed reading log lines"
 done

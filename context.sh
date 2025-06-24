@@ -388,6 +388,24 @@ context_sh_user () # (y) ~ <Switch:-> ...
 }
 context_sh_user__grp=context-sh
 
+context_bases ()
+{
+  local act=${1-}
+  : "${act:=list}"
+  test $# -eq 0 || shift
+  local lk=${lk:-:context}:bases:-$act
+  case "$act" in
+  ( --for-dir )
+      echo "${lib_loaded// /$'\n'}" | sort -u
+      TODO "$*, $ENV_CTX:$FUNCNAME:$act"
+    ;;
+
+  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  esac
+}
+context_sh_bases__grp=context-sh
+context_sh_bases__libs=us-base
+
 
 ## User-script parts
 
@@ -402,6 +420,7 @@ context_sh_aliasargv ()
   ( list|l ) set -- entries -l "${@:2}" ;;
   ( short|s ) set -- status --short ;;
   ( files|f ) set -- files "${@:2}" ;;
+  ( --local ) set -- bases --for-dir "$PWD" "${@:2}" ;;
   esac &&
   script_defenv[HT]=${HT:-${HTDIR:-${HTDOCS:-$HOME/htdocs}}}
 }

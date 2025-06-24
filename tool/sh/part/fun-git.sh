@@ -21,7 +21,7 @@ git_grep_all () # ~ <Git-grep-args> [-- <Basedirs>]
     shift
   done
   [[ ${#git_grep_args[@]} -gt 0 ]] ||
-    _ERROR "Grep expression expected" || return
+    _ERR "Grep expression expected" || return
   shift
   [[ ${#} -gt 0 ]] || {
     local -a _basedirs
@@ -30,7 +30,7 @@ git_grep_all () # ~ <Git-grep-args> [-- <Basedirs>]
     set -- "${_basedirs[@]}"
   }
   [[ ${#} -gt 0 ]] ||
-    _ERROR "Basedirs expected" || return
+    _ERR "Basedirs expected" || return
   _IFVBS _WARN "Grepping ${#} dirs..."
   for tp
   do
@@ -61,7 +61,7 @@ git_status_all () # ~ <Git-status-args> [-- <Basedirs>]
     set -- "${_basedirs[@]}"
   }
   [[ ${#} -gt 0 ]] ||
-    _ERROR "Basedirs expected" || return
+    _ERR "Basedirs expected" || return
   _IFVBS _WARN "Tracking ${#} dirs..."
   for tp
   do

@@ -62,7 +62,7 @@ fzf_edit_preview_all () # ~ <Fzf-query-> <Vim-search-re->
   case "${1-}" in
     ( -a | --all ) false
       ;;
-    ( "" ) _ERROR "Fuzzy finger query expected"
+    ( "" ) _ERR "Fuzzy finger query expected"
       return 1 ;;
     ( * ) fzf_edit_preview "$@" ;;
   esac
