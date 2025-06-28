@@ -29,7 +29,6 @@
 # search repos`` so to prevent broken layout numbering needs to be turned off
 # using IF_PLAIN
 
-
 ## Shell mode
 set -euo pipefail
 
@@ -66,6 +65,7 @@ while (<>) {
 : "${bat_exe:=bat}"
 : "${DEBUG:=false}"
 : "${PAGER_WRAPPERS:=delta,$bat_exe}"
+#: "${PAGER_WRAPPERS:=$bat_exe}"
 
 
 # TODO: describe script main env
@@ -134,6 +134,9 @@ test -n "$IF_PAGER" && {
   }
 }
 
+# XXX: remove deco to wrap delta output
+[[ $execn != delta ]] || IF_PLAIN=1
+
 test -x "${IF_PAGER%% *}" && {
   $LOG debug "${ENV_CTX-}:init" "Selected pager" "IF_PAGER=$IF_PAGER"
 } || {
@@ -173,25 +176,21 @@ maxlines=${USER_LINES:-${UC_OUTPUT_LINES:-${LINES:?}}}
 case "${IF_PAGER##*/}" in
 
   ( "$bat_exe" )
-      # XXX: IF_PAGE
-      test 1 -eq "${IF_PLAIN:-0}" && {
-        bat_opts=--style=plain
-
+      test $maxlines -le $lines && {
+        test ${v:-${verbosity:-3}} -lt 6 ||
+          echo "bat-if read $lines lines, max inline output is $maxlines" >&2
+        bat_opts=--paging=always\ --style=rule,numbers
       } || {
-
-        test $maxlines -le $lines && {
-          test ${v:-${verbosity:-3}} -lt 6 ||
-            echo "bat-if read $lines lines, max inline output is $maxlines" >&2
-          bat_opts=--paging=always\ --style=rule,numbers
-        } || {
-          # Display 'File: ... <EMPTY>' (without deco) even if there is no content
-          # but only if quiet_empty=false (see below)
-          test $lines -eq 0 &&
-              bat_opts=--paging=never\ --style=plain || {
-              bat_opts=--paging=never\ --style=grid,numbers
-            }
-        }
+        # Display 'File: ... <EMPTY>' (without deco) even if there is no content
+        # but only if quiet_empty=false (see below)
+        test $lines -eq 0 &&
+            bat_opts=--paging=never\ --style=plain || {
+            bat_opts=--paging=never\ --style=grid,numbers
+          }
       }
+
+      test 0 -eq "${IF_PLAIN:-0}" ||
+        bat_opts=${bat_opts%style=*}style=plain
 
       # Display 'File:' header for both paging and nonpaging if known, but
       # only if quiet_empty=false
