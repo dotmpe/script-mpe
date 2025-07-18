@@ -356,14 +356,20 @@ sys_exec_mapfile () # ~ <Var-name> <Cmd...> # Read out (lines) from command into
 {
   : source "script-mpe.lib.sh"
   : group util
-  : "${1:?"$(sys_exc sys-execmap:array-name)"}"
-  : "${2:?"$(sys_exc sys-execmap:command)"}"
+  : about "Read command standard ouput (lines) into array"
+  : extended "Reads onto end for existing array"
+  : param "<Array-name> <Cmd...>"
+  : src -uconf-shell-core.sh
+  : derive sys-exec-mapfile
+  : input "${1:?Array-name expected, $ENV_CTX:$FUNCNAME}"
+  : input "${2:?Command line expected, $ENV_CTX:$FUNCNAME}"
+  local -n _sys_exec_mapfile_arr=${1}
   local outname=${1} offset
-  local -n __sys_exec_mapfile_arr=${outname}
-  offset=${#__sys_exec_mapfile_arr[@]}
-  :pass "$("${@:2}")" &&
+  [[ ${_sys_exec_mapfile_arr[*]:+set} ]] &&
+  offset=${#_sys_exec_mapfile_arr[@]} || offset=0
+  if_ok "$("${@:2}")" &&
   test -n "$_" &&
-  <<< "$_" mapfile -O ${offset:-0} ${mapfile_f:--t} ${outname}
+  <<< "$_" mapfile -O ${offset} ${mapfile_f:--t} ${outname}
 }
 # Copy: sys.lib.sh
 

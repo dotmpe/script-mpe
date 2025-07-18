@@ -5,7 +5,7 @@ cherrypy
 couchdb
 docutils
 fusepy
-git+https://github.com/hackerhelmut/ObjectPath.git
+#git+https://github.com/hackerhelmut/ObjectPath.git
 #gtasks
 hashids
 icalendar

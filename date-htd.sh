@@ -26,7 +26,13 @@ date_util_ ()
         ds=$(( ts2 - ts1 )) &&
         printf "%'d seconds\n" "$ds" &&
         ds=$(( ts2 - ts1 )) &&
+        printf "%'d minutes\n" "$(( ds / 60 ))" &&
+        ds=$(( ts2 - ts1 )) &&
+        printf "%'d hours\n" "$(( ds / 3600 ))" &&
+        ds=$(( ts2 - ts1 )) &&
         printf "%'d days\n" "$(( ds / 86400 ))" &&
+        ds=$(( ts2 - ts1 )) &&
+        printf "%'d weeks, %'d days\n" "$(( ds / 604800 ))" "$(( (ds % 604800) / 86400 ))" &&
         {
           [[ ${ds:0:1} = - ]] && o=1 pref= suf=" before" || o=0 pref= suf=" after"
         } &&
