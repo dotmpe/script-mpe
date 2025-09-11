@@ -15,6 +15,7 @@ statusdir_dir_conf=(
   [tree]="/usr/share/statusdir"
 )
 
+declare -gA statusdir_user_conf
 statusdir_user_conf=(
   [name]=$USER
   [group]=staff
@@ -53,19 +54,30 @@ check ()
 init ()
 {
   [[ -d "${STATUSDIR_ROOT}" ]] || {
-    >&2 mkdir -vp "${STATUSDIR_ROOT}" || return
+    init-staffdir STATUSDIR_ROOT || return
   }
   local sub
   local -n trgt="statusdir_dir_conf[\$sub]"
   for sub in "${!statusdir_dir_conf[@]}"
   do
     [[ -d "${trgt:?Missing mapping value for $sub}" ]] && continue
-    >&2 mkdir -vp "$trgt" || return
-    sudo chown root:staff "$trgt"
-    sudo chmod g+srwx "$trgt"
+    init-staffdir trgt || return
     [[ -h "${STATUSDIR_ROOT}${sub}" ]] && continue
     >&2 ln -vs "${trgt:?}" "${STATUSDIR_ROOT}${sub}" || return
   done
+}
+
+init-staffdir ()
+{
+  local -n ref=${1:?}
+  : "${ref%/}"
+  local bd=${_%/*} pref
+  [[ -w "${ref}" ]] || pref="sudo "
+  [[ -d "${ref}" ]] || {
+    >&2 ${pref-}mkdir -vp "${ref}" &&
+    >&2 ${pref-}chmod -v g+srwx "$ref" &&
+    >&2 sudo chown -v root:staff "$ref"
+  }
 }
 
 assert-dirpaths ()
