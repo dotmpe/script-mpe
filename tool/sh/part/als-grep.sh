@@ -12,7 +12,7 @@ grep_als ()
 # TODO: define user-grep as alias parts as well?
 alias user-grep=''
 
-alias stat-grep=grep-stat.sh
-alias grep-stat=grep-stat.sh
+alias stat-grep=stat-grep.sh
+alias grep-stat=stat-grep.sh
 
 #

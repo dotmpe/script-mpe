@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#!/bin/sh
 # Main-Make: build shell scripts from subcommands without boilerplate
 # Created: 2020-06-30
 
