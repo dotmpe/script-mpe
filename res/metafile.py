@@ -589,14 +589,15 @@ class Metadir(object):
         configpaths = list(klass.find(*paths))
         if configpaths:
             if len(configpaths) > 1:
-                log.warn('Using first config file %s for %s', klass.DOTID, configpaths)
+                log.warn('Using first config file %s for %s',
+                         klass.DOTID, configpaths)
             return klass(configpaths[0]+'/.'+klass.DOTNAME)
 
     @classmethod
     def require(klass, *paths):
         o = klass.fetch(*paths)
         if not o:
-            raise Exception("No %s" % klass.__name__)
+            raise Exception("No such metadir %s" % klass.__name__)
         return o
 
     def __init__(self, path):

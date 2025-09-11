@@ -9,7 +9,8 @@ import base64
 
 import zope.interface
 import xattr
-import pbPlist
+# FIXME: doesnt work since collections.MutableMapping was moved
+# import pbPlist
 
 from script_mpe import confparse
 from script_mpe import lib

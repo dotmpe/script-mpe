@@ -95,11 +95,21 @@ def select_kwdargs(handler, settings, **override):
     """
 
     # get func signature
-    func_arg_vars, func_args_var, func_kwds_var, func_defaults = \
-            inspect.getargspec(handler)
+    # XXX: old 2.7 code: func_arg_vars, \
+    #    func_args_var, \
+    #    func_kwds_var, \
+    #    func_defaults = inspect.getargspec(handler)
+    func_sig_params = inspect.signature(handler).parameters
+    func_arg_vars = [name for name, param in func_sig_params.items()
+                     if param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD
+                    )]
+    #func_args_var = []
+    #func_kwds_var = []
+    #func_defaults = []
+
     # TODO: see about supporting part of this using better settings
-    assert not func_args_var, "Arg. passthrough not supported"
-    assert not func_kwds_var, "Kwds. passthrough not supported"
+    #assert not func_args_var, "Arg. passthrough not supported"
+    #assert not func_kwds_var, "Kwds. passthrough not supported"
     # Make 'settings' accessible as a whole
     override['settings'] = settings
     # Resolve aliases before resolving argument values

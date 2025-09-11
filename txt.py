@@ -83,7 +83,7 @@ def cmd_todotxt(TXT, g):
     #ctx.flush()
 
 def cmd_proc(LIST, g):
-    prsr = res.lst.ListTxtParser()
+    prsr = res.lst.ListTxtParser_Old()
 
 
 
@@ -263,8 +263,6 @@ def get_version():
 
 if __name__ == '__main__':
     import sys
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
     usage = __description__ +'\n\n'+ \
             libcmd_docopt.static_vars_from_env(__usage__,
         ( 'COUCH_DB', __couch__ ) )

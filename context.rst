@@ -14,7 +14,8 @@ It forms the basis for these design specs.
 
 Design
 ------
-See todotxt-format lib, or stattab for generic record-table setup.
+See todotxt-format lib, or stattab for generic record-table setup. Here
+details for context Id field and specific record follow.
 
 Tags are unique, can only appear as either super- or sub-tag. a context item
 can group several tag-ids (no spaces allowed in tag), and also use tags in

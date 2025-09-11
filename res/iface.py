@@ -3,7 +3,7 @@ Collection of interfaces.
 
 Another reiteration of a previous unfinished implementation in taxus_out.
 """
-from zope.interface import Interface, Attribute, implements, classImplements
+from zope.interface import Interface, Attribute, classImplements
 
 
 

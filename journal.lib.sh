@@ -125,9 +125,10 @@ journal_title () # Entry | Date Period
       m ) date_fmt "$date" "%B %G" ;;
 
       w ) local dayintoweek weekstart month_at_weekstart
-          dayintoweek=$(date_fmt $date %u)
+          dayintoweek=$(date_fmt $date %u) # 1..7 1=monday
           weekstart="$(date_fmt "$date - ${dayintoweek}days" "%F" )"
-          # XXX: should be using ISO principle of using month at thursday?
+          # XXX: should be using ISO principle of using month at thursday or
+          # print both for those occasions that difference occurs
           month_at_weekstart="$(date_fmt $weekstart %b)"
           weeknr=$(date +%V | sed 's/^0*//')
           date_fmt "$date" "Week $weeknr, $month_at_weekstart '%g"

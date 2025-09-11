@@ -15,7 +15,7 @@ from . import mb
 from . import txt
 from . import txt2
 
-from pprint import pformat
+# XXX: from pprint import pformat
 
 
 # Define parser for items (lines, rows) and for lists of items
@@ -29,7 +29,7 @@ class ListItemTxtParser_Old(
         txt.AbstractRecordReferenceStrategy_Old
 ):
     fields = ("sections refs contexts projects cites hrefs attrs "
-        "date:creation_date date:deleted_date id:item_id").split(' ')
+              "date:creation_date date:deleted_date id:item_id").split(' ')
     def __init__(self, raw, **attrs):
         super(ListItemTxtParser_Old, self).__init__(raw, **attrs)
 
@@ -39,6 +39,14 @@ class ListTxtParser_Old(txt.AbstractIdStrategy_Old):
     item_parser = ListItemTxtParser_Old
     def __init__(self, **kwds):
         super(ListTxtParser_Old, self).__init__(**kwds)
+
+
+### Status and Lists
+
+# TODO: need simple processor for stattab workflow
+class SimpleStatParser(
+):
+    fields = ()
 
 
 ### URL Lists
@@ -58,7 +66,7 @@ class URLListItemParser(
 
     def __init__(self, *args, **kwds):
         self.field_names.update(dict(
-            uriref= (self.uriref_r, uriref.URIRef, 2),
+            uriref=(self.uriref_r, uriref.URIRef, 2),
         ))
         super(URLListItemParser, self).__init__(*args, **kwds)
 
@@ -98,7 +106,8 @@ list_parse_defaults = dict(
         be=dict(),
         return_parser=False,
         record_cites=True
-    )
+)
+
 
 def parse(listfile, g=None, ):
 

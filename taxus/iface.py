@@ -10,7 +10,7 @@ Output handling using Zope adapters.
 #print str(sys.stdout.encoding)
 
 import zope.interface
-from zope.interface import Interface, Attribute, implements, \
+from zope.interface import Interface, Attribute, \
         implementedBy, providedBy, classImplements
 from zope.interface.interface import adapter_hooks
 from zope.interface.adapter import AdapterRegistry

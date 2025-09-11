@@ -1,3 +1,4 @@
+# see setup.cfg for project-wide settings
 """
 res.txt - abstract bases and mixins dealing with parsing lined-based content.
 
@@ -16,7 +17,7 @@ and lists.
 """
 import os
 import re
-#from collections import UserDict, UserList
+# XXX: from collections import UserDict, UserList
 
 import zope.interface
 from zope.interface import Interface, Attribute, implementer, classImplements
@@ -28,8 +29,8 @@ from . import mb
 from . import task
 
 
-
 re_idref = re.compile('([A-Z]+):')
+
 
 ### Interfaces with docs for line- and list-parser base
 
@@ -87,8 +88,8 @@ class AbstractTxtLineParser(object):
     field spec and call the abstract run_field_parse method for the current
     line. For further docs refer to ITxtListParser doc.
 
-    Each fieldspec is a ':' separated string, which is split, passed along with
-    the text and any onto-object during handler invocation. Other subtypes will
+    A fieldspec is a ':' separated string to parameterize the parse handler.
+    Other subtypes will
     need to provide for the run_field_parse impl. as well as all further
     handling of data to `onto.
     """
@@ -266,12 +267,16 @@ class AbstractTxtLineParserFieldsStrategy(AbstractTxtLineParserTargetStrategy):
     def field_targets(self):
         for f in self.fields:
             f_ = f.split(':')
-            if len(f_) > 2: yield f_[2]
-            else: yield f_[0]
+            if len(f_) > 2:
+                yield f_[2]
+            else:
+                yield f_[0]
 
     def run_field_parse(self, text, onto, method, at, target):
-        if not target: target = method
-        if not at: at = self.default_access_type
+        if not target:
+            target = method
+        if not at:
+            at = self.default_access_type
         while at in self.access_type_alias:
             at = self.access_type_alias[at]
 
@@ -316,15 +321,15 @@ class AbstractTxtLineParserSimpleFieldArgsStrategy(AbstractTxtLineParserTargetSt
 
         # Determine access-type to value by onto object type/state
         at = None
-        if isinstance(onto, (dict, UserDict)):
+        if isinstance(onto, dict):
             if target in onto:
                 at = 'key'
-        if isinstance(onto, (list, UserList)):
+        if isinstance(onto, list):
             at = 'idx'
         if not at and hasattr(onto, target):
             at = 'attr'
         if not at:
-            if isinstance(onto, (dict, UserDict)):
+            if isinstance(onto, dict):
                 at = 'key'
             else:
                 at = 'attr'
@@ -383,7 +388,7 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
         "Before setting new data"
         _get, _set = descr
         current = _get()
-        if current == None:
+        if current is None:
             if cardinality > 1 or cardinality == 0:
                 _set([])
         else:
@@ -404,12 +409,12 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
         """
         cardinality, symbol = None, None
 
-        if len(args)>0: cardinality = args[0]
+        if len(args) > 0: cardinality = args[0]
         if cardinality == '*': return float('inf')
         if cardinality: cardinality = int(cardinality)
         else: cardinality = 1
 
-        if len(args)>1: symbol = args[1]
+        if len(args) > 1: symbol = args[1]
         if symbol: symbol = int(symbol)
 
         return cardinality, symbol
@@ -447,9 +452,8 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
                 set(data)
 
         span = match.span()
-        if symbol != None:
+        if symbol is not None:
             return span, symbol
-
 
     # Hook to ~FieldsStrategy dispatcher for sub-line field structures
 
@@ -481,12 +485,10 @@ class AbstractTxtLineParserRegexFields(AbstractTxtLineParserSimpleFieldArgsStrat
         # For hidden parsed data, cut out spans. padd space if requested..
         cl.reverse()
         for sp, w in cl:
-            t = t[:sp[0]]+(' '*w)+t[sp[1]:]
+            t = t[:sp[0]] + (' ' * w) + t[sp[1]:]
 
         # Return left over text
         return t
-
-
 
 
 ### Abstract list-parser base
@@ -562,7 +564,12 @@ class AbstractTxtListParser(object):
             # Increment and prepare for new line, proc+skip for non-item lines
             ctx_init['line'] += 1
             ctx_init['doc_line'] += 1
-            itraw = itraw_str.decode('utf-8').strip()
+
+            # XXX: working with decoded text is more convenient in Py3
+            #itraw = itraw_str.encode('utf-8').strip()
+            #print(type(itraw_str))
+            #print(type(itraw))
+            itraw = itraw_str
             if self._parse_non_item(itraw, ctx_init, reader):
                 # Non-items are not yielded but may be stored in line_contexts
                 # as comment, or XXX: further pre-/line-proc possible; for now store comments
@@ -641,7 +648,7 @@ class AbstractTxtListParser(object):
             Final pass on the parser's result before yielding from parse
             function.
         """
-        #self.load(it) TODO: move to todo or tasks module
+        # XXX: self.load(it) TODO: move to todo or tasks module
         """
         for ctx in self.apply_contexts:
             if ctx not in it.contexts:
@@ -664,7 +671,7 @@ class Reader:
     """
 
     def __init__(self, src, size, name):
-        self.srcs = [ src ] # Stack of sources to read from
+        self.srcs = [ src ]  # Stack of sources to read from
         self.sizes = [ size ]
         self.names = [ name ]
         self.prefixes = []
@@ -707,8 +714,8 @@ class Reader:
             else:
                 line = self.srcs[0].readline()
                 if line.strip():
-                    if self.prefix: line = self.prefix+line
-                    if self.suffix: line+=self.suffix
+                    if self.prefix: line = self.prefix + line
+                    if self.suffix: line += self.suffix
                 yield line
 
     def update(self, ctx):
@@ -741,7 +748,7 @@ class SimpleTxtLineItem(object):
     def text(self):
         return self.parser.parser.items[self._index][2]
     def __str__(self):
-        return "%s. %s" %( 1+self._index, self.text or repr(self._raw) )
+        return "%s. %s" % ( 1 + self._index, self.text or repr(self._raw) )
     def __repr__(self):
         return "%s(%r)" % ( self.__class__.__name__, self.to_dict() )
 

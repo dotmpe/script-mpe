@@ -172,7 +172,7 @@ from . import core
 from . import fs
 from . import checksum
 from . import fslayout
-from . import hier
+# FIXME: from . import hier
 from . import generic
 from . import net
 from . import ns
@@ -186,7 +186,7 @@ from . import ledger
 
 from .core import *
 from .fs import *
-from .hier import *
+# FIXME: from .hier import *
 from .net import *
 from .ns import *
 from .web import *
@@ -196,12 +196,12 @@ from .code import *
 from .ledger import *
 
 
+    # hier.models + \
 models = \
     core.models + \
     fs.models + \
     checksum.models + \
     fslayout.models + \
-    hier.models + \
     generic.models + \
     net.models + \
     ns.models + \

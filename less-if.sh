@@ -163,7 +163,7 @@ $LOG debug "${ENV_CTX-}:start" "Reading input data..." "args=$args"
 data=$(<"$args")
 test -z "$data" &&
     lines=0 ||
-    lines=$(echo "$data" | wc -l)
+    lines=$(echo "$data" | wc -l) data="$data"$'\n'
 $LOG info "${ENV_CTX-}:start" "Read input lines" "$lines:<$args"
 
 # Set either USER_LINES or UC_OUTPUT_LINES in profile to page on more or less

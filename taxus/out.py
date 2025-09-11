@@ -7,7 +7,6 @@ from wheezy.template.engine import Engine
 from wheezy.template.ext.core import CoreExtension
 from wheezy.template.loader import FileLoader
 import zope.interface
-from zope.interface import implements
 
 from script_mpe.lib import cn
 #import res.iface
