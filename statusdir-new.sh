@@ -15,6 +15,11 @@ statusdir_dir_conf=(
   [tree]="/usr/share/statusdir"
 )
 
+statusdir_user_conf=(
+  [name]=$USER
+  [group]=staff
+)
+
 # Legacy and new export path
 : "${STATUSDIR_ROOT:=$HOME/.local/var/statusdir/}"
 : "${METADIR_GLOBAL:=${statusdir_dir_conf["index"]}}"
@@ -56,6 +61,8 @@ init ()
   do
     [[ -d "${trgt:?Missing mapping value for $sub}" ]] && continue
     >&2 mkdir -vp "$trgt" || return
+    sudo chown root:staff "$trgt"
+    sudo chmod g+srwx "$trgt"
     [[ -h "${STATUSDIR_ROOT}${sub}" ]] && continue
     >&2 ln -vs "${trgt:?}" "${STATUSDIR_ROOT}${sub}" || return
   done
