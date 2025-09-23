@@ -1447,9 +1447,8 @@ user_script_stdstat_env ()
   # on debian linux last mapped number is 192: RTMAX signal
   : "${_E_GAE:=193}" # generic-argument-error/exception # @deprecated
   : "${_E_MA:=194}" # missing-arguments # @deprecated
-  : "${_E_continue:=195}" # success, but unfinished; continue steps/batch
-  #: "${_E_continue:=195}" # fail but keep going # @deprecated
-  : "${_E_next:=196}"  # Try next alternative # @deprecated
+  : "${_E_continue:=195}" # failed, can keep going (continue steps/batch)
+  : "${_E_next:=196}"  # partial success or next alternative # @deprecated
   : "${_E_break:=197}" # success; last step, finish batch, ie. stop loop now and wrap-up # @deprecated
   : "${_E_retry:=198}" # failed, but can or must reinvoke # @deprecated
   : "${_E_limit:=199}" # generic value/param OOB error? # @deprecated

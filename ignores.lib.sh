@@ -124,7 +124,8 @@ ignores_find_expr () # ~ <Groups...>
 ignores_find_files () # ~ <Prune-groups...>
 {
   local find_pwd=. find_arg="${find_arg:--o -print}"
-  : "$(ignores_find_expr "$@")"
+  if_ok "$(ignores_find_expr "$@")" &&
+  : "${_//$'\n'/ }" &&
   eval "find ${find_opts:-"-H"} ${find_pwd:-.} $_ $find_arg"
 }
 
@@ -142,6 +143,34 @@ ignores_find_glob_expr ()
     ( */* ) printf -- '-o -%spath "./*/%s" -a -prune\n' $i "$1" ;;
     (  *  ) printf -- '-o -%sname "%s" -a -prune\n' $i "$1" ;;
   esac
+}
+
+ignores_load ()
+{
+  local ctx=${1:-ignore}
+  set -- ${ctx} "${2:-${globset:-"*"}}" ${3:-${ctx}s}
+  case "$(realpath "$PWD")" in $HOME/* ) ;;
+  ( * )
+    std_noo pushd "$HOME" &&
+    ignores_load_any "$@" &&
+    std_noo popd
+  esac &&
+  traverse_volume_path "$PWD" ignores_load_any "$@"
+}
+
+ignores_load_any ()
+{
+  : param '~ <Group> <Set> <Dest>'
+  local gl gg=${1:?} gs=${2:?}
+  local _ignores_load_any_dest=${3:-${gg}s}
+  for gl in \
+    .${gg} \
+    .${gg}-${gs} \
+    etc/${gg}/${gs}.globlist
+  do
+    [[ -s "${gl}" ]] &&
+    <"$gl" _Sys_Read_Exec "${3}" read_nix || continue
+  done
 }
 
 ignores_stddef ()
