@@ -8,7 +8,9 @@ bittorrent_lib__load ()
   : "${BT_LOGDIR:=${METADIR:?}/log}"
   : "${BT_TABS:=${METADIR:?}/tab}"
 
-  : "${BT_CACHEDIR:=${METADIR:?}/cache}"
+  test -d "${C:-${METADIR:?}/cache}" ||
+    uconf-failp "bittorrent.lib: expected cache dir (C=${_})" || return
+  : "${BT_CACHEDIR:=${_}}"
 
   : "${BTLOG_PEERS:=$BT_LOGDIR/torrents-net.log}"
 
