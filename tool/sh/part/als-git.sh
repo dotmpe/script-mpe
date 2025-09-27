@@ -265,6 +265,16 @@ alias :gPa=:git:push:every
 # XXX: initial git-sync. May want more fancy per-project.
 alias :git:sync=':git:fetch:v --all && :gpa && :gPa'
 
+alias :quiet=std_quiet
+alias :silent=std_silent
+alias :noo=std_noo
+alias :git:sync:all='for d in ~/{.l/c,.conf,bin,{project/user-{conf,scripts}}}
+do
+  :noo pushd $d || continue
+  :gs
+  :noo popd
+done
+'
 alias :git:update=':git:fetch:v --all && :gpa'
 
 # XXX: also want to update clones, maybe work in bare repos for this?
