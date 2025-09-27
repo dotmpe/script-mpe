@@ -989,6 +989,15 @@ transmission_torrent_path () # ~ <Tbn-var> <Tf-var>
   __ti_tf="${TRANSMISSIONBT_TORRENTS_DIR:?}/$tbn.torrent"
 }
 
+transmission_torrentfiles ()
+{
+  : param '~ <Array-name>'
+  local tbt_uconf=${TRANSMISSIONBT_UC_DIR:?}
+  local -n __transmission_torrentfiles=${1:?}
+  [[ ! -d "$tbt_uconf" ]] ||
+    __transmission_torrentfiles+=( "$tbt_uconf"/torrents/*.torrent )
+}
+
 
 ## Util
 

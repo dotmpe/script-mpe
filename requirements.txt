@@ -33,6 +33,7 @@ shortuuid
 six
 sqlalchemy
 sqlalchemy-migrate
+torrent-parser
 twisted
 # uriref # FIXME: install Py3 version from repo
 # docopt-mpe # FIXME: remove docopt first

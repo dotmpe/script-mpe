@@ -2,7 +2,7 @@ bittorrent_lib__load ()
 {
   : "${BTCLIENTS:=transmission}"
   #test -z "${BTCLIENTS:-}" && return
-  lib_require meta $BTCLIENTS || return
+  #lib_require meta $BTCLIENTS || return
 
   : "${BT_INFODIR:=${METADIR:?}/info}"
   : "${BT_LOGDIR:=${METADIR:?}/log}"
@@ -35,13 +35,23 @@ bittorrent_lib__init ()
 
 bittorrent_lib__install ()
 {
+  # XXX: see pip torrent-parser package for pytp exec script
   command -v pytp >/dev/null 2>&1 &&
   command -v jq >/dev/null 2>&1
 }
 
-# Read all simple values from torrent (currently 11 values, using files found
-# in the wild).
-# Other complex values: announce-list, info.files, and info.pieces.
+bittorrent_clients () # ~ <Call args...>
+{
+  local btclient
+  for btclient in $BTCLIENTS
+  do
+    "$btclient"_"${1:?}" "${@:2}"
+  done
+}
+
+# Read all simple values from torrent via JSON (currently 11 values, using files
+# found in the wild). Other complex values: announce-list, info.files, and
+# info.pieces.
 bittorrent_info_vars () # ~ <Key>
 {
   [[ $# -eq 11 ]] ||
@@ -63,11 +73,7 @@ bittorrent_info_vars () # ~ <Key>
 
 bittorrent_instances () # ~ ...
 {
-  local btclient
-  for btclient in $BTCLIENTS
-  do
-    "$btclient"_instances
-  done
+  bittorrent_clients instance
 }
 
 bittorrent_json () # ~ <Torrent-file> <JSON-file>
@@ -81,33 +87,38 @@ bittorrent_json () # ~ <Torrent-file> <JSON-file>
 bittorrent_json_cache () # ~ <Torrent-file> [<Var-key=bittorrent_json_>]
 {
   [[ -s "${1:?}" ]] || return ${_E_no_file:-124}
+
   local $cache_lib_vars _btjs_stat
+
+  : "${2:-bittorrent_json_}"
+  local -n \
+      cachef=${_}file \
+      cacheref=${_}ref \
+      cachename=${_}cachename &&
+
   [[ ! ${btjs_cache["${1:?}"]:+set} ]] && {
     cache_ref bittorrent-file "${1:?}" || return
-    : "${2:-bittorrent_json_}"
-    local -n cachef=${_}file \
-        cacheref=${_}ref \
-        cachename=${_}cachename &&
     cacheref=$cache_ref &&
     cachename=$cache_name &&
     cachef=${BT_CACHEDIR:?}/$cache_name.json
   } || {
-    <<< "${btjs_cache["${1:?}"]:?}" read -r _ _ _ cachef
+    read -r _ _ _ cachef <<< "${btjs_cache["${1:?}"]:?}"
     : "${cachef##*/}"
     : "${_%.json}"
-    cache_name=$_
+    cachename=$_
+    cachef=${BT_CACHEDIR:?}/$cachename.json
   }
 
   [[ -s "$cachef" && "$cachef" -nt "$1" ]] &&
-  $LOG debug "$lk" "Torrent meta JSON cache is up-to-date" "$1:$cache_name" ||
+  $LOG debug "$lk" "Torrent meta JSON cache is up-to-date" "$1:$cachename" ||
     {
       bittorrent_json "$1" "$cachef" &&
-      $LOG debug "$lk" "Loading torrent meta into JSON cachefile" "$1:$cache_name" || _btjs_stat=$?
+      $LOG debug "$lk" "Loading torrent meta into JSON cachefile" "$1:$cachename" || _btjs_stat=$?
     }
 
   : "${_btjs_stat:--} $(date +'%s')"
   : "$_ $(filemtime "${1:?}")"
-  : "$_ $cache_name"
+  : "$_ $cachename"
   local new="${_@Q}"
   [[ ${btjs_cache["${1:?}"]:+set} &&
     "$new" == "${btjs_cache["${1:?}"]}"
@@ -115,7 +126,7 @@ bittorrent_json_cache () # ~ <Torrent-file> [<Var-key=bittorrent_json_>]
     >> "${btjs_cachefp:?}" echo "btjs_cache[\"${1:?}\"]=$new"
 
   [[ ! ${_btjs_stat:+set} ]] ||
-    $LOG alert "$lk" "Loading torrent meta into JSON cachefile" "E$_btjs_stat:$1:$cache_name" $_btjs_stat
+    $LOG alert "$lk" "Loading torrent meta into JSON cachefile" "E$_btjs_stat:$1:$cachename" $_btjs_stat
 }
 
 # FIXME: client-id is not properly tracked yet, but one instance works fine
@@ -234,3 +245,5 @@ json_read_oneline () # ~ <Query> <Vars...>
   do [[ "${!var}" != " " ]] || eval "$var="
   done
 }
+
+# us-bin+mpe bittorrent.lib.sh ex:ft=bash:
