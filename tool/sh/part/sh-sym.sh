@@ -40,7 +40,9 @@ sh_sym_ref () # ~ <Names...>
     # Attempt to resolve by trying 'detector' command and then handler
     for __cbi in ${!sh_sym_det[*]}
     do
-      ! __tpd=$(${sh_sym_det[$__cbi]} "$__sym") || {
+      ! __tpd=$(${sh_sym_det[$__cbi]} "$__sym") && {
+        :
+      } || {
         ! "${DEBUG:-false}" ||
           >&2 echo "Found $__cbi symbol '$__sym'"
         #>&2 echo "found, '$__cbi' has symbol '$__sym' declared as '$__tpd'"
@@ -97,9 +99,9 @@ sh_sym_ref__shell_lang_name ()
             echo "# alias \`$__sym' expands to script:"
           echo "$als_exp" | sed 's/^/   /'
         }
-        [[ $als_exp =~ ^{\ .*\;\ }$ ]] || {
-          echo "# ! TODO:check for pipeline or bool expr? \`$__sym' ${als_exp@Q}"
-        }
+        #[[ "$als_exp" =~ ^{\ .*\;\ }$ ]] || {
+        #  echo "# ! TODO:check for pipeline or bool expr? \`$__sym' ${als_exp@Q}"
+        #}
       }
       ! if_ok "$(which -- "$__sym" 2>/dev/null)" ||
         echo "# ! alias shadows \`$__sym' exec $_"
@@ -213,7 +215,7 @@ sys_os_package ()
   : "${1:?"sys-os-package: symbol expected"}"
   : source "sh-sym.sh"
   [[ ${1:0:1} = / ]] && : "$1" || if_ok "$(command -v "$1")" || return
-  if_ok "$(test -n "$_" && dpkg -S "$_")" &&
+  if_ok "$(test -n "$_" && 2>/dev/null dpkg -S "$_")" &&
   test -n "$_" &&
   echo -e "Package for command path:\n$_"
 }
@@ -263,8 +265,8 @@ sys_os_path_lookup ()
 
 sysd_unit ()
 {
-  systemctl --user status "${1}" ||
-  systemctl status "${1}"
+  2>/dev/null systemctl --user status "${1}" ||
+  2>/dev/null systemctl status "${1}"
 }
 
 #
