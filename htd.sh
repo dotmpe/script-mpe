@@ -258,7 +258,7 @@ htd_subcmd_load ()
 
     p ) # set (p)ackage -
         # Set package file and id, update. But don't require, see q.
-        os_path "${US_BIN?}"/tool/sh/part &&
+        os_path_add "${US_BIN?}"/tool/sh/part &&
         package_lib_auto=true sh_run package-require package-init
       ;;
 
@@ -4721,7 +4721,7 @@ htd_init()
 
   ! "${DEBUG:-false}" ||
     ! "${DIAG:-false}" || {
-      os_path "${C_INC:?}"/tool/sh/part &&
+      os_path_add "${C_INC:?}"/tool/sh/part &&
       uc_script_load sh-core sh-type user-script &&
       script_debug_env CWD EWD PWP SWD
     }
