@@ -277,12 +277,12 @@ fmttime_relative_f ()
     test -n "${2:-}" && shift ||
       set -- $(echo "scale=24; $(epoch_microtime) - $1"|bc) "$3"
     test "${1:0:1}" != "-" ||
-      stderr_ "! $0: seconds-fmt-relative-f input ts was before epoch" $? || return
+      failwith "! $0: seconds-fmt-relative-f input ts was before epoch" $? || return
   }
   test -n "${1:-}" -a $# -le 2 || return 64
   test -n "${2:-}" || set -- "$1" ""
   test ${1:0:1} != "-" ||
-    stderr_ "! $0: seconds-fmt-relative-f takes only positive delta values" $? || return
+    failwith "! $0: seconds-fmt-relative-f takes only positive delta values" $? || return
 
   test ${1//.*} -gt 0 && {
     # Seconds
