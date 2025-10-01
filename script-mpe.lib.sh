@@ -105,8 +105,8 @@ std_noo ()
 }
 # old: std-silent
 
-sh_fun std_nz ||
-std_nz () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only) if command returned zero-status
+sh_fun std_not ||
+std_not () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only) if command returned zero-status
 {
   ! "$@" || return
   : source "script-mpe.lib.sh"
