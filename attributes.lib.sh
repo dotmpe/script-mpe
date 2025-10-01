@@ -49,7 +49,7 @@ user_settings_lookup () # ~ <Basename>
   suite=$(${ctx}_suite) &&
   tool=$(${ctx}_basename) &&
   #key=$(${ctx}_key) &&
-  ext=$(std_noerr ${ctx2}_ext || sh_notfound) || return
+  ext=$(std_silent ${ctx2}_ext || sh_notfound) || return
   prefix= suffix=
 
   for conf_dir in ${CONFIG_INCLUDE//:/ }

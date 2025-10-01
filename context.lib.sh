@@ -100,7 +100,7 @@ context_cache ()
     src_htd_resolve_fileref \
     context_read_include \
     context_file_attributes \
-    context_file_attribute std_noerr
+    context_file_attribute std_silent
   preproc_run "${1:?}" \
     filereader_statusdir_cache \
     context_read_include \
@@ -314,7 +314,7 @@ context_file_attributes () # ~ <Keys...>
   local context_tab="${context_tab:-${CTX_TAB:?}}" v xp
   local -a ids
   true "${xattr_noerr:=1}"
-  xp=${xattr_noerr:+std_noerr }
+  xp=${xattr_noerr:+std_silent }
   # Look for each requested key
   while test $# -gt 0
   do
@@ -333,7 +333,7 @@ context_file_attributes () # ~ <Keys...>
 context_file_flush_xattr_cache ()
 {
   local c v xp
-  xp=${xattr_noerr:+std_noerr }
+  xp=${xattr_noerr:+std_silent }
   v=$(${xp}xattr -p user.${1:?} "${3:?}") &&
   c=$(grep -oP '#'"${1:?}"' \K.*' "$context_tab") && {
     test "$c" = "$v" ||
@@ -459,7 +459,7 @@ context_ids_list ()
 context_list_raw () # ~ <File>
 {
   export -f context_read_include \
-        context_file_attributes context_file_attribute std_noerr
+        context_file_attributes context_file_attribute std_silent
 
   preproc_run "${1:?}" filereader_statusdir_cache context_read_include
 }

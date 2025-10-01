@@ -892,7 +892,7 @@ user_script_initlibs () # ~ <Required-libs...>
     test 0 -lt $# || {
         # XXX: if debug
         declare -a loaded=( $lib_loaded ) initialized
-        if_ok "$(std_noerr lib_uc_hook var _lib_init)" &&
+        if_ok "$(std_silent lib_uc_hook var _lib_init)" &&
           initialized=( $_ ) && : "${#initialized[@]}" || : "?"
         $LOG info "$lk" "Done" "loaded=${#loaded[@]};initialized=$_"
         break

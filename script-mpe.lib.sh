@@ -73,21 +73,20 @@ std_ifstat () # ~ <Spec> <Cmd...>
   str_globmatch "$?" "$1"
 }
 
-std_noerr ()
-{
-  : source "script-mpe.lib.sh"
-  "$@" 2>/dev/null
-}
-
-std_noout ()
+std_quiet ()
 {
   : source "script-mpe.lib.sh"
   "$@" >/dev/null
 }
 
-std_quiet () # ~ <Cmd...> # Silence all output (std{out,err})
+std_silent () # ~ <Cmd...> # Silence all output (std{out,err})
 {
   : source "script-mpe.lib.sh"
+  "$@" 2>/dev/null
+}
+
+std_noo ()
+{
   "$@" >/dev/null 2>&1
 }
 
@@ -335,7 +334,7 @@ sh_errusr ()
 sh_noerr ()
 {
   : source "script-mpe.lib.sh"
-  std_noerr "$@" || true
+  std_silent "$@" || true
 }
 
 # see also sys-callers
