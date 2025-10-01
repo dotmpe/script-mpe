@@ -715,7 +715,7 @@ vc_flags_git()
   }
 
   cd "$1"
-  std_quiet git status -s || {
+  std_noo git status -s || {
     echo "(!git:E$?)"
     return
   }

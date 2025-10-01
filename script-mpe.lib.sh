@@ -38,9 +38,16 @@ $(_Sh_Fun_Body "${2:?sh-fclone: Reference function name expected}")
   eval "$_"
 }
 
-
 . "${U_S:?}/tool/sh/part/sh-mode.sh"
 
+# XXX: _uconf_shell_core_ = {ba,}sh
+>/dev/null 2>&1 declare -F sh_fun ||
+sh_fun ()
+{
+  : src std-uc.lib.sh
+  : input "${@:?$FUNCNAME: Function name, $ENV_CTX}"
+  >/dev/null 2>&1 declare -F "${@}"
+}
 
 # Helper to generate true or false command.
 # XXX: [[ ${key:-false} != true ]] || ... seems like a more terse, fitting idiom
@@ -73,28 +80,38 @@ std_ifstat () # ~ <Spec> <Cmd...>
   str_globmatch "$?" "$1"
 }
 
+sh_fun std_quiet ||
 std_quiet ()
 {
+  local stat=$?
+  "$@" >/dev/null && return ${stat}
   : source "script-mpe.lib.sh"
-  "$@" >/dev/null
 }
 
+sh_fun std_silent ||
 std_silent () # ~ <Cmd...> # Silence all output (std{out,err})
 {
+  local stat=$?
+  "$@" 2>/dev/null && return ${stat}
   : source "script-mpe.lib.sh"
-  "$@" 2>/dev/null
 }
 
+sh_fun std_noo ||
 std_noo ()
 {
-  "$@" >/dev/null 2>&1
+  local stat=$?
+  "$@" >/dev/null 2>&1 && return ${stat}
+  : src std-uc.lib.sh
 }
+# old: std-silent
 
+sh_fun std_nz ||
 std_nz () # ~ <Cmd...> # Require non-zero status. Ie. invert status, fail (only) if command returned zero-status
 {
+  ! "$@" || return
   : source "script-mpe.lib.sh"
-  ! "$@"
 }
+# alias: std-not
 
 std_verbose () # ~ <Message ...> # Print message
 {

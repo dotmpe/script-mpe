@@ -267,7 +267,7 @@ fmtdate_relative_f () # ~ <Time-Spec>
 
 seconds_fmt_relative_f () # ~ <Timestamp> <Delta>
 {
-  stderr echo "deprecated: seconds_fmt_relative_f: $(sys_caller)"
+  >&2 echo "deprecated: seconds_fmt_relative_f: $(sh_call_context "$@")"
   fmttime_relative_f "$@"
 }
 

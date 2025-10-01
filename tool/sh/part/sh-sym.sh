@@ -22,7 +22,7 @@ declare -gA sh_sym_det=(
   [shell-lang-name]="type -t"
   [shell-lang-cmd]="sys_os_name" # As command -v but only return where type is file
   [sys-os-path]="sys_os_path"
-  [shell-lang-var]="std_noerr declare -p" # aka sh-vspec
+  [shell-lang-var]="std_noo declare -p" # aka sh-vspec
   [shell-lang-ac]="complete -p"
   [sys-os-package]="sys_os_package" # Dont know of exact-match query for dpkg -S
   [sysd-unit]="sysd_unit"
@@ -202,12 +202,6 @@ sh_vspec () # ~ <Shell-sym> # Print declaration for shell variable
 {
   : source "sh-sym.sh"
   declare -p "${1:?}" 2>/dev/null
-}
-
-std_if ()
-{
-  : source "sh-sym.sh"
-  if_ok "$("$@")" && echo "$_"
 }
 
 sys_os_package ()
