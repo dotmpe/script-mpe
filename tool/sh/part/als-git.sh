@@ -269,16 +269,16 @@ alias :quiet=std_quiet
 alias :silent=std_silent
 alias :git:push:all='for d in ~/{.l/c,.conf,bin,{project/user-{conf,scripts}}}
 do
-  :noo pushd $d || continue
+  std_noo pushd $d || continue
   :gcn && :gs
-  :noo popd
+  std_noo popd
 done
 '
 alias :git:sync:all='for d in ~/{.l/c,.conf,bin,{project/user-{conf,scripts}}}
 do
-  :noo pushd $d || continue
+  std_noo pushd $d || continue
   :gs
-  :noo popd
+  std_noo popd
 done
 '
 alias :git:update=':git:fetch:v --all && :gpa'
