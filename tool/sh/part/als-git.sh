@@ -17,9 +17,9 @@ git_als ()
 # Otherwise, --quiet is added for either v=5 or v=6 based on git-chatty pref.
 alias git-v='{
   {
-    ${git_chatty:-true} && not stdlog_quiet 6 || not stdlog_quiet 7;
+    ${git_chatty:-true} && :not stdlog_quiet 6 || :not stdlog_quiet 7;
   } && git_opt=--verbose || {
-    { ${git_chatty:-true} && not stdlog_quiet 5 || not stdlog_quiet 6; } && {
+    { ${git_chatty:-true} && :not stdlog_quiet 5 || :not stdlog_quiet 6; } && {
       git_opt=
     } || {
       git_opt=--quiet
@@ -267,7 +267,6 @@ alias :git:sync=':git:fetch:v --all && :gpa && :gPa'
 
 alias :quiet=std_quiet
 alias :silent=std_silent
-alias :noo=std_noo
 alias :git:push:all='for d in ~/{.l/c,.conf,bin,{project/user-{conf,scripts}}}
 do
   :noo pushd $d || continue
