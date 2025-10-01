@@ -147,7 +147,7 @@ user_script_find_exec () # ~ <Basedirs> # Find executables from user-dirs
 user_script_initlog ()
 {
   UC_LOG_LEVEL=${verbosity:-${v:-5}} &&
-  . /etc/profile.d/uc-profile.sh &&
+  . "${HOME:?}/.conf/etc/profile.d/uc-profile.sh" &&
   uc_log_init &&
   uc_log "debug" "${lk-}" "uc-profile log loaded" &&
   LOG=uc_log
