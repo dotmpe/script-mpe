@@ -17,9 +17,9 @@ git_als ()
 # Otherwise, --quiet is added for either v=5 or v=6 based on git-chatty pref.
 alias git-v='{
   {
-    ${git_chatty:-true} && :not stdlog_quiet 6 || :not stdlog_quiet 7;
+    ${git_chatty:-true} && std_nz stdlog_quiet 6 || std_nz stdlog_quiet 7;
   } && git_opt=--verbose || {
-    { ${git_chatty:-true} && :not stdlog_quiet 5 || :not stdlog_quiet 6; } && {
+    { ${git_chatty:-true} && std_nz stdlog_quiet 5 || std_nz stdlog_quiet 6; } && {
       git_opt=
     } || {
       git_opt=--quiet
