@@ -4,7 +4,8 @@
 
 cache_lib__load ()
 {
-  : "${CACHE_DIR:=.meta/cache}"
+  : "${CACHE_DIR:=${METADIR:-.meta}/cache}"
+
   #: "${cache_ref_format:=printf}"
   : "${cachekey_format:=cksums}"
   #: "${cachekey_store:=env}"

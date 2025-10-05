@@ -6,6 +6,7 @@
 # (for argv processing)
 # nb. functions cannot access/change arguments of calling shell.
 
+# XXX: move bash array stuff to argv again
 
 args_lib__load ()
 {
