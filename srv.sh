@@ -3,14 +3,14 @@
 #lib_require srv
 #srv__update_services
 
+: "${U:=${STATUSDIR_ROOT:-$HOME/.local/var/statusdir/}index}"
 user=${SUDO_USER:-${USER?}}
 
 mount_basedirs=( /media/${user?} /run/media/${user?} /mnt/nfs /mnt )
 
 . "common,cache,uc.sh"
 
-cache_loadmaps "${STATUSDIR_ROOT:-$HOME/.local/var/statusdir/}user-srv.sh" \
-  volume_ids
+cache_loadmaps "${U}/user-srv.sh" volume_ids
 
 for volid in "${!volume_ids[@]}"
 do
