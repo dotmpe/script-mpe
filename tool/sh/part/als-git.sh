@@ -221,7 +221,7 @@ alias :git:commit-message='$EDITOR "$(git rev-parse --git-path COMMIT_EDITMSG)"'
 
 alias :git:commit-m='git commit -m' # ~ <Commit-message>
 alias :git:commit-now-no-comment='git commit -m "-"'
-alias :git:commit-now-accum-comment='git commit -m "Accumulated at $hostname"'
+alias :git:commit-now-accum-comment='git commit -m "Accumulated at ${OS_HOSTNAME:-$(hostname -s)}"'
 alias :git:ci:nc=:git:commit-now-no-comment
 alias :git:ci:now=:git:commit-now-accum-comment
 
