@@ -1,0 +1,1 @@
+alias fnfind='find . -iname'
