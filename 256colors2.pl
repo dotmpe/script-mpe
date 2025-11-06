@@ -35,14 +35,19 @@ for ($gray = 0; $gray < 24; $gray++) {
 
 # first the system ones:
 print "System colors (2x8):\n";
-for ($color = 0; $color < 8; $color++) {
-    print "\x1b[48;5;${color}m  ";
+for ($i = 0; $i < 2; $i++) {
+  for ($color = 0; $color < 8; $color++) {
+      print "\x1b[48;5;${color}m    ";
+  }
+  print "\x1b[0m\n";
 }
-print "\x1b[0m\n";
-for ($color = 8; $color < 16; $color++) {
-    print "\x1b[48;5;${color}m  ";
+for ($i = 0; $i < 2; $i++) {
+  for ($color = 8; $color < 16; $color++) {
+      print "\x1b[48;5;${color}m    ";
+  }
+  print "\x1b[0m\n";
 }
-print "\x1b[0m\n\n";
+print "\n";
 
 # now the color cube
 print "Color cube, 6x6x6 (213; 16-232):\n";
