@@ -38,10 +38,9 @@ Games.DOSBox.find-gamedata ()
 {
   local _echo
   (($#-1)) && local -n _gd_dest=${2:?} || _echo=1
-  local _fgd_game{data,exec}
+  local _fgd_gamedata
   for _fgd_gamedata in ${ANNEX_DIR:?}/media/application/dos,games/${1:?}*.zip
   do
-    [[ $_fgd_gamedata == *,exe[,.]* ]] && _gfd_gameexec= ||
     [[ $_fgd_gamedata == *,gamedir[,.]* ]] || {
       >&2 echo "Found $gamedata but not an executable or data directory" && continue
     }
@@ -65,12 +64,12 @@ Games.DOSBox.find-game ()
 
 Games.DOSBox.setup-game ()
 {
-  local gamebasename gamedata gamename gameconf
+  local game{{base,}name,data,conf,exe}
 
   Games.DOSBox.find-game "${1^^}" gamebasename || : "${gamebasename:=${1^}}"
   Games.DOSBox.find-gamedata "${gamebasename}" gamedata &&
   [[ -s "$gamedata" ]] ||
-    failerr "No data for ${1@Q} (looking for ${gamebasename@Q})" || return
+    failerr "No data for ${1@Q} (looking for ${gamebasename@Q} at ${ANNEX_DIR:?})" || return
 
   local game{,zip}dir
   local -n \
@@ -83,16 +82,16 @@ Games.DOSBox.setup-game ()
   [[ ${#gamename} -le 8 ]] ||
   [[ ${_gamedir:+set} ]] ||
     failerr "No dir map for ${gamename@Q}" || return
-  gamedir=${gamedir:-${gamename^^}}
+  gamedir=${_gamedir:-${gamebasename^^}}
 
   [[ -d ~/.local/mnt/dosbox-c/GAMES/${gamedir} ]] &&
-    >&2 echo "DOSBox dir exists GAME/${gamedir}" || {
+  >&2 echo "DOSBox dir exists GAME/${gamedir}" || {
 
     mkdirs /tmp/gamezip-$gamename &&
     >&2 echo "Unzipping $gamedata to /tmp..." &&
     unzip "$gamedata" -d /tmp/gamezip-$gamename &&
 
-    [[ ${_gamezipdir+set} && ! ${_gamezipdir:+set} ]] && {
+    [[ ! ${_gamezipdir:+set} && ! -d /tmp/gamezip-$gamename/"$gamename" ]] && {
       mkdirs ~/.local/mnt/dosbox-c/GAMES/${gamedir} &&
       >&2 mv -v /tmp/gamezip-$gamename/* ~/.local/mnt/dosbox-c/GAMES/${gamedir}/ ||
         failerr "E$? while moving to dosdrive" || return
@@ -105,6 +104,7 @@ Games.DOSBox.setup-game ()
     rm -rf /tmp/gamezip-$gamename
   }
 
+  gameexe=${_gameexe:-${gamedir:?}}
   gameconf=${DOTFILES:?}/etc/dosbox/${gamedir,,}.conf
   [[ -s "$gameconf" ]] &&
   >&2 echo "DOSBox config exists ${gamedir,,}.conf" || {
