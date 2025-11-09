@@ -2,6 +2,7 @@ us_term_extra_pre=User-Script.Terminal
 us_term_extra_fun=(
   .print-palette-card
   .test-osc
+  .test-color-capabilities
   .test-palettes
   .test16
 )
@@ -13,6 +14,11 @@ us_term_extra_als=(
   [.print-osc-11]='printf "\x1b]11;rgb:%s/%s/%s\a"' # background
   [.print-osc-12]='printf "\x1b]12;%d\a"' # cursor (colorindex)
   [.print-osc-21]='printf "\x1b]21;cursor=%s\a"' # cursor RGB
+)
+declare -gA \
+us_term_extra_ssc=(
+  [.test-terminal]=\
+'User-Script.Terminal.test-osc && User-Script.Terminal.test-color-capabilities'
 )
 
 User-Script.Terminal.print-palette-card ()
@@ -64,21 +70,31 @@ User-Script.Terminal.print-palette-card ()
   printf '%s\n' "${outlines[@]}"
 }
 
+User-Script.Terminal.test-color-capabilities ()
+{
+  local cap
+  for cap in initc set{,a}{f,b}
+  do
+    if_ok "$(tput $cap)" &&
+    test -n "$_" &&
+    echo "Terminal $cap supported: ${_@Q}" ||
+    echo "Fail: $cap not supported"
+  done
+}
+
 User-Script.Terminal.test-osc ()
 {
-  : about "Test terminal Operation System Commands (OSC) support"
+  : about "Test terminal's Operation System Commands (OSC) support"
   (($#)) || set -- 4 10 11 12 21
   local osc
   for osc
   do
     printf "\033]$osc;?\007"
-    # Example used 1second. 0.01s may be too fast.
-    read -rs -d $'\007' -t 0.1 response  # Read until BEL, timeout 0.1s
-    if [[ $response =~ ^$'\033]'$osc';rgb:' ]]; then
-      echo "OSC $osc supported: ${response@Q}"
-    else
-      echo "OSC $osc not supported"
-    fi
+    # Example used 1 second. 0.01s may be too fast.
+    read -rs -d $'\007' -t 0.1 response &&  # Read until BEL, timeout 0.1s
+    [[ $response =~ ^$'\033]'$osc';rgb:' ]] &&
+      echo "OSC $osc supported: ${response@Q}" ||
+      echo "Fail: OSC $osc not supported"
   done
 }
 
@@ -106,7 +122,8 @@ User-Script.Terminal.test16 ()
     bg=_b$i
     dfg=_f$((i+8))
     dbg=_b$((i+8))
-    echo "${!fg} $fg $r  ${!bg} $bg $r  ${!dfg} $dfg $r  ${!dbg} $dbg $r"
+    printf "${!fg} %4s $r ${!dfg} %4s $r  ${!bg} %4s $r ${!dbg} %4s $r\n" \
+     $fg $dfg $bg $dbg
   done
 }
 
