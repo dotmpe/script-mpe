@@ -1,5 +1,6 @@
 us_term_extra_pre=User-Script.Terminal
 us_term_extra_fun=(
+  .cursor-position
   .print-palette-card
   .test-osc
   .test-color-capabilities
@@ -20,6 +21,18 @@ us_term_extra_ssc=(
   [.test-terminal]=\
 'User-Script.Terminal.test-osc && User-Script.Terminal.test-color-capabilities'
 )
+
+User-Script.Terminal.cursor-position ()
+{
+  : input "${1:?$FUNCNAME${*:+ $*}:Column variable}"
+  : input "${2:?$FUNCNAME${*:+ $*}:Row variable}"
+  local -n _ust_cp_col=${1} _ust_cp_row=${2}
+  printf '\e[6n'
+  read -sdR pos || return
+  pos="${pos#*\[}"
+  _ust_cp_row="${pos%;*}"
+  _ust_cp_col="${pos#*;}"
+}
 
 User-Script.Terminal.print-palette-card ()
 {
