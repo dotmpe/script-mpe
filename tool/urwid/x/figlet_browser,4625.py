@@ -52,6 +52,7 @@ else:
 
 max_fonts = os.getenv('FV_MAX_FONTS', 100)
 
+# TODO: prerender
 #app_title_flf = Figlet('Banner3-D', width=200)
 #app_title_flf = Figlet('miniwi', width=200)
 #app_title_flf = Figlet('kompaktblk', width=200)
@@ -76,7 +77,18 @@ for fp in os.listdir(pyfiglet.SHARED_DIRECTORY):
         continue
 
     fontinfo = dict(figlet=flf)
-    fonts[flfn] = fontinfo
+
+    fontinfo['label'] = flfn
+    if ' ' in flfn:
+        flfwn = flfn.replace(' ', '').lower()
+    else:
+        flfwn = flfn.lower()
+
+    if flfwn in fonts:
+        fonts[flfwn]['label'] = fontinfo['label']
+        continue
+
+    fonts[flfwn] = fontinfo
 
     if ord('A') in flf.Font.chars and flf.Font.chars[ord('A')]:
         fontinfo['alpha'] = True
@@ -124,7 +136,7 @@ for fp in os.listdir(pyfiglet.SHARED_DIRECTORY):
 
     if max_fonts:
         if len(fonts) == max_fonts:
-            print('Maximum %i fonts read (adjust FV_MAX_FONTS)' % max_fonts)
+            print('Maximum %i fonts read (adjust via FV_MAX_FONTS)' % max_fonts)
             break
 
 
@@ -145,7 +157,7 @@ def main():
 
         nametext = urwid.Text( ('chars', [
             ('index', "%i." % (i+1)), " ",
-            ('fontname', name),]))
+            ('fontname', fontinfo['label']),]))
 
         metatext = urwid.Text( ('meta', [
             "M-size: %ix%i" % ( fontinfo['m-width'],
