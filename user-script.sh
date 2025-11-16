@@ -128,8 +128,8 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
 script_envinit () # ~ <Bases...>
 {
   # TODO: transpile and source us-env functions
-  os_path_add "${U_S?}/tool/us/part" &&
-  os_path_add "${U_S?}/tool/us/exec" &&
+  append_path "${U_S?}/tool/us/part" &&
+  append_path "${U_S?}/tool/us/exec" &&
   uc_script_load "us-env.node" &&
   us-env:define-env &&
 
