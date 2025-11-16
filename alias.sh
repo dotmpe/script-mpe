@@ -1,3 +1,10 @@
+
+ENV_SRC=${ENV_SRC:+$ENV_SRC }${HOME:-~}/bin/alias.sh
+ENV_SEQ=${ENV_SEQ:+$ENV_SEQ }alias,sh,user,us
+: "${ENV_CTX:=$0[$$]:${HOME:-~}/bin/alias}"
+
+_us_bin_alias_sh=alias.sh
+
 __=~/bin/.alias
 test  "${C_INC:?"$0[$$]: ${__}: User includes env expected (required)"}}"
 

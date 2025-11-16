@@ -17,15 +17,18 @@ sh_debug_exit()
   return $exit
 }
 
-#test ${COLORIZE:-0} -eq 0 || {
-  . ${U_C:=/srv/project-local/user-conf-dev}/script/ansi-uc.lib.sh
-  ansi_uc_lib__load
-  ansi_uc_lib__init
-#}
+case "$(trap)" in * ERR * ) ;;
+( * )
+  #test ${COLORIZE:-0} -eq 0 || {
+    . ${U_C:=/srv/project-local/user-conf-dev}/script/ansi-uc.lib.sh
+    ansi_uc_lib__load
+    ansi_uc_lib__init
+  #}
 
-. ${U_C:=/srv/project-local/user-conf-dev}/script/bash-uc.lib.sh
-trap bash_uc_errexit ERR
+  . ${U_C:=/srv/project-local/user-conf-dev}/script/bash-uc.lib.sh
+  trap bash_uc_errexit ERR
 
-#test ${debug_exit_off:-${quiet-0}} -eq 1 || trap sh_debug_exit EXIT
+  #test ${debug_exit_off:-${quiet-0}} -eq 1 || trap sh_debug_exit EXIT
+esac
 
 # Sync: U-S:
