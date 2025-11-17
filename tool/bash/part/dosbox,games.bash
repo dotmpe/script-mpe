@@ -8,7 +8,7 @@ games_dosbox_hooks=(
   [init]='test -h ~/.dosbox || >&2 ln -vs ~/.conf/etc/dosbox ~/.dosbox || return
 : "${DOTFILES:=$HOME/.local/share/dotfiles}"
 : "${ANNEX_DIR:=/srv/annex-local/archive-1}"
-. /var/local/statusdir/games-dosbox.bash
+. /var/local/statusdir/games-dosbox-cache.bash
 shopt -s nullglob'
   [deinit]=''
   [update]=''
@@ -22,7 +22,8 @@ shopt -s nullglob'
 ) &&
 mkdirs ~/.local/mnt/dosbox-c &&
 mountpoint -q ~/.local/mnt/dosbox-c ||
-archivemount ${ANNEX_DIR:?}/media/archive/dosdrive.tar.bz2 ~/.local/mnt/dosbox-c'
+archivemount ${ANNEX_DIR:?}/media/archive/dosdrive.tar.bz2 ~/.local/mnt/dosbox-c ||
+  failerr "E$? mounting dosbox filesytem file"'
 
   [stop]='umount ~/.local/mnt/dosbox-c &&
 rmdir ~/.local/mnt/dosbox-c'
