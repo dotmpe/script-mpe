@@ -2,9 +2,9 @@ us_os_extra_pre=User-Script.OS
 us_os_extra_fun=(
   .lookup-list
 )
-declare -gA \
-us_os_extra_ssc=(
-)
+#declare -gA \
+#us_os_extra_ssc=(
+#)
 declare -gA \
 us_os_extra_als=(
   [mkdirs]='>&2 mkdir -vp'

@@ -80,9 +80,10 @@ Games.DOSBox.setup-game ()
 
   : "${gamedata##*/}"
   gamename=${_%%,*}
-  [[ ${#gamename} -le 8 ]] ||
-  [[ ${_gamedir:+set} ]] ||
-    failerr "No dir map for ${gamename@Q}" || return
+  #[[ ${#gamename} -le 8 ]] ||
+  #[[ ${_gamedir:+set} ]] ||
+  #  failerr "No dir map for ${gamename@Q}"
+
   gamedir=${_gamedir:-${gamebasename^^}}
 
   [[ -d ~/.local/mnt/dosbox-c/GAMES/${gamedir} ]] &&
