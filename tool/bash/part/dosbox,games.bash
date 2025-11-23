@@ -14,7 +14,7 @@ shopt -s nullglob'
   [update]=''
 
   [start]=\
-'( cd ${ANNEX_DIR:?} &&
+'( echo "Mounting DOS drive..."; cd ${ANNEX_DIR:?} &&
   test -s media/archive/dosdrive.tar.bz2 || {
     git annex get media/archive/dosdrive.tar.bz2 ||
       failerr "E$? getting dosbox filesytem archive file" || return
@@ -26,7 +26,8 @@ archivemount ${ANNEX_DIR:?}/media/archive/dosdrive.tar.bz2 ~/.local/mnt/dosbox-c
   failerr "E$? mounting dosbox filesytem file"'
 
   [stop]='umount ~/.local/mnt/dosbox-c &&
-rmdir ~/.local/mnt/dosbox-c'
+rmdir ~/.local/mnt/dosbox-c &&
+echo DOS drive unmounted'
 
   [status]=\
 '( cd ${ANNEX_DIR:?} &&
@@ -71,6 +72,7 @@ Games.DOSBox.setup-game ()
   Games.DOSBox.find-gamedata "${gamebasename}" gamedata &&
   [[ -s "$gamedata" ]] ||
     failerr "No data for ${1@Q} (looking for ${gamebasename@Q} at ${ANNEX_DIR:?})" || return
+  echo "Looking for ${1@Q} found data ${gamedata@Q}..."
 
   local game{,zip}dir
   local -n \

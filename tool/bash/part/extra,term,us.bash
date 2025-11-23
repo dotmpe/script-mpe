@@ -5,7 +5,7 @@ us_term_extra_fun=(
   .test-osc
   .test-color-capabilities
   .test-palettes
-  .test16
+  .test-16color
 )
 declare -gA \
 us_term_extra_als=(
@@ -126,16 +126,26 @@ User-Script.Terminal.test-palettes ()
   done
 }
 
-User-Script.Terminal.test16 ()
+User-Script.Terminal.test-16color ()
 {
-  local r=$RESET {,d}{f,b}g i
+  local r=$RESET {,d}{f,b}g i _{b,f}g
+  # echo "Terminal color palette dim and bright columns for normal and bold"
+  echo "${BOLD}${_f15} Normal                          Bold ${r}"
+  echo "${BOLD}${_f15} Dim   Bright                    Dim   Bright${r}"
   for i in {0..7}
   do
     fg=_f$i
     bg=_b$i
     dfg=_f$((i+8))
     dbg=_b$((i+8))
-    printf "${!fg} %4s $r ${!dfg} %4s $r  ${!bg} %4s $r ${!dbg} %4s $r\n" \
+    #[[ $i != 0 ]] && _bg= || _bg="${_b7}"
+    _bg=
+    [[ $i != 7 ]] && _fg= || _fg="${_f0}"
+    printf "${!fg}${_bg} %4s $r ${!dfg}${_bg} %4s $r  ${!bg}${_fg} %4s $r ${!dbg}${_fg} %4s $r    " \
+     $fg $dfg $bg $dbg
+    # Display if terminal supports bold
+    [[ $TERM == linux* ]] && echo ||
+    printf "${BOLD}${!fg}${_bg} %4s $r ${BOLD}${!dfg}${_bg} %4s $r  ${BOLD}${!bg}${_fg} %4s $r ${BOLD}${!dbg}${_fg} %4s $r\n" \
      $fg $dfg $bg $dbg
   done
 }

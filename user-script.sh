@@ -1793,7 +1793,7 @@ us_shell_alias_defs ()
   while test $# -gt 0
   do
     { ${alsdef_override:-false} && {
-        ! ${US_DEBUG:-${DEBUG:-false}} ||
+        ! trueish ${US_DEBUG:-${DEBUG:-false}} ||
             test "$(type -t "${1:?}")" != alias || {
               unalias $1
               $LOG info : "Overriding alsdef" "$1:$2"
@@ -1802,10 +1802,10 @@ us_shell_alias_defs ()
         test "$(type -t "${1:?}")" != alias
     } && {
       us_shell_alias_def "$@" || return
-      ! ${US_DEBUG:-${DEBUG:-false}} ||
+      ! trueish ${US_DEBUG:-${DEBUG:-false}} ||
           $LOG debug : "Defined alsdef" "$1:$2"
     } || {
-      ! ${US_DEBUG:-${DEBUG:-false}} ||
+      ! trueish ${US_DEBUG:-${DEBUG:-false}} ||
           $LOG debug : "Skipped alsdef" "$1:$2"
     }
     shift 2
