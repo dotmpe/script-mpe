@@ -9,12 +9,15 @@ us_term_extra_fun=(
 )
 declare -gA \
 us_term_extra_als=(
-  [.print-osc-p]='printf "\e]P%01X%s%s%s"'
-  [.print-osc-4]='printf "\x1b]4;%d;rgb:%s/%s/%s\a"'
+  # For OSC [Operating System Command] format see ECMA-48, but commands are
+  # implementation defined and de facto standards set by Xterm (not covered by
+  # ECMA, ISO/IEC 6429 or ANSI X3.64).
+  [.print-osc-p]='printf "\e]P%01X%s%s%s"' # Linux palette (console_codes(4) man page)
+  [.print-osc-4]='printf "\x1b]4;%d;rgb:%s/%s/%s\a"' # dynamic color palette
   [.print-osc-10]='printf "\x1b]10;rgb:%s/%s/%s\a"' # foreground
   [.print-osc-11]='printf "\x1b]11;rgb:%s/%s/%s\a"' # background
   [.print-osc-12]='printf "\x1b]12;%d\a"' # cursor (colorindex)
-  [.print-osc-21]='printf "\x1b]21;cursor=%s\a"' # cursor RGB
+  [.print-osc-21]='printf "\x1b]21;cursor=%s\a"' # window properties: cursor RGB
 )
 declare -gA \
 us_term_extra_ssc=(
