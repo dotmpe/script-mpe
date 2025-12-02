@@ -293,7 +293,7 @@ sh_adef () # ~ <Array> <Key>
 sh_arr_assert () # ~ <Var-name> <Command...>
 {
   : source "script-mpe.lib.sh"
-  sh_arr "$1" || sys_exec_mapfile "$@"
+  sh_arr "$1" || read_call "$@"
 }
 
 sh_arr_def () # ~ <Var-name>
@@ -360,7 +360,7 @@ sh_caller ()
 # Read output lines of command onto array, appending after existing items.
 # A simple mapfile wrapper that executes command, buffers output, checking
 # status and reads zero-len value as line items onto end of array.
-sys_exec_mapfile () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
+read_call () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
 {
   : source "script-mpe.lib.sh"
   : group util
@@ -371,10 +371,10 @@ sys_exec_mapfile () # ~ <Var-name> <Cmd...> # Read out (lines) from command into
   : derive sys-exec-mapfile
   : input "${1:?Array-name expected, $ENV_CTX:$FUNCNAME}"
   : input "${2:?Command line expected, $ENV_CTX:$FUNCNAME}"
-  local -n _sys_exec_mapfile_arr=${1}
+  local -n _read_call_arr=${1}
   local outname=${1} offset
-  [[ ${_sys_exec_mapfile_arr[*]:+set} ]] &&
-  offset=${#_sys_exec_mapfile_arr[@]} || offset=0
+  [[ ${_read_call_arr[*]:+set} ]] &&
+  offset=${#_read_call_arr[@]} || offset=0
   if_ok "$("${@:2}")" &&
   test -n "$_" &&
   <<< "$_" mapfile -O ${offset} ${mapfile_f:--t} ${outname}

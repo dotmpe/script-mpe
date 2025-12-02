@@ -1,0 +1,1 @@
+/srv/home-local/.local/etc/vim/templates/us-part.bash
