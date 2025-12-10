@@ -3,11 +3,11 @@
 #[ -n "${fzf_lib_load-}" ] || lib_require fzf
 [ -n "${fzf_lib_load-}" ] || . ${US_BIN:?}/fzf.lib.sh
 
-als_fzf_fun=(
+fzf_als_fun=(
 )
 
-
-[ -n "${fzf_lib_load-}" ] || . ${US_BIN:?}/fzf.lib.sh
+#alias vf=fzf-edit-preview
+alias vf=fzf_edit_preview
 
 : "${FZF_DEFAULT_COMMAND:=find . -not -type l}"
 

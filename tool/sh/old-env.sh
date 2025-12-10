@@ -216,7 +216,6 @@ test -n "$TRAVIS_COMMIT" || GIT_CHECKOUT=$TRAVIS_COMMIT
 export PYTHONPATH="$HOME/lib/py:$PYTHONPATH"
 
 
-#. $script_util/part/env-basher.sh
 #. $script_util/part/env-logger-stderr-reinit.sh
 #. $script_util/part/env-github.sh
 # XXX: user-env?

@@ -3,6 +3,7 @@
 # Distributed under terms of the MIT license.
 
 us_os_extra_pre=User-Script.OS.x
+us_os_extra_cnk=687166b5
 us_os_extra_grp=(
 )
 us_os_extra_var=(
@@ -10,10 +11,14 @@ us_os_extra_var=(
 us_os_extra_fun=(
   .iter-sources
   .lookup-list
+  .first-status
+  .script-table
 )
 declare -gA \
 us_os_extra_als=(
   [mkdirs]='>&2 mkdir -vp'
+  ["script-status"]='.script-status'
+  ["script-loaded"]='.script-list'
   ["PATH+names"]='.lookup-expand PATH'
   ["PATH+lines"]='.lookup-list PATH'
   ["PATH+pathnames"]='.lookup-expand-paths PATH'
@@ -27,12 +32,28 @@ us_os_extra_als=(
 )
 declare -gA \
 us_os_extra_ssc=(
+  ['.script-list']='printf "%s\n" "${!_os_script_path[@]}"'
+  ['.script-path-list']='printf "%s\n" "${_os_script_path[@]}"'
+  ['.script-ok']='eval "! (( 0 $(printf "+ %i" "${_os_script_load[@]}") ))"'
+  ['.script-status']='.first-status _os_script_load'
+  ['.script-tab']='.script-table _os_script_path _os_script_load'
 )
 declare -gA \
 us_os_extra_hooks=(
 #  [init]=\
 #''
 )
+
+User-Script.OS.x.first-status ()
+{
+  : input "${1:?$FUNCNAME${*:+ $*}: Status map}"
+  local -n _687166b5_stats1=${1}
+  local _687166b5_stat1
+  for _687166b5_stat1 in "${_687166b5_stats1[@]}"
+  do
+    ! ((_687166b5_stat1)) || return ${_687166b5_stat1}
+  done
+}
 
 User-Script.OS.x.iter-sources ()
 {
@@ -212,6 +233,31 @@ User-Script.OS.x.lookup-list ()
     User-Script.Shell.byname-set-value "${2}" "$liststr" || return
   }
   echo "$liststr"
+}
+
+User-Script.OS.x.script-table ()
+{
+  : input "${1:?$FUNCNAME${*:+ $*}: Hash map}"
+  : input "${2:?$FUNCNAME${*:+ $*}: Status map}"
+  local -n _687166b5_hash1=${1} _687166b5_stats2=${2} _687166b5_hash2 \
+    _687166b5_key1='_687166b5_hash1[$_687166b5_als]' \
+    _687166b5_key2='_687166b5_hash2[$_687166b5_key1]' \
+    _687166b5_stat2='_687166b5_stats2[$_687166b5_key1]'
+  local _687166b5_als
+  for _687166b5_als in "${!_687166b5_hash1[@]}"
+  do
+    # XXX: fmts
+    #printf '%s\t%i\t%s\n' "$_687166b5_als" "$_687166b5_stat2" "$_687166b5_key1"
+    printf '%q %i %s' "$_687166b5_als" "$_687166b5_stat2" "$_687166b5_key1"
+    #declare -p _687166b5_als
+    #echo $_687166b5_als
+    for _687166b5_hash2 in "${@:3}"
+    do
+      #declare -p _687166b5_{als,hash2,stat2,key1}
+      printf '\t%s' "$_687166b5_key2"
+    done
+    printf '\n'
+  done
 }
 
 # Id: extra,os,us                                vim:set ft=bash sw=2 sts=2 et:
