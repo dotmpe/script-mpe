@@ -7,7 +7,7 @@ fzf_als_fun=(
 )
 
 #alias vf=fzf-edit-preview
-alias vf=fzf_edit_preview
+alias vf='fork=false fzf_edit_preview'
 
 : "${FZF_DEFAULT_COMMAND:=find . -not -type l}"
 

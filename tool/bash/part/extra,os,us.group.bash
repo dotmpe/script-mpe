@@ -235,6 +235,18 @@ User-Script.OS.x.lookup-list ()
   echo "$liststr"
 }
 
+User-Script.OS.x.parent-process ()
+{
+  : param '~ [<PID>] [<Ps-argv>] [<Outvars...>]'
+  local _us_os_out{,v}
+  ! (($#-2)) && _us_os_outv=( _us_os_out ) || _us_os_outv=( "${@:3}" )
+  if_ok "$(ps -o ppid= -p ${1:-$$})" &&
+  if_ok "$(ps -p $_ ${2:--o pid= -o command=})" &&
+  read -r ${_us_os_outv[@]} <<< "$_" && {
+    (($#-2)) || echo "$_us_os_out"
+  }
+}
+
 User-Script.OS.x.script-table ()
 {
   : input "${1:?$FUNCNAME${*:+ $*}: Hash map}"

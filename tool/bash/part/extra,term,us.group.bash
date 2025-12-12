@@ -1,7 +1,12 @@
-us_term_extra_pre=User-Script.Terminal
+us_term_extra_pre=User-Script.Terminal.x
+us_term_extra_cnk=85bc5cc3
 us_term_extra_fun=(
   .cursor-position
+  .device-attributes
+  .get-longname
   .print-palette-card
+  .raw-query
+  .terminal-info
   .test-osc
   .test-color-capabilities
   .test-palettes
@@ -22,22 +27,43 @@ us_term_extra_als=(
 declare -gA \
 us_term_extra_ssc=(
   [.test-terminal]=\
-'User-Script.Terminal.test-osc && User-Script.Terminal.test-color-capabilities'
+'[[ ! -t 1 ]] || {
+  User-Script.Terminal.test-osc &&
+  User-Script.Terminal.test-color-capabilities &&
+  User-Script.Terminal.info
+}'
 )
 
-User-Script.Terminal.cursor-position ()
+User-Script.Terminal.x.cursor-position ()
 {
   : input "${1:?$FUNCNAME${*:+ $*}:Column variable}"
   : input "${2:?$FUNCNAME${*:+ $*}:Row variable}"
   local -n _ust_cp_col=${1} _ust_cp_row=${2}
   printf '\e[6n'
-  read -sdR pos || return
+  read -rsdR pos || return
   pos="${pos#*\[}"
   _ust_cp_row="${pos%;*}"
   _ust_cp_col="${pos#*;}"
 }
 
-User-Script.Terminal.print-palette-card ()
+User-Script.Terminal.x.device-attributes ()
+{
+  : input "${1:?$FUNCNAME${*:+ $*}:Attributes variable (primary)}"
+  : input "${2:?$FUNCNAME${*:+ $*}:Attributes variable (secondary)}"
+  local -n _ust_da_pa=${1} _ust_da_sa=${2}
+  User-Script.Terminal.x.raw-query '\e[c' c _ust_da_pa &&
+  User-Script.Terminal.x.raw-query '\e[>c' c _ust_da_sa
+}
+
+User-Script.Terminal.x.get-longname ()
+{
+  : input "${1:?$FUNCNAME${*:+ $*}:Longname variable}"
+  local -n _ust_gl_dest=${1}
+  if_ok "$(tput longname)" &&
+  _ust_gl_dest=$_
+}
+
+User-Script.Terminal.x.print-palette-card ()
 {
   local labels=1 swcol=9 swln=2 splitrow=0
   while (($#)) && case "${1-}" in
@@ -86,7 +112,40 @@ User-Script.Terminal.print-palette-card ()
   printf '%s\n' "${outlines[@]}"
 }
 
-User-Script.Terminal.test-color-capabilities ()
+User-Script.Terminal.x.raw-query ()
+{
+  : input "${1:?$FUNCNAME${*:+ $*}:Query}"
+  : input "${2:?$FUNCNAME${*:+ $*}:Scan}"
+  : input "${3:?$FUNCNAME${*:+ $*}:Response variable}"
+  local _query=${1} _saved_stty _char
+  local -n _response=${3}
+  _saved_stty=$(stty -g)
+  stty raw -echo min 0 time 1
+  printf "${_query}"
+  _response=''
+  while IFS= read -r -n 1 _char; do
+    _response+=$_char
+    [[ $_char == "$2" ]] && break
+  done
+  stty "${_saved_stty}"
+}
+
+User-Script.Terminal.x.terminal-info ()
+{
+  local _vte_{pid,cmd,tty{,_attr}}
+  User-Script.OS.x.parent-process "" "" _vte_{pid,cmd} &&
+  _vte_tty=$(tty) &&
+  _vte_tty_attr=$(stty -a) &&
+  declare -p TERM _vte_{pid,cmd,tty{,_attr}}
+  [[ ! -t 1 ]] || {
+    local _vte_{name,{p,s}devatr}
+    User-Script.Terminal.x.get-longname _vte_name &&
+    User-Script.Terminal.x.device-attributes _vte_{p,s}devatr
+    declare -p TERM _vte_{name,{p,s}devatr}
+  }
+}
+
+User-Script.Terminal.x.test-color-capabilities ()
 {
   local cap
   for cap in initc set{,a}{f,b}
@@ -98,7 +157,7 @@ User-Script.Terminal.test-color-capabilities ()
   done
 }
 
-User-Script.Terminal.test-osc ()
+User-Script.Terminal.x.test-osc ()
 {
   : about "Test terminal's Operation System Commands (OSC) support"
   (($#)) || set -- 4 10 11 12 21
@@ -114,7 +173,7 @@ User-Script.Terminal.test-osc ()
   done
 }
 
-User-Script.Terminal.test-palettes ()
+User-Script.Terminal.x.test-palettes ()
 {
   (($#)) || set -- ${us_palette_var[@]:?}
   local -n _palette
@@ -129,7 +188,7 @@ User-Script.Terminal.test-palettes ()
   done
 }
 
-User-Script.Terminal.test-16color ()
+User-Script.Terminal.x.test-16color ()
 {
   local r=$RESET {,d}{f,b}g i _{b,f}g
   # echo "Terminal color palette dim and bright columns for normal and bold"
