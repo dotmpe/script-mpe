@@ -28,9 +28,9 @@ declare -gA \
 us_term_extra_ssc=(
   [.test-terminal]=\
 '[[ ! -t 1 ]] || {
-  User-Script.Terminal.test-osc &&
-  User-Script.Terminal.test-color-capabilities &&
-  User-Script.Terminal.info
+  User-Script.Terminal.x.test-osc &&
+  User-Script.Terminal.x.test-color-capabilities &&
+  User-Script.Terminal.x.terminal-info
 }'
 )
 

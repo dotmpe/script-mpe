@@ -1,7 +1,9 @@
 scm_git_pre=SCM.Git
-scm_git_grp=( 'user-dirs' )
+#scm_git_grp=( user-dirs )
 scm_git_fun=(
   .at-basedirs
+  .git-worktree-status
+  #.git-un{tracked,versioned}-files
 )
 declare -gA \
 scm_git_ssc=(
@@ -24,16 +26,48 @@ scm_git_ssc=(
 )
 declare -gA \
 scm_git_als=(
-  [.grep-all-versions]='GIT_REVOPT=--all SCM.Git.grep-revopt'
   [git-grep-dirs]='.grep-at'
   [git-status-all]='.status-at'
+  [.grep-all-versions]='GIT_REVOPT=--all SCM.Git.grep-revopt'
 )
 declare -gA \
 scm_git_hooks=(
   [define]=\
 'User.Config.expand-keymatch-filterhandle  user_annex  basedir.annexes-local  test -d'
-  [init]=\
-'user_config[basedir.annexes-local]="/srv/annex-local/*/"'
+  [init]='{
+  us_interactive_update+=( scm-git )
+  user_config[basedir.annexes-local]="/srv/annex-local/*/"
+}'
+  [update]='{
+  ! GITDIR=$(git rev-parse --git-dir 2>/dev/null) &&
+  unset GITDIR || {
+    [[ ${GITDIR:0:1} == / ]] && : "$GITDIR" || : "$PWD/$GITDIR"
+    GITDIR=$(realpath --relative-to $PWD $_)
+    : "./$GITDIR"
+    GIT_BASEDIR=${_%/*}
+
+    #declare -gA git_worktree_status
+    #SCM.Git.git-worktree-status "$GITDIR" git_worktree_status
+
+    #GIT_ABBREVID=$(git show-ref --head HEAD -s)
+    GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    GIT_DESCRIBE=$(git describe --always --dirty --broken)
+    [[ ${us_interactive_data["GIT_DESCRIBE"]-} == ${GIT_DESCRIBE} ]] || {
+      echo "${_f14}Git at version ${_f2}$GIT_DESCRIBE${NORMAL}"
+      us_interactive_data["GIT_DESCRIBE"]=$GIT_DESCRIBE
+    }
+
+    #PROMPT_EXTRA=${PROMPT_EXTRA:+$PROMPT_EXTRA │ }
+    PROMPT_EXTRA=${PROMPT_EXTRA:+$PROMPT_EXTRA }
+
+    # Use powerline
+    #PROMPT_EXTRA+="${_f6}${_f7}$GIT_BRANCH"
+    PROMPT_EXTRA+=" $GIT_BRANCH"
+    # XXX: U+2387 ALTERNATIVE KEY SYMBOL (too small for use)
+    #PROMPT_EXTRA+=" ${_f6}⎇${_f7}$GIT_BRANCH"
+    ((PROMPT_MB+=2))
+  }
+}'
 )
 
 SCM.Git.at-basedirs ()
@@ -55,3 +89,14 @@ SCM.Git.at-basedirs ()
     std_silent popd
   done
 }
+
+SCM.Git.git-worktree-status ()
+{
+  : param '~ <Git-dir> <Out-hash>'
+  local -n _scm_git_stat=${2:-git_scm_stat}
+      #git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
+  _scm_git_stat["untracked"]=$(git ls-files --others --dir --git-dir="$1")
+  _scm_git_stat["untracked-count"]=$(wc -l <<< "${_scm_git_stat["untracked"]}")
+}
+
+# Id: scm-git                                    vim:set ft=bash sw=2 sts=2 et:
