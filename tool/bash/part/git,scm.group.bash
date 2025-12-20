@@ -23,12 +23,20 @@ scm_git_ssc=(
   [git-grep-userdirs]='.grep-at "${@:1:2}" "$user_dirs[@]}" "${@:3}"'
   [git-grep-all-annexes]='.grep-at "${@:1:2}" "$user_annex[@]}" "${@:3}"'
   [git-grep-annex]='.grep-at "${@:1:2}" "${ANNEX_DIR:?}"'
+  [git-info]='{
+  git submodule && find . -iname .git -not -path "./.git/*"
+  [[ ! -d .git/annex/objects ]] ||
+    du -hs .git/annex/objects
+}'
 )
 declare -gA \
 scm_git_als=(
   [git-grep-dirs]='.grep-at'
   [git-status-all]='.status-at'
   [.grep-all-versions]='GIT_REVOPT=--all SCM.Git.grep-revopt'
+  [git_grep_all]=.git-grep-all
+  [git_grep_versions]=.git-grep-version
+  [git_status_all]=.git-status-all
 )
 declare -gA \
 scm_git_hooks=(
@@ -39,15 +47,15 @@ scm_git_hooks=(
   user_config[basedir.annexes-local]="/srv/annex-local/*/"
 }'
   [update]='{
-  ! GITDIR=$(git rev-parse --git-dir 2>/dev/null) &&
-  unset GITDIR || {
-    [[ ${GITDIR:0:1} == / ]] && : "$GITDIR" || : "$PWD/$GITDIR"
-    GITDIR=$(realpath --relative-to $PWD $_)
-    : "./$GITDIR"
-    GIT_BASEDIR=${_%/*}
+  #! GITDIR=$(2>/dev/null git rev-parse --git-dir) &&
 
-    #declare -gA git_worktree_status
-    #SCM.Git.git-worktree-status "$GITDIR" git_worktree_status
+  ! GIT_BASEDIR=$(2>/dev/null git rev-parse --show-toplevel) &&
+  unset GIT_BASEDIR || {
+    #[[ ${GIT_BASEDIR:0:1} == / ]] && : "$GIT_BASEDIR" || : "$PWD/$GIT_BASEDIR"
+    #GIT_BASEDIR=$(realpath --relative-to $PWD $_)
+
+    declare -gA git_worktree_status
+    SCM.Git.git-worktree-status "$GIT_BASEDIR" git_worktree_status
 
     #GIT_ABBREVID=$(git show-ref --head HEAD -s)
     GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -57,15 +65,24 @@ scm_git_hooks=(
       us_interactive_data["GIT_DESCRIBE"]=$GIT_DESCRIBE
     }
 
-    #PROMPT_EXTRA=${PROMPT_EXTRA:+$PROMPT_EXTRA │ }
     PROMPT_EXTRA=${PROMPT_EXTRA:+$PROMPT_EXTRA }
 
-    # Use powerline
-    #PROMPT_EXTRA+="${_f6}${_f7}$GIT_BRANCH"
-    PROMPT_EXTRA+=" $GIT_BRANCH"
-    # XXX: U+2387 ALTERNATIVE KEY SYMBOL (too small for use)
-    #PROMPT_EXTRA+=" ${_f6}⎇${_f7}$GIT_BRANCH"
-    ((PROMPT_MB+=2))
+    [[ $TERM == linux* ]] &&
+    PROMPT_EXTRA+="# $GIT_BRANCH" || {
+      # Use powerline
+      #PROMPT_EXTRA+="${_f6}${_f7}$GIT_BRANCH"
+      PROMPT_EXTRA+=" $GIT_BRANCH"
+      ((PROMPT_MB+=2))
+    }
+
+    [[ ${git_worktree_status["modified-count"]} -eq 0 ]] ||
+      PROMPT_EXTRA+=" *${git_worktree_status["modified-count"]}"
+    [[ ${git_worktree_status["added-count"]} -eq 0 ]] ||
+      PROMPT_EXTRA+=" +${git_worktree_status["added-count"]}"
+    [[ ${git_worktree_status["deleted-count"]} -eq 0 ]] ||
+      PROMPT_EXTRA+=" -${git_worktree_status["deleted-count"]}"
+    [[ ${git_worktree_status["untracked-count"]} -eq 0 ]] ||
+      PROMPT_EXTRA+=" ~${git_worktree_status["untracked-count"]}"
   }
 }'
 )
@@ -94,9 +111,104 @@ SCM.Git.git-worktree-status ()
 {
   : param '~ <Git-dir> <Out-hash>'
   local -n _scm_git_stat=${2:-git_scm_stat}
-      #git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
-  _scm_git_stat["untracked"]=$(git ls-files --others --dir --git-dir="$1")
-  _scm_git_stat["untracked-count"]=$(wc -l <<< "${_scm_git_stat["untracked"]}")
+  #git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
+
+  _scm_git_stat["added"]=$(cd "$1" && git diff --cached --name-only --diff-filter=A)
+  [[ ${_scm_git_stat["added"]:+set} ]] &&
+  _scm_git_stat["added-count"]=$(wc -l <<< "${_scm_git_stat["added"]}") ||
+  _scm_git_stat["added-count"]=0
+
+  _scm_git_stat["deleted"]=$(cd "$1" && git ls-files --deleted)
+  [[ ${_scm_git_stat["deleted"]:+set} ]] &&
+  _scm_git_stat["deleted-count"]=$(wc -l <<< "${_scm_git_stat["deleted"]}") ||
+  _scm_git_stat["deleted-count"]=0
+
+  _scm_git_stat["modified"]=$(cd "$1" && git ls-files --modified)
+  [[ ${_scm_git_stat["modified"]:+set} ]] &&
+  _scm_git_stat["modified-count"]=$(wc -l <<< "${_scm_git_stat["modified"]}") ||
+  _scm_git_stat["modified-count"]=0
+
+  _scm_git_stat["untracked"]=$(cd "$1" && git ls-files --others --dir --exclude-standard)
+  [[ ${_scm_git_stat["untracked"]:+set} ]] &&
+  _scm_git_stat["untracked-count"]=$(wc -l <<< "${_scm_git_stat["untracked"]}") ||
+  _scm_git_stat["untracked-count"]=0
+}
+
+# XXX: cleanup
+#git_fun ()
+#{
+#  wrap_seq__basedirs_with_app_opts git grep \"\$@\"
+#}
+
+# TODO: provide function part for git-grep.sh functionality
+SCM.Git.git-grep-all () # ~ <Git-grep-args> [-- <Basedirs>]
+{
+  local -a git_grep_args
+  while [[ $# -gt 0 && $1 != -- ]]
+  do
+    git_grep_args+=( "$1" )
+    shift
+  done
+  [[ ${#git_grep_args[@]} -gt 0 ]] ||
+    _ERR "Grep expression expected" || return
+  shift
+  [[ ${#} -gt 0 ]] || {
+    local -a _basedirs
+    #read -r -a _basedirs <<< "${PATH//:/ }"
+    mapfile -t _basedirs <<< "${PATH//:/$'\n'}"
+    set -- "${_basedirs[@]}"
+  }
+  [[ ${#} -gt 0 ]] ||
+    _ERR "Basedirs expected" || return
+  _IFVBS _WARN "Grepping ${#} dirs..."
+  for tp
+  do
+    [[ -e ${tp}/.git ]] || {
+      _IFVBS _WARN "Not a repository: $tp"
+      continue
+    }
+    std_quiet pushd "$tp" || return
+    "${QUIET:-false}" ||
+      stderr echo "$tp> $ git grep '${git_grep_args[*]}'"
+    git "${git_args[@]}" grep "${git_grep_args[@]}"
+    std_quiet popd
+  done
+}
+
+SCM.Git.git-status-all () # ~ <Git-status-args> [-- <Basedirs>]
+{
+  local -a git_status_args
+  while [[ $# -gt 0 && $1 != -- ]]
+  do
+    git_status_args+=( "$1" )
+    shift
+  done
+  shift
+  [[ ${#} -gt 0 ]] || {
+    local -a _basedirs
+    mapfile -t _basedirs <<< "${PATH//:/$'\n'}"
+    set -- "${_basedirs[@]}"
+  }
+  [[ ${#} -gt 0 ]] ||
+    _ERR "Basedirs expected" || return
+  _IFVBS _WARN "Tracking ${#} dirs..."
+  for tp
+  do
+    [[ -e ${tp}/.git ]] || {
+      _IFVBS _WARN "Not a repository: $tp"
+      continue
+    }
+    std_quiet pushd "$tp" || return
+    "${QUIET:-false}" ||
+      stderr echo "$tp> $ git status${git_status_args:+" '${git_status_args[*]}'"}"
+    git "${git_args[@]}" status "${git_status_args[@]}"
+    std_quiet popd
+  done
+}
+
+SCM.Git.git-grep-version () # ~ <Expr> <Paths...>
+{
+  git grep "${1:?}" $(git rev-list ${GIT_REVOPT:=--all}) -- "${@:2}"
 }
 
 # Id: scm-git                                    vim:set ft=bash sw=2 sts=2 et:
