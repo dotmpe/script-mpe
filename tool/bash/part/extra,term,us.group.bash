@@ -181,7 +181,7 @@ User-Script.Terminal.x.test-palettes ()
   for _palette
   do
     if_ok "$(<<< "${_palette:?$FUNCNAME:$1: Palette table value, $ENV_CTX}" \
-      User-Script.Terminal.print-palette-card --swatch-size 5x2)"
+      User-Script.Terminal.x.print-palette-card --swatch-size 5x2)"
     #--splitrow
     echo "$_  ${!_palette}"
     echo
