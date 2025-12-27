@@ -9,7 +9,11 @@ us_os_extra_grp=(
 us_os_extra_var=(
 )
 us_os_extra_fun=(
+  .expand-pathref
   .iter-sources
+  .lookup-expand{,-commands}
+  .lookup-expand-path{s,tree}
+  .lookup-expand-safe{,names}
   .lookup-list
   .first-status
   .script-table
@@ -43,6 +47,32 @@ us_os_extra_hooks=(
 #  [init]=\
 #''
 )
+
+User-Script.OS.x.expand-pathref ()
+{
+  : param '~ <Var>'
+  local -n _us_os_pathref=${1}
+  while true
+  do
+    case "$_us_os_pathref" in
+      ( "~" )
+          _us_os_pathref=${HOME:?}
+        ;;
+      ( "~/"* )
+          _us_os_pathref=${HOME:?}${_us_os_pathref:1}
+        ;;
+      ( *"$"* )
+          [[ $_us_os_pathref =~ \$([A-Za-z_][A-Za-z0-9_]+) ]] && replace='$'${BASH_REMATCH[1]} || {
+            [[ $_us_os_pathref =~ \${([^}]+)} ]] && replace='${'${BASH_REMATCH[1]}'}' ||
+              failerr "Failed matching var for ${_us_os_pathref}" || return
+          }
+          local -n varref=${BASH_REMATCH[1]}
+          _us_os_pathref=${_us_os_pathref//"$replace"/"$varref"}
+        ;;
+      ( * ) return
+    esac
+  done
+}
 
 User-Script.OS.x.first-status ()
 {
@@ -185,16 +215,16 @@ User-Script.OS.x.lookup-expand-commands ()
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_cmds
 }
 
-User-Script.OS.x.lookup-expand-pathtree ()
-{
-  local -a _find_pathtree=( -type d -not -path '*/.*' )
-  User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_pathtree
-}
-
 User-Script.OS.x.lookup-expand-paths ()
 {
   local -a _find_paths=( -maxdepth 1 -not -type d )
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_paths
+}
+
+User-Script.OS.x.lookup-expand-pathtree ()
+{
+  local -a _find_pathtree=( -type d -not -path '*/.*' )
+  User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_pathtree
 }
 
 User-Script.OS.x.lookup-expand-safe ()

@@ -190,4 +190,4 @@ class_TabFile_ () # ~
   esac && return ${_E_done:?}
 }
 
-# Id: script-mpe/0.0.4-dev filereader-htd.lib.sh
+# Id: script-mpe/0.0.4-dev filereader-htd.lib.sh ex:ft=bash:

@@ -810,7 +810,8 @@ htd__volumes()
     treemap ) shift ; htd_volumes_treemap "$@" ;;
 
     id ) shift
-        get_cwd_volume_id "$1"
+        path_volume_id volid "${1:?}" &&
+        echo "$volid"
       ;;
 
     * ) error "? '$*'" 1 ;;

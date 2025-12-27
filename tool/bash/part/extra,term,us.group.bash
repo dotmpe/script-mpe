@@ -1,7 +1,6 @@
 us_term_extra_pre=User-Script.Terminal.x
 us_term_extra_cnk=85bc5cc3
 us_term_extra_fun=(
-  .cursor-position
   .device-attributes
   .get-longname
   .print-palette-card
@@ -33,18 +32,6 @@ us_term_extra_ssc=(
   User-Script.Terminal.x.terminal-info
 }'
 )
-
-User-Script.Terminal.x.cursor-position ()
-{
-  : input "${1:?$FUNCNAME${*:+ $*}:Column variable}"
-  : input "${2:?$FUNCNAME${*:+ $*}:Row variable}"
-  local -n _ust_cp_col=${1} _ust_cp_row=${2}
-  printf '\e[6n'
-  read -rsdR pos || return
-  pos="${pos#*\[}"
-  _ust_cp_row="${pos%;*}"
-  _ust_cp_col="${pos#*;}"
-}
 
 User-Script.Terminal.x.device-attributes ()
 {

@@ -415,3 +415,5 @@ stattab_value () # ~ <Value>
 {
   test -n "${1-}" -a "${1-}" != "-"
 }
+
+# ex:ft=bash:
