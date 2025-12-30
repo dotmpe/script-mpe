@@ -45,11 +45,4 @@ user_fun ()
 }
 
 
-mpe_grep_dirs () # ~ <grep-args...> [ -- <dirs...> ]
-{
-  :
-}
-
-# TODO: define user-user as alias parts as well?
-alias user-grep=''
 #
