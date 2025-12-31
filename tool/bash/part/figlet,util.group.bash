@@ -38,7 +38,7 @@ Util.Figlet.install-fonts ()
 
 Util.Figlet.list-fonts ()
 {
-  : param '~ [<Dir>] [<Dest>]'
+: param '~ [<Dir>] [<Dest>]'
   ! (($#)) || ! (($#-1)) || local -n _dest=${2-}
   local -a flfs
   local flf

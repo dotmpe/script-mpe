@@ -59,7 +59,7 @@ context ()
 
 context_add () # ~ [<PCTX>]
 {
-  : about "Look for tag refs"
+: about "Look for tag refs"
   local lk=${lk-}:context-add
   [[ $# -gt 0 ]] || set -- ${PCTX?}
   class_find "$@" &&
@@ -84,7 +84,7 @@ context_acquire () # ~ <var> <tag> [<constructor-args...>]
 
 context_assert () # ~ [<CTX>]
 {
-  : about "Require that present or given class references are present (exists and are loaded)"
+: about "Require that present or given class references are present (exists and are loaded)"
   test $# -gt 0 || set -- ${CTX?}
   set -- $(context_class_names "$@") &&
   test $# -eq 0 && return

@@ -1,6 +1,6 @@
 script_mpe_part_als_disk_load ()
 {
-  : source script-mpe:tool/sh/part/als-disk.sh
+: source script-mpe:tool/sh/part/als-disk.sh
 }
 
 

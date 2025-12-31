@@ -2,13 +2,13 @@
 
 script_mpe_part_als_git_load ()
 {
-  : source script-mpe:tool/sh/part/als-git.sh
+: source script-mpe:tool/sh/part/als-git.sh
   . "${US_BIN:?}"/tool/sh/part/fun-git.sh
 }
 
 git_als ()
 {
-  : source script-mpe:tool/sh/part/als-git.sh
+: source script-mpe:tool/sh/part/als-git.sh
 }
 
 

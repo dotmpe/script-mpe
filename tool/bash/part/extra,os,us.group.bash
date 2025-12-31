@@ -50,7 +50,7 @@ us_os_extra_hooks=(
 
 User-Script.OS.x.expand-pathref ()
 {
-  : param '~ <Var>'
+: param '~ <Var>'
   local -n _us_os_pathref=${1}
   while true
   do
@@ -76,7 +76,7 @@ User-Script.OS.x.expand-pathref ()
 
 User-Script.OS.x.first-status ()
 {
-  : input "${1:?$FUNCNAME${*:+ $*}: Status map}"
+: input "${1:?$FUNCNAME${*:+ $*}: Status map}"
   local -n _687166b5_stats1=${1}
   local _687166b5_stat1
   for _687166b5_stat1 in "${_687166b5_stats1[@]}"
@@ -87,8 +87,8 @@ User-Script.OS.x.first-status ()
 
 User-Script.OS.x.iter-sources ()
 {
-  : about 'Helper to iterate over specific parts'
-  : extended 'This is mostly to explore usage of data, see also iter-parts'
+: about 'Helper to iterate over specific parts'
+: extended 'This is mostly to explore usage of data, see also iter-parts'
   # This combines iterator and iteratee's in one select, but thats besides the
   # point here.
 
@@ -234,8 +234,8 @@ User-Script.OS.x.lookup-expand-safe ()
 
 User-Script.OS.x.lookup-expand-safenames ()
 {
-  : param ' ~ <Lookup-path-var> [<Output-var>] [<Find-filter-argv-var>]'
-  : about 'List names found through lookup'
+: param ' ~ <Lookup-path-var> [<Output-var>] [<Find-filter-argv-var>]'
+: about 'List names found through lookup'
   : XXX "This should be whitespace safe, but is still meant for safe filenames"
   local _bd _print=0
   local -n _lookup=${1:?$FUNCNAME: Name expected for input variable, $ENV_CTX}
@@ -267,7 +267,7 @@ User-Script.OS.x.lookup-list ()
 
 User-Script.OS.x.parent-process ()
 {
-  : param '~ [<PID>] [<Ps-argv>] [<Outvars...>]'
+: param '~ [<PID>] [<Ps-argv>] [<Outvars...>]'
   local _us_os_out{,v}
   ! (($#-2)) && _us_os_outv=( _us_os_out ) || _us_os_outv=( "${@:3}" )
   if_ok "$(ps -o ppid= -p ${1:-$$})" &&
@@ -279,8 +279,8 @@ User-Script.OS.x.parent-process ()
 
 User-Script.OS.x.script-table ()
 {
-  : input "${1:?$FUNCNAME${*:+ $*}: Hash map}"
-  : input "${2:?$FUNCNAME${*:+ $*}: Status map}"
+: input "${1:?$FUNCNAME${*:+ $*}: Hash map}"
+: input "${2:?$FUNCNAME${*:+ $*}: Status map}"
   local -n _687166b5_hash1=${1} _687166b5_stats2=${2} _687166b5_hash2 \
     _687166b5_key1='_687166b5_hash1[$_687166b5_als]' \
     _687166b5_key2='_687166b5_hash2[$_687166b5_key1]' \

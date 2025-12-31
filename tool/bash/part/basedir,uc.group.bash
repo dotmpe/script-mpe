@@ -53,7 +53,7 @@ User-Config.Basedir.basedirs_split-argv ()
 
 User-Config.Basedir.basedirs ()
 {
-  : param '~ [<List-arg...> -- ] <Sub...>'
+: param '~ [<List-arg...> -- ] <Sub...>'
   local -a _uc_bd_{select,subcmd} uc_basedir_key
   ${FUNCNAME}_split-argv _uc_bd_{select,subcmd} "$@" && {
     [[ ${_uc_bd_select[*]:+set} ]] ||
@@ -89,7 +89,7 @@ User-Config.Basedir.basedirs+load ()
 
 User-Config.Basedir.basedir-command ()
 {
-  : param '~ <Dirid> <Command...>'
+: param '~ <Dirid> <Command...>'
 }
 
 # Id: basedir,uc         vim:set ft=bash sw=2 sts=2 et:

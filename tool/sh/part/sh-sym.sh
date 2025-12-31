@@ -30,7 +30,7 @@ declare -gA sh_sym_det=(
 
 sh_sym_ref () # ~ <Names...>
 {
-  : source "sh-sym.sh"
+: source "sh-sym.sh"
   local __{cb{,i},sym,tp{,d}}
   # TODO: allow to request other formats from detectors
   : "${sh_sym_ref_fmt:=bash}"
@@ -166,7 +166,7 @@ sh_sym_ref__sys_os_path ()
     echo "${file_path} () {"
     echo "  : description \"${description}\""
     stat --format '  : access "%A %U(%u):%G(%g)"
-  : size %s' "${file_path}"
+: size %s' "${file_path}"
     test ! -h "$file_path" ||
       echo "  : realpath \"$(realpath "$file_path")\""
     echo "}"
@@ -192,7 +192,7 @@ sh_sym_ref__sysd_unit ()
 # ${BASH_FUNC_<fun>%%+set}
 sh_sym_fexp () # ~ <Name>
 {
-  : source "sh-sym.sh"
+: source "sh-sym.sh"
   if_ok "$(printf 'BASH_FUNC_%s%%%%=() { ' "${1:?}")" &&
   env | grep -q "$_" || return 0
   echo "declare -fx $1"
@@ -200,14 +200,14 @@ sh_sym_fexp () # ~ <Name>
 
 sh_vspec () # ~ <Shell-sym> # Print declaration for shell variable
 {
-  : source "sh-sym.sh"
+: source "sh-sym.sh"
   declare -p "${1:?}" 2>/dev/null
 }
 
 sys_os_package ()
 {
   : "${1:?"sys-os-package: symbol expected"}"
-  : source "sh-sym.sh"
+: source "sh-sym.sh"
   [[ ${1:0:1} = / ]] && : "$1" || if_ok "$(command -v "$1")" || return
   if_ok "$(test -n "$_" && 2>/dev/null dpkg -S "$_")" &&
   test -n "$_" &&
@@ -217,7 +217,7 @@ sys_os_package ()
 sys_os_name ()
 {
   : "${1:?"sys-os-name: command name expected"}"
-  : source "sh-sym.sh"
+: source "sh-sym.sh"
   [[ ${1:0:1} = / ]] && : "$1" || {
     local __path
     __path="$(command -v "$1")" &&

@@ -10,7 +10,7 @@ user_grep_fun=(
 
 User.Grep.at-basedirs ()
 {
-  : param '~ <Cmd-arr> <Basedirs...>'
+: param '~ <Cmd-arr> <Basedirs...>'
   local -n grep_at_cmdargs=${1:?}
   shift
   [[ ${grep_at_cmdargs[@]:+set} ]] ||
@@ -29,7 +29,7 @@ User.Grep.at-basedirs ()
 
 User.Grep.grep-extra ()
 {
-  : about 'Example of wrapper for standard grep with added functionality'
+: about 'Example of wrapper for standard grep with added functionality'
   : TODO 'Wrappers like this could be defined more generically as hooks'
   local argi
   for ((argi=0; argi < $#; argi++))

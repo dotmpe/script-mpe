@@ -30,8 +30,8 @@ uc_env +d dx :mkFun '_Sh_Fun_Eval "$@"'
 
 sh_fclone () # ~ <New-name> <Copy-ref> # alias:fun-clone
 {
-  : source "script-mpe.lib.sh"
-  : input "${1:?$FUNCNAME: New function name expected}"
+: source "script-mpe.lib.sh"
+: input "${1:?$FUNCNAME: New function name expected}"
   :pass "$_ () {
 $(_Sh_Fun_Body "${2:?sh-fclone: Reference function name expected}")
 }" &&
@@ -44,8 +44,8 @@ $(_Sh_Fun_Body "${2:?sh-fclone: Reference function name expected}")
 >/dev/null 2>&1 declare -F sh_fun ||
 sh_fun ()
 {
-  : src std-uc.lib.sh
-  : input "${@:?$FUNCNAME: Function name, $ENV_CTX}"
+: src std-uc.lib.sh
+: input "${@:?$FUNCNAME: Function name, $ENV_CTX}"
   >/dev/null 2>&1 declare -F "${@}"
 }
 
@@ -53,7 +53,7 @@ sh_fun ()
 # XXX: [[ ${key:-false} != true ]] || ... seems like a more terse, fitting idiom
 std_bool () # ~ <Cmd...> # Print true or false, based on command status
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   "$@" && printf true || {
     [[ 1 -eq $? ]] || BOOL= : ${BOOL:?Boolean status expected: E$_: $*}
     printf false
@@ -66,7 +66,7 @@ std_bool () # ~ <Cmd...> # Print true or false, based on command status
 # std_bool to test for 0 (true) or 1 (false) value, and prints either command.
 std_bit ()
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   [[ $# -eq 1 && 2 -gt "${1:-2}" ]] || return ${_E_GAE:-193}
   std_bool test 1 -eq "${1:?}"
 }
@@ -75,7 +75,7 @@ std_bit ()
 # case & glob impl. in terms of speed.
 std_ifstat () # ~ <Spec> <Cmd...>
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   "${@:2}"
   str_globmatch "$?" "$1"
 }
@@ -85,7 +85,7 @@ std_quiet ()
 {
   local stat=$?
   "$@" >/dev/null && return ${stat}
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
 }
 
 sh_fun std_silent ||
@@ -93,7 +93,7 @@ std_silent () # ~ <Cmd...> # Silence all output (std{out,err})
 {
   local stat=$?
   "$@" 2>/dev/null && return ${stat}
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
 }
 
 sh_fun std_noo ||
@@ -101,26 +101,26 @@ std_noo ()
 {
   local stat=$?
   "$@" >/dev/null 2>&1 && return ${stat}
-  : src std-uc.lib.sh
+: src std-uc.lib.sh
 }
 # old: std-silent
 
 std_verbose () # ~ <Message ...> # Print message
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   >&2 echo "$@" || return 3
 }
 
 std_v_exit () # ~ <Cmd ...> # Wrapper to command that exits verbosely
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   "$@"
   stderr_exit $?
 }
 
 std_v_stat ()
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   "$@"
   stderr_stat $? "$@"
 }
@@ -128,9 +128,9 @@ std_v1c_stat () { std_v_stat "$@"; }
 
 std_v1c () # ~ <Cmd ...> # Wrapper that echoes both command and status
 {
-  : param "<Cmd ...>"
-  : note "Strictly for debugging of script branches (or DEBUG, DIAG mode etc)"
-  : source "script-mpe.lib.sh"
+: param "<Cmd ...>"
+: note "Strictly for debugging of script branches (or DEBUG, DIAG mode etc)"
+: source "script-mpe.lib.sh"
   >&2 echo "Running command: $*"
   "$@"
   stderr_stat $? "$@"
@@ -140,9 +140,9 @@ std_v1c () # ~ <Cmd ...> # Wrapper that echoes both command and status
 # standard visual status (on stderr). see also std-nvs
 stderr_vs () # ~ <Message ...> # Print message, pass previous status code.
 {
-  : about "Print message, pass previous status code"
-  : param "<Message ...>"
-  : source "script-mpe.lib.sh"
+: about "Print message, pass previous status code"
+: param "<Message ...>"
+: source "script-mpe.lib.sh"
   local stat=$?
   >&2 echo "$@"
   return $stat
@@ -152,9 +152,9 @@ stderr_vs () # ~ <Message ...> # Print message, pass previous status code.
 # standard non-visual status triggers output non non-zero, also std-vs
 std_nvse () # ~ <Message ...> # Pass status code and print message if non-zero
 {
-  : about "Pass status code and print message if non-zero"
-  : param "<Message ...>"
-  : source "script-mpe.lib.sh"
+: about "Pass status code and print message if non-zero"
+: param "<Message ...>"
+: source "script-mpe.lib.sh"
   local stat=$?
   [[ $stat -eq 0 ]] || >&2 echo "$@"
   return $stat
@@ -174,7 +174,7 @@ stderr_exit () # ~ <Status=$?> [<Exit-msg>] [<Nz-exit-msg>] <...> # Verbosely ex
 
 stderr_v_exit () # ~ <Message> [<Status>] # Exit shell after printing message
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   local stat=$?
   >&2 echo "$1" || return 3
   exit ${2:-$stat}
@@ -193,7 +193,7 @@ stderr_v_exit () # ~ <Message> [<Status>] # Exit shell after printing message
 # sleep-v.
 stderr_sleep_int ()
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   local last=$_
   : "${sleep_q:=$(bool not ${sleep_v:-true})}"
   ! ${sleep_v:-true} ||
@@ -212,7 +212,7 @@ stderr_sleep_int ()
 
 stderr_stat ()
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   local last=$_ stat=${1:-$?} ref=${*:2}
   : "${ref:-$last}"
   test 0 -eq $stat &&
@@ -223,7 +223,7 @@ stderr_stat ()
 
 str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   [[ 2 -le $# ]] || return ${_E_GAE:-193}
   case " ${*:2} " in
     ( *" ${1:?} "*) ;; #  | *" ${1:?} " | " ${1:?} "*) ;;
@@ -232,7 +232,7 @@ str_wordmatch () # ~ <Word> <Strings...> # Non-zero unless word appears
 
 str_vword () # ~ <Variable> [<String>] # Transform string to word
 {
-  : source "str.lib.sh"
+: source "str.lib.sh"
   declare -n v=${1:?}
   : "${2-$v}"
   v="${_//[^A-Za-z0-9_]/_}"
@@ -242,7 +242,7 @@ str_vword () # ~ <Variable> [<String>] # Transform string to word
 # string-util function with optional case conversion.
 str_word () # ~ <String> # Transform string to word
 {
-  : source "str.lib.sh"
+: source "str.lib.sh"
   : "${1:?}"
   local out="${_//[^A-Za-z0-9_]/_}"
   [[ "${upper:-false}" != true ]] && {
@@ -254,13 +254,13 @@ str_word () # ~ <String> # Transform string to word
 
 sh_var ()
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   declare -p "${1:?}" > /dev/null 2>&1
 }
 
 sh_var_incr ()
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   local v=${!1:-0}
   declare -g ${1:?}=$(( v + 1 ))
 }
@@ -268,37 +268,37 @@ sh_var_incr ()
 # Store given or previous last argument value at variable
 sh_var_setval () # ~ <Var-name> [<Value-or-last>]
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   declare -g ${1:?}="${2:-$_}";
 }
 
 # Copy value from to new
 sh_var_copy () # ~ <New-var> <From-ref>
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   declare -g ${1:?}="${!2}"
 }
 
 sh_adef () # ~ <Array> <Key>
 {
-  : about "Check for array variable, and for value set at key (zerowidth or otherwise)"
+: about "Check for array variable, and for value set at key (zerowidth or otherwise)"
   sh_arr "${1:?"$(sys_exc script-mpe.lib:sh-adef@1:array)"}" &&
   : "${1:?}[${2:?"$(sys_exc script-mpe.lib:sh-adef@2:key)"}]" &&
   #[[ "(unset)" != "${!_:-(unset)}" ]]
   [[ ${!_:+set} ]]
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
 }
 
 # Call sys-arr unless array var with name exists.
 sh_arr_assert () # ~ <Var-name> <Command...>
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   sh_arr "$1" || read_call "$@"
 }
 
 sh_arr_def () # ~ <Var-name>
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   sh_arr "${1:?}" &&
   declare -n arr=${1:?} &&
   test "${arr[*]+set}" = "set"
@@ -306,7 +306,7 @@ sh_arr_def () # ~ <Var-name>
 
 sh_arr_len () # ~ <Var-name>
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   #sh_arr_def "${1:?}" &&
   local -n _arr=${1:?} &&
   [[ ${_arr[*]+set} ]] &&
@@ -342,14 +342,14 @@ sh_errusr ()
 
 sh_noerr ()
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   std_silent "$@" || true
 }
 
 # see also sys-callers
 sh_caller ()
 {
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
   : "$(( ${1:-0} + 1 ))"
   :pass "$(caller $_)" || return
   : "${_#* }"
@@ -362,15 +362,15 @@ sh_caller ()
 # status and reads zero-len value as line items onto end of array.
 read_call () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
 {
-  : source "script-mpe.lib.sh"
-  : group util
-  : about "Read command standard ouput (lines) into array"
-  : extended "Reads onto end for existing array"
-  : param "<Array-name> <Cmd...>"
-  : src -uconf-shell-core.sh
-  : derive sys-exec-mapfile
-  : input "${1:?Array-name expected, $ENV_CTX:$FUNCNAME}"
-  : input "${2:?Command line expected, $ENV_CTX:$FUNCNAME}"
+: source "script-mpe.lib.sh"
+: group util
+: about "Read command standard ouput (lines) into array"
+: extended "Reads onto end for existing array"
+: param "<Array-name> <Cmd...>"
+: src -uconf-shell-core.sh
+: derive sys-exec-mapfile
+: input "${1:?Array-name expected, $ENV_CTX:$FUNCNAME}"
+: input "${2:?Command line expected, $ENV_CTX:$FUNCNAME}"
   local -n _read_call_arr=${1}
   local outname=${1} offset
   [[ ${_read_call_arr[*]:+set} ]] &&
@@ -384,14 +384,14 @@ read_call () # ~ <Var-name> <Cmd...> # Read out (lines) from command into array
 # system-exception-trace: Helper to format callers list including custom head.
 sys_exc_trc () # ~ [<Head>] ...
 {
-  : group debug
+: group debug
   echo "${1:-script-mpe: E$? source trace:}"
   local i
   for (( i=1; 1; i++ ))
   do
     :pass "$(caller $i)" && echo "  - $_" || break
   done
-  : source "script-mpe.lib.sh"
+: source "script-mpe.lib.sh"
 }
 
 #

@@ -153,7 +153,7 @@ meta_aprops_be2 () # ~ <Var> <Source>
 
 meta_aprops_ref () # (:meta-{about,ref,path}) ~ <File>
 {
-  : about "Set meta:{ref,about,path} env"
+: about "Set meta:{ref,about,path} env"
   meta_ref="${1:?Meta about ref expected}"
   meta_about=${meta_ref#*:}
   local be_path

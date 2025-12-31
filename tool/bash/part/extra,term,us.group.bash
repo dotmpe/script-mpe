@@ -35,8 +35,8 @@ us_term_extra_ssc=(
 
 User-Script.Terminal.x.device-attributes ()
 {
-  : input "${1:?$FUNCNAME${*:+ $*}:Attributes variable (primary)}"
-  : input "${2:?$FUNCNAME${*:+ $*}:Attributes variable (secondary)}"
+: input "${1:?$FUNCNAME${*:+ $*}:Attributes variable (primary)}"
+: input "${2:?$FUNCNAME${*:+ $*}:Attributes variable (secondary)}"
   local -n _ust_da_pa=${1} _ust_da_sa=${2}
   User-Script.Terminal.x.raw-query '\e[c' c _ust_da_pa &&
   User-Script.Terminal.x.raw-query '\e[>c' c _ust_da_sa
@@ -44,7 +44,7 @@ User-Script.Terminal.x.device-attributes ()
 
 User-Script.Terminal.x.get-longname ()
 {
-  : input "${1:?$FUNCNAME${*:+ $*}:Longname variable}"
+: input "${1:?$FUNCNAME${*:+ $*}:Longname variable}"
   local -n _ust_gl_dest=${1}
   if_ok "$(tput longname)" &&
   _ust_gl_dest=$_
@@ -101,9 +101,9 @@ User-Script.Terminal.x.print-palette-card ()
 
 User-Script.Terminal.x.raw-query ()
 {
-  : input "${1:?$FUNCNAME${*:+ $*}:Query}"
-  : input "${2:?$FUNCNAME${*:+ $*}:Scan}"
-  : input "${3:?$FUNCNAME${*:+ $*}:Response variable}"
+: input "${1:?$FUNCNAME${*:+ $*}:Query}"
+: input "${2:?$FUNCNAME${*:+ $*}:Scan}"
+: input "${3:?$FUNCNAME${*:+ $*}:Response variable}"
   local _query=${1} _saved_stty _char
   local -n _response=${3}
   _saved_stty=$(stty -g)
@@ -146,7 +146,7 @@ User-Script.Terminal.x.test-color-capabilities ()
 
 User-Script.Terminal.x.test-osc ()
 {
-  : about "Test terminal's Operation System Commands (OSC) support"
+: about "Test terminal's Operation System Commands (OSC) support"
   (($#)) || set -- 4 10 11 12 21
   local osc
   for osc

@@ -39,7 +39,7 @@ user_ops ()
 {
   local ns_here=$FUNCNAME ctx=${ENV_CTX:-[$$/$0]} lk=${lk:+$lk:$FUNCNAME}
   : "${lk:=$(sh_call_context)}"
-  : input "${*:?$FUNCNAME: Command args undefined, $ctx:$lk}"
+: input "${*:?$FUNCNAME: Command args undefined, $ctx:$lk}"
   #>&2 echo "$FUNCNAME $*"
   case "${1:?}" in
   ( _:${FUNCNAME//_/-}:init )

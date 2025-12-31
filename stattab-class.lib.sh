@@ -53,7 +53,7 @@ class_StatDirIndex_ () # :StatTab (super,self,id,call) ~ <Call-args...>
 
 class_StatIndex__load ()
 {
-  : about "Line in StatDirIndex representing another StatTab file" @StatIndex
+: about "Line in StatDirIndex representing another StatTab file" @StatIndex
   Class__static_type[StatIndex]=StatIndex:StatTabEntry:StatTab
 }
 
@@ -67,7 +67,7 @@ class_StatIndex_ () # (super,self,id,call) ~ <Call ...>
 
 class_StatTabEntry__load () # ~
 {
-  : about "Entry in StatTab file" @StatTabEntry
+: about "Entry in StatTab file" @StatTabEntry
   Class__static_type[StatTabEntry]=StatTabEntry:ParameterizedClass
   ctx_pclass_params=${ctx_pclass_params-}${ctx_pclass_params:+ }$stattab_var_keys
 
@@ -224,7 +224,7 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
 
 class_StatTab__load ()
 {
-  : about "File with lines or blocks representing entries consisting of status and description fields for some entity" @StatTab
+: about "File with lines or blocks representing entries consisting of status and description fields for some entity" @StatTab
   Class__static_type[StatTab]=StatTab:CachedClass
   Class__rel_types[StatTab]=StatTabEntry,OS/FileStat,CachedClass
   # Map of object-id to stattab file path

@@ -1,7 +1,7 @@
 
 script_mpe_part_als_linux_load ()
 {
-  : source script-mpe:tool/sh/part/als-linux.sh
+: source script-mpe:tool/sh/part/als-linux.sh
 }
 
 alias cpu-cores-cnt='< /proc/cpuinfo grep core.id | wc -l'

@@ -7,17 +7,17 @@ argv_lib__load ()
 
 argv_rev_from ()
 {
-  : note "See also sys-rarr* to reverse copy between arrays"
-  : input "${1:?$FUNCNAME: Argument source array}"
+: note "See also sys-rarr* to reverse copy between arrays"
+: input "${1:?$FUNCNAME: Argument source array}"
   local -n _argv_rev_from=${1}
   TODO
 }
 
 argv_rev_to ()
 {
-  : note "See also sys-rarr* to reverse copy between arrays"
-  : input "${1:?$FUNCNAME: Argument dest array}"
-  : src argv.lib.sh
+: note "See also sys-rarr* to reverse copy between arrays"
+: input "${1:?$FUNCNAME: Argument dest array}"
+: src argv.lib.sh
   #local -n _argv_rev_to=${1}
   #TODO
   (($#-1)) || return ${_E_MA:-194}

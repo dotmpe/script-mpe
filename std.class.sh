@@ -1,6 +1,6 @@
 class_Std__load ()
 {
-  : about "Std class context TODO: cleanup ctx-std.lib"
+: about "Std class context TODO: cleanup ctx-std.lib"
   uc_class_declare Std XContext
 }
 

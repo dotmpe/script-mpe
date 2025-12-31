@@ -160,7 +160,7 @@ ignores_load ()
 
 ignores_load_any ()
 {
-  : param '~ <Group> <Set> <Dest>'
+: param '~ <Group> <Set> <Dest>'
   local gl gg=${1:?} gs=${2:?}
   local _ignores_load_any_dest=${3:-${gg}s}
   for gl in \

@@ -45,8 +45,8 @@ todotxt_readtab ()
 
 todotxt_parserecord ()
 {
-  : param '~ <String>'
-  : input "${1:?Text data}"
+: param '~ <String>'
+: input "${1:?Text data}"
   local rest=${1}
   while [[ ${rest:+set} ]]
   do

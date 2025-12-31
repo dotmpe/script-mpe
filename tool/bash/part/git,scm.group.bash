@@ -89,7 +89,7 @@ scm_git_hooks=(
 
 SCM.Git.at-basedirs ()
 {
-  : param '~ <Cmd-arr> <Basedirs...>'
+: param '~ <Cmd-arr> <Basedirs...>'
   local -n git_at_cmdargs=${1:?}
   shift
   local bd
@@ -109,7 +109,7 @@ SCM.Git.at-basedirs ()
 
 SCM.Git.git-worktree-status ()
 {
-  : param '~ <Git-dir> <Out-hash>'
+: param '~ <Git-dir> <Out-hash>'
   local -n _scm_git_stat=${2:-git_scm_stat}
   #git rev-parse --verify refs/stash >/dev/null 2>&1 && s="$"
 

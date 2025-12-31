@@ -991,7 +991,7 @@ transmission_torrent_path () # ~ <Tbn-var> <Tf-var>
 
 transmission_torrentfiles ()
 {
-  : param '~ <Array-name>'
+: param '~ <Array-name>'
   local tbt_uconf=${TRANSMISSIONBT_UC_DIR:?}
   local -n __transmission_torrentfiles=${1:?}
   [[ ! -d "$tbt_uconf" ]] ||

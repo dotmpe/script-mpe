@@ -249,10 +249,10 @@ script_debug_class_arr () # ~ <key> [<Class>] # Pretty print Class array
 
 script_debug_env () # ~ [<Names...>]
 {
-  : about "Describe variables/functions in env"
-  : about "Without arguments sets preselect set (and also shows us:bases)"
-  : notes "See script-debug-{p,g}env to match specific env names"
-  : param "[<Names...>]"
+: about "Describe variables/functions in env"
+: about "Without arguments sets preselect set (and also shows us:bases)"
+: notes "See script-debug-{p,g}env to match specific env names"
+: param "[<Names...>]"
   [[ $# -gt 0 ]] || {
     set -- \
       script_{base{,id},cmd{name,fun},defcmd,defarg,maincmds,name,version,src,lib} \
@@ -306,7 +306,7 @@ script_debug_funs () # ~ <Fun...> # List shell functions
 
 script_debug_penv () # ~ <Name-prefixes ...>
 {
-  : param '<Name-prefixes ...>'
+: param '<Name-prefixes ...>'
   # Hide status
   set -- $( for pref
     do compgen -A variable $pref
@@ -323,7 +323,7 @@ script_debug_penv () # ~ <Name-prefixes ...>
 
 script_debug_genv () # ~ <Name-grep-args ...>
 {
-  : param '<Var-name-grep-args ...>'
+: param '<Var-name-grep-args ...>'
   # Hide status
   set -- $(compgen -A variable | grep "${@:?}") \
     $(compgen -A arrayvar | grep "${@:?}") \

@@ -76,7 +76,7 @@ meta_be_loaded () # ~ <Backend-name>
 
 meta_cache_proc () # ~ <Src> <Src-key> <Cmd...>
 {
-  : about "Check derived cache against source, regenerate if OOD"
+: about "Check derived cache against source, regenerate if OOD"
   test 3 -le $# || return ${_E_MA:?}
   local src=${1:?} sk=${2:?meta-cache-proc: Source key expected} cached
   shift 2
@@ -108,7 +108,7 @@ meta_dump () # ~ <Paths...>
 
 meta_properties () # ~ <Properties-file>
 {
-  : about "Read simple metadata format"
+: about "Read simple metadata format"
   grep -Ev '^\s*(#.*|\s*)$' "$@" |
   awk '{ st = index($0,":") ;
       key = substr($0,0,st-1) ;
@@ -118,7 +118,7 @@ meta_properties () # ~ <Properties-file>
 
 meta_run () # ~ <Target-file> <Cmd...>
 {
-  : about "Manage metadata on files"
+: about "Manage metadata on files"
   local tf=${1:?} cmd=${2:-list-all}
   shift 2
   case "$cmd" in
