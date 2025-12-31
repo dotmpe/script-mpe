@@ -10,7 +10,10 @@ user_i3wm_cnk=8eca66a3
 #)
 declare -gA \
 user_i3wm_als=(
+  [.exit-wm]='i3-msg exit'
   [.start-program]='i3-msg exec'
+# TODO: integrate i3wm-exit into here as .wm-session
+
   [win_new]=.start-program
 )
 declare -gA \

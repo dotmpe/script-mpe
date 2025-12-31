@@ -2,8 +2,8 @@ scm_git_pre=SCM.Git
 #scm_git_grp=( user-dirs )
 scm_git_fun=(
   .at-basedirs
-  .git-worktree-status
-  #.git-un{tracked,versioned}-files
+  .worktree-status
+  #.un{tracked,versioned}-files
 )
 declare -gA \
 scm_git_ssc=(
@@ -20,23 +20,40 @@ scm_git_ssc=(
   [[ $# -gt 2 ]] && shift 2 || set -- ${user_basedirs[@]}
   _gitgrep=( grep "$_grep_match" -- "$_grep_fnmatch" )
   SCM.Git.at-basedirs _gitgrep "$@"'
-  [git-grep-userdirs]='.grep-at "${@:1:2}" "$user_dirs[@]}" "${@:3}"'
-  [git-grep-all-annexes]='.grep-at "${@:1:2}" "$user_annex[@]}" "${@:3}"'
-  [git-grep-annex]='.grep-at "${@:1:2}" "${ANNEX_DIR:?}"'
-  [git-info]='{
+
+  [.grep-userdirs]='.grep-at "${@:1:2}" "$user_dirs[@]}" "${@:3}"'
+  [.grep-all-annexes]='.grep-at "${@:1:2}" "$user_annex[@]}" "${@:3}"'
+  [.grep-annex]='.grep-at "${@:1:2}" "${ANNEX_DIR:?}"'
+  [.info]='{
   git submodule && find . -iname .git -not -path "./.git/*"
   [[ ! -d .git/annex/objects ]] ||
     du -hs .git/annex/objects
 }'
+
+  [.glob-insensitive]='{
+  User-Script.String.case-insensitive-glob _git_ls "$1" &&
+  git ls-files "*$_git_ls*"
+}'
+  [.ls-insensitive]='{
+  User-Script.String.case-insensitive-glob _git_ls "$1" &&
+  git ls-files "$_git_ls"
+}'
+
+#  [.update]='.fetch-v --all && :gpa'
 )
 declare -gA \
 scm_git_als=(
-  [git-grep-dirs]='.grep-at'
-  [git-status-all]='.status-at'
+
   [.grep-all-versions]='GIT_REVOPT=--all SCM.Git.grep-revopt'
-  [git_grep_all]=.git-grep-all
-  [git_grep_versions]=.git-grep-version
-  [git_status_all]=.git-status-all
+  # XXX: also want to update clones, maybe work in bare repos for this?
+  #[.update-all-clones]=
+
+  # XXX: not sure yet about how to build alt namespace or trees
+  [git.grep.all]=.grep-all
+  [git.grep.dirs]=.grep-at
+  [git.grep.versions]=.grep-version
+  [git.status.all]=.status-all
+  [git.status.at]=.status-at
 )
 declare -gA \
 scm_git_hooks=(
@@ -55,7 +72,7 @@ scm_git_hooks=(
     #GIT_BASEDIR=$(realpath --relative-to $PWD $_)
 
     declare -gA git_worktree_status
-    SCM.Git.git-worktree-status "$GIT_BASEDIR" git_worktree_status
+    SCM.Git.worktree-status "$GIT_BASEDIR" git_worktree_status
 
     #GIT_ABBREVID=$(git show-ref --head HEAD -s)
     GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -107,7 +124,7 @@ SCM.Git.at-basedirs ()
   done
 }
 
-SCM.Git.git-worktree-status ()
+SCM.Git.worktree-status ()
 {
 : param '~ <Git-dir> <Out-hash>'
   local -n _scm_git_stat=${2:-git_scm_stat}
@@ -141,7 +158,7 @@ SCM.Git.git-worktree-status ()
 #}
 
 # TODO: provide function part for git-grep.sh functionality
-SCM.Git.git-grep-all () # ~ <Git-grep-args> [-- <Basedirs>]
+SCM.Git.grep-all () # ~ <Git-grep-args> [-- <Basedirs>]
 {
   local -a git_grep_args
   while [[ $# -gt 0 && $1 != -- ]]
@@ -175,7 +192,7 @@ SCM.Git.git-grep-all () # ~ <Git-grep-args> [-- <Basedirs>]
   done
 }
 
-SCM.Git.git-status-all () # ~ <Git-status-args> [-- <Basedirs>]
+SCM.Git.status-all () # ~ <Git-status-args> [-- <Basedirs>]
 {
   local -a git_status_args
   while [[ $# -gt 0 && $1 != -- ]]
@@ -206,7 +223,7 @@ SCM.Git.git-status-all () # ~ <Git-status-args> [-- <Basedirs>]
   done
 }
 
-SCM.Git.git-grep-version () # ~ <Expr> <Paths...>
+SCM.Git.grep-version () # ~ <Expr> <Paths...>
 {
   git grep "${1:?}" $(git rev-list ${GIT_REVOPT:=--all}) -- "${@:2}"
 }
