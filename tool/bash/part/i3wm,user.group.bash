@@ -11,7 +11,9 @@ user_i3wm_fun=(
 )
 declare -gA \
 user_i3wm_als=(
+  [.exit-wm]='i3-msg exit'
   [.start-program]='i3-msg exec'
+# TODO: integrate i3wm-exit into here as .wm-session
 
   [win_new]=.start-program
   [win_new_withname]=.start-with-name

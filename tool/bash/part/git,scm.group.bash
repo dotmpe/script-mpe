@@ -3,10 +3,10 @@ scm_git_pre=SCM.Git
 scm_git_fun=(
   .at-basedirs
   .worktree-status
-  #.git-un{tracked,versioned}-files
   .grep-all
   .status-all
   .grep-version
+  #.un{tracked,versioned}-files
 )
 declare -gA \
 scm_git_ssc=(
@@ -23,23 +23,40 @@ scm_git_ssc=(
   [[ $# -gt 2 ]] && shift 2 || set -- ${user_basedirs[@]}
   _gitgrep=( grep "$_grep_match" -- "$_grep_fnmatch" )
   SCM.Git.at-basedirs _gitgrep "$@"'
-  [git-grep-userdirs]='.grep-at "${@:1:2}" "$user_dirs[@]}" "${@:3}"'
-  [git-grep-all-annexes]='.grep-at "${@:1:2}" "$user_annex[@]}" "${@:3}"'
-  [git-grep-annex]='.grep-at "${@:1:2}" "${ANNEX_DIR:?}"'
-  [git-info]='{
+
+  [.grep-userdirs]='.grep-at "${@:1:2}" "$user_dirs[@]}" "${@:3}"'
+  [.grep-all-annexes]='.grep-at "${@:1:2}" "$user_annex[@]}" "${@:3}"'
+  [.grep-annex]='.grep-at "${@:1:2}" "${ANNEX_DIR:?}"'
+  [.info]='{
   git submodule && find . -iname .git -not -path "./.git/*"
   [[ ! -d .git/annex/objects ]] ||
     du -hs .git/annex/objects
 }'
+
+  [.glob-insensitive]='{
+  User-Script.String.case-insensitive-glob _git_ls "$1" &&
+  git ls-files "*$_git_ls*"
+}'
+  [.ls-insensitive]='{
+  User-Script.String.case-insensitive-glob _git_ls "$1" &&
+  git ls-files "$_git_ls"
+}'
+
+#  [.update]='.fetch-v --all && :gpa'
 )
 declare -gA \
 scm_git_als=(
-  [git-grep-dirs]='.grep-at'
-  [git-status-all]='.status-at'
+
   [.grep-all-versions]='GIT_REVOPT=--all SCM.Git.grep-revopt'
-  [git_grep_all]=.grep-all
-  [git_grep_versions]=.grep-version
-  [git_status_all]=.status-all
+  # XXX: also want to update clones, maybe work in bare repos for this?
+  #[.update-all-clones]=
+
+  # XXX: not sure yet about how to build alt namespace or trees
+  [git.grep.all]=.grep-all
+  [git.grep.dirs]=.grep-at
+  [git.grep.versions]=.grep-version
+  [git.status.all]=.status-all
+  [git.status.at]=.status-at
 )
 declare -gA \
 scm_git_hooks=(

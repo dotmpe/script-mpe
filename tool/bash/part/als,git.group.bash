@@ -31,7 +31,6 @@ alias git-v='{
 # 5/NOTICE is --quiet) so that scripts can use NOTICE for specific LOG output
 # while keep GIT quiet, by setting git_chatty=false
 
-
 alias git-sh-aliases="alias | grep -Po '^alias \Kgit.*$' && git config --get-regex 'alias.*'"
 
 
@@ -281,15 +280,5 @@ do
   std_noo popd
 done
 '
-alias :git:update=':git:fetch:v --all && :gpa'
-
-# XXX: also want to update clones, maybe work in bare repos for this?
-alias :git:update-all-clones=
-#alias git-publish='{
-#}'
-# NOTE: combined clone-update+publish will make every remote an effective clone of every other.
-# This is hardly desired behaviour, and better aliased on a per-project level.
-
-
 
 # ex:ft=bash:
