@@ -1,9 +1,20 @@
 # TODO: cache specified name alias and static functions
 # ~/.bash_alias,dsl,uc or us
-# shellcheck disable=2317
+
+us_dsl_user_pre=User.DSL
 
 us_dsl_user_fun=(
-  user{,-{init,sync}}
+  .load-user-command
+  .user-main-autostart
+  .user-ops-main
+  #user{,-{init,sync}}
+)
+
+declare -gA \
+us_dsl_user_als=(
+  [user]=.user-main-autostart
+  [user-load]=.load-user-command
+  [user_ops]=.user-ops-main
 )
 
 declare -gA \
@@ -11,40 +22,48 @@ us_dsl_user_ssc=(
   [TODO]='failerr "${1:-TODO: ${FUNCNAME[1]}}" ${_E_missing:-125}'
 )
 
-user ()
+User.DSL.load-user-command ()
+{
+  # XXX: loadcmd uses User-Script.require, not User-Script.part
+  us_part --alias --hooks:declare,define,init uc-command user-command &&
+  US_SCR_EXT=.us.group.bash\ .group.bash\ .bash\ .sh &&
+  loadcmd usercmds \
+      uc-user-dirs \
+      uc-user-shares \
+      uconf-annex \
+      uc-user-torrents \
+      uc-user-command \
+      uc-user-music ||
+    failerr "E$? while loading user commands" || return
+
+  # Add an extra layer for hacking, but should integrate everything with
+  # user-command and other groups properly.
+  #initcmd usercmds User.Command.user-main User.DSL.user-ops-main
+  initcmd usercmds user-main user-ops
+}
+
+User.DSL.user-main-autostart ()
 {
   local ns_at=$FUNCNAME
   [[ ${usercmds[*]:+set} ]] || {
     >&2 echo "user: Initial run, loading..."
-    # XXX: loadcmd uses User-Script.require, not User-Script.part
-    us_part --alias --hooks:declare,define,init us-ns uc-command user-command &&
-    US_SCR_EXT=.us.group.bash\ .group.bash\ .bash\ .sh &&
-    loadcmd usercmds \
-        uc-user-dirs \
-        uc-user-shares \
-        uconf-annex \
-        uc-user-torrents \
-        uc-user-command \
-        uc-user-music ||
-      failerr "E$? while loading user commands" || return
-    # Add an extra layer for hacking, but should integrate everything with
-    # user-command and other groups properly.
-    initcmd usercmds user-main user-ops
+    User.DSL.load-user-command || return
     >&2 echo "user: commands loaded, starting 'user $*' ..."
   }
   runcmd usercmds "$@"
 }
 
-user_ops ()
+User.DSL.user-ops-main ()
 {
   local ns_here=$FUNCNAME ctx=${ENV_CTX:-[$$/$0]} lk=${lk:+$lk:$FUNCNAME}
   : "${lk:=$(sh_call_context)}"
 : input "${*:?$FUNCNAME: Command args undefined, $ctx:$lk}"
-  #>&2 echo "$FUNCNAME $*"
   case "${1:?}" in
-  ( _:${FUNCNAME//_/-}:init )
+  #( _:"${FUNCNAME//_/-}":init )
+  ( _:user-ops:init )
       lib_require todotxt-fields &&
-      User-Config.Basedir.basedirs+load
+      us_part uc-basedir &&
+      User-Conf.Basedir.basedirs+load
     ;;
 
   ( --basedir-command )
@@ -63,6 +82,7 @@ user_ops ()
     ;;
 
   ( init+fromtab )
+      # shellcheck disable=2317 # ignore unreachable command (function)
       # Read the tab into Bash, and also check local host env
       _us_bd_initfromtab () {
         local path id

@@ -6,18 +6,12 @@
 
 uc_basedir_pre=User-Conf.Basedir
 uc_basedir_cnk=60347cac
-uc_basedir_var=(
-)
 uc_basedir_fun=(
   .basedirs_split-argv
-  .basedirs
+  .basedir+init
   .basedir-command
-)
-declare -gA \
-uc_basedir_als=(
-)
-declare -gA \
-uc_basedir_ssc=(
+  .basedirs
+  .basedirs+load
 )
 declare -gA \
 uc_basedir_hooks=(
@@ -25,7 +19,7 @@ uc_basedir_hooks=(
 #''
 )
 
-User-Config.Basedir.basedirs_split-argv ()
+User-Conf.Basedir.basedirs_split-argv ()
 {
   local -n  _uc_bdargv_select=${1} _uc_bdargv_subcmd=${2}
   local _uc_bdargv_o
@@ -51,7 +45,18 @@ User-Config.Basedir.basedirs_split-argv ()
   }
 }
 
-User-Config.Basedir.basedirs ()
+User-Conf.Basedir.basedir+init ()
+{
+  TODO "$FUNCNAME"
+}
+
+User-Conf.Basedir.basedir-command ()
+{
+: param '~ <Dirid> <Command...>'
+  TODO "$FUNCNAME"
+}
+
+User-Conf.Basedir.basedirs ()
 {
 : param '~ [<List-arg...> -- ] <Sub...>'
   local -a _uc_bd_{select,subcmd} uc_basedir_key
@@ -63,17 +68,11 @@ User-Config.Basedir.basedirs ()
 
   for bd_key in "${uc_basedir_key[@]}"
   do
-    :
     "${_uc_bd_subcmd[@]}"
   done
 }
 
-User-Config.Basedir.basedir+init ()
-{
-  :
-}
-
-User-Config.Basedir.basedirs+load ()
+User-Conf.Basedir.basedirs+load ()
 {
   #local -I PATH
   #PATH=$PATH:$SCRIPTPATH
@@ -87,9 +86,4 @@ User-Config.Basedir.basedirs+load ()
   done
 }
 
-User-Config.Basedir.basedir-command ()
-{
-: param '~ <Dirid> <Command...>'
-}
-
-# Id: basedir,uc         vim:set ft=bash sw=2 sts=2 et:
+# Id: basedir,uc                                 vim:set ft=bash sw=2 sts=2 et:
