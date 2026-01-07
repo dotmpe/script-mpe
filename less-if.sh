@@ -30,7 +30,7 @@
 # using IF_PLAIN
 
 ## Shell mode
-set -euo pipefail
+set -eETuo pipefail
 
 ## Helpers
 
@@ -67,6 +67,7 @@ while (<>) {
 : "${PAGER_WRAPPERS:=delta,$bat_exe}"
 #: "${PAGER_WRAPPERS:=$bat_exe}"
 
+: "${NORMAL:=$(tput sgr0)}"
 
 # TODO: describe script main env
 : "${PAGER_NORMAL:=}"
@@ -77,32 +78,34 @@ while (<>) {
 
 ## Script init
 
-: "${LOG:=/etc/profile.d/uc-profile.sh}"
-[[ -x "${LOG}" ]] || {
-
-  if_ok "$(declare -F "${LOG}")" || {
-    # restart dyn env
-    if_ok "$("${U_C:?}"/tool/sh/log.sh env dyn)" &&
-    eval "$_"
-  }
-}
+#: "${LOG:=/etc/profile.d/uc-profile.sh}"
+#[[ -x "${LOG}" ]] || {
+#
+#  if_ok "$(declare -F "${LOG}")" || {
+#    # restart dyn env
+#    if_ok "$("${U_C:?}"/tool/sh/log.sh env dyn)" &&
+#    eval "$_"
+#  }
+#}
 
 ENV_CTX=${ENV_CTX-}":less-if[$$]"
 
-$LOG info "${ENV_CTX-}" "Executing even less" \
-  "IF_PAGER=${IF_PAGER:-(unset)}"
+#$LOG info "${ENV_CTX-}" "Executing even less" \
+#  "IF_PAGER=${IF_PAGER:-(unset)}"
 
 if_ok "${PAGER_NORMAL:=$(command -v less) -R}" || {
   test -n "$IF_PAGER" ||
-    $LOG error "${ENV_CTX-}:init" "Missing plain pager exec" \
-      "PAGER_NORMAL=less" 1 || return
+    failerr "Missing plain pager exec" || exit
+  #  $LOG error "${ENV_CTX-}:init" "Missing plain pager exec" \
+  #    "PAGER_NORMAL=less" 1 || return
 }
 
 # Check for batcat to use as fancy pager: frame decorations and highlighting
-test -n "${IF_PAGER:-}" || {
+[[ -n "${IF_PAGER-}" ]] || {
   # Choose default (fancy) pager or normal
   if_ok "${IF_PAGER:=$(command -v $bat_exe)}" || {
-    $LOG warn "${ENV_CTX-}:init" "Missing fancy pager exec" "IF_PAGER=$bat_exe"
+    >&2 echo "Missing fancy pager exec" "IF_PAGER=$bat_exe"
+    #$LOG warn "${ENV_CTX-}:init" "Missing fancy pager exec" "IF_PAGER=$bat_exe"
     : "${IF_PAGER:=$PAGER_NORMAL}"
   }
 }
@@ -118,7 +121,7 @@ test -n "$IF_PAGER" && {
     fnmatch "* $if_pager_name *" " ${PAGER_WRAPPERS//[:,]/ } " && {
       IF_PAGER="$PAGER_NORMAL"
     } || {
-      $LOG error "${ENV_CTX-}" "Recursion?" "$if_pager_name:$PCMD"
+      #$LOG error "${ENV_CTX-}" "Recursion?" "$if_pager_name:$PCMD"
       exit 1
     }
   }
@@ -137,11 +140,13 @@ test -n "$IF_PAGER" && {
 # XXX: remove deco to wrap delta output
 [[ $execn != delta ]] || IF_PLAIN=1
 
-test -x "${IF_PAGER%% *}" && {
-  $LOG debug "${ENV_CTX-}:init" "Selected pager" "IF_PAGER=$IF_PAGER"
+test -x "${IF_PAGER%% *}" ||
+test -x "$(command -v ${_})" && {
+  : # $LOG debug "${ENV_CTX-}:init" "Selected pager" "IF_PAGER=$IF_PAGER"
+
 } || {
-  $LOG error "${ENV_CTX-}:init" "Missing pager exec" \
-    "IF_PAGER=${IF_PAGER:-(unset)}" $?
+  #$LOG error "${ENV_CTX-}:init" "Missing pager exec" \
+  #  "IF_PAGER=${IF_PAGER:-(unset)}" $?
   exit 127
 }
 
@@ -159,12 +164,12 @@ export COLUMNS WIDTH=$COLUMNS
 args=${1:-/dev/stdin}
 test "$args" != "-" || args=/dev/stdin
 test $# -eq 0 || shift
-$LOG debug "${ENV_CTX-}:start" "Reading input data..." "args=$args"
+#$LOG debug "${ENV_CTX-}:start" "Reading input data..." "args=$args"
 data=$(<"$args")
 test -z "$data" &&
     lines=0 ||
     lines=$(echo "$data" | wc -l) data="$data"$'\n'
-$LOG info "${ENV_CTX-}:start" "Read input lines" "$lines:<$args"
+#$LOG info "${ENV_CTX-}:start" "Read input lines" "$lines:<$args"
 
 # Set either USER_LINES or UC_OUTPUT_LINES in profile to page on more or less
 # lines
@@ -225,8 +230,8 @@ case "${IF_PAGER##*/} " in
     ;;
 esac
 
-test ${v:-${verbosity:-3}} -lt 6 ||
-  $LOG notice "${ENV_CTX-}:exec" "Starting pager pipeline" "$IF_PAGER:$#:$*"
+#test ${v:-${verbosity:-3}} -lt 6 ||
+#  $LOG notice "${ENV_CTX-}:exec" "Starting pager pipeline" "$IF_PAGER:$#:$*"
 
 printf '%s' "$data" | exec $IF_PAGER "$@"
 
