@@ -15,6 +15,7 @@ us_os_extra_fun=(
   .lookup-expand-path{s,tree}
   .lookup-expand-safe{,names}
   .lookup-list
+  .local-lookup-list
   .first-status
   .script-table
 )
@@ -27,6 +28,7 @@ us_os_extra_als=(
   ["PATH+lines"]='.lookup-list PATH'
   ["PATH+pathnames"]='.lookup-expand-paths PATH'
   [lookup-tree]='.lookup-expand-pathtree'
+  [cwd-lookup-list]='.local-lookup-list $PWD'
   [path-tree]='.lookup-expand-pathtree PATH'
   [path-list]=PATH+lines
   [path-commands]='.lookup-expand-commands PATH'
@@ -255,8 +257,26 @@ User-Script.OS.x.lookup-expand-safenames ()
   done
 }
 
+User-Script.OS.x.local-lookup-list ()
+{
+  : param '[<Path=PWD>] [<Dest>]'
+  : about 'Generate lookup sequence for path and all its directories'
+  local path=${path:-$PWD} sub
+  [[ ${2:+set} ]] &&
+  local -n _us_os_lll=${2} || local _us_os_lll
+  _us_os_lll+="$path"$'\n'
+  until [[ ! ${path:+set} ]]
+  do
+    path="${path%/*}"
+    _us_os_lll+="${path:-/}"$'\n'
+  done
+  [[ ${2:+set} ]] || printf '%s' "$_us_os_lll"
+}
+
 User-Script.OS.x.lookup-list ()
 {
+  : param '<Seq-var> [<Dest>]'
+  : about 'List lookup sequence string as lines'
   local -n _lookup=${1:?}
   local liststr="${_lookup//:/$'\n'}"
   (($#-1)) && {
