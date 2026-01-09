@@ -4,8 +4,6 @@
 
 us_os_extra_pre=User-Script.OS.x
 us_os_extra_cnk=687166b5
-us_os_extra_grp=(
-)
 us_os_extra_var=(
 )
 us_os_extra_fun=(
@@ -78,6 +76,7 @@ User-Script.OS.x.expand-pathref ()
 
 User-Script.OS.x.first-status ()
 {
+  # XXX: may want to group this with some apply* helper set
 : input "${1:?$FUNCNAME${*:+ $*}: Status map}"
   local -n _687166b5_stats1=${1}
   local _687166b5_stat1

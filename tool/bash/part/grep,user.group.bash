@@ -2,6 +2,7 @@ user_grep_pre=User.Grep
 user_grep_fun=(
   .at-basedirs
   .grep-extra
+  .user-grep
 )
 # XXX: For now keeping aliases strictly as proper aliases in user-alias
 #user_grep_als=(
@@ -13,7 +14,7 @@ User.Grep.at-basedirs ()
 : param '~ <Cmd-arr> <Basedirs...>'
   local -n grep_at_cmdargs=${1:?}
   shift
-  [[ ${grep_at_cmdargs[@]:+set} ]] ||
+  [[ ${grep_at_cmdargs[*]:+set} ]] ||
     failerr "$FUNCNAME grep command array required" || return
   local bd
   (($#)) && for bd
@@ -84,6 +85,79 @@ User.Grep.grep-extra ()
     esac
   done
   grep "${@}"
+}
+
+User.Grep.user-grep ()
+{
+: input "${*:?$FUNCNAME: Command args undefined, $ENV_CTX}"
+  case "${1}" in
+  ( --basedirs* )
+        # FIXME: inject user config instead of lazy loading here
+        : "${US_SCR_EXT:=.us.group.bash .group.bash .bash .sh}"
+        : ${1#--basedirs}
+        : ${_#:}
+        local spec=${_:-user-script}
+        require "common,script,user" &&
+        user_script_basedirs --${spec} basedirs
+      ;;
+
+  ( --git-grep )
+      : about '<Git-grep-args...> [-- <Treedirs...>]'
+      local -a git_args git_grep_args basedirs
+      # Read grep-argv (including regex and filename pattern(s)) until first '--'
+      if _Sys_Argv_Firstseq git_grep_args "${@:2}"
+      then
+        : # Grep-args provided only, use default base dirs array
+        "$FUNCNAME" --basedirs:user-script || return
+      elif [[ $? -eq ${_E_continue:-195} ]]
+      then
+        # Grep-args and base dirs provided by user
+        basedirs=( "${@:  ${#git_grep_args[*]} + 2}" )
+      else
+        return ${_E_GAE:?}
+      fi
+      # TODO: inject user or local host, basedir cq project config
+      [[ ${#git_grep_args[*]} -gt 1 ]] || git_grep_args+=( '*.sh' )
+      git_grep_args+=( --recurse-submodules )
+      # XXX: setting PAGER= toggles off core.pager for GIT (git-delta) as well
+      [[ ${PAGER-} ]] || git_args+=( "-c" "core.pager=" )
+      "$FUNCNAME" :git-grep-dirs:basedirs
+    ;;
+
+  ( --git-grep-versions )
+      : param '<Pattern> <Files...>'
+      : about 'Search entire Git revision listing'
+      : param '<Pattern> <Nameglob> <Basedirs...>'
+      local -a git_args git_grep_args=( "${@:2:2}" ) basedirs=( "${@:4}" )
+      TODO "Need to fetch rev-list at each base"
+      #[[ ${basedirs[*]:+set} ]] ||
+      #  "$FUNCNAME" --basedirs:user-script || return
+      #User-Scripts.System.read-call git_grep_args git rev-list ${GIT_REVOPT:=--all} &&
+      #"$FUNCNAME" :git-grep-dirs:basedirs
+    ;;
+
+
+  # TODO: change to use Git.Grep.at-basedirs
+  ( :git-grep-dirs:* )
+      ! (($#-1)) || return ${_E_GAE:?}
+      local -n __gg_bd=${1#:git-grep-dirs:}
+      local bd
+      for bd in "${__gg_bd[@]}"
+      do
+        [[ -e "$bd/.git" ]] || {
+          >&2 echo "Not a Git basedir <$bd>"
+          continue
+        }
+        std_quiet pushd "$bd" || return
+        "${QUIET:-false}" ||
+          >&2 echo "$bd> $ git grep '${git_grep_args[*]}'"
+        git "${git_args[@]}" grep "${git_grep_args[@]}" || continue
+        std_quiet popd
+      done
+    ;;
+
+    * ) return ${_E_nsc:?}
+  esac
 }
 
 #
