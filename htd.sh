@@ -1973,20 +1973,6 @@ htd__find_empty_dirs()
   eval find $1 -false $find_ignores -o -empty -a -type d -a -print
 }
 
-htd_als__largest_files=find-largest
-htd__find_largest() # Min-Size
-{
-  test -n "$1" || {
-    set -- 15
-    note "Set min-size to $1MB"
-  }
-  # FIXME: find-ignores
-  test -n "$find_ignores" || {
-    test -n "$2" && find_ignores="$2" || find_ignores="-not -iname .git "
-  }
-  eval find . \\\( $find_ignores \\\) -a -size +${MIN_SIZE}c -a -print | head -n $1
-}
-
 htd_als__filesize=file\ size
 
 
