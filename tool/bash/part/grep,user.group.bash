@@ -118,7 +118,7 @@ User.Grep.user-grep ()
       fi
       # TODO: inject user or local host, basedir cq project config
       [[ ${#git_grep_args[*]} -gt 1 ]] || git_grep_args+=( '*.sh' )
-      git_grep_args+=( --recurse-submodules )
+      git_grep_args=( --recurse-submodules "${git_grep_args[@]}" )
       # XXX: setting PAGER= toggles off core.pager for GIT (git-delta) as well
       [[ ${PAGER-} ]] || git_args+=( "-c" "core.pager=" )
       "$FUNCNAME" :git-grep-dirs:basedirs
