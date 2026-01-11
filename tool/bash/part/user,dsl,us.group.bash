@@ -24,9 +24,12 @@ us_dsl_user_ssc=(
 
 User.DSL.load-user-command ()
 {
+: "${US_SCR_EXT:=.us.group.bash .group.bash .bash .sh}"
+: "${METADIR:=/tmp}"
+: "${C:=/tmp/cache}"
+  usercmd_parts=( user-command us-dsl-user )
   # XXX: loadcmd uses User-Script.require, not User-Script.part
-  us_part --alias --hooks:declare,define,init uc-command user-command &&
-  US_SCR_EXT=.us.group.bash\ .group.bash\ .bash\ .sh &&
+  us_part --alias --hooks:declare,define,init uc-command uc-cache &&
   loadcmd usercmds \
       uc-user-dirs \
       uc-user-shares \
@@ -35,9 +38,9 @@ User.DSL.load-user-command ()
       uc-user-command \
       uc-user-music ||
     failerr "E$? while loading user commands" || return
-
   # Add an extra layer for hacking, but should integrate everything with
   # user-command and other groups properly.
+  us_part --reload --alias "${usercmd_parts[@]}" &&
   #initcmd usercmds User.Command.user-main User.DSL.user-ops-main
   initcmd usercmds user-main user-ops
 }
@@ -50,6 +53,7 @@ User.DSL.user-main-autostart ()
     User.DSL.load-user-command || return
     >&2 echo "user: commands loaded, starting 'user $*' ..."
   }
+  (($#)) || return ${_E_MA:?}
   runcmd usercmds "$@"
 }
 
