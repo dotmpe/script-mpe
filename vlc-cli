@@ -194,8 +194,7 @@ fixlines ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script
 
 ! script_isrunning "vlc-cli" || {
   user_script_load || exit $?

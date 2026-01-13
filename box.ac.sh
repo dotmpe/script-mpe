@@ -150,12 +150,11 @@ __us_execnames_check ()
     fnmatch "* $execname *" " $US_EXECS " || {
       $LOG warn : "Not in ac list $execname ($scrname user-script)"
     }
-  done <<< "$(user_script_find)"
+  done < <(user_script_find)
 }
 
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script
 
 script_isrunning "box.ac" .sh && {
   user_script_load || exit $?

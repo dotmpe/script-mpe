@@ -71,8 +71,7 @@ window_spec ()
 }
 
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "tmux-helper" .sh || {
   user_script_load || exit $?

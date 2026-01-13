@@ -268,7 +268,7 @@ script_debug_env () # ~ [<Names...>]
   : "$(for a; do sh_arr "$a" && echo "$a"; done)"
   test -z "$_" || stderr script_debug_arrs $_
   local us_debug_fullfun=false
-  : "$(for a; do sh_fun "$a" && echo "$a"; done)"
+  : "$(for a; do func_exists "$a" && echo "$a"; done)"
   test -z "$_" || stderr script_debug_funs $_
 }
 
@@ -388,7 +388,7 @@ script_doenv () # ~ <Action <argv...>>
   # Run all loadenv hooks, going top-down from base to groups
   for _baseid in $(user_script_baseids | tac)
   do
-    ! sh_fun "$_baseid"_loadenv || {
+    ! func_exists "$_baseid"_loadenv || {
       local -n env_status=${_baseid}_env
       ! sys_debug || $LOG debug "" "Loadenv" "$_baseid"
       "$_baseid"_loadenv "$@"
@@ -421,9 +421,9 @@ script_doenv () # ~ <Action <argv...>>
   : "${script_cmdfun:=${script_cmdname//-/_}}"
 
   # prefer to use most specific name, fallback to unprefixed handler function
-  #! sh_fun "${baseid}_${script_cmdfun}" || script_cmdfun="$_"
+  #! func_exists "${baseid}_${script_cmdfun}" || script_cmdfun="$_"
 
-  sh_fun "$script_cmdfun" && {
+  func_exists "$script_cmdfun" && {
     ! sys_debug +diag +init ||
       $LOG info "" "Script command handler ready" "$script_cmdname"
   } || {
@@ -492,7 +492,7 @@ script_unenv () # ~
   local _baseid stat
   for _baseid in $(user_script_baseids)
   do
-    ! sh_fun "$_baseid"_unload || {
+    ! func_exists "$_baseid"_unload || {
       ! sys_debug || $LOG info "" "Loadenv" "$_baseid"
       "$_baseid"_unload "$@" || {
         test ${_E_not_found:?} -eq $? && continue ||
@@ -537,7 +537,7 @@ user_script_ () # ~ <Hook-name> [<Hook-args...>]
 {
   : "${base:=${SCRIPTNAME:?}}"
   : "${baseid:=$(str_word "${base:?}")}"
-  sh_fun ${baseid}_${1//-/_} || : user_script_${1//-/_}
+  func_exists ${baseid}_${1//-/_} || : user_script_${1//-/_}
   "$_" "${@:2}"
 }
 
@@ -570,8 +570,8 @@ user_script_aliases_raw ()
   do
     for h in ${user_script_defarg:-defarg}
     do
-      sh_fun "${bid}_$h" && fun=${bid}_$h || {
-        sh_fun "$h" && fun=$h || continue
+      func_exists "${bid}_$h" && fun=${bid}_$h || {
+        func_exists "$h" && fun=$h || continue
       }
       echo "# $fun"
       case "${out_fmt:-}" in
@@ -626,7 +626,7 @@ user_script_bases () # ~ [script-node-base] ~ <keys...>
 
 user_script_cmdhandler_set () # ~ <Node>
 {
-  sh_fun "${1//[:.-]/_}" && {
+  func_exists "${1//[:.-]/_}" && {
     script_cmdfun=$_
     script_cmdname=$1
     #ENVD_FUN["$1"]=$script_cmdfun
@@ -671,7 +671,7 @@ user_script_defarg ()
   do
     for h in ${user_script_defarg:-defarg}
     do
-      sh_fun "${bid}_${h}" || {
+      func_exists "${bid}_${h}" || {
         continue
       }
       # Be careful not to recurse to current function
@@ -731,7 +731,7 @@ user_script_envvars () # ~ # Grep env vars from loadenv
   do
     for h in loadenv ${script_xtra_envvars:-defaults}
     do
-      sh_fun "${bid}_$h" || continue
+      func_exists "${bid}_$h" || continue
       echo "# ${bid}_$h"
       type "${bid}_$h" | grep -Eo -e '\${[A-Z_]+:=.*}' -e '[A-Z_]+=[^;]+' |
             sed '
@@ -854,7 +854,7 @@ user_script_help () # ~ [<Name>]
   local _baseid
   for _baseid in $(user_script_baseids)
   do
-    ! sh_fun "${_baseid}"_usage || break
+    ! func_exists "${_baseid}"_usage || break
   done
   "${_baseid}"_usage "$@" || return
   #at_ user-script usage --first "$@"
@@ -920,7 +920,7 @@ user_script_initlibs__needsinit ()
   for lib in "${@:?}"
   do
     : "${lib//[^A-Za-z0-9_]/_}_lib__init"
-    ! sh_fun "$_" || echo "$lib"
+    ! func_exists "$_" || echo "$lib"
   done
 }
 user_script_initlibs__initialized ()
@@ -1601,7 +1601,7 @@ user_script_usage_choices () # ~ <Handler> [<Choice>]
            alias_cmd=$_
            alias_cmdname=${alias_cmd// *}
            test -n "$alias_cmdname" &&
-           sh_fun "$alias_cmdname" || {
+           func_exists "$alias_cmdname" || {
              $LOG error "" "No case handler found" "$case_key:${2:-} case:$case_script"
              continue
            }
@@ -1668,7 +1668,7 @@ user_script_usage_handlers () # ~ <Actions...>
 
   # FIXME:
   # Do any loading required for handler, so script-src/script-lib is set
-  #! sh_fun "${baseid}"_loadenv || {
+  #! func_exists "${baseid}"_loadenv || {
   #  "${baseid}"_loadenv $handlers || {
   #      $LOG error :handlers "Loadenv error" "E$?" $? || return
   #  }
@@ -1793,7 +1793,7 @@ us_shell_alias_defs ()
   while test $# -gt 0
   do
     { ${alsdef_override:-false} && {
-        ! trueish ${US_DEBUG:-${DEBUG:-false}} ||
+        ! ${US_DEBUG:-${DEBUG:-false}} ||
             test "$(type -t "${1:?}")" != alias || {
               unalias $1
               $LOG info : "Overriding alsdef" "$1:$2"
@@ -1802,10 +1802,10 @@ us_shell_alias_defs ()
         test "$(type -t "${1:?}")" != alias
     } && {
       us_shell_alias_def "$@" || return
-      ! trueish ${US_DEBUG:-${DEBUG:-false}} ||
+      ! ${US_DEBUG:-${DEBUG:-false}} ||
           $LOG debug : "Defined alsdef" "$1:$2"
     } || {
-      ! trueish ${US_DEBUG:-${DEBUG:-false}} ||
+      ! ${US_DEBUG:-${DEBUG:-false}} ||
           $LOG debug : "Skipped alsdef" "$1:$2"
     }
     shift 2
@@ -1996,12 +1996,7 @@ usage ()
 # Main boilerplate (mostly useless except for testing this script)
 # To list all user-script instances, see user-script.sh all.
 
-#us-env -r user-script || ${us_stat:-exit} $?
-#test -n "${uc_lib_profile-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-
-test -n "${uc_fun_profile-}" ||
-  . "${UCONF:?}/etc/profile.d/uc_fun.sh" ||
-  ${us_stat:-exit} $?
+us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "user-script" .sh || {
 

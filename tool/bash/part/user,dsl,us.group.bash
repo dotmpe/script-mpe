@@ -2,7 +2,7 @@
 # ~/.bash_alias,dsl,uc or us
 
 us_dsl_user_pre=User.DSL
-
+us_dsl_user_grp=( uc-basedir )
 us_dsl_user_fun=(
   .load-user-command
   .user-main-autostart
@@ -14,7 +14,6 @@ declare -gA \
 us_dsl_user_als=(
   [user]=.user-main-autostart
   [user-load]=.load-user-command
-  [user_ops]=.user-ops-main
 )
 
 declare -gA \
@@ -41,8 +40,7 @@ User.DSL.load-user-command ()
   # Add an extra layer for hacking, but should integrate everything with
   # user-command and other groups properly.
   us_part --reload --alias "${usercmd_parts[@]}" &&
-  #initcmd usercmds User.Command.user-main User.DSL.user-ops-main
-  initcmd usercmds user-main user-ops
+  initcmd usercmds User.Command.user-main User.DSL.user-ops-main
 }
 
 User.DSL.user-main-autostart ()
@@ -63,11 +61,16 @@ User.DSL.user-ops-main ()
   : "${lk:=$(sh_call_context)}"
 : input "${*:?$FUNCNAME: Command args undefined, $ctx:$lk}"
   case "${1:?}" in
-  #( _:"${FUNCNAME//_/-}":init )
-  ( _:user-ops:init )
+  ( _:"${FUNCNAME}":init )
+      append_lookup /var/local/statusdir SCRIPTPATH &&
       lib_require todotxt-fields &&
-      us_part uc-basedir &&
       User-Conf.Basedir.basedirs+load
+    ;;
+
+  ( --basedir-edit )
+      local basedir_data
+      basedir_data=$(PATH=$SCRIPTPATH command -v basedir,user.data.bash) &&
+      $EDITOR "$basedir_data"
     ;;
 
   ( --basedir-command )
@@ -81,8 +84,45 @@ User.DSL.user-ops-main ()
       eval "$cmd"
     ;;
 
+  ( --basedir-command-tree )
+      local path cmd path_header
+      local -n pathid='uc_basedir_pathid["$path"]'
+      for path in "${!uc_basedir_pathid[@]}"
+      do
+        path_header=0
+        for cmd in "${uc_basedir_commands[@]}"
+        do
+          local -n cmddefs="user_basedir_$cmd"
+          [[ ${cmddefs[pathid]:+set} ]] || continue
+          ((path_header)) || echo "$path:"
+          path_header=1
+          echo "  $ $cmd"
+        done
+      done
+    ;;
+
+  ( --basedir-commands )
+      local -I PWD
+      local -n bdid='uc_basedir_pathid["$PWD"]'
+      [[ ${bdid:+set} ]] ||
+        failerr "No path-Id for $PWD" || return
+      local -n cmd
+      local found=0 indent='|        '
+      for cmd in $(compgen -A arrayvar -X '!user_basedir_*')
+      do
+        [[ ${cmd[bdid]:+set} ]] || continue
+        : ${!cmd}
+        : ${_#user_basedir_}
+        printf '%s $ %s\n%s\n' "$PWD" "${_}" \
+          "$indent${cmd[bdid]//$'\n'/$'\n'$indent}"
+        found=1
+      done
+      ((found)) || failerr "No commands found for $PWD"
+    ;;
+
+
   ( init )
-      user_ops --basedir-command init "$@"
+      here --basedir-command init "$@"
     ;;
 
   ( init+fromtab )
@@ -91,9 +131,9 @@ User.DSL.user-ops-main ()
       _us_bd_initfromtab () {
         local path id
         # Build lookup map for symbol to (numeric) id
-        id=${uc_basedir_id[$todotxt_key]:-${todotxt_meta_tags[id]:-${#uc_basedir_id[@]}}}
+        id=${uc_basedir_id["$todotxt_key"]:-${todotxt_meta_tags[id]:-${#uc_basedir_id[@]}}}
         [[ ${uc_basedir_id[$todotxt_key]:+set} ]] || {
-          uc_basedir_id[$todotxt_key]=$id
+          uc_basedir_id["$todotxt_key"]=$id
           echo uc_basedir_id[$todotxt_key]=$id >> "$uc_basedir_bash"
         }
         # Build lookup for paths as well
@@ -102,7 +142,7 @@ User.DSL.user-ops-main ()
           User-Script.OS.x.expand-pathref path
           #[[ -e "$path" ]] || continue
           [[ ${uc_basedir_pathid[$path]:+set} ]] || {
-            uc_basedir_pathid[$path]=$id
+            uc_basedir_pathid["$path"]=$id
             echo uc_basedir_pathid[$path]=$id >> "$uc_basedir_bash"
           }
         done
@@ -111,11 +151,11 @@ User.DSL.user-ops-main ()
     ;;
 
   ( sync )
-      user_ops --basedir-command sync "$@"
+      here --basedir-command sync "$@"
     ;;
 
   ( update )
-      user_ops --basedir-command update "$@"
+      here --basedir-command update "$@"
     ;;
 
   ( * ) return ${_E_nsc:?}

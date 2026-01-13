@@ -201,7 +201,7 @@ and other config tools do provide actual monitor names
 
 # Main entry (see user-script.sh for boilerplate)
 
-us-env -r user-script || ${uc_stat:-exit} $?
+us-env -r user-script
 
 ! script_isrunning "system-display" || {
   script_bases=system-display,user-script-sh

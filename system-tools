@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "system-tools" || {
   ALIASES=1 user_script_shell_mode

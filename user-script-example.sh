@@ -5,9 +5,7 @@
 ## Bootstrap
 
 us-env -r user-script || ${us_stat:-exit} $?
-#test -n "${uc_lib_profile:-}" ||
-#  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${us_stat:-exit} $?
-#
+
 #uc_script_load user-script || ${us_stat:-exit} $?
 
 # Define aliases immediately, before defining anymore functions (so they expand

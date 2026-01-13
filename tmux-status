@@ -131,8 +131,7 @@ darktime ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "tmux-status" || {
   set -euo pipefail

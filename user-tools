@@ -393,21 +393,12 @@ user_tools_loadenv ()
 
 # Main entry (see user-script.sh for boilerplate)
 
+us-env -r user-script
+
 # Load simple shell log for now...
 . /srv/conf-local/tool/uconf/part/-uconf-shell-log.sh
 
 export DEBUG=true
-
-test -n "${uc_lib_profile:-}" && {
-  _IFDBG _INFO "Starting user-tools env (from uc-lib-profile)"
-} || {
-  _IFDBG _INFO "Starting user-tools env (from scratch)"
-  [ "${DEV:-false}" = true ] &&
-  [ "${UCONF:?}/etc/profile.d/_bash_fun.sh" -nt "${UCONF:?}/etc/profile.d/bash_fun.sh" ] &&
-  [ -e  "${UCONF:?}/etc/profile.d/_bash_fun.sh" ] &&
-    . "${UCONF:?}/etc/profile.d/_bash_fun.sh" |
-    . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-}
 
 _IFDBG _DEBUG "Doing user-tools pre-user-script env check..."
 #us-env -r us:boot.screnv
