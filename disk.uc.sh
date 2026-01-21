@@ -160,7 +160,7 @@ disk_uc_status () # ~
   TODO
 }
 
-disk_uc_main ()
+disks_uc ()
 {
   local actdef=info; sa_a1_act_lk
   case "$act" in

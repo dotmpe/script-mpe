@@ -3,9 +3,10 @@
 user_script_uc_env=1
 : "${us_stat:=return}"
 [[ ${PS1-} ]] &&
-  set -Tuo pipefail ||
-  set -eETuo pipefail
+  set -uo pipefail ||
+  set -euo pipefail
 shopt -s extglob
+#>&2 trap
 
 [[ ${US_ENV_PARTS:+set} ]] &&
 [[ ${US_ENV_INIT:+set} ]] &&
