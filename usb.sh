@@ -3,6 +3,13 @@
 set -euo pipefail
 shopt -s nullglob
 
+help ()
+{
+  echo "Commands:"
+  sed 's/^/  /' < <( grep -Po '^[a-z_-]+(?= *\(\))' "$0")
+  echo "Output:"
+}
+
 info ()
 {
   for x in /sys/bus/usb/devices/${1:?}/
@@ -13,6 +20,7 @@ info ()
 
 list ()
 {
+  local {bus,usb}num device usb{dev,ver,sp}
   for usbnum in /sys/bus/usb/devices/usb[0-9]*/busnum
   do
     busnum=$(< "$usbnum")
@@ -20,19 +28,19 @@ list ()
     usbdev=$(< "$device/dev")
     usbver=$(< "$device/version")
     usbsp=$(< "$device/speed")
-    test ! -e "$device/product" && usbprod= || usbprod=$(< "$device/product")
+    [[ ! -e "$device/product" ]] && usbprod= || usbprod=$(< "$device/product")
     echo "USB bus $busnum $usbprod (version $usbver, speed $usbsp, device $usbdev)"
 
     for usbnum2 in $device/*/busnum
     do
       device2=$(dirname "$usbnum2")
-      bn=$(basename $device2)
+      numid=$(basename $device2)
       usbdev=$(< "$device2/dev")
-      usbver=$(< "$device2/version")
+      usbver=$(tr -d ' ' < "$device2/version")
       usbsp=$(< "$device2/speed")
-      test ! -e "$device2/product" && usbprod= || usbprod=$(< "$device2/product")
-      test -e /sys/bus/usb/drivers/usb/$bn && stat=" " || stat=" (offline)"
-      echo "  $bn $usbdev $usbver $usbsp$stat $usbprod"
+      [[ ! -e "$device2/product" ]] && usbprod= || usbprod=$(< "$device2/product")
+      [[ -e /sys/bus/usb/drivers/usb/$numid ]] && stat=" " || stat=" (offline) "
+      echo "  $numid dev $usbdev ver $usbver speed $usbsp${stat}product $usbprod"
     done
   done
 }

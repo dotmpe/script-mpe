@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-#us-env -r us:boot.screnv &&
 us-env -r user-script || ${uc_stat:-exit} $?
 
 ! script_isrunning "tasks" .sh ||

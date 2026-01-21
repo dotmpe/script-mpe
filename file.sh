@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-us-env -r us:boot.screnv &&
-
 us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "file" .sh ||
@@ -32,7 +30,6 @@ file_ ()
 }
 
 # XXX: temp while user-script node scan is being rebuild
-set -euETo pipefail
 lib_require ck
 
 #declare -p VERBOSE QUIET

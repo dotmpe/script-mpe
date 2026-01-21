@@ -5,12 +5,6 @@
 
 htd_src=$_
 
-#set -o posix
-set -euETo pipefail
-
-# Remove DEBUG and other log control vars from exported env
-us-env -r us:boot.screnv
-
 version=0.0.4-dev # script-mpe
 
 # Generic load/unload for subcmd
@@ -4748,6 +4742,11 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   set -euETo pipefail
   shopt -s extdebug
+  #set -o posix
+
+  # Remove DEBUG and other log control vars from exported env
+  #us-env -r us:boot.screnv
+  us-env -r user-script
 
   # Ignore 'load-ext' sub-command
   test "${1-}" = load-ext ||

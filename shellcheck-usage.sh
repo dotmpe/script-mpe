@@ -48,7 +48,7 @@ shellcheck_usage_loadenv ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-uc_script_load user-script
+us-env -r user-script || ${us_stat:-exit} $?
 
 # Parse arguments
 ! script_isrunning "shellcheck-usage" .sh || {
