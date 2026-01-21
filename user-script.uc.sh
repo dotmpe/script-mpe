@@ -18,17 +18,35 @@ us_part --hooks:update us-term
 PS4='\[\033[0m\]${BASH_SOURCE:+\[\033[34m\]$BASH_SOURCE\[\033[36m\]:\[\033[32m\]${LINENO}} \[\033[33m\]+\[\033[0m\] '
 
 append_lookup \
-  "${UCONF:?}/script" \
-  "${U_C:?}/script" \
+  "${UCONF:?}"/script \
+  "${UCONF:?}"/script/context \
   "${UCONF:?}"/tool/*/exec \
+  "${U_C:?}"/script \
+  "${U_C:?}"/script/context \
   "${U_C:?}"/tool/*/exec \
-  "${U_S:?}"/tool/*/exec \
   "${US_BIN:?}" \
+  "${US_BIN:?}"/commands \
+  "${US_BIN:?}"/contexts \
   "${US_BIN:?}"/tool/*/exec \
-  "${U_S:?}/src/sh/lib" \
+  "${U_S:?}"/tool/*/exec \
+  "${U_S:?}"/src/{,ba}sh/lib \
   PATH &&
 
 : "${US_SCR_EXT:=.us.group.bash .group.bash .bash .sh}"
+
+# XXX: thinking about clear consistent install paths [Wed 26'03]
+: "${UC_ETC:=/etc/uc}"
+: "${UC_LIB:=/var/lib/uc}"
+: "${UC_USR_ETC:=/etc/uc/user}"
+: "${UC_USR_LIB:=/usr/share/uc}"
+
+# Current new target setup for SD [Wed 26'03]
+: "${STATUSDIR_CACHE:=/var/cache/statusdir}"
+: "${STATUSDIR_LOCAL:=/var/local/statusdir}"
+: "${STATUSDIR_LOG:=/var/log/statusdir}"
+: "${STATUSDIR_SHARE:=/usr/share/statusdir}"
+
+export LOG=${LOG:-${U_S:?}/tool/sh/log.sh}
 
 [[ ${uc_fun_profile-} ]] ||
 #  . "${UCONF:?}/etc/profile.d/uc_fun.sh" || ${us_stat:-exit} $?

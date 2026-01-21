@@ -127,24 +127,17 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
 
 script_envinit () # ~ <Bases...>
 {
-  # TODO: transpile and source us-env functions
+  $LOG notice "" "Starting script init" "bases=$*"
   append_path "${U_S?}/tool/us/part" &&
-  append_path "${U_S?}/tool/us/exec" &&
   uc_script_load "us-env.node" &&
-  us-env:define-env &&
+  us-env:define-env || return
 
-  #>&2 echo TODO: need dyn setup with 'static' parts, ie. cached slices
-  #us_env_load "${1:?}" ||
-  true ||
-    return
+  std_noo declare -p ENVD_FUN || declare -gA ENVD_FUN=()
+  std_noo declare -p us_node || declare -gA us_node=()
+  std_noo declare -p us_node_base || declare -gA us_node_base=()
+  std_noo declare -p us_node_hooks || declare -gA us_node_hooks=()
+  std_noo declare -p us_node_libs || declare -gA us_node_libs=()
 
-  std_silent declare -p ENVD_FUN || declare -gA ENVD_FUN=()
-  std_silent declare -p us_node || declare -gA us_node=()
-  std_silent declare -p us_node_base || declare -gA us_node_base=()
-  std_silent declare -p us_node_hooks || declare -gA us_node_hooks=()
-  std_silent declare -p us_node_libs || declare -gA us_node_libs=()
-
-  #sys_default "us_node_base['user-script']" &&
   user_script_graph_init "$@" &&
   script_baseenv
 }
@@ -366,7 +359,7 @@ script_doenv () # ~ <Action <argv...>>
 {
   [[ ${script_base-} ]] ||
     user_script_load baseenv ||
-    $LOG error "" "During script env init" "E$?:$*" $? || return
+      $LOG error "" "During script env init" "E$?:$*" $? || return
 
   # Update bases, if there is one given for particular action, on any of the
   # current bases.
@@ -378,10 +371,9 @@ script_doenv () # ~ <Action <argv...>>
   sys_loop user_script_cmdhandler_set $_ &&
   script_baseenv ||
     $LOG error "" "During base env" "E$?" $? || return
-  #stderr declare -p DEV DEBUG DIAG INIT ASSERT QUIET VERBOSE
   test -n "${script_cmdfun-}" &&
     $LOG info "" "Found command handler" "$script_cmdfun" ||
-    $LOG warn"" "No command handler found" "$1:$(sys_callers)"
+    $LOG warn"" "No command handler found" "$1:" # $(sys_callers)"
   ! "${DEBUG:-false}" || script_debug_env
 
   local _baseid stat fail
@@ -778,9 +770,11 @@ user_script_graph_init () # ~ <Base ...> # Traverse (env) nodes, and record path
 # and roots in script-node{,-base} resp.
 {
   local base{,id,s}
-  stderr echo "user-script:graph-init base($#): $*"
+  ! sys_debug ||
+    stderr echo "user-script:graph-init base($#): $*"
   while [[ $# -gt 0 ]]
   do
+    ! sys_debug ||
     stderr echo graph-init $1 ${us_node_base["${1:?}"]+base:set} ${us_node_base["${1:?}"]-base:unset}
 
     [[ ${us_node_base["${1:?}"]+set} ]] && {
@@ -1046,11 +1040,13 @@ user_script_load () # (y*) ~ <Actions...>
         ! "${VERBOSE:-false}" ||
           $LOG notice "$lk" "Loading groups " "$lctx"
 
-        stderr echo script_base=$script_base
-        stderr echo script_part=$script_part
-        stderr echo for $script_part at bases $(user_script_bases "$name" | tac)
-        stderr echo all bases $(user_script_bases | tac)
-        #stderr echo groups for $script_part at bases $(user_script_bases "$name" | tac)
+        ! sys_debug || {
+          stderr echo script_base=$script_base
+          stderr echo script_part=$script_part
+          stderr echo for $script_part at bases $(user_script_bases "$name" | tac)
+          stderr echo all bases $(user_script_bases | tac)
+          #stderr echo groups for $script_part at bases $(user_script_bases "$name" | tac)
+        }
         #if_ok "$(user_script_bases "$name" | tac)" || return
         if_ok "$(user_script_bases | tac)" || return
         for base in $_
@@ -1294,16 +1290,6 @@ user_script_resolve_alias () # ~ <Name> #
   }
 }
 
-user_script_resolve_aliases () # ~ <Handlers...> # List aliases for given names
-{
-  for handle
-  do
-      {
-          user_script_resolve_alias "$handle" || echo
-      } | sed "s#^#$handle #"
-  done
-}
-
 user_script_resolve_alias () # ~ <Name> # Give aliases for handler
 {
   echo "$us_aliases" | {
@@ -1320,6 +1306,16 @@ user_script_resolve_alias () # ~ <Name> # Give aliases for handler
       done
       return 3
     }
+}
+
+user_script_resolve_aliases () # ~ <Handlers...> # List aliases for given names
+{
+  for handle
+  do
+      {
+          user_script_resolve_alias "$handle" || echo
+      } | sed "s#^#$handle #"
+  done
 }
 
 user_script_resolve_handlers () # ~ <Handlers...> # List handlers for given names
@@ -1387,8 +1383,13 @@ user_script_shell_mode ()
       set -e
       shopt -s extdebug
 
-      lib_require sys || return
-      trap 'sys_exc_trc' ERR
+      [[ $(trap -p ERR) ]] || {
+
+        lib_require sys &&
+        sh_fun sys_source_trace &&
+        trap 'sys_source_trace' ERR ||
+        _ failerr "E$? setting ERR trap sys_source_trace (ignored)"
+      }
 
       #lib_require bash-uc || return
       #trap 'bash_uc_errexit' ERR
@@ -1453,7 +1454,7 @@ user_script_stdstat_env ()
   : "${_E_retry:=198}" # failed, but can or must reinvoke # @deprecated
   : "${_E_limit:=199}" # generic value/param OOB error? # @deprecated
 
-  TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_missing:?}; }
+  #TODO () { test -z "$*" || stderr echo "To-Do: $*"; return ${_E_missing:?}; }
 
   error () { $LOG error : "$1" "E$2" ${2:?}; }
   warn () { $LOG warn : "$1" "E$2" ${2:?}; }
@@ -1996,9 +1997,10 @@ usage ()
 # Main boilerplate (mostly useless except for testing this script)
 # To list all user-script instances, see user-script.sh all.
 
-us-env -r user-script || ${us_stat:-exit} $?
+[[ ${0##*/} != user-script.sh ]] || {
+  us-env -r user-script || ${us_stat:-exit} $?
 
-! script_isrunning "user-script" .sh || {
+#! script_isrunning "user-script" .sh || {
 
   script_base=user-script-sh,user-script
   : "${US_EXTRA_CHAR:=:-}"

@@ -17,14 +17,14 @@ us-env -r user-script || ${us_stat:-exit} $?
 
 ## Command handlers
 
-user_script_example_foo ()
+user_script_example_foo () # ~ ...
 {
   echo Libs: ${lib_loaded:-}
 }
 
-user_script_example_baz ()
+user_script_example_baz () # ~ ...
 {
-  echo Libs: ${lib_loaded:-}
+  declare -p _os_script_path us_node{,_{base,scr{type,name}}}
 }
 user_script_example_baz__libs=status
 
@@ -39,7 +39,7 @@ user_script_example_bar ()
 # main properties
 user_script_example_name="User-script+example"
 user_script_example_version=0.0.1-dev
-user_script_example_maincmds=
+user_script_example_maincmds=foo,baz,bar
 user_script_example_shortdescr=
 user_script_example_extusage=
 
@@ -57,7 +57,7 @@ user_script_example_loadenv ()
       test ${_E_next:?} -eq $? || return $_
     }
   user_script_initlog &&
-  $LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
+  $LOG notice "${lk-}:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
 }
 
 # an exported function

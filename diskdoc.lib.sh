@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ## Manage local disks at multiple hosts as tables in YAML
 

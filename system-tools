@@ -11,6 +11,49 @@ us-env -r user-script || ${us_stat:-exit} $?
 
 # Stuff that doesnt fir or categorize into other system-* scripts or user-*
 
+host ()
+{
+  local actdef=--summary lkn=add; sa_a1_act_lk
+  case "$act" in
+
+  ( --diag ) TODO
+    ;;
+
+  ( --init )
+      : about '(Re)build all reports'
+
+      lib_require ctx-system htd-box || return
+      us_part --alias uc-cache uc-command || return
+
+      #: "${UC_HOST_SHARE:=${STATUSDIR_SHARE:?}/host,system,tools,share.bash}"
+      : "${UC_HOST_LOCAL:=${STATUSDIR_LOCAL:?}/host,system,tools,local.bash}"
+      : "${UC_HOST_CACHE:=${STATUSDIR_CACHE:?}/host,system,tools,cache.bash}"
+      #: "${UC_HOST_LOG:=${STATUSDIR_LOG:?}/host,system,tools.log}"
+      cache_loadmaps "$UC_HOST_LOCAL" uc_host_{{name,}id,stat,entry} || return
+      [[ ! -s "$UC_HOST_CACHE" ]] || . "$UC_HOST_CACHE" || return
+
+      local -n eid='uc_host_nameid["$OS_HOSTNAME"]'
+      [[ ${eid-} ]] || {
+        newid uc_host_nameid eid
+        echo "uc_host_nameid[\"$OS_HOSTNAME\"]=$eid" >> "$UC_HOST_CACHE"
+        uc_host_id[eid]=
+        echo "uc_host_id[$eid]=$OS_HOSTNAME" >> "$UC_HOST_CACHE"
+      }
+      local -n stat='uc_host_stat["$eid"]'
+      local -n entry='uc_host_entry["$eid"]'
+     
+      # TODO: Manage box via host.tab, add all hardware components,
+      # get domains, and prepare for other conig and script provisioning
+      htd_box_host --init stat entry
+    ;;
+
+  ( --summary ) TODO
+    ;;
+
+  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  esac
+}
+
 sdmmc_init ()
 {
   #local sys{blk,dev} cid
@@ -88,16 +131,24 @@ $(cat $sysdev/serial)
   esac
 }
 
+newid ()
+{
+  local -n _newid_data=$1 _newid_var=$2
+  _newid_var=$RANDOM
+  while [[ ${_newid_data[$_newid_var]:+set} ]]
+  do
+    _newid_var=$RANDOM
+  done
+}
 
 system_tools_loadenv ()
 {
-  sh_mode strict &&
+  #sh_mode strict &&
   user_script_loadenv &&
   #lk=":loadenv"
   user_script_initlog &&
   user_script_baseless=true \
-  script_part=${1#system[_-]tools[_-]} \
-    user_script_load groups &&
+  script_part=${1#system[_-]tools[_-]} user_script_load groups &&
   true # lib_load nerdfonts && lib_init nerdfonts
 }
 
