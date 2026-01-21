@@ -14,9 +14,10 @@ scm_git_ssc=(
 '  : param ~ "<Expr> <Paths...>"
   git grep "${1:?}" $(git rev-list ${GIT_REVOPT:=--all}) -- "${@:2}"'
   [.status-at]=\
-'  local _status_fnmatch=${2:-*} _gitstat
+': param '\''~ <File-match-> <Base-dirs...>'\''
+  local _status_fnmatch=${1:-*} _gitstat
   [[ $# -gt 1 ]] && shift || set -- ${user_basedirs[@]}
-  _gitstat=( status -- "$_status_fnmatch" )
+  _gitstat=( status --short --untracked-files=no -- "$_status_fnmatch" )
   SCM.Git.at-basedirs _gitstat "$@"'
   [.grep-at]=\
 '  local _grep_match=${1:?} _grep_fnmatch=${2:-*} _gitgrep
@@ -112,8 +113,9 @@ SCM.Git.at-basedirs ()
 : param '~ <Cmd-arr> <Basedirs...>'
   local -n git_at_cmdargs=${1:?}
   shift
+  (($#)) || return ${_E_GAE:?}
   local bd
-  (($#)) && for bd
+  for bd
   do
     [[ -e "$bd/.git" ]] || {
       >&2 echo "Not a Git basedir <$bd>"
