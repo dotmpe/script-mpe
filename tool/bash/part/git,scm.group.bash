@@ -74,7 +74,6 @@ scm_git_als=(
   [git.grep.versions]=.grep-version
   [git.status.all]=.status-all
   [git.status.at]=.status-at
-  [git.describe.at]=.describe-at
 )
 declare -gA \
 scm_git_hooks=(
