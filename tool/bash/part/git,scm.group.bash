@@ -125,7 +125,7 @@ SCM.Git.at-basedirs ()
     "${QUIET:-false}" ||
       >&2 echo "$bd> $ git [opts] '${git_at_cmdargs[*]}'"
     git "${git_opts[@]}" "${git_at_cmdargs[@]}" || continue
-    std_silent popd
+    std_quiet popd
   done
 }
 
