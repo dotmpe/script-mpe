@@ -13,12 +13,28 @@ scm_git_ssc=(
   [.grep-revopt]=\
 '  : param ~ "<Expr> <Paths...>"
   git grep "${1:?}" $(git rev-list ${GIT_REVOPT:=--all}) -- "${@:2}"'
+
+  [.describe-at]=\
+': param '\''~ <Base-dirs...>'\''
+  local _gitdescribe
+  (($#)) || set -- ${user_basedirs[@]}
+  _gitdescribe=( describe --always --dirty --broken )
+  SCM.Git.at-basedirs _gitdescribe "$@"'
+
+  [.sync-at]=\
+': param '\''~ <Base-dirs...>'\''
+  local _gitsync
+  (($#)) || set -- ${user_basedirs[@]}
+  _gitsync=( sync --soft )
+  SCM.Git.at-basedirs _gitsync "$@"'
+
   [.status-at]=\
 ': param '\''~ <File-match-> <Base-dirs...>'\''
   local _status_fnmatch=${1:-*} _gitstat
   [[ $# -gt 1 ]] && shift || set -- ${user_basedirs[@]}
   _gitstat=( status --short --untracked-files=no -- "$_status_fnmatch" )
   SCM.Git.at-basedirs _gitstat "$@"'
+
   [.grep-at]=\
 '  local _grep_match=${1:?} _grep_fnmatch=${2:-*} _gitgrep
   [[ $# -gt 2 ]] && shift 2 || set -- ${user_basedirs[@]}
@@ -58,6 +74,7 @@ scm_git_als=(
   [git.grep.versions]=.grep-version
   [git.status.all]=.status-all
   [git.status.at]=.status-at
+  [git.describe.at]=.describe-at
 )
 declare -gA \
 scm_git_hooks=(
