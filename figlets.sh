@@ -138,6 +138,14 @@ case "$1" in
   '
         ;;
 
+    iso1 )
+        figlet -f Isometric1 "${2:-ucnz}"
+      ;;
+
+    iso4 )
+        figlet -f Isometric4 "${2:-nuon}"
+      ;;
+
     list )
           ( cd "${FIGLET_FONTS_DIR:?}" && ls *.flf | sed 's/\.flf$//g' )
         ;;

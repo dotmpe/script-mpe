@@ -1997,7 +1997,7 @@ usage ()
 # Main boilerplate (mostly useless except for testing this script)
 # To list all user-script instances, see user-script.sh all.
 
-[[ ${0##*/} != user-script.sh ]] || {
+[[ ${0##*/} != user-script.*sh ]] || {
   us-env -r user-script || ${us_stat:-exit} $?
 
 #! script_isrunning "user-script" .sh || {

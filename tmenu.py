@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-
-import yaml, json
+"""Read YAML data for use with text menus (9menu/ratmenu)
+"""
+# import json
+import yaml
 
 
 format_item = {
-  'run': lambda item: "\"%(label)s:$0 run %(command)s\"" % item,
+  # 'defer': lambda item: "\"%(label)s:$0 run %(command)s\"" % item,
+  'run': lambda item: "\"%(label)s:$0 run %(parentid)s %(command)s\"" % item,
   'card': lambda item: "\"%(label)s:$0 run echo '%(card)s' -- main_menu ${LAST:-$1}\"" % item,
   'submenu': lambda item: "\"%(label)s:$0 menu %(id)s\"" % item
 }
@@ -16,8 +19,9 @@ def menu_sh(doc, menu_id):
     for item in menu['items']:
         if isinstance(item, str):
             print(" ", format_item['run'](dict(
-                label=item, command=item)))
+                label=item, parentid=menu_id, command=item)))
         else:
+            item['parentid']=menu_id
             if 'menu-ref' in item:
                 item = get_menu(doc, item['menu-ref'])
             if 'class' not in item:

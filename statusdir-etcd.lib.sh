@@ -2,7 +2,9 @@
 
 statusdir_etcd_lib__init ()
 {
-  etcdctl="docker run -ti --net=host shilpamayanna/etcdctl:test etcdctl"
+  etcdctl_exe=$(command -v etcdctl) ||
+    _ failerr "E$? no local etcdctl"
+  : "${etcdctl_exe:="docker run -ti --net=host shilpamayanna/etcdctl:test etcdctl"}"
   Statusdir__backend_types["etcd"]=Etcd
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Start user-script early because we're using aliased script parts
-us-env -r user-script
+us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "disk.uc" .sh || {
   ALIASES=1 user_script_shell_mode

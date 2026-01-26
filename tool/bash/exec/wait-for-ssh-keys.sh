@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 
-# This seems rather tedious, bc sleep isnt responding normally to SIGINT.
+# Wait until ssh-add reports keys are available. Then start given program. A
+# little experiment with support for interactive pseudo/virtual terminal.
+#
+# XXX: This seems rather tedious, bc sleep isnt responding normally to SIGINT.
 
+# Only minimal env needed
 set -euETo pipefail
 trap - SIGINT
-#us-env -R "$0" "$@"
+#us-env -R user-script -- "$@"
 
 test-int ()
 {
