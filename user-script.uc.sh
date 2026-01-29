@@ -37,10 +37,10 @@ append_lookup \
 : "${US_SCR_EXT:=.us.group.bash .group.bash .bash .sh}"
 
 # XXX: thinking about clear consistent install paths [Wed 26'03]
-: "${UC_ETC:=/etc/uc}"
-: "${UC_LIB:=/var/lib/uc}"
-: "${UC_USR_ETC:=/etc/uc/user}"
-: "${UC_USR_LIB:=/usr/share/uc}"
+: "${UC_HOST_ETC:=/etc/uc}"
+: "${UC_CACHE_DIR:=/var/lib/uc}"
+: "${UC_USER_ETC:=/etc/uc/user}"
+: "${UC_USER_LIB:=/usr/share/uc}"
 
 # Current new target setup for SD [Wed 26'03]
 : "${STATUSDIR_CACHE:=/var/cache/statusdir}"

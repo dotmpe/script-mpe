@@ -179,8 +179,8 @@ User-Script.Terminal.x.test-16color ()
 {
   local r=$RESET {,d}{f,b}g i _{b,f}g
   # echo "Terminal color palette dim and bright columns for normal and bold"
-  echo "${BOLD}${_f15} Normal                          Bold ${r}"
-  echo "${BOLD}${_f15} Dim   Bright                    Dim   Bright${r}"
+  echo "${BOLD}${_f15-} Normal                          Bold ${r}"
+  echo "${BOLD}${_f15-} Dim   Bright                    Dim   Bright${r}"
   for i in {0..7}
   do
     fg=_f$i

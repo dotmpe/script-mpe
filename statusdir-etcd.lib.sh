@@ -17,51 +17,32 @@ sd_etcd ()
     $LOG debug "" "Etcd running '$act', rest ($#):" "$*"
     case "$act" in
 
+      del )
+          >/dev/null $etcdctl_exe del "$1" || return
+          shift 1
+        ;;
+
       get )
-          $etcdctl get "$1" || return
+          $etcdctl_exe get --print-value-only "$1" || return
           shift 1
         ;;
 
       set )
-          $etcdctl set "$2" "$3" || return
-          shift 2
-        ;;
-
-      setdir )
-          $etcdctl setdir "$2" "$3" || return
+          >/dev/null $etcdctl_exe put "$1" "$2" || return
           shift 2
         ;;
 
       ls )
-          $etcdctl ls "$1" || return
-          shift 1
-        ;;
-
-      mkdir )
-          $etcdctl mkdir "$1" || return
-          shift 1
-        ;;
-
-      mk )
-          $etcdctl mk "$1" || return
-          shift 1
-        ;;
-
-      rmdir )
-          $etcdctl rmdir "$1" || return
-          shift 1
-        ;;
-
-      rm )
-          $etcdctl rm "$1" || return
+          $etcdctl_exe get --keys-only --prefix "$1" || return
           shift 1
         ;;
 
       members )
-          $etcdctl member list
+          $etcdctl_exe member list
         ;;
 
       ping )
+          >/dev/null 2>& $etcdctl_exe endpoint health
         ;;
 
       * )

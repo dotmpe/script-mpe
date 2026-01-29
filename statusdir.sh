@@ -1,32 +1,6 @@
 #!/usr/bin/env bash
 
-(($#)) || set -- info
-
-set -eETuo pipefail
-
-us-env -r user-script || exit
-
-#lib_require status statusdir statusdir-etcd
-
-# Mapping for legacy statusdir subdirs to host paths
-declare -gA statusdir_dir_conf
-statusdir_dir_conf=(
-
-  [index]="/var/local/statusdir"
-  [cache]="/var/cache/statusdir"
-  [log]="/var/log/statusdir"
-  [tree]="/usr/share/statusdir"
-)
-
-declare -gA statusdir_user_conf
-statusdir_user_conf=(
-  [name]=$USER
-  [group]=staff
-)
-
-# Legacy and new export path
-: "${STATUSDIR_ROOT:=$HOME/.local/var/statusdir/}"
-: "${METADIR_GLOBAL:=${statusdir_dir_conf["index"]}}"
+us-env -r user-script || ${us_stat:-exit} $?
 
 info ()
 {
@@ -58,18 +32,41 @@ data ()
 {
   : about "TODO manage some level of complex data"
   case "${1-}" in
-  ( --create ) # ~ ~ <Key> ( <Command...> | <Format> )
-      [[ ${3:1:1} == \' ]] && {
-        data --create-object "${@:2}"
-        return
-      }
 
+  #( --create ) # ~ ~ <Key> ( <Command...> | <Format> )
+  #    [[ ${3:1:1} == \' ]] && {
+  #      data --create-object "${@:2}"
+  #      return
+  #    } ||
+  #      data --create-output "${@:2}"
+  #  ;;
+
+  #( --create-object ) TODO "$FUNCNAME $*" ;;
+
+  ( --create-output )
+      #$sd_be set "${@:2}"
     ;;
 
-  ( --shell )
+  ( --list-prefix )
+      $sd_be ls "${@:2}"
     ;;
 
-    * ) failerr "$1?"
+  ( --del-key )
+      $sd_be del "${@:2}"
+    ;;
+
+  ( --get-key )
+      $sd_be get "${@:2}"
+    ;;
+
+  ( --set-key-value )
+      $sd_be set "${@:2}"
+    ;;
+
+  ( --shell ) TODO "$FUNCNAME $*"
+    ;;
+
+    * ) failerr "${*}?"
   esac
 }
 
@@ -126,4 +123,50 @@ assert-dirs ()
   done
 }
 
-"$@"
+
+#(($#)) || set -- info
+statusdir_loadenv ()
+{
+  # Mapping for legacy statusdir subdirs to host paths
+  declare -gA statusdir_dir_conf
+  statusdir_dir_conf=(
+
+    [index]="/var/local/statusdir"
+    [cache]="/var/cache/statusdir"
+    [log]="/var/log/statusdir"
+    [tree]="/usr/share/statusdir"
+  )
+
+  declare -gA statusdir_user_conf
+  statusdir_user_conf=(
+    [name]=$USER
+    [group]=staff
+  )
+
+  # Legacy and new export path
+  : "${STATUSDIR_ROOT:=$HOME/.local/var/statusdir/}"
+  : "${METADIR_GLOBAL:=${statusdir_dir_conf["index"]}}"
+
+  us_part uc-cache &&
+  #lib_require status statusdir statusdir-etcd
+  declare -gA Statusdir__backend_types &&
+  lib_load statusdir-etcd &&
+  lib_init statusdir-etcd &&
+  sd_be=sd_etcd || failerr "E$? backend init" || return
+}
+
+
+# Main entry (see user-script.sh for boilerplate)
+
+! script_isrunning "statusdir" .sh || {
+  user_script_load || failerr "E$? user-script-load" || exit
+
+  # Pre-parse arguments
+  script_defcmd=info
+  user_script_defarg=defarg\ aliasargv
+
+  # FIXME:
+  eval "set -- $(user_script_defarg "$@")"
+
+  script_run "$@"
+}

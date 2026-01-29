@@ -98,7 +98,7 @@ scm_git_hooks=(
     GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
     GIT_DESCRIBE=$(git describe --always --dirty --broken)
     [[ ${us_interactive_data["GIT_DESCRIBE"]-} == ${GIT_DESCRIBE} ]] || {
-      echo "${_f14}Git at version ${_f2}$GIT_DESCRIBE${NORMAL}"
+      echo "${_f14-}Git at version ${_f2-}$GIT_DESCRIBE${NORMAL}"
       us_interactive_data["GIT_DESCRIBE"]=$GIT_DESCRIBE
     }
 
@@ -107,7 +107,7 @@ scm_git_hooks=(
     [[ $TERM == linux* ]] &&
     PROMPT_EXTRA+="# $GIT_BRANCH" || {
       # Use powerline
-      #PROMPT_EXTRA+="${_f6}${_f7}$GIT_BRANCH"
+      #PROMPT_EXTRA+="${_f6-}${_f7-}$GIT_BRANCH"
       PROMPT_EXTRA+=" $GIT_BRANCH"
       ((PROMPT_MB+=2))
     }
