@@ -7,24 +7,26 @@ us_term_extra_fun=(
   .raw-query
   .terminal-info
   .test-osc
-  .test-color-capabilities
+  .test-capabilities
+  .test-grayscale-ramp
   .test-palettes
   .test-16color
 )
 declare -gA \
 us_term_extra_als=(
-  # For OSC [Operating System Command] format see ECMA-48, but commands are
-  # implementation defined and de facto standards set by Xterm (not covered by
+  # For OSC [Operating System Command] format ECMA-48, but actual commands are
+  # implementation defined and defacto standards set by Xterm (not covered by
   # ECMA, ISO/IEC 6429 or ANSI X3.64).
   [.print-osc-p]='printf "\e]P%01X%s%s%s"' # Linux palette (console_codes(4) man page)
   [.print-osc-4]='printf "\x1b]4;%d;rgb:%s/%s/%s\a"' # dynamic color palette
   [.print-osc-10]='printf "\x1b]10;rgb:%s/%s/%s\a"' # foreground
   [.print-osc-11]='printf "\x1b]11;rgb:%s/%s/%s\a"' # background
-  [.print-osc-12]='printf "\x1b]12;%d\a"' # cursor (colorindex)
+  [.print-osc-12]='printf "\x1b]12;%d\a"' # cursor (colorindex or RGB?)
   [.print-osc-21]='printf "\x1b]21;cursor=%s\a"' # window properties: cursor RGB
 )
 declare -gA \
 us_term_extra_ssc=(
+  [.test-color-capabilities]='.test-capabilities initc set{,a}{f,b}'
   [.test-terminal]=\
 '[[ ! -t 1 ]] || {
   User-Script.Terminal.x.test-osc &&
@@ -38,8 +40,8 @@ User-Script.Terminal.x.device-attributes ()
 : input "${1:?$FUNCNAME${*:+ $*}:Attributes variable (primary)}"
 : input "${2:?$FUNCNAME${*:+ $*}:Attributes variable (secondary)}"
   local -n _ust_da_pa=${1} _ust_da_sa=${2}
-  User-Script.Terminal.x.raw-query '\e[c' c _ust_da_pa &&
-  User-Script.Terminal.x.raw-query '\e[>c' c _ust_da_sa
+  User-Script.Terminal.x.raw-query '\e[c' _ust_da_pa delim-timeout c 0.01 &&
+  User-Script.Terminal.x.raw-query '\e[>c' _ust_da_sa delim-timeout c 0.01
 }
 
 User-Script.Terminal.x.get-longname ()
@@ -102,23 +104,37 @@ User-Script.Terminal.x.print-palette-card ()
 User-Script.Terminal.x.raw-query ()
 {
 : input "${1:?$FUNCNAME${*:+ $*}:Query}"
-: input "${2:?$FUNCNAME${*:+ $*}:Scan}"
-: input "${3:?$FUNCNAME${*:+ $*}:Response variable}"
-  local _query=${1} _saved_stty _char
-  local -n _response=${3}
+: input "${2:?$FUNCNAME${*:+ $*}:Response variable}"
+: input "${3:?$FUNCNAME${*:+ $*}:Read handler}"
+  local _query=${1} _saved_stty
+  local -n _response=${2}
   _saved_stty=$(stty -g)
   stty raw -echo min 0 time 1
+  # shellcheck disable=2059 # pass variable printf pattern
   printf "${_query}"
+  "$FUNCNAME.${3}" "${@:4}" || true
+  stty "${_saved_stty}"
+}
+
+User-Script.Terminal.x.raw-query.delim-timeout ()
+{
+  read -r -d "$1" -t ${2:-0.01} _response # Read until BEL, timeout 0.01s
+}
+
+User-Script.Terminal.x.raw-query.scan-char ()
+{
+  : XXX should probably use delim-timeout instead as this will block on missed reads
   _response=''
+  local _char
   while IFS= read -r -n 1 _char; do
     _response+=$_char
-    [[ $_char == "$2" ]] && break
+    [[ $_char == "$1" ]] && break
   done
-  stty "${_saved_stty}"
 }
 
 User-Script.Terminal.x.terminal-info ()
 {
+  : about "Gather tty info and settings, terminal name and device attributes"
   local _vte_{pid,cmd,tty{,_attr}}
   User-Script.OS.x.parent-process "" "" _vte_{pid,cmd} &&
   _vte_tty=$(tty) &&
@@ -132,16 +148,32 @@ User-Script.Terminal.x.terminal-info ()
   }
 }
 
-User-Script.Terminal.x.test-color-capabilities ()
+User-Script.Terminal.x.test-capabilities ()
 {
   local cap
-  for cap in initc set{,a}{f,b}
+  for cap
   do
     if_ok "$(tput $cap)" &&
     test -n "$_" &&
-    echo "Terminal $cap supported: ${_@Q}" ||
-    echo "Fail: $cap not supported"
+    echo "${_f10-}Terminal put $cap supported:${NORMAL-} ${_@Q}" ||
+    echo "${_f9-}Fail:${NORMAL-} tput $cap not supported"
   done
+}
+
+User-Script.Terminal.x.test-grayscale-ramp ()
+{
+  : param 'CHARS MOD INV'
+  local i
+  for (( i = 232; i < 256; i++ ))
+  do
+    ((${3:-1})) && {
+      ! ((i % ${2:-1})) || continue
+    } || {
+      ((i % ${2:-1})) || continue
+    }
+    printf "%s${1:-   }" "$(tput setab $i)"
+  done
+  echo "$NORMAL"
 }
 
 User-Script.Terminal.x.test-osc ()
@@ -151,18 +183,18 @@ User-Script.Terminal.x.test-osc ()
   local osc
   for osc
   do
-    printf "\033]$osc;?\007"
-    # Example used 1 second. 0.01s may be too fast.
-    read -rs -d $'\007' -t 0.1 response &&  # Read until BEL, timeout 0.1s
+    printf -v query '\033]%s;?\007' "$osc"
+    ## Echo query code and read until BEL, timeout 0.1s
+    User-Script.Terminal.x.raw-query "$query" response delim-timeout $'\007' 0.1
     [[ $response =~ ^$'\033]'$osc';rgb:' ]] &&
-      echo "OSC $osc supported: ${response@Q}" ||
-      echo "Fail: OSC $osc not supported"
+    echo "${_f10-}OSC $osc supported:${NORMAL-} ${response@Q}" ||
+    echo "${_f9-}Fail:${NORMAL-} OSC $osc not supported${response:+ (${response@Q})}"
   done
 }
 
 User-Script.Terminal.x.test-palettes ()
 {
-  (($#)) || set -- ${us_palette_var[@]:?}
+  (($#)) || set -- "${us_palette_var[@]:?us-palette part must be loaded}"
   local -n _palette
   local line
   for _palette

@@ -1,4 +1,3 @@
-#!/bin/sh
 
 
 context_lib__load()
@@ -770,4 +769,4 @@ context_literalid_entry () # STR
   context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^:]*:\\?\( .*\)\\? \`\`$p_\`\`\( \|$\)"
 }
 
-#
+# Id: context.lib                                vim:set ft=bash sw=2 sts=2 et:

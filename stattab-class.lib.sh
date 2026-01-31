@@ -60,7 +60,8 @@ class_StatIndex__load ()
 class_StatIndex_ () # (super,self,id,call) ~ <Call ...>
 {
   case "${call:?}" in
-      * ) return ${_E_next:?}
+  # ...
+    * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }
 
@@ -113,18 +114,18 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
         true
       ;;
     .__del__ )
-        unset StatTabEntry__stattab[$id] &&
-        unset StatTabEntry__seqidx[$id] &&
-        unset StatTabEntry__status[$id] &&
-        unset StatTabEntry__btime[$id] &&
-        unset StatTabEntry__ctime[$id] &&
-        unset StatTabEntry__utime[$id] &&
-        unset StatTabEntry__id[$id] &&
-        unset StatTabEntry__short[$id] &&
-        unset StatTabEntry__tags[$id] &&
-        unset StatTabEntry__refs[$id] &&
-        unset StatTabEntry__idrefs[$id] &&
-        unset StatTabEntry__meta[$id] &&
+        unset "StatTabEntry__stattab[$id]" &&
+        unset "StatTabEntry__seqidx[$id]" &&
+        unset "StatTabEntry__status[$id]" &&
+        unset "StatTabEntry__btime[$id]" &&
+        unset "StatTabEntry__ctime[$id]" &&
+        unset "StatTabEntry__utime[$id]" &&
+        unset "StatTabEntry__id[$id]" &&
+        unset "StatTabEntry__short[$id]" &&
+        unset "StatTabEntry__tags[$id]" &&
+        unset "StatTabEntry__refs[$id]" &&
+        unset "StatTabEntry__idrefs[$id]" &&
+        unset "StatTabEntry__meta[$id]" &&
         stattab_meta_unset StatTabEntry__meta &&
         ${super:?}.__del__
       ;;
@@ -217,7 +218,7 @@ class_StatTabEntry_ () # :Class (super,self,id,call) ~ <ARGS...>
         echo "${!_}"
       ;;
 
-    ( * ) return ${_E_next:?}
+  ( * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }
 
@@ -574,3 +575,5 @@ class_StatTab_ () # ~
     * ) return ${_E_next:?}
   esac && return ${_E_done:?}
 }
+
+# Id: stattab-class.lib                          vim:set ft=bash sw=2 sts=2 et:

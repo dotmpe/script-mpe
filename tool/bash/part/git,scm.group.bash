@@ -6,7 +6,10 @@ scm_git_fun=(
   .grep-all
   .status-all
   .grep-version
-  #.un{tracked,versioned}-files
+  .period
+  .remotes
+  .remotes-byname
+  # TODO: .un{tracked,versioned}-files
 )
 declare -gA \
 scm_git_ssc=(
@@ -247,6 +250,61 @@ SCM.Git.status-all () # ~ <Git-status-args> [-- <Basedirs>]
 SCM.Git.grep-version () # ~ <Expr> <Paths...>
 {
   git grep "${1:?}" $(git rev-list ${GIT_REVOPT:=--all}) -- "${@:2}"
+}
+
+SCM.Git.period ()
+{
+  : about 'Output lines with first/last commit dates for each path'
+  local date first last git_log_dates_cmd
+  git_log_dates_cmd=( git log --date=short --format="%cd" )
+  while
+    case "${1-}" in
+      ( --follow ) git_log_dates_cmd+=( "$1" );;
+        * ) false
+    esac
+  do shift
+  done
+  for path
+  do first= last=
+    while read -r date
+    do
+      [[ ${last:+set} ]] && first=$date || last=$date
+    done < <("${git_log_dates_cmd[@]}" "$path")
+    echo "- $first $last $path"
+  done
+}
+
+SCM.Git.remotes ()
+{
+: param '<Dir> <Dest-arr>'
+  local -n _sgr_map1=${2:?}
+  local name
+  while read -r name spec
+  do
+    : "${spec% \(*)*}"
+    : "${_##* }"
+    _sgr_map1["$name"]=${_}
+  done < <(git --git-dir "$1/.git" remote --verbose)
+}
+
+SCM.Git.remotes-byname ()
+{
+: param '<Dir> <Dest-arr> [<Name-match...>]'
+  local -n _sgr_map2=${2:?}
+  local name pat match
+  while read -r name
+  do
+    ! (($#-2)) || {
+      match=false
+      for path in "${@:3}"
+      do
+        # shellcheck disable=2053 # intentional variable glob
+        [[ $name == $pat ]] && match=true && break
+      done
+      $match || continue
+    }
+    _sgr_map2["$name"]=$(git --git-dir "$1/.git" config remote.$name.url)
+  done < <(git --git-dir "$1/.git" remote)
 }
 
 # Id: scm-git                                    vim:set ft=bash sw=2 sts=2 et:

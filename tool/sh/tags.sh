@@ -43,7 +43,7 @@ test -z "${1-}" && {
     }
   }
 } || {
-  check_files="$@"
+  check_files="$*"
 }
 
 

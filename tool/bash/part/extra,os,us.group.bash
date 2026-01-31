@@ -16,10 +16,12 @@ us_os_extra_fun=(
   .local-lookup-list
   .first-status
   .script-table
+  .unique-paths
 )
 declare -gA \
 us_os_extra_als=(
   [mkdirs]='>&2 mkdir -vp'
+  [remove_dupes]=awk\ '!a[$0]++'
   ["script.status"]='.script-status'
   ["script.loaded"]='.script-list'
   ["PATH+names"]='.lookup-expand PATH'
@@ -319,6 +321,15 @@ User-Script.OS.x.script-table ()
     done
     printf '\n'
   done
+}
+
+User-Script.OS.x.unique-paths ()
+{
+: FIXME
+  for path
+  do
+    test -e "$path" && realpath "$path" || echo "$path"
+  done | awk '!a[$0]++'
 }
 
 # Id: extra,os,us                                vim:set ft=bash sw=2 sts=2 et:

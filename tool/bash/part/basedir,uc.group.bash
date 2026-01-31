@@ -13,11 +13,6 @@ uc_basedir_fun=(
   .basedirs
   .basedirs+load
 )
-declare -gA \
-uc_basedir_hooks=(
-#  [init]=\
-#''
-)
 
 User-Conf.Basedir.basedirs_split-argv ()
 {

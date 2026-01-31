@@ -68,9 +68,11 @@ User.DSL.user-ops-main ()
     ;;
 
   ( --basedir-edit )
-      local basedir_data
+      local basedir_{data,dsl,uc}
       basedir_data=$(PATH=$SCRIPTPATH command -v basedir,user.data.bash) &&
-      $EDITOR "$basedir_data"
+      basedir_dsl=$(PATH=$SCRIPTPATH command -v user,dsl,us.data.bash) &&
+      basedir_uc=$(PATH=$SCRIPTPATH command -v basedir,uc.data.bash) &&
+      $EDITOR "$basedir_data" "$basedir_dsl" "$basedir_uc"
     ;;
 
   ( --basedir-command )
@@ -118,6 +120,10 @@ User.DSL.user-ops-main ()
         found=1
       done
       ((found)) || failerr "No commands found for $PWD"
+    ;;
+
+  ( --basedir-reload )
+      User-Conf.Basedir.basedirs+load
     ;;
 
 

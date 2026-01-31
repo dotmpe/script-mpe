@@ -115,7 +115,7 @@ main_act ()
 
 main_edit ()
 {
-  $EDITOR etc/user/menu.yml etc/tmenu/default.sh ~/bin/tmenu.{sh,py}
+  $EDITOR user/menu.yml etc/tmenu/{$HOSTNAME,default}.sh ~/bin/tmenu.{sh,py}
 }
 
 : "${0##*/}"

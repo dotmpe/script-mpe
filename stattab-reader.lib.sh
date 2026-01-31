@@ -1,3 +1,6 @@
+# stattab-reader is to parse each entry entirely, useful for processing or
+# updating. But usually more precise ops are far more efficient and appropiate.
+# See also awk-grep-stattab.group
 
 stattab_reader_lib__load ()
 {
@@ -41,7 +44,7 @@ stattab_entry () # (:stab-*) ~
   if_ok "$_$([[ ! $stab_tags ]] || printf ' %s' $stab_tags)" &&
   if_ok "$_$([[ ! $stab_refs ]] || printf ' <%s>' $stab_refs)" &&
   if_ok "$_$([[ ! $stab_idrefs ]] || printf ' #%s' $stab_idrefs)" &&
-  #if_ok "$_$([[ ! $stab_meta ]] || printf ' #%s' $stab_idrefs)" &&
+  #if_ok "$_$([[ ! $stab_meta ]] || printf-kv ' %s:%v' stab_meta)" &&
   echo ${_//[$'\n\t']/ }
   #echo "${_//  / }"
 }
@@ -416,4 +419,4 @@ stattab_value () # ~ <Value>
   test -n "${1-}" -a "${1-}" != "-"
 }
 
-# ex:ft=bash:
+# Id: stattab-reader.lib                         vim:set ft=bash sw=2 sts=2 et:

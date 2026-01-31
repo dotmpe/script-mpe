@@ -205,7 +205,7 @@ stattab_data_outline_dirln () # ~ <Handler <args...>>
 }
 
 # Output entry from current stab_* values
-stattab_entry_fields() # ST-Id [Init-Tags]
+stattab_entry_fields () # ST-Id [Init-Tags]
 {
   note "Init fields '$*'"
   test -n "$stab_id" || stattab_env_init "$1"
@@ -218,4 +218,4 @@ stattab_entry_fields() # ST-Id [Init-Tags]
 }
 
 
-# Id: BIN:
+# Id: BIN:                                                          ex:ft=bash:

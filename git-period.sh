@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Very simple helper to provide stattab line based on filepath(s)
 # Usage:
 #   git-period.sh [--follow] [<paths...>]
@@ -21,11 +22,10 @@ for path
 do
   first= last=
   >&2 echo "> $ ${git_log_dates_cmd[*]} ${cmd_args[*]} ${path:?}..."
-  :pass "$("${git_log_dates_cmd[@]}" "${cmd_args[@]}" "$path")" &&
   while read -r date
   do
     [[ ${last:+set} ]] && first=$date || last=$date
-  done <<< "${_}" &&
-  echo "- $first $last $path" ||
-  _ERR "Failed reading log lines"
+  done < <("${git_log_dates_cmd[@]}" "${cmd_args[@]}" "$path")
+  echo "- $first $last $path"
+  #_ERR "Failed reading log lines"
 done
