@@ -68,11 +68,21 @@ User.DSL.user-ops-main ()
     ;;
 
   ( --basedir-edit )
-      local basedir_{data,dsl,uc}
-      basedir_data=$(PATH=$SCRIPTPATH command -v basedir,user.data.bash) &&
-      basedir_dsl=$(PATH=$SCRIPTPATH command -v user,dsl,us.data.bash) &&
-      basedir_uc=$(PATH=$SCRIPTPATH command -v basedir,uc.data.bash) &&
-      $EDITOR "$basedir_data" "$basedir_dsl" "$basedir_uc"
+      local -a data_f data_refs
+      # shellcheck disable=2054 # commas are in names
+      data_refs=(
+        basedir,user.data.bash
+        user,dsl,us.data.bash
+        user,dsl,us.group.bash
+        basedir,uc.data.bash
+        basedir,uc.group.bash
+      )
+      for ref in "${data_refs[@]}"
+      do
+        if_ok "$(PATH=$SCRIPTPATH command -v $ref)" &&
+        data_f+=( "$_" ) || failerr "No script for $ref"
+      done
+      $EDITOR "${data_f[@]}"
     ;;
 
   ( --basedir-command )
