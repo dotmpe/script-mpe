@@ -16,19 +16,66 @@ event ()
 {
   case "${1:?}" in
 
+    ( --user-scan )
+        echo Found device $2, reading data...
+        local dev_env=/run/user/$UID/${2}.env
+        while [[ ! -s $dev_env ]]
+        do
+          sleep 1
+        done
+        . "$dev_env"
+        #rm -f "$dev_env"
+        # TODO: run menu for uart, serial, dpf, udf, android, storage, hub,
+        # camera, ethernet, wifi, bluetooth, keyboard, mouse, joystick, gamepad
+        # i2c/smbus, etc.
+        echo Starting usb-$USB_PROFILE user menu
+        set -m
+        set +u
+
+        . /usr/share/uc/us-host-profile.sh &&
+        eval "${US_ENV_INIT:?}" &&
+        User-Script.OS.path-assert ~/bin &&
+        . ~/bin/.venv/bin/activate &&
+        : || failerr "E$? loading user scan session" || return
+
+        local ppid=$(ps -o ppid= $$)
+        local -n port=${USB_PROFILE^^}_PORT
+
+        trigger --kill-on-remove "$ppid" "$port" "$dev_env" &
+        tmenu.sh menu usb-$USB_PROFILE &
+      ;;
+
     ( --new-device )
+        shift
+        local -n port=${2^^}_PORT
+        local var val env pat filters=( "!${2^^}*" )
+        env+="USB_PROFILE=$2"$'\n'
+        for pat in "${@:3}"
+        do filters+=( "!$pat" )
+        done
+        logger -p user.notice "$SUBSYSTEM ${ACTION-} event: new /dev/$1: $2 device"
+        for pat in "${filters[@]}"
+        do
+          for var in $(compgen -A variable -X "$pat")
+          do
+            : "${!var-}"
+            val="${_@Q}"
+            [[ $var == ${2^^}* ]] && {
+              env+="$var=$val"$'\n'
+            } ||
+              env+="${2^^}_$var=$val"$'\n'
+          done
+        done
+        # should want to check with cache but running in minimal env here
+        echo "$env" >| /run/user/${USB_UID:-1000}/${port//[^A-Za-z0-9_-]/-}.env
+        #logger -p user.notice "$SUBSYSTEM ${ACTION-} event: /dev/$1: device done"
       ;;
 
     ( --new-serial )
         shift
         #event --log-envnames $1
         #logger -p user.notice "$SUBSYSTEM ${ACTION-} event: /dev/$1: new UART $UART_PORT $UART_PRODUCT_ID $UART_SERIAL_ID"
-        local var env
-        for var in $(compgen -A variable -X '!UART*')
-        do
-          env+="$var=${!v-}"$'\n'
-        done
-        echo "$env" >| /run/user/${USB_UID:-1000}/uart-dev-$1.env
+        event --new-device $1 uart SUBSYSTEM DRIVER DEV{NUM,TYPE} PRODUCT 'ID_*'
         logger -p user.notice "$SUBSYSTEM ${ACTION-} event: /dev/$1: new serial: $ID_VENDOR_FROM_DATABASE $ID_MODEL_FROM_DATABASE${*:+ ($*)}"
       ;;
 
@@ -76,19 +123,35 @@ event ()
         logger -p user.notice "$SUBSYSTEM $ACTION event:${*:+ $*:} $m"
       ;;
 
-    ( --uart-found )
-        local uart_env=/run/user/$UID/uart${2}.env
-        while [[ ! -s $uart_env ]]
-        do
-          echo waiting for $uart_env
-          sleep 5
-        done
-        . $uart_env
-        #! (($#)) || eval "$*"
-        echo found UART port ${UART_PORT-} vndid:${UART_VENDOR_ID-} prodid:${UART_PRODUCT_ID-} rev:${UART_REVISION_ID-} serno:${UART_SERIAL_ID-}
-        #! (($#)) || echo "args: $*"
+    * ) return ${_E_nsk:-67}
+  esac
+}
+
+trigger ()
+{
+  case "${1:?}" in
+
+    ( --found )
+        command urxvt -title helper-udev-trigger \
+          -hold -geometry 60x22+1020+550 \
+          -e /srv/home-local/bin/usb.sh event --user-scan "${@:2}"
       ;;
 
+    ( --kill-on-remove )
+      : input "${2:?PID}"
+      : input "${3:?Port device}"
+      : input "${4:?Cache file}"
+        while [[ -e "$3" ]]
+        do
+          sleep 1
+        done
+        echo "Exiting (port lost)"
+        sleep 1
+        rm -f "$4"
+        kill -9 "$2"
+      ;;
+
+    * ) return ${_E_nsk:-67}
   esac
 }
 

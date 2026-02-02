@@ -9,27 +9,82 @@ user_i3wm_cnk=8eca66a3
 user_i3wm_fun=(
   .start-with-name
 )
+
 declare -gA \
 user_i3wm_als=(
   [.exit-wm]='i3-msg exit'
+
+  [.json-outputs]='i3-msg -t get_outputs'
+  [.json-subscribe+script]='.subscribe+script'
+  [.json-subscribe+config]='.subscribe+user'
+  [.json-tree]='i3-msg -t get_tree'
+  [.json-workspaces]='i3-msg -t get_workspaces'
+
   [.start-program]='i3-msg exec'
 # TODO: integrate i3wm-exit into here as .wm-session
 
   [win_new]=.start-program
   [win_new_withname]=.start-with-name
 )
+
 declare -gA \
 user_i3wm_ssc=(
+
+  [.id-list]=\
+'< <(i3-msg -t get_tree) jq -r '\''.. | .id? // empty'\'
+
+  # XXX: these (with paths(...)) exclude the root
+  [.id-list+paths+subs]=\
+'< <(i3-msg -t get_tree) jq -r '\''
+  paths(.id?) as $p | [ (getpath($p) | .id), ($p | join(".")) ] | join(" ")'\'
+
+  # XXX: experiments getting JSON path aka object path in xpath notation
+  [.id-list+paths+pretty]=\
+'< <(i3-msg -t get_tree) jq -r '\''
+  [ ( [ .id, .type, .window_type, "/" ] | join(" ")),
+    paths(.id?) as $p | [
+      (getpath($p) | [ .id, .type, .window_type ] | join(" ")),
+      ($p | map(if type=="number" then "[\(.)]" else "/\(.)" end) | join(""))
+    ] | join(" ")
+  ] | join("\n")'\'
+
+  # FIXME: this looks interesting but doesnt work, see .id-list
+  [.id-tree+grok]=\
+'jq -r '\''
+  def indent(n): "  " * n;
+  def tree($depth):
+    . as $node |
+    indent($depth) + (.id | tostring) +
+    if .nodes? | length > 0 or .floating_nodes? | length > 0 then
+      " \u251c\u2500 " + (.name // .window_properties?.class // "container") + "\n" +
+      (.nodes // [] | .[] | tree($depth + 1)) +
+      (.floating_nodes // [] | .[] | tree($depth + 1))
+    else
+      " (" + (.window_properties?.class // "leaf") + ")"
+    end;
+  tree(0)
+'\'' < <(i3-msg -t get_tree)'
+
+  [.id-tree+grok2]=\
+'jq -r '\''
+  def t($d): "  "*$d + (.id|tostring) +
+             if (.nodes|length>0 or .floating_nodes|length>0) then
+               " ├─ " + (.name//.window_properties?.class//"container") + "\n" +
+               (.nodes//[] | .[] | t($d+1)) +
+               (.floating_nodes//[] | .[] | t($d+1))
+             else " (" + (.window_properties?.class//"leaf") + ")" end;
+t(0)'\'' < <(i3-msg -t get_tree)'
 )
+
 declare -gA \
 user_i3wm_hooks=(
-[i3wm+load]=\
-': user-data-file "${uc_x11_user_bash:=/var/local/statusdir/x11,user.data.bash}"
-cache_loadmaps "$uc_x11_user_bash" uc_x11_cmd_name_opts'
-[init]='
-  #alias win_new=User.I3wm.start-program
-'
+
+[user+i3wm+load]=\
+': user-data-file "${uc_i3wm_user_bash:=/var/local/statusdir/i3wm,user.data.bash}"
+cache_loadmaps "$uc_i3wm_user_bash" uc_wm_evt_hook'
+
 )
+
 
 User.I3wm.start-with-name ()
 {
@@ -42,6 +97,79 @@ User.I3wm.start-with-name ()
 
   [[ ${#1} -eq ${#cmd} ]] || rest=${1: ${#cmd}+1}
   User.I3wm.start-program "$cmd $_usr_i3_cmdnameopt${rest:+ ${rest}}" "${@:2}"
+}
+
+User.I3wm.subscribe+script ()
+{
+  [[ ${1:0:1} != . ]] || set -- "$FUNCNAME$1" "${@:2}"
+  local -n _wm_evt_hook='uc_wm_evt_hook["$change"]'
+  # shellcheck disable=2162
+  while read msg_js
+  do
+    # using native string matching to parse,
+    # for speed but avoid buggy JSON parse errs too
+    shell-json.scan-atr+snip msg_js change '' '' sub_js &&
+    "${@}" "$change" "$sub_js" "$msg_js" ||
+    #case "$change" in
+    #( close | floating | focus | new | null | run | title )
+    #;; * ) false; esac ||
+      >&2 echo "$FUNCNAME: Unexpected/E$? error parsing IPC message: ${msg_js@Q}"
+  done < <( i3-msg -m -t subscribe '"window"' )
+}
+
+User.I3wm.subscribe+script.window+restore+update ()
+{
+  local change=$1 sub_js=$2 msg_js=$3
+  case "$change" in
+  ( close )
+      shell-json.scan-atr+snip sub_js c_id '"container":{"id":' ',' cont_js &&
+      echo $change container $c_id #sub: $cont_js
+    ;;
+  ( floating )
+      shell-json.scan-atr+snip sub_js c_id '"container":{"id":' ',' cont_js &&
+      shell-json.scan-atr cont_js floating &&
+      case "$floating" in
+      ( user_on )
+          echo $change container $c_id new: $floating #sub: $cont_js
+        ;;
+      ( user_off ) ;;
+        * ) false
+      esac
+    ;;
+  ( focus )
+      shell-json.scan-atr+snip sub_js c_id '"container":{"id":' ',' cont_js &&
+      echo $change container $c_id #sub: $cont_js
+    ;;
+  ( new )
+      shell-json.scan-atr+snip sub_js c_id '"container":{"id":' ',' cont_js &&
+      echo $change container $c_id #sub: $cont_js
+    ;;
+  ( title ) ;;
+    * ) false
+  esac ||
+    >&2 echo "$FUNCNAME: Unexpected/unknown IPC message: ${msg_js@Q}"
+}
+
+User.I3wm.subscribe+user ()
+{
+  [[ ${uc_wm_evt_hook[*]:+set} ]] ||
+    us_part --hooks:user+i3wm+load user-i3wm || return
+
+  local -n _wm_evt_hook='uc_wm_evt_hook["$change"]'
+  # shellcheck disable=2162
+  while read msg_js
+  do
+    # using native string matching to parse,
+    # for speed but also avoid buggy JSON parse errs
+    shell-json.scan-atr+snip msg_js change '' '' sub_js && {
+    [[ ${_wm_evt_hook:+set} ]] &&
+    #local -n _wm_evt_cmd=$_wm_evt_hook &&
+    #"${_wm_evt_[@]}" "$change" "$sub_js" "$msg_js" ||
+    eval "${_wm_evt_hook} \"$change\" ${sub_js@Q} ${msg_js@Q}" ||
+      >&2 echo "$FUNCNAME: E$? running hook: ${_wm_evt_hook@Q} for $change"
+  } ||
+      >&2 echo "$FUNCNAME: Unexpected/E$? error parsing IPC message: ${msg_js@Q}"
+  done < <( i3-msg -m -t subscribe '"window"' )
 }
 
 
