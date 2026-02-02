@@ -14,15 +14,41 @@ cache_loadmaps "$uc_x11_user_bash" uc_x11_cmd_name_opts'
 declare -gA \
 x11_als_als=(
 
-  [x11.win.geom]=xdotool.window.geometry
-  [x11.win.geom.shell]=xdotool.window.geometry-shell
+  [x11.root.info+xprop]='xprop -root'
+  [x11.root.info+xwininfo]='xwininfo -root'
+  [x11.root.info+i3+json]='< <(i3-msg -t get_tree) jq "del(.nodes, .floating_nodes)"'
+
+  [x11.win.geom+xdotool]=xdotool.window.geometry
+  [x11.win.geom.shell+xdotool]=xdotool.window.geometry-shell
+
+  [x11.win.id+sel]='xdotool selectwindow'
+
+  [x11.win.info+for]=User.I3wm.window-info
+  [x11.win.info+root+xwininfo]='xwininfo -children -root'
+  # FIXME: this doesnt do work for root while xdotool selectwindow does return
+  # some id. Currently, using window id so root id is different?
+  [x11.win.info+sel+i3]='User.I3wm.window-info $(xdotool selectwindow)'
+  [x11.win.info+sel+xwininfo]='xwininfo -tree'
+
+  [x11.win.json]=User.I3wm.container-json
+  [x11.win.json+sel]='User.I3wm.container-json $(xdotool selectwindow)'
+
+  [x11.win.new]=User.I3wm.start-program
+  [x11.win.new+withname]=User.I3wm.start-with-name
+
+  [x11.win.props+sel]=xprop
+  [x11.win.props+i3+for]=User.I3wm.window-properties
+  [x11.win.props+sel+i3]='User.I3wm.window-properties $(xdotool selectwindow)'
 
   # XXX: lists all containers, not just everything that is a window (id)?
   [x11.win.list+i3]='User.I3wm.id-list'
   [x11.win.list+i3+pretty]='User.I3wm.id-list+paths+pretty'
   [x11.win.list+wmctrl]='wmctrl -l'
+  [x11.win.list+xdotools]='xdotool search . --name . --class . --classname .'
+  [x11.win.list+xlsatoms]='grep -i window < <(xlsatoms)'
+  [x11.win.list+xprop]='xprop -root _NET_CLIENT_LIST'
+  [x11.win.list+xwininfo]='xwininfo -tree -root'
 
-  [x11.win.props+sel]=xprop
 )
 
 declare -gA \

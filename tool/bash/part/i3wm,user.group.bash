@@ -34,18 +34,6 @@ user_i3wm_als=(
   [.subscribe+json+script]='.subscribe+script'
   [.tree-json]='i3-msg -t get_tree'
   [.workspaces-json]='i3-msg -t get_workspaces'
-
-  # XXX: shared prefix?
-  [x11.win.info]=.window-info
-  # FIXME: this doesnt do work for root while xdotool selectwindow does return
-  # some id. Currently, using window id so root id is different?
-  [x11.win.info+sel]='.window-info $(xdotool selectwindow)'
-  [x11.win.json]=.container-json
-  [x11.win.json+sel]='.container-json $(xdotool selectwindow)'
-  [x11.win.new]=.start-program
-  [x11.win.new.withname]=.start-with-name
-  [x11.win.props]=.container-props
-  [x11.win.props+sel]='.window-properties $(xdotool selectwindow)'
 )
 
 declare -gA \

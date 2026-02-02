@@ -9,8 +9,12 @@ ssh_als_hooks=(
 
 declare -gA \
 ssh_als_als=(
+  [ssh-add.list]=ssh.keys+list
+  [ssh-add.forget]=ssh.keys+forget
+
   [ssh.keys+load]='ssh-add'
   [ssh.keys+list]='ssh-add -L'
+  [ssh.keys+forget]='ssh-add -D'
 )
 
 declare -gA \
