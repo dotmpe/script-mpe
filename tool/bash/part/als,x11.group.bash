@@ -1,10 +1,28 @@
 x11_als_pre=X11.Alias
+x11_als_cnk=b3d9dd0e
+x11_als_fun=()
+
+declare -gA \
+x11_als_hooks=(
+
+[user+x11+load]=\
+': user-data-file "${uc_x11_user_bash:=/var/local/statusdir/x11,user.data.bash}"
+cache_loadmaps "$uc_x11_user_bash" uc_x11_cmd_name_opts'
+
+)
 
 declare -gA \
 x11_als_als=(
 
   [x11.win.geom]=xdotool.window.geometry
   [x11.win.geom.shell]=xdotool.window.geometry-shell
+
+  # XXX: lists all containers, not just everything that is a window (id)?
+  [x11.win.list+i3]='User.I3wm.id-list'
+  [x11.win.list+i3+pretty]='User.I3wm.id-list+paths+pretty'
+  [x11.win.list+wmctrl]='wmctrl -l'
+
+  [x11.win.props+sel]=xprop
 )
 
 declare -gA \
@@ -91,15 +109,6 @@ do
   # XXX: cannot re-focus while in loop? may need to async this: i3.raise-dash-apps
   WIN_FOCUS=$NEW_FOCUS
 done'
-)
-
-declare -gA \
-x11_als_hooks=(
-
-[user+x11+load]=\
-': user-data-file "${uc_x11_user_bash:=/var/local/statusdir/x11,user.data.bash}"
-cache_loadmaps "$uc_x11_user_bash" uc_x11_cmd_name_opts'
-
 )
 
 # Id: als,x11                                    vim:set ft=bash sw=2 sts=2 et:

@@ -1,7 +1,34 @@
-script_mpe_part_als_disk_load ()
-{
-: source script-mpe:tool/sh/part/als-disk.sh
-}
+disk_als_pre=User.Alias.Disk
+disk_als_cnk=a48bbcf2
+
+disk_als_fun=(
+)
+
+declare -gA \
+disk_als_hooks=(
+)
+
+declare -gA \
+disk_als_als=(
+  [df:volume:local]=df_volume_local
+  [df:volume:local:allcol]=df_volume_local_allcol
+  [df:volume:local:readable]=df_volume_local_readable
+  [df:volume:local:allcol:readable]=df_volume_local_allcol_readable
+
+  [dfh]='df -h' # readable df
+  [dff]='df --output' # df with all fields
+
+  [gdf]=df:annex:local:allcol:readable
+
+  [du:annex:local]=du_annex_local
+  [du:annex:local:allcol]=du_annex_local_allcol
+  [du:annex:local:readable]=du_annex_local_readable
+  [du:annex:local:allcol:readable]=du_annex_local_allcol_readable
+)
+
+declare -gA \
+disk_als_ssc=(
+)
 
 
 df_volume_local () # ~ <df-args> [-- <Basedirs>]
@@ -38,16 +65,6 @@ df_volume_local_allcol_readable () # ~ <df-args> [-- <Basedirs>]
   df_volume_local --output -h "$@"
 }
 
-alias df:volume:local=df_volume_local
-alias df:volume:local:allcol=df_volume_local_allcol
-alias df:volume:local:readable=df_volume_local_readable
-alias df:volume:local:allcol:readable=df_volume_local_allcol_readable
-
-alias dfh='df -h' # readable df
-alias dff='df --output' # df with all fields
-
-alias gdf=df:annex:local:allcol:readable
-
 du_annex_local () # ~ <du-args> [-- <Basedirs>]
 {
   local -a du_args
@@ -72,9 +89,4 @@ du_annex_local_readable () # ~ <du-args> [-- <Basedirs>]
   du_annex_local -h "$@"
 }
 
-alias du:annex:local=du_annex_local
-alias du:annex:local:allcol=du_annex_local_allcol
-alias du:annex:local:readable=du_annex_local_readable
-alias du:annex:local:allcol:readable=du_annex_local_allcol_readable
-
-# ex:ft=bash:
+# Id: als,disk                                   vim:set ft=bash sw=2 sts=2 et:

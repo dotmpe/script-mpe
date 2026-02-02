@@ -4,8 +4,8 @@
 #
 # Distributed under terms of the MIT license.
 
-batcat_als_pre=Batcat.Als
-batcat_als_cnk=5e924239
+batcat_als_pre=Batcat.Alias
+batcat_als_cnk=73d4bdad
 
 [[ ! -d ~/.cargo/bin ]] || {
   append_lookup $HOME/.cargo/bin PATH

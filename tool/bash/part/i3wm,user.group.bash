@@ -8,47 +8,65 @@ user_i3wm_pre=User.I3wm
 user_i3wm_cnk=8eca66a3
 user_i3wm_fun=(
   .start-with-name
+  .subscribe+script
+  .subscribe+script.window+restore+update
+  .subscribe+user
+)
+
+declare -gA \
+user_i3wm_hooks=(
+
+[user+i3wm+load]=\
+': user-data-file "${uc_i3wm_user_bash:=/var/local/statusdir/i3wm,user.data.bash}"
+cache_loadmaps "$uc_i3wm_user_bash" uc_wm_evt_hook'
+
 )
 
 declare -gA \
 user_i3wm_als=(
   [.exit-wm]='i3-msg exit'
-
-  [.json-outputs]='i3-msg -t get_outputs'
-  [.json-subscribe+script]='.subscribe+script'
-  [.json-subscribe+config]='.subscribe+user'
-  [.json-tree]='i3-msg -t get_tree'
-  [.json-workspaces]='i3-msg -t get_workspaces'
+  [.outputs-json]='i3-msg -t get_outputs'
 
   [.start-program]='i3-msg exec'
 # TODO: integrate i3wm-exit into here as .wm-session
 
-  [win_new]=.start-program
-  [win_new_withname]=.start-with-name
+  [.subscribe+json+config]='.subscribe+user'
+  [.subscribe+json+script]='.subscribe+script'
+  [.tree-json]='i3-msg -t get_tree'
+  [.workspaces-json]='i3-msg -t get_workspaces'
+
+  # XXX: shared prefix?
+  [x11.win.info]=.window-info
+  # FIXME: this doesnt do work for root while xdotool selectwindow does return
+  # some id. Currently, using window id so root id is different?
+  [x11.win.info+sel]='.window-info $(xdotool selectwindow)'
+  [x11.win.json]=.container-json
+  [x11.win.json+sel]='.container-json $(xdotool selectwindow)'
+  [x11.win.new]=.start-program
+  [x11.win.new.withname]=.start-with-name
+  [x11.win.props]=.container-props
+  [x11.win.props+sel]='.window-properties $(xdotool selectwindow)'
 )
 
 declare -gA \
 user_i3wm_ssc=(
 
+  [.container-json]='< <(i3-msg -t get_tree) jq -r '\''.. | select(.window? == '\'\"\$1\"\'')'\'
+
   [.id-list]=\
 '< <(i3-msg -t get_tree) jq -r '\''.. | .id? // empty'\'
-
-  # XXX: these (with paths(...)) exclude the root
-  [.id-list+paths+subs]=\
-'< <(i3-msg -t get_tree) jq -r '\''
-  paths(.id?) as $p | [ (getpath($p) | .id), ($p | join(".")) ] | join(" ")'\'
 
   # XXX: experiments getting JSON path aka object path in xpath notation
   [.id-list+paths+pretty]=\
 '< <(i3-msg -t get_tree) jq -r '\''
-  [ ( [ .id, .type, .window_type, "/" ] | join(" ")),
+  [ ( [ .id, .type, .window, .window_type, "/" ] | join(" ")),
     paths(.id?) as $p | [
-      (getpath($p) | [ .id, .type, .window_type ] | join(" ")),
+      (getpath($p) | [ .id, .type, .window, .window_type ] | join(" ")),
       ($p | map(if type=="number" then "[\(.)]" else "/\(.)" end) | join(""))
     ] | join(" ")
   ] | join("\n")'\'
 
-  # FIXME: this looks interesting but doesnt work, see .id-list
+  # FIXME: these look interesting but doesnt work, see .id-list
   [.id-tree+grok]=\
 'jq -r '\''
   def indent(n): "  " * n;
@@ -64,7 +82,6 @@ user_i3wm_ssc=(
     end;
   tree(0)
 '\'' < <(i3-msg -t get_tree)'
-
   [.id-tree+grok2]=\
 'jq -r '\''
   def t($d): "  "*$d + (.id|tostring) +
@@ -74,14 +91,17 @@ user_i3wm_ssc=(
                (.floating_nodes//[] | .[] | t($d+1))
              else " (" + (.window_properties?.class//"leaf") + ")" end;
 t(0)'\'' < <(i3-msg -t get_tree)'
-)
 
-declare -gA \
-user_i3wm_hooks=(
+  [.window-info]='< <(i3-msg -t get_tree) jq -r '\''.. | select(.window? == '\'\"\$1\"\'') | [ .id, .layout, .border, .marks, .rect, .geometry, .output ]'\'
+  [.window-properties]='< <(i3-msg -t get_tree) jq -r '\''.. | select(.window? == '\'\"\$1\"\'') | .window_properties'\'
 
-[user+i3wm+load]=\
-': user-data-file "${uc_i3wm_user_bash:=/var/local/statusdir/i3wm,user.data.bash}"
-cache_loadmaps "$uc_i3wm_user_bash" uc_wm_evt_hook'
+  [.windowid-list]=\
+'< <(i3-msg -t get_tree) jq -r '\''.. | .window? // empty'\'
+
+  # XXX: these (with paths(...)) exclude the root
+  [.windowid-list+paths+subs]=\
+'< <(i3-msg -t get_tree) jq -r '\''
+  paths(.id?) as $p | [ (getpath($p) | .window), ($p | join(".")) ] | join(" ")'\'
 
 )
 

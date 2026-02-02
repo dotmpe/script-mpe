@@ -1,4 +1,20 @@
-als_ssh_pre=User.Alias.SSH
+ssh_als_pre=User.Alias.SSH
+ssh_als_cnk=d8d96d83
 
-alias ssh-load-keys='ssh-add'
-alias ssh-list-keys='ssh-add -L'
+ssh_als_fun=()
+
+declare -gA \
+ssh_als_hooks=(
+)
+
+declare -gA \
+ssh_als_als=(
+  [ssh.keys+load]='ssh-add'
+  [ssh.keys+list]='ssh-add -L'
+)
+
+declare -gA \
+ssh_als_ssc=(
+)
+
+# Id: als,ssh                                    vim:set ft=bash sw=2 sts=2 et:

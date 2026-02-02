@@ -1,5 +1,7 @@
 ## Fzf utils for use in user-shell
 
+>&2 echo "TODO: convert fzf-als to group"
+
 #[ -n "${fzf_lib_load-}" ] || lib_require fzf
 [ -n "${fzf_lib_load-}" ] || . ${US_BIN:?}/fzf.lib.sh
 
