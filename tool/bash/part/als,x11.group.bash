@@ -63,7 +63,7 @@ x11_als_ssc=(
 
     echo "win_geom[\"${class_or_name^^}\"]="
     < <(xdotool getwindowgeometry --shell "$window_id") \
-    sed '\''s/^.*$/'\''"win_geom[\"${class_or_name^^}\"]"'\''+="&\ "/'\''
+    sed '\''s#^.*$#'\''"win_geom[\"${class_or_name^^}\"]"'\''+="&\ "#'\''
   done'
 
   [xdotool.raise.xapps]=\
