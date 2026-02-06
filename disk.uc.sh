@@ -493,8 +493,9 @@ disk_uc_loadenv ()
       ( pyenv )
           PYTHONPATH+=:$HOME/.local/lib/py &&
           export PYTHONPATH &&
-          . ~/bin/.venv/bin/activate &&
-          $ll info :disk-uc:loadev "Python virtual env ~/bin/.venv activated"
+          PY_VENV_NAME=script-mpe &&
+          pyvenv_start &&
+          $ll info :disk-uc:loadev "Python virtual env $PY_VENV_NAME activated"
         ;;
 
       ( rules )

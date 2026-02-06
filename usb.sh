@@ -34,8 +34,8 @@ event ()
 
         . /usr/share/uc/us-host-profile.sh &&
         eval "${US_ENV_INIT:?}" &&
-        User-Script.OS.path-assert ~/bin &&
-        . ~/bin/.venv/bin/activate &&
+        PY_VENV_NAME=script-mpe &&
+        pyvenv_start &&
         : || failerr "E$? loading user scan session" || return
 
         local ppid=$(ps -o ppid= $$)

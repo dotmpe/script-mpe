@@ -42,7 +42,7 @@ User.Grep.grep-extra ()
         # TODO: may want to break this up: have specific venv here or in
         # subshell, and streamline VTE wrapping outside of grep alias (see --new)
         (
-          . ~/bin/.venv/bin/activate &&
+          . "${VIRTUAL_ENV_BASEDIR:?}/${PY_VENV_NAME:-script-mpe-pyvenv}"/bin/activate &&
           printf -v grepcmd ' %q' "${@:0:argi-1}" "${@:argi+1}" &&
           grepcmd="grep --color=always $grepcmd" &&
           >&2 echo ">" "command $grepcmd | command less -SR" &&

@@ -2,10 +2,11 @@ declare -gA \
 x_4625_crosshatch_pane_hooks=(
 
   [start-inline]=\
-'bash -c ". ~/bin/.venv/bin/activate && python ~/bin/tool/urwid/x/crosshatch_pane,4625.py --simple crosshatch"'
+'bash -c ". ${VIRTUAL_ENV_BASEDIR:?}/${PY_VENV_NAME:-script-mpe-pyvenv}/bin/activate &&
+python ~/bin/tool/urwid/x/crosshatch_pane,4625.py --simple crosshatch"'
 
   [start-float]=\
-'i3-msg '\''exec "urxvt -hold -name crosshatch-pane-a -e bash -c \". ~/bin/.venv/bin/activate && python ~/bin/tool/urwid/x/crosshatch_pane,4625.py --simple crosshatch\""'\''
+'i3-msg '\''exec "urxvt -hold -name crosshatch-pane-a -e bash -c \". ${VIRTUAL_ENV_BASEDIR:?}/${PY_VENV_NAME:-script-mpe-pyvenv}/bin/activate && python ~/bin/tool/urwid/x/crosshatch_pane,4625.py --simple crosshatch\""'\''
 sleep .25 && i3-msg '\''[instance=crosshatch-pane-a] floating toggle; resize set width 500 height 500; border pixel 10'\'
 
 #  [start-pane]=\

@@ -91,6 +91,25 @@ t(0)'\'' < <(i3-msg -t get_tree)'
 '< <(i3-msg -t get_tree) jq -r '\''
   paths(.id?) as $p | [ (getpath($p) | .window), ($p | join(".")) ] | join(" ")'\'
 
+  [.workspace-names]="jq -r '.[] | .name' < <(User.I3wm.workspaces-json)"
+
+  [.workspaces-restore]='local name names
+: "${I3WM_SESSION_NAME:=default}"
+local sess_json=$HOME/.local/var/i3-resurrect/$I3WM_SESSION_NAME.json
+mapfile -t names < <(jq -r ".[] | .name" < "$sess_json") &&
+for name in "${names[@]}"
+do i3-resurrect restore -w "$name"
+done'
+
+  [.workspaces-save]='local name names
+: "${I3WM_SESSION_NAME:=default}"
+local sess_json=$HOME/.local/var/i3-resurrect/$I3WM_SESSION_NAME.json
+i3-msg -t get_workspaces >| "$sess_json" &&
+mapfile -t names < <(jq -r ".[] | .name" < "$sess_json") &&
+for name in "${names[@]}"
+do i3-resurrect save -w "$name"
+done'
+
 )
 
 

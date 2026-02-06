@@ -1,0 +1,50 @@
+beautifulsoup4
+bencode
+braceexpand
+cherrypy
+couchdb
+docutils
+fusepy
+#git+https://github.com/hackerhelmut/ObjectPath.git
+#gtasks
+hashids
+icalendar
+json-spec
+keyring
+#mysqlclient
+#mysql-connector==2.1.7
+mysql-connector==2.2.9
+#nltk
+# TODO: nltk.download('wordnet')
+objectpath==0.6.1
+openpyxl
+pbPlist
+#pydelicious
+pydot
+#py-mhash@1.2 malloc problems
+pytz
+redis
+ruamel.yaml==0.17.17
+requests-oauthlib
+sadisplay
+setuptools 
+shaarli-client
+shortuuid
+six
+sqlalchemy
+sqlalchemy-migrate
+torrent-parser
+twisted
+# uriref # FIXME: install Py3 version from repo
+# docopt-mpe # FIXME: remove docopt first
+wheezy.template
+xattr
+zope.component
+zope.interface 
+gspread
+oauth2client
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+google-cloud-vision
+todotxt-machine
