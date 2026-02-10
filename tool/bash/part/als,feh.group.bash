@@ -7,7 +7,70 @@
 feh_als_pre=Feh.Alias
 feh_als_cnk=b0fa15b5
 declare -gA \
+feh_als_hooks=(
+  [init]=\
+': "${feh_bg:=$(test "${CS:-dark}" = "dark" && echo "#1c1c1c" || echo "#dadada")}"
+: "${feh_delay:=4}"
+: "${feh_delay_fast:=1.5}"'
+)
+
+# XXX: See user-desktop
+#alias feh-backgrounds-preview=
+#alias feh-backgrounds-choose=
+
+declare -gA \
+feh_als_nvars=(
+  [feh_bg]=DESKTOP_COLORBG
+)
+
+# TODO: combine dynamic aliases from parts. group so that combinations actually
+# make sense. See feh.alias
+feh_als_optord=(
+  +info +passepartout +wmask +frame +r
+)
+# FIXME:
+# Each group is of mutually exlusive tags, that can be combined with any other
+# group (or nothing).
+
+feh_als_optord0=(
+  +info
+)
+feh_als_optord1=(
+  +passepartout +wmask +frame
+)
+feh_als_optord2=(
+  +fs
+)
+feh_als_optord3=(
+  +r
+)
+feh_als_optord3_1=(
+  +sshow +sshowf
+)
+feh_als_optord3_2=(
+  +ofiles +shuffle
+)
+
+declare -gA \
+feh_als_optals=(
+  [feh+info]='-d --draw-tinted --info "file -bLs \"%f\""'
+  [feh+passepartout]='--class dpf/ppt -B "${feh_bg:?}"'
+  [feh+wmask]='--zoom fill'
+  [feh+frame]='-Z -. '
+  [feh+ofiles]='-S name --version-sort'
+  [feh+sshow]='-D ${feh_delay:?}'
+  [feh+sshowf]='-D ${feh_delay_fast:?}'
+  # Fullscreen and hide pointer
+  [feh+fs]='-Y -F'
+  # Shuffle, recurse (For dir arguments)
+  [feh+shuffle]='--randomize'
+  [feh+r]='-r'
+)
+
+# FIXME: replace with generated sets
+declare -gA \
 feh_als_als=(
+
   # Draw filename and info blocks (left-top and -bottom)
   [feh.info]='feh -d --draw-tinted --info "file -bLs \"%f\""'
 
@@ -48,18 +111,7 @@ feh_als_als=(
   [feh+fs+slideshow+fast]="feh+wmask+slideshow+fast -Y -F"
   [feh+fs+pictureshow-]="feh+wmask+pictureshow -Y -F"
   [feh+fs+pictureshow+fast]="feh+wmask+pictureshow+fast -Y -F"
-)
-declare -gA \
-feh_als_hooks=(
-  [init]=\
-': "${feh_bg:=$(test "${CS:-dark}" = "dark" && echo "#1c1c1c" || echo "#dadada")}"
-: "${feh_delay:=4}"
-: "${feh_delay_fast:=1.5}"'
-)
 
-
-# XXX: See user-desktop
-#alias feh-backgrounds-preview=
-#alias feh-backgrounds-choose=
+)
 
 # Id: als,feh         vim:set ft=bash sw=2 sts=2 et:

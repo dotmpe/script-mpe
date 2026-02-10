@@ -1,17 +1,22 @@
-## Fzf utils for use in user-shell
+fzf_als_pre=Fzf.Alias
+fzf_als_cnk=455e4d6f
+declare -gA \
+feh_als_hooks=(
+  [init]=\
+': "${FZF_DEFAULT_COMMAND:=find . -not -type l}"'
+)
+fzf_als_var=(
+)
+fzf_als_fun=(
+)
 
 >&2 echo "TODO: convert fzf-als to group"
 
 #[ -n "${fzf_lib_load-}" ] || lib_require fzf
 [ -n "${fzf_lib_load-}" ] || . ${US_BIN:?}/fzf.lib.sh
 
-fzf_als_fun=(
-)
-
 #alias vf=fzf-edit-preview
 alias vf='fork=false fzf_edit_preview'
-
-: "${FZF_DEFAULT_COMMAND:=find . -not -type l}"
 
 # Fzf env var for user preferences
 : "${FZF_DEFAULT_OPTS:=--exact -i}"

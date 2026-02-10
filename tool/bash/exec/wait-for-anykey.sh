@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 
-# Wait until ssh-add reports keys are available. Then start given program. A
-# little experiment with support for interactive pseudo/virtual terminal.
-#
-# XXX: This seems rather tedious, bc sleep isnt responding normally to SIGINT.
-
-# Only minimal env needed
 set -euETo pipefail
 trap - SIGINT
-#us-env -R user-script -- "$@"
+
 
 test-int ()
 {
@@ -32,13 +26,7 @@ stat=0
 while true
 do
   ! ((run)) || {
-    while ! 2>/dev/null >&2 ssh-add -L
-    do
-      echo "Waiting for SSH keys..."
-      sleep 5
-    done
-
-    echo "SSH keys ready, starting '$*'"
+    read -r -p "Enter any key to activate terminal " -n 1
     "$@" && stat=$? || stat=$?
     echo "Command '$*' ended E$stat"
   }
@@ -53,3 +41,4 @@ do
   [[ $prompt == x ]] && exit ||
   [[ $prompt == r ]] && run=1 || run=0
 done
+

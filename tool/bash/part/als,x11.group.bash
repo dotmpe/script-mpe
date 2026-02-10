@@ -21,14 +21,17 @@ x11_als_als=(
   [x11.win.geom+xdotool]=xdotool.window.geometry
   [x11.win.geom.shell+xdotool]=xdotool.window.geometry-shell
 
+  [x11.win.id]='echo ${WINDOWID:-(unset)}'
   [x11.win.id+sel]='xdotool selectwindow'
 
-  [x11.win.info+for]=User.I3wm.window-info
+  [x11.win.info+i3]='x11.win.info+for+i3 ${WINDOWID:?}'
+  [x11.win.info+for+i3]=User.I3wm.window-info
   [x11.win.info+root+xwininfo]='xwininfo -children -root'
   # FIXME: this doesnt do work for root while xdotool selectwindow does return
   # some id. Currently, using window id so root id is different?
-  [x11.win.info+sel+i3]='User.I3wm.window-info $(xdotool selectwindow)'
+  [x11.win.info+sel+i3]='x11.win.info+for+i3 $(xdotool selectwindow)'
   [x11.win.info+sel+xwininfo]='xwininfo -tree'
+  [x11.win.info+xwininfo]='xwininfo -tree -id $WINDOWID'
 
   [x11.win.json]=User.I3wm.container-json
   [x11.win.json+sel]='User.I3wm.container-json $(xdotool selectwindow)'
