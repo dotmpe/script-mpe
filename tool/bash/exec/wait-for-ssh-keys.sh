@@ -37,21 +37,21 @@ do
     clear
     while ! 2>/dev/null >&2 ssh-add -L
     do
-      echo "░  Waiting for SSH keys..."
+      echo " ░  Waiting for SSH keys..."
       sleep 5
     done
 
-    echo "░  SSH keys ready, starting '$*'"
+    echo "▒▒  SSH keys ready, starting '$*'"
     "$@" && stat=$? || stat=$?
     echo "Command '$*' ended E$stat"
   }
 
   ! ((stat)) || {
-    echo "▓  Command exited E$?, $0 will restart in $restart_delay seconds, press cancel to abort"
+    echo " ▓  Command exited E$?, $0 will restart in $restart_delay seconds, press cancel to abort"
     catch_sleep $restart_delay && continue || run=0 stat=0
   }
 
-  echo "▒  Pending command: '$*', press 'r' to restart, 'x' or cancel to exit"
+  echo "██  Pending command: '$*', press 'r' to restart ${0##*/}, 'x' or cancel to exit"
   read -r -s -N 1 prompt
   [[ $prompt == x ]] && exit ||
   [[ $prompt == r ]] && run=1 || run=0
