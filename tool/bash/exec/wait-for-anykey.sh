@@ -28,6 +28,12 @@ catch_sleep ()
   ! ((stop))
 }
 
+while [[ ${1:+set} && ${1} == *=* ]]
+do
+  declare "$1"
+  shift
+done
+
 : "${run:=1}"
 stat=0
 wait=1
