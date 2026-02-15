@@ -10,6 +10,10 @@ set -euETo pipefail
 trap - SIGINT
 #us-env -R user-script -- "$@"
 
+: "${_c3:=$(tput setaf 3)}"
+: "${_c6:=$(tput setaf 6)}"
+: "${NORMAL:=$(tput sgr0)}"
+
 : "${restart_delay:=10}"
 
 test-int ()
@@ -34,24 +38,28 @@ stat=0
 while true
 do
   ! ((run)) || {
-    clear
-    while ! 2>/dev/null >&2 ssh-add -L
-    do
-      echo " ░  Waiting for SSH keys..."
-      sleep 5
-    done
+    ! 2>/dev/null >&2 ssh-add -L && {
+      until 2>/dev/null >&2 ssh-add -L
+      do
+        echo "${_c6} ░  Waiting for SSH keys...${NORMAL}"
+        sleep 5
+      done
+      clear
+    }
 
-    echo "▒▒  SSH keys ready, starting '$*'"
+    echo "${_c6}▒▒  SSH keys ready, starting '$*'${NORMAL}"
     "$@" && stat=$? || stat=$?
-    echo "Command '$*' ended E$stat"
+    ((stat)) &&
+    echo "${_c3}    Command '$*' ended E$stat${NORMAL}" ||
+    echo "${_c6}    Command '$*' ended OK${NORMAL}"
   }
 
   ! ((stat)) || {
-    echo " ▓  Command exited E$?, $0 will restart in $restart_delay seconds, press cancel to abort"
+    echo "${_c3} ▓  Command exited E$?, $0 will restart in $restart_delay seconds, press cancel to abort${NORMAL}"
     catch_sleep $restart_delay && continue || run=0 stat=0
   }
 
-  echo "██  Pending command: '$*', press 'r' to restart ${0##*/}, 'x' or cancel to exit"
+  echo "${_c6}██  Pending command: '$*', press 'r' to restart ${0##*/}, 'x' or cancel to exit${NORMAL}"
   read -r -s -N 1 prompt
   [[ $prompt == x ]] && exit ||
   [[ $prompt == r ]] && run=1 || run=0
