@@ -32,6 +32,7 @@ append_lookup \
   "${US_BIN:?}"/tool/*/exec \
   "${U_S:?}"/tool/*/exec \
   "${U_S:?}"/src/{,ba}sh/lib \
+  "${HTDOCS:?}"/tool/{,ba}sh/lib \
   PATH &&
 
 : "${US_SCR_EXT:=.us.group.bash .group.bash .bash .sh}"
@@ -49,6 +50,8 @@ append_lookup \
 : "${STATUSDIR_SHARE:=/usr/share/statusdir}"
 
 export LOG=${LOG:-${U_S:?}/tool/sh/log.sh}
+
+. "${U_S}/tool/sh/part/sh-mode.sh"
 
 [[ ${uc_fun_profile-} ]] ||
 #  . "${UCONF:?}/etc/profile.d/uc_fun.sh" || ${us_stat:-exit} $?
