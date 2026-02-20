@@ -58,42 +58,42 @@ declare -gA \
 x11_als_ssc=(
 
   [xdotool.dump.geom]=\
-' local class_or_name window_id
-  xdotool.list-runner "$@" .dump-geom'
+'   local class_or_name window_id
+    xdotool.list-runner "$@" .dump-geom'
 
   [xdotool.raise.xapps]=\
-' local WINDOW SCREEN X Y
-  source <(xdotool getmouselocation --shell)
+'   local WINDOW SCREEN X Y
+    source <(xdotool getmouselocation --shell)
 
-  xdotool search --name xeyes windowactivate
-  xdotool search --name xload windowactivate
-  xdotool search --name xman windowactivate
+    xdotool search --name xeyes windowactivate
+    xdotool search --name xload windowactivate
+    xdotool search --name xman windowactivate
 
-  xdotool mousemove 0 0
-  xdotool mousemove $X $Y'
+    xdotool mousemove 0 0
+    xdotool mousemove $X $Y'
 
   [xdotool.list-runner]=\
-'local handler
-  (($#)) || return ${_E_GAE:?}
-  eval "handler=( ${@: -1:1} )"
-  [[ ${handler[0]:0:1} != . ]] || handler[0]=${FUNCNAME}${handler[0]}
-  set -- "${@: 1:$#-1}"
-  for class_or_name
-  do
-    case "$class_or_name" in
-    ( @* ) xdotool.windowid.for-class "^${class_or_name:1}\$" window_id ;;
-    ( =* ) xdotool.windowid.for-classname "^${class_or_name:1}\$" window_id ;;
-    ( * ) xdotool.windowid.for-class-or-name "^$class_or_name\$" window_id ;;
-    esac ||
-      failerr "E$? nothing for ${class_or_name} (ignored)" || continue
-    logger -s -p user.info "Found window $window_id for $class_or_name"
-    "${handler[@]}"
-  done'
+'   local handler
+    (($#)) || return ${_E_GAE:?}
+    eval "handler=( ${@: -1:1} )"
+    [[ ${handler[0]:0:1} != . ]] || handler[0]=${FUNCNAME}${handler[0]}
+    set -- "${@: 1:$#-1}"
+    for class_or_name
+    do
+      case "$class_or_name" in
+      ( @* ) xdotool.windowid.for-class "^${class_or_name:1}\$" window_id ;;
+      ( =* ) xdotool.windowid.for-classname "^${class_or_name:1}\$" window_id ;;
+      ( * ) xdotool.windowid.for-class-or-name "^$class_or_name\$" window_id ;;
+      esac ||
+        failerr "E$? nothing for ${class_or_name} (ignored)" || continue
+      logger -s -p user.info "Found window $window_id for $class_or_name"
+      "${handler[@]}"
+    done'
 
   [xdotool.list-runner.check-geom]=\
 '   eval "$_win_geom"
     #echo Checking $class_or_name $window_id #${_win_geom}
-    geomstr=$(xdotool getwindowgeometry --shell "$window_id")
+    local geomstr=$(xdotool getwindowgeometry --shell "$window_id") || return
     geomstr=${geomstr//$'\''\n'\''/ }
     geomstr=${geomstr#WINDOW=* }
     [[ ${_win_geom} == "${geomstr} " ]] || {
@@ -102,33 +102,34 @@ x11_als_ssc=(
     }'
 
   [xdotool.list-runner.dump-geom]=\
-' echo "win_geom[\"${class_or_name^^}\"]="
-  < <(xdotool getwindowgeometry --shell "$window_id") \
-  sed '\''s#^.*$#'\''"win_geom[\"${class_or_name^^}\"]"'\''+="&\ "#'\'
+'   echo "win_geom[\"${class_or_name^^}\"]="
+    < <(xdotool getwindowgeometry --shell "$window_id") \
+    sed '\''s#^.*$#'\''"win_geom[\"${class_or_name^^}\"]"'\''+="&\ "#'\'
 
   [xdotool.list-runner.restore-geom]=\
-'   eval "$_win_geom"
+'   local X Y WIDTH HEIGHT
+    eval "$_win_geom"
     echo Restoring $class_or_name $window_id #${_win_geom}
     xdotool windowmove $window_id $X $Y
     xdotool windowsize $window_id $WIDTH $HEIGHT'
 
   [xdotool.load-cache]=\
-' local cache=/var/local/statusdir/$HOSTNAME,$USER,geom,win,data.bash
-  [[ ! -s $cache ]] || . "$cache"'
+'   local cache=/var/local/statusdir/$HOSTNAME,$USER,geom,win,data.bash
+    [[ ! -s $cache ]] || . "$cache"'
 
   [xdotool.restore.geom]=\
-' local class_or_name window_id cache=/var/local/statusdir/$HOSTNAME,$USER,geom,win,data.bash
-  local -A win_geom
-  local -n _win_geom='\''win_geom["${class_or_name^^}"]'\''
-  [[ ! -s $cache ]] || . "$cache"
-  xdotool.list-runner "$@" .restore-geom'
+'   local class_or_name window_id cache=/var/local/statusdir/$HOSTNAME,$USER,geom,win,data.bash
+    local -A win_geom
+    local -n _win_geom='\''win_geom["${class_or_name^^}"]'\''
+    [[ ! -s $cache ]] || . "$cache"
+    xdotool.list-runner "$@" .restore-geom'
 
   [xdotool.save.geom]=\
-' local newcache=/var/local/statusdir/$HOSTNAME,$USER,new,geom,win,data.bash
-  local cache=/var/local/statusdir/$HOSTNAME,$USER,geom,win,data.bash
-  echo "declare -gA win_geom" >| "$newcache" &&
-  xdotool.dump.geom "$@" | grep -v WINDOW= >> "$newcache" &&
-  diff -bq "$cache" "$newcache" && echo no changes || echo resolve cache changes'
+'   local newcache=/var/local/statusdir/$HOSTNAME,$USER,new,geom,win,data.bash
+    local cache=/var/local/statusdir/$HOSTNAME,$USER,geom,win,data.bash
+    echo "declare -gA win_geom" >| "$newcache" &&
+    xdotool.dump.geom "$@" | grep -v WINDOW= >> "$newcache" &&
+    diff -bq "$cache" "$newcache" && echo no changes || echo resolve cache changes'
 
   [xdotool.window.geometry]='xdotool selectwindow getwindowgeometry'
   [xdotool.window.geometry-shell]='xdotool selectwindow getwindowgeometry --shell'
