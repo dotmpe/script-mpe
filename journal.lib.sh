@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # Per day/week/month/year paths/files
 
 
@@ -20,9 +18,9 @@ journal_lib__load()
 journal_index()
 {
   local path base bn entry mtime
-  while read path
+  while read -r path
   do
-    for base in $@
+    for base in "$@"
     do
       test -e "$base/$path" || continue
       bn="$(basename "$path" .rst)"
@@ -183,4 +181,4 @@ journal_create_period_symlinks () # Journal-Dir [Week-Fmt] [Month-Fmt] [Year-Fmt
   }
 }
 
-#
+# Id: journal.lib                                vim:set ft=bash sw=2 sts=2 et:

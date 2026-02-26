@@ -12,8 +12,9 @@ us_dsl_user_fun=(
 
 declare -gA \
 us_dsl_user_als=(
-  [user]=.user-main-autostart
-  [user-load]=.load-user-command
+  #[user]=.user-main-autostart
+  #[user-load]=.load-user-command
+  [user/*]=.user-ops-main
 )
 
 declare -gA \
@@ -21,25 +22,33 @@ us_dsl_user_ssc=(
   [TODO]='failerr "${1:-TODO: ${FUNCNAME[1]}}" ${_E_missing:-125}'
 )
 
+declare -gA \
+us_dsl_user_hooks=(
+)
+
 User.DSL.load-user-command ()
 {
 : "${US_SCR_EXT:=.us.group.bash .group.bash .bash .sh}"
 : "${METADIR:=/tmp}"
 : "${C:=/tmp/cache}"
-  usercmd_parts=( user-command us-dsl-user )
-  # XXX: loadcmd uses User-Script.require, not User-Script.part
+# XXX: need better dep mngmt to load from sensible user data. For later.
+# See also --edit etc. in uc-user-command
+  usercmd_parts=()
+  usercmd_dev_parts=( user-command us-dsl-user )
+# XXX: loadcmd uses User-Script.require, not User-Script.part.
   us_part --alias --hooks:declare,define,init uc-command uc-cache &&
   loadcmd usercmds \
       uc-user-dirs \
       uc-user-shares \
       uconf-annex \
-      uc-user-torrents \
       uc-user-command \
+      uc-user-journal \
+      uc-user-torrents \
       uc-user-music ||
     failerr "E$? while loading user commands" || return
   # Add an extra layer for hacking, but should integrate everything with
   # user-command and other groups properly.
-  us_part --reload --alias "${usercmd_parts[@]}" &&
+  us_part --reload --alias "${usercmd_dev_parts[@]}" &&
   initcmd usercmds User.Command.user-main User.DSL.user-ops-main
 }
 
@@ -61,7 +70,7 @@ User.DSL.user-ops-main ()
   : "${lk:=$(sh_call_context)}"
 : input "${*:?$FUNCNAME: Command args undefined, $ctx:$lk}"
   case "${1:?}" in
-  ( _:"${FUNCNAME}":init )
+  ( _:user:init )
       append_lookup /var/local/statusdir SCRIPTPATH &&
       lib_require todotxt-fields &&
       User-Conf.Basedir.basedirs+load

@@ -13,7 +13,7 @@ script_mpe_lib__init ()
 }
 
 
-uc_env +d dx :mkFun '_Sh_Fun_Eval "$@"'
+uc_env_2625 +d dx :mkFun '_Sh_Fun_Eval "$@"'
 
 # This is all mostly useless
 :mkFun noop :
