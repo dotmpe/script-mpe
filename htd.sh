@@ -4663,7 +4663,7 @@ htd_main ()
 
   case "$base" in
 
-    $scriptname )
+    "$scriptname" )
         test -n "${subcmd-}" || {
           test -t 0 && set -- main-doc-edit || set -- status
         }
