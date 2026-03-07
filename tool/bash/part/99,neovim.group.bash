@@ -6,8 +6,6 @@
 
 neovim_99_pre=Neovim.99
 neovim_99_cnk=f6ebe48e
-neovim_99_fun=(
-)
 declare -gA \
 neovim_99_als=(
 
@@ -25,11 +23,6 @@ neovim_99_als=(
 
 declare -gA \
 neovim_99_ssc=(
-)
-declare -gA \
-neovim_99_hooks=(
-#  [init]=\
-#''
 )
 
 

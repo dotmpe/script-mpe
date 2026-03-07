@@ -33,6 +33,7 @@ os_als_ssc=(
   # FIXME:
   [find.symlink-targets]='find . -xtype l -printf "%p %l\\n" '
   #[find-symlink-fnmatch]=''
+  [find.symlinks.broken]='find . -type l \( -exec test -e {} \; -a -prune -o -print \)'
 
   [fnames]='local x; for x; do fname "$x"; done'
   [fzname]='fname "*$1*"'

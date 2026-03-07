@@ -68,5 +68,8 @@ do
   [[ ${prompt-} == R ]] && run=1 wait=1 || {
     [[ ${prompt-} == r ]] && run=1 wait=0 || run=0
   }
+  ((run)) &&
+  echo "${_c2} 🮙🮙🮙 Resetting for command '$*'" ||
+  echo "${_c2} 🮙🮙🮙 Restarting command '$*'"
 done
 
