@@ -6,10 +6,13 @@
 
 scm_git_extra_pre=SCM.Git.x
 scm_git_extra_cnk=b862d092
-scm_git_extra_fun=(
-)
+scm_git_extra_man='scm-git-extra - Some extra/more experimental bits for scm-git
+TODO: this is only an intial grep projects.list, see user-project for more
+straightforward commands.
+'
 declare -gA \
 scm_git_extra_als=(
+  [scm.git.extra.help]='echo "$scm_git_extr_man"'
 )
 declare -gA \
 scm_git_extra_ssc=(
