@@ -1,5 +1,14 @@
 scm_git_pre=SCM.Git
 #scm_git_grp=( user-dirs )
+scm_git_man='scm-git - Better user commands for Git
+
+See git.* aliases for initial common use. Work in progress.
+
+  git.grep.all            # .grep-all
+  git.grep.dirs           # .grep-at
+  git.grep.versions       # .grep-version
+  git.status.all          # .status-all
+'
 scm_git_fun=(
   .at-basedirs
   .worktree-status
@@ -11,6 +20,7 @@ scm_git_fun=(
   .remotes-byname
   # TODO: .un{tracked,versioned}-files
 )
+
 declare -gA \
 scm_git_ssc=(
   [.grep-revopt]=\
@@ -77,6 +87,8 @@ scm_git_als=(
   [git.grep.versions]=.grep-version
   [git.status.all]=.status-all
   [git.status.at]=.status-at
+
+  [scm.git.help]='echo "$scm_git_man"'
 )
 declare -gA \
 scm_git_hooks=(
@@ -218,6 +230,8 @@ SCM.Git.grep-all () # ~ <Git-grep-args> [-- <Basedirs>]
 
 SCM.Git.status-all () # ~ <Git-status-args> [-- <Basedirs>]
 {
+: about 'Get detailed file status for worktrees at basedirs'
+: extended 'Set SCM_GIT_PATH to specify default basedirs (fallback is PATH)'
   local -a git_status_args
   while [[ $# -gt 0 && $1 != -- ]]
   do
@@ -226,8 +240,10 @@ SCM.Git.status-all () # ~ <Git-status-args> [-- <Basedirs>]
   done
   shift
   [[ ${#} -gt 0 ]] || {
+    # Use paths from ENV as basedirs
+    local _pathlookup=${SCM_GIT_PATH:-${PATH}}
     local -a _basedirs
-    mapfile -t _basedirs <<< "${PATH//:/$'\n'}"
+    mapfile -t _basedirs <<< "${_pathlookup//:/$'\n'}"
     set -- "${_basedirs[@]}"
   }
   [[ ${#} -gt 0 ]] ||
