@@ -1,5 +1,5 @@
 
-#uc_env -r :uc-env:uconf-shell-core-dsl
+#uc_env_2625 -r :uc-env:uconf-shell-core-dsl
 
 # FIXME: seems like regexes are not passed/quoted correctly from fzf
 

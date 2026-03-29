@@ -29,12 +29,6 @@ test -n "${sh_util_:-}" || {
   . "$sh_tools/util.sh"
 }
 
-sh_include \
-  env-init-log \
-  env-0-1-lib-sys \
-  print-color remove-dupes unique-paths \
-  env-0-src
-
 suite_source "${build_txt}" "${SUITE}" 0
 
 test -z "${DEBUG:-}" || print_green "" "Finished sh:env ${SUITE} <$0>"

@@ -352,7 +352,7 @@ user_tools_aliasargv ()
 
 user_tools_loadenv ()
 {
-  test $# -gt 0 || set -- "$script_cmd"
+  #test $# -gt 0 || set -- "$script_defcmd"
   while test $# -gt 0
   do
     case "$1" in
@@ -386,48 +386,20 @@ user_tools_loadenv ()
     esac || return
     shift
   done
-  _NOTICE "User-script '$script_cmd' loaded ($$ $0 $#) [-$-]"
+  _NOTICE "User-script '$SCRIPTNAME' loaded ($$ $0 $#) [-$-]"
   #$LOG notice "$lk:loadenv" "User script loaded" "[-$-] (#$#) ~ ${*@Q}"
 }
 
 
 # Main entry (see user-script.sh for boilerplate)
 
-# Load simple shell log for now...
-. /srv/conf-local/tool/uconf/part/-uconf-shell-log.sh
+us-env -r user-script || ${us_stat:-exit} $?
 
-export DEBUG=true
-
-test -n "${uc_lib_profile:-}" && {
-  _IFDBG _INFO "Starting user-tools env (from uc-lib-profile)"
-} || {
-  _IFDBG _INFO "Starting user-tools env (from scratch)"
-  [ "${DEV:-false}" = true ] &&
-  [ "${UCONF:?}/etc/profile.d/_bash_fun.sh" -nt "${UCONF:?}/etc/profile.d/bash_fun.sh" ] &&
-  [ -e  "${UCONF:?}/etc/profile.d/_bash_fun.sh" ] &&
-    . "${UCONF:?}/etc/profile.d/_bash_fun.sh" |
-    . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-}
-
-_IFDBG _DEBUG "Doing user-tools pre-user-script env check..."
-#us-env -r us:boot.screnv
-#us-env -r user-script ||
-#  uc_script_load user-script
-#uc_fun script_isrunning ||
-#  uc_script_load "user-tools"
->/dev/null 2>&1 declare -f script_isrunning ||
-  . "${US_BIN:-${HOME:?}/bin}/user-script.sh"
-
-stderr_log ()
-{
-  local stat=${4:-$?}
-  >&2 echo "$*"
-  return ${stat}
-}
-export LOG=stderr_log
+# XXX: cleanup; Load simple shell log for now...
+#. /srv/conf-local/tool/uconf/part/-uconf-shell-log.sh
 
 ! script_isrunning "user-tools" || {
-  _IFDBG _DEBUG "Starting user-tools script load..."
+  #_IFDBG _DEBUG "Starting user-tools script load..."
   user_script_load || exit $?
 
   script_defcmd=location

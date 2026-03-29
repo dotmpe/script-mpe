@@ -2,23 +2,20 @@
 
 ### User auto-complete menu
 
-#shellcheck disable=1087
+# TODO: build completion as aggregate namespace, this requires merging several
+# types of completions and managing potentially large sets. See sd:uc:context
 
-# Build pseudo command for exploring completion
+# Build pseudo command for exploring completion.
 alias user="echo user"
 
-declare -ga UC_AC_COMP
-declare -g UC_UM_DEFAULT=default
-declare -gA __UC_UM_ROOT
-__UC_UM_ROOT=(
-  [compgen]=uc:um:compgen
-  [alias]=uc:um:compgen:alias
-)
+#declare -ga UC_AC_COMP
+#declare -g UC_UM_DEFAULT=default
 
-# TODO: build from user (shell) alias table
-#declare -gA __UC_UM_ALIAS
-#__UC_UM_ALIAS=(
-#)
+declare -gA __UC_MENU_USER
+__UC_MENU_USER=(
+  [compgen]=uc:um:compgen
+  [alias]=uc_um_compgen:alias
+)
 
 # Simple user-menu with command-option map for compgen AC sets
 declare -gA __UC_UM_COMPGEN
@@ -63,39 +60,55 @@ __UC_UM_MENU_FOO=(
 #    esac
 #done
 
-__uc_ac__bin ()
+__uc_ac_complete ()
 {
-  mapfile COMPREPLY <<< "$("${@:?}")"
+  __uc_ac_readlines compgen "${@:?}"
 }
 
-__uc_um_ac ()
+__uc_ac_readlines ()
 {
-  [[ $COMP_CWORD -gt 1 ]] && {
-    false
-  } || ctx=uc:um:root key=${COMP_WORDS[COMP_CWORD]}
+  mapfile -t COMPREPLY <<< "$("${@:?}")"
+}
 
-  declare ref mvar mname=${1:-root} prev=${2:?} cur=${3:-}
-  mvar=__UC_UM_${mname^^}
-  #eval "menu=( \"\${${mvar}[@]}\" )"
-  eval "ref=\${${mvar}[\$prev]}" &&
-  echo "mvar=$mvar ref=$ref prev=$prev cur=$cur" >&2
-  test -n "$ref" && {
-    dir=${ref//:*}
-    echo __uc_um_ac__${dir:?} ${ref/*:} >&2
-    __uc_um_ac__${dir:?} ${ref/*:} || return
-  }
-  true
+__uc_um_ac__simple_array_menu ()
+{
+  local -n COMP_WORD='COMP_WORDS[COMP_CWORD]'
+
+  local mname=${3:-$1}
+  local -n __menu="__UC_MENU_${mname^^}"
+  [[ ${__menu[*]:+set} ]] || return
+
+  [[ ${COMP_WORD:+set} ]] || printf '\n%s' "Completions for $mname menu"
+  # shellcheck disable=2207 # Simple expansion is good enough here and makes
+  # mechanism immediatly clear.
+  COMPREPLY=( $(compgen -W "${!__menu[*]}" -- $COMP_WORD) )
+  #__uc_ac_complete -W "${!__menu[*]}" -- "$COMP_WORD"
 }
 
 __uc_user_menu ()
 {
-  declare cur
-  cur=${COMP_WORDS[COMP_CWORD]}
-  # Only do root
-  test $COMP_CWORD -eq 1 && {
-    COMPREPLY=( $(compgen -W "${!__UC_UM_ROOT[*]}" -- $cur) )
-    UC_COMP[$cur]=uc:um:root
+  local -n COMP_WORD='COMP_WORDS[COMP_CWORD]'
+  local uc_menu_{key,type}
+
+  [[ $COMP_CWORD = 1 ]] && {
+    uc_menu_type=array
+    uc_menu_key=user
+
+    # shellcheck disable=2207 # Simple expansion is good enough here and makes
+    # mechanism immediatly clear.
+    COMPREPLY=( $(compgen -W "${!__UC_MENU_USER[*]}" -- $COMP_WORD) )
+    UC_COMP["$COMP_WORD"]=uc:um:root
     return
+
+  } || {
+    local -n comp_word='COMP_WORDS[i]'
+    for (( i = 1; i < COMP_CWORD; i++ ))
+    do
+      key=${UC_COMP["$prev"]:?}
+      declare -n arr=__${key//:/_}
+      submenu_spec=${menu["$comp_word"]}
+
+    done
   }
 
   # Look at which level and context we are
@@ -171,6 +184,6 @@ __uc_user_menu ()
   return 1
 }
 
-complete -F __uc_um_ac user
+complete -F __uc_um_ac__simple_array_menu user
 
-#
+# ex:ft=bash:

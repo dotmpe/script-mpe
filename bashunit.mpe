@@ -1,0 +1,35 @@
+#!/usr/bin/bash
+#
+# bashunit.mpe - Use us-pp on unit test scripts
+#
+# Copyright: (C) 2026 hari <dev@dotmpe>
+#
+# Distributed under terms of the MIT license.
+: "${DEBUG:=0}"
+: "${QUIET:=0}"
+! ((DEBUG)) || {
+  shopt -s extdebug
+  PS4='\[\033[0m\]${BASH_SOURCE:+\[\033[34m\]$BASH_SOURCE\[\033[36m\]:\[\033[32m\]${LINENO}} \[\033[33m\]+\[\033[0m\] '
+  ((QUIET)) ||
+    >&2 echo "$$$-\$ $0 ${*@Q}"
+}
+set -euo pipefail
+IFS=$' \t\n'
+: "${BASH_SOURCE##*/}"
+if [[ ${0##*/} == "${_%%.*}" || "${0##*/}" == "${_%%.*}".* ]]
+then
+  . us-pp
+  PATH+=:$U_S/tool/bash/part
+  . us-core.inc.bash
+  . us-pp.inc.bash
+  . us-shell.inc.bash
+  . us-str.inc.bash
+  . us-use.inc.bash
+  userscripts::use userscripts::core
+  userscripts::use userscripts::string
+  userscripts::use userscripts::preproc
+  _us_pp_prepfile .mpe "$1"
+  _us_gpp shell_mode -I. -DLANG=bash "$us_pp_output" -o "$us_pp_output.i"
+  /usr/bin/bashunit "${us_pp_output}.i"
+  exit
+fi

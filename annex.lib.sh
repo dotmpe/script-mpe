@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ## Annex: consolidated, distributed (file) data collections
 

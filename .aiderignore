@@ -1,0 +1,25 @@
+# Focussing on shell only for now
+*.py
+requirements*txt
+
+# Cross project symlink targets
+/src/local/user-conf+current/tool/redo/recipe/-uc-build.build-targets.spec.do
+/src/local/user-conf+current/tool/redo/recipe/-uc-build.build-targets.target.do
+/src/local/user-conf+current/tool/uc/part/-ucbuild-env-boot.sh
+/src/local/user-conf+current/tool/uc/part/-ucbuild-env-build.sh
+/src/local/user-conf+current/tool/uc/part/-ucbuild-env-local.sh
+/src/local/user-conf+current/tool/uc/part/-ucbuild-env-pack.sh
+/src/local/user-conf+current/tool/uc/part/-ucbuild-env-static.sh
+/src/local/user-conf+dev/tool/redo/recipe/at.build+init.bash,uc.do
+ansi-color-palette-test-urwid
+# /src/vendor/github.com/urwid/urwid/examples/palette_test.py
+tool/bash/part/.vim-template:.bash
+# /srv/home-local/.local/etc/vim/templates/us-part.bash
+run-dev.sh
+# /srv/home-local/project/user-conf/run-dev.sh
+build-file.sh
+# /srv/home-local/project/user-scripts/tool/build/part/build-file.sh
+# Makefile
+/usr/local/share/mkdoc/Mkdoc-full.mk
+# Submodules
+lib/gherkin-assert

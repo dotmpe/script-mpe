@@ -1,6 +1,6 @@
 namespacetab_reader_lib__load()
 {
-  : about "Helper for @NamespacesTab"
+: about "Helper for @NamespacesTab"
   : "${NSTAB_SH:=cache/ns-main.sh}"
   : "${NSTAB:=index/ns.tab}"
 }

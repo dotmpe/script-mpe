@@ -177,7 +177,8 @@ try:
 except: # XXX py3? ModuleNotFoundError:
     pass
 
-import libcmd_docopt, confparse
+from script_mpe import libcmd_docopt
+from script_mpe import confparse
 from jsotk_lib import PathKVParser, FlatKVParser, \
         load_data, stdout_data, readers, open_file, \
         get_src_dest_defaults, set_format, get_format_for_fileext, \

@@ -1,4 +1,3 @@
-#!/bin/sh
 
 
 context_lib__load()
@@ -59,7 +58,7 @@ context ()
 
 context_add () # ~ [<PCTX>]
 {
-  : about "Look for tag refs"
+: about "Look for tag refs"
   local lk=${lk-}:context-add
   [[ $# -gt 0 ]] || set -- ${PCTX?}
   class_find "$@" &&
@@ -84,7 +83,7 @@ context_acquire () # ~ <var> <tag> [<constructor-args...>]
 
 context_assert () # ~ [<CTX>]
 {
-  : about "Require that present or given class references are present (exists and are loaded)"
+: about "Require that present or given class references are present (exists and are loaded)"
   test $# -gt 0 || set -- ${CTX?}
   set -- $(context_class_names "$@") &&
   test $# -eq 0 && return
@@ -770,4 +769,4 @@ context_literalid_entry () # STR
   context_tab | $ggrep $grep_f "^[0-9a-z -]*\b[^:]*:\\?\( .*\)\\? \`\`$p_\`\`\( \|$\)"
 }
 
-#
+# Id: context.lib                                vim:set ft=bash sw=2 sts=2 et:

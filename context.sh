@@ -445,8 +445,6 @@ context_sh_unload ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-us-env -r us:boot.screnv &&
-
 us-env -r user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "context.sh" || {

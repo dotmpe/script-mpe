@@ -130,13 +130,21 @@ case "$1" in
         ;;
 
     relief ) shift
-            figlet -w "$COLS" -f relief "$@" | sed -E '
+            figlet -w "$COLS" -f "Relief 2" "$@" | sed -E '
     s/_/'$esc'[1;30m_'$esc'[0m/g
     s/\//'$esc'[0;32m\/'$esc'[0m/g
     s/\\/'$esc'[0;34m\\'$esc'[0m/g
     s/~/'$esc'[0;37m\~'$esc'[0m/g
   '
         ;;
+
+    iso1 )
+        figlet -f Isometric1 "${2:-ucnz}"
+      ;;
+
+    iso4 )
+        figlet -f Isometric4 "${2:-nuon}"
+      ;;
 
     list )
           ( cd "${FIGLET_FONTS_DIR:?}" && ls *.flf | sed 's/\.flf$//g' )

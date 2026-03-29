@@ -1,3 +1,7 @@
+uc_ac_context ()
+{
+  :
+}
 
 ac_spec () # ~ <Cmd-name> # Print auto-complete declaration for command or return nonzero status
 {
@@ -15,9 +19,14 @@ ac_sym () # ~ <Cmd>
 # separate line.
 uc_compgen_from_array () # ~ [<Complete-word>] [<Word-arr>]
 {
-  #shellcheck disable=2178 # Var is name-ref to array
   declare -n arr=${2:?}
-  compgen -W "${arr[*]@Q}" -- "${1-}"
+  compgen -W "${arr[*]}" -- "${1-}"
+}
+
+uc_compgen_from_keys () # ~ [<Complete-word>] [<Key-map>]
+{
+  declare -n map=${2:?}
+  compgen -W "${!map[*]}" -- "${1-}"
 }
 
 # AC handler using us-exec-commands list
@@ -54,4 +63,4 @@ us_exec_commands () # ~ [<Complete-word>] [<Cmd-arr->]
     done
 }
 
-#
+# ex:ft=bash:

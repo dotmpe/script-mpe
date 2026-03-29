@@ -1,1 +1,1 @@
-/home/hari/project/user-conf-dev/run-dev.sh
+/srv/home-local/project/user-conf/run-dev.sh

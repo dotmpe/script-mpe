@@ -5,12 +5,6 @@
 
 htd_src=$_
 
-#set -o posix
-set -euETo pipefail
-
-# Remove DEBUG and other log control vars from exported env
-us-env -r us:boot.screnv
-
 version=0.0.4-dev # script-mpe
 
 # Generic load/unload for subcmd
@@ -810,7 +804,8 @@ htd__volumes()
     treemap ) shift ; htd_volumes_treemap "$@" ;;
 
     id ) shift
-        get_cwd_volume_id "$1"
+        path_volume_id volid "${1:?}" &&
+        echo "$volid"
       ;;
 
     * ) error "? '$*'" 1 ;;
@@ -1970,20 +1965,6 @@ htd__find_empty_dirs()
   local find_ignores="$(ignores_find $IGNORE_GLOBFILE)"
   test -n "$find_ignores" || fail "Cannot compile find-ignores"
   eval find $1 -false $find_ignores -o -empty -a -type d -a -print
-}
-
-htd_als__largest_files=find-largest
-htd__find_largest() # Min-Size
-{
-  test -n "$1" || {
-    set -- 15
-    note "Set min-size to $1MB"
-  }
-  # FIXME: find-ignores
-  test -n "$find_ignores" || {
-    test -n "$2" && find_ignores="$2" || find_ignores="-not -iname .git "
-  }
-  eval find . \\\( $find_ignores \\\) -a -size +${MIN_SIZE}c -a -print | head -n $1
 }
 
 htd_als__filesize=file\ size
@@ -4682,7 +4663,7 @@ htd_main ()
 
   case "$base" in
 
-    $scriptname )
+    "$scriptname" )
         test -n "${subcmd-}" || {
           test -t 0 && set -- main-doc-edit || set -- status
         }
@@ -4761,6 +4742,11 @@ case "$0" in "" ) ;; "-"* ) ;; * )
 
   set -euETo pipefail
   shopt -s extdebug
+  #set -o posix
+
+  # Remove DEBUG and other log control vars from exported env
+  #us-env -r us:boot.screnv
+  us-env -r user-script
 
   # Ignore 'load-ext' sub-command
   test "${1-}" = load-ext ||

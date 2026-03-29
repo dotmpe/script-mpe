@@ -2,7 +2,8 @@ us_palette_extra_pre=User-Script.Palette
 us_palette_extra_var=(
   User_Script_Palette_blboron16_console
   User_Script_Palette_blboron16_alacritty
-  User_Script_Palette_stdmap_dark
+  User_Script_Palette_nord19
+  #User_Script_Palette_stdmap_dark
 )
 
 # The Bunsenlabs Boron palette for the linux console is again a bit different
@@ -42,6 +43,28 @@ e7 c5 47  BLBORONALACRITTY11 MAIZE
 c3 97 d8  BLBORONALACRITTY13 PALE_PURPLE
 70 c0 b1  BLBORONALACRITTY14 PALE_TEAL
 ea ea ea  BLBORONALACRITTY15 PALE_GREY WHITE"
+
+# XXX: this repeats colors and is fairly conservative, could be better
+User_Script_Palette_nord19=\
+'3b 42 52  nord1
+bf 61 6a  nord11
+a3 be 8c  nord14
+eb cb 8b  nord13
+81 a1 c1  nord9
+b4 8e ad  nord15
+88 c0 d0  nord8
+e5 e9 f0  nord5
+4c 56 6a  nord3
+bf 61 6a  nord11
+a3 be 8c  nord14
+eb cb 8b  nord13
+81 a1 c1  nord9
+b4 8e ad  nord15
+8f bc bb  nord7
+88 c0 d0  nord8
+d8 de e9  nordFg
+2e 34 40  nordBg
+d8 de e9  nordCursor'
 
 # FIXME: make 0 and 7 and some other as well depend on CS={dark,light} setting
 User_Script_Palette_stdmap_dark="\

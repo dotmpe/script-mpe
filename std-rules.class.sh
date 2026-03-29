@@ -1,6 +1,6 @@
 class_Std_Rules__load ()
 {
-  : about "TODO: Static 'run' handler loads @User/Conf/rules and goes over each key"
+: about "TODO: Static 'run' handler loads @User/Conf/rules and goes over each key"
   uc_class_declare Std/Rules User/Conf --libs stattab-class \
     --fields stattab &&
     #--uc-config rules StatTab ${UCONF:?}/user/rules/new.tab &&

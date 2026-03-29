@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 
-us-env -r us:boot.screnv &&
-
 us-env -r user-script || ${uc_stat:-exit} $?
-
-#test -n "${uc_lib_profile:-}" ||
-#  . "${UCONF:?}/etc/profile.d/bash_fun.sh" || ${us_stat:-exit} $?
-#
-#uc_script_load user-script || ${us_stat:-exit} $?
 
 ! script_isrunning "tasks" .sh ||
   uc_script_load us-als-mpe || ${us_stat:-exit} $?
@@ -178,9 +171,6 @@ tasks_local_init ()
 }
 
 # Main entry (see user-script.sh for boilerplate)
-
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
 
 ! script_isrunning "tasks" .sh || {
   export UC_LOG_BASE="${SCRIPTNAME}[$$]"

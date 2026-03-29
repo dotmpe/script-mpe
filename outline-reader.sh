@@ -1,7 +1,7 @@
 
 # TODO: simple txt outline for source files
 
-#uc_script_load user-script
+us-env -r user-script || ${uc_stat:-exit} $?
 
 lib_load os-htd rules
 

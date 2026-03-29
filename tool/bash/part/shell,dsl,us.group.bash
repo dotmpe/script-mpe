@@ -1,7 +1,9 @@
 us_dsl_shell_pre=User-Script.Shell
 us_dsl_shell_grp=( us-arr )
+
 declare -gA \
 us_dsl_shell_als=(
+
   [_Sh_ByName_Add]=.byname-add-unique
   [_Sh_ByName_Concat_After]=.byname-concat-after
   [_Sh_ByName_Set]=.byname-set-value
@@ -17,3 +19,10 @@ us_dsl_shell_als=(
   [_Sys_Arr_Union]=User-Script.Array.union
   [_Sys_Arr_Find]=User-Script.Array.find
 )
+
+declare -gA \
+us_dsl_shell_ssc=(
+
+  [:pass]=return
+)
+#

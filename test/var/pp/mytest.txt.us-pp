@@ -1,0 +1,14 @@
+#!/usr/bin/env uc-build
+# About mytest text
+# Copyright 2026
+#&'debug'
+#:data test/var/pp/mytest.data.bash
+#<expand num myarr
+some script {num}
+#<expand key val data_sub{num}_arr
+  some more script {key}={val}
+#/expand
+#<expand lit mysecondarr{num}
+{lit}
+#/expand
+#/expand

@@ -1,1 +1,1 @@
-/home/hari/project/user-scripts/tools/build/parts/build-file.sh
+/srv/home-local/project/user-scripts/tool/build/part/build-file.sh

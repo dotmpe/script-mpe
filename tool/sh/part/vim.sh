@@ -12,7 +12,7 @@ sh_exe vi || alias vi='vim-bin'
 # NOTE: Hides stderr so make sure command works.
 vim_cmd_stdout () # ~ <Cmd>
 {
-  : source "us-bin+mpe:tool/sh/part/vim.sh"
+: source "us-bin+mpe:tool/sh/part/vim.sh"
   vim -c ':set t_ti= t_te= nomore' -c "$1"'|q!' 2>/dev/null
 }
 # Copy: vim.lib:
@@ -21,13 +21,13 @@ vim_cmd_stdout () # ~ <Cmd>
 # Override both vim and vimdiff with function that wraps sudo as well, so I
 # never need to think about access rights.
 vim () {
-  : source "us-bin+mpe:tool/sh/part/vim.sh"
+: source "us-bin+mpe:tool/sh/part/vim.sh"
   SUDO_SHADOW_ALL_ARGS=${SUDO_SHADOW_ALL_ARGS:-1} \
   bin_opts="-u ~/.vimrc" \
   shadow=vim bin_shadow_edit__sudo_nonwritable "$@"; }
 
 vimdiff () {
-  : source "us-bin+mpe:tool/sh/part/vim.sh"
+: source "us-bin+mpe:tool/sh/part/vim.sh"
   SUDO_SHADOW_ALL_ARGS=${SUDO_SHADOW_ALL_ARGS:-1} \
   bin_opts="-u ~/.vimrc" \
   shadow=vimdiff bin_shadow_edit__sudo_nonwritable "$@"; }
@@ -42,7 +42,7 @@ alias edit-file='${EDITOR:?}'
 # TODO: renamed from vim-exe
 script_edit () # ~ <Exec-name> # Look on path for executable file, and invoke edit-file alias
 {
-  : source "us-bin+mpe:tool/sh/part/vim.sh"
+: source "us-bin+mpe:tool/sh/part/vim.sh"
   #shellcheck disable=2046
   set -- $(for arg in "$@"
     do test -e "$arg" && echo "$arg" || command -v "$arg"
@@ -98,7 +98,7 @@ sh_exe vim && VDIFF=vimdiff || VDIFF=$EDITOR
 # shellcheck disable=SC2154 # shadow is assigned outside function
 bin_shadow_edit__sudo_nonwritable ()
 {
-  : source "us-bin+mpe:tool/sh/part/vim.sh"
+: source "us-bin+mpe:tool/sh/part/vim.sh"
 
   test "${SUDO_SHADOW_ALL_ARGS:-0}" = "1" && {
     # Check if all paths or directories exist

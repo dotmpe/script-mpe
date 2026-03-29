@@ -2,7 +2,7 @@
 # command response metadata in structure.
 meta__git_annex__dump () # (out-fmt) ~ <File>
 {
-  : about "Dump Git Annex metadata for file in requested format"
+: about "Dump Git Annex metadata for file in requested format"
 
   local data
   case "${out_fmt:-kv}" in
@@ -21,14 +21,14 @@ meta__git_annex__dump () # (out-fmt) ~ <File>
 
 meta__git_annex__raw () # ~ <Var> <File>
 {
-  : about "Read Git Annex metadata listing to variable"
+: about "Read Git Annex metadata listing to variable"
   if_ok "$(git annex metadata "${2:?}")" &&
   read -r ${1:?} <<< "$_"
 }
 
 meta__git_annex__raw_json () # ~ <Var> <File>
 {
-  : about "Read Git Annex metadata JSON string to variable"
+: about "Read Git Annex metadata JSON string to variable"
   if_ok "$(git annex metadata <<< "$(printf '{"file":"%s"}' "${2:?}")")" &&
   read -r ${1:?} <<< "$_"
 }

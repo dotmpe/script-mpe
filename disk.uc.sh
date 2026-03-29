@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 
 # Start user-script early because we're using aliased script parts
-test -n "${uc_lib_profile:-}" || . "${UCONF:?}/etc/profile.d/bash_fun.sh"
-uc_script_load user-script
+us-env -r user-script || ${us_stat:-exit} $?
 
+! script_isrunning "disk.uc" .sh || {
+  ALIASES=1 user_script_shell_mode
 
-# XXX: setup aliases
-! script_isrunning "disk.uc.sh" || {
   # Use alsdefs set to cut down on small multiline boilerplate bits.
   user_script_alsdefs \
     sa_a1_disk_dev l-argv1-bdev disk_dev "" \$lk ""
@@ -92,7 +91,6 @@ disk_uc_check () # ~
   esac
 }
 
-
 disk_uc_list () # ~
 {
   local actdef=summary lkn=list; sa_a1_act_lk
@@ -107,7 +105,7 @@ disk_uc_list () # ~
 
   ( d|dev|devices|disks ) disks_uc list-devices "$@" ;;
 
-  ( disks-df-info ) df -Th -x tmpfs -x devtmpfs -x squashfs ;;
+  ( disks-df-info ) df -Th -x tmpfs -x devtmpfs -x squashfs k;;
 
   ( dd|doc ) disks_uc ddoc-media-ids ;;
 
@@ -156,16 +154,15 @@ disk_uc_list () # ~
   esac
 }
 
-
 disk_uc_status () # ~
 {
   local actdef=summary; sa_a1_act_lk
-  false
+  TODO
 }
 
 disks_uc ()
 {
-  local actdef=info; sa_a1_act_lk_2
+  local actdef=info; sa_a1_act_lk
   case "$act" in
 
   ( disk-info ) test $# -eq 0 || { local disk_dev=${1:?}; shift; }
@@ -183,6 +180,10 @@ disks_uc ()
     ;;
   ( disk-load|load ) diskdoc_load_disk "$disk_dev" ;;
   ( disk-load-lsblk|load-lsblk ) diskdoc_load_disk_lsblk "$disk_dev" ;;
+
+  ( disk-record-lshw )
+      TODO
+    ;;
 
   ( ddoc ) # List current user doc
       jsotk --pretty $USER_DISKS ;;
@@ -440,7 +441,7 @@ disk_uc_defaults ()
 
   : "${UC_DISK_DGLOB:="\{nvme[0-9]n[1-9],sd[a-z]}"}"
 
-  : "${ll:=$HOME/bin/log.sh}"
+  : "${ll:=${LOG:-$HOME/bin/log.sh}}"
 
   { test -z "${iact:-}" && test -t 1 || trueish "$iact"
   } && iact=true || iact=false
@@ -452,9 +453,10 @@ disk_uc_defaults ()
 ## User-script parts
 
 
-disk_uc_maincmds="status stat check list help version"
+disk_uc_maincmds="status stat check list main help version"
 disk_uc_shortdescr=''
 
+# FIXME: defargs
 disk_uc_aliasargv ()
 {
   case "$1" in
@@ -477,27 +479,34 @@ disk_uc_loadenv ()
     case "$1" in
 
       ( us-lib )
-          . $U_S/tools/sh/init.sh || return
+          # FIXME: cleanup
+          #. $U_S/tools/sh/init.sh || return
         ;;
 
       ( disk )
-          { lib_require \
+          lib_require \
               args statusdir statusdir-fsdir \
               date \
               disk disktab diskdoc htd-disk
-          } || return
+        ;;
+
+      ( pyenv )
+          PYTHONPATH+=:$HOME/.local/lib/py &&
+          export PYTHONPATH &&
+          PY_VENV_NAME=script-mpe &&
+          pyvenv_start &&
+          $ll info :disk-uc:loadev "Python virtual env $PY_VENV_NAME activated"
         ;;
 
       ( rules )
-          { lib_require \
-              env-main rules
-          } || return
+          lib_require env-main rules
         ;;
 
       #( user_script_handlers ) set -- "" all ;;
       #( us_media ) set -- "$@" media ;;
 
-      ( * ) set -- "" us-lib disk rules
+      ( * )
+          set -- "" us-lib pyenv disk rules
           disk_uc_defaults
         ;;
     esac
@@ -507,15 +516,15 @@ disk_uc_loadenv ()
 
 # Main entry (see user-script.sh for boilerplate)
 
-! script_isrunning "disk.uc.sh" || {
-  user_script_load || exit $?
+! script_isrunning "disk.uc" .sh || {
+  user_script_load || failerr "E$? user-script-load" || exit
 
   # Pre-parse arguments
-  base=disk.uc
   script_defcmd=check
   user_script_defarg=defarg\ aliasargv
 
-  eval "set -- $(user_script_defarg "$@")"
+  # FIXME:
+  #eval "set -- $(user_script_defarg "$@")"
 
   script_run "$@"
 }

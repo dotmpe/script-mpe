@@ -229,7 +229,7 @@ sd_fsdir_inner()
       index ) # [prefvar=$1_name_prefix] [extvar=$1_extension] ~ Local-Name [Exists]
           { not_falseish "${2-}" || test -e "${STATUSDIR_ROOT}$rtype/$1"
           } || {
-            $LOG error "" "No such $rtype '$act'" "${STATUSDIR_ROOT}$rtype/$1"
+            $LOG error ":fsdir:index" "No such $rtype '$act'" "${STATUSDIR_ROOT}$rtype/$1"
             return 2
           }
           k="$1" && shift

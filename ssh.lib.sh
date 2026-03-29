@@ -2,7 +2,7 @@
 
 ssh_lib__load ()
 {
-  true
+  :
 }
 
 ssh_lib__init ()

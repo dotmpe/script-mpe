@@ -6,7 +6,7 @@ alias user-bg-eval='user-bg.sh run-eval'
 # Inherit v from current shell or set maximum verbosity
 alias user-bg-v='user-bg-eval eval v=${v:-${verbosity:-7}}'
 
-alias user-bg-debug='user-bg-eval eval DEBUG=true UC_DEBUG=true US_DEBUG=true'
+alias user-bg-debug='user-bg-eval eval DEBUG=1 UC_DEBUG=1 US_DEBUG=1'
 
 alias user-bg-vv='user-bg eval echo \
 v=\${v:-\${verbosity:-\(unset\)}} \
@@ -14,9 +14,9 @@ uc_log=\${uc_log:-\(unset\)} \
 LOG=\${LOG:-\(unset\)} \
 INIT_LOG=\${INIT_LOG:-\(unset\)} \
 UC_LOG_LEVEL=\${UC_LOG_LEVEL:-\(unset\)} \
-DEBUG=\${DEBUG:-\(unset\)} \
-UC_DEBUG=\${UC_DEBUG:-\(unset\)} \
-US_DEBUG=\${US_DEBUG:-\(unset\)} '
+DEBUG=\${DEBUG:-0} \
+UC_DEBUG=\${UC_DEBUG:-0} \
+US_DEBUG=\${US_DEBUG:-0} '
 
 
 # Load uc-profile helpers

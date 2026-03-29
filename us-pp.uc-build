@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+#
+# us-pp - super simple shell-script preproc implementation and wrapper
+#
+# Copyright 2026 hari <hari@t470p>
+#
+# Distributed under terms of the MIT license.
+
+#&'debug'
+#&'strict'
+#&'log'
+
+: "${UC_DATA_DIR:=/var/local/statusdir}"
+: "${us_pp_data:=$UC_DATA_DIR/pp,uc.data.bash}"
+
+#:data /var/local/statusdir/pp,uc.data.bash
+
+# FIXME: below routines are more like script parts than library functions, see
+# about working with such namespaces as well uc-afs uc-cmp may be, to use a
+# private function context for script use/editions. Ie. can easily map _us_pp
+# with other types of dispatching cq handling.
+
+#<expand op_sym op_name us_pp_op
+_us_pp_op_{op_name} ()
+{
+  case "$current_dir" in
+   
+#<expand dir script us_pp_{op_name}_dir
+  ( {dir} )
+      {script}
+    ;;
+#/expand
+
+  esac
+}
+
+#/expand
+
+#userscript::preproc::
+try_parse_pp_dir ()
+{
+  local _line=${1}
+#shellcheck disable=1009,1054,1056,1072,1073,1083
+  case "$line" in
+#<expand dir script uc_pp_directives
+
+    ( "{dir}" )
+        {script}
+      ;;
+#/expand
+#<expand ref uc_pp_snips
+
+    ( "{ref}" )
+#<expand lang script uc_pp_snips_{ref}
+        case "${lang}" in
+          ( "{lang}" )
+              {script}
+            ;;
+        esac
+#/expand
+      ;;
+#/expand
+  esac
+}
+

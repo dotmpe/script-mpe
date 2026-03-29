@@ -1,12 +1,13 @@
+# TODO: cleanup
 script_mpe_part_fun_user_load ()
 {
-  : source script-mpe:tool/sh/part/fun-user.sh
+: source script-mpe:tool/sh/part/fun-user.sh
   . "${US_BIN:?}"/tool/sh/part/fun-user.sh
 }
 
 user_fun ()
 {
-  : source script-mpe:tool/sh/part/fun-user.sh
+: source script-mpe:tool/sh/part/fun-user.sh
 
   declare -ga \
     user_{{script,desktop}_,}dirs \
@@ -44,12 +45,4 @@ user_fun ()
   _NOTICE "User function env node initialized"
 }
 
-
-mpe_grep_dirs () # ~ <grep-args...> [ -- <dirs...> ]
-{
-  :
-}
-
-# TODO: define user-user as alias parts as well?
-alias user-grep=''
-#
+# Id: us-bin:tool/sh/part/fun-user.sh              vim:set ft=sh sw=2 sts=2 et:

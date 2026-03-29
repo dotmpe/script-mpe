@@ -1,5 +1,5 @@
 user_dirs_pre=User.Dirs
-user_dirs_grp=( user-config user-grep )
+#user_dirs_grp=( user-config user-grep )
 declare -gA \
 user_dirs_als=(
   )
@@ -23,10 +23,10 @@ user_dirs_ssc=(
 declare -gA \
 user_dirs_hooks=(
   [define]=\
+'  user_config[basedir.uc-dev]="~/{.conf,bin,.l/c,htdocs,project/{user-conf,user-scripts{,-incubator}}}"
+  user_config[basedir.user-dirs]=~/{Desktop,Documents,Downloads,Pictures,Videos,Music}'
+  [init]=\
 'User.Config.expand-keymatch-filterhandle  user_dirs     basedir.user-dirs   test -d
 User.Config.expand-keymatch-filterhandle   user_dev      basedir.uc-dev      test -d
 User.Config.expand-keymatch-filterhandle   user_basedirs basedir."*"         test -d'
-  [init]=\
-'  user_config[basedir.uc-dev]="~/{.conf,bin,.l/c,htdocs,project/{user-conf,user-scripts{,-incubator}}}"
-  user_config[basedir.user-dirs]=~/{Desktop,Documents,Downloads,Pictures,Videos,Music}'
 )

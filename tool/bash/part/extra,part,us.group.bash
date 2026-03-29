@@ -27,8 +27,8 @@ us_part_extra_dep=(
 
 User-Script.Part.x-iter-parts ()
 {
-  : about 'Helper to iterate over specific part elements'
-  : extended 'See also iter-sources'
+: about 'Helper to iterate over specific part elements'
+: extended 'See also iter-sources'
   # TODO: utils and wrappers for DSL routines
 
   local -I US_SCR_{EXT,PATH,HASH,STAT}

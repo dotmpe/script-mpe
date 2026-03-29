@@ -36,10 +36,8 @@ image_version=0.0.0-alpha
 #image_defcmd=short
 image_maincmds=scale,crop,tint,colorize
 
-us-env -r us:boot.screnv &&
 us-env -r user-script || ${us_stat:-exit} $?
 
-#uc_script_load user-script
 # TODO: fix commands list output for baseless=true
 # Default value:
 image__grp=user-script

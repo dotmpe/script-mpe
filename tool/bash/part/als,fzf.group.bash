@@ -1,15 +1,22 @@
-## Fzf utils for use in user-shell
+fzf_als_pre=Fzf.Alias
+fzf_als_cnk=455e4d6f
+declare -gA \
+feh_als_hooks=(
+  [init]=\
+': "${FZF_DEFAULT_COMMAND:=find . -not -type l}"'
+)
+fzf_als_var=(
+)
+fzf_als_fun=(
+)
+
+>&2 echo "TODO: convert fzf-als to group"
 
 #[ -n "${fzf_lib_load-}" ] || lib_require fzf
 [ -n "${fzf_lib_load-}" ] || . ${US_BIN:?}/fzf.lib.sh
 
-fzf_als_fun=(
-)
-
 #alias vf=fzf-edit-preview
 alias vf='fork=false fzf_edit_preview'
-
-: "${FZF_DEFAULT_COMMAND:=find . -not -type l}"
 
 # Fzf env var for user preferences
 : "${FZF_DEFAULT_OPTS:=--exact -i}"
@@ -32,23 +39,19 @@ typeset -gx FZF_DEFAULT_OPTS FZF_DEFAULT_COMMAND FZF_CHAUVET
 # Additional options for fzf-edit-* functions
 : "${FZF_EDIT_OPTS:=--multi}"
 
-if_ok "$(command -v batcat)" &&
-declare -gx bat_exe=batcat || {
-  if_ok "$(command -v bat)" &&
-  declare -gx bat_exe=bat
-}
-
-
 alias fzf_chdir='cd $(FZF_DEFAULT_COMMAND="find ./ -type d" FZF_CTRL_T_COMMAND="cd" fzf)'
 
 # Edit files after interactive selection on name
 alias fzf-edit='if_ok "$(fzf $FZF_EDIT_OPTS)" && $EDITOR $_'
 alias fzf-edit-preview='if_ok "$(fzf-preview $FZF_EDIT_OPTS)" && $EDITOR $_'
 
-# Use batcat to preview highlighted plain-text files
-alias fzf-preview="fzf --preview='\${bat_exe}\${IF_LANG:+ -l \$IF_LANG} --color always --style numbers {}'"
+[[ ! ${bat_exe:+set} ]] || {
 
-alias fzf-preview-bat-themes='$bat_exe --list-themes | fzf --preview="$bat_exe --theme={} --color=always ${FZF_PREVIEW_FILE:-~/bin/user-script.sh}"'
+  # Use batcat to preview highlighted plain-text files
+  alias fzf-preview="fzf --preview='\${bat_exe}\${IF_LANG:+ -l \$IF_LANG} --color always --style numbers {}'"
+
+  alias fzf-preview-bat-themes='$bat_exe --list-themes | fzf --preview="$bat_exe --theme={} --color=always ${FZF_PREVIEW_FILE:-~/bin/user-script.sh}"'
+}
 
 # Feh is a good choice for any WM env I think
 alias fzf-view-nomux="fzf --preview='feh --title feh-preview -B ${feh_bg:-} -Z {} -.' --preview-window=0"

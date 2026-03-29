@@ -1,6 +1,6 @@
 class_Dev__load ()
 {
-  : about "Dev class context"
+: about "Dev class context"
   uc_class_declare Dev XContext
 }
 

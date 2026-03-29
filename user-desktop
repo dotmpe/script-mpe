@@ -2,12 +2,7 @@
 
 ### User desktop: helper commands for appearance and window manager
 
-us-env -R "$0" "$@"
-
-. "user-script.sh"
-lib_load sys user-script
-#us-env -r us:boot.screnv &&
-#us-env -r user-script || ${uc_stat:-exit} $?
+us-env -r user-script
 
 ! script_isrunning "user-desktop" || {
   append_path "${US_BIN:?}/tool/sh/part"

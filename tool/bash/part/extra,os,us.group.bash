@@ -4,28 +4,34 @@
 
 us_os_extra_pre=User-Script.OS.x
 us_os_extra_cnk=687166b5
-us_os_extra_grp=(
-)
 us_os_extra_var=(
 )
 us_os_extra_fun=(
+  .expand-pathref
   .iter-sources
+  .lookup-expand{,-commands}
+  .lookup-expand-path{s,tree}
+  .lookup-expand-safe{,names}
   .lookup-list
+  .local-lookup-list
   .first-status
   .script-table
+  .unique-paths
 )
 declare -gA \
 us_os_extra_als=(
   [mkdirs]='>&2 mkdir -vp'
-  ["script-status"]='.script-status'
-  ["script-loaded"]='.script-list'
+  [remove_dupes]=awk\ '!a[$0]++'
+  ["script.status"]='.script-status'
+  ["script.loaded"]='.script-list'
   ["PATH+names"]='.lookup-expand PATH'
   ["PATH+lines"]='.lookup-list PATH'
   ["PATH+pathnames"]='.lookup-expand-paths PATH'
-  [lookup-tree]='.lookup-expand-pathtree'
-  [path-tree]='.lookup-expand-pathtree PATH'
-  [path-list]=PATH+lines
-  [path-commands]='.lookup-expand-commands PATH'
+  [lookup.tree]='.lookup-expand-pathtree'
+  [cwd.lookup-list]='.local-lookup-list $PWD'
+  [path.tree]='.lookup-expand-pathtree PATH'
+  [path.list]=PATH+lines
+  [path.commands]='.lookup-expand-commands PATH'
   ["SCRIPTPATH+names"]='.lookup-expand SCRIPTPATH'
   ["SCRIPTPATH+lines"]='.lookup-list SCRIPTPATH'
   ["SCRIPTPATH+pathnames"]='.lookup-expand-paths SCRIPTPATH'
@@ -44,9 +50,36 @@ us_os_extra_hooks=(
 #''
 )
 
+User-Script.OS.x.expand-pathref ()
+{
+: param '~ <Var>'
+  local -n _us_os_pathref=${1}
+  while true
+  do
+    case "$_us_os_pathref" in
+      ( "~" )
+          _us_os_pathref=${HOME:?}
+        ;;
+      ( "~/"* )
+          _us_os_pathref=${HOME:?}${_us_os_pathref:1}
+        ;;
+      ( *"$"* )
+          [[ $_us_os_pathref =~ \$([A-Za-z_][A-Za-z0-9_]+) ]] && replace='$'${BASH_REMATCH[1]} || {
+            [[ $_us_os_pathref =~ \${([^}]+)} ]] && replace='${'${BASH_REMATCH[1]}'}' ||
+              failerr "Failed matching var for ${_us_os_pathref}" || return
+          }
+          local -n varref=${BASH_REMATCH[1]}
+          _us_os_pathref=${_us_os_pathref//"$replace"/"$varref"}
+        ;;
+      ( * ) return
+    esac
+  done
+}
+
 User-Script.OS.x.first-status ()
 {
-  : input "${1:?$FUNCNAME${*:+ $*}: Status map}"
+  # XXX: may want to group this with some apply* helper set
+: input "${1:?$FUNCNAME${*:+ $*}: Status map}"
   local -n _687166b5_stats1=${1}
   local _687166b5_stat1
   for _687166b5_stat1 in "${_687166b5_stats1[@]}"
@@ -57,8 +90,8 @@ User-Script.OS.x.first-status ()
 
 User-Script.OS.x.iter-sources ()
 {
-  : about 'Helper to iterate over specific parts'
-  : extended 'This is mostly to explore usage of data, see also iter-parts'
+: about 'Helper to iterate over specific parts'
+: extended 'This is mostly to explore usage of data, see also iter-parts'
   # This combines iterator and iteratee's in one select, but thats besides the
   # point here.
 
@@ -185,16 +218,16 @@ User-Script.OS.x.lookup-expand-commands ()
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_cmds
 }
 
-User-Script.OS.x.lookup-expand-pathtree ()
-{
-  local -a _find_pathtree=( -type d -not -path '*/.*' )
-  User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_pathtree
-}
-
 User-Script.OS.x.lookup-expand-paths ()
 {
   local -a _find_paths=( -maxdepth 1 -not -type d )
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_paths
+}
+
+User-Script.OS.x.lookup-expand-pathtree ()
+{
+  local -a _find_pathtree=( -type d -not -path '*/.*' )
+  User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_pathtree
 }
 
 User-Script.OS.x.lookup-expand-safe ()
@@ -204,8 +237,8 @@ User-Script.OS.x.lookup-expand-safe ()
 
 User-Script.OS.x.lookup-expand-safenames ()
 {
-  : param ' ~ <Lookup-path-var> [<Output-var>] [<Find-filter-argv-var>]'
-  : about 'List names found through lookup'
+: param ' ~ <Lookup-path-var> [<Output-var>] [<Find-filter-argv-var>]'
+: about 'List names found through lookup'
   : XXX "This should be whitespace safe, but is still meant for safe filenames"
   local _bd _print=0
   local -n _lookup=${1:?$FUNCNAME: Name expected for input variable, $ENV_CTX}
@@ -225,8 +258,26 @@ User-Script.OS.x.lookup-expand-safenames ()
   done
 }
 
+User-Script.OS.x.local-lookup-list ()
+{
+  : param '[<Path=PWD>] [<Dest>]'
+  : about 'Generate lookup sequence for path and all its directories'
+  local path=${path:-$PWD} sub
+  [[ ${2:+set} ]] &&
+  local -n _us_os_lll=${2} || local _us_os_lll
+  _us_os_lll+="$path"$'\n'
+  until [[ ! ${path:+set} ]]
+  do
+    path="${path%/*}"
+    _us_os_lll+="${path:-/}"$'\n'
+  done
+  [[ ${2:+set} ]] || printf '%s' "$_us_os_lll"
+}
+
 User-Script.OS.x.lookup-list ()
 {
+  : param '<Seq-var> [<Dest>]'
+  : about 'List lookup sequence string as lines'
   local -n _lookup=${1:?}
   local liststr="${_lookup//:/$'\n'}"
   (($#-1)) && {
@@ -237,7 +288,7 @@ User-Script.OS.x.lookup-list ()
 
 User-Script.OS.x.parent-process ()
 {
-  : param '~ [<PID>] [<Ps-argv>] [<Outvars...>]'
+: param '~ [<PID>] [<Ps-argv>] [<Outvars...>]'
   local _us_os_out{,v}
   ! (($#-2)) && _us_os_outv=( _us_os_out ) || _us_os_outv=( "${@:3}" )
   if_ok "$(ps -o ppid= -p ${1:-$$})" &&
@@ -249,8 +300,8 @@ User-Script.OS.x.parent-process ()
 
 User-Script.OS.x.script-table ()
 {
-  : input "${1:?$FUNCNAME${*:+ $*}: Hash map}"
-  : input "${2:?$FUNCNAME${*:+ $*}: Status map}"
+: input "${1:?$FUNCNAME${*:+ $*}: Hash map}"
+: input "${2:?$FUNCNAME${*:+ $*}: Status map}"
   local -n _687166b5_hash1=${1} _687166b5_stats2=${2} _687166b5_hash2 \
     _687166b5_key1='_687166b5_hash1[$_687166b5_als]' \
     _687166b5_key2='_687166b5_hash2[$_687166b5_key1]' \
@@ -270,6 +321,15 @@ User-Script.OS.x.script-table ()
     done
     printf '\n'
   done
+}
+
+User-Script.OS.x.unique-paths ()
+{
+: FIXME
+  for path
+  do
+    test -e "$path" && realpath "$path" || echo "$path"
+  done | awk '!a[$0]++'
 }
 
 # Id: extra,os,us                                vim:set ft=bash sw=2 sts=2 et:
