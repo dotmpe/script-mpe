@@ -8,6 +8,7 @@ user_script_uc_env=1
 shopt -s extglob
 #>&2 trap
 
+#&'us-env'
 #us-env -r -us-env
 [[ ${US_ENV_PARTS:+set} ]] &&
 [[ ${US_ENV_INIT:+set} ]] &&

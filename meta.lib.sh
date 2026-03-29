@@ -7,7 +7,7 @@
 
 meta_lib__load ()
 {
-  true "${METADIR:=.meta}" # Relative ref for local meta directory
+  : "${METADIR:=.meta}" # Relative ref for local meta directory
 }
 
 meta_lib__init ()

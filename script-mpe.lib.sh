@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 ### Global shell function set ('lib') for this repository
 
@@ -12,8 +13,7 @@ script_mpe_lib__init ()
     $LOG notice "" "Initialized script-mpe.lib" "$(sys_debug_tag)"
 }
 
-
-uc_env_2625 +d dx :mkFun '_Sh_Fun_Eval "$@"'
+uc_env_2625 +d dx :mkFun 'User-Script.Shell.function-eval "$@"'
 
 # This is all mostly useless
 :mkFun noop :
@@ -33,7 +33,7 @@ sh_fclone () # ~ <New-name> <Copy-ref> # alias:fun-clone
 : source "script-mpe.lib.sh"
 : input "${1:?$FUNCNAME: New function name expected}"
   :pass "$_ () {
-$(_Sh_Fun_Body "${2:?sh-fclone: Reference function name expected}")
+$(User-Script.Shell.function-body "${2:?sh-fclone: Reference function name expected}")
 }" &&
   eval "$_"
 }
