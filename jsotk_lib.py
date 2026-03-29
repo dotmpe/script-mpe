@@ -49,7 +49,7 @@ def is_path(key):
         return m.groups()[0] != key
 
 
-re_non_escaped = re.compile('[\[\]\$%:<>;|\ ]')
+re_non_escaped = re.compile(r'[\[\]\$%:<>;|\ ]')
 re_alphanum = re.compile('[^a-z0-9A-Z]')
 
 
@@ -429,7 +429,7 @@ def parse_json(value):
 
 
 # TODO: use the propery serializer asked for, or add datatype lib option
-re_float  = re.compile('^\d+\.\d+$')
+re_float  = re.compile(r'^\d+\.\d+$')
 def parse_primitive(value):
     # TODO: other numbers
     if value.isdigit():

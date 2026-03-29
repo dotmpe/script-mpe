@@ -55,3 +55,4 @@ tags
 .aider/
 .aider.tags.cache.v4/
 .config/litellm
+.gitconfig

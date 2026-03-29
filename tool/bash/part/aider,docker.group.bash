@@ -25,31 +25,48 @@ prepares non-PWD paths for the container. And specify wether any of those have
 write access. I do not have any experience with these client programs, so this
 is all for experimenting with current interfaces.
 
+NOTE: HOME ie. ~/ also points to /app, and USER is appuser.
 TODO: have not taken any effort to try and create/rerun containers, current
   setup starts a new container from the local image and will need a new server
   session
 FIXME: since aider seems to use PWD as writable temp the worktree
   cannot be read-only
 '
-#docker_aider_grp=( uc-docker )
+docker_aider_grp=( uc-docker )
 
 declare -gA \
 docker_aider_als=(
-  # Main execution context
+  # Main execution context (with echo of entire line to mark switch of context)
   [aider+docker]='aider+docker+env &&
+  echo "> docker run -it --rm ... paulgauthier/aider ${@@Q}" &&
   docker run -it --rm \
     "${uc_docker_volume_arg[@]}" \
     "${uc_docker_env_arg[@]}" \
-    -w /work \
+    -e HOME=/work \
+    -w ${AIDER_BASEDIR:-/work} \
     paulgauthier/aider'
 
-  # XXX: Really only want to skip new-version-info and gather-statistics-permission prompts
-  [aider+always]='aider+docker --no-gitignore --yes-always'
+  [aider+docker+bash]='aider+docker+env &&
+  echo "> docker run -it --rm ... --entrypoint bash paulgauthier/aider ${@@Q}" &&
+  docker run -it --rm \
+    "${uc_docker_volume_arg[@]}" \
+    "${uc_docker_env_arg[@]}" \
+    -e HOME=/work \
+    -w ${AIDER_BASEDIR:-/work} \
+    --entrypoint bash \
+    paulgauthier/aider'
+
+  #[aider+docker+nogit]='aider+docker --no-git'
 
   # Main alias, with all current user settings and parameters applied
-  [aider]='aider+always'
+  [aider+docker+user]='aider+docker \
+    --no-show-release-notes --no-gitignore \
+     --input-history-file .meta/stat/index/aider.input.history \
+     --chat-history-file .meta/stat/index/aider.chat.history.md \
+     --config /tmp/aider.conf.yml'
+  [aider]='aider+docker+user'
 
-  # Keep model variable, for manual selection, listing all still requires partial name argument
+  # Keep model variable, for manual selection. (Listing all still requires partial name argument.)
   [aider+list]='aider --list-models'
 
   # TODO: test which services and models actually respond,
@@ -92,22 +109,21 @@ EOM
       } ||
         failerr "E$? touching required file ${x@Q}" || return
     done; unset x;
+
+    > .gitconfig cat <<EOM
+
+[safe]
+  directory = /work
+EOM
+    >> .gitconfig cat "$HOME/.gitconfig-user"
+
     uc_docker_volume_map+=(
       [/work]="$PWD"
-      [/work/.aider.conf.yml]=$HOME/.conf/etc/aider/aider.conf.yml
-      [/work/.aider.chat.history.md]=$PWD/.meta/stat/index/aider.chat.history.md
-      [/work/.aider.input.history]=$PWD/.meta/stat/index/aider.input.history
-      [/root/.gitconfig]="$HOME/.gitconfig"
-      [/root/.gitconfig-base]="$HOME/.gitconfig-base"
-      [/root/.gitconfig-local]="$HOME/.gitconfig-local"
-      [/root/.gitconfig-global]="$HOME/.gitconfig-global"
-      [/root/.gitconfig-user]="$HOME/.gitconfig-user"
+      [/tmp/aider.conf.yml]="$(realpath $HOME/.local/etc/aider/aider.conf.yml)"
     )
-    # all mounts should be read-only implicitly unless other flag is set
+    # all mounts should be read-only implicitly unless other flag is set here
     uc_docker_hostpath_flag+=(
       ["$PWD"]=rw
-      ["$PWD/.meta/stat/index/aider.chat.history.md"]=rw
-      ["$PWD/.meta/stat/index/aider.input.history"]=rw
     )
     # TODO: assemble from env file keys
     uc_docker_env_arg=(
@@ -119,6 +135,23 @@ EOM
     uc_docker_volume_arg=()
     User-Conf.Docker.generate-volume-args uc_docker_volume_{map,arg}
   }'
+
+  [aider+with-task]=\
+'  local task=${1} aider=${2} file
+  local -n AIDER_TASK='\''aider_task["$task"]'\''
+  local -n AIDER_BASEDIR='\''aider_basedir["$task"]'\''
+  local -n read_files='\''aider_read_files["$task"]'\''
+  local -a argv
+  while read -r file
+  do
+    argv+=( --read "${file}" )
+  done < <(echo "${read_files}")
+
+  [[ ${AIDER_TASK:+set} ]] && {
+    "$aider" "${argv[@]}" --message "$AIDER_TASK"
+    return
+  } ||
+    "$aider" "${argv[@]}" "${@:3}"'
 )
 
 # Id: aider,docker                               vim:set ft=bash sw=2 sts=2 et:

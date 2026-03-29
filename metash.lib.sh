@@ -1,8 +1,10 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# Initial short experiment track more complex (composite) types with plain
+# Bash variables.
 
 metash_lib__load ()
 {
-  true
+  :
 }
 
 metash_lib__init ()
@@ -96,7 +98,7 @@ metash_dumpvalue ()
   }
 }
 
-# metash-mk helper to build variable groups mainly
+# metash-mk helper to build variable groups
 # -a append
 # -l lower-case
 # -p prefix
@@ -173,9 +175,13 @@ metash_mkprt () # ~ <Id> [<Type-spec>]
   local prtid=${1:?} prtword tpword
   [ "${2:--}" != - ] || set -- "" "" "${@:3}"
   prtword=${prtid//[^A-Za-z0-9_]/_}
-  [ -n "${2-}" ] && tpword=${2:0:1} || tpword=v
+  [ -n "${2-}" ] && {
+    tpword=${2:0:1}
+    declare -g${tpword} ${prtword}
+  } || tpword=v
   declare -g TYPE_${prtword}="${2}"
   declare -g PART_${prtword}__${tpword:?}="${*:3}"
+
   #! metash_debug  || {
   #  >&2 declare -p  \
   #    TYPE_${prtword} \

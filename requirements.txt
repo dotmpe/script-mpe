@@ -33,7 +33,7 @@ decorator==5.2.1
 dialite==0.6.0
 dill==0.4.0
 docopt==0.6.2
-docopt-mpe @ file:///mnt/25-5/src/local/docopt-mpe%2Bdev%2Bcurrent
+docopt-mpe @ file:///src/local/docopt-mpe%2Bdev%2Bcurrent
 docutils==0.22.2
 esptool==5.1.0
 et_xmlfile==2.0.0
@@ -199,6 +199,7 @@ types-six==1.17.0.20251009
 typing_extensions==4.15.0
 tzdata==2025.2
 uritemplate==4.2.0
+uriref @ file:///src/local/uriref-mpe%2Bdev%2Bcurrent
 urllib3==2.5.0
 urwid==3.0.3
 wcwidth==0.2.14
