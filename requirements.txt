@@ -124,7 +124,7 @@ pydot==4.0.1
 pyenchant==3.3.0
 pyfiglet==1.0.4
 pyflakes==3.4.0
-Pygments==2.19.2
+Pygments==2.20.0
 PyJWT==2.4.0
 pylint==4.0.4
 pyparsing==3.2.5
