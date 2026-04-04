@@ -267,6 +267,8 @@ package_defaults()
 package_default_id () # [Package-Type] [Package-JSON]
 {
   test -n "${1-}" || set -- "${package_type:-"application/vnd.org.wtwta.project"}"
+  # main reference can occur and any object, but must all reference the same
+  # id per basedir
   jq -r 'map(select(.type=="'"$1"'" and .main)) | .[] | (.main,.id)' $PACKAGE_JSON | tail -n 1
 }
 

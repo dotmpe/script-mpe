@@ -7,6 +7,7 @@ us_os_extra_cnk=687166b5
 us_os_extra_var=(
 )
 us_os_extra_fun=(
+  .command-assert
   .expand-pathref
   .iter-sources
   .lookup-expand{,-commands}
@@ -17,13 +18,32 @@ us_os_extra_fun=(
   .first-status
   .script-table
   .unique-paths
+  .symlink-assert
 )
 declare -gA \
 us_os_extra_als=(
+  [assert_absolute]=.assert-absolute-path
+  [command_assert]=.command-assert
+  [assert_command]=.command-assert
   [mkdirs]='>&2 mkdir -vp'
-  [remove_dupes]=awk\ '!a[$0]++'
+  [remove_dupes]=awk\ \''!a[$0]++'\'
+  [remove_dupes_and_current]='awk '\''{
+  if (!a[$0]++) {
+    if ($0 == ".") next
+    print $0
+  }
+  endif
+}'\'''
+  [remove_dupes_or_hidden]='awk '\''{
+  if (!a[$0]++) {
+    if (substr($0, 1, 1) == ".") next
+    print $0
+  }
+}'\'''
   ["script.status"]='.script-status'
   ["script.loaded"]='.script-list'
+  [symlink_assert]=.symlink-assert
+  [assert_symlink]=.symlink-assert
   ["PATH+names"]='.lookup-expand PATH'
   ["PATH+lines"]='.lookup-list PATH'
   ["PATH+pathnames"]='.lookup-expand-paths PATH'
@@ -38,6 +58,9 @@ us_os_extra_als=(
 )
 declare -gA \
 us_os_extra_ssc=(
+  ['.assert-absolute-path']='local path=${1:?}
+[[ ${path:0:1} == / ]] ||
+  failerr "${2:-Absolute path expected}"'
   ['.script-list']='printf "%s\n" "${!_os_script_path[@]}"'
   ['.script-path-list']='printf "%s\n" "${_os_script_path[@]}"'
   ['.script-ok']='eval "! (( 0 $(printf "+ %i" "${_os_script_load[@]}") ))"'
@@ -49,6 +72,27 @@ us_os_extra_hooks=(
 #  [init]=\
 #''
 )
+
+User-Script.OS.x.command-assert ()
+{
+: about 'See that command exists, but normally just once per session'
+: param '~ <Command-ref> [<PATH-varname>] ...'
+  local exec{name,path,ref} pathref=${2:-PATH}
+  execname=${1//[^A-Za-z0-9_]/_}
+  local -n path=${pathref} envref="${execname}_bin"
+  [[ ${envref:+set} ]] || {
+    execref=${1}
+    [[ ${execref:0:1} == / ]] &&
+    execpath=$execref || {
+      execpath=$(PATH=$path command -v "${execref}") ||
+        failerr "No such ${execref@Q} command executable file found on path" ||
+          return
+    }
+    [[ -x "$execpath" ]] ||
+      failerr "Not an executable file ${execpath@Q}" || return
+    envref=$execpath
+  }
+}
 
 User-Script.OS.x.expand-pathref ()
 {
@@ -321,6 +365,32 @@ User-Script.OS.x.script-table ()
     done
     printf '\n'
   done
+}
+
+User-Script.OS.x.symlink-assert ()
+{
+: about 'Assert symbolic link exists for destination, update if possible'
+: param '~ <Symlink-Path> <Target>'
+  local path="${1:?Symlink path}"
+  local dest="${2:?Symlink target path}"
+  local curdest vflag
+
+  # Easy reference to identical named target in other directory
+  if [[ -d "${path}" && ! -h "${path}" ]]
+  then path="${path}/${dest##*/}"
+  fi
+
+  if [[ -h $path ]]
+  then
+    curdest="$(readlink "$path")"
+    [[ $curdest = "${dest}" ]] && return
+    [[ -w ${path##*/} ]] ||
+      failerr "Basedir not writable: ${path@Q}" || return
+    rm "$path" || return
+  fi
+  # XXX: debug level verbosity
+  [[ ${verbosity:-5} -lt 7 ]] || vflag=v
+  >&2 ln -s${vflag-} "${dest}" "${path}"
 }
 
 User-Script.OS.x.unique-paths ()

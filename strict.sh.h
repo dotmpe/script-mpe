@@ -1,4 +1,5 @@
-# Copyright: (C) 2026 hari <hari@t470p>
+#
+# Copyright 2008-2026 B. van Berkum <dev@dotmpe.com>
 #
 # Distributed under terms of the MIT license.
 #if LANG == bash
