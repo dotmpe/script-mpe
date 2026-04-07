@@ -3,29 +3,64 @@
 # Distributed under terms of the MIT license.
 
 us_os_extra_pre=User-Script.OS.x
+us_os_extra_man='
+
+XXX: should probably be using find based expansions everywhere for
+multilanguage/multibyte names instead of Bash globbing iirc
+
+XXX: review assert naming convention
+
+assert-*
+for verbose test/check routine for diag purposes,
+*-assert
+for update/modification routines
+
+but dont overuse
+'
 us_os_extra_cnk=687166b5
-us_os_extra_var=(
-)
 us_os_extra_fun=(
+  .assert-env
   .command-assert
+  .commands-list
+  .count-lines
   .expand-pathref
   .iter-sources
   .lookup-expand{,-commands}
-  .lookup-expand-path{s,tree}
+  .lookup-expand-{leafs,pathtree}
   .lookup-expand-safe{,names}
   .lookup-list
   .local-lookup-list
   .first-status
   .script-table
-  .unique-paths
   .symlink-assert
+  .tempfile
+  .unique-lines
+  .unique-paths
 )
 declare -gA \
 us_os_extra_als=(
   [assert_absolute]=.assert-absolute-path
-  [command_assert]=.command-assert
   [assert_command]=.command-assert
+  [assert_env]=.assert-env
+  [assert_symlink]=.symlink-assert
+  [cwd.lookup-list]='.local-lookup-list $PWD'
+  [line_count]=.count-lines
+  [list_execs]=.commands-list
+  [list_execsafe]=PATH+execs
+  [list_paths]=PATH+names
+  [list_sources]=PATH+leafs
+  [list_path_sources]=.lookup-expand-leafs
+  [list_sources]=PATH+leafs
   [mkdirs]='>&2 mkdir -vp'
+  [lookup.tree]='.lookup-expand-pathtree'
+  ["PATH+execs"]='.lookup-expand-commands PATH'
+  ["PATH+names"]='.lookup-expand PATH'
+  ["PATH+lines"]='.lookup-list PATH'
+  ["PATH+leafs"]='.lookup-expand-leafs PATH'
+  [path.tree]='.lookup-expand-pathtree PATH'
+  [path.list]=PATH+lines
+  [path.commands]='.lookup-expand-commands PATH'
+  [us_tempfile]=.tempfile
   [remove_dupes]=awk\ \''!a[$0]++'\'
   [remove_dupes_and_current]='awk '\''{
   if (!a[$0]++) {
@@ -43,18 +78,10 @@ us_os_extra_als=(
   ["script.status"]='.script-status'
   ["script.loaded"]='.script-list'
   [symlink_assert]=.symlink-assert
-  [assert_symlink]=.symlink-assert
-  ["PATH+names"]='.lookup-expand PATH'
-  ["PATH+lines"]='.lookup-list PATH'
-  ["PATH+pathnames"]='.lookup-expand-paths PATH'
-  [lookup.tree]='.lookup-expand-pathtree'
-  [cwd.lookup-list]='.local-lookup-list $PWD'
-  [path.tree]='.lookup-expand-pathtree PATH'
-  [path.list]=PATH+lines
-  [path.commands]='.lookup-expand-commands PATH'
   ["SCRIPTPATH+names"]='.lookup-expand SCRIPTPATH'
   ["SCRIPTPATH+lines"]='.lookup-list SCRIPTPATH'
-  ["SCRIPTPATH+pathnames"]='.lookup-expand-paths SCRIPTPATH'
+  ["SCRIPTPATH+leafs"]='.lookup-expand-leafs SCRIPTPATH'
+  [us_count_lines]=.count-lines
 )
 declare -gA \
 us_os_extra_ssc=(
@@ -66,6 +93,14 @@ us_os_extra_ssc=(
   ['.script-ok']='eval "! (( 0 $(printf "+ %i" "${_os_script_load[@]}") ))"'
   ['.script-status']='.first-status _os_script_load'
   ['.script-tab']='.script-table _os_script_path _os_script_load'
+
+  # TODO: generate some dedicated lib with all these
+  [test_array_ne]=\
+': input "${1:?Env key name}"
+local -n _arr=${1}
+[[ ${_arr:+set} && ${_arr[@]:+set} ]] ||
+  failerr "Expected array: $1"'
+
 )
 declare -gA \
 us_os_extra_hooks=(
@@ -73,9 +108,22 @@ us_os_extra_hooks=(
 #''
 )
 
+User-Script.OS.x.assert-env ()
+{
+: param '~ <Status> <Key> <Test>'
+: about 'Test value in the environment and report verbosely'
+: input "${1:?$FUNCNAME${*:+ $*}: Unexpected status}"
+: input "${2:?$FUNCNAME${*:+ $*}: Environment name}"
+: input "${3:?$FUNCNAME${*:+ $*}: Test command}"
+  local _env_val=$2
+  "$3" "$_env_val" ||
+    failerr "E$? validating env $2" $1
+}
+
 User-Script.OS.x.command-assert ()
 {
 : about 'See that command exists, but normally just once per session'
+: extended 'Util for scripts to track paths to executables, like Bash hash builtin'
 : param '~ <Command-ref> [<PATH-varname>] ...'
   local exec{name,path,ref} pathref=${2:-PATH}
   execname=${1//[^A-Za-z0-9_]/_}
@@ -92,6 +140,35 @@ User-Script.OS.x.command-assert ()
       failerr "Not an executable file ${execpath@Q}" || return
     envref=$execpath
   }
+}
+
+User-Script.OS.x.commands-list ()
+{
+: param '~ [<PATH-var>] [<Match...>]'
+: about 'Simple Bash glob iterating over PATH-var elements'
+: extended 'See lookup-expand-commands for dealing with nonsafe names'
+  local pathvar=${1:-PATH} paths
+  : "${!pathvar}"
+  mapfile -t paths <<< "${_//:/$'\n'}"
+  shift
+  local sub path
+  for path in "${paths[@]}"
+  do
+    for sub in $path/${1:-*}
+    do
+      [[ -x "$sub" ]] || continue
+      echo "${sub##*/}"
+    done
+  done
+}
+
+User-Script.OS.x.count-lines ()
+{
+: param '~ [<Input>]'
+: about 'Count lines with wc (no EOF termination correction)'
+: export line_count
+  if_ok "$(wc -l "$@")" &&
+  echo "${_%% *}"
 }
 
 User-Script.OS.x.expand-pathref ()
@@ -253,23 +330,31 @@ User-Script.OS.x.iter-sources ()
 
 User-Script.OS.x.lookup-expand ()
 {
-  User-Script.OS.x.lookup-expand-safenames "$1" "$2"
+: about 'Alias for lookup-expand-safenames'
+: param ' ~ <Lookup-path-var> [<Output-var>] ...'
+  User-Script.OS.x.lookup-expand-safenames "${1:-PATH}" "${2-}"
 }
 
 User-Script.OS.x.lookup-expand-commands ()
 {
+: about 'Variant for lookup-expand-safenames'
+: param ' ~ <Lookup-path-var> [<Output-var>] ...'
   local -a _find_cmds=( -maxdepth 1 -not -type d -executable -printf '%P\n' )
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_cmds
 }
 
-User-Script.OS.x.lookup-expand-paths ()
+User-Script.OS.x.lookup-expand-leafs ()
 {
+: about 'Variant for lookup-expand-safenames'
+: param ' ~ <Lookup-path-var> [<Output-var>] ...'
   local -a _find_paths=( -maxdepth 1 -not -type d )
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_paths
 }
 
 User-Script.OS.x.lookup-expand-pathtree ()
 {
+: about 'Variant for lookup-expand-safenames'
+: param ' ~ <Lookup-path-var> [<Output-var>] ...'
   local -a _find_pathtree=( -type d -not -path '*/.*' )
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_pathtree
 }
@@ -283,6 +368,7 @@ User-Script.OS.x.lookup-expand-safenames ()
 {
 : param ' ~ <Lookup-path-var> [<Output-var>] [<Find-filter-argv-var>]'
 : about 'List names found through lookup'
+: extended 'Wrapper for find that iterates lookup paths'
   : XXX "This should be whitespace safe, but is still meant for safe filenames"
   local _bd _print=0
   local -n _lookup=${1:?$FUNCNAME: Name expected for input variable, $ENV_CTX}
@@ -293,7 +379,7 @@ User-Script.OS.x.lookup-expand-safenames ()
     local -n _find_filter=${3:?}
   local -a _arr
   mapfile -t _arr <<< "${_lookup//:/$'\n'}" &&
-  [[ ${_arr[@]:+set} ]] &&
+  [[ ${_arr[*]:+set} ]] &&
   for _bd in "${_arr[@]}"
   do
     if_ok "$(find "$_bd" "${_find_filter[@]}")" &&
@@ -321,7 +407,7 @@ User-Script.OS.x.local-lookup-list ()
 User-Script.OS.x.lookup-list ()
 {
   : param '<Seq-var> [<Dest>]'
-  : about 'List lookup sequence string as lines'
+  : about 'List lookup sequence string (ie. : colon separated) as lines'
   local -n _lookup=${1:?}
   local liststr="${_lookup//:/$'\n'}"
   (($#-1)) && {
@@ -393,13 +479,40 @@ User-Script.OS.x.symlink-assert ()
   >&2 ln -s${vflag-} "${dest}" "${path}"
 }
 
+User-Script.OS.x.tempfile ()
+{
+: param '~ <Variable> [<Template>] [<Suffix>] ...'
+: input "${1:?Variable reference name}"
+  local -n _varref=${1}
+  _varref=$(mktemp ${3:+--suffix="$3"} --tmpdir ${2:-us-os-tempfile_XXX}) ||
+    failerr "E$? getting temporary file"
+}
+
+User-Script.OS.x.unique-lines ()
+{
+: param 'Input-file ...'
+: about 'Sort file in place'
+: input "${1:?Input}"
+  local _tmpfile _stat
+  User-Script.OS.x.tempfile _tmpfile us-os-uniquelines_XXX || return
+  < "$1" > "$_tmpfile" cat &&
+  > "$1" < "$_tmpfile" awk '!a[$0]++' &&
+  rm "$_tmpfile"
+}
+
 User-Script.OS.x.unique-paths ()
 {
-: FIXME
+: about 'List arguments as is but filter duplicate realpaths'
+: XXX unused
+  local -A _paths
+  local -n _realpath='_paths["$path"]'
+  local path
   for path
   do
-    test -e "$path" && realpath "$path" || echo "$path"
-  done | awk '!a[$0]++'
+    [[ ${_realpath:+set} ]] && continue
+    _realpath=$(realpath "$path")
+    echo "$path"
+  done
 }
 
 # Id: extra,os,us                                vim:set ft=bash sw=2 sts=2 et:

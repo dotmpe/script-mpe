@@ -1,0 +1,11 @@
+#!/usr/bin/env bashunit.mpe
+
+us_part $usp_opts --reload us-os-extra
+
+test_us_tempfile1 () {
+  func_exists User-Script.OS.x.tempfile &&
+  func_exists us_tempfile &&
+  us_tempfile _foo barXXX .suf &&
+  assert_equal empty "$(file -bs $_foo)"
+}
+# ex:ft=bash:

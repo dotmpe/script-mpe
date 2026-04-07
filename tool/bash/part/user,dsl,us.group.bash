@@ -12,9 +12,12 @@ us_dsl_user_fun=(
 
 declare -gA \
 us_dsl_user_als=(
-  #[user]=.user-main-autostart
-  #[user-load]=.load-user-command
-  [user/*]=.user-ops-main
+  #[user]=User.DSL.user-main-autostart
+  [user]=.user-main-autostart
+  [user-command-start]=.load-user-command
+  #[user-load]='us_part ${usp_opts} uc-command us-dsl-user && User.DSL.load-user-command'
+  #[@user/basedirs]=.user-ops-main
+  [@user/*]=.user-ops-main
 )
 
 declare -gA \
@@ -37,7 +40,8 @@ User.DSL.load-user-command ()
   usercmd_dev_parts=( user-command us-dsl-user )
 # XXX: loadcmd uses User-Script.require, not User-Script.part.
   us_part --alias --hooks:declare,define,init uc-command uc-cache &&
-  loadcmd usercmds \
+  loadcmd user \
+      us-dsl-user \
       uc-user-dirs \
       uc-user-shares \
       uconf-annex \
@@ -46,10 +50,11 @@ User.DSL.load-user-command ()
       uc-user-torrents \
       uc-user-music ||
     failerr "E$? while loading user commands" || return
+
   # Add an extra layer for hacking, but should integrate everything with
   # user-command and other groups properly.
-  us_part --reload --alias "${usercmd_dev_parts[@]}" &&
-  initcmd usercmds User.Command.user-main User.DSL.user-ops-main
+  #us_part --reload --alias "${usercmd_dev_parts[@]}" &&
+  : #initcmd usercmds User.Command.user-main User.DSL.user-ops-main
 }
 
 User.DSL.user-main-autostart ()
@@ -57,7 +62,8 @@ User.DSL.user-main-autostart ()
   local ns_at=$FUNCNAME
   [[ ${usercmds[*]:+set} ]] || {
     >&2 echo "user: Initial run, loading..."
-    User.DSL.load-user-command || return
+    User.DSL.load-user-command ||
+      failerr "E$? loading user command" || return
     >&2 echo "user: commands loaded, starting 'user $*' ..."
   }
   (($#)) || return ${_E_MA:?}
