@@ -136,7 +136,7 @@ PyQt6-WebEngine==6.10.0
 PyQt6-WebEngine-Qt6==6.10.1
 PyQt6_sip==13.10.3
 pyserial==3.5
-pytest==9.0.2
+pytest==9.0.3
 pytest-cov==7.0.0
 python-barcode==0.16.1
 python-dateutil==2.9.0.post0
