@@ -16,12 +16,8 @@
         all: init check build test pack
         main: help all init check build test pack dist
   environment:
-    development:
-    - package_pd_meta_default=dev
-    - Build_Deps_Default_Paths=1
-    - BOREAS_SKIP=1
-    - DANDY_SKIP=1
-    - VS1_SKIP=1
+    dev:
+      - 
   log: DevLog.rst
   specs:
     units: test/py/\$id.py test/py/mod_\$vid.py test/\$id-lib-spec.bats test/\$id-spec.bats
@@ -31,16 +27,6 @@
   prefixes: {}
   symbol: BIN
   build: redo "\$@"
-  env:
-  # XXX: what level wrt to the project root is this stored?
-  #- 'true "\${CWD:="\$(dirname \$(dirname \$(dirname \$0)))"}"'
-  - '. \$HOME/.conf/etc/profile.d/_local.sh'
-  #- 'test -e \$CWD/.meta/attributes.sh -a \$CWD/.meta/attributes.sh -nt \$CWD/.attributes
-  #  || { compo eval "cd \$CWD && c-groups ht && ht-attributes"; }'
-  #- '. \$CWD/.meta/attributes.sh'
-  - '. \$CWD/.meta/package/main.sh'
-  #- 'CWD=\$UCONF . "\${_ENV:="\$UCONF/tool/\${ENV_GROUP:="sh"}/env.sh"}" || return'
-  - 'test -z "${SCRIPTPATH:-}" || export PATH=$SCRIPTPATH:$PATH'
   contexts:
     default: '@Dev @Script +\$package_id <\$package_dir> @Project'
   lists:
@@ -68,9 +54,10 @@
       Copy: <To> <From>
   # Usage `htd scripts run <script>`
   scripts:
-    ci: lib_load build && list_builds \"\$@\"
+    ci: lib_load build && list_builds "\$@"
     test2:
     - 'docker run --rm \ -v $PWD:/home/treebox/bin --workdir /home/treebox/bin \ -e
+      jkkk
       LOG=/srv/docker-volumes-local/user-script/log.sh \ -e USER=treebox \ -e TMPDIR=/tmp
       \ -e HOME=/home/treebox \ localhost:5000/ubuntu-user-script:build \ ''PATH=$PATH:$HOME/bin:$HOME/bin/vendor/bin:$HOME/.basher/bin:$HOME/.basher/cellar/bin:$HOME/usr/bin:$HOME/.local/bin/
       ./htd.sh run test'''

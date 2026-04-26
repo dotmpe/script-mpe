@@ -13,6 +13,10 @@ uc_basedir_fun=(
   .basedirs
   .basedirs+load
 )
+declare -gA \
+uc_basedir_hooks=(
+  [init]=$uc_basedir_pre.basedirs+load
+)
 
 User-Conf.Basedir.basedirs_split-argv ()
 {
@@ -54,14 +58,14 @@ User-Conf.Basedir.basedir-command ()
 User-Conf.Basedir.basedirs ()
 {
 : param '~ [<List-arg...> -- ] <Sub...>'
-  local -a _uc_bd_{select,subcmd} uc_basedir_key
+  local -a _uc_bd_{select,subcmd} _uc_bd_key
   ${FUNCNAME}_split-argv _uc_bd_{select,subcmd} "$@" && {
     [[ ${_uc_bd_select[*]:+set} ]] ||
     _uc_bd_select=( printf '' "${}" )
   } &&
-  User-Script.System.read-call uc_basedir_key "${_uc_bd_select[@]}" &&
+  User-Script.System.read-call _uc_bd_key "${_uc_bd_select[@]}" &&
 
-  for bd_key in "${uc_basedir_key[@]}"
+  for bd_key in "${_uc_bd_key[@]}"
   do
     "${_uc_bd_subcmd[@]}"
   done
@@ -69,15 +73,44 @@ User-Conf.Basedir.basedirs ()
 
 User-Conf.Basedir.basedirs+load ()
 {
-  #local -I PATH
-  #PATH=$PATH:$SCRIPTPATH
-  : "${uc_basedir_bash:=/var/local/statusdir/basedir,user.data.bash}" &&
-  cache_loadmaps "$uc_basedir_bash" uc_basedir_{,path}id user_basedir &&
+  if_ok "${US_BASEDIR_CACHE:=$(command -v basedir,user.data.bash)}" ||
+    failerr "Missing User-Script basedir cache filepath setting" || return
+  cache_loadmaps "$US_BASEDIR_CACHE" uc_basedir_{,path}id ||
+    failerr "E$? loading User-Script basedirs cache" || return
+
+  [[ ${uc_basedir_commands[*]:+set} ]] || {
+  # ((${#uc_basedir_commands[*]})) ||  {
+    : "${US_BASEDIR_COMMANDS:-init sync update}"
+    cache_setlist uc_basedir_commands "( ${_//:/ } )" "$US_BASEDIR_CACHE"
+  }
+  [[ ${uc_basedir_fields[*]:+set} ]] || {
+  # ((${#uc_basedir_fields[*]})) ||  {
+    : "${US_BASEDIR_FIELDS:-cfg}"
+    cache_setlist uc_basedir_fields "( ${_//:/ } )" "$US_BASEDIR_CACHE"
+  }
+
+  # Make sure all user declared commands have basedir maps
   local f &&
-  for f in uc_basedir_{key,paths,commands} "${uc_basedir_commands[@]}"
+  for f in "${uc_basedir_commands[@]}" "${uc_basedir_fields[@]}"
   do
-    local -n _ref=${f}
-    [[ "${_ref[*]:+set}" ]] || declare -ga ${f}
+    local -n _ref=user_basedir_${f}
+    [[ "${_ref[*]:+set}" ]] || declare -ga user_basedir_${f}
+  done
+
+  # XXX: would be nice to have config deal wtih schema, mappings etc. but do
+  # envd integration first.
+  #uc_config -n \
+  #  uc_dirnum '${uc_basedir_pathid["$PWD"]}' \
+  #  uc_dirlabel '${uc_basedir_key[$uc_dirnum]}' \
+  #  uc_dirtype '${user_basedir_type[$uc_dirnum]}' \
+  #  uc_diruuid '${user_basedir_uuid[$uc_dirnum]}'
+  declare -gn \
+    uc_dirnum='uc_basedir_pathid["$PWD"]' \
+    uc_dirlabel='uc_basedir_key[$uc_dirnum]'
+  local field
+  for field in "${uc_basedir_fields[@]}"
+  do
+    declare -gn uc_dir$field='user_basedir_'$field'[$uc_dirnum]'
   done
 }
 

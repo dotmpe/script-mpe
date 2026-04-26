@@ -1,4 +1,6 @@
 #!/usr/bin/env bashunit.mpe
+# Copyright 2008-2026 B. van Berkum <dev@dotmpe.com>
+#&'strict'
 
 us_part $usp_opts --reload us-os-extra
 
@@ -6,6 +8,6 @@ test_us_tempfile1 () {
   func_exists User-Script.OS.x.tempfile &&
   func_exists us_tempfile &&
   us_tempfile _foo barXXX .suf &&
-  assert_equal empty "$(file -bs $_foo)"
+  assert_equals empty "$(file -bs $_foo)"
 }
 # ex:ft=bash:

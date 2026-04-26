@@ -108,7 +108,7 @@ User.DSL.user-ops-main ()
       [[ ${cmd:+set} ]] ||
         failerr "No $2 command for current dir" || return
       echo "Starting basedir-command ${2@Q} for $PWD..."
-      eval "$cmd"
+      . <(echo "$cmd")
     ;;
 
   ( --basedir-command-tree )

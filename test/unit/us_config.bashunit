@@ -1,0 +1,10 @@
+setup () {
+  eval "$ENV_INIT" &&
+  PATH+=:/var/local/statusdir &&
+  us_part $usp_opts --reload us-cache us-config
+}
+
+test_us_config_load () {
+  declare -F us-config@part config_{declarekeys,eval} us_config
+  assert_true $?
+}

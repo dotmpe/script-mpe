@@ -25,6 +25,7 @@ us_os_extra_fun=(
   .count-lines
   .expand-pathref
   .iter-sources
+
   .lookup-expand{,-commands}
   .lookup-expand-{leafs,pathtree}
   .lookup-expand-safe{,names}
@@ -115,7 +116,7 @@ User-Script.OS.x.assert-env ()
 : input "${1:?$FUNCNAME${*:+ $*}: Unexpected status}"
 : input "${2:?$FUNCNAME${*:+ $*}: Environment name}"
 : input "${3:?$FUNCNAME${*:+ $*}: Test command}"
-  local _env_val=$2
+  local -n _env_val=$2
   "$3" "$_env_val" ||
     failerr "E$? validating env $2" $1
 }
@@ -465,12 +466,16 @@ User-Script.OS.x.symlink-assert ()
   if [[ -d "${path}" && ! -h "${path}" ]]
   then path="${path}/${dest##*/}"
   fi
-
+  if [[ $path != */* ]]
+  then
+    path=./$path
+  fi
   if [[ -h $path ]]
   then
     curdest="$(readlink "$path")"
     [[ $curdest = "${dest}" ]] && return
-    [[ -w ${path##*/} ]] ||
+    : "${path%/*}"
+    [[ -w ${_:-$PWD} ]] ||
       failerr "Basedir not writable: ${path@Q}" || return
     rm "$path" || return
   fi

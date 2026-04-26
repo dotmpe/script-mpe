@@ -40,8 +40,8 @@ stattab_lib__init ()
       stab_id=
     }
   }
-  ! sys_debug -dev -debug -init ||
-    $LOG notice "" "Loaded stattab.lib" "$(sys_debug_tag)"
+  #! sys_debug -dev -debug -init ||
+  #  $LOG notice "" "Loaded stattab.lib" "$(sys_debug_tag)"
 }
 
 
@@ -112,8 +112,7 @@ stattab_data_line () # (:stbdr) ~ <Data-handler> [<Args...>]
 
   ! "$_append" || set -- "$_data"
 
-  ! "${VERBOSE:-false}" ||
-  ! "${DEBUG:-false}" ||
+  ! ((VERBOSE)) || ! ((DEBUG)) ||
     $LOG debug :stb:data-line "Running..." "cmd=$_cmd:$#:$*"
   stb_stat="$_stat" stb_data="$_data" stb_rest="$_rest" "$_cmd" "$@"
 }

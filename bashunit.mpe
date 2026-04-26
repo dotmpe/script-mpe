@@ -1,8 +1,11 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 #
-# bashunit.mpe - Use us-pp on unit test scripts
+# Copyright 2008-2026 B. van Berkum <dev@dotmpe.com>
 #
-# Copyright: (C) 2026 hari <dev@dotmpe>
+# Distributed under terms of the MIT license.
+GENERATOR="3696474/us-build from 'bashunit.mpe.us-build' at 2026-04-07T08:45:41+02:00"
+#
+# Copyright 2008-2026 B. van Berkum <dev@dotmpe.com>
 #
 # Distributed under terms of the MIT license.
 : "${DEBUG:=0}"
@@ -13,23 +16,51 @@
   ((QUIET)) ||
     >&2 echo "$$$-\$ $0 ${*@Q}"
 }
+# Id: debug.sh.h                                vim:set ft=bash sw=2 sts=2 et:
+#
+# Copyright 2008-2026 B. van Berkum <dev@dotmpe.com>
+#
+# Distributed under terms of the MIT license.
 set -euo pipefail
 IFS=$' \t\n'
-: "${BASH_SOURCE##*/}"
+# Id: strict.sh.h                               vim:set ft=bash sw=2 sts=2 et:
+export LOG=$HOME/bin/tool/sh/log.sh
+failerr () 
+{ 
+    userscripts::core::echo_stderr_with_status "$@"
+}
+userscripts::core::echo_stderr_with_status () 
+{ 
+    local stat=${2:-$?};
+    : input "${1:?$FUNCNAME: Failure message, $ENV_CTX}";
+    ((stat)) || stat=1;
+    echo "$1" 1>&2;
+    return ${stat};
+    : alias failerr
+}
+[[ ${US_ENV_PARTS:+set} ]] &&
+[[ ${US_ENV_INIT:+set} ]] &&
+eval "$US_ENV_INIT" || {
+  >&2 echo "Expected User-Script env"
+  exit 121
+}
+bashunit_mpe ()
+{
+  us-build --pwd "$1" "$1.bash" &&
+  exec bashunit "$1.bash"
+}
+
+: "${BASH_SOURCE[0]##*/}"
 if [[ ${0##*/} == "${_%%.*}" || "${0##*/}" == "${_%%.*}".* ]]
 then
-  . us-pp
-  PATH+=:$U_S/tool/bash/part
-  . us-core.inc.bash
-  . us-pp.inc.bash
-  . us-shell.inc.bash
-  . us-str.inc.bash
-  . us-use.inc.bash
-  userscripts::use userscripts::core
-  userscripts::use userscripts::string
-  userscripts::use userscripts::preproc
-  _us_pp_prepfile .mpe "$1"
-  _us_gpp shell_mode -I. -DLANG=bash "$us_pp_output" -o "$us_pp_output.i"
-  /usr/bin/bashunit "${us_pp_output}.i"
-  exit
+  script_srcname="${BASH_SOURCE[0]##*/}"
+  script_cmdname="${0##*/}"
+  script_nameexts="${script_cmdname#*.}"
+  # TODO: want may be to recognize current (script) language tag
+  script_name="${script_cmdname%.*}"
+  #[[ $script_name == *.* ]] &&
+  script_basename="${script_srcname%%.*}"
+  #shellcheck disable=1009,1054,1056,1072,1073,1083
+  bashunit_mpe "$@"
 fi
+# vim:set ft=bash sw=2 sts=2 et:

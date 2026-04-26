@@ -1,4 +1,6 @@
 #!/usr/bin/env bashunit.mpe
+# Copyright 2008-2026 B. van Berkum <dev@dotmpe.com>
+#&'strict'
 
 function test_metash_lib ()
 {

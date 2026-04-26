@@ -1,0 +1,25 @@
+#!/usr/bin/env us-run.bash
+#
+# configure.bash{,.build} - Configuration generator
+# 
+# Copyright 2008-2026 B. van Berkum <dev@dotmpe.com>
+# 
+# Distributed under terms of the MIT license.
+#:license
+#:generator
+#&'debug'
+#&'strict'
+#&'log'
+#:include us-env.sh.h
+#! ((DEBUG)) || set -x
+#
+# XXX: new us-build script setup, just one file argument
+bashunit_mpe ()
+{
+  us-build --pwd "$1" "$1.bash" &&
+  exec bashunit "$1.bash"
+}
+
+#:include user-script.main.bash.build
+#&'main' bashunit_mpe "$@"
+#:modeline

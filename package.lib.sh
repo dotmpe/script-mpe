@@ -546,10 +546,7 @@ package_sh_get () # PACKAGE-SH NAME-KEY
 package_sh_env ()
 {
   echo "#!${package_shell:="${default_package_shell:?}"}"
-
-  # Single line or multiline script XXX: shouldnt use env-name first?
-  envkey=package_ sh_envlist env ||
-      envkey=package_envs_ sh_envlist ${package_env_name:?}
+  envkey=package_envs_ sh_envlist ${1ackage_env_name:?}
 }
 
 # XXX: may should just use array decl.
@@ -591,7 +588,7 @@ package_sh_env_script() # [Path]
     std_info "Newest version of Env-Script $script_out exists"
   } || {
     mkdir -vp "$(dirname "$script_out")" &&
-    package_sh_env > "$script_out" &&
+    package_sh_env "${package_env_name}" > "$script_out" &&
     note "Updated Env-Script <$script_out>"
   }
 }
