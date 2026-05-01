@@ -374,7 +374,7 @@ script_doenv () # ~ <Action <argv...>>
   test -n "${script_cmdfun-}" &&
     $LOG info "" "Found command handler" "$script_cmdfun" ||
     $LOG warn"" "No command handler found" "$1:" # $(sys_callers)"
-  ! "${DEBUG:-false}" || script_debug_env
+  ! ((DEBUG)) || script_debug_env
 
   local _baseid stat fail
   # Run all loadenv hooks, going top-down from base to groups
@@ -992,12 +992,12 @@ user_script_load () # (y*) ~ <Actions...>
         # Only INTERACTIVE/BATCH_MODE is inheritable (obviously, but with
         # caution as well). FIXME: ASSERT is taken by lib as well.
         # XXX:
-        for scriptenv in DEV DEBUG DIAG INIT ASSERT QUIET VERBOSE
-        do
-          ! [[ ${!scriptenv+set} ]] || {
-            declare +x ${scriptenv}=${!scriptenv?}
-          }
-        done
+        #for scriptenv in DEV DEBUG DIAG INIT ASSERT QUIET VERBOSE
+        #do
+        #  ! [[ ${!scriptenv+set} ]] || {
+        #    declare +x ${scriptenv}=${!scriptenv?}
+        #  }
+        #done
 
         test -t 0 -o -t 1 &&
           : "${INTERACTIVE:=true}" ||
@@ -1009,9 +1009,9 @@ user_script_load () # (y*) ~ <Actions...>
         # command handlers ie. that dont generate notice level messages about
         # command handling at all but focus on reliability and integrity and only
         # report on non-nominal events?
-        : "${DIAG:=false}"
-        : "${ASSERT:=true}"
-        : "${INIT:=false}"
+        : "${DIAG:=0}"
+        : "${ASSERT:=1}"
+        : "${INIT:=0}"
         : "${INTERACTIVE:=false}"
 
         "${INTERACTIVE:?}" &&
@@ -1019,10 +1019,10 @@ user_script_load () # (y*) ~ <Actions...>
           : "${BATCH_MODE:=true}"
 
         "${BATCH_MODE:?}" && {
-          : "${QUIET:=true}"
+          : "${QUIET:=1}"
           : "${verbosity:=${v:-3}}"
         } || {
-          : "${QUIET:=false}"
+          : "${QUIET:=0}"
           : "${verbosity:=${v:-5}}"
         }
 
@@ -1037,7 +1037,7 @@ user_script_load () # (y*) ~ <Actions...>
           lk lctx plk=${lk:-}
         lk=${plk:-}:user-script:load[group:$name]
         lctx=
-        ! "${VERBOSE:-false}" ||
+        ((QUIET)) ||
           $LOG notice "$lk" "Loading groups " "$lctx"
 
         ! sys_debug || {
@@ -1065,12 +1065,12 @@ user_script_load () # (y*) ~ <Actions...>
 
         test -z "${libs:-}" && {
           test -n "${hooks:-}" || {
-            "${QUIET:-false}" ||
+            ((QUIET)) ||
               $LOG warn "$lk" "No grp, libs or hooks for user-script sub-command" "$lctx"
             return ${_E_next:-196}
           }
         } || {
-          "${QUIET:-false}" ||
+          ((QUIET)) ||
             $LOG info "$lk" "Initializing libs for group" "$name:$libs"
           user_script_initlibs $libs ||
             $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
@@ -1085,10 +1085,7 @@ user_script_load () # (y*) ~ <Actions...>
         local -a us_cmdhook_arr
         <<< "${hooks// /$'\n'}" mapfile -t us_cmdhook_arr || return
 
-        "${QUIET:-false}" ||
-        ! "${VERBOSE:-false}" ||
-        ! "${DEBUG:-false}" ||
-        ! "${INIT:-false}" ||
+        ((QUIET)) || { ! ((DEBUG)) || ! ((INIT)); } ||
           $LOG debug "$lk" "Running hooks (${#us_cmdhook_arr[*]})" "${hooks// /,}"
 
         for us_cmdhook_idx in "${!us_cmdhook_arr[@]}"
@@ -1109,10 +1106,9 @@ user_script_load () # (y*) ~ <Actions...>
 
     ( scriptenv )
         user_script_initlibs sys || return
-        "${QUIET:-false}" ||
-        ! "${ASSERT:-false}" || {
+        ((QUIET)) ||
+        ! ((ASSERT)) ||
           user_script_initlibs sys assert || return
-        }
       ;;
 
     ( node )
@@ -1173,21 +1169,15 @@ user_script_loadenv ()
     #user_script_stdv_defenv
 
     "${INTERACTIVE:?}" && {
-      ! "${QUIET:-false}" ||
-      ! {
-            "${DIAG:-false}" || "${INIT:-false}"
-      } || {
-        : "${QUIET:=false}"
+      ! ((QUIET)) || ! { ((DIAG)) || ((INIT)); } || {
+        : "${QUIET:=0}"
         : "${CT_VERBOSE:=true}"
 
         [[ "$v" -gt 3 ]] &&
           $LOG alert "${lk-}:loadenv" "Running interactively"
       }
     } || {
-      ! "${QUIET:-false}" ||
-      ! {
-          "${DIAG:-false}" || "${INIT:-false}"
-      } ||
+      ! ((QUIET)) || ! { ((DIAG)) || ((INIT)); } ||
         $LOG notice "${lk-}:loadenv" "Running non-interactively"
     }
 
@@ -1197,18 +1187,12 @@ user_script_loadenv ()
 
       ! "${INTERACTIVE:?}" || {
         [[ "$v" -le 3 ]] && {
-          ! "${QUIET:-false}" ||
-          ! {
-            "${DEBUG:-false}" || "${DIAG:-false}" || "${INIT:-false}"
-          } ||
+          ((QUIET)) || { ! ((DEBUG)) || ! ((DIAG)) || ! ((INIT)); } ||
             $LOG alert "${lk-}:loadenv" \
               "Script is running at reduced verbosity" \
               "debug-modes: $(sys_debug_tag)"
         } || {
-          ! "${QUIET:-false}" ||
-          ! {
-            "${DEBUG:-false}" || "${DIAG:-false}" || "${INIT:-false}"
-          } ||
+          ((QUIET)) || { ! ((DEBUG)) || ! ((DIAG)) || ! ((INIT)); } ||
             $LOG warn "${lk-}:loadenv" \
               "Script is running quietly" \
               "debug-modes: $(sys_debug_tag)"
@@ -1217,15 +1201,10 @@ user_script_loadenv ()
       # No additional log/std notices for non-interactive runs?
 
     } || {
-      ! "${QUIET:-false}" || {
-        ! "${DEBUG:-false}" ||
-        ! "${DIAG:-false}"
-      } ||
+      ((QUIET)) || { ! ((DEBUG)) || ! ((DIAG)); } ||
         $LOG warn "${lk-}:loadenv" "Script is running quietly" \
             "debug-modes: $(sys_debug_tag)"
     }
-
-    #declare +x DEV DEBUG DIAG INIT ASSERT QUIET VERBOSE
 
     true
   } &&
@@ -1259,10 +1238,10 @@ user_script_mode () # ~ <Modes...>
     esac
   done
 
-  ! "${DIAG:-false}" ||
+  ! ((DIAG)) ||
   ! "${changed:-false}" || {
     str_globmatch "$US_MODE" "$- *" || {
-      "${ASSERT:-false}" || "${DEBUG:-false}" && : "$- <> $US_MODE" || : ""
+      ((ASSERT)) || ((DEBUG)) && : "$- <> $US_MODE" || : ""
       $LOG warn "" "us-mode is not in sync with sh-mode" "$_"
     }
   }
@@ -1397,9 +1376,8 @@ user_script_shell_mode ()
   #  }
   }
 
-  ! "${DEBUG:-false}" || {
+  ! ((DEBUG)) ||
     : "${BASH_VERSION:?"Not sure how to do debug"}"
-  }
 
   test -z "${ALIASES:-}" || {
     : "${BASH_VERSION:?"Not sure how to do aliases"}"
@@ -1462,17 +1440,17 @@ user_script_stdstat_env ()
 
 user_script_stdv_defenv ()
 {
-  [[ ${script_defenv[QUIET]-} ]] || script_defenv[QUIET]=${QUIET:-false}
+  [[ ${script_defenv[QUIET]-} ]] || script_defenv[QUIET]=${QUIET:-0}
   [[ ${script_defenv[QUIET]:?} ]] && {
-    "${script_defenv[QUIET]:?}" &&
-      script_defenv[VERBOSE]=false ||
-      script_defenv[VERBOSE]=true
+    ((${script_defenv[QUIET]:?})) &&
+      script_defenv[VERBOSE]=0 ||
+      script_defenv[VERBOSE]=1
 
   } || {
-    [[ ${script_defenv[VERBOSE]-} ]] || script_defenv[VERBOSE]=${VERBOSE:-false}
-    "${script_defenv[VERBOSE]:?}" &&
-      script_defenv[QUIET]=false ||
-      script_defenv[QUIET]=true
+    [[ ${script_defenv[VERBOSE]-} ]] || script_defenv[VERBOSE]=${VERBOSE:-0}
+    ((${script_defenv[VERBOSE]:?})) &&
+      script_defenv[QUIET]=0 ||
+      script_defenv[QUIET]=1
   }
 }
 
@@ -1794,7 +1772,7 @@ us_shell_alias_defs ()
   while test $# -gt 0
   do
     { ${alsdef_override:-false} && {
-        ! ${US_DEBUG:-${DEBUG:-false}} ||
+        ! ((DEBUG)) ||
             test "$(type -t "${1:?}")" != alias || {
               unalias $1
               $LOG info : "Overriding alsdef" "$1:$2"
@@ -1803,11 +1781,11 @@ us_shell_alias_defs ()
         test "$(type -t "${1:?}")" != alias
     } && {
       us_shell_alias_def "$@" || return
-      ! ${US_DEBUG:-${DEBUG:-false}} ||
-          $LOG debug : "Defined alsdef" "$1:$2"
+      ! ((DEBUG)) ||
+        $LOG debug : "Defined alsdef" "$1:$2"
     } || {
-      ! ${US_DEBUG:-${DEBUG:-false}} ||
-          $LOG debug : "Skipped alsdef" "$1:$2"
+      ! ((DEBUG)) ||
+        $LOG debug : "Skipped alsdef" "$1:$2"
     }
     shift 2
     while test "${1:-}" != "--"

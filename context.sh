@@ -452,10 +452,10 @@ us-env -r user-script || ${us_stat:-exit} $?
   user_script_load defarg || exit $?
 
   # Default value used if argv is empty
-  script_defcmd=short
+  script_defcmd=path
   user_script_defarg=defarg\ aliasargv
   # Resolve aliased commands or set default
   if_ok "$(user_script_defarg "$@")" &&
-  eval "set -- $_" &&
+  . <(echo "set -- $_") &&
   script_run "$@"
 }
