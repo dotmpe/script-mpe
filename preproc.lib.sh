@@ -3,9 +3,13 @@
 preproc_lib__load ()
 {
   : "${CACHE_DIR:=${STATUSDIR_ROOT:?}cache}"
+  #: "${PREPROC_RESOLVER:=cat}"
+  : "${PREPROC_RESOLVER:=src_htd_resolve_fileref}"
+  : "${PREPROC_CONTENT_RESOLVER:=context_read_include}"
 }
 preproc_lib__source=preproc.lib.sh
-preproc_lib__man='This contains an old Bash implementation for processing
+preproc_lib__man='This contains an old Bash implementation for preprocessing
+files using Sed (or Awk) scripts. The implemented function here is processing
 `#include` directives in source, and without cpp or observing any other C
 pre-processing rules.
 
@@ -118,11 +122,9 @@ preproc_includes_enum () # ~ <Resolver-> <File|Grep-argv...>
 preproc_expand () # ~ <Resolver-> <File>
 {
   # TODO: fix caching
-  >&2 echo "$FUNCNAME ${*@Q}"
-  preproc_expand_1_sed "${@:?}"
+  #preproc_expand_1_sed "${@:?}"
 
-  # TODO: apply recursively
-  #preproc_expand_2_awk "${@:?}"
+  preproc_expand_2a_awk "${@:?}"
 }
 
 # Replace include directives with file content, using two sed's and two
@@ -130,14 +132,12 @@ preproc_expand () # ~ <Resolver-> <File>
 preproc_expand_1_sed () # ~ <Resolver-> <File|Grep-argv...>
 {
   local lk=${lk:-}:expand-preproc:sed1 sc
-  >&2 echo "$FUNCNAME ${*@Q}"
   preproc_expand_1_sed_script "$@" || return
   $LOG debug :preproc:expand-sed1 "Sed script prepared" "$sc"
   ${preproc_read_include:-read_nix_data} "${2:?}" | {
     $LOG debug :preproc:expand-sed1 "Reader started, initializing Sed script" \
       "$preproc_read_include:$2:$sc"
-    PATH=/usr/local/shbin:$PATH \
-    "${gsed:?}" --debug -f "$sc" - ||
+    "${gsed:?}" -f "$sc" - ||
       $LOG error $lk "Error executing sed script" "E$?:($#):$*" $? || return
   }
 }
@@ -151,9 +151,44 @@ preproc_expand_1_sed_script ()
       $LOG error $lk "Error generating sed script" "E$?:($#):$*" $? || return
 }
 
-preproc_expand_2_awk () # ~ <Directive-tag> <File>
+preproc_expand_2a_awk () # ~ <Resolver-> <File> <Directive-tag->
 {
-  # Awk does not leave sentinel line.
+  # This Awk script does not leave sentinel line.
+  awk -v HOME=${HOME:?} -v v=${verbosity:-${v:-3}} \
+      -v RESOLVE_NAME=${1:-${PREPROC_RESOLVER:?}} \
+      -v RESOLVE=${PREPROC_CONTENT_RESOLVER:?} \
+  '
+    function resolve_file_content(ref)
+    {
+        fdir=FILENAME
+        sub(/[^/]+$/, "", fdir)
+        gsub(/~\//,HOME"/",ref)
+        RESOLVE_NAME " \"" ref "\" \"" FILENAME "\"" | getline file
+        close(RESOLVE_NAME " \"" ref "\" \"" FILENAME "\"")
+        if (system("[ -s \""file"\" ]") == 1) {
+            if (v > 2)
+                print "No such include for "FILENAME" include "ref" named "file >> "/dev/stderr"
+            exit 4
+        }
+        if (file in sources) {
+            if (v > 2)
+                print "Recursion from "FILENAME" into already loaded "file >> "/dev/stderr"
+            exit 3
+        }
+        if (v > 4)
+            print "Reading \""file"\" for "FILENAME"..." >> "/dev/stderr"
+        sources[file]=1
+        system(RESOLVE" \"" ref "\" \"" file "\" \"" FILENAME "\"")
+        if (v > 5)
+            print "Resolved \""file"\"" >> "/dev/stderr"
+    }
+    /^#'"${3:-include}"'/ { resolve_file_content($2); next; }
+  ' "${2:?}"
+}
+
+preproc_expand_2b_awk () # ~ <Directive-tag> <File>
+{
+  # This Awk script does not leave sentinel line.
   awk -v HOME=$HOME -v v=${verbosity:-${v:-3}} '
     function insert_file (file)
     {
@@ -191,7 +226,7 @@ preproc_hasdir () # ~ <Dir-match> <File|Grep-argv...>
 # Like preproc
 preproc_resolve_sedscript () # ~ <Resolver> [<File>] # Generate Sed script
 {
-  local resolve_fileref=${1:-src_htd_resolve_fileref}; shift 1
+  local resolve_fileref=${1:-$PP_RESOLVER}; shift 1
   preproc_recurse \
     preproc_includes \
       $resolve_fileref preproc_resolve_sedscript_item "$@"
@@ -222,7 +257,7 @@ preproc_resolve_sedscript_item ()
 # the fully assembled, pre-processed file should be instead.
 # XXX: should consolidate function into preproc or some U-S lib collection
 # eventually
-src_htd_resolve_fileref () # [cache=0,cache_key=def] ~ <Ref>
+src_htd_resolve_fileref () # [cache=0,cache_key=def] ~ <Ref> [<Source-file>]
 {
   local fileref
 
@@ -258,15 +293,21 @@ src_htd_resolve_fileref () # [cache=0,cache_key=def] ~ <Ref>
   #    || echo "$file"
 }
 
-src_htd_resolve_pathref () # ~ <Name> <Context> [<Extensions>]
+src_htd_resolve_pathref () # ~ <Name> <Context> [<Name-extensions>]
 {
-  test -e "${1:?}" || {
-    for ext in "${@:1}"
-    do test -e "$1.$ext" && { echo "$1.$ext"; break; }
+  [[ -e "${1:?}" ]] || {
+    local srcdir=${2##*/}
+    [[ $srcdir != "$2" ]] || srcdir=$PWD
+    [[ -e "$srcdir/$1" ]] && echo "$srcdir/$1" && return
+  }
+  [[ -e "${1:?}" ]] || {
+    for ext in "${@:3}"
+    do test -e "$1.$ext" && echo "$1.$ext" && return
     done
   }
-
-  test -e "$1" || { $LOG error "preproc" "Cannot find include '$1'" ; exit 1; }
+  [[ -e "$1" ]] ||
+    failerr "preproc.lib: Cannot find include ${1@Q}${2:+ for ${2@Q}}" || return
+  # $LOG error "preproc" "Cannot find include ${1@Q}${2:+ for ${2@Q}}" 1 || return
   echo "$1"
 }
 

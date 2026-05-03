@@ -1,4 +1,5 @@
-
+# context.lib: See context.sh man strings, context.rst and other notes for state
+# and use.
 
 context_lib__load()
 {
@@ -28,12 +29,13 @@ context_lib__init()
   xattr_bin=$(command -v xattr) ||
     $LOG error "" "No xattr install found" || return
   # Export functions for access in Bash shell subprocess
+
   export -f \
     filereader_statusdir_cache \
     src_htd_resolve_fileref \
     context_read_include \
     context_file_attributes \
-    context_file_attribute std_silent
+    context_file_attribute std_silent os_normalize uc_log
   test -e "$CTX_TAB" || {
     touch "$CTX_TAB" || return $?
   }
@@ -326,7 +328,8 @@ context_file_attributes () # ~ <Keys...>
       v=$(grep -oP '#'"${1:?}"' \K.*' "$context_tab") ||
         v=_$RANDOM
       context_file_attribute ${1:?} "${v:?}" "$context_tab" ||
-        $LOG warn : "Failed caching ${1:?} attribute" "$context_tab"
+        _ failerr "E$? caching $1 attribute (ignored)" "$context_tab"
+        #$LOG warn : "Failed caching ${1:?} attribute (ignored)" "$context_tab"
       echo "$v"
     }
     shift
@@ -395,7 +398,7 @@ context_fileref_env () # ~ <File>
 # List includes. These are cached as output by preproc-includes-enum, but
 # preproc-includes-list may be invoked directly bypassing cache by setting
 # <context-cache-files=false>.
-context_files () # (ctx-tab) ~
+context_files () # (ctx-tab) ~ [<cache-col>]
 {
   local context_tab="${context_tab:-${CTX_TAB:?}}"
   "${context_cache_files:-true}" || {
@@ -405,7 +408,25 @@ context_files () # (ctx-tab) ~
   }
   local cached=${CTX_CACHE:?}/context-file-includes.tab
   context_files_cached "$cached" &&
-  cut -d $'\t' -f 4 "$cached"
+  cut -d $'\t' -f ${1:-4} "$cached"
+}
+
+context_files_clearlocks ()
+{
+  local file{,s} ok cachepath
+  local -A checked
+  mapfile -t files < <(context_files 4) &&
+  for file in "${files[@]}"
+  do
+    [[ ${checked["$file"]:+set} ]] && continue
+    cachepath=$(filereader_statusdir_cache "$file")
+    if [[ -e "$cachepath".lock ]]
+    then rm "$cachepath".lock &&
+    ok=0 || return
+    fi
+    checked["$file"]=
+  done
+  return ${ok:-1}
 }
 
 # Track (recursively) table of all source files given current context table.
@@ -522,14 +543,18 @@ context_parse ()
   : "${tagns:="$CTX_DEF_NS"}"
 }
 
-# Get all content lines, adding file-source Id tag to each entry.
-# Every line must start with a non-space character,
+# Get all content lines, adding file-source Id tag to each entry. Every line
+# must start with a non-space character. This reads #-prefix line comments too.
+# Entries can have use the '#' tag as unique entitiy Id, and get one added
+# immediatly after the first one use as file-level Id.
 context_read_include () # ~ <Ref> <File> [<Src-file> <Src-line>]
 {
   local id
   id=$(context_tab=${2:-${1:?}} context_file_attributes id) &&
   grep -v '^[\t ]' "${2:-${1:?}}" |
-    sed -E 's/^([^# ].*)(#[^ ]|$)/\1 #'"$id"' \2 /'
+  sed -E \
+    -e 's/^([^# ][^#]*) \\$/\1 #'"$id"' \\/' \
+    -e 's/^([^# ][^#]*)(#[^ ]*|)(.*[^\\]|)$/\1\2 #'"$id"'\3/'
 }
 
 context_require ()

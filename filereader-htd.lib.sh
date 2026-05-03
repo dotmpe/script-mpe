@@ -61,16 +61,19 @@ filereader_skip ()
 # TODO: use file attribute to retrieve cached Id, or reset that from either
 # modeline, or preproc line, or add a preproc line. With cache file identified,
 # generate source Id list as well, and echo cache file path.
-filereader_statusdir_cache ()
+filereader_statusdir_cache () # ~ <File>
 {
   declare sd_{{bd,},id} file{version,id,modeline}
   fml_lvar=true file_modeline "${1:?}"
-  test -n "${fileid-}" &&
+  [[ ${fileid-} ]] || fileid=${1##*/}
   test "${fileid:0:3}" = "SD:" && {
+    ! ((VERBOSE)) || >&2 echo "Resolving fileid ${fileid}"
     sd=${fileid:3}
     str_globmatch "$sd" "*:*" && {
       sd_bdid=${sd%:*} sd_id=${sd#*:}
-      : "${!sd_bdid:?"$(sys_exc "$sd_bdid env")"}"
+      : "${sd_id:?"Expected sd_id env but had SD:${sd@Q}"}"
+      #: "${!sd_bdid:?"$(sys_exc "$sd_bdid env")"}"
+      : "${!sd_bdid:?"Expected sd_bdid env but had SD:${sd@Q}"}"
       : "${_:?}/${METADIR:?"$(sys_exc "metadir env")"}"
       sd_bd=${_:?}/cache
     } ||
@@ -78,7 +81,7 @@ filereader_statusdir_cache ()
   } ||
     sd_id=$fileid
 
-  echo "${sd_bd:-"${STATUSDIR_ROOT:?}cache"}/${sd_id:?}"
+  echo "${sd_bd:-"${STATUSDIR_ROOT:?}cache"}/${sd_id:?Expected sd_id but had fileid:${fileid@Q}}"
 }
 
 

@@ -5,11 +5,8 @@ context_sh_version=0.0.0-alpha
 context_sh_shortdescr='Provide context entities and relations based on tags'
 context_sh_maincmds="entries files help list path shell status short version"
 context_sh__man='
-TODO: convert to new include system may be?
-want some system that makes is clear where the concatenated cache versions are
-or let context_load set it up properly
-
-first
+FIXME: only runs on Bash /bin/sh hosts
+TODO: convert to new us-pp format for improved setup.
 '
 
 context__grp=user-script
@@ -58,7 +55,7 @@ context_sh_entries () # (y) ~ <action:-list> <...>
         [[ $# -eq 1 ]] || return ${_E_MA:?}
         {
           : "${ctx_grep_f:-Ev}"
-          echo "# $ grep_f=-i ctx_grep_f=$_ generator=context_tab stattab_grep ${@@Q}"
+          echo "# $ grep_f=-i ctx_grep_f=$_ generator=context_tab stattab_grep ${*@Q}"
           grep_f=-i \
           generator=context_tab stattab_grep "${1:?}" -idp "${CTX_TAB_CACHE:?}"
         } |
@@ -76,8 +73,8 @@ context_sh_entries () # (y) ~ <action:-list> <...>
         test $# -gt 2 || set -- "${1:?}" "${2:?}" "${CTX_TAB_CACHE:?}"
         {
           : "${ctx_grep_f:-Ev}"
-          echo "# $ ctx_grep_f=$_ generator=context_tab stattab_grep ${@@Q}"
-          generator=context_tab stattab_grep "$@"
+          echo "# $ ctx_grep_f=$_ generator=context_tab stattab_grep ${*@Q} | sort -k4d"
+          generator=context_tab stattab_grep "$@" | sort -k4d
         } |
           IF_LANG=todo.txt $PAGER
       ;;
@@ -88,13 +85,17 @@ context_sh_entries () # (y) ~ <action:-list> <...>
         test $# -gt 2 || set -- "${1:?}" "${2:?}" "${CTX_TAB_CACHE:?}"
         {
           : "${ctx_grep_f:-Ev}"
-          echo "# $ grep_f=-i ctx_grep_f=$_ generator=context_tab stattab_grep ${@@Q}"
-          grep_f=-i generator=context_tab stattab_grep "$@"
+          echo "# $ grep_f=-i ctx_grep_f=$_ generator=context_tab stattab_grep ${*@Q} | sort -k4d"
+          grep_f=-i generator=context_tab stattab_grep "$@" | sort -k4d
         } |
           IF_LANG=todo.txt $PAGER
       ;;
   ( l|list )
         context_tab
+      ;;
+  ( ls|s )
+        : "${1:?ls|s: need term to match, use l|list to output all entries}"
+        "$FUNCNAME" grepi "$1"
       ;;
   ( r|raw ) context_tab_cache &&
       read_nix_data "${CTX_TAB_CACHE:?}" ;;
@@ -104,10 +105,14 @@ context_sh_entries () # (y) ~ <action:-list> <...>
         contexttab_related_tags "$@" &&
         echo "Related tags: $tag_rel"
       ;;
-  ( tagged )
+  ( t|tagged )
+        : "${1:?Tag required}"
         user_script_initlibs stattab-reader &&
         stb_fp=${CTX_TAB_CACHE:?} grep_f=-n generator=context_tab \
           stattab_grep "$1" -tagged
+      ;;
+  ( u|update )
+        context_tab_cache
       ;;
 
   ( * ) $LOG error "$lk" "No such action" "-$act:$*" ${_E_nsa:-68}
@@ -144,10 +149,13 @@ context_sh_files () # (y) ~ <Switch:-list> <...>
       context_sh_files --check-global &&
       context_sh_files --check-local
     ;;
+  ( c-a|count-all )
+      wc -l <<< "$(context_files)"
+    ;;
   # TODO: see status.sh, get faster more meaningful stat for (context) index
   ( check-global )
       local files
-      : "$(context_files)" &&
+      if_ok "$(context_files)" &&
       #mapfile -t files <<< "$_" &&
       #stderr script_debug_arr files
       <<< "$_" foreach2 os_isfile
@@ -156,16 +164,9 @@ context_sh_files () # (y) ~ <Switch:-list> <...>
       # TODO: use statusdir or other to go over unique names
       test ! -e .meta/stat/index/context.list ||
           $LOG warn "$lk" "Should not have context.list" ;;
-  ( c-a|count-all )
-      wc -l <<< "$(context_files)"
-    ;;
   ( clear-locks )
-      (($#)) || set -- id
-      local file{,s}
-      mapfile -t files < <(context_files)
-      for file in "${files[@]}"
-      do rm "$file".lock || continue
-      done
+      HT=$HTDOCS BIN=$HOME/bin \
+      context_files_clearlocks
     ;;
   ( e|enum )
       local cached=${CTX_CACHE:?}/context-file-includes.tab
@@ -187,6 +188,9 @@ context_sh_files () # (y) ~ <Switch:-list> <...>
       if_ok "$(context_files)" &&
       mapfile -t files <<< "$_" &&
       grep "$@" "${files[@]}"
+    ;;
+  ( i|id )
+      "$FUNCNAME" attr id
     ;;
   ( l|ls|list )
       context_sh_files -all && context_sh_files -find
@@ -457,7 +461,6 @@ context_sh_aliasargv ()
 context_sh_init ()
 {
   user_script_initlibs stattab-class class-uc context &&
-  declare -F | grep context_read_include &&
   class_init XContext
 }
 
