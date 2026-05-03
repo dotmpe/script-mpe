@@ -155,13 +155,14 @@ User-Script.Package.write-scripts ()
   mapfile -t scripts < <(jq -r '.scripts | keys | .[]' "$PACK_JSON")
   for script in "${scripts[@]}"
   do
+    # XXX: evaluate some script from template? probably some other object
     #while read -r scriptline
     #do
     #  . <(echo "echo \"$scriptline\"")
     #done \
     out="$PACK_SCRIPTS/$script.sh"
     [[ -s $out && $out -nt $PACK_JSON ]] ||
-      >| "$out" jq -r ".scripts.\"$script\" | .[]" "$PACK_JSON"
+      >| "$out" jq -r ".scripts.\"$script\" | if type == \"array\" then .[] else . end" "$PACK_JSON"
   done
 }
 
