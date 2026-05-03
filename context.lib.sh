@@ -25,6 +25,15 @@ context_lib__init()
   : "${CTX_CACHE:="${STATUSDIR_ROOT:?}cache"}"
   : "${CTX_TAB_CACHE:="${CTX_CACHE:?}/context.tab"}"
   #: "${CTX_TAB_CACHE:="${CTX_CACHE:?}/context.list"}"
+  xattr_bin=$(command -v xattr) ||
+    $LOG error "" "No xattr install found" || return
+  # Export functions for access in Bash shell subprocess
+  export -f \
+    filereader_statusdir_cache \
+    src_htd_resolve_fileref \
+    context_read_include \
+    context_file_attributes \
+    context_file_attribute std_silent
   test -e "$CTX_TAB" || {
     touch "$CTX_TAB" || return $?
   }
@@ -93,13 +102,6 @@ context_assert () # ~ [<CTX>]
 
 context_cache ()
 {
-  # Export every function for access in shell subprocess
-  export -f \
-    filereader_statusdir_cache \
-    src_htd_resolve_fileref \
-    context_read_include \
-    context_file_attributes \
-    context_file_attribute std_silent
   preproc_run "${1:?}" \
     filereader_statusdir_cache \
     context_read_include \
@@ -307,18 +309,20 @@ context_file_attribute () # ~ <Key> <Value> <Context-list>
 }
 
 # record attributes specifically for context.tab, where attributes-values are
-# embedded (backed up) as preprocess directives into the tab file as well.
+# embedded (backed up) as preprocess meta directives into the tab file as well.
 context_file_attributes () # ~ <Keys...>
 {
-  local context_tab="${context_tab:-${CTX_TAB:?}}" v xp
+  local v xp
+  local -I context_tab
   local -a ids
-  true "${xattr_noerr:=1}"
+  : "${context_tab:-${CTX_TAB:?}}"
+  : "${xattr_noerr:=1}"
   xp=${xattr_noerr:+std_silent }
   # Look for each requested key
   while test $# -gt 0
   do
     v=$(${xp}xattr -p user.${1:?} "$context_tab")
-    test -n "$v" && echo "$v" || {
+    [[ $v ]] && echo "$v" || {
       v=$(grep -oP '#'"${1:?}"' \K.*' "$context_tab") ||
         v=_$RANDOM
       context_file_attribute ${1:?} "${v:?}" "$context_tab" ||
@@ -333,7 +337,7 @@ context_file_flush_xattr_cache ()
 {
   local c v xp
   xp=${xattr_noerr:+std_silent }
-  v=$(${xp}xattr -p user.${1:?} "${3:?}") &&
+  v=$(${xp}xattr -p user.${1:?} "${3:?}") || return
   c=$(grep -oP '#'"${1:?}"' \K.*' "$context_tab") && {
     test "$c" = "$v" ||
         sed -m 's/^#'"${1:?}"' .*$/#'"${1:?}"' '"${v:?}"'/' "${3:?}" ||
@@ -399,7 +403,6 @@ context_files () # (ctx-tab) ~
     preproc_includes_list "" "$context_tab"
     return
   }
-  #"${context_cache_tab:-true}"
   local cached=${CTX_CACHE:?}/context-file-includes.tab
   context_files_cached "$cached" &&
   cut -d $'\t' -f 4 "$cached"
@@ -419,7 +422,7 @@ context_files_cached () # (ctx-tab) ~ <Cached-enum-file>
   declare -a files
   # Read file-line-src table, or generate ad-hoc file list
   test -e "${1:?}" &&
-    mapfile -t files <<< "$(cut -d $'\t' -f 4 "$1")" ||
+  mapfile -t files <<< "$(cut -d $'\t' -f 4 "$1")" ||
     mapfile -t files <<< "$(
       echo "$context_tab"
       preproc_includes_list "" "$context_tab")" || return
@@ -516,7 +519,7 @@ context_parse ()
     }
   }
 
-  true "${tagns:="$CTX_DEF_NS"}"
+  : "${tagns:="$CTX_DEF_NS"}"
 }
 
 # Get all content lines, adding file-source Id tag to each entry.
@@ -590,7 +593,7 @@ context_tab () # [Ctx-tab] ~ # List context list items
     grep -${ctx_grep_f:-Ev} '^\s*(#.*|\s*)$' "${CTX_TAB_CACHE:?}"
 }
 
-# list files, and if cached list is OOD regenerate
+# list entries, and if cached list is OOD regenerate
 # TODO: return status to indicate data reload may be required
 context_tab_cache () # [Ctx-tab] ~
 {

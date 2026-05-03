@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 
-
 context_sh_name=Context.sh
 context_sh_version=0.0.0-alpha
 context_sh_shortdescr='Provide context entities and relations based on tags'
 context_sh_maincmds="entries files help list path shell status short version"
+context_sh__man='
+TODO: convert to new include system may be?
+want some system that makes is clear where the concatenated cache versions are
+or let context_load set it up properly
+
+first
+'
 
 context__grp=user-script
 context_sh__grp=context
@@ -34,8 +40,10 @@ context_sh_entries () # (y) ~ <action:-list> <...>
   ( check-tags ) # ~ # Look for (sub)tag and warn about case
       context_tab_cache && context_check "$@"
     ;;
-  ( d|data ) context_tab_cache &&
-      read_nix_user_data "${CTX_TAB_CACHE:?}" ;;
+  ( d|data ) # ~ ... # List entries
+      context_tab_cache &&
+      read_nix_style_file "${CTX_TAB_CACHE:?}"
+    ;;
   ( e|exists|tags-exist )
       context --exists "$@"
     ;;
@@ -119,6 +127,19 @@ context_sh_files () # (y) ~ <Switch:-list> <...>
   ( a|all )
       context_files
     ;;
+  ( attr|attributes )
+      (($#)) || set -- id
+      local file{,s}
+      mapfile -t files < <(context_files)
+      for file in "${files[@]}"
+      do echo "$file"
+        for key
+        do
+          if_ok "$(context_tab=$file context_file_attributes $key)" || continue
+          echo " $key $_"
+        done
+      done
+    ;;
   ( c|check )
       context_sh_files --check-global &&
       context_sh_files --check-local
@@ -137,6 +158,14 @@ context_sh_files () # (y) ~ <Switch:-list> <...>
           $LOG warn "$lk" "Should not have context.list" ;;
   ( c-a|count-all )
       wc -l <<< "$(context_files)"
+    ;;
+  ( clear-locks )
+      (($#)) || set -- id
+      local file{,s}
+      mapfile -t files < <(context_files)
+      for file in "${files[@]}"
+      do rm "$file".lock || continue
+      done
     ;;
   ( e|enum )
       local cached=${CTX_CACHE:?}/context-file-includes.tab
@@ -395,9 +424,9 @@ context_bases ()
   test $# -eq 0 || shift
   local lk=${lk:-:context}:bases:-$act
   case "$act" in
-  ( --for-dir )
+  ( list )
       echo "${lib_loaded// /$'\n'}" | sort -u
-      TODO "$*, $ENV_CTX:$FUNCNAME:$act"
+      TODO "get context bases, $ENV_CTX:$FUNCNAME:$act"
     ;;
 
   ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
@@ -428,6 +457,7 @@ context_sh_aliasargv ()
 context_sh_init ()
 {
   user_script_initlibs stattab-class class-uc context &&
+  declare -F | grep context_read_include &&
   class_init XContext
 }
 

@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
 
-preproc_lib__load()
+preproc_lib__load ()
 {
   : "${CACHE_DIR:=${STATUSDIR_ROOT:?}cache}"
 }
+preproc_lib__source=preproc.lib.sh
+preproc_lib__man='This contains an old Bash implementation for processing
+`#include` directives in source, and without cpp or observing any other C
+pre-processing rules.
 
+This also relies on a /bin/sh linked to Bash, because we use exported functions
+here to read filtered data, from a Sed script using external commands. Having
+ie. Dash as /bin/sh the function exports are unavailable, and sed does not seem
+to use the SHELL env or lookup sh from PATH.  Ie. it looks to be hardcoded to
+"/bin/sh" "-c" as it is for other tools.
+
+This is superseded by us-pp, that has a more proper Bash implementation
+and one that does not act as-if it is C pp compatible. @deprecated'
+preproc_lib__created=2018-11-25
+preproc_lib__modified=2024-09-15
+preproc_lib__updated=2026-05-01
 
 # List values for include-type pre-processor directives from file and all
 # included files (recursively).
@@ -36,7 +51,7 @@ preproc_run () # ~ <source-file> <cache-handler> <read-handler> <file-res-handle
     return
   } || {
     declare cache_file ref res=${4:-src_htd_resolve_fileref}
-    local lk="${lk-}:pp-run[$2,$3,$4]"
+    local lk="${lk-}:pp-run[$2,$3,$res]"
     cache_file=$("${2:?}" "${1:?}") || return
 
     [[ -w "$(dirname "$cache_file")" ]] || {
@@ -67,8 +82,10 @@ preproc_run () # ~ <source-file> <cache-handler> <read-handler> <file-res-handle
     $LOG info "$lk" "Cache is up to date" "$cache_file" || {
       $LOG notice "$lk" "Generating OOD cache" "$cache_file.preproc"
       touch "$cache_file.lock"
-      preproc_read_include=${3:?} preproc_expand "" "$1" >| "$cache_file.preproc" ||
-        ignore_sigpipe || return
+      preproc_read_include=${3:?} preproc_expand "" "$1" >| "$cache_file.preproc" || {
+        ignore_sigpipe ||
+          $LOG error "$lk" "Generating cache" "$cache_file" $? || return
+      }
       cat "$cache_file.preproc" &&
       $LOG info "$lk" "Generated cache" "$cache_file" &&
       rm "$cache_file.lock"
@@ -101,6 +118,7 @@ preproc_includes_enum () # ~ <Resolver-> <File|Grep-argv...>
 preproc_expand () # ~ <Resolver-> <File>
 {
   # TODO: fix caching
+  >&2 echo "$FUNCNAME ${*@Q}"
   preproc_expand_1_sed "${@:?}"
 
   # TODO: apply recursively
@@ -112,12 +130,14 @@ preproc_expand () # ~ <Resolver-> <File>
 preproc_expand_1_sed () # ~ <Resolver-> <File|Grep-argv...>
 {
   local lk=${lk:-}:expand-preproc:sed1 sc
+  >&2 echo "$FUNCNAME ${*@Q}"
   preproc_expand_1_sed_script "$@" || return
   $LOG debug :preproc:expand-sed1 "Sed script prepared" "$sc"
   ${preproc_read_include:-read_nix_data} "${2:?}" | {
     $LOG debug :preproc:expand-sed1 "Reader started, initializing Sed script" \
       "$preproc_read_include:$2:$sc"
-    "${gsed:?}" -f "$sc" - ||
+    PATH=/usr/local/shbin:$PATH \
+    "${gsed:?}" --debug -f "$sc" - ||
       $LOG error $lk "Error executing sed script" "E$?:($#):$*" $? || return
   }
 }
@@ -179,7 +199,7 @@ preproc_resolve_sedscript () # ~ <Resolver> [<File>] # Generate Sed script
 
 preproc_resolve_sedscript_item ()
 {
-  ref_re="$(match_grep "$ref")"
+  local ref_re="$(match_grep "$ref")"
   test "${preproc_read_include:-file}" = file && {
     printf '/^[ \\t]*#include\ %s/r %s\n' "$ref_re" "$file"
     # Replace directive with 'from' filepath line
@@ -322,3 +342,5 @@ preproc_d_include () # ~ <Ref> <...>
   "$_" || return
   $LOG debug "preproc:preproc" "Pre-processed" "$fileref"
 }
+
+# Id: preproc.lib.sh         meta:created=2018-11-25: ex:ft=bash sw=2 sts=2 et:
