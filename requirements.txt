@@ -198,8 +198,8 @@ types-requests==2.32.4.20250913
 types-six==1.17.0.20251009
 typing_extensions==4.15.0
 tzdata==2025.2
-uritemplate==4.2.0
 uriref @ file:///src/local/uriref%2Bdev%2Bcurrent
+uritemplate==4.2.0
 urllib3==2.5.0
 urwid==3.0.3
 wcwidth==0.2.14

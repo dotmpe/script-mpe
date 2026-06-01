@@ -147,6 +147,12 @@
     - scriptname=install
     - . ./tool/ci/part/install.sh
     test-feature: lib_load build-test && test_any_feature "\$@"
+    wordnet:
+      - "#!/usr/bin/env bash"
+      - set -euo pipefail
+      - . <(line_prefix "export " < <(read_nix ./.env))
+      - . /usr/local/lib/${PY_VENV_NAME:=script-mpe}-pyvenv/bin/activate
+      - PYTHONPATH=$HOME/.local/lib/py python wordnet.py "$@"
 
   rst:
     default-include: .rst-global.rst

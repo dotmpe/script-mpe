@@ -75,6 +75,7 @@ User-Conf.Basedir.basedirs+load ()
 {
   if_ok "${US_BASEDIR_CACHE:=$(command -v basedir,user.data.bash)}" ||
     failerr "Missing User-Script basedir cache filepath setting" || return
+  declare -ga uc_basedir_key
   cache_loadmaps "$US_BASEDIR_CACHE" uc_basedir_{,path}id ||
     failerr "E$? loading User-Script basedirs cache" || return
 

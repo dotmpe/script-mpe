@@ -22,7 +22,9 @@ us_config_als=(
 )
 declare -gA \
 us_config_ssc=(
-  [config_assertlocal]='.init-config "${1:-$METADIR/config/us.bash}"'
+  [config_assert]='.init-config "${1:-${US_CONFIG_GLOBAL:-${US_CONFIG_PATH%%:*}/us.bash}}"'
+  [config_assertlocal]='! (($#)) || failerr "No arguments expected" $_E_GAE || return
+User-Script.Config.init-config "${US_CONFIG_LOCAL:-$METADIR/config/us.bash}"'
 )
 
 declare -gA \
@@ -30,7 +32,13 @@ us_config_hooks=(
   [init]=\
 'if_ok "${US_UC_CACHE:=$(command -v config,user.data.bash)}" ||
   failerr "Missing us-config cache filepath setting" || return
-
+: "${US_CONFIG_PATH:=$HOME/.config/user-script:$HOME/.local/etc/us}"
+[[ -s $HOME/.config/user-script/us.bash ]] &&
+US_CONFIG_GLOBAL=$HOME/.config/user-script/us.bash ||
+  _ failerr "Empty or no global User Script config, did you configure the host?"
+[[ -s $METADIR/config/us.bash ]] &&
+US_CONFIG_LOCAL=$METADIR/config/us.bash ||
+  _ failerr "Empty or no local User Script config, run configure"
 declare -ga us_uc_env{,dirty} &&
 declare -gA us_uc_{{cmd,bin}ver,envdef}'
   [user+load]=\
@@ -43,17 +51,19 @@ User-Script.Config.init-config ()
   if [[ -s "$1" ]]
   then
     local {init,config}_lines line
+    # Read stdin lines as init-lines, and compare aginast current config
     mapfile -t init_lines
-    mapfile -t config_lines < <(grep -Ev '^\s*(#.*|\s*)$' "$1")
+    mapfile -t config_lines < <(User-Script.OS.file-data "$1")
     for line in "${init_lines[@]}"
     do
       User-Script.Array.find-string config_lines "$line" ||
         echo "$line" >> "$1"
     done
   else
-    >&2 mkdir -vp "${1%/*}" &&
-    cat > "$1" &&
-    echo "# User-Script config" >> "$1"
+    >&2 mkdir -vp "${1%/*}" && {
+      echo "# User-Script config"
+      cat
+    } > "$1"
   fi
 }
 

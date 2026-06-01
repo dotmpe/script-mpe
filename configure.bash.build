@@ -1,0 +1,25 @@
+#!/usr/bin/env -S us-run.bash --pwd --modeline --exec
+#
+# configure.bash{,.build} - Configuration generator
+#
+# Copyright 2008-2026 B. van Berkum <dev@dotmpe.com>
+# 
+# Distributed under terms of the MIT license.
+#
+##define US_CONFIGURE
+#:include us.cfg
+#
+#:generator
+#&'strict'
+#&'verbosity'
+#&'debug'
+#&us-configure
+#&'us-host-profile'
+#&log
+#&'us-basedir'
+#! ((DEBUG)) || set -x
+#&'us-package'
+#! ((DEBUG)) || set +x
+#&'us-build-config'
+#:modeline
+# pp:pwd:gpp-mode=shell_nc:
