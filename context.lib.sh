@@ -63,7 +63,7 @@ context ()
         stb_fp=${ctx_tab:-${CTX_TAB_CACHE:?}} stattab_exist_all "$@"
       ;;
 
-    ( * ) $LOG alert :context "No such switch" "$_switch" ${_E_nss:-69}
+    ( * ) $LOG alert :context "No such switch" "$_switch; func=$FUNCNAME" ${_E_nss:-69}
   esac
 }
 
@@ -128,7 +128,7 @@ context_check_inner () # ~ <Tag> <...>
       context_exists_subtagi "$1" && {
         $LOG notice :subtagi "Sub-tag exists" "$1"
       } || {
-        $LOG alert :nok "No such tag" "$1"
+        $LOG alert :nok "No such tag; func=$FUNCNAME" "$1"
       }
     }
   }

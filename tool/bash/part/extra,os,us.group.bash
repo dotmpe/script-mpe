@@ -27,7 +27,7 @@ us_os_extra_fun=(
   .iter-sources
 
   .lookup-expand{,-commands}
-  .lookup-expand-{leafs,pathtree}
+  .lookup-expand-{leafs,{path,dir}tree}
   .lookup-expand-safe{,names}
   .lookup-list
   .local-lookup-list
@@ -37,6 +37,8 @@ us_os_extra_fun=(
   .tempfile
   .unique-lines
   .unique-paths
+  .with-local
+  .with-local-noctx
 )
 declare -gA \
 us_os_extra_als=(
@@ -83,6 +85,8 @@ us_os_extra_als=(
   ["SCRIPTPATH+lines"]='.lookup-list SCRIPTPATH'
   ["SCRIPTPATH+leafs"]='.lookup-expand-leafs SCRIPTPATH'
   [us_count_lines]=.count-lines
+  [with_local]=.with-local
+  [with_local_noctx]=.with-local-noctx
 )
 declare -gA \
 us_os_extra_ssc=(
@@ -352,11 +356,19 @@ User-Script.OS.x.lookup-expand-leafs ()
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_paths
 }
 
+User-Script.OS.x.lookup-expand-dirtree ()
+{
+: about 'Variant for lookup-expand-safenames'
+: param ' ~ <Lookup-path-var> [<Output-var>] ...'
+  local -a _find_dirtree=( -type d -not -path '*/.*' )
+  User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_dirtree
+}
+
 User-Script.OS.x.lookup-expand-pathtree ()
 {
 : about 'Variant for lookup-expand-safenames'
 : param ' ~ <Lookup-path-var> [<Output-var>] ...'
-  local -a _find_pathtree=( -type d -not -path '*/.*' )
+  local -a _find_pathtree=( -not -path '*/.*' )
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_pathtree
 }
 
@@ -518,6 +530,32 @@ User-Script.OS.x.unique-paths ()
     _realpath=$(realpath "$path")
     echo "$path"
   done
+}
+
+User-Script.OS.x.with-local ()
+{
+: about 'Declare local variable context and invoke sub command'
+: param '~ <Env=Val...> <Command...>'
+# XXX: could make stack with dyn refs. Or just use ~noctx.
+  local -A env
+  while [[ "$1" == *=* ]]
+  do env["${1%%=*}"]=${1#*=}
+    shift; done
+  local var
+  local -n val='env["$var"]'
+  for var in "${!env[@]}"
+  do declare -l "$var=$val" || return
+  done
+  "$@"
+}
+
+User-Script.OS.x.with-local-noctx ()
+{
+: about 'Declare local variable context and invoke sub command'
+: param '~ <Env=Val...> <Command...>'
+  while [[ "$1" == *=* ]]
+  do declare "${1}" || return; shift; done
+  "$@"
 }
 
 # Id: extra,os,us                                vim:set ft=bash sw=2 sts=2 et:

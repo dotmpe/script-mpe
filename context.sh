@@ -115,7 +115,7 @@ context_sh_entries () # (y) ~ <action:-list> <...>
         context_tab_cache
       ;;
 
-  ( * ) $LOG error "$lk" "No such action" "-$act:$*" ${_E_nsa:-68}
+  ( * ) $LOG error "$lk" "No such action" "-$act:$*; func=$FUNCNAME" ${_E_nsa:-68}
   esac
 }
 context_sh_entries__grp=context-sh
@@ -193,12 +193,15 @@ context_sh_files () # (y) ~ <Switch:-list> <...>
       "$FUNCNAME" attr id
     ;;
   ( l|ls|list )
-      context_sh_files -all && context_sh_files -find
+      context_sh_files -all ||
+        failerr "E$? for $script_name files -all"
+      context_sh_files -find ||
+        failerr "E$? for $script_name files -find"
     ;;
 
   ( p | preview )
       shopt -s expand_aliases &&
-      . ${US_BIN:?}/tool/sh/part/fzf.sh &&
+      us_part $usp_opts fzf-als &&
       # Alias will not resolve yet unless we return to root first, so just
       # resolve the command by hand
       context_files | eval "IF_LANG=todo.txt $(sh_als_cmd fzf-preview)"
@@ -227,7 +230,7 @@ context_sh_files () # (y) ~ <Switch:-list> <...>
       cat "$cached"
     ;;
 
-  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  ( * ) $LOG error "$lk" "No such action" "$act; func=$FUNCNAME" ${_E_nsa:-68}
   esac
 }
 context_sh_files__grp=context-sh
@@ -246,7 +249,7 @@ context_sh_path ()
       #out_fmt=list cwd_lookup_path .
     ;;
 
-  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68} ;;
+  ( * ) $LOG error "$lk" "No such action" "$act; func=$FUNCNAME" ${_E_nsa:-68} ;;
   esac
 }
 context_sh_path__grp=context-sh
@@ -313,7 +316,7 @@ context_sh_shell () # ~ <Switch:-user> ~ [-i] [-l] [-c "<Command...>"] [<Shell-a
       scripts=$(user_script_list_shell_scripts | user_script_filter_userdirs)
       wc -l <<< "$scripts"
     ;;
-  ( * ) $LOG error "$lk" "No such switch" "$switch" ${_E_nsk:-67}
+  ( * ) $LOG error "$lk" "No such switch" "$switch; func=$FUNCNAME" ${_E_nsk:-67}
   esac
 }
 context_sh_shell__grp=context-sh
@@ -348,7 +351,7 @@ context_sh_status () # ~
           wc -l "$cached"
       ;;
 
-  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  ( * ) $LOG error "$lk" "No such action" "$act; func=$FUNCNAME" ${_E_nsa:-68}
   esac
 }
 context_sh_status__grp=context-sh
@@ -367,7 +370,7 @@ context_sh_tag ()
         context_tag_entry "${1:?}"
       ;;
 
-  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  ( * ) $LOG error "$lk" "No such action" "$act; func=$FUNCNAME" ${_E_nsa:-68}
   esac
 }
 context_sh_tag__grp=context-sh
@@ -388,7 +391,7 @@ context_sh_tags () # ~ <Switch:-list> <...>
   ( list )
       context_tags_list ;;
 
-  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  ( * ) $LOG error "$lk" "No such action" "$act; func=$FUNCNAME" ${_E_nsa:-68}
   esac
 }
 context_sh_tags__grp=context-sh
@@ -416,7 +419,7 @@ context_sh_user () # (y) ~ <Switch:-> ...
   ( conf ) us_userconf_init && $user_conf.class-tree;;
   ( dir ) us_userdir_init && $user_dir.class-tree;;
 
-  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  ( * ) $LOG error "$lk" "No such action" "$act; func=$FUNCNAME" ${_E_nsa:-68}
   esac
 }
 context_sh_user__grp=context-sh
@@ -433,7 +436,7 @@ context_bases ()
       TODO "get context bases, $ENV_CTX:$FUNCNAME:$act"
     ;;
 
-  ( * ) $LOG error "$lk" "No such action" "$act" ${_E_nsa:-68}
+  ( * ) $LOG error "$lk" "No such action" "$act; func=$FUNCNAME" ${_E_nsa:-68}
   esac
 }
 context_sh_bases__grp=context-sh

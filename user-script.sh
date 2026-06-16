@@ -1941,7 +1941,7 @@ user_script_sh_defarg ()
 user_script_sh_loadenv ()
 {
   local script_part fail
-  set -- ${script_cmdname:?} ${script_base//,/ }
+  set -- ${script_cmdname:-${script_name,,}} ${script_base//,/ }
   for script_part
   do
     # Start at first script node, load all libs and then execute hooks.

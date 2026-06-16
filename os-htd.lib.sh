@@ -868,7 +868,7 @@ os_recursive () # ~ [<os-file-path>] [<os-dir-path>] <Paths...>
         test -d "$1" && {
           $LOG debug :os-recursive "Dir" "$os_dir_path:$1:${os_r_glob-/*}"
           : "${os_r_glob-/*}"
-          ${os_dir_path:?} "${os_file_path:?}" "$os_dir_path" "$1"$_ || os-als:loop-stat1
+          "${os_dir_path:?}" "${os_file_path:?}" "$os_dir_path" "$1"$_ || os-als:loop-stat1
         } || {
           test -a "$1" && {
             $LOG error :os-recursive "Expected file or directory" "$1" 2 || return
