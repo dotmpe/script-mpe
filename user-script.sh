@@ -125,23 +125,6 @@ script_entry () # [script{name,_baseext},base] ~ <Scriptname> <Action-arg...>
   fi
 }
 
-script_envinit () # ~ <Bases...>
-{
-  $LOG notice "" "Starting script init" "bases=$*"
-  append_path "${U_S?}/tool/us/part" &&
-  uc_script_load "us-env.node" &&
-  us-env:define-env || return
-
-  std_noo declare -p ENVD_FUN || declare -gA ENVD_FUN=()
-  std_noo declare -p us_node || declare -gA us_node=()
-  std_noo declare -p us_node_base || declare -gA us_node_base=()
-  std_noo declare -p us_node_hooks || declare -gA us_node_hooks=()
-  std_noo declare -p us_node_libs || declare -gA us_node_libs=()
-
-  user_script_graph_init "$@" &&
-  script_baseenv
-}
-
 # Setup env to start loading user-script(s) and parts. To prepare env for
 # commands, see loadenv handlers.
 #
@@ -174,7 +157,7 @@ script_baseenv ()
     do
       var_=${_baseid}_$var;
       test -n "${!var_:-}" || continue
-      eval "script_$var=\"${_//,/ }\""
+      . <(echo "script_$var=\"${_//,/ }\"")
       continue 2
     done
   done
@@ -364,10 +347,11 @@ script_doenv () # ~ <Action <argv...>>
   # Update bases, if there is one given for particular action, on any of the
   # current bases.
   ! "${user_script_baseless:-false}" && : "" || : "${1:?} "
-  if_ok "$_$(for base in $(user_script_bases)
+  if_ok "${_}$(for base in $(user_script_bases)
     do
       echo "$base-${1:?}"
     done)" &&
+  >&2 echo "$0/$$ Testing for action $1:" "$_" &&
   sys_loop user_script_cmdhandler_set $_ &&
   script_baseenv ||
     $LOG error "" "During base env" "E$?" $? || return
@@ -968,8 +952,8 @@ user_script_load () # (y*) ~ <Actions...>
           # XXX: local -n group="$(str_word "${script_base:?}")__grp"
           : "${group:=user-script}"
         }
-        : ${script_base:?Expected script base env}
-        script_envinit ${script_base//,/ }
+        : "${script_base:?Expected script base env}"
+        set -- "$1" usinit "${@:2}"
       ;;
 
     ( defarg ) # Entire pre-init for script, ie. to use defarg
@@ -977,6 +961,81 @@ user_script_load () # (y*) ~ <Actions...>
         lib_require us-fun us user-script shell-uc args &&
         lib_init shell-uc &&
         set -- "$@" log baseenv screnv
+      ;;
+
+    ( groups )
+        # FIXME: old groups was only run after determining command handler,
+        # need to rewrite routines to load progressively
+        local name=${script_part:-${script_cmd:?}} libs hooks \
+          lk lctx plk=${lk:-}
+        lk=${plk:-}:user-script:load[group:$name]
+        lctx=
+        ((QUIET)) ||
+          $LOG notice "$lk" "Loading groups " "$lctx"
+
+        ! sys_debug || {
+          stderr echo script_base=$script_base
+          stderr echo script_part=$script_part
+          stderr echo for $script_part at bases $(user_script_bases "$name" | tac)
+          stderr echo all bases $(user_script_bases | tac)
+          #stderr echo groups for $script_part at bases $(user_script_bases "$name" | tac)
+        }
+        #if_ok "$(user_script_bases "$name" | tac)" || return
+        if_ok "$(user_script_bases | tac)" || return
+        for base in $_
+        do
+          >&2 declare -p base
+          : "${base//[:.-]/_}__libs"
+          test -z "${!_-}" || {
+            us_node_libs["$base"]=${_//,/ }
+            libs=${libs:-}${libs:+ }${us_node_libs["$base"]}
+          }
+          : "${base//[:.-]/_}__hooks"
+          test -z "${!_-}" || {
+            us_node_hooks["$base"]=${_//,/ }
+            hooks=${hooks:-}${hooks:+ }${us_node_hooks["$base"]}
+          }
+        done
+
+        test -z "${libs:-}" && {
+          test -n "${hooks:-}" || {
+            ((QUIET)) ||
+              $LOG warn "$lk" "No grp, libs or hooks for user-script sub-command" "$lctx"
+            return ${_E_next:-196}
+          }
+        } || {
+          ((QUIET)) ||
+            $LOG info "$lk" "Initializing libs for group" "$name:$libs"
+          user_script_initlibs $libs ||
+            $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
+        }
+        test -z "${hooks:-}" && return
+        local \
+          us_cmdhooks_stat \
+          us_cmdhook_group=$name \
+          us_cmdhook_lk="$plk:user-script:hooks[group:$name]" \
+          us_cmdhook_name \
+          us_cmdhook_idx
+        local -a us_cmdhook_arr
+        <<< "${hooks// /$'\n'}" mapfile -t us_cmdhook_arr || return
+
+        ((QUIET)) || { ! ((DEBUG)) || ! ((INIT)); } ||
+          $LOG debug "$lk" "Running hooks (${#us_cmdhook_arr[*]})" "${hooks// /,}"
+
+        for us_cmdhook_idx in "${!us_cmdhook_arr[@]}"
+        do
+          us_cmdhook_name=${us_cmdhook_arr[us_cmdhook_idx]}
+          "$us_cmdhook_name" || {
+            us_cmdhooks_stat=$?
+            : "$us_cmdhooks_stat"
+            $LOG error "$lk" "Failure in hook" "E$_:$us_cmdhook_name" $_ || return
+          }
+        done
+        return ${us_cmdhooks_stat-0}
+      ;;
+
+    ( node )
+        script_part=${script_cmd:-}
       ;;
 
     ( log )
@@ -1032,74 +1091,6 @@ user_script_load () # (y*) ~ <Actions...>
         export verbosity v
       ;;
 
-    ( groups )
-        local name=${script_part:-${script_cmd:?}} libs hooks \
-          lk lctx plk=${lk:-}
-        lk=${plk:-}:user-script:load[group:$name]
-        lctx=
-        ((QUIET)) ||
-          $LOG notice "$lk" "Loading groups " "$lctx"
-
-        ! sys_debug || {
-          stderr echo script_base=$script_base
-          stderr echo script_part=$script_part
-          stderr echo for $script_part at bases $(user_script_bases "$name" | tac)
-          stderr echo all bases $(user_script_bases | tac)
-          #stderr echo groups for $script_part at bases $(user_script_bases "$name" | tac)
-        }
-        #if_ok "$(user_script_bases "$name" | tac)" || return
-        if_ok "$(user_script_bases | tac)" || return
-        for base in $_
-        do
-          : "${base//[:.-]/_}__libs"
-          test -z "${!_-}" || {
-            us_node_libs["$base"]=${_//,/ }
-            libs=${libs:-}${libs:+ }${us_node_libs["$base"]}
-          }
-          : "${base//[:.-]/_}__hooks"
-          test -z "${!_-}" || {
-            us_node_hooks["$base"]=${_//,/ }
-            hooks=${hooks:-}${hooks:+ }${us_node_hooks["$base"]}
-          }
-        done
-
-        test -z "${libs:-}" && {
-          test -n "${hooks:-}" || {
-            ((QUIET)) ||
-              $LOG warn "$lk" "No grp, libs or hooks for user-script sub-command" "$lctx"
-            return ${_E_next:-196}
-          }
-        } || {
-          ((QUIET)) ||
-            $LOG info "$lk" "Initializing libs for group" "$name:$libs"
-          user_script_initlibs $libs ||
-            $LOG error "$lk" "Initializing libs for group" "E$?:$name:$libs" $?
-        }
-        test -z "${hooks:-}" && return
-        local \
-          us_cmdhooks_stat \
-          us_cmdhook_group=$name \
-          us_cmdhook_lk="$plk:user-script:hooks[group:$name]" \
-          us_cmdhook_name \
-          us_cmdhook_idx
-        local -a us_cmdhook_arr
-        <<< "${hooks// /$'\n'}" mapfile -t us_cmdhook_arr || return
-
-        ((QUIET)) || { ! ((DEBUG)) || ! ((INIT)); } ||
-          $LOG debug "$lk" "Running hooks (${#us_cmdhook_arr[*]})" "${hooks// /,}"
-
-        for us_cmdhook_idx in "${!us_cmdhook_arr[@]}"
-        do
-          us_cmdhook_name=${us_cmdhook_arr[us_cmdhook_idx]}
-          "$us_cmdhook_name" || {
-            us_cmdhooks_stat=$?
-            : "$us_cmdhooks_stat"
-            $LOG error "$lk" "Failure in hook" "E$_:$us_cmdhook_name" $_ || return
-          }
-        done
-        return ${us_cmdhooks_stat-0}
-      ;;
-
     ( rulesenv )
         user_script_initlibs std-uc shell-command-script cached-timer
       ;;
@@ -1111,13 +1102,25 @@ user_script_load () # (y*) ~ <Actions...>
           user_script_initlibs sys assert || return
       ;;
 
-    ( node )
-        script_part=${script_cmd:-}
-      ;;
-
     ( usage )
       lib_load user-script str-htd shell-uc us &&
       lib_init shell-uc ;;
+
+    ( usinit )
+        $LOG notice "" "Starting script init" "bases=${script_base}"
+        append_path "${U_S?}/tool/us/part" &&
+        uc_script_load "us-env.node" &&
+        us-env:define-env || return
+
+        std_noo declare -p ENVD_FUN || declare -gA ENVD_FUN=()
+        std_noo declare -p us_node || declare -gA us_node=()
+        std_noo declare -p us_node_base || declare -gA us_node_base=()
+        std_noo declare -p us_node_hooks || declare -gA us_node_hooks=()
+        std_noo declare -p us_node_libs || declare -gA us_node_libs=()
+
+        user_script_graph_init ${script_base//,/ } &&
+        script_baseenv
+      ;;
 
     ( help ) set -- "" usage ;;
     ( -- ) break ;;
