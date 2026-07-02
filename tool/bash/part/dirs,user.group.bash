@@ -30,7 +30,8 @@ user_dirs_hooks=(
 '  user_config[basedir.uc-dev]="~/{.conf,bin,.l/c,htdocs,project/{user-conf,user-scripts{,-incubator}}}"
   user_config[basedir.user-dirs]=~/{Desktop,Documents,Downloads,Pictures,Videos,Music}'
   [init]=\
-'User.Config.expand-keymatch-filterhandle  user_dirs     basedir.user-dirs   test -d
+'
+  User.Config.expand-keymatch-filterhandle  user_dirs     basedir.user-dirs   test -d
 User.Config.expand-keymatch-filterhandle   user_dev      basedir.uc-dev      test -d
 User.Config.expand-keymatch-filterhandle   user_basedirs basedir."*"         test -d'
 )
