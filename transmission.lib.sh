@@ -994,7 +994,8 @@ transmission_torrentfiles ()
 : param '~ <Array-name>'
   local tbt_uconf=${TRANSMISSIONBT_UC_DIR:?}
   local -n __transmission_torrentfiles=${1:?}
-  [[ ! -d "$tbt_uconf" ]] ||
+  [[ ! -d "$tbt_uconf" ]] &&
+    >&2 echo "No transmission bittorrent directory" ||
     __transmission_torrentfiles+=( "$tbt_uconf"/torrents/*.torrent )
 }
 

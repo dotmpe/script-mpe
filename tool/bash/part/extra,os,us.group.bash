@@ -5,6 +5,8 @@
 us_os_extra_pre=User-Script.OS.x
 us_os_extra_man='
 
+_sh_type
+
 XXX: should probably be using find based expansions everywhere for
 multilanguage/multibyte names instead of Bash globbing iirc
 
@@ -342,7 +344,7 @@ User-Script.OS.x.lookup-expand ()
 
 User-Script.OS.x.lookup-expand-commands ()
 {
-: about 'Variant for lookup-expand-safenames'
+: about 'Variant for lookup-expand-safenames to list executable files'
 : param ' ~ <Lookup-path-var> [<Output-var>] ...'
   local -a _find_cmds=( -maxdepth 1 -not -type d -executable -printf '%P\n' )
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_cmds
@@ -350,7 +352,7 @@ User-Script.OS.x.lookup-expand-commands ()
 
 User-Script.OS.x.lookup-expand-leafs ()
 {
-: about 'Variant for lookup-expand-safenames'
+: about 'Variant for lookup-expand-safenames to list any non-directory path'
 : param ' ~ <Lookup-path-var> [<Output-var>] ...'
   local -a _find_paths=( -maxdepth 1 -not -type d )
   User-Script.OS.x.lookup-expand-safenames "$1" "$2" _find_paths
@@ -381,23 +383,33 @@ User-Script.OS.x.lookup-expand-safenames ()
 {
 : param ' ~ <Lookup-path-var> [<Output-var>] [<Find-filter-argv-var>]'
 : about 'List names found through lookup'
-: extended 'Wrapper for find that iterates lookup paths'
-  : XXX "This should be whitespace safe, but is still meant for safe filenames"
-  local _bd _print=0
+: extended 'Wrapper for find that iterates lookup path and print or assigns result'
+: extended 'Appends result list to string or array variable, or prints it if none is given'
+  local _bd _print=0 _arr
   local -n _lookup=${1:?$FUNCNAME: Name expected for input variable, $ENV_CTX}
-  [[ ! ${2:+set} ]] && _print=1 ||
+  [[ ! ${2:+set} ]] && _print=1 || {
     local -n _dest=${2:?$FUNCNAME:$1: Name expected for output variable, $ENV_CTX}
+    local -n _vartype="us_shell_tspec[$2]"
+    User-Script.Shell.variable-type "$2" || return
+    case "${_vartype}" in -a ) _arr=1 ;; * ) _arr=0 ;; esac
+  }
   [[ ! ${3:+set} ]] &&
     local -a _find_filter=( -maxdepth 1 -not -type d -printf '%P\n' ) ||
     local -n _find_filter=${3:?}
-  local -a _arr
-  mapfile -t _arr <<< "${_lookup//:/$'\n'}" &&
-  [[ ${_arr[*]:+set} ]] &&
-  for _bd in "${_arr[@]}"
+  local -a _paths
+  mapfile -t _paths <<< "${_lookup//:/$'\n'}" &&
+  [[ ${_paths[*]:+set} ]] &&
+  for _bd in "${_paths[@]}"
   do
     if_ok "$(find "$_bd" "${_find_filter[@]}")" &&
     test -n "$_" || continue
-    ((_print)) && echo "$_" || _dest=${_dest:+$_dest$'\n'}${_}
+    ((_print)) && echo "$_" || {
+      ((_arr)) && {
+        mapfile -O ${#_dest[*]} -t $2 <<< "$_" || return
+      } ||
+        # String concatenation uses newlines for separator
+        _dest=${_dest:+$_dest$'\n'}${_}
+    }
   done
 }
 

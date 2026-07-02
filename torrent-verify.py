@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 """
-http://stackoverflow.com/questions/2572521/extract-the-sha1-hash-from-a-torrent-file
+Usage: torrent-verify.py [-h | --info | --dump] TORRENT [DIR]
+Default action is to verify, use option flag for other.
+Source: <http://stackoverflow.com/questions/2572521/extract-the-sha1-hash-from-a-torrent-file>
+
+FIXME: this needs to be rewritten from py2 StringIO but bencode itself is py2
+and unmaintained, so need a new writeup for bencodepy perhaps to run py3.
+See libtorrent-verify for version that used the P2P client.
 """
 from __future__ import print_function
 import sys, os, hashlib, StringIO, bencode
@@ -8,9 +14,6 @@ from pprint import pprint
 
 from hashlib import sha1
 from bencode import bdecode as decode, bencode as encode
-
-#import libtorrent as lt
-
 
 def pieces_generator(info):
     """Yield pieces from download file(s)."""
@@ -102,7 +105,7 @@ def verify(torrentfile_path):
 
 
 if __name__ == "__main__":
-    argv = list(sys.argv)
+    argv = sys.argv[:]
     scriptname = argv.pop(0)
 
     if '-h' in argv:
@@ -120,4 +123,7 @@ if __name__ == "__main__":
         pprint(read_torrent(argv[1]))
         sys.exit(0)
 
-    verify(argv.pop(0))
+    torrent = argv.pop(0)
+    if len(argv):
+        os.chdir(argv.pop(0))
+    verify(torrent)

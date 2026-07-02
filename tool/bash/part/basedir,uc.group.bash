@@ -8,8 +8,8 @@ uc_basedir_pre=User-Conf.Basedir
 uc_basedir_cnk=60347cac
 uc_basedir_fun=(
   .basedirs_split-argv
-  .basedir+init
-  .basedir-command
+  # TODO: .basedir+init
+  # TODO: .basedir-command
   .basedirs
   .basedirs+load
 )
@@ -52,7 +52,7 @@ User-Conf.Basedir.basedir+init ()
 User-Conf.Basedir.basedir-command ()
 {
 : param '~ <Dirid> <Command...>'
-  TODO "$FUNCNAME"
+  TODO "$FUNCNAME, see User.DSL.user-ops-main for now"
 }
 
 User-Conf.Basedir.basedirs ()

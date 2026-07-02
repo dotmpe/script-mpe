@@ -2,7 +2,6 @@
 # ~/.bash_alias,dsl,uc or us
 
 us_dsl_user_pre=User.DSL
-us_dsl_user_grp=( uc-basedir )
 us_dsl_user_fun=(
   .load-user-command
   .user-main-autostart
@@ -77,80 +76,7 @@ User.DSL.user-ops-main ()
 : input "${*:?$FUNCNAME: Command args undefined, $ctx:$lk}"
   case "${1:?}" in
   ( _:user:init )
-      append_lookup /var/local/statusdir SCRIPTPATH &&
-      lib_require todotxt-fields &&
-      User-Conf.Basedir.basedirs+load
     ;;
-
-  ( --basedir-edit )
-      local -a data_f data_refs
-      # shellcheck disable=2054 # commas are in names
-      data_refs=(
-        basedir,user.data.bash
-        user,dsl,us.data.bash
-        user,dsl,us.group.bash
-        basedir,uc.data.bash
-        basedir,uc.group.bash
-      )
-      for ref in "${data_refs[@]}"
-      do
-        if_ok "$(PATH=$SCRIPTPATH command -v $ref)" &&
-        data_f+=( "$_" ) || failerr "No script for $ref"
-      done
-      $EDITOR "${data_f[@]}"
-    ;;
-
-  ( --basedir-command )
-      local -I PWD
-      local -n bdid='uc_basedir_pathid["$PWD"]'
-      local -n cmd='user_basedir_'${2:?}'[$bdid]'
-      [[ ${cmd:+set} ]] || PWD=$(realpath "$PWD")
-      [[ ${cmd:+set} ]] ||
-        failerr "No $2 command for current dir" || return
-      echo "Starting basedir-command ${2@Q} for $PWD..."
-      . <(echo "$cmd")
-    ;;
-
-  ( --basedir-command-tree )
-      local path cmd path_header
-      local -n pathid='uc_basedir_pathid["$path"]'
-      for path in "${!uc_basedir_pathid[@]}"
-      do
-        path_header=0
-        for cmd in "${uc_basedir_commands[@]}"
-        do
-          local -n cmddefs="user_basedir_$cmd"
-          [[ ${cmddefs[pathid]:+set} ]] || continue
-          ((path_header)) || echo "$path:"
-          path_header=1
-          echo "  $ $cmd"
-        done
-      done
-    ;;
-
-  ( --basedir-commands )
-      local -I PWD
-      local -n bdid='uc_basedir_pathid["$PWD"]'
-      [[ ${bdid:+set} ]] ||
-        failerr "No path-Id for $PWD" || return
-      local -n cmd
-      local found=0 indent='|        '
-      for cmd in $(compgen -A arrayvar -X '!user_basedir_*')
-      do
-        [[ ${cmd[bdid]:+set} ]] || continue
-        : ${!cmd}
-        : ${_#user_basedir_}
-        printf '%s $ %s\n%s\n' "$PWD" "${_}" \
-          "$indent${cmd[bdid]//$'\n'/$'\n'$indent}"
-        found=1
-      done
-      ((found)) || failerr "No commands found for $PWD"
-    ;;
-
-  ( --basedir-reload )
-      User-Conf.Basedir.basedirs+load
-    ;;
-
 
   ( init )
       here --basedir-command init "$@"
