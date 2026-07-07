@@ -12,6 +12,16 @@ help ()
   echo "Output:"
 }
 
+action_menu ()
+{
+  yad \
+    --width=200 \
+    --height=150 \
+    --posx=50 --posy=50 \
+    --list --title="New USB device ${1:-(${ID_VENDOR:-no-vendor} ${ID_USB_MODEL:-no-model})}" \
+    --column="Actions:" "Open Serial" "Upload Sketch" "Ignore"
+}
+
 event ()
 {
   case "${1:?}" in
@@ -157,6 +167,7 @@ trigger ()
 
 info ()
 {
+  TODO
   for x in /sys/bus/usb/devices/${1:?}/
   do
     false
