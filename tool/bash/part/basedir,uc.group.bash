@@ -1,10 +1,16 @@
-# Copyright: (C) 2025 qwrt <qwrt@t460s>
+# Copyright: (C) 2025--2026 qwrt <qwrt@t460s>
 #
 # .group.bash file, see User-Conf us-part for specification.
 #
 # Distributed under terms of the MIT license.
 
 uc_basedir_pre=User-Conf.Basedir
+uc_basedir_man='~ is a global user data set that assigns ids to local
+paths and can track metadata per id. To keep data cross-host compatible
+and terse, tags and rules are used to generate a cache of local instances.
+
+Metadata consists of command scripts and field names with values.
+'
 uc_basedir_cnk=60347cac
 uc_basedir_fun=(
   .basedirs_split-argv
