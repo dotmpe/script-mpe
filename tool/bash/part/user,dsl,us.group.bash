@@ -31,8 +31,6 @@ us_dsl_user_hooks=(
 User.DSL.load-user-command ()
 {
 : "${US_SCR_EXT:=.us.group.bash .group.bash .bash .sh}"
-: "${METADIR:=/tmp}"
-: "${C:=/tmp/cache}"
 # XXX: need better dep mngmt to load from sensible user data. For later.
 # See also --edit etc. in uc-user-command
   usercmd_parts=()
