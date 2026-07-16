@@ -66,7 +66,7 @@ args_has_seq () # ~ <Argv...> # True if argv contains some sequence, except if t
   ! args_empty "$@" && fnmatch "* ${args_seq_end:---} *" " $* "
 }
 
-# arguments-array-variable-hyphen-sequence
+# arguments-to-array--variable-until-double-hyphen-sequence
 # Read sequence of arguments and flags until end '--' or long-option.
 # Variant call on args-seq-arrv (arguments-sequence-array-variable:
 args_hseq_arrv () # ~ <Arr> <Argv...> [--* ...]
@@ -159,7 +159,11 @@ args_rarr () # ~ <Array> <Args..>
 }
 
 # arguments-sequence-array-variable:
-# Reads sequence of arguments (until '--', ie. args-seq-end marker) into array
+# Reads sequence of arguments into array list, using helper callback to
+# test wether to continue at each offset.
+#
+# With the default $argv_more args_seq_more it stops at the first '--'
+# occurence.
 args_seq_arrv () # ~ <Arr> <Argv... [-*]> <...>
 {
   declare __si=2

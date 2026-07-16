@@ -385,13 +385,15 @@ User-Script.OS.x.lookup-expand-safenames ()
 : about 'List names found through lookup'
 : extended 'Wrapper for find that iterates lookup path and print or assigns result'
 : extended 'Appends result list to string or array variable, or prints it if none is given'
-  local _bd _print=0 _arr
+  local _bd _print=0 _arr _offset
   local -n _lookup=${1:?$FUNCNAME: Name expected for input variable, $ENV_CTX}
   [[ ! ${2:+set} ]] && _print=1 || {
     local -n _dest=${2:?$FUNCNAME:$1: Name expected for output variable, $ENV_CTX}
     local -n _vartype="us_shell_tspec[$2]"
     User-Script.Shell.variable-type "$2" || return
-    case "${_vartype}" in -a ) _arr=1 ;; * ) _arr=0 ;; esac
+    case "${_vartype}" in -a ) _arr=1
+        [[ ${_dest[*]:+set} ]] && _offset=${#_dest[*]} || _offset=0
+      ;; * ) _arr=0 ;; esac
   }
   [[ ! ${3:+set} ]] &&
     local -a _find_filter=( -maxdepth 1 -not -type d -printf '%P\n' ) ||
@@ -405,7 +407,7 @@ User-Script.OS.x.lookup-expand-safenames ()
     test -n "$_" || continue
     ((_print)) && echo "$_" || {
       ((_arr)) && {
-        mapfile -O ${#_dest[*]} -t $2 <<< "$_" || return
+        mapfile -O $_offset -t $2 <<< "$_" || return
       } ||
         # String concatenation uses newlines for separator
         _dest=${_dest:+$_dest$'\n'}${_}

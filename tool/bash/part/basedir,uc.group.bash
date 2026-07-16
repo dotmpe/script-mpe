@@ -6,10 +6,16 @@
 
 uc_basedir_pre=User-Conf.Basedir
 uc_basedir_man='~ is a global user data set that assigns ids to local
-paths and can track metadata per id. To keep data cross-host compatible
-and terse, tags and rules are used to generate a cache of local instances.
+paths and can track metadata per id. To keep that data cross-host compatible
+and terse, user tags and rules are used to generate a cache of local instances.
 
-Metadata consists of command scripts and field names with values.
+Metadata consists of command scripts, and attributes for the base dirs. In
+addition to a regular uc-obj map, a second string-key lookup is kept as cache
+for (quick lookup for) local instances. While the primary string keys are tags
+(simple words) associated with generic purpose, such as the XDG user directories
+do. The actual cache is a local file, and as user tags are available it can
+have a predictable and unique name.
+
 '
 uc_basedir_cnk=60347cac
 uc_basedir_fun=(
@@ -17,11 +23,11 @@ uc_basedir_fun=(
   # TODO: .basedir+init
   # TODO: .basedir-command
   .basedirs
-  .basedirs+load
+  .shell-context
 )
 declare -gA \
 uc_basedir_hooks=(
-  [init]=$uc_basedir_pre.basedirs+load
+  [init]=$uc_basedir_pre.shell-context
 )
 
 User-Conf.Basedir.basedirs_split-argv ()
@@ -50,7 +56,7 @@ User-Conf.Basedir.basedirs_split-argv ()
   }
 }
 
-User-Conf.Basedir.basedir+init ()
+User-Conf.Basedir.basedir-init ()
 {
   TODO "$FUNCNAME"
 }
@@ -77,7 +83,7 @@ User-Conf.Basedir.basedirs ()
   done
 }
 
-User-Conf.Basedir.basedirs+load ()
+User-Conf.Basedir.shell-context ()
 {
   if_ok "${US_BASEDIR_CACHE:=$(command -v basedir,user.data.bash)}" ||
     failerr "Missing User-Script basedir cache filepath setting" || return

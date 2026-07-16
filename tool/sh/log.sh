@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # Logger - arg-to-colored ansi line output
 # Usage:
