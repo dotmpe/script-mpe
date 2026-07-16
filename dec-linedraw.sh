@@ -6,6 +6,8 @@
 # Distributed under terms of the MIT license.
 #
 PUT(){ echo -en "\033[${1};${2}H";}
+UP(){ echo -en "\033[${1}A";}
+DOWN(){ echo -en "\033[${1}B";}
 DRAW(){ echo -en "\033%";echo -en "\033(0";}
 # echo -en "\033(0"  # Enter line drawing
 # echo -en "\033%"  # Select default/UTF-8 mode (compatibility, not required for
@@ -13,8 +15,11 @@ DRAW(){ echo -en "\033%";echo -en "\033(0";}
 WRITE(){ echo -en "\033(B";}
 HIDECURSOR(){ echo -en "\033[?25l";}
 NORM(){ echo -en "\033[?12l\033[?25h";}
+CLEAR(){ echo -en "\033[2J\033[H";}  # clear screen
+BOTTOM(){ echo -en "\033[999;1H\033[K";}  # bottom line
+CLEARLINE(){ echo -en "\r\033[K";}  # clear screen
 
-function startBar() {
+function startBarFrame() {
   local frame margin
   printf -v margin '%*s' ${_bar[margin]} ""
   frame[0]='lq'
@@ -68,14 +73,14 @@ case "${_%.*sh}" in
     WRITE  # Back to normal
   ;;
 
-( dec-progress-bar )
+( dec-progress-bar-frame )
     #declare -gA _bar=( [margin]=5 [pos]=0 [width]=0 [steps]=10 )
     declare -gA _bar=( [margin]=8 [pos]=0 [width]=0 [steps]=60 )
     ((_bar[pos]+=_bar[margin]+3))
     : "${COLUMNS:=$(tput cols)}"
     ((_bar[width]=COLUMNS - (2 * _bar[margin])))
     ((_bar[center]=COLUMNS / 2))
-    startBar "PLEASE WAIT WHILE SCRIPT IS IN PROGRESS"
+    startBarFrame "PLEASE WAIT WHILE SCRIPT IS IN PROGRESS"
 
     # ... Insert your script here
     for (( i=0; i<=_bar[steps]; i++ ))
@@ -88,6 +93,48 @@ case "${_%.*sh}" in
     PUT 10 12
     echo -e ""
     NORM
+  ;;
+
+( dec-progress-bar )
+    LINES=$(tput lines)
+    CLEAR
+    HIDECURSOR
+    TOTAL=1000
+    spin=0
+    spinner=( '\' '|' '/' '-' )
+    for i in $(seq 1 $TOTAL); do
+        # normal output (above bar)
+        CLEARLINE
+        #BOTTOM
+        #UP
+        #CLEARLINE
+        #PUT $(( LINES - 2 )) 0
+        #CLEARLINE
+        #PUT $(( LINES - 3 )) 0
+        echo "Processing item $i..."
+
+        # redraw bar at bottom
+        PERC=$((i*100/TOTAL))
+        BOTTOM
+        ((spin+=1))
+        ((spin<=3)) || ((spin-=4))
+        echo -en "[${spinner[spin]}] Progress: ["
+        DRAW
+        printf "%${PERC}s" | tr ' ' 'E'
+        printf "%$((100-PERC))s" | tr ' ' 'a'
+        WRITE
+        echo -en "] $PERC%"
+        #UP
+        #echo -e "\r1"
+        #UP
+        #echo -e "\r2"
+        #UP
+
+        sleep 0.05
+    done
+
+    NORM
+    echo
   ;;
 
 ( * )
