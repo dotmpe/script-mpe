@@ -26,14 +26,16 @@ for t in torrents:
 
     #print(t)
     #sys.exit(1)
+
     if t.progress == 1:
-        print(t.hash, t.state, "100%", t.pieces_num, '-', t.save_path, t.name )
+        print(t.hash, t.state, "100%", t.pieces_num, '-',
+              t.save_path, t.availability, t.name )
     elif t.progress > 0 and t.progress < 0.1:
-        print(t.hash, t.state, ">0.1%", t.pieces_num, t.pieces_have,
-              t.save_path, t.name  )
+        print(t.hash, t.state, "<0.1%", t.pieces_num, t.pieces_have,
+              t.save_path, t.availability, t.name )
     else:
-        print(t.hash, t.state, f"{t.progress*100:.1f}%", t.pieces_num,
-              t.pieces_have, t.save_path, t.name )
+        print(t.hash, t.state, f"{t.progress*100:.1f}%", t.pieces_num, t.pieces_have,
+              t.save_path, t.availability, t.name )
     #print(t.name, t.hash, t.save_path, t.state)
 
 

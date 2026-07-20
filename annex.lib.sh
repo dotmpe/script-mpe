@@ -352,30 +352,6 @@ annex_keyexists() # Dir SHA256E-Key
   test -n "$content_location" || return $?
 }
 
-annexed_file ()
-{
-  # XXX: this assumes the usual SHA256(E) backend
-  test -h "$1" || return 1
-  case "$(realpath -m "$1")" in */.git/annex/objects/* ) ;; ( * ) return 1 ;; esac
-  #objectdir="$(dirname "$(dirname "$(dirname "$(dirname "$(realpath -mq "$1")")")")")"
-  #gitdir="$(dirname "$(dirname "$(dirname "$objectdir")")")"
-  #test "${objectdir:${#gitdir}}" = "/.git/annex/objects"
-}
-
-annex_file_is_here ()
-{
-  test -h "$1" || return 0
-  test -e "$1"
-}
-
-annex_files_are_here ()
-{
-  find "$1" -type f -o -type l | while read -r f
-    do
-        test -s "$f" || return
-    done
-}
-
 annex_info_parsehere()
 {
   info_raw="$(git annex info | grep here)"

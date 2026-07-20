@@ -59,7 +59,7 @@ us_os_extra_als=(
   [mkdirs]='>&2 mkdir -vp'
   [lookup.tree]='.lookup-expand-pathtree'
   ["PATH+execs"]='.lookup-expand-commands PATH'
-  ["PATH+names"]='.lookup-expand PATH'
+  ["PATH+names"]='.lookup-expand-safenames PATH'
   ["PATH+lines"]='.lookup-list PATH'
   ["PATH+leafs"]='.lookup-expand-leafs PATH'
   [path.tree]='.lookup-expand-pathtree PATH'
@@ -337,9 +337,25 @@ User-Script.OS.x.iter-sources ()
 
 User-Script.OS.x.lookup-expand ()
 {
-: about 'Alias for lookup-expand-safenames'
-: param ' ~ <Lookup-path-var> [<Output-var>] ...'
-  User-Script.OS.x.lookup-expand-safenames "${1:-PATH}" "${2-}"
+: about 'A group of functions for expanding path and filename "globs"'
+: extended 'The -safenames and other variants use find to avoid any issues with
+newlines in names. For native expansions the lookup-expand can resolve patterns
+for one or more base directories. '
+: param ' ~ <Lookup-path-var> <Output-array-var-> [<Globs...>]'
+  local _bd _print=0 _arr _offset _globs _g
+  local -n _lookup=${1:?$FUNCNAME: Name expected for input variable, $ENV_CTX}
+  [[ ! ${2:+set} ]] && _print=1 ||
+    local _dest=${2:?$FUNCNAME:$1: Name expected for output variable, $ENV_CTX}
+  [[ ! ${3:+set} ]] && _globs=( '*' ) || _globs=( "${@:3}" )
+  local -a _paths _dlines
+  mapfile -t _paths <<< "${_lookup//:/$'\n'}" &&
+  [[ ${_paths[*]:+set} ]] &&
+  for _bd in "${_paths[@]}"; do
+    for _g in "${_globs[@]}"; do
+      _dlines+=( "${_dest}+=( \"$_bd/\"$_g )" )
+    done
+  done &&
+  . <(printf '%s\n' "${_dlines[@]}")
 }
 
 User-Script.OS.x.lookup-expand-commands ()
@@ -389,6 +405,7 @@ User-Script.OS.x.lookup-expand-safenames ()
   local -n _lookup=${1:?$FUNCNAME: Name expected for input variable, $ENV_CTX}
   [[ ! ${2:+set} ]] && _print=1 || {
     local -n _dest=${2:?$FUNCNAME:$1: Name expected for output variable, $ENV_CTX}
+    # XXX: cannot easily figure out var scope, so this name might be local...
     local -n _vartype="us_shell_tspec[$2]"
     User-Script.Shell.variable-type "$2" || return
     case "${_vartype}" in -a ) _arr=1
@@ -443,7 +460,7 @@ User-Script.OS.x.lookup-list ()
   echo "$liststr"
 }
 
-User-Script.OS.x.parent-process ()
+User-Script.OS.Process.parent ()
 {
 : param '~ [<PID>] [<Ps-argv>] [<Outvars...>]'
   local _us_os_out{,v}
@@ -546,9 +563,10 @@ User-Script.OS.x.unique-paths ()
   done
 }
 
-User-Script.OS.x.with-local ()
+User-Script.OS.with-local ()
 {
-: about 'Declare local variable context and invoke sub command'
+: about 'Declare local variable context and do sub invocation'
+: extended 'This is not an export for subcommands, ie. a local command env'
 : param '~ <Env=Val...> <Command...>'
 # XXX: could make stack with dyn refs. Or just use ~noctx.
   local -A env
@@ -558,7 +576,7 @@ User-Script.OS.x.with-local ()
   local var
   local -n val='env["$var"]'
   for var in "${!env[@]}"
-  do declare -l "$var=$val" || return
+  do declare "$var=$val" || return
   done
   "$@"
 }

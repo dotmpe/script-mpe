@@ -988,6 +988,7 @@ transmission_torrent_path () # ~ <Tbn-var> <Tf-var>
   __ti_tbn="$_"
   __ti_tf="${TRANSMISSIONBT_TORRENTS_DIR:?}/$tbn.torrent"
 }
+        # qbittorrent: ~/.local/share/qBittorrent/BT_backup
 
 transmission_torrentfiles ()
 {

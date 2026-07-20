@@ -1,9 +1,8 @@
+# [2026-07-17] this is mostly old parsing/metadata-handling now. see
+# user-tools-bittorrent
+
 bittorrent_lib__load ()
 {
-  : "${BTCLIENTS:=transmission}"
-  #test -z "${BTCLIENTS:-}" && return
-  #lib_require meta $BTCLIENTS || return
-
   : "${BT_INFODIR:=${METADIR:?}/info}"
   : "${BT_LOGDIR:=${METADIR:?}/log}"
   : "${BT_TABS:=${METADIR:?}/tab}"
@@ -24,7 +23,6 @@ bittorrent_lib__load ()
 bittorrent_lib__init ()
 {
   lib_require cache || return
-  test -z "${BTCLIENTS:-}" && return
   test -d "$BT_LOGDIR" || mkdir -vp "$BT_LOGDIR" >&2
   test -d "$BT_INFODIR" || mkdir -vp "$BT_INFODIR" >&2
 
@@ -40,15 +38,6 @@ bittorrent_lib__install ()
   # XXX: see pip torrent-parser package for pytp exec script
   command -v pytp >/dev/null 2>&1 &&
   command -v jq >/dev/null 2>&1
-}
-
-bittorrent_clients () # ~ <Call args...>
-{
-  local btclient
-  for btclient in $BTCLIENTS
-  do
-    "$btclient"_"${1:?}" "${@:2}"
-  done
 }
 
 # Read all simple values from torrent via JSON (currently 11 values, using files
@@ -71,11 +60,6 @@ bittorrent_info_vars () # ~ <Key>
         .["magnet-info"].info_hash // " ",
         .announce // " "
       ] | join("\t")' "$@"
-}
-
-bittorrent_instances () # ~ ...
-{
-  bittorrent_clients instance
 }
 
 bittorrent_json () # ~ <Torrent-file> <JSON-file>
@@ -129,21 +113,6 @@ bittorrent_json_cache () # ~ <Torrent-file> [<Var-key=bittorrent_json_>]
 
   [[ ! ${_btjs_stat:+set} ]] ||
     $LOG alert "$lk" "Loading torrent meta into JSON cachefile" "E$_btjs_stat:$1:$cachename" $_btjs_stat
-}
-
-# FIXME: client-id is not properly tracked yet, but one instance works fine
-bittorrent_list_run () # ~ <List-run-arg...> # Go over every open torrent
-{
-  test -z "${CLIENT_ID:-}" && {
-    local btclient
-    for btclient in $BTCLIENTS
-    do
-      "$btclient"_list_run "$@"
-    done
-  } || {
-    lk=bittorrent:$CLIENT/${CLIENT_PID:-} \
-    REMOTE=$CLIENT_ID "${CLIENT:?}"_list_run "$@"
-  }
 }
 
 # Parse Magnet URI reference with btih key. Pure bash solution to decode, split

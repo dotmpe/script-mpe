@@ -56,7 +56,7 @@ User-Script.Config.init-config ()
     mapfile -t config_lines < <(User-Script.OS.file-data "$1")
     for line in "${init_lines[@]}"
     do
-      User-Script.Array.find-string config_lines "$line" ||
+      User-Script.Array.find-value-index config_lines "$line" ||
         echo "$line" >> "$1"
     done
   else
