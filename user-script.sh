@@ -784,8 +784,8 @@ user_script_graph_init () # ~ <Base ...> # Traverse (env) nodes, and record path
     #stderr echo "$FUNCNAME node $1: bases: $bases" &&
     for base in $bases
     do
-      sys_nconcatl "us_node[\"${base:?}\"]" "$1" &&
-      sys_nconcatn "us_node_base[\"$1\"]" base || return
+      str_append "us_node[\"${base:?}\"]" "$1" &&
+      str_appendn "us_node_base[\"$1\"]" base || return
     done
     set -- $bases "${@:2}"
   done

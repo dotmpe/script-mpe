@@ -5,19 +5,23 @@
 #
 # Distributed under terms of the MIT license.
 #
-PUT(){ echo -en "\033[${1};${2}H";}
-UP(){ echo -en "\033[${1}A";}
-DOWN(){ echo -en "\033[${1}B";}
-DRAW(){ echo -en "\033%";echo -en "\033(0";}
+PUT(){ echo -en "\033[${1};${2}H";} # tput cup
+UP(){ echo -en "\033[${1}A";} # tput cuu
+DOWN(){ echo -en "\033[${1}B";} # tput cud
+# ESC % is ISO 2022 character switch, for default reset I presume.
+# Acceptable also should be
+# ESC % G for UTF-8
+# ESC % @ for ISO 8859-1
+DRAW(){ echo -en "\033%";echo -en "\033(0";} # tput smacs
 # echo -en "\033(0"  # Enter line drawing
 # echo -en "\033%"  # Select default/UTF-8 mode (compatibility, not required for
 # line drawing)
-WRITE(){ echo -en "\033(B";}
+WRITE(){ echo -en "\033(B";} # tput rmacs
 HIDECURSOR(){ echo -en "\033[?25l";}
 NORM(){ echo -en "\033[?12l\033[?25h";}
 CLEAR(){ echo -en "\033[2J\033[H";}  # clear screen
 BOTTOM(){ echo -en "\033[999;1H\033[K";}  # bottom line
-CLEARLINE(){ echo -en "\r\033[K";}  # clear screen
+CLEARLINE(){ echo -en "\r\033[K";}  # clear line
 
 function startBarFrame() {
   local frame margin

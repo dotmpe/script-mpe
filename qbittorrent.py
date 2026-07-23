@@ -22,6 +22,7 @@ qbt = Client(host='localhost:5430', api_key=api_key)
 #category comments
 
 torrents = qbt.torrents_info()
+#f = 'hash state progress pieces_num pieces_have save_path availability popularity name'
 for t in torrents:
 
     #print(t)
@@ -29,13 +30,13 @@ for t in torrents:
 
     if t.progress == 1:
         print(t.hash, t.state, "100%", t.pieces_num, '-',
-              t.save_path, t.availability, t.name )
+              t.save_path, t.availability, t.popularity, t.name )
     elif t.progress > 0 and t.progress < 0.1:
         print(t.hash, t.state, "<0.1%", t.pieces_num, t.pieces_have,
-              t.save_path, t.availability, t.name )
+              t.save_path, t.availability, t.popularity, t.name )
     else:
         print(t.hash, t.state, f"{t.progress*100:.1f}%", t.pieces_num, t.pieces_have,
-              t.save_path, t.availability, t.name )
+              t.save_path, t.availability, t.popularity, t.name )
     #print(t.name, t.hash, t.save_path, t.state)
 
 
