@@ -37,10 +37,8 @@ us_os_extra_fun=(
   .script-table
   .symlink-assert
   .tempfile
-  .unique-lines
-  .unique-paths
-  .with-local
-  .with-local-noctx
+  .unique-{lines,paths}
+  .with-local{,-noctx}
 )
 declare -gA \
 us_os_extra_als=(
@@ -563,7 +561,7 @@ User-Script.OS.x.unique-paths ()
   done
 }
 
-User-Script.OS.with-local ()
+User-Script.OS.x.with-local ()
 {
 : about 'Declare local variable context and do sub invocation'
 : extended 'This is not an export for subcommands, ie. a local command env'
