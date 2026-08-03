@@ -73,7 +73,7 @@ context_add () # ~ [<PCTX>]
   local lk=${lk-}:context-add
   [[ $# -gt 0 ]] || set -- ${PCTX?}
   class_find "$@" &&
-  set -- $(filter_args 'class_loaded' "$@") &&
+  set -- $(filter_args 'class_loaded' "" "$@") &&
   test $# -eq 0 && return ${_E_continue:?}
   test -n "${ctx-}" || context_acquire ctx "${1:?}" && shift || return
   while [[ $# -gt 0 ]]
