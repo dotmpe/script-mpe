@@ -49,8 +49,64 @@ def is_path(key):
         return m.groups()[0] != key
 
 
-re_non_escaped = re.compile(r'[\[\]\$%:<>;|\ ]')
 re_alphanum = re.compile('[^a-z0-9A-Z]')
+
+def needs_quotes(s: str) -> bool:
+    return any(
+        c in "\"'[]!<>;| " for c in s
+    )
+
+# TODO: may want to add heuristics and options to use nice quoting for Bash
+# output
+def needs_ansi_c(s: str) -> bool:
+    return any(
+        c in "'\n\t\r\a\b\f\v\\" or not (32 <= ord(c) <= 126)
+        for c in s
+    )
+
+def ansi_c_quote(s: str) -> str:
+    """Quote like Bash ${var@Q} / printf %q.
+
+    Uses ordinary '...' when possible, falls back to $'...' when needed.
+    """
+    if not s:
+        return "''"
+
+    # Needs ANSI-C quoting
+    out = ["$'"]
+    for c in s:
+        o = ord(c)
+        if c == "\\":
+            out.append("\\\\")
+        elif c == "'":
+            out.append("\\'")
+        elif c == "\n":
+            out.append("\\n")
+        elif c == "\t":
+            out.append("\\t")
+        elif c == "\r":
+            out.append("\\r")
+        elif c == "\a":
+            out.append("\\a")
+        elif c == "\b":
+            out.append("\\b")
+        elif c == "\f":
+            out.append("\\f")
+        elif c == "\v":
+            out.append("\\v")
+        elif c == "\x1b":          # ESC
+            out.append("\\e")
+        elif o < 32 or o == 127:
+            out.append(f"\\x{o:02x}")
+        elif o > 126:
+            if o <= 0xFFFF:
+                out.append(f"\\u{o:04x}")
+            else:
+                out.append(f"\\U{o:08x}")
+        else:
+            out.append(c)
+    out.append("'")
+    return "".join(out)
 
 
 class AbstractKVParser(object):
@@ -189,7 +245,6 @@ class AbstractKVParser(object):
 
     def set_path( self, path, value ):
         assert isinstance(path, list), "Path must be a list"
-        #print(self.data)
         d = self.data
         while path:
             k = path.pop(0)
@@ -241,7 +296,6 @@ class AbstractKVParser(object):
                 raise TypeError("%s is not a dict: %r" % (key, d))
             return d[key]
 
-
     @staticmethod
     def get_data_instance(key):
         "Get data container instance based on key pattern"
@@ -289,7 +343,6 @@ class PathKVParser(AbstractKVParser):
         return key[:pos], idx
 
 
-
 class FlatKVParser(AbstractKVParser):
 
     @staticmethod
@@ -316,7 +369,6 @@ class FlatKVParser(AbstractKVParser):
             elif rest.isdigit():
                 idx = int(rest)-1
         return key[:p], rest, idx
-
 
     @staticmethod
     def get_data_instance(key):
@@ -345,30 +397,35 @@ class FlatKVParser(AbstractKVParser):
         return key[:pos], idx
 
 
-
-
 class AbstractKVSerializer(object):
 
     linesep = '\n'
+    preamble = ''
+    trailing = linesep
+    null_value = 'null'
     itemfmt, dirfmt = None, None
 
+    print_nodes = False
     write_indices = True
 
     def serialize(self, data, prefix=''):
-        if prefix is None:
-            prefix = ''
-        return self.linesep.join(self.ser(data, prefix)) + self.linesep
+        return self.preamble+self.linesep.join(self.ser(data, prefix))+self.trailing
     def ser(self, data, prefix=''):
         r = []
+        if prefix is None:
+            prefix = ''
         if isinstance(data, list):
+            if self.print_nodes and prefix:
+                r.append(self.out_fmt(prefix))
             r.extend(self.ser_list(data, prefix))
         elif isinstance(data, dict):
+            if self.print_nodes and prefix:
+                r.append(self.out_fmt(prefix))
             r.extend(self.ser_dict(data, prefix))
         else:
-            if isinstance(data, str) and re_non_escaped.search(data):
-                r.append( "%s=\"%s\"" % ( prefix, data.replace('"', '\\"' )))
-            else:
-                r.append( "%s=%s" % ( prefix, data ))
+            if data is None:
+                data = self.null_value
+            r.append(self.out_fmt(prefix, data))
         return r
     def ser_list(self, data, prefix=''):
         r = []
@@ -384,6 +441,14 @@ class AbstractKVSerializer(object):
         return r
     def dir_prefix(self, prefix, key):
         raise NotImplementedError
+    def out_fmt(self, key, value=None):
+        if value is None:
+            return "%s" % ( key, )
+        if isinstance(value, str) and needs_quotes(value):
+            return "%s=\"%s\"" % ( key, value.replace('"', '\\"' ))
+        else:
+            return "%s=%s" % ( key, value )
+
 
 class PathKVSerializer(AbstractKVSerializer):
     dirfmt = '/%s'
@@ -392,6 +457,42 @@ class PathKVSerializer(AbstractKVSerializer):
     def dir_prefix(self, prefix, key):
         sp = prefix and prefix + self.dirfmt or '%s'
         return sp % key
+
+
+class BashArrayPKVSerializer(PathKVSerializer):
+    linesep = PathKVSerializer.linesep
+    preamble = '('+linesep
+    trailing = linesep+')'+linesep
+    itemfmt = '[%s]'
+    node_value = ''
+    ansi_c_quoting = False
+    def out_fmt(self, key, value=None):
+        if self.ansi_c_quoting:
+            if needs_ansi_c(key):
+                key = ansi_c_quote(key)
+            elif needs_quotes(key):
+                key = "'" + key + "'"
+        elif needs_quotes(key):
+            key = '"%s"' % ( key, )
+        if value is None:
+            return "[%s]=%s" % ( key, self.node_value )
+        if isinstance(value, str):
+            if self.ansi_c_quoting:
+                if needs_ansi_c(value):
+                    return "[%s]=%s" % ( key, ansi_c_quote(value) )
+                elif needs_quotes(value):
+                    return "[%s]='%s'" % ( key, value )
+                else:
+                    return "[%s]=%s" % ( key, value )
+            elif needs_quotes(value):
+                return "[%s]=\"%s\"" % ( key, value.replace('"', '\\"' ))
+            else:
+                return "[%s]=%s" % ( key, value )
+        else:
+            if isinstance(value, str) and needs_quotes(value):
+                return "[%s]=\"%s\"" % ( key, value.replace('"', '\\"' ))
+            else:
+                return "[%s]=%s" % ( key, value )
 
 
 class FlatKVSerializer(AbstractKVSerializer):
@@ -429,7 +530,7 @@ def parse_json(value):
 
 
 # TODO: use the propery serializer asked for, or add datatype lib option
-re_float  = re.compile(r'^\d+\.\d+$')
+re_float = re.compile(r'^\d+\.\d+$')
 def parse_primitive(value):
     # TODO: other numbers
     if value.isdigit():
@@ -482,14 +583,13 @@ readers = dict(
         xml=xml_reader,
         properties=properties_reader,
         ini=ini_reader
-    )
+)
 
 
 def write(writer, data, file, ctx):
     if ctx.opts.flags.no_indices:
         writer.write_indices = False
     file.write(writer.serialize(data, ctx.opts.flags.output_prefix))
-    #+"\n")
 
 def output_prefix(data, opts):
     if opts.flags.output_prefix:
@@ -501,8 +601,15 @@ def output_prefix(data, opts):
 
 
 def pkv_writer(data, file, ctx):
-    writer = PathKVSerializer()
+    if ctx.opts.flags.bash_array:
+        writer = BashArrayPKVSerializer()
+    else:
+        writer = PathKVSerializer()
     writer.linesep = ctx.sep.line
+    if ctx.opts.flags.nodes:
+        writer.print_nodes = True
+    if ctx.opts.flags.ansi_c_quoting:
+        writer.ansi_c_quoting = True
     write(writer, data, file, ctx)
 
 def fkv_writer(data, file, ctx):

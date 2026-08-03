@@ -47,16 +47,26 @@ Options:
   --no-strict-types
                 Turn off type checking on updates, ie. overwrite value with
                 different type.
-  -p, --pretty  Pretty output formatting.
   -I <format>, --input-format <format>
                 Override input format. See Formats_.
                 TODO: default is to autodetect from filename
                 if given, or set to [default: json].
+  --nodes       Include nodes in pkv output [default: false]
+  --bash-array  Format pkv output as associative array that only needs to be
+                prefixed with = (or +=) and a variable name to make it a valid
+                Bash declaration [default: false]
+  --ansi-c-quoting
+                Use ANSI C quoting ($'...') for Bash output when appropiate.
+                Normally quoting is adaptive, uses double quotes and would
+                allow for ie. embedding of ${...} variable refernce (in case
+                of Bash). This changes to single quotes, and escapes for special
+                characters and other codes. [default: false]
+  --no-indices  [default: false]
   -O <format>, --output-format <format>
                 Override output format. See Formats_.
                 TODO: default is to autodetect from filename
                 if given, or set to [default: json].
-  --no-indices  [default: false]
+  -p, --pretty  Pretty output formatting.
   --serialize-datetime=FMT
                 [default: %Y-%m-%dT%H:%M:%SZ]
   --serialize-date=FMT
