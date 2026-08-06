@@ -189,7 +189,7 @@ tempora==5.8.1
 tk==0.1.0
 todotxt-machine==2.2.2
 tomlkit==0.13.3
-tornado==6.5.4
+tornado==6.5.5
 torrent-parser==0.4.1
 tqdm==4.67.1
 traitlets==5.14.3
