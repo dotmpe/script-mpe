@@ -117,7 +117,7 @@ platformdirs==4.5.1
 pluggy==1.6.0
 portend==3.2.1
 proto-plus==1.26.1
-protobuf==6.32.1
+protobuf==6.33.5
 pscript==0.8.0
 pyasn1==0.6.1
 pyasn1_modules==0.4.2
