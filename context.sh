@@ -464,6 +464,7 @@ context_sh_aliasargv ()
 context_sh_init ()
 {
   user_script_initlibs stattab-class class-uc context &&
+  class_load XContext &&
   class_init XContext
 }
 
