@@ -1108,7 +1108,7 @@ user_script_load () # (y*) ~ <Actions...>
 
     ( usinit )
         $LOG notice "" "Starting script init" "bases=${script_base}"
-        append_path "${U_S?}/tool/us/part" &&
+        append_path "${U_S?}/tool/us/include" &&
         uc_script_load "us-env.node" &&
         us-env:define-env || return
 
