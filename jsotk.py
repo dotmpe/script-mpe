@@ -263,10 +263,10 @@ def H_merge(ctx, write=True):
             raise ValueError( "Srcsfiles must have same root type. "\
                     "Expected %s, but found %s (%s)" % (
                             type(data), type(mdata), srcfile ) )
-        if isinstance(data, dict):
-            deep_update([data, mdata], ctx)
-        elif isinstance(data, list):
+        if isinstance(data, list):
             data = deep_union([data, mdata], ctx)
+        elif isinstance(data, dict):
+            deep_update([data, mdata], ctx)
         else:
             raise ValueError(data)
 

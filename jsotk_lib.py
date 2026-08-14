@@ -21,17 +21,19 @@ import ruamel.yaml
 
 def yaml_load(*args, **kwds):
     # XXX: cleanup, hack for JJB content
-    class Loader(ruamel.yaml.SafeLoader):
+    #class Loader(ruamel.yaml.SafeLoader):
     #class Loader(ruamel.yaml.RoundTripLoader):
-        def let_raw_include_through(self, node):
-            return None#self.construct_mapping(node)#, ruamel.yaml.comments.CommentedMap())
+    #    def let_raw_include_through(self, node):
+    #        return None#self.construct_mapping(node)#, ruamel.yaml.comments.CommentedMap())
     #Loader.add_multi_constructor(u'!include-raw:', Loader.let_raw_include_through)
-    Loader.add_constructor(u'!include-raw:', Loader.let_raw_include_through)
-    kwds.update(dict(
-        Loader=Loader,
-        preserve_quotes=True
-    ))
-    return ruamel.yaml.load(*args, **kwds)
+    #Loader.add_constructor(u'!include-raw:', Loader.let_raw_include_through)
+    #kwds.update(dict(
+        #Loader=Loader,
+        #preserve_quotes=True,
+    #))
+    yaml = ruamel.yaml.YAML()
+    yaml.allow_duplicate_keys = True
+    return yaml.load(*args, **kwds)
 
 
 re_pathsplit = re.compile(r'''((?:[^/"']|"[^"]*"|'[^']*')+)''')
@@ -825,7 +827,7 @@ def deep_update(dicts, ctx):
         if not isinstance(mdata, dict):
             raise ValueError("Expected %s but got %s" % (
                     type(data), type(mdata)))
-        for k, v in mdata.iteritems():
+        for k, v in mdata.items():
             if k in data:
                 if not v:
                     data[k] = v
