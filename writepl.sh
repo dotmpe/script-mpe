@@ -17,7 +17,7 @@ writepl_fields ()
 {
   while IFS=$'\t\n' read -ra fields
   do
-    test "${fields[0]:0:1}" = "#" && continue
+    [[ "${fields[0]:0:1}" = "#" ]] && continue
     echo "${#fields} ${fields[4]:-}"
   done
 }

@@ -20,7 +20,9 @@ to use the SHELL env or lookup sh from PATH.  Ie. it looks to be hardcoded to
 "/bin/sh" "-c" as it is for other tools.
 
 This is superseded by us-pp, that has a more proper Bash implementation
-and one that does not act as-if it is C pp compatible. @deprecated'
+and one that does not act as-if it is C pp compatible. @deprecated
+The problem of /bin/sh losing exported functions is interesting, but one that
+has to be solved rather elaborately. Using us-env or similar setup.'
 preproc_lib__created=2018-11-25
 preproc_lib__modified=2024-09-15
 preproc_lib__updated=2026-05-01
@@ -55,7 +57,7 @@ preproc_run () # ~ <source-file> <cache-handler> <read-handler> <file-res-handle
     return
   } || {
     declare cache_file ref res=${4:-src_htd_resolve_fileref}
-    local lk="${lk-}:pp-run[$2,$3,$res]"
+    local lk="${lk-}:preproc-run[$2,$3,$res]"
     cache_file=$("${2:?}" "${1:?}") || return
 
     [[ -w "$(dirname "$cache_file")" ]] || {
@@ -154,66 +156,20 @@ preproc_expand_1_sed_script ()
 preproc_expand_2a_awk () # ~ <Resolver-> <File> <Directive-tag->
 {
   # This Awk script does not leave sentinel line.
+  AWKPATH=$US_BIN/tool/awk/function \
   awk -v HOME=${HOME:?} -v v=${verbosity:-${v:-3}} \
       -v RESOLVE_NAME=${1:-${PREPROC_RESOLVER:?}} \
       -v RESOLVE=${PREPROC_CONTENT_RESOLVER:?} \
-  '
-    function resolve_file_content(ref)
-    {
-        fdir=FILENAME
-        sub(/[^/]+$/, "", fdir)
-        gsub(/~\//,HOME"/",ref)
-        RESOLVE_NAME " \"" ref "\" \"" FILENAME "\"" | getline file
-        close(RESOLVE_NAME " \"" ref "\" \"" FILENAME "\"")
-        if (system("[ -s \""file"\" ]") == 1) {
-            if (v > 2)
-                print "No such include for "FILENAME" include "ref" named "file >> "/dev/stderr"
-            exit 4
-        }
-        if (file in sources) {
-            if (v > 2)
-                print "Recursion from "FILENAME" into already loaded "file >> "/dev/stderr"
-            exit 3
-        }
-        if (v > 4)
-            print "Reading \""file"\" for "FILENAME"..." >> "/dev/stderr"
-        sources[file]=1
-        system(RESOLVE" \"" ref "\" \"" file "\" \"" FILENAME "\"")
-        if (v > 5)
-            print "Resolved \""file"\"" >> "/dev/stderr"
-    }
-    /^#'"${3:-include}"'/ { resolve_file_content($2); next; }
-  ' "${2:?}"
+      -i shell_quote.awk -i resolve_file_content.awk \
+      ' /^#'"${3:-include}"'/ { resolve_file_content($2); next; } ' "${2:?}"
 }
 
 preproc_expand_2b_awk () # ~ <Directive-tag> <File>
 {
   # This Awk script does not leave sentinel line.
-  awk -v HOME=$HOME -v v=${verbosity:-${v:-3}} '
-    function insert_file (file)
-    {
-        if (v > 4)
-            print "Reading \""file"\" for "FILENAME"..." >> "/dev/stderr"
-        gsub(/~\//,HOME"/",file)
-        if (system("[ -s \""file"\" ]") == 1) {
-            if (v > 2)
-                print "No such include for "FILENAME" named "file >> "/dev/stderr"
-            exit 4
-        }
-        if (file in sources) {
-            if (v > 2)
-                print "Recursion from "FILENAME" into already loaded "file >> "/dev/stderr"
-            exit 3
-        }
-        sources[file]=1
-        while (getline line < file)
-            print line
-        close(file)
-        if (v > 5)
-            print "Closed \""file"\"" >> "/dev/stderr"
-    }
-    /#'"${1:-include}"'/ { insert_file($2); next; }
-  ' "${2:?}"
+  AWKPATH=$US_BIN/tool/awk/function \
+  awk -v HOME=$HOME -v v=${verbosity:-${v:-3}} -i insert_file.awk \
+      ' /#'"${1:-include}"'/ { insert_file($2); next; } ' "${2:?}"
 }
 
 preproc_hasdir () # ~ <Dir-match> <File|Grep-argv...>

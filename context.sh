@@ -12,7 +12,7 @@ TODO: convert to new us-pp format for improved setup.
 context__grp=user-script
 context_sh__grp=context
 context_sh__hooks=context_sh_init
-context_sh__libs=os-htd,context
+context_sh__libs=os-htd,preproc,context
 
 # all-tags
 #   List tag names
@@ -20,6 +20,8 @@ context_sh_entries () # (y) ~ <action:-list> <...>
 # all-tags
 #   List tag names
 {
+  declare -fx src_htd_resolve_fileref
+
   local act=${1-}
   act="${act:+$(str_globstripcl "$act" "-")}" || return
   : "${act:=list}"
