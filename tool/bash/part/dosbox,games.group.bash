@@ -11,7 +11,7 @@ games_dosbox_hooks=(
 . /var/local/statusdir/games-dosbox-cache.bash
 shopt -s nullglob'
   [deinit]=''
-  [update]=''
+  #[update]='TODO'
 
   [start]=\
 '( echo "Mounting DOS drive..."; cd ${ANNEX_DIR:?} &&

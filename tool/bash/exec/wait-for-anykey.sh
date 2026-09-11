@@ -20,7 +20,7 @@ test-int ()
   return
 }
 
-# Tweak the behavior of GNU core sleep
+# Tweak the behavior of Bash builtin+traps by wrapping in function
 catch_sleep ()
 {
   local stop=0
@@ -34,9 +34,17 @@ catch_sleep ()
   ! ((stop))
 }
 
+redraw ()
+{
+  tput rc 2>/dev/null || :  # restore cursor
+  tput ed 2>/dev/null || :  # clear to end of display
+  printf '%s\n' "${prompt}"
+}
+
+
 while [[ ${1:+set} && ${1} == *=* ]]
 do
-  declare "$1"
+  declare -x "$1"
   shift
 done
 
@@ -48,25 +56,43 @@ do
   ! ((run)) || {
     ! ((wait)) || {
       clear
-      read -r -p "${_c2} ░░░ Enter ${_c6} ${_c15}any key ${_c6} ${_c2}to activate terminal${NORMAL} " -n 1
+      trap 'redraw' WINCH
+      prompt="${_c2} ░░░ Enter ${_c6} ${_c15}any key ${_c6} ${_c2}to activate terminal${NORMAL} "
+      # FIXME: catch interrupt to prevent closing of window
+      read -r -p "$prompt" -n 1
+      trap - WINCH
+      prompt=
     }
-    "$@" && stat=$? || stat=$?
+    command "$@" && stat=$? || stat=$?
     ((stat)) &&
     echo "${_c2} 🮙🮙🮙 Command '$*' ended ${_c3}E$stat${NORMAL}" ||
     echo "${_c2} ▒▒▒ Command '$*' ended OK"
   }
 
   ! ((stat)) || {
-    echo "${_c2} ▓▓▓ Command exited ${_c3}E$?${_c2}, ${0##*/} will restart in $restart_delay seconds, interrupt to abort${NORMAL}"
-    catch_sleep $restart_delay && continue || run=0 stat=0
+    prompt="${_c2} ▓▓▓ Command exited ${_c3}E$?${_c2}, ${0##*/} will restart in $restart_delay seconds, interrupt to abort${NORMAL}"
+    trap 'redraw' WINCH
+    printf '%s\n' "$prompt"
+    catch_sleep $restart_delay && {
+      trap - WINCH
+      prompt=
+      continue
+    } || run=0 stat=0
+    trap - WINCH
+    prompt=
   }
 
-  echo "${_c2} ███ Command completed: '$*'. Press 'R' to reset, 'r' to restart ${0##*/} COMMAND now, and 'x' or interrupt to exit${NORMAL}"
-  read -r -s -N 1 prompt &&
-  [[ ${prompt-} != x ]] || exit 0
+  prompt="${_c2} ███ Command completed: '$*'. Press 'R' to reset, 'r' to restart ${0##*/} COMMAND now, and 'x' or interrupt to exit${NORMAL}"
+  trap 'redraw' WINCH
+  printf '%s\n' "$prompt"
 
-  [[ ${prompt-} == R ]] && run=1 wait=1 || {
-    [[ ${prompt-} == r ]] && run=1 wait=0 || run=0
+  read -r -s -N 1 reply &&
+  [[ ${reply-} != x ]] || exit 0
+  trap - WINCH
+  prompt=
+
+  [[ ${reply-} == R ]] && run=1 wait=1 || {
+    [[ ${reply-} == r ]] && run=1 wait=0 || run=0
   }
   ((run)) &&
   echo "${_c2} 🮙🮙🮙 Resetting for command '$*'" ||

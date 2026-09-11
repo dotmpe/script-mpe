@@ -55,7 +55,37 @@ failerr ()
   if (( stat > 255)); then
       ((stat-=256))
   fi
+  if ((SILENT)); then
+    : XXX: uc fail silently
+  else
+    say "$1"
+  fi
+  return ${stat}
+}
+
+say ()
+{
+: param '~ <Line-String> ...'
   >&2 echo "$1"
+}
+
+logusr ()
+{
+  local opt
+  opts=( -p ${LOG_PRI:-user.${LOG_LEVEL:-notice}} -t "${LOG_TAG:-usb}" )
+  ((QUIET))
+  logger "${opts[@]}" "$1"
+}
+
+logerr ()
+{
+  local stat=${2:-$?}
+  : input "${1:?$FUNCNAME: Failure message, $ENV_CTX}"
+  ((stat)) || stat=1
+  if (( stat > 255)); then
+      ((stat-=256))
+  fi
+  logusr
   return ${stat}
 }
 
@@ -343,7 +373,7 @@ targets ()
         : "${USB_UID:=$UID}"
         . <(echo "dev_env=$device_envfile_spec") &&
         wait_for_file_with_timeout "$dev_env" $USER_SCRIPT_TIMEOUT ||
-          failerr "Timeout for usb.sh event ${*@Q} waiting for env file" || return
+          logerr "Timeout for usb.sh event ${*@Q} waiting for env file" || return
         . "$dev_env"
       ;;
 
