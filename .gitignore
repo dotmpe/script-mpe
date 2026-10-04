@@ -1,11 +1,41 @@
+# Local env seed file/scripts
+.env*
+
+# Project paths
+pack/
+dist/
+
+# Log, cache and other local, special purpose dirs hidden from SCM et al
+.local/agent
+.local/build
+.local/cache
+.local/etc
+.local/log
+.local/mnt
+.local/sync
+.local/user/data
+.local/var
+# XXX: Not sure where user data could/should live.
+
+# Redo build database
+.redo/
+
+# C tags... for generators that don't use already prepared hidden dirs
+.tags
+tags
+
+# Editor (and user) temp/swap/info files
+*~*
+.*sw[a-p]
+*.tmp
+
+
 *.cuthd
 *.meta
 *.py[co]
 *.pyc
 composer.lock
 .composer.lock
-*DS_Store
-*~*
 .build/
 .bzr/
 .cllct/
@@ -17,7 +47,6 @@ composer.lock
 .package*.json
 .package*.main
 .package*.sh
-.redo/
 .svn/
 .vagrant/
 /.coverage
@@ -56,3 +85,6 @@ tags
 .aider.tags.cache.v4/
 .config/litellm
 .gitconfig
+
+# OS specific fs names
+*DS_Store

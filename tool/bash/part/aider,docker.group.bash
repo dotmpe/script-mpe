@@ -6,65 +6,71 @@
 
 docker_aider_pre=Docker.Aider
 docker_aider_cnk=7bc2a6f1
-docker_aider_man='Aider is an LLM "coding" agent. Most agentic text generation
-LLM are set up as chat, and are enhanced with session maps, modes, contexts and
-such concepts to provide additional resources to a chat session.
-
-Aider (dockerized) works with many several such LL models, from the directory
-/app. There, the client expects a Git checkout which then an online LLM can
-offer to "help to modify". All through using the aider program as client. And
-running more or isolated from the user OS, through cgroups.
-
-As each session thus accumulates a context, all the input to the model starts to
-eat at a token quota. Some services may be free, most require an account with
-active pay-for-service plan. Aider can use Ollama API endpoints to run local LLM
-models (if sufficient RAM and CPU or GPU capacity is available).
-
-The ~ scripts use /work to mount PWD, as a better semantic match. It also
-prepares non-PWD paths for the container. And specify wether any of those have
-write access. I do not have any experience with these client programs, so this
-is all for experimenting with current interfaces.
-
-NOTE: HOME ie. ~/ also points to /app, and USER is appuser.
-TODO: have not taken any effort to try and create/rerun containers, current
-  setup starts a new container from the local image and will need a new server
-  session
-FIXME: since aider seems to use PWD as writable temp the worktree
-  cannot be read-only
+docker_aider_man='Short cuts for docker commands to run Aider (terminal based
+LLM code assistant).
 '
 docker_aider_grp=( uc-docker )
 
 declare -gA \
 docker_aider_als=(
+
+  [aider+unsane]='aider+user --no-show-model-warnings'
+  [aider+user]=': Id usrtools_user-conf::docker-aider::_als::aider+user
+    [[ -d .local/user/data ]] || failerr "not in a basedir" || return;
+    \builtin command aider \
+       --no-show-release-notes --no-gitignore \
+       --no-auto-commits \
+       --no-dirty-commits \
+       --no-attribute-author \
+       --attribute-commit-message-author \
+       --input-history-file .local/user/data/input/aider.input.history \
+       --chat-history-file .local/user/data/chat/aider.chat.history.md \
+       --config $HOME/.local/share/dotfiles/etc/aider/aider.conf.yml'
+  [aider]='aider+user'
+
   # Main execution context (with echo of entire line to mark switch of context)
   [aider+docker]='aider+docker+env &&
-  echo "> docker run -it --rm ... paulgauthier/aider ${@@Q}" &&
-  docker run -it --rm \
-    "${uc_docker_volume_arg[@]}" \
-    "${uc_docker_env_arg[@]}" \
-    -e HOME=/work \
-    -w ${AIDER_BASEDIR:-/work} \
-    paulgauthier/aider'
+    echo "${C_CONTEXT-}> ${C_AUXILIARY-}docker run -it --rm ... ${DIM_GREEN-}${@@Q}${NORMAL-}" && aider+dustinwashington+latest'
 
+  [aider+dustinwashington+latest]='docker run -it --rm \
+      "${uc_docker_volume_arg[@]}" \
+      "${uc_docker_env_arg[@]}" \
+      -w /work \
+      -e BASEPROJECT=/project \
+      dustinwashington/aider-ce:latest \
+      --no-show-release-notes --no-gitignore'
+
+  [aider+paugauthier]='docker run -it --rm \
+      "${uc_docker_volume_arg[@]}" \
+      "${uc_docker_env_arg[@]}" \
+      -w /work \
+      -e HOME=/work \
+      -e BASEPROJECT=/project \
+      paulgauthier/aider-full:dev \
+     --no-show-release-notes --no-gitignore'
+
+  # Change docker entry point to get internal shell session
   [aider+docker+bash]='aider+docker+env &&
-  echo "> docker run -it --rm ... --entrypoint bash paulgauthier/aider ${@@Q}" &&
-  docker run -it --rm \
-    "${uc_docker_volume_arg[@]}" \
-    "${uc_docker_env_arg[@]}" \
-    -e HOME=/work \
-    -w ${AIDER_BASEDIR:-/work} \
-    --entrypoint bash \
-    paulgauthier/aider'
+    echo "${C_CONTEXT-}> ${C_AUXILIARY-}docker run -it --rm ... --entrypoint bash paulgauthier/aider ${DIM_GREEN-}${@@Q}${NORMAL-}" &&
+    docker run -it --rm \
+      "${uc_docker_volume_arg[@]}" \
+      "${uc_docker_env_arg[@]}" \
+      -w /work \
+      -e HOME=/work \
+      -e BASEPROJECT=/project \
+      --entrypoint bash \
+      paulgauthier/aider-full:dev'
 
+  # Might want to experiment with this, but chat-aider-task is better setup to
+  # deal with different Git scenarios.
   #[aider+docker+nogit]='aider+docker --no-git'
 
   # Main alias, with all current user settings and parameters applied
   [aider+docker+user]='aider+docker \
-    --no-show-release-notes --no-gitignore \
+     --no-show-release-notes --no-gitignore \
      --input-history-file .meta/stat/index/aider.input.history \
      --chat-history-file .meta/stat/index/aider.chat.history.md \
      --config /tmp/aider.conf.yml'
-  [aider]='aider+docker+user'
 
   # Keep model variable, for manual selection. (Listing all still requires partial name argument.)
   [aider+list]='aider --list-models'
@@ -77,7 +83,6 @@ docker_aider_als=(
   [aider.copilot+gpt-4]='aider --model github_copilot/gpt-4'
   [aider.copilot+gpt-5-mini]='aider --model github_copilot/gpt-5-mini'
   [aider.copilot+gpt-4o-mini]='aider --model github_copilot/gpt-4o-mini'
-
 )
 
 declare -gA \
@@ -102,28 +107,40 @@ docker_aider_ssc=(
         [[ -f "$x" ]] ||
           failerr "E$? required path is not a file: ${x@Q}" || return
       } || {
+        # NOTE: required file formats must accept nix-style line comments
         > "$x" cat <<EOM
-
-# Generated placeholder file at $(date --iso=ns)
+# Generated as generic stand-in for file ${x@Q} by aider+docker+env at $(date --iso=ns)
 EOM
       } ||
         failerr "E$? touching required file ${x@Q}" || return
     done; unset x;
 
-    > .gitconfig cat <<EOM
+    # Concatenate ./.gitconfig
+    # NOTE: stuff like this works bc in the container, /app is $HOME is $PWD.
+    # This should not confuse the host/users Git, but it does need to be cleaned
+    # up and/or hidden.
+    if [[ ! -e .gitconfig ]]; then
+      > .gitconfig cat <<EOM
 
 [safe]
   directory = /work
 EOM
-    >> .gitconfig cat "$HOME/.gitconfig-user"
+      >> .gitconfig cat "$HOME/.gitconfig-user"
+    fi
+
+    declare -gA uc_docker_volume_map uc_docker_hostpath_flag
 
     uc_docker_volume_map+=(
-      [/work]="$PWD"
+      [/work]="${PWD:?}"
+      #[/work]="${AIDER_WORKTREE:?}"
+      #[/project]="${AIDER_BASEDIR:?}"
       [/tmp/aider.conf.yml]="$(realpath $HOME/.local/etc/aider/aider.conf.yml)"
     )
     # all mounts should be read-only implicitly unless other flag is set here
     uc_docker_hostpath_flag+=(
-      ["$PWD"]=rw
+      ["${PWD:?}"]=rw
+      #["${AIDER_WORKTREE:?}"]=rw
+      #["${AIDER_BASEDIR:?}"]=ro
     )
     # TODO: assemble from env file keys
     uc_docker_env_arg=(
@@ -136,22 +153,33 @@ EOM
     User-Conf.Docker.generate-volume-args uc_docker_volume_{map,arg}
   }'
 
-  [aider+with-task]=\
-'  local task=${1} aider=${2} file
-  local -n AIDER_TASK='\''aider_task["$task"]'\''
-  local -n AIDER_BASEDIR='\''aider_basedir["$task"]'\''
-  local -n read_files='\''aider_read_files["$task"]'\''
+  [aider+with-task]='
+  local taskid=${1:?} file
+  local -n AIDER_TASK='\''chat_aider_task["$taskid"]'\''
+  if [[ ! ${AIDER_TASK:+set} ]]; then
+    failerr "No such task" || return
+  fi
+  local -n AIDER_BASEDIR='\''chat_aider_task_basedir["$taskid"]'\''
+  local -n AIDER_WORKTREE='\''chat_aider_task_worktree["$taskid"]'\''
+  local -n rw_files='\''chat_aider_task_edit_files["$taskid"]'\''
+  local -n ro_files='\''chat_aider_task_read_files["$taskid"]'\''
   local -a argv
+  [[ ! ${rw_files:+set} ]] ||
+  while read -r file
+  do
+    argv+=( --file "${file}" )
+  done < <(echo "${rw_files}")
+  [[ ! ${ro_files:+set} ]] ||
   while read -r file
   do
     argv+=( --read "${file}" )
-  done < <(echo "${read_files}")
-
-  [[ ${AIDER_TASK:+set} ]] && {
-    "$aider" "${argv[@]}" --message "$AIDER_TASK"
-    return
-  } ||
-    "$aider" "${argv[@]}" "${@:3}"'
+  done < <(echo "${ro_files}")
+  if ((DEBUG)); then
+    declare -p argv | str_prefix "${DARKGREY}  $FUNCNAME: "
+  fi
+  ((QUIET)) ||
+  echo "${C_AUXILIARY-}Starting task ${taskid@Q} ${C_SECONDARY-}aider+user ${DARKGREY-}${*@Q}...${NORMAL-}"
+  aider+user "${argv[@]}" --message "$AIDER_TASK" "${@:2}"'
 )
 
 # Id: aider,docker                               vim:set ft=bash sw=2 sts=2 et:

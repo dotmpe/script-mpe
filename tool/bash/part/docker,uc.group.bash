@@ -1,4 +1,4 @@
-# Copyright: (C) 2026 hari <hari@t470p>
+# Copyright: (C) hari <hari@t470p>
 #
 # .group.bash file, see User-Conf us-part for specification.
 #

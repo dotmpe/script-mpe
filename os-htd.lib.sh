@@ -1085,19 +1085,6 @@ sumcolumn () # (s) ~ <ColNr> [<Prefix>] [<Awk-Line-expr>]
       END { print "'"${2-"Total: "}"'"sum; }'
 }
 
-symlink_assert () # <Symlink-Path> <Target>
-{
-  test -d "$1" -a ! -h "$1" &&
-      set -- "$1" "$2" "$1/$(basename -- "$2")" || set -- "$1" "$2" "$1"
-  test -h "$3" && {
-    local target="$(readlink "$3")"
-    test "$target" = "$2" && return
-    rm "$3"
-  }
-  local v=; test $verbosity -lt 7 || v=v
-  ln -s$v "$2" "$3"
-}
-
 # Tell where a file is from (using extended attributes)
 wherefrom ()
 {

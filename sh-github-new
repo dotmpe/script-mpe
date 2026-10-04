@@ -1,0 +1,111 @@
+#!/bin/bash
+# gh-init-repo.sh — Create a new repo with MIT license
+
+set -eETuo pipefail
+shopt -s nullglob failglob extdebug
+IFS=$' \t\n'
+
+
+name="${1-}"
+desc="${2-}"
+
+if [[ -z "$name" ]]; then
+  echo "Usage: gh-init-repo.sh <name> [description]"
+  exit 1
+fi
+  
+repo_path=/src/vendor/github/${SRC_DOMAIN:=dotmpe}/${name}
+upstream=main
+current="/src/local/${name}${src_path_tag:-+${upstream:-dev}+current}"
+
+if [[ -d $repo_path.git ]]; then
+  echo "Project repository already exists"
+  exit 1
+fi
+
+echo "Creating repo: $name"
+if [[ -e .git ]]; then
+  prompt_choice "Use current worktree for project?"
+  gh repo create "$name" \
+    --public \
+    --source=. \
+    --remote=origin \
+    --push \
+    --description "$desc" || exit
+else
+  gh repo create "$name" \
+    --public \
+    --description "$desc"  || exit
+fi
+
+gh repo edit "dotmpe/$name" --enable-issues --enable-projects
+
+# Make local worktree
+if [[ ! -e .git ]]; then
+
+  git clone --bare "git@github.com:dotmpe/$name" "$repo_path.git" &&
+  #git clone "$repo_path" "$src_path_tag" ||
+  : || exit
+
+  if git -C "$repo_path.git" show-ref --verify --quiet "refs/heads/${upstream}"; then
+    # Branch already exists → just attach a worktree to it
+    git -C "$repo_path.git" worktree add "$current" "$upstream" ||
+      failerr "E$? attaching new ${current@Q} worktree to branch ${upstream@Q}" || exit
+  else
+    # Empty repo → create the branch and the worktree in one step
+    git -C "$repo_path.git" worktree add -b "$upstream" "$current" ||
+      failerr "E$? creating ${current@Q} worktree for branch ${upstream@Q}" || exit
+  fi
+  echo "Created worktree at ${current@Q} (branch ${upstream})"
+  cd "$current" || exit
+else
+
+  echo "Using current project..."
+fi
+
+if [[ ! -h ~/project/$name ]]; then
+  if [[ -d ~/project/$name ]]; then
+    echo "FIXME: ~/project/$name should be a symlink to /src/local"
+  else
+    ln -s "$current" ~/project/$name
+  fi
+fi
+
+if [[ ! -e ./LICENSE ]]; then
+  
+  echo "Adding license..."
+  YEAR=$(date +%Y)
+  cat > LICENSE << EOF
+MIT License
+
+Copyright (c) ${YEAR} .mpe  <me@dotmpe.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+EOF
+
+  cat > LICENSE.head << EOF
+
+Copyright (c) ${YEAR} .mpe  <me@dotmpe.com>
+
+Distributed under terms of the MIT license.
+EOF
+
+  git add LICENSE{,.head} &&
+  git commit -m "Add MIT license" &&
+  git push ||
+    exit
+fi
+
+echo "✓ Repo created: https://github.com/${SRC_DOMAIN:?}/$name"

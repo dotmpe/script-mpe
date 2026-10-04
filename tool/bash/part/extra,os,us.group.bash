@@ -35,7 +35,6 @@ us_os_extra_fun=(
   .local-lookup-list
   .first-status
   .script-table
-  .symlink-assert
   .tempfile
   .unique-{lines,paths}
   .with-local{,-noctx}
@@ -45,7 +44,6 @@ us_os_extra_als=(
   [assert_absolute]=.assert-absolute-path
   [assert_command]=.command-assert
   [assert_env]=.assert-env
-  [assert_symlink]=.symlink-assert
   [cwd.lookup-list]='.local-lookup-list $PWD'
   [line_count]=.count-lines
   [list_execs]=.commands-list
@@ -54,8 +52,9 @@ us_os_extra_als=(
   [list_sources]=PATH+leafs
   [list_path_sources]=.lookup-expand-leafs
   [list_sources]=PATH+leafs
-  [mkdirs]='>&2 mkdir -vp'
   [lookup.tree]='.lookup-expand-pathtree'
+  [mkdirs]='>&2 mkdir -vp'
+  [os_lookup]='.lookup-expand-safenames'
   ["PATH+execs"]='.lookup-expand-commands PATH'
   ["PATH+names"]='.lookup-expand-safenames PATH'
   ["PATH+lines"]='.lookup-list PATH'
@@ -80,7 +79,6 @@ us_os_extra_als=(
 }'\'''
   ["script.status"]='.script-status'
   ["script.loaded"]='.script-list'
-  [symlink_assert]=.symlink-assert
   ["SCRIPTPATH+names"]='.lookup-expand SCRIPTPATH'
   ["SCRIPTPATH+lines"]='.lookup-list SCRIPTPATH'
   ["SCRIPTPATH+leafs"]='.lookup-expand-leafs SCRIPTPATH'
@@ -395,45 +393,73 @@ User-Script.OS.x.lookup-expand-safe ()
 
 User-Script.OS.x.lookup-expand-safenames ()
 {
-: param ' ~ <Lookup-path-var> [<Output-var>] [<Find-filter-argv-var>]'
+: param ' ~ <Lookup-path> [<Output-var>] [<Find-filter>]'
 : about 'List names found through lookup'
 : extended 'Wrapper for find that iterates lookup path and print or assigns result'
 : extended 'Appends result list to string or array variable, or prints it if none is given'
-  local _bd _print=0 _arr _offset
+  local _print=0 _{arr,bd,map,offset,result}
   local -n _lookup=${1:?$FUNCNAME: Name expected for input variable, $ENV_CTX}
-  [[ ! ${2:+set} ]] && _print=1 || {
+  if [[ ! ${2:+set} ]]; then _print=1
+  else
     local -n _dest=${2:?$FUNCNAME:$1: Name expected for output variable, $ENV_CTX}
-    # XXX: cannot easily figure out var scope, so this name might be local...
+    # XXX: cannot easily figure out var scope, so this name might be local.
     local -n _vartype="us_shell_tspec[$2]"
-    User-Script.Shell.variable-type "$2" || return
-    case "${_vartype}" in -a ) _arr=1
-        [[ ${_dest[*]:+set} ]] && _offset=${#_dest[*]} || _offset=0
-      ;; * ) _arr=0 ;; esac
-  }
-  [[ ! ${3:+set} ]] &&
-    local -a _find_filter=( -maxdepth 1 -not -type d -printf '%P\n' ) ||
-    local -n _find_filter=${3:?}
+    User-Script.Shell.variable-type-cache "$2" ||
+      failerr "Getting variable type for ${2@Q}" || return
+    case "${_vartype}" in
+    ( -A ) _map=1 ;;
+    ( -a ) _arr=1
+        [[ ${_dest[*]:+set} ]] && _offset=${#_dest[*]} || _offset=0 ;;
+    ( -[-x] ) _arr=0 ;;
+    ( * ) failerr "Unrecognized variable declaration flag ${_vartype@Q}" || return
+    esac
+  fi
+  if [[ ! ${3:+set} ]]; then
+    local -a _find_filter=( -maxdepth 1 -not -type d -printf '%P\n' )
+  elif [[ ${3} != [!A-Za-z0-9_] ]]; then
+    local -a _find_filter=( -maxdepth 1 -not -type d -iname "$3" -printf '%P\n' )
+  else
+    local -n _ffvartype="us_shell_tspec[$3]"
+    User-Script.Shell.variable-type-cache "$3" ||
+      failerr "Getting variable type for ${3@Q}" || return
+    case "${_ffvartype}" in
+    ( -a ) local -n _find_filter=${3} ;;
+    ( * ) failerr "Unhandled find filter variable type ${_vartype@Q}" || return
+    esac
+  fi
   local -a _paths
   mapfile -t _paths <<< "${_lookup//:/$'\n'}" &&
   [[ ${_paths[*]:+set} ]] &&
   for _bd in "${_paths[@]}"
   do
+    if [[ ! -d "$_bd" ]]; then
+      continue
+    fi
     if_ok "$(find "$_bd" "${_find_filter[@]}")" &&
     test -n "$_" || continue
-    ((_print)) && echo "$_" || {
-      ((_arr)) && {
-        mapfile -O $_offset -t $2 <<< "$_" || return
-      } ||
-        # String concatenation uses newlines for separator
-        _dest=${_dest:+$_dest$'\n'}${_}
-    }
+    if ((_print)); then
+      echo "$_"
+    elif ((_map)); then
+      while read -r _result; do
+        if [[ ${_dest["${_result}"]:+set} ]]; then
+          continue
+        fi
+        _dest["${_result}"]=${_bd}
+      done <<< "$_"
+    elif ((_arr)); then
+      mapfile -O $_offset -t $2 <<< "$_" || return
+    else
+      #shellcheck disable=SC2178  # we're juggling with types here
+      # String concatenation uses newlines for separator
+      _dest=${_dest:+$_dest$'\n'}${_}
+    fi
   done
 }
 
 User-Script.OS.x.local-lookup-list ()
 {
-  : param '[<Path=PWD>] [<Dest>]'
-  : about 'Generate lookup sequence for path and all its directories'
+: param '[<Path=PWD>] [<Dest>]'
+: about 'Generate lookup sequence for path and all its directories'
   local path=${path:-$PWD} sub
   [[ ${2:+set} ]] &&
   local -n _us_os_lll=${2} || local _us_os_lll
@@ -448,8 +474,8 @@ User-Script.OS.x.local-lookup-list ()
 
 User-Script.OS.x.lookup-list ()
 {
-  : param '<Seq-var> [<Dest>]'
-  : about 'List lookup sequence string (ie. : colon separated) as lines'
+: param '<Seq-var> [<Dest>]'
+: about 'List lookup sequence string (ie. : colon separated) as lines'
   local -n _lookup=${1:?}
   local liststr="${_lookup//:/$'\n'}"
   (($#-1)) && {
@@ -495,36 +521,6 @@ User-Script.OS.x.script-table ()
   done
 }
 
-User-Script.OS.x.symlink-assert ()
-{
-: about 'Assert symbolic link exists for destination, update if possible'
-: param '~ <Symlink-Path> <Target>'
-  local path="${1:?Symlink path}"
-  local dest="${2:?Symlink target path}"
-  local curdest vflag
-
-  # Easy reference to identical named target in other directory
-  if [[ -d "${path}" && ! -h "${path}" ]]
-  then path="${path}/${dest##*/}"
-  fi
-  if [[ $path != */* ]]
-  then
-    path=./$path
-  fi
-  if [[ -h $path ]]
-  then
-    curdest="$(readlink "$path")"
-    [[ $curdest = "${dest}" ]] && return
-    : "${path%/*}"
-    [[ -w ${_:-$PWD} ]] ||
-      failerr "Basedir not writable: ${path@Q}" || return
-    rm "$path" || return
-  fi
-  # XXX: debug level verbosity
-  [[ ${verbosity:-5} -lt 7 ]] || vflag=v
-  >&2 ln -s${vflag-} "${dest}" "${path}"
-}
-
 User-Script.OS.x.tempfile ()
 {
 : param '~ <Variable> [<Template>] [<Suffix>] ...'
@@ -546,6 +542,7 @@ User-Script.OS.x.unique-lines ()
   rm "$_tmpfile"
 }
 
+# XXX: this is an array map/apply for realpath, nothing more
 User-Script.OS.x.unique-paths ()
 {
 : about 'List arguments as is but filter duplicate realpaths'
@@ -560,6 +557,8 @@ User-Script.OS.x.unique-paths ()
     echo "$path"
   done
 }
+
+# FIXME: this belongs more to uc-shctx or something
 
 User-Script.OS.x.with-local ()
 {

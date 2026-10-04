@@ -25,8 +25,9 @@ case "$(trap)" in * ERR * ) ;;
     ansi_uc_lib__init
   #}
 
-  . ${U_C:=/srv/project-local/user-conf-dev}/script/bash-uc.lib.sh
-  trap bash_uc_errexit ERR
+  # FIXME: deprecate all this
+  #. ${U_C:=/srv/project-local/user-conf-dev}/script/bash-uc.lib.sh
+  #trap bash_uc_errexit ERR
 
   #test ${debug_exit_off:-${quiet-0}} -eq 1 || trap sh_debug_exit EXIT
 esac
