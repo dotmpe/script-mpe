@@ -984,7 +984,9 @@ user_script_load () # (y*) ~ <Actions...>
         if_ok "$(user_script_bases | tac)" || return
         for base in $_
         do
-          >&2 declare -p base
+          { ((QUIET)) || ! ((DEBUG))
+          } ||
+            >&2 declare -p base
           : "${base//[:.-]/_}__libs"
           test -z "${!_-}" || {
             us_node_libs["$base"]=${_//,/ }
