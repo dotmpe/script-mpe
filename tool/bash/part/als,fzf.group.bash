@@ -13,7 +13,7 @@ fzf_als_fun=(
 >&2 echo "TODO: convert fzf-als to group"
 
 #[ -n "${fzf_lib_load-}" ] || lib_require fzf
-[ -n "${fzf_lib_load-}" ] || . ${US_BIN:?}/fzf.lib.sh
+[ -n "${fzf_lib_load-}" ] || . ${US_BIN:?}/src/bash/lib/fzf.lib.sh
 
 #alias vf=fzf-edit-preview
 alias vf='fork=false fzf_edit_preview'

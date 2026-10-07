@@ -219,3 +219,4 @@ zope.component==7.0
 zope.event==6.0
 zope.hookable==8.0
 zope.interface==8.0.1
+# ex:ft=requirements:

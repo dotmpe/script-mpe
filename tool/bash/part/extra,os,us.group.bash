@@ -79,9 +79,14 @@ us_os_extra_als=(
 }'\'''
   ["script.status"]='.script-status'
   ["script.loaded"]='.script-list'
+  ["SCRIPTPATH+execs"]='.lookup-expand-commands SCRIPTPATH'
   ["SCRIPTPATH+names"]='.lookup-expand SCRIPTPATH'
   ["SCRIPTPATH+lines"]='.lookup-list SCRIPTPATH'
   ["SCRIPTPATH+leafs"]='.lookup-expand-leafs SCRIPTPATH'
+  ["UC_LIB_PATH+execs"]='.lookup-expand-commands UC_LIB_PATH'
+  ["UC_LIB_PATH+names"]='.lookup-expand-safenames UC_LIB_PATH'
+  ["UC_LIB_PATH+lines"]='.lookup-list UC_LIB_PATH'
+  ["UC_LIB_PATH+leafs"]='.lookup-expand-leafs UC_LIB_PATH'
   [us_count_lines]=.count-lines
   [with_local]=.with-local
   [with_local_noctx]=.with-local-noctx
